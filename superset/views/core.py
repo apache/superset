@@ -983,14 +983,11 @@ class Superset(BaseSupersetView):
         if request.args.get("query") == "true":
             try:
                 query_obj = viz_obj.query_obj()
-                engine = viz_obj.datasource.database.get_sqla_engine() \
-                    if datasource_type == 'table' \
-                    else viz_obj.datasource.cluster.get_pydruid_client()
                 if datasource_type == 'druid':
                     # only retrive first phase query for druid
                     query_obj['phase'] = 1
                 query = viz_obj.datasource.get_query_str(
-                    engine, datetime.now(), **query_obj)
+                    datetime.now(), **query_obj)
             except Exception as e:
                 return json_error_response(e)
             return Response(
@@ -1128,33 +1125,17 @@ class Superset(BaseSupersetView):
         :return:
         """
         # TODO: Cache endpoint by user, datasource and column
-        error_redirect = '/slicemodelview/list/'
         datasource_class = ConnectorRegistry.sources[datasource_type]
-
         datasource = db.session.query(
             datasource_class).filter_by(id=datasource_id).first()
 
         if not datasource:
-            flash(DATASOURCE_MISSING_ERR, "alert")
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not self.datasource_access(datasource):
-            flash(get_datasource_access_error_msg(datasource.name), "danger")
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        viz_type = request.args.get("viz_type")
-        if not viz_type and datasource.default_endpoint:
-            return redirect(datasource.default_endpoint)
-        if not viz_type:
-            viz_type = "table"
-        try:
-            obj = viz.viz_types[viz_type](
-                datasource,
-                form_data=request.args,
-                slice_=None)
-        except Exception as e:
-            flash(str(e), "danger")
-            return redirect(error_redirect)
-        return json_success(obj.get_values_for_column(column))
+        payload = json.dumps(datasource.values_for_column(column))
+        return json_success(payload)
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_overwrite_perm,
@@ -1233,11 +1214,8 @@ class Superset(BaseSupersetView):
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
-        views = sys.modules[__name__]
-        model_view_cls = getattr(views, model_view)
-        model = model_view_cls.datamodel.obj
-
-        obj = db.session.query(model).filter_by(id=id_).first()
+        Col = ConnectorRegistry.sources['table'].column_cls
+        obj = db.session.query(Col).filter_by(id=id_).first()
         if obj:
             setattr(obj, attr, value == 'true')
             db.session.commit()
@@ -1800,6 +1778,7 @@ class Superset(BaseSupersetView):
                 filterable=is_dim,
                 groupby=is_dim,
                 is_dttm=config.get('is_date', False),
+                type=config.get('type', False),
             )
             cols.append(col)
             if is_dim:
@@ -2103,7 +2082,6 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
         return json_success(json.dumps(datasource.data))
 
-    @has_access
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
         """Get the updated queries."""

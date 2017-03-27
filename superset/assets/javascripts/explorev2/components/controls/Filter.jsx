@@ -4,8 +4,22 @@ import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
 
-const arrayFilterOps = ['in', 'not in'];
-const strFilterOps = ['==', '!=', '>', '<', '>=', '<=', 'regex'];
+const operatorsArr = [
+  { val: 'in', type: 'array', useSelect: true, multi: true },
+  { val: 'not in', type: 'array', useSelect: true, multi: true },
+  { val: '==', type: 'string', useSelect: true, multi: false },
+  { val: '!=', type: 'string', useSelect: true, multi: false },
+  { val: '>=', type: 'string' },
+  { val: '<=', type: 'string' },
+  { val: '>', type: 'string' },
+  { val: '<', type: 'string' },
+  { val: 'regex', type: 'string', datasourceTypes: ['druid'] },
+  { val: 'LIKE', type: 'string', datasourceTypes: ['table'] },
+];
+const operators = {};
+operatorsArr.forEach(op => {
+  operators[op.val] = op;
+});
 
 const propTypes = {
   choices: PropTypes.array,
@@ -13,11 +27,9 @@ const propTypes = {
   removeFilter: PropTypes.func,
   filter: PropTypes.object.isRequired,
   datasource: PropTypes.object,
-  having: PropTypes.bool,
 };
 
 const defaultProps = {
-  having: false,
   changeFilter: () => {},
   removeFilter: () => {},
   choices: [],
@@ -27,102 +39,91 @@ const defaultProps = {
 export default class Filter extends React.Component {
   constructor(props) {
     super(props);
-    const filterOps = props.datasource.type === 'table' ?
-      ['in', 'not in'] : ['==', '!=', 'in', 'not in', 'regex'];
-    this.opChoices = this.props.having ? ['==', '!=', '>', '<', '>=', '<=']
-      : filterOps;
+    this.state = {
+      valuesLoading: false,
+    };
+  }
+  componentDidMount() {
+    this.fetchFilterValues(this.props.filter.col);
   }
   fetchFilterValues(col) {
-    if (!this.props.datasource) {
-      return;
-    }
     const datasource = this.props.datasource;
-    let choices = [];
-    if (col) {
+    if (col && this.props.datasource && this.props.datasource.filter_select) {
+      this.setState({ valuesLoading: true });
       $.ajax({
         type: 'GET',
         url: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
         success: (data) => {
-          choices = Object.keys(data).map((k) =>
-            ([`'${data[k]}'`, `'${data[k]}'`]));
-          this.props.changeFilter('choices', choices);
+          this.props.changeFilter('choices', data);
+          this.setState({ valuesLoading: false });
         },
       });
     }
   }
-  switchFilterValue(prevFilter, nextOp) {
-    const prevOp = prevFilter.op;
-    let newVal = null;
-    if (arrayFilterOps.indexOf(prevOp) !== -1
-        && strFilterOps.indexOf(nextOp) !== -1) {
+  switchFilterValue(prevOp, nextOp) {
+    if (operators[prevOp].type !== operators[nextOp].type) {
+      const val = this.props.filter.value;
+      let newVal;
       // switch from array to string
-      newVal = this.props.filter.val.length > 0 ? this.props.filter.val[0] : '';
-    }
-    if (strFilterOps.indexOf(prevOp) !== -1
-        && arrayFilterOps.indexOf(nextOp) !== -1) {
-      // switch from string to array
-      newVal = this.props.filter.val === '' ? [] : [this.props.filter.val];
-    }
-    return newVal;
-  }
-  changeFilter(control, event) {
-    let value = event;
-    if (event && event.target) {
-      value = event.target.value;
-    }
-    if (event && event.value) {
-      value = event.value;
-    }
-    if (control === 'op') {
-      const newVal = this.switchFilterValue(this.props.filter, value);
-      if (newVal) {
-        this.props.changeFilter(['op', 'val'], [value, newVal]);
-      } else {
-        this.props.changeFilter(control, value);
+      if (operators[nextOp].type === 'string' && val && val.length > 0) {
+        newVal = val[0];
+      } else if (operators[nextOp].type === 'string' && val) {
+        newVal = [val];
       }
-    } else {
-      this.props.changeFilter(control, value);
+      this.props.changeFilter('val', newVal);
     }
-    if (control === 'col' && value !== null && this.props.datasource.filter_select) {
-      this.fetchFilterValues(value);
-    }
+  }
+  changeText(event) {
+    this.props.changeFilter('val', event.target.value);
+  }
+  changeSelect(value) {
+    this.props.changeFilter('val', value);
+  }
+  changeColumn(event) {
+    this.props.changeFilter('col', event.value);
+    this.fetchFilterValues(event.value);
+  }
+  changeOp(event) {
+    this.switchFilterValue(this.props.filter.op, event.value);
+    this.props.changeFilter('op', event.value);
   }
   removeFilter(filter) {
     this.props.removeFilter(filter);
   }
   renderFilterFormControl(filter) {
-    const datasource = this.props.datasource;
-    if (datasource && datasource.filter_select) {
-      if (!filter.choices) {
-        this.fetchFilterValues(filter.col);
-      }
-    }
-    // switching filter value between array/string when needed
-    if (strFilterOps.indexOf(filter.op) !== -1) {
-      // druid having filter or regex/==/!= filters
+    const operator = operators[filter.op];
+    if (operator.useSelect) {
       return (
-        <input
-          type="text"
-          onChange={this.changeFilter.bind(this, 'val')}
+        <SelectControl
+          multi={operator.multi}
+          freeForm
+          name="filter-value"
           value={filter.val}
-          className="form-control input-sm"
-          placeholder="Filter value"
+          isLoading={this.state.valuesLoading}
+          choices={filter.choices}
+          onChange={this.changeSelect.bind(this)}
         />
       );
     }
     return (
-      <SelectControl
-        multi
-        freeForm
-        name="filter-value"
+      <input
+        type="text"
+        onChange={this.changeText.bind(this)}
         value={filter.val}
-        choices={filter.choices || []}
-        onChange={this.changeFilter.bind(this, 'val')}
+        className="form-control input-sm"
+        placeholder="Filter value"
       />
     );
   }
   render() {
+    const datasource = this.props.datasource;
     const filter = this.props.filter;
+    const opsChoices = operatorsArr
+    .filter(o => !o.datasourceTypes || o.datasourceTypes.indexOf(datasource.type) >= 0)
+    .map(o => ({ value: o.val, label: o.val }));
+    const colChoices = datasource ?
+      datasource.filterable_cols.map(c => ({ value: c[0], label: c[1] })) :
+      null;
     return (
       <div>
         <Row className="space-1">
@@ -130,9 +131,10 @@ export default class Filter extends React.Component {
             <Select
               id="select-col"
               placeholder="Select column"
-              options={this.props.choices.map((c) => ({ value: c[0], label: c[1] }))}
+              clearable={false}
+              options={colChoices}
               value={filter.col}
-              onChange={this.changeFilter.bind(this, 'col')}
+              onChange={this.changeColumn.bind(this)}
             />
           </Col>
         </Row>
@@ -141,9 +143,10 @@ export default class Filter extends React.Component {
             <Select
               id="select-op"
               placeholder="Select operator"
-              options={this.opChoices.map((o) => ({ value: o, label: o }))}
+              options={opsChoices}
+              clearable={false}
               value={filter.op}
-              onChange={this.changeFilter.bind(this, 'op')}
+              onChange={this.changeOp.bind(this)}
             />
           </Col>
           <Col md={7}>

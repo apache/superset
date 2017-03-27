@@ -91,3 +91,31 @@
 @import "../../node_modules/react-select/less/mixins.less";
 @import "../../node_modules/react-select/less/multi.less";
 @import "../../node_modules/react-select/less/spinner.less";
+@import "../../node_modules/react-virtualized/styles.css";
+
+// importing css from "../../node_modules/react-virtualized-select/styles.css";
+// so the background color of a selected option matches the other selects
+.VirtualSelectGrid {
+  z-index: 1;
+}
+.VirtualizedSelectOption {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  padding: 0 .5rem;
+}
+.VirtualizedSelectFocusedOption {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+.VirtualizedSelectFocusedOption:hover {
+  cursor: pointer;
+}
+.VirtualizedSelectDisabledOption {
+  opacity: 0.5;
+}
+.VirtualizedSelectSelectedOption {
+  font-weight: bold;
+}

@@ -114,7 +114,7 @@ class TableColumn(Model, BaseColumn):
             return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
             s = self.table.database.db_engine_spec.convert_dttm(
-                self.type, dttm)
+                self.type or '', dttm)
             return s or "'{}'".format(dttm.strftime(tf))
 
 
@@ -172,6 +172,7 @@ class SqlaTable(Model, BaseDatasource):
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     is_featured = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=False)
+    fetch_values_predicate = Column(String(1000))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='tables', foreign_keys=[user_id])
     database = relationship(
@@ -285,33 +286,25 @@ class SqlaTable(Model, BaseDatasource):
             if col_name == col.column_name:
                 return col
 
-    def values_for_column(self,
-                          column_name,
-                          from_dttm,
-                          to_dttm,
-                          limit=500):
+    def values_for_column(self, column_name, limit=10000):
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
-        granularity = self.main_dttm_col
-
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name]
 
         tbl = table(self.table_name)
-        qry = sa.select([target_col.sqla_col])
-        qry = qry.select_from(tbl)
-        qry = qry.distinct(column_name)
-        qry = qry.limit(limit)
+        qry = (
+            select([target_col.sqla_col])
+            .select_from(tbl)
+            .distinct(column_name)
+        )
+        if limit:
+            qry = qry.limit(limit)
 
-        if granularity:
-            dttm_col = cols[granularity]
-            timestamp = dttm_col.sqla_col.label('timestamp')
-            time_filter = [
-                timestamp >= text(dttm_col.dttm_sql_literal(from_dttm)),
-                timestamp <= text(dttm_col.dttm_sql_literal(to_dttm)),
-            ]
-            qry = qry.where(and_(*time_filter))
+        if self.fetch_values_predicate:
+            tp = self.get_template_processor()
+            qry = qry.where(tp.process_template(self.fetch_values_predicate))
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
@@ -319,13 +312,26 @@ class SqlaTable(Model, BaseDatasource):
                 engine, compile_kwargs={"literal_binds": True}, ),
         )
 
-        return pd.read_sql_query(
+        df = pd.read_sql_query(
             sql=sql,
             con=engine
         )
+        return [row[0] for row in df.to_records(index=False)]
 
-    def get_query_str(  # sqla
-            self, engine, qry_start_dttm,
+    def get_template_processor(self, **kwargs):
+        return get_template_processor(
+            table=self, database=self.database, **kwargs)
+
+    def get_query_str(self, **kwargs):
+        qry = self.get_sqla_query(**kwargs)
+        sql = str(qry.compile(kwargs['engine']))
+        logging.info(sql)
+        sql = sqlparse.format(sql, reindent=True)
+        sql = self.database.db_engine_spec.sql_preprocessor(sql)
+        return sql
+
+    def get_sqla_query(  # sqla
+            self,
             groupby, metrics,
             granularity,
             from_dttm, to_dttm,
@@ -340,6 +346,7 @@ class SqlaTable(Model, BaseDatasource):
             extras=None,
             columns=None):
         """Querying any sqla table from this common interface"""
+
         template_kwargs = {
             'from_dttm': from_dttm,
             'groupby': groupby,
@@ -347,8 +354,7 @@ class SqlaTable(Model, BaseDatasource):
             'row_limit': row_limit,
             'to_dttm': to_dttm,
         }
-        template_processor = get_template_processor(
-            table=self, database=self.database, **template_kwargs)
+        template_processor = self.get_template_processor(**template_kwargs)
 
         # For backward compatibility
         if granularity not in self.dttm_cols:
@@ -452,14 +458,29 @@ class SqlaTable(Model, BaseDatasource):
             op = flt['op']
             eq = flt['val']
             col_obj = cols.get(col)
-            if col_obj and op in ('in', 'not in'):
-                values = [types.strip("'").strip('"') for types in eq]
-                if col_obj.is_num:
-                    values = [utils.js_string_to_num(s) for s in values]
-                cond = col_obj.sqla_col.in_(values)
-                if op == 'not in':
-                    cond = ~cond
-                where_clause_and.append(cond)
+            if col_obj:
+                if op in ('in', 'not in'):
+                    values = [types.strip("'").strip('"') for types in eq]
+                    if col_obj.is_num:
+                        values = [utils.js_string_to_num(s) for s in values]
+                    cond = col_obj.sqla_col.in_(values)
+                    if op == 'not in':
+                        cond = ~cond
+                    where_clause_and.append(cond)
+                elif op == '==':
+                    where_clause_and.append(col_obj.sqla_col == eq)
+                elif op == '!=':
+                    where_clause_and.append(col_obj.sqla_col != eq)
+                elif op == '>':
+                    where_clause_and.append(col_obj.sqla_col > eq)
+                elif op == '<':
+                    where_clause_and.append(col_obj.sqla_col < eq)
+                elif op == '>=':
+                    where_clause_and.append(col_obj.sqla_col >= eq)
+                elif op == '<=':
+                    where_clause_and.append(col_obj.sqla_col <= eq)
+                elif op == 'LIKE':
+                    where_clause_and.append(col_obj.sqla_col.like(eq))
         if extras:
             where = extras.get('where')
             if where:
@@ -509,25 +530,18 @@ class SqlaTable(Model, BaseDatasource):
 
             tbl = tbl.join(subq.alias(), and_(*on_clause))
 
-        qry = qry.select_from(tbl)
-
-        sql = "{}".format(
-            qry.compile(
-                engine, compile_kwargs={"literal_binds": True},),
-        )
-        logging.info(sql)
-        sql = sqlparse.format(sql, reindent=True)
-        return sql
+        return qry.select_from(tbl)
 
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         engine = self.database.get_sqla_engine()
-        sql = self.get_query_str(engine, qry_start_dttm, **query_obj)
+        qry = self.get_sqla_query(**query_obj)
+        sql = str(qry)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
         try:
-            df = pd.read_sql_query(sql, con=engine)
+            df = pd.read_sql_query(qry, con=engine)
         except Exception as e:
             status = QueryStatus.FAILED
             error_message = str(e)

@@ -47,30 +47,39 @@ export default class SelectControl extends React.PureComponent {
     this.props.onChange(optionValue);
   }
   getOptions(props) {
-    const options = props.choices.map((c) => {
-      const label = c.length > 1 ? c[1] : c[0];
-      const newOptions = {
-        value: c[0],
-        label,
-      };
-      if (c[2]) newOptions.imgSrc = c[2];
-      return newOptions;
+    // Accepts different formats of input
+    const options = props.choices.map(c => {
+      let option;
+      if (Array.isArray(c)) {
+        const label = c.length > 1 ? c[1] : c[0];
+        option = {
+          value: c[0],
+          label,
+        };
+        if (c[2]) option.imgSrc = c[2];
+      } else if (Object.is(c)) {
+        option = c;
+      } else {
+        option = {
+          value: c,
+          label: c,
+        };
+      }
+      return option;
     });
     if (props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
-      const values = props.choices.map((c) => c[0]);
+      const values = options.map(c => c.value);
       if (props.value) {
-        if (typeof props.value === 'object') {
-          props.value.forEach((v) => {
-            if (values.indexOf(v) === -1) {
-              options.push({ value: v, label: v });
-            }
-          });
-        } else {
-          if (values.indexOf(props.value) === -1) {
-            options.push({ value: props.value, label: props.value });
-          }
+        let valuesToAdd = props.value;
+        if (!Array.isArray(valuesToAdd)) {
+          valuesToAdd = [valuesToAdd];
         }
+        valuesToAdd.forEach(v => {
+          if (values.indexOf(v) < 0) {
+            options.push({ value: v, label: v });
+          }
+        });
       }
     }
     return options;

@@ -136,7 +136,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
         'table_name', 'sql', 'is_featured', 'filter_select_enabled',
-        'database', 'schema',
+        'fetch_values_predicate', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     show_columns = edit_columns + ['perm']
@@ -155,6 +155,11 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'sql': _(
             "This fields acts a Superset view, meaning that Superset will "
             "run a query against this string as a subquery."
+        ),
+        'fetch_values_predicate': _(
+            "Predicate applied when fetching distinct value to "
+            "populate the filter control component. Supports "
+            "jinja template syntax."
         ),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]

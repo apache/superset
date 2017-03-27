@@ -237,7 +237,16 @@ div.tablePopover:hover {
     padding-bottom: 3px;
     padding-top: 3px;
 }
-
+.ResultSet {
+    overflow: auto;
+    border-bottom: 1px solid #ccc;
+}
+.ResultSet table {
+    margin-bottom: 0px;
+}
+.ResultSet table tr.last {
+    border-bottom: none;
+}
 .ace_editor {
   border: 1px solid #ccc;
   margin: 0px 0px 10px 0px;

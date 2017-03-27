@@ -4,14 +4,12 @@ import Filter from './Filter';
 
 const propTypes = {
   name: PropTypes.string,
-  choices: PropTypes.array,
   onChange: PropTypes.func,
   value: PropTypes.array,
   datasource: PropTypes.object,
 };
 
 const defaultProps = {
-  choices: [],
   onChange: () => {},
   value: [],
 };
@@ -19,8 +17,11 @@ const defaultProps = {
 export default class FilterControl extends React.Component {
   addFilter() {
     const newFilters = Object.assign([], this.props.value);
+    const col = this.props.datasource && this.props.datasource.filterable_cols.length > 0 ?
+      this.props.datasource.filterable_cols[0][0] :
+      null;
     newFilters.push({
-      col: null,
+      col,
       op: 'in',
       val: this.props.datasource.filter_select ? [] : '',
     });
@@ -43,22 +44,17 @@ export default class FilterControl extends React.Component {
     this.props.onChange(this.props.value.filter((f, i) => i !== index));
   }
   render() {
-    const filters = [];
-    this.props.value.forEach((filter, i) => {
-      const filterBox = (
-        <div key={i}>
-          <Filter
-            having={this.props.name === 'having_filters'}
-            filter={filter}
-            choices={this.props.choices}
-            datasource={this.props.datasource}
-            removeFilter={this.removeFilter.bind(this, i)}
-            changeFilter={this.changeFilter.bind(this, i)}
-          />
-        </div>
-      );
-      filters.push(filterBox);
-    });
+    const filters = this.props.value.map((filter, i) => (
+      <div key={i}>
+        <Filter
+          having={this.props.name === 'having_filters'}
+          filter={filter}
+          datasource={this.props.datasource}
+          removeFilter={this.removeFilter.bind(this, i)}
+          changeFilter={this.changeFilter.bind(this, i)}
+        />
+      </div>
+    ));
     return (
       <div>
         {filters}

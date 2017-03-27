@@ -17,6 +17,7 @@ const defaultProps = {
     id: 1,
     type: 'table',
     filter_select: false,
+    filterable_cols: ['country_name'],
   },
 };
 

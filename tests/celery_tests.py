@@ -9,6 +9,7 @@ import os
 import subprocess
 import time
 import unittest
+from past.builtins import basestring
 
 import pandas as pd
 
@@ -238,49 +239,65 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 
+    @staticmethod
+    def de_unicode_dict(d):
+        def str_if_basestring(o):
+            if isinstance(o, basestring):
+                return str(o)
+            return o
+        return {str_if_basestring(k): str_if_basestring(d[k]) for k in d}
+
+    @classmethod
+    def dictify_list_of_dicts(cls, l, k):
+        return {str(o[k]): cls.de_unicode_dict(o) for o in l}
+
     def test_get_columns(self):
         main_db = self.get_main_database(db.session)
         df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
         cdf = dataframe.SupersetDataFrame(df)
+
+        # Making ordering non-deterministic
+        cols = self.dictify_list_of_dicts(cdf.columns, 'name')
+
         if main_db.sqlalchemy_uri.startswith('sqlite'):
-            self.assertEqual(
-                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
-                  'is_dim': False},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'ds2',
-                  'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_ms', 'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_s', 'is_dim': False},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string1', 'is_dim': True},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string3', 'is_dim': True}]
-                , cdf.columns
+            self.assertEqual(self.dictify_list_of_dicts([
+                {'is_date': True, 'type': 'STRING', 'name': 'ds',
+                    'is_dim': False},
+                {'is_date': True, 'type': 'STRING', 'name': 'ds2',
+                    'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_ms', 'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_s', 'is_dim': False},
+                {'is_date': True, 'type': 'STRING', 'name': 'string0',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string1', 'is_dim': True},
+                {'is_date': True, 'type': 'STRING', 'name': 'string2',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string3', 'is_dim': True}], 'name')
+                , cols
             )
         else:
-            self.assertEqual(
-                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
-                  'is_dim': False},
-                 {'is_date': True, 'type': 'datetime64[ns]',
-                  'name': 'ds2', 'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_ms', 'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_s', 'is_dim': False},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string1', 'is_dim': True},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string3', 'is_dim': True}]
-                , cdf.columns
+            self.assertEqual(self.dictify_list_of_dicts([
+                {'is_date': True, 'type': 'DATETIME', 'name': 'ds',
+                    'is_dim': False},
+                {'is_date': True, 'type': 'DATETIME',
+                    'name': 'ds2', 'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_ms', 'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_s', 'is_dim': False},
+                {'is_date': True, 'type': 'STRING', 'name': 'string0',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string1', 'is_dim': True},
+                {'is_date': True, 'type': 'STRING', 'name': 'string2',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string3', 'is_dim': True}], 'name')
+                , cols
             )
 
 

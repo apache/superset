@@ -146,7 +146,8 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden', 'filter_select_enabled',
+        'is_featured', 'is_hidden',
+        'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     add_columns = edit_columns
     show_columns = add_columns + ['perm']
@@ -157,6 +158,9 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'description': Markup(
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
+        'fetch_values_from': _(
+            "Time expression to use as a predicate when retrieving "
+            "distinct values to populate the filter component"),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {

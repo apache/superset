@@ -34,6 +34,7 @@ class ResultSet extends React.PureComponent {
       searchText: '',
       showModal: false,
       data: [],
+      resultSetHeight: '0',
     };
   }
   componentWillReceiveProps(nextProps) {
@@ -49,6 +50,36 @@ class ResultSet extends React.PureComponent {
     if (nextProps.query.resultsKey
       && nextProps.query.resultsKey !== this.props.query.resultsKey) {
       this.fetchResults(nextProps.query);
+    }
+  }
+  componentWillMount() {
+    // hack to get height of result set table so it can be fixed and scroll in place
+    if (this.state.resultSetHeight === '0') {
+      // calculate result set table height
+
+      // document.getElementById('brace-editor').getBoundingClientRect().height;
+      const sqlEditorHeight = 192;
+
+      // document.getElementById('js-sql-toolbar').getBoundingClientRect().height;
+      const sqlToolbar = 30;
+
+      // document.getElementsByClassName('nav-tabs')[0].getBoundingClientRect().height * 2;
+      const tabsHeight = 88;
+
+      // document.getElementsByTagName('header')[0].getBoundingClientRect().height;
+      const headerHeight = 59;
+
+      // this needs to be hardcoded since this element is in this component and has not mounted yet
+      const resultsControlsHeight = 30;
+
+      const sum =
+        sqlEditorHeight +
+        sqlToolbar +
+        tabsHeight +
+        resultsControlsHeight +
+        headerHeight;
+
+      this.setState({ resultSetHeight: window.innerHeight - sum - 95 });
     }
   }
   getControls() {
@@ -192,7 +223,7 @@ class ResultSet extends React.PureComponent {
             />
             {this.getControls.bind(this)()}
             {sql}
-            <div className="ResultSet">
+            <div className="ResultSet" style={{ height: `${this.state.resultSetHeight}px` }}>
               <Table
                 data={data.map(function (row) {
                   const newRow = {};
