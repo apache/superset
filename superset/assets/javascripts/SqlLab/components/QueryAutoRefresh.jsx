@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import * as Actions from '../actions';
 
 const $ = require('jquery');
-const QUERY_UPDATE_FREQ = 1000;
+const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
 
 class QueryAutoRefresh extends React.PureComponent {
