@@ -1,7 +1,10 @@
+from datetime import datetime
+import logging
+
 import sqlalchemy as sqla
 
-from flask import Markup
-from flask_appbuilder import CompactCRUDMixin
+from flask import Markup, flash, redirect
+from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from flask_babel import lazy_gettext as _
@@ -9,6 +12,9 @@ from flask_babel import gettext as __
 
 import superset
 from superset import db, utils, appbuilder, sm, security
+from superset.connectors.connector_registry import ConnectorRegistry
+from superset.utils import has_access
+from superset.views.base import BaseSupersetView
 from superset.views.base import (
     SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
     DatasourceFilter, get_datasource_exist_error_mgs)
@@ -205,3 +211,46 @@ appbuilder.add_view(
     category="Sources",
     category_label=__("Sources"),
     icon="fa-cube")
+
+
+class Druid(BaseSupersetView):
+    """The base views for Superset!"""
+
+    @has_access
+    @expose("/refresh_datasources/")
+    def refresh_datasources(self):
+        """endpoint that refreshes druid datasources metadata"""
+        session = db.session()
+        DruidCluster = ConnectorRegistry.sources['druid'].cluster_class
+        for cluster in session.query(DruidCluster).all():
+            cluster_name = cluster.cluster_name
+            try:
+                cluster.refresh_datasources()
+            except Exception as e:
+                flash(
+                    "Error while processing cluster '{}'\n{}".format(
+                        cluster_name, utils.error_msg_from_exception(e)),
+                    "danger")
+                logging.exception(e)
+                return redirect('/druidclustermodelview/list/')
+            cluster.metadata_last_refreshed = datetime.now()
+            flash(
+                "Refreshed metadata from cluster "
+                "[" + cluster.cluster_name + "]",
+                'info')
+        session.commit()
+        return redirect("/druiddatasourcemodelview/list/")
+
+appbuilder.add_view_no_menu(Druid)
+
+appbuilder.add_link(
+    "Refresh Druid Metadata",
+    label=__("Refresh Druid Metadata"),
+    href='/druid/refresh_datasources/',
+    category='Sources',
+    category_label=__("Sources"),
+    category_icon='fa-database',
+    icon="fa-cog")
+
+
+appbuilder.add_separator("Sources", )
