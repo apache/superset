@@ -65,7 +65,7 @@ ${this.props.queryEditor.schema}/${input}`;
   }
   // TODO: move fetching methods to the actions.
   fetchTables(dbId, schema, substr) {
-    if (dbId) {
+    if (dbId && schema) {
       this.setState({ tableLoading: true, tableOptions: [] });
       const url = `/superset/tables/${dbId}/${schema}/${substr}/`;
       $.get(url, (data) => {
@@ -75,6 +75,8 @@ ${this.props.queryEditor.schema}/${input}`;
           tableLength: data.tableLength,
         });
       });
+    } else {
+      this.setState({ tableLoading: false, tableOptions: [] });
     }
   }
   changeTable(tableOpt) {
