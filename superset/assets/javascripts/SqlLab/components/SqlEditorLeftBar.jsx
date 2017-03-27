@@ -1,6 +1,6 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-import { Label, Button } from 'react-bootstrap';
+import { Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 import AsyncSelect from '../../components/AsyncSelect';
 import Select from 'react-virtualized-select';

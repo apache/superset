@@ -17,13 +17,14 @@ class QueryAutoRefresh extends React.PureComponent {
   shouldCheckForQueries() {
     // if there are started or pending queries, this method should return true
     const { queries } = this.props;
-    const queryKeys  = Object.keys(queries);
-    const pendingOrStartedQueries = queryKeys.map((key) => {
+    const queryKeys = Object.keys(queries);
+    /* eslint consistent-return: 0 */
+    const pendingOrStartedQueries = queryKeys.forEach((key) => {
       if (queries[key].state === 'running' || queries[key].state === 'started') {
-        return key;
+        return true;
       }
     });
-    return pendingOrStartedQueries.filter(q => q !== undefined).length > 0;
+    return pendingOrStartedQueries;
   }
   startTimer() {
     if (!(this.timer)) {
@@ -35,9 +36,9 @@ class QueryAutoRefresh extends React.PureComponent {
     this.timer = null;
   }
   stopwatch() {
-    const url = '/superset/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
     // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
+      const url = '/superset/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
       $.getJSON(url, (data) => {
         if (Object.keys(data).length > 0) {
           this.props.actions.refreshQueries(data);
