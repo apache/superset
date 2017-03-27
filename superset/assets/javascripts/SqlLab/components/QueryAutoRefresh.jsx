@@ -14,6 +14,13 @@ class QueryAutoRefresh extends React.PureComponent {
   componentWillUnmount() {
     this.stopTimer();
   }
+  shouldCheckForQueries() {
+    // if there are started or running queries, this method should return true
+    const { queries } = this.props;
+    const queryKeys = Object.keys(queries);
+    const queriesAsArray = queryKeys.map(key => queries[key]);
+    return queriesAsArray.some(q => q.state === 'running' || q.state === 'started');
+  }
   startTimer() {
     if (!(this.timer)) {
       this.timer = setInterval(this.stopwatch.bind(this), QUERY_UPDATE_FREQ);
@@ -24,32 +31,29 @@ class QueryAutoRefresh extends React.PureComponent {
     this.timer = null;
   }
   stopwatch() {
-    const url = '/superset/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
-    // No updates in case of failure.
-    $.getJSON(url, (data) => {
-      if (Object.keys(data).length > 0) {
-        this.props.actions.refreshQueries(data);
-      }
-      this.props.actions.setNetworkStatus(true);
-    })
-    .fail(() => {
-      this.props.actions.setNetworkStatus(false);
-    });
+    // only poll /superset/queries/ if there are started or running queries
+    if (this.shouldCheckForQueries()) {
+      const url = '/superset/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
+      $.getJSON(url, (data) => {
+        if (Object.keys(data).length > 0) {
+          this.props.actions.refreshQueries(data);
+        }
+      });
+    }
   }
   render() {
     return null;
   }
 }
 QueryAutoRefresh.propTypes = {
-  actions: React.PropTypes.object,
-  queriesLastUpdate: React.PropTypes.number,
-};
-QueryAutoRefresh.defaultProps = {
-  // queries: null,
+  queries: React.PropTypes.object.isRequired,
+  actions: React.PropTypes.object.isRequired,
+  queriesLastUpdate: React.PropTypes.number.isRequired,
 };
 
 function mapStateToProps(state) {
   return {
+    queries: state.queries,
     queriesLastUpdate: state.queriesLastUpdate,
   };
 }
