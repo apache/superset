@@ -70,7 +70,6 @@ def load_energy():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
-    tbl.is_featured = True
     tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
@@ -179,7 +178,6 @@ def load_world_bank_health_n_pop():
         tbl = TBL(table_name=tbl_name)
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
-    tbl.is_featured = True
     tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
@@ -574,7 +572,6 @@ def load_birth_names():
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
     obj.database = get_or_create_main_db()
-    obj.is_featured = True
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -843,7 +840,6 @@ def load_unicode_test_data():
         obj = TBL(table_name='unicode_test')
     obj.main_dttm_col = 'date'
     obj.database = get_or_create_main_db()
-    obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -922,7 +918,6 @@ def load_random_time_series_data():
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
     obj.database = get_or_create_main_db()
-    obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -988,7 +983,6 @@ def load_long_lat_data():
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'date'
     obj.database = get_or_create_main_db()
-    obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1050,7 +1044,6 @@ def load_multiformat_time_series_data():
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
     obj.database = get_or_create_main_db()
-    obj.is_featured = False
     dttm_and_expr_dict = {
         'ds': [None, None],
         'ds2': [None, None],

@@ -338,7 +338,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
-        'cluster_name', 'is_featured', 'offset', 'cache_timeout', 'params'
+        'cluster_name', 'offset', 'cache_timeout', 'params'
     )
 
     @property

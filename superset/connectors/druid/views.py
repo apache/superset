@@ -152,7 +152,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden',
+        'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     add_columns = edit_columns
@@ -174,7 +174,6 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'cluster': _("Cluster"),
         'description': _("Description"),
         'owner': _("Owner"),
-        'is_featured': _("Is Featured"),
         'is_hidden': _("Is Hidden"),
         'filter_select_enabled': _("Enable Filter Select"),
         'default_endpoint': _("Default Endpoint"),
