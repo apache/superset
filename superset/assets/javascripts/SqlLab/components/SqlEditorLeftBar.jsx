@@ -1,10 +1,9 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
+import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 import AsyncSelect from '../../components/AsyncSelect';
-import Select from 'react-virtualized-select';
-import createFilterOptions from 'react-select-fast-filter-options';
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -60,8 +59,8 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (!this.props.queryEditor.dbId || !input) {
       return Promise.resolve({ options: [] });
     }
-    const url = `/superset/tables/${this.props.queryEditor.dbId}/` +
-                `${this.props.queryEditor.schema}/${input}`;
+    const url = `/superset/tables/${this.props.queryEditor.dbId}/\
+${this.props.queryEditor.schema}/${input}`;
     return $.get(url).then((data) => ({ options: data.options }));
   }
   // TODO: move fetching methods to the actions.
@@ -123,8 +122,6 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
   render() {
     const shouldShowReset = window.location.search === '?reset=1';
-    const options = this.state.tableOptions;
-    const filterOptions = createFilterOptions({ options });
     return (
       <div className="scrollbar-container">
         <div className="clearfix sql-toolbar scrollbar-content">
@@ -170,13 +167,11 @@ class SqlEditorLeftBar extends React.PureComponent {
                 placeholder={`Add a table (${this.state.tableOptions.length})`}
                 autosize={false}
                 onChange={this.changeTable.bind(this)}
-                filterOptions={filterOptions}
                 options={this.state.tableOptions}
               />
             }
             {!this.props.queryEditor.schema &&
-              <Select
-                async
+              <Select.Async
                 name="async-select-table"
                 ref="selectTable"
                 value={this.state.tableName}
