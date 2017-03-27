@@ -726,13 +726,13 @@ class DruidDatasource(Model, BaseDatasource):
             orderby=None,
             extras=None,  # noqa
             select=None,  # noqa
-            columns=None, phase=2):
+            columns=None, phase=2, client=None):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
         """
         # TODO refactor into using a TBD Query object
-        client = self.cluster.get_pydruid_client()
+        client = client or self.cluster.get_pydruid_client()
         if not is_timeseries:
             granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm
@@ -933,7 +933,7 @@ class DruidDatasource(Model, BaseDatasource):
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         client = self.cluster.get_pydruid_client()
-        query_str = self.get_query_str(**query_obj)
+        query_str = self.get_query_str(client=client, **query_obj)
         df = client.export_pandas()
 
         if df is None or df.size == 0:
