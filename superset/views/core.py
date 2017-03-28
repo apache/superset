@@ -1948,14 +1948,16 @@ class Superset(BaseSupersetView):
     @log_this
     def stop_query(self):
         client_id = request.form.get('client_id')
-        query = db.session.query(models.Query).filter_by(
-            client_id=client_id).one()
-        if query.user_id != g.user.id:
-            return json_error_response(
-                "Only original author can stop the query.")
-        query.status = utils.QueryStatus.STOPPED
-        db.session.commit()
-        return Response(201)
+        try:
+            query = (
+                db.session.query(models.Query)
+                .filter_by(client_id=client_id).one()
+            )
+            query.status = utils.QueryStatus.STOPPED
+            db.session.commit()
+        except Exception as e:
+            pass
+        return self.json_response('OK')
 
     @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
@@ -2003,18 +2005,33 @@ class Superset(BaseSupersetView):
             client_id=request.form.get('client_id'),
         )
         session.add(query)
-        session.commit()
+        session.flush()
         query_id = query.id
 
         # Async request.
         if async:
             # Ignore the celery future object and the request may time out.
-            sql_lab.get_sql_results.delay(
-                query_id, return_results=False,
-                store_results=not query.select_as_cta)
-            return json_success(json.dumps(
+            try:
+                sql_lab.get_sql_results.delay(
+                    query_id, return_results=False,
+                    store_results=not query.select_as_cta)
+            except Exception as e:
+                logging.exception(e)
+                msg = (
+                    "Failed to start remote query on worker. "
+                    "Tell your administrator to verify the availability of "
+                    "the message queue."
+                )
+                query.status = QueryStatus.FAILED
+                query.error_message = msg
+                session.commit()
+                return json_error_response("{}".format(msg))
+
+            resp = json_success(json.dumps(
                 {'query': query.to_dict()}, default=utils.json_int_dttm_ser,
                 allow_nan=False), status=202)
+            session.commit()
+            return resp
 
         # Sync request.
         try:
