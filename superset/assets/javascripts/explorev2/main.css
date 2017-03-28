@@ -31,6 +31,6 @@
   box-shadow: none;
 }
 
-.no-background {
-  background: none !important;
+.background-transparent {
+  background-color: transparent !important;
 }
