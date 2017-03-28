@@ -104,10 +104,15 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         handle_error(msg)
 
     query.executed_sql = executed_sql
-    logging.info("Running query: \n{}".format(executed_sql))
+    query.status = QueryStatus.RUNNING
+    query.start_running_time = utils.now_as_float()
+    session.merge(query)
+    session.flush()
+
     engine = database.get_sqla_engine(schema=query.schema)
     conn = engine.raw_connection()
     cursor = conn.cursor()
+    logging.info("Running query: \n{}".format(executed_sql))
     try:
         logging.info(query.executed_sql)
         cursor.execute(
@@ -117,10 +122,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         conn.close()
         handle_error(db_engine_spec.extract_error_message(e))
 
-    query.status = QueryStatus.RUNNING
-    query.start_running_time = utils.now_as_float()
-    session.merge(query)
-    session.commit()
     try:
         logging.info("Handling cursor")
         db_engine_spec.handle_cursor(cursor, query, session)
