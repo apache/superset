@@ -109,7 +109,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     conn = engine.raw_connection()
     cursor = conn.cursor()
     try:
-        print(query.executed_sql)
         logging.info(query.executed_sql)
         cursor.execute(
             query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
@@ -119,7 +118,9 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         handle_error(db_engine_spec.extract_error_message(e))
 
     query.status = QueryStatus.RUNNING
-    session.flush()
+    query.start_running_time = utils.now_as_float()
+    session.merge(query)
+    session.commit()
     try:
         logging.info("Handling cursor")
         db_engine_spec.handle_cursor(cursor, query, session)
@@ -156,6 +157,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             schema=database.force_ctas_schema
         ))
     query.end_time = utils.now_as_float()
+    session.merge(query)
     session.flush()
 
     payload = {
@@ -173,7 +175,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         results_backend.set(key, zlib.compress(payload))
         query.results_key = key
 
-    session.flush()
+    session.merge(query)
     session.commit()
 
     if return_results:
