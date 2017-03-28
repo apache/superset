@@ -186,6 +186,29 @@ class PostgresEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
+class Db2EngineSpec(BaseEngineSpec):
+    engine = 'ibm_db_sa'
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'), 'SECOND({col})'),
+        Grain('minute', _('minute'), 'MINUTE({col})'),
+        Grain('hour', _('hour'), 'HOUR({col})'),
+        Grain('day', _('day'), 'DAY({col})'),
+        Grain('week', _('week'), 'WEEK({col})'),
+        Grain('month', _('month'), 'MONTH({col})'),
+        Grain('quarter', _('quarter'), 'QUARTER({col})'),
+        Grain('year', _('year'), 'YEAR({col})'),
+    )
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "(TIMESTAMP('1970-01-01', '00:00:00') + {col} SECONDS)"
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
+
+
 class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
     time_grains = (

@@ -415,14 +415,6 @@ class timeout(object):
             logging.warning("timeout can't be used in the current context")
             logging.exception(e)
 
-
-def wrap_clause_in_parens(sql):
-    """Wrap where/having clause with parenthesis if necessary"""
-    if sql.strip():
-        sql = '({})'.format(sql)
-    return sa.text(sql)
-
-
 def pessimistic_connection_handling(target):
     @event.listens_for(target, "checkout")
     def ping_connection(dbapi_connection, connection_record, connection_proxy):

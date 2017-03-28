@@ -250,7 +250,6 @@ export const queries = [
 
 export const initialState = {
   alerts: [],
-  networkOn: true,
   queries: {},
   databases: {},
   queryEditors: [defaultQueryEditor],
