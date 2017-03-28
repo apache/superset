@@ -1125,8 +1125,11 @@ class Superset(BaseSupersetView):
         """
         # TODO: Cache endpoint by user, datasource and column
         datasource_class = ConnectorRegistry.sources[datasource_type]
-        datasource = db.session.query(
-            datasource_class).filter_by(id=datasource_id).first()
+        datasource = (
+            db.session.query(datasource_class)
+            .filter_by(id=datasource_id)
+            .first()
+        )
 
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)

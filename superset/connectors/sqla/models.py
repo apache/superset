@@ -21,10 +21,7 @@ from flask_babel import lazy_gettext as _
 
 from superset import db, utils, import_util
 from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
-from superset.utils import (
-    wrap_clause_in_parens,
-    DTTM_ALIAS, QueryStatus
-)
+from superset.utils import DTTM_ALIAS, QueryStatus
 from superset.models.helpers import QueryResult
 from superset.models.core import Database
 from superset.jinja_context import get_template_processor
@@ -286,7 +283,7 @@ class SqlaTable(Model, BaseDatasource):
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name]
 
-        tbl = table(self.table_name)
+        tbl = self.get_sqla_table()
         qry = (
             select([target_col.sqla_col])
             .select_from(tbl)
@@ -305,10 +302,7 @@ class SqlaTable(Model, BaseDatasource):
                 engine, compile_kwargs={"literal_binds": True}, ),
         )
 
-        df = pd.read_sql_query(
-            sql=sql,
-            con=engine
-        )
+        df = pd.read_sql_query(sql=sql, con=engine)
         return [row[0] for row in df.to_records(index=False)]
 
     def get_template_processor(self, **kwargs):
@@ -316,12 +310,24 @@ class SqlaTable(Model, BaseDatasource):
             table=self, database=self.database, **kwargs)
 
     def get_query_str(self, **kwargs):
+        engine = self.database.get_sqla_engine()
         qry = self.get_sqla_query(**kwargs)
-        sql = str(qry.compile(kwargs['engine']))
+        sql = str(
+            qry.compile(
+                engine,
+                compile_kwargs={"literal_binds": True}
+            )
+        )
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         sql = self.database.db_engine_spec.sql_preprocessor(sql)
         return sql
+
+    def get_sqla_table(self):
+        tbl = table(self.table_name)
+        if self.schema:
+            tbl.schema = self.schema
+        return tbl
 
     def get_sqla_query(  # sqla
             self,
@@ -430,14 +436,12 @@ class SqlaTable(Model, BaseDatasource):
         select_exprs += metrics_exprs
         qry = sa.select(select_exprs)
 
-        tbl = table(self.table_name)
-        if self.schema:
-            tbl.schema = self.schema
-
         # Supporting arbitrary SQL statements in place of tables
         if self.sql:
             from_sql = template_processor.process_template(self.sql)
             tbl = TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
+        else:
+            tbl = self.get_sqla_table()
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)
@@ -477,12 +481,12 @@ class SqlaTable(Model, BaseDatasource):
         if extras:
             where = extras.get('where')
             if where:
-                where_clause_and += [wrap_clause_in_parens(
-                    template_processor.process_template(where))]
+                where = template_processor.process_template(where)
+                where_clause_and += [sa.text('({})'.format(where))]
             having = extras.get('having')
             if having:
-                having_clause_and += [wrap_clause_in_parens(
-                    template_processor.process_template(having))]
+                having = template_processor.process_template(having)
+                having_clause_and += [sa.text('({})'.format(having))]
         if granularity:
             qry = qry.where(and_(*([time_filter] + where_clause_and)))
         else:
@@ -529,7 +533,7 @@ class SqlaTable(Model, BaseDatasource):
         qry_start_dttm = datetime.now()
         engine = self.database.get_sqla_engine()
         qry = self.get_sqla_query(**query_obj)
-        sql = str(qry)
+        sql = self.get_query_str(**query_obj)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -537,6 +541,7 @@ class SqlaTable(Model, BaseDatasource):
             df = pd.read_sql_query(qry, con=engine)
         except Exception as e:
             status = QueryStatus.FAILED
+            logging.exception(e)
             error_message = str(e)
 
         return QueryResult(
