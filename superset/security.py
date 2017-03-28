@@ -94,7 +94,6 @@ def get_or_create_main_db():
     )
     if not dbobj:
         dbobj = models.Database(database_name="main")
-    logging.info(conf.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.expose_in_sqllab = True
     dbobj.allow_run_sync = True
@@ -147,6 +146,9 @@ def set_role(role_name, pvms, pvm_check):
     role = sm.add_role(role_name)
     role_pvms = [p for p in pvms if pvm_check(p)]
     role.permissions = role_pvms
+    sesh = sm.get_session()
+    sesh.merge(role)
+    sesh.commit()
 
 
 def create_custom_permissions():
