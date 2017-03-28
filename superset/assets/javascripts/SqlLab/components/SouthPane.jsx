@@ -107,9 +107,7 @@ class SouthPane extends React.PureComponent {
             title="Results"
             eventKey="Results"
           >
-            <div style={{ height: `${this.state.innerTabHeight}px`, overflow: 'scroll' }}>
-              {results}
-            </div>
+            {results}
           </Tab>
           <Tab
             title="Query History"
