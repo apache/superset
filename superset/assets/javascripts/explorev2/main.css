@@ -30,3 +30,7 @@
   margin-bottom: 0px;
   box-shadow: none;
 }
+
+.no-background {
+  background: none !important;
+}
