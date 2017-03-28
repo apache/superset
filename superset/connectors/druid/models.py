@@ -709,8 +709,7 @@ class DruidDatasource(Model, BaseDatasource):
         client = self.cluster.get_pydruid_client()
         client.topn(**qry)
         df = client.export_pandas()
-
-        return [row[0] for row in df.to_records(index=False)]
+        return [row[column_name] for row in df.to_records(index=False)]
 
     def get_query_str(  # noqa / druid
             self,
@@ -981,7 +980,11 @@ class DruidDatasource(Model, BaseDatasource):
             eq = flt['val']
             cond = None
             if op in ('in', 'not in'):
-                eq = [types.replace("'", '').strip() for types in eq]
+                eq = [
+                    types.replace("'", '').strip()
+                    if isinstance(types, basestring)
+                    else types
+                    for types in eq]
             elif not isinstance(flt['val'], basestring):
                 eq = eq[0] if len(eq) > 0 else ''
             if col in self.num_cols:
