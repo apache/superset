@@ -30,3 +30,7 @@
   margin-bottom: 0px;
   box-shadow: none;
 }
+
+.background-transparent {
+  background-color: transparent !important;
+}

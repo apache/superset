@@ -1,3 +1,4 @@
+"""A set of constants and methods to manage permissions and security"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -40,8 +41,7 @@ ADMIN_ONLY_VIEW_MENUS = {
 
 ADMIN_ONLY_PERMISSIONS = {
     'all_database_access',
-    # TODO: move can_sql_json to sql_lab role
-    'can_sql_json',
+    'can_sql_json',  # TODO: move can_sql_json to sql_lab role
     'can_override_role_permissions',
     'can_sync_druid_source',
     'can_override_role_permissions',

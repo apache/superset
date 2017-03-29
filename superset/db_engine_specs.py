@@ -17,20 +17,22 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import namedtuple, defaultdict
-from superset import utils
 
 import inspect
+import logging
 import re
-import sqlparse
 import textwrap
 import time
 
-from superset import cache_util
+import sqlparse
 from sqlalchemy import select
 from sqlalchemy.sql import text
+from flask_babel import lazy_gettext as _
+
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from flask_babel import lazy_gettext as _
+from superset import utils
+from superset import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -42,6 +44,9 @@ class LimitMethod(object):
 
 
 class BaseEngineSpec(object):
+
+    """Abstract class for database engine specific configurations"""
+
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     cursor_execute_kwargs = {}
     time_grains = tuple()
@@ -184,6 +189,29 @@ class PostgresEngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class Db2EngineSpec(BaseEngineSpec):
+    engine = 'ibm_db_sa'
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'), 'SECOND({col})'),
+        Grain('minute', _('minute'), 'MINUTE({col})'),
+        Grain('hour', _('hour'), 'HOUR({col})'),
+        Grain('day', _('day'), 'DAY({col})'),
+        Grain('week', _('week'), 'WEEK({col})'),
+        Grain('month', _('month'), 'MONTH({col})'),
+        Grain('quarter', _('quarter'), 'QUARTER({col})'),
+        Grain('year', _('year'), 'YEAR({col})'),
+    )
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "(TIMESTAMP('1970-01-01', '00:00:00') + {col} SECONDS)"
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
 
 
 class SqliteEngineSpec(BaseEngineSpec):
@@ -337,6 +365,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
+        logging.info('Polling the cursor for progress')
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -356,10 +385,14 @@ class PrestoEngineSpec(BaseEngineSpec):
                 total_splits = float(stats.get('totalSplits'))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
+                    logging.info(
+                        'Query progress: {} / {} '
+                        'splits'.format(completed_splits, total_splits))
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
             time.sleep(1)
+            logging.info('Polling the cursor for progress')
             polled = cursor.poll()
 
     @classmethod

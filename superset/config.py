@@ -301,7 +301,7 @@ try:
         # Explicitly import config module that is not in pythonpath; useful
         # for case where app is being executed via pex.
         print('Loaded your LOCAL configuration at [{}]'.format(
-             os.environ[CONFIG_PATH_ENV_VAR]))
+            os.environ[CONFIG_PATH_ENV_VAR]))
         imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
     else:
         from superset_config import *  # noqa

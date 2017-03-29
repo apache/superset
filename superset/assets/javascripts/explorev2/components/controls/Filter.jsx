@@ -22,7 +22,6 @@ operatorsArr.forEach(op => {
 });
 
 const propTypes = {
-  choices: PropTypes.array,
   changeFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   filter: PropTypes.object.isRequired,
@@ -32,7 +31,6 @@ const propTypes = {
 const defaultProps = {
   changeFilter: () => {},
   removeFilter: () => {},
-  choices: [],
   datasource: null,
 };
 
@@ -54,8 +52,7 @@ export default class Filter extends React.Component {
         type: 'GET',
         url: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
         success: (data) => {
-          this.props.changeFilter('choices', data);
-          this.setState({ valuesLoading: false });
+          this.setState({ valuesLoading: false, valueChoices: data });
         },
       });
     }
@@ -100,7 +97,7 @@ export default class Filter extends React.Component {
           name="filter-value"
           value={filter.val}
           isLoading={this.state.valuesLoading}
-          choices={filter.choices}
+          choices={this.state.valueChoices}
           onChange={this.changeSelect.bind(this)}
         />
       );
