@@ -209,6 +209,8 @@ class ChartContainer extends React.PureComponent {
 
   render() {
     if (this.props.standalone) {
+      // dom manipulation hack to get rid of the boostrap theme's body background
+      $('body').addClass('background-transparent');
       return this.renderChart();
     }
     const queryResponse = this.props.queryResponse;
