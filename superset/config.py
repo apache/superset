@@ -54,7 +54,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-CSRF_ENABLED = True
+WTF_CSRF_ENABLED = True
 
 # Whether to run the web server in debug mode or not
 DEBUG = False
