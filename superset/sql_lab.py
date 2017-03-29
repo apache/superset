@@ -107,7 +107,8 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     query.status = QueryStatus.RUNNING
     query.start_running_time = utils.now_as_float()
     session.merge(query)
-    session.flush()
+    session.commit()
+    logging.info("Set query to 'running'")
 
     engine = database.get_sqla_engine(schema=query.schema)
     conn = engine.raw_connection()

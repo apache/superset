@@ -18,7 +18,7 @@ def upgrade():
     op.add_column(
         'query',
         sa.Column('start_running_time',
-        sa.Numeric(precision=3),
+        sa.Numeric(precision=20, scale=6),
         nullable=True))
 
 
