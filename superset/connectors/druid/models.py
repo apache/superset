@@ -1065,5 +1065,15 @@ class DruidDatasource(Model, BaseDatasource):
                 filters = cond
         return filters
 
+    @classmethod
+    def query_datasources_by_name(
+            cls, session, database, datasource_name, schema=None):
+        return (
+            session.query(cls)
+            .filter_by(cluster_name=database.id)
+            .filter_by(datasource_name=datasource_name)
+            .all()
+        )
+
 sa.event.listen(DruidDatasource, 'after_insert', set_perm)
 sa.event.listen(DruidDatasource, 'after_update', set_perm)

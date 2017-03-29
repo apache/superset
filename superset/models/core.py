@@ -830,6 +830,7 @@ class Query(Model):
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds
     start_time = Column(Numeric(precision=3))
+    start_running_time = Column(Numeric(precision=3))
     end_time = Column(Numeric(precision=3))
     changed_on = Column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)

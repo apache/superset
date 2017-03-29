@@ -5,16 +5,18 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-import os
-import json
 from logging.handlers import TimedRotatingFileHandler
+
+import json
+import os
 
 from flask import Flask, redirect
 from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
 from flask_migrate import Migrate
-from superset.connectors.connector_registry import ConnectorRegistry
 from werkzeug.contrib.fixers import ProxyFix
+
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset import utils, config  # noqa
 
 

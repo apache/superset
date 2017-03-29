@@ -17,20 +17,22 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import namedtuple, defaultdict
-from superset import utils
 
 import inspect
+import logging
 import re
-import sqlparse
 import textwrap
 import time
 
-from superset import cache_util
+import sqlparse
 from sqlalchemy import select
 from sqlalchemy.sql import text
+from flask_babel import lazy_gettext as _
+
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from flask_babel import lazy_gettext as _
+from superset import utils
+from superset import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -42,6 +44,9 @@ class LimitMethod(object):
 
 
 class BaseEngineSpec(object):
+
+    """Abstract class for database engine specific configurations"""
+
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     cursor_execute_kwargs = {}
     time_grains = tuple()
@@ -360,6 +365,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
+        logging.info('Polling the cursor for progress')
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -379,10 +385,14 @@ class PrestoEngineSpec(BaseEngineSpec):
                 total_splits = float(stats.get('totalSplits'))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
+                    logging.info(
+                        'Query progress: {} / {} '
+                        'splits'.format(completed_splits, total_splits))
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
             time.sleep(1)
+            logging.info('Polling the cursor for progress')
             polled = cursor.poll()
 
     @classmethod

@@ -680,5 +680,17 @@ class SqlaTable(Model, BaseDatasource):
             db.session, i_datasource, lookup_database, lookup_sqlatable,
             import_time)
 
+    @classmethod
+    def query_datasources_by_name(
+            cls, session, database, datasource_name, schema=None):
+        query = (
+            session.query(cls)
+            .filter_by(database_id=database.id)
+            .filter_by(table_name=datasource_name)
+        )
+        if schema:
+            query = query.filter_by(schema=schema)
+        return query.all()
+
 sa.event.listen(SqlaTable, 'after_insert', set_perm)
 sa.event.listen(SqlaTable, 'after_update', set_perm)
