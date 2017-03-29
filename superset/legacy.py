@@ -9,6 +9,7 @@ import re
 
 FORM_DATA_KEY_WHITELIST = list(frontend_config.get('fields').keys()) + ['slice_id']
 
+
 def cast_filter_data(form_data):
     """Used by cast_form_data to parse the filters"""
     flts = []
