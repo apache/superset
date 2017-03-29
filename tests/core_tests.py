@@ -16,6 +16,7 @@ from flask import escape
 
 from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.models import core as models
+from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
 from superset.connectors.sqla.models import SqlaTable
 
@@ -38,11 +39,11 @@ class CoreTests(SupersetTestCase):
         )}
 
     def setUp(self):
-        db.session.query(models.Query).delete()
+        db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
 
     def tearDown(self):
-        db.session.query(models.Query).delete()
+        db.session.query(Query).delete()
 
     def test_login(self):
         resp = self.get_resp(

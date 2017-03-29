@@ -1,7 +1,9 @@
-import logging
+import functools
 import json
+import logging
+import traceback
 
-from flask import g, redirect
+from flask import g, redirect, Response
 from flask_babel import gettext as __
 
 from flask_appbuilder import BaseView
@@ -13,6 +15,42 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import appbuilder, conf, db, utils, sm, sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
+
+
+def get_error_msg():
+    if conf.get("SHOW_STACKTRACE"):
+        error_msg = traceback.format_exc()
+    else:
+        error_msg = "FATAL ERROR \n"
+        error_msg += (
+            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+            "configuration setting to enable it")
+    return error_msg
+
+
+def json_error_response(msg, status=None, stacktrace=None):
+    data = {'error': msg}
+    if stacktrace:
+        data['stacktrace'] = stacktrace
+    status = status if status else 500
+    return Response(
+        json.dumps(data),
+        status=status, mimetype="application/json")
+
+
+def api(f):
+    """
+    A decorator to label an endpoint as an API. Catches uncaught exceptions and
+    return the response in the JSON format
+    """
+    def wraps(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(get_error_msg())
+
+    return functools.update_wrapper(wraps, f)
 
 
 def get_datasource_exist_error_mgs(full_name):

@@ -31,7 +31,7 @@ export default function RunQueryActionButton(props) {
       onClick={() => props.runQuery(false)}
       key="run-btn"
     >
-      <i className="fa fa-table" /> {runBtnText}
+      <i className="fa fa-refresh" /> {runBtnText}
     </Button>
   );
 

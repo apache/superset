@@ -16,6 +16,7 @@ import pandas as pd
 from superset import app, appbuilder, cli, db, dataframe
 from superset.models import core as models
 from superset.models.helpers import QueryStatus
+from superset.models.sql_lab import Query
 from superset.security import sync_role_definitions
 from superset.sql_parse import SupersetQuery
 
@@ -73,13 +74,13 @@ class CeleryTestCase(SupersetTestCase):
 
     def get_query_by_name(self, sql):
         session = db.session
-        query = session.query(models.Query).filter_by(sql=sql).first()
+        query = session.query(Query).filter_by(sql=sql).first()
         session.close()
         return query
 
     def get_query_by_id(self, id):
         session = db.session
-        query = session.query(models.Query).filter_by(id=id).first()
+        query = session.query(Query).filter_by(id=id).first()
         session.close()
         return query
 
