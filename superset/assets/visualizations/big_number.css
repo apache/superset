@@ -2,18 +2,18 @@
 .big_number_total g.axis text {
   font-size: 10px;
   font-weight: normal;
-  color: gray;
-  fill: gray;
+  color: #333333;
+  fill: #333333;
   text-anchor: middle;
   alignment-baseline: middle;
-  font-weight: none;
+  font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 .big_number text.big,
 .big_number_total text.big{
-  stroke: black;
+  stroke: #333333;
   text-anchor: middle;
-  fill: black;
+  fill: #333333;
 }
 
 .big_number g.tick line,
@@ -25,6 +25,16 @@
 .big_number .domain,
 .big_number_total .domain{
   fill: none;
-  stroke: black;
-  stroke-width: 1;
+  stroke: #333333;
 }
+
+.line-tooltip {
+  position: absolute;
+  text-align: left;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
