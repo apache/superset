@@ -1,4 +1,5 @@
 import celery
+from time import sleep
 from datetime import datetime
 import json
 import logging
@@ -54,7 +55,16 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     else:
         session = db.session()
         session.commit()  # HACK
-    query = session.query(models.Query).filter_by(id=query_id).one()
+    try:
+        query = session.query(models.Query).filter_by(id=query_id).one()
+    except Exception as e:
+        logging.error("Query with id `{}` could not be retrieved".format(query_id))
+        logging.error("Sleeping for a sec and retrying...")
+        # Nasty hack to get around a race condition where the worker
+        # cannot find the query it's supposed to run
+        sleep(1)
+        query = session.query(models.Query).filter_by(id=query_id).one()
+
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
