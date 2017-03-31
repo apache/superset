@@ -10,6 +10,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from superset import conf, db, sm
 from superset.models import core as models
 from superset.connectors.connector_registry import ConnectorRegistry
+from sqlalchemy.exc import StatementError
 
 
 READ_ONLY_MODEL_VIEWS = {
@@ -87,19 +88,28 @@ def is_user_defined_permission(perm):
 
 def get_or_create_main_db():
     logging.info("Creating database reference")
-    dbobj = (
-        db.session.query(models.Database)
-        .filter_by(database_name='main')
-        .first()
-    )
-    if not dbobj:
-        dbobj = models.Database(database_name="main")
-    dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
-    dbobj.expose_in_sqllab = True
-    dbobj.allow_run_sync = True
-    db.session.add(dbobj)
-    db.session.commit()
-    return dbobj
+    try:
+        dbobj = (
+            db.session.query(models.Database)
+            .filter_by(database_name='main')
+            .first()
+        )
+        if not dbobj:
+            dbobj = models.Database(database_name="main")
+        dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
+        dbobj.expose_in_sqllab = True
+        dbobj.allow_run_sync = True
+        db.session.add(dbobj)
+        db.session.commit();
+        return dbobj
+    except StatementError as ex:
+        # StatementError message will have unencrypted password as a parameter and this will get printed to the logs,
+        # So, catch it and throw the underlying root cause
+        if ex.orig:
+            raise ex.orig
+        else:
+            raise Exception("Error while creating database reference")
+
 
 
 def is_admin_only(pvm):
