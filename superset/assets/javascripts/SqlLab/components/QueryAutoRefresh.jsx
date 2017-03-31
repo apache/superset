@@ -19,7 +19,8 @@ class QueryAutoRefresh extends React.PureComponent {
     const { queries } = this.props;
     const queryKeys = Object.keys(queries);
     const queriesAsArray = queryKeys.map(key => queries[key]);
-    return queriesAsArray.some(q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0);
+    return queriesAsArray.some(
+      q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0);
   }
   startTimer() {
     if (!(this.timer)) {
