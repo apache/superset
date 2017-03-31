@@ -181,7 +181,7 @@ class SqlaTable(Model, BaseDatasource):
     baselink = "tablemodelview"
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
-        'database_id', 'is_featured', 'offset', 'cache_timeout', 'schema',
+        'database_id', 'offset', 'cache_timeout', 'schema',
         'sql', 'params')
 
     __table_args__ = (
