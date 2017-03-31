@@ -729,6 +729,7 @@ class OracleEngineSpec(PostgresEngineSpec):
 class VerticaEngineSpec(PostgresEngineSpec):
     engine = 'vertica'
 
+
 class AthenaEngineSpec(BaseEngineSpec):
     engine = 'athena'
 
@@ -763,7 +764,8 @@ class AthenaEngineSpec(BaseEngineSpec):
             return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
         if tt == 'TIMESTAMP':
             return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
-        return "CAST ('{}' AS TIMESTAMP)".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return ("CAST ('{}' AS TIMESTAMP)"
+                .format(dttm.strftime('%Y-%m-%d %H:%M:%S')))
 
     @classmethod
     def epoch_to_dttm(cls):
