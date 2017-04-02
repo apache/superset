@@ -731,7 +731,7 @@ class VerticaEngineSpec(PostgresEngineSpec):
 
 
 class AthenaEngineSpec(BaseEngineSpec):
-    engine = 'athena'
+    engine = 'awsathena'
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
