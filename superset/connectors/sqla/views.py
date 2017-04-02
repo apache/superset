@@ -40,6 +40,9 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             "Whether to make this column available as a "
             "[Time Granularity] option, column has to be DATETIME or "
             "DATETIME-like"),
+        'filterable': _(
+            "Whether this column is exposed in the `Filters` section "
+            "of the explore view."),
         'type': _(
             "The data type that was inferred by the database. "
             "It may be necessary to input a type manually for "
@@ -163,8 +166,16 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'fetch_values_predicate': _(
             "Predicate applied when fetching distinct value to "
             "populate the filter control component. Supports "
-            "jinja template syntax."
+            "jinja template syntax. Applies only when "
+            "`Enable Filter Select` is on."
         ),
+        'default_endpoint': _(
+            "Redirects to this endpoint when clicking on the table "
+            "from the table list"),
+        'filter_select_enabled': _(
+            "Whether to populate the filter's dropdown in the explore "
+            "view's filter section with a list of distinct values fetched "
+            "from the backend on the fly"),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
@@ -174,7 +185,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'changed_on_': _("Last Changed"),
         'filter_select_enabled': _("Enable Filter Select"),
         'schema': _("Schema"),
-        'default_endpoint': _("Default Endpoint"),
+        'default_endpoint': _(
+            "Redirects to this endpoint when clicking on the datasource "
+            "from the datasource list"),
         'offset': _("Offset"),
         'cache_timeout': _("Cache Timeout"),
     }

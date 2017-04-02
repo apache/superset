@@ -45,6 +45,9 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'max': _("Max"),
     }
     description_columns = {
+        'filterable': _(
+            "Whether this column is exposed in the `Filters` section "
+            "of the explore view."),
         'dimension_spec_json': utils.markdown(
             "this field can be used to specify  "
             "a `dimensionSpec` as documented [here]"
@@ -166,7 +169,18 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
         'fetch_values_from': _(
             "Time expression to use as a predicate when retrieving "
-            "distinct values to populate the filter component"),
+            "distinct values to populate the filter component. "
+            "Only applies when `Enable Filter Select` is on. If "
+            "you enter `7 days ago`, the distinct list of values in "
+            "the filter will be populated based on the distinct value over "
+            "the past week"),
+        'filter_select_enabled': _(
+            "Whether to populate the filter's dropdown in the explore "
+            "view's filter section with a list of distinct values fetched "
+            "from the backend on the fly"),
+        'default_endpoint': _(
+            "Redirects to this endpoint when clicking on the datasource "
+            "from the datasource list"),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
