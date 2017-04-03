@@ -206,11 +206,28 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Greenplum    | ``pip install psycopg2``            | ``postgresql+psycopg2://``                      |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Athena       | ``pip install "PyAthenaJDBC>1.0.9"``| ``awsathena+jdbc://``                           |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
+
+(AWS) Athena
+------------
+
+This currently relies on an unreleased future version of `PyAthenaJDBC <https://github.com/laughingman7743/PyAthenaJDBC>`_. If you're adventurous or simply impatient, you can install directly from git: ::
+
+    pip install git+https://github.com/laughingman7743/PyAthenaJDBC@support_sqlalchemy
+
+The connection string for Athena looks like this ::
+
+    awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+
+Where you need to escape/encode at least the s3_staging_dir, i.e., ::
+
+    s3://... -> s3%3A//...
 
 
 Caching
