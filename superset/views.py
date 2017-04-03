@@ -19,8 +19,10 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup, url_for, send_from_directory)
-from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose, SimpleFormView
+    g, request, redirect, flash, Response, render_template, Markup,
+    url_for, send_from_directory)
+from flask_appbuilder import (
+    ModelView, CompactCRUDMixin, BaseView, expose, SimpleFormView)
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -292,6 +294,7 @@ class DashboardFilter(SupersetFilter):
             )
         )
         return query
+
 
 def validate_json(form, field):  # noqa
     try:
@@ -721,18 +724,21 @@ class CsvToDatabaseView(SimpleFormView):
 
         # Go back to welcome page / splash screen
         message = _('CSV file "{0}" uploaded to table "{1}" in '
-            'database "{2}"'.format(filename, form.name.data, form.con.data))
+                    'database "{2}"'.format(filename,
+                                            form.name.data,
+                                            form.con.data))
         flash(message, 'info')
         redirect('/databaseview/list')
 
     @staticmethod
-    def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze, 
-                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows, 
-                  skip_blank_lines, parse_dates, infer_datetime_format, 
-                  dayfirst, thousands, decimal, quotechar, escapechar, comment, 
+    def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze,
+                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
+                  skip_blank_lines, parse_dates, infer_datetime_format,
+                  dayfirst, thousands, decimal, quotechar, escapechar, comment,
                   encoding, error_bad_lines, chunksize):
         # Use Pandas to parse csv file to a dataframe
-        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + str(config['SUPERSET_WEBSERVER_PORT']) \
+        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' \
+                      + str(config['SUPERSET_WEBSERVER_PORT']) \
                       + url_for('uploaded_file', filename=filepath_or_buffer)
         # Expose this to api so can specify each field
         chunks = pandas.read_csv(filepath_or_buffer=upload_path,
@@ -764,13 +770,14 @@ class CsvToDatabaseView(SimpleFormView):
         return df
 
     @staticmethod
-    def df_to_db(df, name, con, schema, if_exists, index, index_label, chunksize):
+    def df_to_db(df, name, con, schema, if_exists, index,
+                 index_label, chunksize):
 
         engine = create_engine(con, echo=False)
 
         # Use Pandas to parse dataframe to database
-        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists, index=index,
-                  index_label=index_label, chunksize=chunksize)
+        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
+                  index=index, index_label=index_label, chunksize=chunksize)
 
     @staticmethod
     def allowed_file(filename):
@@ -779,9 +786,11 @@ class CsvToDatabaseView(SimpleFormView):
                filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
 
     def upload_file(self, form):
-        if form.csv_file.data and self.allowed_file(form.csv_file.data.filename):
+        if form.csv_file.data and \
+                self.allowed_file(form.csv_file.data.filename):
             filename = secure_filename(form.csv_file.data.filename)
-            form.csv_file.data.save(os.path.join(config['UPLOAD_FOLDER'], filename))
+            form.csv_file.data.save(os.path.join(config['UPLOAD_FOLDER'],
+                                                 filename))
             return filename
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
@@ -2548,7 +2557,9 @@ class Superset(BaseSupersetView):
         if async:
             # Ignore the celery future object and the request may time out.
             sql_lab.get_sql_results.delay(
-                query_id, return_results=False, store_results=not query.select_as_cta)
+                query_id,
+                return_results=False,
+                store_results=not query.select_as_cta)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,

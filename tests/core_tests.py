@@ -131,7 +131,8 @@ class CoreTests(SupersetTestCase):
         slice_id = self.get_slice(slice_name, db.session).id
         db.session.commit()
         tbl_id = self.table_ids.get('energy_usage')
-        table = db.session.query(models.SqlaTable).filter(models.SqlaTable.id == tbl_id)
+        table = db.session.query(models.SqlaTable).filter(
+            models.SqlaTable.id == tbl_id)
         table.filter_select_enabled = True
         url = (
             "/superset/filter/table/{}/target/?viz_type=sankey&groupby=source"
@@ -546,12 +547,12 @@ class CoreTests(SupersetTestCase):
         test_file.seek(0)
 
         form_data = {'csv_file': test_file,
-                        'sep': ',',
-                        'name': 'TestName',
-                        'con': config['SQLALCHEMY_DATABASE_URI'],
-                        'if_exists': 'append',
-                        'index_label': 'test_label',
-                        'chunksize': 1}
+                            'sep': ',',
+                            'name': 'TestName',
+                            'con': config['SQLALCHEMY_DATABASE_URI'],
+                            'if_exists': 'append',
+                            'index_label': 'test_label',
+                            'chunksize': 1}
 
         url = '/databaseview/list/'
         add_datasource_page = self.get_resp(url)

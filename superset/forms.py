@@ -24,7 +24,6 @@ from wtforms.validators import DataRequired, Optional, NumberRange
 
 from superset import app
 
-
 config = app.config
 
 TIMESTAMP_CHOICES = [
@@ -1261,38 +1260,48 @@ class CsvToDatabaseForm(DynamicForm):
 
     # These are the fields exposed by Pandas .to_sql()
     name = StringField(_('Table Name'),
-        description=_('Name of table to be created from csv data.'),
-        validators=[DataRequired()],
-        widget=BS3TextFieldWidget())
+                       description=_('Name of table to be created'
+                                     'from csv data.'),
+                       validators=[DataRequired()],
+                       widget=BS3TextFieldWidget())
     con = StringField(_('Database URI'),
-        description=_('URI of database in which to add above table.'),
-        validators=[DataRequired()],
-        widget=BS3TextFieldWidget())
+                      description=_('URI of database in which to '
+                                    'add above table.'),
+                      validators=[DataRequired()],
+                      widget=BS3TextFieldWidget())
     schema = StringField(_('Schema'),
-        description=_('Specify a schema (if database flavour supports this).'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+                         description=_('Specify a schema (if database '
+                                       'flavour supports this).'),
+                         validators=[Optional()],
+                         widget=BS3TextFieldWidget(),
+                         filters=[lambda x: x or None])
     if_exists = SelectField(_('Table Exists'),
-        description=_('If table exists do one of the following: Fail (do '
-                     'nothing), Replace (drop and recreate table) or Append '
-                     '(insert data).'),
-        choices=[('fail', _('Fail')),
-                ('replace', _('Replace')),
-                ('append', _('Append'))],
-        validators=[DataRequired()])
+                            description=_('If table exists do one '
+                                          'of the following: '
+                                          'Fail (do nothing), '
+                                          'Replace (drop and '
+                                          'recreate table) '
+                                          'or Append (insert data).'),
+                            choices=[('fail', _('Fail')),
+                                     ('replace', _('Replace')),
+                                     ('append', _('Append'))],
+                            validators=[DataRequired()])
     index = BetterBooleanField(_('Dataframe Index'),
-        description=_('Write dataframe index as a column.'))
+                               description=_('Write dataframe '
+                                             'index as a column.'))
     index_label = StringField(_('Column Label(s)'),
-        description=_('Column label for index column(s). If None is given '
-                      'and Dataframe Index is True, Index Names are used.'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+                              description=_('Column label for index '
+                                            'column(s). If None is given '
+                                            'and Dataframe Index is '
+                                            'True, Index Names are used.'),
+                              validators=[Optional()],
+                              widget=BS3TextFieldWidget(),
+                              filters=[lambda x: x or None])
     chunksize = IntegerField(_('Chunksize'),
-        description=_('If empty, all rows will be written at once. Otherwise, '
-                       'rows will be written in batches of this '
-                       'many rows at a time.'),
-        validators=[Optional()],
-        widget=BS3TextFieldWidget(),
-        filters=[lambda x: x or None])
+                             description=_('If empty, all rows will be '
+                                           'written at once. Otherwise, '
+                                           'rows will be written in batches '
+                                           'of this many rows at a time.'),
+                             validators=[Optional()],
+                             widget=BS3TextFieldWidget(),
+                             filters=[lambda x: x or None])
