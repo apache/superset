@@ -38,7 +38,7 @@ describe('EmbedCodeButton', () => {
       '  seamless\n' +
       '  frameBorder="0"\n' +
       '  scrolling="no"\n' +
-      '  src="nullendpoint_url&height=1000"\n' +
+      '  src="nullundefined&height=1000"\n' +
       '>\n' +
       '</iframe>'
     );

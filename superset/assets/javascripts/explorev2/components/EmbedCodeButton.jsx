@@ -3,7 +3,7 @@ import CopyToClipboard from './../../components/CopyToClipboard';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 
 const propTypes = {
-  slice: PropTypes.object.isRequired,
+  standaloneEndpoint: PropTypes.string.isRequired,
 };
 
 export default class EmbedCodeButton extends React.Component {
@@ -27,7 +27,7 @@ export default class EmbedCodeButton extends React.Component {
   generateEmbedHTML() {
     const srcLink = (
       window.location.origin +
-      this.props.slice.data.standalone_endpoint +
+      this.props.standaloneEndpoint +
       `&height=${this.state.height}`
     );
     return (
