@@ -539,18 +539,11 @@ class CoreTests(SupersetTestCase):
         config = app.config
 
         test_file = open('tests/testCSV.csv', 'w+')
-        
-        # csv_writer = csv.writer(test_file)
-        # csv_writer.writerow(u'Column 1, Column 2 ')
-        # csv_writer.writerow(u'Column 1, Column 2 ')
-        # test_file.flush()
 
         writer = unicodecsv.writer(test_file, encoding='utf-8')
         writer.writerow((u'Column 1', u'Column 2'))
         writer.writerow((u'Column 3', u'Column 4'))
         test_file.seek(0)
-
-        pdb.set_trace()
 
         form_data = {'csv_file': test_file,
                         'sep': ',',
@@ -571,8 +564,8 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         form_post = self.get_resp(url, data=form_data)
         assert 'CSV file "tests_testCSV.csv" uploaded to table' in form_post
-
         os.remove('tests/testCSV.csv')
+
 
 if __name__ == '__main__':
     unittest.main()
