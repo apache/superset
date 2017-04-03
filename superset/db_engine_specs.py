@@ -195,14 +195,14 @@ class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('second', _('second'), 'SECOND({col})'),
-        Grain('minute', _('minute'), 'MINUTE({col})'),
-        Grain('hour', _('hour'), 'HOUR({col})'),
-        Grain('day', _('day'), 'DAY({col})'),
-        Grain('week', _('week'), 'WEEK({col})'),
-        Grain('month', _('month'), 'MONTH({col})'),
-        Grain('quarter', _('quarter'), 'QUARTER({col})'),
-        Grain('year', _('year'), 'YEAR({col})'),
+        Grain('second', _('second'), '{col} - SECOND({col} SECONDS)'),
+        Grain('minute', _('minute'), '{col} - MINUTE({col} MINUTES)'),
+        Grain('hour',_('hour'), '{col} - HOUR({col} HOURS) +1'),
+        Grain('day', _('day'), '{col} - DAY({col}) DAYS + 1'),
+        Grain('week', _('week'), '{col} - (DAYOFWEEK({col})) DAYS'),
+        Grain('month', _('month'), '{col} - (DAY({col})-1) DAYS'),
+        Grain('quarter', _('quarter'), '{col} - (DAY({col})-1) DAYS - (MONTH({col})-1) MONTHS + ((QUARTER({col})-1) * 3) MONTHS '),
+        Grain('year', _('year'), '{col} - (DAY({col})-1) DAYS - (MONTH({col})-1) MONTHS '),
     )
 
     @classmethod
