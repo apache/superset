@@ -11,13 +11,22 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     """A common interface to objects that are queryable (tables and datasources)"""
 
+    # ---------------------------------------------------------------
+    # class attributes to define when deriving BaseDatasource
+    # ---------------------------------------------------------------
     __tablename__ = None  # {connector_name}_datasource
+    type = None  # datasoure type, str to be defined when deriving this class
+    baselink = None  # url portion pointing to ModelView endpoint
 
     column_class = None  # link to derivative of BaseColumn
     metric_class = None  # link to derivative of BaseMetric
 
     # Used to do code highlighting when displaying the query in the UI
     query_language = None
+
+    name = None  # can be a Column or a property pointing to one
+
+    # ---------------------------------------------------------------
 
     # Columns
     id = Column(Integer, primary_key=True)
@@ -29,6 +38,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     params = Column(String(1000))
     perm = Column(String(1000))
+
+    # placeholder for a relationship to a derivative of BaseColumn
+    columns = []
+    # placeholder for a relationship to a derivative of BaseMetric
+    metrics = []
 
     @property
     def column_names(self):
@@ -70,6 +84,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         }
 
     @property
+    def metrics_combo(self):
+        return sorted(
+            [
+                (m.metric_name, m.verbose_name or m.metric_name)
+                for m in self.metrics],
+            key=lambda x: x[1])
+
+    @property
     def data(self):
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []
@@ -91,13 +113,6 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'type': self.type,
         }
 
-        # TODO move this block to SqlaTable.data
-        if self.type == 'table':
-            grains = self.database.grains() or []
-            if grains:
-                grains = [(g.name, g.name) for g in grains]
-            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
-            d['time_grain_sqla'] = grains
         return d
 
 

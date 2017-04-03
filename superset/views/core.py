@@ -2017,7 +2017,7 @@ class Superset(BaseSupersetView):
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
-                    query_id, return_results=False,
+                    query_id=query_id, return_results=False,
                     store_results=not query.select_as_cta)
             except Exception as e:
                 logging.exception(e)
@@ -2047,7 +2047,9 @@ class Superset(BaseSupersetView):
                         "timeout. You may want to run your query as a "
                         "`CREATE TABLE AS` to prevent timeouts."
                     ).format(**locals())):
-                data = sql_lab.get_sql_results(query_id, return_results=True)
+                # pylint: disable=no-value-for-parameter
+                data = sql_lab.get_sql_results(
+                    query_id=query_id, return_results=True)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))

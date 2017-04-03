@@ -44,6 +44,7 @@ install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
+metadata = Model.metadata  # pylint: disable=no-member
 
 
 def set_related_perm(mapper, connection, target):  # noqa
@@ -80,7 +81,7 @@ class CssTemplate(Model, AuditMixinNullable):
     css = Column(Text, default='')
 
 
-slice_user = Table('slice_user', Model.metadata,
+slice_user = Table('slice_user', metadata,
                    Column('id', Integer, primary_key=True),
                    Column('user_id', Integer, ForeignKey('ab_user.id')),
                    Column('slice_id', Integer, ForeignKey('slices.id'))
@@ -121,26 +122,30 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @datasource.getter
     @utils.memoized
     def get_datasource(self):
-        ds = db.session.query(
-            self.cls_model).filter_by(
-            id=self.datasource_id).first()
-        return ds
+        return (
+            db.session.query(self.cls_model)
+            .filter_by(id=self.datasource_id)
+            .first()
+        )
 
     @renders('datasource_name')
     def datasource_link(self):
+        # pylint: disable=no-member
         datasource = self.datasource
-        if datasource:
-            return self.datasource.link
+        return datasource.link if datasource else None
 
     @property
     def datasource_edit_url(self):
-        self.datasource.url
+        # pylint: disable=no-member
+        datasource = self.datasource
+        return datasource.url if datasource else None
 
     @property
     @utils.memoized
     def viz(self):
         d = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
+        # pylint: disable=no-member
         return viz_class(self.datasource, form_data=d)
 
     @property
@@ -269,14 +274,14 @@ sqla.event.listen(Slice, 'before_update', set_related_perm)
 
 
 dashboard_slices = Table(
-    'dashboard_slices', Model.metadata,
+    'dashboard_slices', metadata,
     Column('id', Integer, primary_key=True),
     Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
     Column('slice_id', Integer, ForeignKey('slices.id')),
 )
 
 dashboard_user = Table(
-    'dashboard_user', Model.metadata,
+    'dashboard_user', metadata,
     Column('id', Integer, primary_key=True),
     Column('user_id', Integer, ForeignKey('ab_user.id')),
     Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
@@ -307,6 +312,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def table_names(self):
+        # pylint: disable=no-member
         return ", ".join(
             {"{}".format(s.datasource.full_name) for s in self.slices})
 
@@ -320,6 +326,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def sqla_metadata(self):
+        # pylint: disable=no-member
         metadata = MetaData(bind=self.get_sqla_engine())
         return metadata.reflect()
 
@@ -816,7 +823,6 @@ class Query(Model):
     # Could be configured in the superset config.
     limit = Column(Integer)
     limit_used = Column(Boolean, default=False)
-    limit_reached = Column(Boolean, default=False)
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
 
@@ -915,19 +921,20 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @datasource.getter
     @utils.memoized
     def get_datasource(self):
+        # pylint: disable=no-member
         ds = db.session.query(self.cls_model).filter_by(
             id=self.datasource_id).first()
         return ds
 
     @property
     def datasource_link(self):
-        return self.datasource.link
+        return self.datasource.link  # pylint: disable=no-member
 
     @property
     def roles_with_datasource(self):
         action_list = ''
-        pv = sm.find_permission_view_menu(
-            'datasource_access', self.datasource.perm)
+        perm = self.datasource.perm  # pylint: disable=no-member
+        pv = sm.find_permission_view_menu('datasource_access', perm)
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
@@ -944,7 +951,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @property
     def user_roles(self):
         action_list = ''
-        for r in self.created_by.roles:
+        for r in self.created_by.roles:  # pylint: disable=no-member
             url = (
                 '/superset/approve?datasource_type={self.datasource_type}&'
                 'datasource_id={self.datasource_id}&'

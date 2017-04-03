@@ -52,16 +52,16 @@ class AuditMixinNullable(AuditMixin):
         onupdate=datetime.now, nullable=True)
 
     @declared_attr
-    def created_by_fk(cls):  # noqa
+    def created_by_fk(self):  # noqa
         return sa.Column(
             sa.Integer, sa.ForeignKey('ab_user.id'),
-            default=cls.get_user_id, nullable=True)
+            default=self.get_user_id, nullable=True)
 
     @declared_attr
-    def changed_by_fk(cls):  # noqa
+    def changed_by_fk(self):  # noqa
         return sa.Column(
             sa.Integer, sa.ForeignKey('ab_user.id'),
-            default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
+            default=self.get_user_id, onupdate=self.get_user_id, nullable=True)
 
     def _user_link(self, user):
         if not user:

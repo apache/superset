@@ -17,6 +17,7 @@ env:
     - TRAVIS_NODE_VERSION="5.11"
   matrix:
     - TOX_ENV=javascript
+    - TOX_ENV=pylint
     - TOX_ENV=py34-postgres
     - TOX_ENV=py34-sqlite
     - TOX_ENV=py27-mysql

@@ -818,7 +818,7 @@ def load_unicode_test_data():
     # generate date/numeric data
     df['date'] = datetime.datetime.now().date()
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
-    df.to_sql(
+    df.to_sql(  # pylint: disable=no-member
         'unicode_test',
         db.engine,
         if_exists='replace',
@@ -953,7 +953,7 @@ def load_long_lat_data():
     pdf['date'] = datetime.datetime.now().date()
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
-    pdf.to_sql(
+    pdf.to_sql(  # pylint: disable=no-member
         'long_lat',
         db.engine,
         if_exists='replace',

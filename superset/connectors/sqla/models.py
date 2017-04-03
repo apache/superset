@@ -252,14 +252,6 @@ class SqlaTable(Model, BaseDatasource):
                 "table-condensed"))
 
     @property
-    def metrics_combo(self):
-        return sorted(
-            [
-                (m.metric_name, m.verbose_name or m.metric_name)
-                for m in self.metrics],
-            key=lambda x: x[1])
-
-    @property
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
@@ -275,6 +267,17 @@ class SqlaTable(Model, BaseDatasource):
         for col in columns:
             if col_name == col.column_name:
                 return col
+
+    @property
+    def data(self):
+        d = super(SqlaTable, self).data
+        if self.type == 'table':
+            grains = self.database.grains() or []
+            if grains:
+                grains = [(g.name, g.name) for g in grains]
+            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
+            d['time_grain_sqla'] = grains
+        return d
 
     def values_for_column(self, column_name, limit=10000):
         """Runs query against sqla to retrieve some

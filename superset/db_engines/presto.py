@@ -11,6 +11,8 @@ def cancel(self):
         return
 
     response = presto.requests.delete(self._nextUri)
+
+    # pylint: disable=no-member
     if response.status_code != presto.requests.codes.no_content:
         fmt = "Unexpected status code after cancel {}\n{}"
         raise presto.OperationalError(
