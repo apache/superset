@@ -729,6 +729,48 @@ class OracleEngineSpec(PostgresEngineSpec):
 class VerticaEngineSpec(PostgresEngineSpec):
     engine = 'vertica'
 
+
+class AthenaEngineSpec(BaseEngineSpec):
+    engine = 'awsathena'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'),
+              "date_trunc('second', CAST({col} AS TIMESTAMP))"),
+        Grain('minute', _('minute'),
+              "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
+        Grain('hour', _('hour'),
+              "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
+        Grain('day', _('day'),
+              "date_trunc('day', CAST({col} AS TIMESTAMP))"),
+        Grain('week', _('week'),
+              "date_trunc('week', CAST({col} AS TIMESTAMP))"),
+        Grain('month', _('month'),
+              "date_trunc('month', CAST({col} AS TIMESTAMP))"),
+        Grain('quarter', _('quarter'),
+              "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
+        Grain("week_ending_saturday", _('week_ending_saturday'),
+              "date_add('day', 5, date_trunc('week', date_add('day', 1, "
+              "CAST({col} AS TIMESTAMP))))"),
+        Grain("week_start_sunday", _('week_start_sunday'),
+              "date_add('day', -1, date_trunc('week', "
+              "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
+        if tt == 'TIMESTAMP':
+            return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
+        return ("CAST ('{}' AS TIMESTAMP)"
+                .format(dttm.strftime('%Y-%m-%d %H:%M:%S')))
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "from_unixtime({col})"
+
 engines = {
     o.engine: o for o in globals().values()
     if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}
