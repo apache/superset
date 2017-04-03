@@ -982,10 +982,10 @@ class DruidDatasource(Model, BaseDatasource):
             if op in ('in', 'not in'):
                 eq = [
                     types.replace("'", '').strip()
-                    if isinstance(types, basestring)
+                    if isinstance(types, string_types)
                     else types
                     for types in eq]
-            elif not isinstance(flt['val'], basestring):
+            elif not isinstance(flt['val'], string_types):
                 eq = eq[0] if len(eq) > 0 else ''
             if col in self.num_cols:
                 if op in ('in', 'not in'):
