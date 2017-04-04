@@ -138,10 +138,7 @@ class SqlMetric(Model, BaseMetric):
 
     @property
     def perm(self):
-        return (
-            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
-        ).format(obj=self,
-                 parent_name=self.table.full_name) if self.table else None
+        return "{}.{}".format(self.table.perm, self.name)
 
     @classmethod
     def import_obj(cls, i_metric):
@@ -208,9 +205,11 @@ class SqlaTable(Model, BaseDatasource):
         return utils.get_schema_perm(self.database, self.schema)
 
     def get_perm(self):
-        return (
-            "[{obj.database}].[{obj.table_name}]"
-            "(id:{obj.id})").format(obj=self)
+        database = self.database
+        if not database:
+            database = db.session.query(Database).filter_by(
+                id=self.database_id).one()
+        return "{}.{}".format(database.perm, self.name)
 
     @property
     def name(self):

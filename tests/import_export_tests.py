@@ -93,9 +93,11 @@ class ImportExportTests(SupersetTestCase):
 
     def create_table(
             self, name, schema='', id=0, cols_names=[], metric_names=[]):
-        params = {'remote_id': id, 'database_name': 'main'}
+        main = self.get_main_database(db.session)
+        params = {'remote_id': id, 'database_name': main.database_name}
         table = SqlaTable(
             id=id,
+            database_id=main.id,
             schema=schema,
             table_name=name,
             params=json.dumps(params)
