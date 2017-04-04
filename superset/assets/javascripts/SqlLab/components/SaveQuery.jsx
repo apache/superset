@@ -78,7 +78,7 @@ class SaveQuery extends React.PureComponent {
               </small>
               <FormControl
                 componentClass="textarea"
-                placeholder="textarea"
+                placeholder="Write a description for your query"
                 value={this.state.description}
                 onChange={this.onDescriptionChange}
               />
