@@ -127,7 +127,7 @@ class DruidColumn(Model, BaseColumn):
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
-        back_populates='columns',
+        backref=backref('columns', cascade='all, delete-orphan'),
         enable_typechecks=False)
     dimension_spec_json = Column(Text)
 
@@ -264,7 +264,7 @@ class DruidMetric(Model, BaseMetric):
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
-        back_populates='metrics',
+        backref=backref('metrics', cascade='all, delete-orphan'),
         enable_typechecks=False)
     json = Column(Text)
 
@@ -325,17 +325,6 @@ class DruidDatasource(Model, BaseDatasource):
         'User',
         backref=backref('datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
-
-    columns = relationship(
-        'DruidColumn',
-        cascade='all, delete-orphan',
-        back_populates='datasource',
-        enable_typechecks=False)
-    metrics = relationship(
-        'DruidMetric',
-        cascade='all, delete-orphan',
-        back_populates='datasource',
-        enable_typechecks=False)
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
