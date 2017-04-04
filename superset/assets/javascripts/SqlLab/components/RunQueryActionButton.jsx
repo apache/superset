@@ -3,11 +3,14 @@ import Button from '../../components/Button';
 
 const propTypes = {
   allowAsync: PropTypes.bool.isRequired,
-  dbId: PropTypes.number.isRequired,
+  dbId: PropTypes.number,
   queryState: PropTypes.string.isRequired,
   runQuery: PropTypes.func.isRequired,
   selectedText: PropTypes.string,
   stopQuery: PropTypes.func.isRequired,
+};
+const defaultProps = {
+  allowAsync: false,
 };
 
 export default function RunQueryActionButton(props) {
@@ -69,3 +72,4 @@ export default function RunQueryActionButton(props) {
 }
 
 RunQueryActionButton.propTypes = propTypes;
+RunQueryActionButton.defaultProps = defaultProps;
