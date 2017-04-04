@@ -65,20 +65,22 @@ class SqlEditorLeftBar extends React.PureComponent {
                 `${this.props.queryEditor.schema}/${input}`;
     return $.get(url).then((data) => ({ options: data.options }));
   }
-  // TODO: move fetching methods to the actions.
   fetchTables(dbId, schema, substr) {
+    // This can be large so it shouldn't be put in the Redux store
     if (dbId && schema) {
       this.setState({ tableLoading: true, tableOptions: [] });
       const url = `/superset/tables/${dbId}/${schema}/${substr}/`;
       $.get(url, (data) => {
+        const filterOptions = createFilterOptions({ options: data.options });
         this.setState({
+          filterOptions,
           tableLoading: false,
           tableOptions: data.options,
           tableLength: data.tableLength,
         });
       });
     } else {
-      this.setState({ tableLoading: false, tableOptions: [] });
+      this.setState({ tableLoading: false, tableOptions: [], filterOptions: null });
     }
   }
   changeTable(tableOpt) {
@@ -126,8 +128,6 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
   render() {
     const shouldShowReset = window.location.search === '?reset=1';
-    const options = this.state.tableOptions;
-    const filterOptions = createFilterOptions({ options });
     return (
       <div className="scrollbar-container">
         <div className="clearfix sql-toolbar scrollbar-content">
@@ -173,7 +173,7 @@ class SqlEditorLeftBar extends React.PureComponent {
                 placeholder={`Add a table (${this.state.tableOptions.length})`}
                 autosize={false}
                 onChange={this.changeTable.bind(this)}
-                filterOptions={filterOptions}
+                filterOptions={this.state.filterOptions}
                 options={this.state.tableOptions}
               />
             }
