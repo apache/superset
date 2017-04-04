@@ -24,6 +24,36 @@ const defaultProps = {
 };
 
 class SouthPane extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      innerTabHeight: this.getInnerTabHeight(),
+    };
+  }
+  getInnerTabHeight() {
+    // hack to get height the tab container so it can be fixed and scroll in place
+    // calculate inner tab height
+
+    // document.getElementById('brace-editor').getBoundingClientRect().height;
+    const sqlEditorHeight = 192;
+
+    // document.getElementById('js-sql-toolbar').getBoundingClientRect().height;
+    const sqlToolbar = 30;
+
+    // document.getElementsByClassName('nav-tabs')[0].getBoundingClientRect().height * 2;
+    const tabsHeight = 88;
+
+    // document.getElementsByTagName('header')[0].getBoundingClientRect().height;
+    const headerHeight = 59;
+
+    const sum =
+      sqlEditorHeight +
+      sqlToolbar +
+      tabsHeight +
+      headerHeight;
+
+    return window.innerHeight - sum - 95;
+  }
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
@@ -36,7 +66,13 @@ class SouthPane extends React.PureComponent {
     let results;
     if (latestQuery) {
       results = (
-        <ResultSet showControls search query={latestQuery} actions={props.actions} />
+        <ResultSet
+          showControls
+          search
+          query={latestQuery}
+          actions={props.actions}
+          resultSetHeight={this.state.innerTabHeight}
+        />
       );
     } else {
       results = <Alert bsStyle="info">Run a query to display results here</Alert>;
@@ -48,7 +84,14 @@ class SouthPane extends React.PureComponent {
         eventKey={query.id}
         key={query.id}
       >
-        <ResultSet query={query} visualize={false} csv={false} actions={props.actions} cache />
+        <ResultSet
+          query={query}
+          visualize={false}
+          csv={false}
+          actions={props.actions}
+          cache
+          resultSetHeight={this.state.innerTabHeight}
+        />
       </Tab>
     ));
 
@@ -70,7 +113,9 @@ class SouthPane extends React.PureComponent {
             title="Query History"
             eventKey="History"
           >
-            <QueryHistory queries={props.editorQueries} actions={props.actions} />
+            <div style={{ height: `${this.state.innerTabHeight}px`, overflow: 'scroll' }}>
+              <QueryHistory queries={props.editorQueries} actions={props.actions} />
+            </div>
           </Tab>
           {dataPreviewTabs}
         </Tabs>
