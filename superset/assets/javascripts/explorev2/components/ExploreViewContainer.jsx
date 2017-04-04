@@ -48,7 +48,9 @@ class ExploreViewContainer extends React.Component {
 
   componentDidUpdate() {
     if (this.props.triggerQuery) {
-      this.runQuery();
+      if (this.hasErrors()) {
+        this.runQuery();
+      }
     }
   }
 
@@ -94,6 +96,10 @@ class ExploreViewContainer extends React.Component {
 
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
+  }
+  hasErrors() {
+    const ctrls = this.props.controls;
+    Object.keys(ctrls).some(k => ctrls[k].validationErrors.length > 0);
   }
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store

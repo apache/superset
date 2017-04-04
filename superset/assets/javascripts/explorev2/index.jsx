@@ -29,7 +29,7 @@ import { exploreReducer } from './reducers/exploreReducer';
 // Initial state
 const bootstrappedState = Object.assign(
   bootstrapData, {
-    chartStatus: 'loading',
+    chartStatus: null,
     chartUpdateEndTime: null,
     chartUpdateStartTime: now(),
     dashboards: [],
