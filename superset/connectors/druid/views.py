@@ -26,7 +26,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
         'column_name', 'description', 'dimension_spec_json', 'datasource',
-        'groupby', 'count_distinct', 'sum', 'min', 'max']
+        'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
