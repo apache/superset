@@ -1064,7 +1064,7 @@ class DistributionBarViz(DistributionPieViz):
     is_timeseries = False
 
     def query_obj(self):
-        d = super(DistributionPieViz, self).query_obj()  # noqa
+        d = super(DistributionBarViz, self).query_obj()  # noqa
         fd = self.form_data
         gb = fd.get('groupby') or []
         cols = fd.get('columns') or []

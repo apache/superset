@@ -133,8 +133,8 @@ def load_examples(load_test_data):
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
-    from superset import models
-    for cluster in session.query(models.DruidCluster).all():
+    from superset.connectors.druid.models import DruidCluster
+    for cluster in session.query(DruidCluster).all():
         try:
             cluster.refresh_datasources(datasource_name=datasource,
                                         merge_flag=merge)
@@ -153,8 +153,8 @@ def refresh_druid(datasource, merge):
 @manager.command
 def update_datasources_cache():
     """Refresh sqllab datasources cache"""
-    from superset import models
-    for database in db.session.query(models.Database).all():
+    from superset.models.core import Database
+    for database in db.session.query(Database).all():
         print('Fetching {} datasources ...'.format(database.name))
         try:
             database.all_table_names(force=True)

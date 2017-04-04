@@ -268,16 +268,6 @@ class DruidMetric(Model, BaseMetric):
         enable_typechecks=False)
     json = Column(Text)
 
-    def refresh_datasources(self, datasource_name=None, merge_flag=False):
-        """Refresh metadata of all datasources in the cluster
-
-        If ``datasource_name`` is specified, only that datasource is updated
-        """
-        self.druid_version = self.get_druid_version()
-        for datasource in self.get_datasources():
-            if datasource not in conf.get('DRUID_DATA_SOURCE_BLACKLIST'):
-                if not datasource_name or datasource_name == datasource:
-                    DruidDatasource.sync_to_db(datasource, self, merge_flag)
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
         'json', 'description', 'is_restricted', 'd3format'
@@ -340,12 +330,6 @@ class DruidDatasource(Model, BaseDatasource):
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params'
     )
-
-    @property
-    def metrics_combo(self):
-        return sorted(
-            [(m.metric_name, m.verbose_name) for m in self.metrics],
-            key=lambda x: x[1])
 
     @property
     def database(self):
@@ -784,7 +768,7 @@ class DruidDatasource(Model, BaseDatasource):
                         mconf.get('probabilities', ''),
                     )
                 elif mconf.get('type') == 'fieldAccess':
-                    post_aggs[metric_name] = Field(mconf.get('name'), '')
+                    post_aggs[metric_name] = Field(mconf.get('name'))
                 elif mconf.get('type') == 'constant':
                     post_aggs[metric_name] = Const(
                         mconf.get('value'),
@@ -792,7 +776,7 @@ class DruidDatasource(Model, BaseDatasource):
                     )
                 elif mconf.get('type') == 'hyperUniqueCardinality':
                     post_aggs[metric_name] = HyperUniqueCardinality(
-                        mconf.get('name'), ''
+                        mconf.get('name')
                     )
                 else:
                     post_aggs[metric_name] = Postaggregator(

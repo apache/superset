@@ -103,12 +103,14 @@ class BaseSupersetView(BaseView):
 
         role_ids = set([role.id for role in g.user.roles])
         # TODO: cache user_perms or user_datasources
+        PV = ab_models.PermissionView
+
+        pv_role = PV.role  # pylint: disable=no-member
         user_pvms = (
-            db.session.query(ab_models.PermissionView)
+            db.session.query(PV)
             .join(ab_models.Permission)
             .filter(ab_models.Permission.name == 'datasource_access')
-            .filter(ab_models.PermissionView.role.any(
-                ab_models.Role.id.in_(role_ids)))
+            .filter(pv_role.any(ab_models.Role.id.in_(role_ids)))
             .all()
         )
         user_perms = set([pvm.view_menu.name for pvm in user_pvms])

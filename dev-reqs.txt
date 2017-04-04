@@ -1,10 +1,13 @@
 codeclimate-test-reporter
 coveralls
 flake8
+flask_cors
 mock
 mysqlclient
 nose
 psycopg2
+pylint
+pythrifthiveapi
 pyyaml
 # Also install everything we need to build Sphinx docs
 -r dev-reqs-for-docs.txt

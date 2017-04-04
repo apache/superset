@@ -100,11 +100,12 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     }
 
     def post_add(self, metric):
-        utils.init_metrics_perm(superset, [metric])
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
     def post_update(self, metric):
-        utils.init_metrics_perm(superset, [metric])
-
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
