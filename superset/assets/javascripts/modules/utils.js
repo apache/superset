@@ -190,7 +190,7 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
 }
 
 export function getTextWidth(text, fontDetails) {
-  const canvas = window.document.createElement('canvas');
+  const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
   context.font = fontDetails;
   const metrics = context.measureText(text);

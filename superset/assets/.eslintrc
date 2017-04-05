@@ -14,5 +14,8 @@
     "func-names": 0,
     "react/jsx-no-bind": 0,
     "no-confusing-arrow": 0,
+  },
+  "globals": {
+    "document": true,
   }
 }
