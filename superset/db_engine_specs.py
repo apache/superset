@@ -202,7 +202,7 @@ class Db2EngineSpec(BaseEngineSpec):
               'CAST({col} as TIMESTAMP)'
               ' - SECOND({col}) SECONDS'
               ' - MICROSECOND({col}) MICROSECONDS'),
-        Grain('hour',_('hour'),
+        Grain('hour', _('hour'),
               'CAST({col} as TIMESTAMP)'
               ' - MINUTE({col}) MINUTES'
               ' - SECOND({col}) SECONDS'
