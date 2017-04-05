@@ -38,7 +38,12 @@
       <div id="app" data-bootstrap="{{ bootstrap_data }}" >
         <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
       </div>
-      {{ csrf_token() if csrf_token else None }}
+      <input
+        type="hidden"
+        name="csrf_token"
+        id="csrf_token"
+        value="{{ csrf_token() if csrf_token else '' }}"
+      >
     {% endblock %}
 
     <!-- Modal for misc messages / alerts  -->
