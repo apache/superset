@@ -1,5 +1,6 @@
 import d3 from 'd3';
 import { formatDate } from '../javascripts/modules/dates';
+import { getTextWidth } from '../javascripts/modules/utils';
 
 require('./big_number.css');
 
@@ -10,14 +11,6 @@ function getNumTicks(data, slice, margin) {
     numTicks = data.length;
   }
   return numTicks;
-}
-
-function getTextWidth(text) {
-  const canvas = window.document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  context.font = '10px Roboto';
-  const metrics = context.measureText(text);
-  return metrics.width;
 }
 
 function bigNumberVis(slice, payload) {
@@ -55,7 +48,7 @@ function bigNumberVis(slice, payload) {
   }
   const dateExt = d3.extent(data, (d) => d[0]);
   const valueExt = d3.extent(data, (d) => d[1]);
-  const yAxisLabelWidths = valueExt.map(value => getTextWidth(f(value)));
+  const yAxisLabelWidths = valueExt.map(value => getTextWidth(f(value), '10px Roboto'));
   const yAxisMaxWidth = Math.max(...yAxisLabelWidths);
   const margin = yAxisMaxWidth + (yAxisMaxWidth / 2);
 
