@@ -71,6 +71,10 @@ function bigNumberVis(slice, payload) {
   const formattedNumber = f(v);
 
   // Printing big number
+  let bigNumberFontSize = (width / formattedNumber.length) * 1.3;
+  if (formattedNumber.length === 1) {
+    bigNumberFontSize = (width / 2) * 1.3;
+  }
   g.append('g')
     .attr('class', 'digits')
     .attr('opacity', 1)
@@ -84,7 +88,7 @@ function bigNumberVis(slice, payload) {
     .style('cursor', 'pointer')
     .text(formattedNumber)
     .attr('font-family', 'Roboto')
-    .attr('font-size', (width / formattedNumber.length) * 1.3)
+    .attr('font-size', bigNumberFontSize)
     .style('text-anchor', 'middle')
     .attr('fill', 'black');
 
