@@ -574,7 +574,7 @@ class Database(Model, AuditMixinNullable):
         # Postgres and Redshift use the concept of schema as a logical entity
         # on top of the database, so the database should not be changed
         # even if passed default_database
-        elif self.backend == 'redshift' or self.backend == 'postgresql':
+        elif self.backend in ('redshift', 'postgresql', 'sqlite'):
             pass
         elif default_database:
             database = default_database
