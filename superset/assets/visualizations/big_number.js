@@ -13,6 +13,20 @@ function getNumTicks(data, slice, margin) {
   return numTicks;
 }
 
+function getMargin(valueExt, data, f) {
+  const yAxisLabelWidths = valueExt.map(value => getTextWidth(f(value), '10px Roboto'));
+  const xAxisLabelWidths = data.map(d => getTextWidth(formatDate(d[0]), '10px Roboto'));
+  const yAxisMaxWidth = Math.max(...yAxisLabelWidths);
+  const xAxisMaxWidth = Math.max(...xAxisLabelWidths);
+  let margin;
+  if (yAxisMaxWidth > xAxisMaxWidth) {
+    margin = yAxisMaxWidth + (yAxisMaxWidth / 2);
+  } else if (xAxisMaxWidth > yAxisMaxWidth) {
+    margin = xAxisMaxWidth + (xAxisMaxWidth / 2);
+  }
+  return margin;
+}
+
 function bigNumberVis(slice, payload) {
   const div = d3.select(slice.selector);
   // Define the percentage bounds that define color from red to green
@@ -48,10 +62,7 @@ function bigNumberVis(slice, payload) {
   }
   const dateExt = d3.extent(data, (d) => d[0]);
   const valueExt = d3.extent(data, (d) => d[1]);
-  const yAxisLabelWidths = valueExt.map(value => getTextWidth(f(value), '10px Roboto'));
-  const yAxisMaxWidth = Math.max(...yAxisLabelWidths);
-  const margin = yAxisMaxWidth + (yAxisMaxWidth / 2);
-
+  const margin = getMargin(valueExt, data, f);
   const scaleX = d3.time.scale.utc().domain(dateExt).range([margin, width - margin]);
   const scaleY = d3.scale.linear().domain(valueExt).range([height - (margin), margin]);
   const colorRange = [d3.hsl(0, 1, 0.3), d3.hsl(120, 1, 0.3)];
@@ -71,6 +82,10 @@ function bigNumberVis(slice, payload) {
   const formattedNumber = f(v);
 
   // Printing big number
+  let bigNumberFontSize = (width / formattedNumber.length) * 1.3;
+  if (formattedNumber.length === 1) {
+    bigNumberFontSize = (width / 2) * 1.3;
+  }
   g.append('g')
     .attr('class', 'digits')
     .attr('opacity', 1)
@@ -84,7 +99,7 @@ function bigNumberVis(slice, payload) {
     .style('cursor', 'pointer')
     .text(formattedNumber)
     .attr('font-family', 'Roboto')
-    .attr('font-size', (width / formattedNumber.length) * 1.3)
+    .attr('font-size', bigNumberFontSize)
     .style('text-anchor', 'middle')
     .attr('fill', 'black');
 
