@@ -594,7 +594,7 @@ def zlib_compress(data):
         return zlib.compress(data)
 
 
-def zlib_uncompress_to_string(blob):
+def zlib_decompress_to_string(blob):
     """
     uncompress things to a string in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
