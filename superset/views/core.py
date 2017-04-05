@@ -1710,7 +1710,6 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
-        viz_type = data.get('chartType')
         SqlaTable = ConnectorRegistry.sources['table']
         table = (
             db.session.query(SqlaTable)
@@ -1762,16 +1761,9 @@ class Superset(BaseSupersetView):
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
-        params = {
-            'viz_type': viz_type,
-            'groupby': dims[0].column_name if dims else None,
-            'metrics': metrics[0].metric_name if metrics else None,
-            'metric': metrics[0].metric_name if metrics else None,
-            'since': '100 years ago',
-            'limit': '0',
-        }
-        params = "&".join([k + '=' + v for k, v in params.items() if v])
-        return '/superset/explore/table/{table.id}/?{params}'.format(**locals())
+        return self.json_response(json.dumps({
+            'table_id': table.id,
+        }))
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
