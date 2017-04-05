@@ -63,7 +63,7 @@ function bigNumberVis(slice, payload) {
   const line = d3.svg.line()
     .x(d => scaleX(d[0]))
     .y(d => scaleY(d[1]))
-    .interpolate('basis');
+    .interpolate('cardinal');
 
   let y = height / 2;
   let g = svg.append('g');
