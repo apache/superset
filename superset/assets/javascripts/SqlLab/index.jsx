@@ -6,6 +6,7 @@ import React from 'react';
 import { render } from 'react-dom';
 import { getInitialState, sqlLabReducer } from './reducers';
 import { initEnhancer } from '../reduxUtils';
+import { initJQueryAjaxCSRF } from '../modules/utils';
 import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
@@ -14,6 +15,7 @@ import App from './components/App';
 
 
 require('./main.css');
+initJQueryAjaxCSRF();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));

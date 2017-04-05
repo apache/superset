@@ -1,3 +1,4 @@
+{% import 'appbuilder/general/lib.html' as lib %}
 <html>
   <head>
     <title>
@@ -37,6 +38,7 @@
       <div id="app" data-bootstrap="{{ bootstrap_data }}" >
         <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
       </div>
+      {{ csrf_token() if csrf_token else None }}
     {% endblock %}
 
     <!-- Modal for misc messages / alerts  -->

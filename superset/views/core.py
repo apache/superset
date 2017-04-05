@@ -13,7 +13,6 @@ import time
 import traceback
 import zlib
 
-import functools
 import sqlalchemy as sqla
 
 from flask import (
@@ -38,11 +37,12 @@ from superset.legacy import cast_form_data
 from superset.utils import has_access
 from superset.connectors.connector_registry import ConnectorRegistry
 import superset.models.core as models
+from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 
 from .base import (
-    SupersetModelView, BaseSupersetView, DeleteMixin,
-    SupersetFilter, get_user_roles
+    api, SupersetModelView, BaseSupersetView, DeleteMixin,
+    SupersetFilter, get_user_roles, json_error_response, get_error_msg
 )
 
 config = app.config
@@ -71,44 +71,8 @@ def get_datasource_access_error_msg(datasource_name):
               "`all_datasource_access` permission", name=datasource_name)
 
 
-def get_error_msg():
-    if config.get("SHOW_STACKTRACE"):
-        error_msg = traceback.format_exc()
-    else:
-        error_msg = "FATAL ERROR \n"
-        error_msg += (
-            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
-            "configuration setting to enable it")
-    return error_msg
-
-
-def json_error_response(msg, status=None, stacktrace=None):
-    data = {'error': msg}
-    if stacktrace:
-        data['stacktrace'] = stacktrace
-    status = status if status else 500
-    return Response(
-        json.dumps(data),
-        status=status, mimetype="application/json")
-
-
 def json_success(json_msg, status=200):
     return Response(json_msg, status=status, mimetype="application/json")
-
-
-def api(f):
-    """
-    A decorator to label an endpoint as an API. Catches uncaught exceptions and
-    return the response in the JSON format
-    """
-    def wraps(self, *args, **kwargs):
-        try:
-            return f(self, *args, **kwargs)
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(get_error_msg())
-
-    return functools.update_wrapper(wraps, f)
 
 
 def is_owner(obj, user):
@@ -564,19 +528,6 @@ appbuilder.add_view(
     category="Security",
     category_label=__("Security"),
     icon="fa-list-ol")
-
-
-class QueryView(SupersetModelView):
-    datamodel = SQLAInterface(models.Query)
-    list_columns = ['user', 'database', 'status', 'start_time', 'end_time']
-
-appbuilder.add_view(
-    QueryView,
-    "Queries",
-    label=__("Queries"),
-    category="Manage",
-    category_label=__("Manage"),
-    icon="fa-search")
 
 
 @app.route('/health')
@@ -1928,7 +1879,7 @@ class Superset(BaseSupersetView):
                 status=410
             )
 
-        query = db.session.query(models.Query).filter_by(results_key=key).one()
+        query = db.session.query(Query).filter_by(results_key=key).one()
         rejected_tables = self.rejected_datasources(
             query.sql, query.database, query.schema)
         if rejected_tables:
@@ -1950,7 +1901,7 @@ class Superset(BaseSupersetView):
         client_id = request.form.get('client_id')
         try:
             query = (
-                db.session.query(models.Query)
+                db.session.query(Query)
                 .filter_by(client_id=client_id).one()
             )
             query.status = utils.QueryStatus.STOPPED
@@ -1990,7 +1941,7 @@ class Superset(BaseSupersetView):
                 tmp_table_name
             )
 
-        query = models.Query(
+        query = Query(
             database_id=int(database_id),
             limit=int(app.config.get('SQL_MAX_ROW', None)),
             sql=sql,
@@ -2061,7 +2012,7 @@ class Superset(BaseSupersetView):
     def csv(self, client_id):
         """Download the query results as csv."""
         query = (
-            db.session.query(models.Query)
+            db.session.query(Query)
             .filter_by(client_id=client_id)
             .one()
         )
@@ -2126,10 +2077,10 @@ class Superset(BaseSupersetView):
         last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
 
         sql_queries = (
-            db.session.query(models.Query)
+            db.session.query(Query)
             .filter(
-                models.Query.user_id == g.user.get_id(),
-                models.Query.changed_on >= last_updated_dt,
+                Query.user_id == g.user.get_id(),
+                Query.changed_on >= last_updated_dt,
             )
             .all()
         )
@@ -2142,7 +2093,7 @@ class Superset(BaseSupersetView):
     @log_this
     def search_queries(self):
         """Search for queries."""
-        query = db.session.query(models.Query)
+        query = db.session.query(Query)
         search_user_id = request.args.get('user_id')
         database_id = request.args.get('database_id')
         search_text = request.args.get('search_text')
@@ -2153,30 +2104,30 @@ class Superset(BaseSupersetView):
 
         if search_user_id:
             # Filter on db Id
-            query = query.filter(models.Query.user_id == search_user_id)
+            query = query.filter(Query.user_id == search_user_id)
 
         if database_id:
             # Filter on db Id
-            query = query.filter(models.Query.database_id == database_id)
+            query = query.filter(Query.database_id == database_id)
 
         if status:
             # Filter on status
-            query = query.filter(models.Query.status == status)
+            query = query.filter(Query.status == status)
 
         if search_text:
             # Filter on search text
             query = query \
-                .filter(models.Query.sql.like('%{}%'.format(search_text)))
+                .filter(Query.sql.like('%{}%'.format(search_text)))
 
         if from_time:
-            query = query.filter(models.Query.start_time > int(from_time))
+            query = query.filter(Query.start_time > int(from_time))
 
         if to_time:
-            query = query.filter(models.Query.start_time < int(to_time))
+            query = query.filter(Query.start_time < int(to_time))
 
         query_limit = config.get('QUERY_SEARCH_LIMIT', 1000)
         sql_queries = (
-            query.order_by(models.Query.start_time.asc())
+            query.order_by(Query.start_time.asc())
             .limit(query_limit)
             .all()
         )
@@ -2255,8 +2206,11 @@ class Superset(BaseSupersetView):
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
         }
+        from flask_wtf import FlaskForm
+        ff = FlaskForm()
         return self.render_template(
             'superset/sqllab.html',
+            csrf_token=ff.csrf_token,
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
 appbuilder.add_view_no_menu(Superset)
