@@ -188,3 +188,11 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
     return tooltip;
   });
 }
+
+export function getTextWidth(text, fontDetails) {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  context.font = fontDetails;
+  const metrics = context.measureText(text);
+  return metrics.width;
+}
