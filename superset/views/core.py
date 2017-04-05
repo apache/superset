@@ -2198,11 +2198,8 @@ class Superset(BaseSupersetView):
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
         }
-        from flask_wtf import FlaskForm
-        ff = FlaskForm()
         return self.render_template(
             'superset/sqllab.html',
-            csrf_token=ff.csrf_token,
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
 appbuilder.add_view_no_menu(Superset)
