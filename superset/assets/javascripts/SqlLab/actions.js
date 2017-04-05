@@ -113,7 +113,6 @@ export function fetchQueryResults(query) {
 export function runQuery(query) {
   return function (dispatch) {
     dispatch(startQuery(query));
-    const sqlJsonUrl = '/superset/sql_json/';
     const sqlJsonRequest = {
       client_id: query.id,
       database_id: query.dbId,
@@ -126,6 +125,7 @@ export function runQuery(query) {
       tmp_table_name: query.tempTableName,
       select_as_cta: query.ctas,
     };
+    const sqlJsonUrl = '/superset/sql_json/' + location.search;
     $.ajax({
       type: 'POST',
       dataType: 'json',

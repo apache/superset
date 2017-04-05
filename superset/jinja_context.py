@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import inspect
 from jinja2.sandbox import SandboxedEnvironment
+from flask import request
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -25,6 +26,18 @@ BASE_CONTEXT = {
     'uuid': uuid,
 }
 BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
+
+
+def url_param(param, default=None):
+    """Get a url paramater
+
+    :param param: the url parameter to lookup
+    :type param: str
+    :param default: the value to return in the absence of the parameter
+    :type default: str
+    """
+    print(request.args)
+    return request.args.get(param, default)
 
 
 class BaseTemplateProcessor(object):
@@ -52,7 +65,9 @@ class BaseTemplateProcessor(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
-        self.context = {}
+        self.context = {
+            'url_param': url_param,
+        }
         self.context.update(kwargs)
         self.context.update(BASE_CONTEXT)
         if self.engine:
