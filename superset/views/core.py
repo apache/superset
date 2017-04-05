@@ -1620,7 +1620,7 @@ class Superset(BaseSupersetView):
         dash = qry.one()
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
-            if not self.datasource_access(datasource):
+            if datasource and not self.datasource_access(datasource):
                 flash(
                     __(get_datasource_access_error_msg(datasource.name)),
                     "danger")
