@@ -1487,6 +1487,47 @@ class Superset(BaseSupersetView):
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
+    @has_access
+    @expose("/fave_queries/", methods=['GET'])
+    def fave_queries(self):
+        if not g.user.get_id():
+            return Response(
+                json.dumps({'error': "Please login to access the queries."}),
+                status=403,
+                mimetype="application/json")
+        qry = (
+            db.session.query(
+                models.Query,
+            )
+            .join(
+                models.FavStar,
+                sqla.and_(
+                    models.FavStar.user_id == int(g.user.id),
+                    models.FavStar.class_name == 'query',
+                    models.Query.id == models.FavStar.obj_id,
+                )
+            )
+            .order_by(
+                models.FavStar.dttm.asc()
+            )
+        )
+
+        queries = [q.to_dict() for q in qry.all()]
+        payload = []
+        for q in queries:
+            d = {
+                'id': q['id'],
+                'dbId': q['dbId'],
+                'db': q['db'],
+                'schema': q['schema'],
+                'sql': q['sql'],
+            }
+            payload.append(d)
+
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
     @api
     @has_access_api
     @expose("/created_dashboards/<user_id>/", methods=['GET'])
@@ -1633,6 +1674,13 @@ class Superset(BaseSupersetView):
         session = db.session()
         FavStar = models.FavStar  # noqa
         count = 0
+        if class_name == 'query':
+            query = session.query(models.Query).filter_by(
+                client_id=obj_id).first()
+            if not query:
+                return json_error_response(
+                    json.dumps({'error': 'No query was found!'}))
+            obj_id = query.id
         favs = session.query(FavStar).filter_by(
             class_name=class_name, obj_id=obj_id,
             user_id=g.user.get_id()).all()
@@ -2294,6 +2342,12 @@ appbuilder.add_link(
     'Query Search',
     href='/superset/sqllab#search',
     icon="fa-search",
+    category_icon="fa-flask",
+    category='SQL Lab')
+appbuilder.add_link(
+    'Saved Queries',
+    href='/superset/sqllab#faved',
+    icon="fa-heart",
     category_icon="fa-flask",
     category='SQL Lab')
 

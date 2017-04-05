@@ -5,6 +5,7 @@ import React from 'react';
 import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
+import FaveQueries from './FaveQueries';
 import Alerts from './Alerts';
 
 import { bindActionCreators } from 'redux';
@@ -44,7 +45,7 @@ class App extends React.PureComponent {
   }
   render() {
     let content;
-    if (this.state.hash) {
+    if (this.state.hash === '#search') {
       content = (
         <div className="container-fluid">
           <div className="row">
@@ -52,6 +53,12 @@ class App extends React.PureComponent {
               <QuerySearch height={this.state.contentHeight} actions={this.props.actions} />
             </div>
           </div>
+        </div>
+      );
+    } else if (this.state.hash === '#faved') {
+      content = (
+        <div className="container-fluid">
+          <FaveQueries height={this.state.contentHeight} actions={this.props.actions} />
         </div>
       );
     } else {

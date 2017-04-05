@@ -70,6 +70,9 @@ export const sqlLabReducer = function (state, action) {
       delete newQueries[action.query.id];
       return Object.assign({}, state, { queries: newQueries });
     },
+    [actions.FAVE_QUERY_SUCCESS]() {
+      return alterInObject(state, 'queries', action.query, { faved: action.fave });
+    },
     [actions.RESET_STATE]() {
       return Object.assign({}, getInitialState());
     },
