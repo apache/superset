@@ -136,34 +136,71 @@ function bigNumberVis(slice, payload) {
         .attr('stroke', c);
     }
 
-    // axes
-    const gAxis = svg.append('g').attr('class', 'axis').attr('opacity', 0);
-    g = gAxis.append('g');
-    const minMaxTickValues = scaleX.domain();
-    // prepend the min value, and append the max value to the list of tick values
-    const tickValues =
-      [minMaxTickValues[0]]
-        .concat(scaleX.ticks(getNumTicks(data, slice, margin)))
-        .concat([minMaxTickValues[1]]);
-    const xAxis = d3.svg.axis()
-      .scale(scaleX)
-      .orient('bottom')
-      .tickValues(tickValues)
-      .tickFormat(formatDate);
-    g.call(xAxis);
-    g.attr('transform', 'translate(0,' + (height - margin) + ')').attr('class', 'xAxis');
+    // if container is very small height wise, do not render axis
+    if (height > 100) {
+      // axes
+      const gAxis = svg.append('g').attr('class', 'axis').attr('opacity', 0);
+      g = gAxis.append('g');
+      const minMaxTickValues = scaleX.domain();
+      // prepend the min value, and append the max value to the list of tick values
+      const tickValues =
+        [minMaxTickValues[0]]
+          .concat(scaleX.ticks(getNumTicks(data, slice, margin)))
+          .concat([minMaxTickValues[1]]);
+      const xAxis = d3.svg.axis()
+        .scale(scaleX)
+        .orient('bottom')
+        .tickValues(tickValues)
+        .tickFormat(formatDate);
+      g.call(xAxis);
+      g.attr('transform', 'translate(0,' + (height - margin) + ')').attr('class', 'xAxis');
 
-    g = gAxis.append('g').attr('transform', `translate(${margin}, 0)`).attr('class', 'yAxis');
-    const yAxis = d3.svg.axis()
-      .scale(scaleY)
-      .orient('left')
-      .tickFormat(d3.format(fd.y_axis_format))
-      .tickValues(valueExt);
-    g.call(yAxis);
-    g.selectAll('text')
-      .style('text-anchor', 'end')
-      .attr('y', '-7')
-      .attr('x', '-4');
+      g = gAxis.append('g').attr('transform', `translate(${margin}, 0)`).attr('class', 'yAxis');
+      const yAxis = d3.svg.axis()
+        .scale(scaleY)
+        .orient('left')
+        .tickFormat(d3.format(fd.y_axis_format))
+        .tickValues(valueExt);
+      g.call(yAxis);
+      g.selectAll('text')
+        .style('text-anchor', 'end')
+        .attr('y', '-7')
+        .attr('x', '-4');
+
+      // show hide x/y axis on mouseover/out
+      div.on('mouseover', function () {
+        const el = d3.select(this);
+        el.selectAll('path')
+          .transition()
+          .duration(500)
+          .attr('opacity', 1)
+          .style('stroke-width', '2px');
+        el.selectAll('g.digits')
+          .transition()
+          .duration(500)
+          .attr('opacity', 0.1);
+        el.selectAll('g.axis')
+          .transition()
+          .duration(500)
+          .attr('opacity', 1);
+      })
+      .on('mouseout', function () {
+        const el = d3.select(this);
+        el.select('path')
+          .transition()
+          .duration(500)
+          .attr('opacity', 0.5)
+          .style('stroke-width', '5px');
+        el.selectAll('g.digits')
+          .transition()
+          .duration(500)
+          .attr('opacity', 1);
+        el.selectAll('g.axis')
+          .transition()
+          .duration(500)
+          .attr('opacity', 0);
+      });
+    }
 
     // Define the div for the tooltip
     const tooltipEl =
@@ -204,40 +241,6 @@ function bigNumberVis(slice, payload) {
       .on('mouseout', () => {
         tooltipEl.transition().duration(500).style('opacity', 0);
       });
-
-    // show hide x/y axis on mouseover/out
-    div.on('mouseover', function () {
-      const el = d3.select(this);
-      el.selectAll('path')
-        .transition()
-        .duration(500)
-        .attr('opacity', 1)
-        .style('stroke-width', '2px');
-      el.selectAll('g.digits')
-        .transition()
-        .duration(500)
-        .attr('opacity', 0.1);
-      el.selectAll('g.axis')
-        .transition()
-        .duration(500)
-        .attr('opacity', 1);
-    })
-    .on('mouseout', function () {
-      const el = d3.select(this);
-      el.select('path')
-        .transition()
-        .duration(500)
-        .attr('opacity', 0.5)
-        .style('stroke-width', '5px');
-      el.selectAll('g.digits')
-        .transition()
-        .duration(500)
-        .attr('opacity', 1);
-      el.selectAll('g.axis')
-        .transition()
-        .duration(500)
-        .attr('opacity', 0);
-    });
   }
 }
 
