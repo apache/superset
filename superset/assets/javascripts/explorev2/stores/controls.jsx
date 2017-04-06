@@ -655,7 +655,7 @@ export const controls = {
     label: 'URL',
     description: 'The URL, this control is templated, so you can integrate ' +
                  '{{ width }} and/or {{ height }} in your URL string.',
-    default: 'https: //www.youtube.com/embed/JkI5rg_VcQ4',
+    default: 'https://www.youtube.com/embed/AdSZJzb-aX8',
   },
 
   x_axis_label: {

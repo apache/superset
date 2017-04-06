@@ -1,8 +1,8 @@
 import $ from 'jquery';
-const Mustache = require('mustache');
 const utils = require('./utils');
 // vis sources
 /* eslint camel-case: 0 */
+import Mustache from 'mustache';
 import vizMap from '../../visualizations/main.js';
 import { getExploreUrl } from '../explorev2/exploreUtils';
 import { applyDefaultFormData } from '../explorev2/stores/store';
