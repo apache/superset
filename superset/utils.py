@@ -585,8 +585,7 @@ def zlib_compress(data):
     if PY3K:
         if isinstance(data, str):
             return zlib.compress(bytes(data, "utf-8"))
-        else:
-            return zlib.compress(data)
+        return zlib.compress(data)
     return zlib.compress(data)
 
 
