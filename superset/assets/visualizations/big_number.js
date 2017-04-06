@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import { formatDate } from '../javascripts/modules/dates';
-import { getTextWidth } from '../javascripts/modules/utils';
+import { getTextWidth, getFontSizeToFitWidth } from '../javascripts/modules/utils';
 
 require('./big_number.css');
 
@@ -72,10 +72,7 @@ function bigNumberVis(slice, payload) {
   const formattedNumber = f(v);
 
   // Printing big number
-  let bigNumberFontSize = (width / formattedNumber.length) * 1.3;
-  if (formattedNumber.length === 1) {
-    bigNumberFontSize = (width / 2) * 1.3;
-  }
+  const bigNumberFontSize = getFontSizeToFitWidth(width, formattedNumber);
   g.append('g')
     .attr('class', 'digits')
     .attr('opacity', 1)
@@ -90,17 +87,17 @@ function bigNumberVis(slice, payload) {
     .text(formattedNumber)
     .attr('font-family', 'Roboto')
     .attr('font-size', bigNumberFontSize)
-    .style('text-anchor', 'middle')
-    .attr('fill', 'black');
+    .style('text-anchor', 'middle');
 
   // Printing big number subheader text
   if (json.subheader) {
-    const fontSize = (width / json.subheader.length) * 1.5;
+    const subheaderFontSize = getFontSizeToFitWidth(width, json.subheader);
     g.append('text')
       .attr('x', width / 2)
       .attr('y', (height / 16) * 12)
       .text(json.subheader)
       .attr('class', 'big_number_subheader')
+      .attr('font-size', subheaderFontSize)
       .style('text-anchor', 'middle');
   }
 
