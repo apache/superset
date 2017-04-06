@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import { formatDate } from '../javascripts/modules/dates';
-import { getTextWidth } from '../javascripts/modules/utils';
+import { getTextWidth, getFontSizeToFitWidth } from '../javascripts/modules/utils';
 
 require('./big_number.css');
 
@@ -72,10 +72,7 @@ function bigNumberVis(slice, payload) {
   const formattedNumber = f(v);
 
   // Printing big number
-  let bigNumberFontSize = (width / formattedNumber.length) * 1.3;
-  if (formattedNumber.length === 1) {
-    bigNumberFontSize = (width / 2) * 1.3;
-  }
+  const bigNumberFontSize = getFontSizeToFitWidth(width, formattedNumber);
   g.append('g')
     .attr('class', 'digits')
     .attr('opacity', 1)
@@ -90,19 +87,17 @@ function bigNumberVis(slice, payload) {
     .text(formattedNumber)
     .attr('font-family', 'Roboto')
     .attr('font-size', bigNumberFontSize)
-    .style('text-anchor', 'middle')
-    .attr('fill', 'black');
+    .style('text-anchor', 'middle');
 
   // Printing big number subheader text
   if (json.subheader) {
-    const fontSize = (width / json.subheader.length) * 1.5;
+    const subheaderFontSize = getFontSizeToFitWidth(width, json.subheader);
     g.append('text')
       .attr('x', width / 2)
-      .attr('y', (height / 16) * 12)
+      .attr('y', y + (bigNumberFontSize * 1.3))
       .text(json.subheader)
-      .attr('id', 'subheader_text')
-      .attr('font-family', 'Roboto')
-      .attr('font-size', fontSize)
+      .attr('class', 'big_number_subheader')
+      .attr('font-size', subheaderFontSize)
       .style('text-anchor', 'middle');
   }
 
@@ -132,40 +127,77 @@ function bigNumberVis(slice, payload) {
         .attr('x', width / 2)
         .attr('y', (height / 16) * 12)
         .text(fp(vCompare) + json.compare_suffix)
-        .style('font-size', d3.min([height, width]) / 8)
+        .style('font-size', bigNumberFontSize * 0.75)
         .style('text-anchor', 'middle')
         .attr('fill', c)
         .attr('stroke', c);
     }
 
-    // axes
-    const gAxis = svg.append('g').attr('class', 'axis').attr('opacity', 0);
-    g = gAxis.append('g');
-    const minMaxTickValues = scaleX.domain();
-    // prepend the min value, and append the max value to the list of tick values
-    const tickValues =
-      [minMaxTickValues[0]]
-        .concat(scaleX.ticks(getNumTicks(data, slice, margin)))
-        .concat([minMaxTickValues[1]]);
-    const xAxis = d3.svg.axis()
-      .scale(scaleX)
-      .orient('bottom')
-      .tickValues(tickValues)
-      .tickFormat(formatDate);
-    g.call(xAxis);
-    g.attr('transform', 'translate(0,' + (height - margin) + ')').attr('class', 'xAxis');
+    // if container is very small height wise, do not render axis
+    if (height > 100) {
+      // axes
+      const gAxis = svg.append('g').attr('class', 'axis').attr('opacity', 0);
+      g = gAxis.append('g');
+      const minMaxTickValues = scaleX.domain();
+      // prepend the min value, and append the max value to the list of tick values
+      const tickValues =
+        [minMaxTickValues[0]]
+          .concat(scaleX.ticks(getNumTicks(data, slice, margin)))
+          .concat([minMaxTickValues[1]]);
+      const xAxis = d3.svg.axis()
+        .scale(scaleX)
+        .orient('bottom')
+        .tickValues(tickValues)
+        .tickFormat(formatDate);
+      g.call(xAxis);
+      g.attr('transform', 'translate(0,' + (height - margin) + ')').attr('class', 'xAxis');
 
-    g = gAxis.append('g').attr('transform', `translate(${margin}, 0)`).attr('class', 'yAxis');
-    const yAxis = d3.svg.axis()
-      .scale(scaleY)
-      .orient('left')
-      .tickFormat(d3.format(fd.y_axis_format))
-      .tickValues(valueExt);
-    g.call(yAxis);
-    g.selectAll('text')
-      .style('text-anchor', 'end')
-      .attr('y', '-7')
-      .attr('x', '-4');
+      g = gAxis.append('g').attr('transform', `translate(${margin}, 0)`).attr('class', 'yAxis');
+      const yAxis = d3.svg.axis()
+        .scale(scaleY)
+        .orient('left')
+        .tickFormat(d3.format(fd.y_axis_format))
+        .tickValues(valueExt);
+      g.call(yAxis);
+      g.selectAll('text')
+        .style('text-anchor', 'end')
+        .attr('y', '-7')
+        .attr('x', '-4');
+
+      // show hide x/y axis on mouseover/out
+      div.on('mouseover', function () {
+        const el = d3.select(this);
+        el.selectAll('path')
+          .transition()
+          .duration(500)
+          .attr('opacity', 1)
+          .style('stroke-width', '2px');
+        el.selectAll('g.digits')
+          .transition()
+          .duration(500)
+          .attr('opacity', 0.1);
+        el.selectAll('g.axis')
+          .transition()
+          .duration(500)
+          .attr('opacity', 1);
+      })
+      .on('mouseout', function () {
+        const el = d3.select(this);
+        el.select('path')
+          .transition()
+          .duration(500)
+          .attr('opacity', 0.5)
+          .style('stroke-width', '5px');
+        el.selectAll('g.digits')
+          .transition()
+          .duration(500)
+          .attr('opacity', 1);
+        el.selectAll('g.axis')
+          .transition()
+          .duration(500)
+          .attr('opacity', 0);
+      });
+    }
 
     // Define the div for the tooltip
     const tooltipEl =
@@ -206,40 +238,6 @@ function bigNumberVis(slice, payload) {
       .on('mouseout', () => {
         tooltipEl.transition().duration(500).style('opacity', 0);
       });
-
-    // show hide x/y axis on mouseover/out
-    div.on('mouseover', function () {
-      const el = d3.select(this);
-      el.selectAll('path')
-        .transition()
-        .duration(500)
-        .attr('opacity', 1)
-        .style('stroke-width', '2px');
-      el.selectAll('g.digits')
-        .transition()
-        .duration(500)
-        .attr('opacity', 0.1);
-      el.selectAll('g.axis')
-        .transition()
-        .duration(500)
-        .attr('opacity', 1);
-    })
-    .on('mouseout', function () {
-      const el = d3.select(this);
-      el.select('path')
-        .transition()
-        .duration(500)
-        .attr('opacity', 0.5)
-        .style('stroke-width', '5px');
-      el.selectAll('g.digits')
-        .transition()
-        .duration(500)
-        .attr('opacity', 1);
-      el.selectAll('g.axis')
-        .transition()
-        .duration(500)
-        .attr('opacity', 0);
-    });
   }
 }
 

@@ -197,6 +197,21 @@ export function getTextWidth(text, fontDetails) {
   return metrics.width;
 }
 
+export function getFontSizeToFitWidth(width, text, maxFontSize = null, minFontSize = 12) {
+  if (!maxFontSize) {
+    if (width < 600) {
+      maxFontSize = 60;
+    } else {
+      maxFontSize = width / 10;
+    }
+  }
+  return Math.max(
+    Math.min((width / text.length),
+    parseFloat(maxFontSize)),
+    parseFloat(minFontSize)
+  );
+}
+
 export function initJQueryAjaxCSRF() {
   // Works in conjunction with a Flask-WTF token as described here:
   // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests

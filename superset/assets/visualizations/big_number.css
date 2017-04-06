@@ -27,6 +27,10 @@
   fill: none;
   stroke: #333333;
 }
+.big_number_subheader {
+  font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  fill: #333333;
+}
 
 .line-tooltip {
   position: absolute;
