@@ -199,7 +199,7 @@ export function getTextWidth(text, fontDetails) {
 
 export function getFontSizeToFitWidth(width, text, maxFontSize = null, minFontSize = 12) {
   if (!maxFontSize) {
-    if (width > 300) {
+    if (width < 600) {
       maxFontSize = 60;
     } else {
       maxFontSize = width / 10;
