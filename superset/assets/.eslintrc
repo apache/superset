@@ -5,6 +5,9 @@
       "experimentalObjectRestSpread": true
     }
   },
+  "globals": {
+    "document": true,
+  },
   "rules": {
     "prefer-template": 0,
     "new-cap": 0,
