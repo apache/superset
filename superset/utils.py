@@ -578,7 +578,7 @@ def setup_cache(app, cache_config):
 
 def zlib_compress(data):
     """
-    compress things in a py2/3 safe fashion
+    Compress things in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
     """
@@ -587,16 +587,15 @@ def zlib_compress(data):
             return zlib.compress(bytes(data, "utf-8"))
         else:
             return zlib.compress(data)
-    else:
-        return zlib.compress(data)
+    return zlib.compress(data)
 
 
 def zlib_decompress_to_string(blob):
     """
-    uncompress things to a string in a py2/3 safe fashion
+    Decompress things to a string in a py2/3 safe fashion
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
-    >>> got_str = zlib_uncompress_to_string(blob)
+    >>> got_str = zlib_decompress_to_string(blob)
     >>> got_str == json_str
     True
     """
