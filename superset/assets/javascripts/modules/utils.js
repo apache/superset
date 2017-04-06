@@ -189,14 +189,6 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
   });
 }
 
-export function getTextWidth(text, fontDetails) {
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  context.font = fontDetails;
-  const metrics = context.measureText(text);
-  return metrics.width;
-}
-
 export function initJQueryAjaxCSRF() {
   // Works in conjunction with a Flask-WTF token as described here:
   // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests
