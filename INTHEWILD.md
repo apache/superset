@@ -17,6 +17,7 @@ Organizations
  - [Udemy](https://www.udemy.com/)
  - [Tooploox](https://www.tooploox.com/)
  - [Tobii](http://www.tobii.com/)
+ - [Endress+Hauser](http://www.endress.com/)
 
 Projects
 ----------
