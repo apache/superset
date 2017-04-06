@@ -94,7 +94,7 @@ function bigNumberVis(slice, payload) {
     const subheaderFontSize = getFontSizeToFitWidth(width, json.subheader);
     g.append('text')
       .attr('x', width / 2)
-      .attr('y', (height / 16) * 12)
+      .attr('y', y + (bigNumberFontSize * 1.3))
       .text(json.subheader)
       .attr('class', 'big_number_subheader')
       .attr('font-size', subheaderFontSize)
