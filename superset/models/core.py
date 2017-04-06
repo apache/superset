@@ -50,7 +50,8 @@ def set_related_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
     id_ = target.datasource_id
     ds = db.session.query(src_class).filter_by(id=int(id_)).first()
-    target.perm = ds.perm
+    if ds:
+        target.perm = ds.perm
 
 
 class Url(Model, AuditMixinNullable):

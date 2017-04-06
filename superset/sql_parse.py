@@ -1,6 +1,8 @@
+import logging
+
 import sqlparse
 from sqlparse.sql import IdentifierList, Identifier
-from sqlparse.tokens import DML, Keyword, Name
+from sqlparse.tokens import Keyword, Name
 
 RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
@@ -13,6 +15,7 @@ class SupersetQuery(object):
         self._table_names = set()
         self._alias_names = set()
         # TODO: multistatement support
+        logging.info("Parsing with sqlparse statement {}".format(self.sql))
         self._parsed = sqlparse.parse(self.sql)
         for statement in self._parsed:
             self.__extract_from_token(statement)

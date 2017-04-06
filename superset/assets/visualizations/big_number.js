@@ -50,8 +50,9 @@ function bigNumberVis(slice, payload) {
   const valueExt = d3.extent(data, (d) => d[1]);
   const yAxisLabelWidths = valueExt.map(value => getTextWidth(f(value), '10px Roboto'));
   const yAxisMaxWidth = Math.max(...yAxisLabelWidths);
-  const margin = yAxisMaxWidth + (yAxisMaxWidth / 2);
-
+  let margin = yAxisMaxWidth + (yAxisMaxWidth / 2);
+  // make sure margin is minimum 30px, for the case when the y axix label is very small.
+  if (margin < 30) margin = 30;
   const scaleX = d3.time.scale.utc().domain(dateExt).range([margin, width - margin]);
   const scaleY = d3.scale.linear().domain(valueExt).range([height - (margin), margin]);
   const colorRange = [d3.hsl(0, 1, 0.3), d3.hsl(120, 1, 0.3)];
@@ -63,7 +64,7 @@ function bigNumberVis(slice, payload) {
   const line = d3.svg.line()
     .x(d => scaleX(d[0]))
     .y(d => scaleY(d[1]))
-    .interpolate('basis');
+    .interpolate('cardinal');
 
   let y = height / 2;
   let g = svg.append('g');

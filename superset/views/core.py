@@ -1619,7 +1619,7 @@ class Superset(BaseSupersetView):
         dash = qry.one()
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
-            if not self.datasource_access(datasource):
+            if datasource and not self.datasource_access(datasource):
                 flash(
                     __(get_datasource_access_error_msg(datasource.name)),
                     "danger")
@@ -1709,7 +1709,6 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
-        viz_type = data.get('chartType')
         SqlaTable = ConnectorRegistry.sources['table']
         table = (
             db.session.query(SqlaTable)
@@ -1761,16 +1760,9 @@ class Superset(BaseSupersetView):
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
-        params = {
-            'viz_type': viz_type,
-            'groupby': dims[0].column_name if dims else None,
-            'metrics': metrics[0].metric_name if metrics else None,
-            'metric': metrics[0].metric_name if metrics else None,
-            'since': '100 years ago',
-            'limit': '0',
-        }
-        params = "&".join([k + '=' + v for k, v in params.items() if v])
-        return '/superset/explore/table/{table.id}/?{params}'.format(**locals())
+        return self.json_response(json.dumps({
+            'table_id': table.id,
+        }))
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
@@ -2205,11 +2197,8 @@ class Superset(BaseSupersetView):
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
         }
-        from flask_wtf import FlaskForm
-        ff = FlaskForm()
         return self.render_template(
             'superset/sqllab.html',
-            csrf_token=ff.csrf_token,
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
 appbuilder.add_view_no_menu(Superset)
