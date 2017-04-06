@@ -102,7 +102,7 @@ class ChartContainer extends React.PureComponent {
 
       height: getHeight,
 
-      render_template: function (s) {
+      render_template: (s) => {
         const context = {
           width: this.width,
           height: this.height,
