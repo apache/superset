@@ -100,9 +100,7 @@ function bigNumberVis(slice, payload) {
       .attr('x', width / 2)
       .attr('y', (height / 16) * 12)
       .text(json.subheader)
-      .attr('id', 'subheader_text')
-      .attr('font-family', 'Roboto')
-      .attr('font-size', fontSize)
+      .attr('class', 'big_number_subheader')
       .style('text-anchor', 'middle');
   }
 
