@@ -127,7 +127,7 @@ function bigNumberVis(slice, payload) {
         .attr('x', width / 2)
         .attr('y', (height / 16) * 12)
         .text(fp(vCompare) + json.compare_suffix)
-        .style('font-size', d3.min([height, width]) / 8)
+        .style('font-size', bigNumberFontSize * 0.75)
         .style('text-anchor', 'middle')
         .attr('fill', c)
         .attr('stroke', c);
