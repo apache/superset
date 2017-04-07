@@ -7,7 +7,9 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
+import AlertsWrapper from '../components/AlertsWrapper';
 import { getControlsState, getFormDataFromControls } from './stores/store';
+import { initJQueryAjaxCSRF } from '../modules/utils';
 
 
 // jquery and bootstrap required to make bootstrap dropdown menu's work
@@ -15,6 +17,7 @@ const $ = window.$ = require('jquery'); // eslint-disable-line
 const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 require('bootstrap');
 require('./main.css');
+initJQueryAjaxCSRF();
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
@@ -47,7 +50,10 @@ const store = createStore(exploreReducer, bootstrappedState,
 
 ReactDOM.render(
   <Provider store={store}>
-    <ExploreViewContainer />
+    <div>
+      <ExploreViewContainer />
+      <AlertsWrapper />
+    </div>
   </Provider>,
   exploreViewContainer
 );

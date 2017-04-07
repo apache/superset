@@ -22,6 +22,12 @@
         {% include "superset/partials/_script_tag.html" %}
       {% endwith %}
     {% endblock %}
+    <input
+      type="hidden"
+      name="csrf_token"
+      id="csrf_token"
+      value="{{ csrf_token() if csrf_token else '' }}"
+    >
   </head>
 
   <body>
@@ -38,12 +44,6 @@
       <div id="app" data-bootstrap="{{ bootstrap_data }}" >
         <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
       </div>
-      <input
-        type="hidden"
-        name="csrf_token"
-        id="csrf_token"
-        value="{{ csrf_token() if csrf_token else '' }}"
-      >
     {% endblock %}
 
     <!-- Modal for misc messages / alerts  -->

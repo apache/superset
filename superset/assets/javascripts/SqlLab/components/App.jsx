@@ -5,7 +5,7 @@ import React from 'react';
 import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
-import AlertsWrapper from './AlertsWrapper';
+import AlertsWrapper from '../../components/AlertsWrapper';
 
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
