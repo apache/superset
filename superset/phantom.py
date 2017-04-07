@@ -13,6 +13,7 @@ import socket
 from urlparse import urljoin
 from werkzeug.urls import Href
 from PIL import Image
+from flask import request
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.support import ui
@@ -23,9 +24,18 @@ class BrowserSession(object):
     A context manager representing a Superset browser session accessed via the
     PhantomJS web-driver.
     """
-    def __init__(self, base_url, headers=None):
-        self.base_url = base_url
-        self.headers = headers or {}
+    def __init__(self, request):
+        self.request = request
+
+    @staticmethod
+    def flask_to_driver(flask_request, selenium_driver):
+        """Copies the flask request into the selenium driver"""
+        for k, v in flask_request.cookies.items():
+            selenium_driver.add_cookie({'name': k, 'value': v})
+
+        for k, v in flask_request.headers.items():
+            field = 'phantomjs.page.customHeaders.{}'.format(k)
+            webdriver.DesiredCapabilities.PHANTOMJS[field] = v
 
     def __enter__(self):
         """
@@ -34,14 +44,9 @@ class BrowserSession(object):
         :returns: The Superset browser session context manager
         :rtype: BrowserSession
         """
-        for key, value in self.headers.iteritems():
-            field = 'phantomjs.page.customHeaders.{}'.format(key)
-            webdriver.DesiredCapabilities.PHANTOMJS[field] = value
-
-        url = urljoin(self.base_url, '/login/')
         self.driver = webdriver.PhantomJS(service_log_path=os.path.devnull)
-        self.driver.get(url)
-
+        self.flask_to_driver(request, self.driver)
+        self.base_url = request.base_url
         return self
 
     def __exit__(self, *args):
