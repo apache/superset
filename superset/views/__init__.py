@@ -1,4 +1,4 @@
 from . import base  # noqa
 from . import core  # noqa
 from . import sql_lab  # noqa
-from . import phantom  # noqa
+from . import images  # noqa

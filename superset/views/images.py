@@ -1,6 +1,3 @@
-"""Wrapping phantom JS into a context manager
-
-Ported from code written by John Bodley @ Airbnb by Maxime Beauchemin"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -10,13 +7,19 @@ import io
 import os
 import signal
 import socket
-from urlparse import urljoin
-from werkzeug.urls import Href
+import StringIO
+
 from PIL import Image
-from flask import request
+from flask import request, send_file, session
+from flask_appbuilder import expose
+
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.support import ui
+
+from superset import appbuilder, db
+from superset.models.core import Slice
+from .base import BaseSupersetView
 
 
 class BrowserSession(object):
@@ -24,16 +27,36 @@ class BrowserSession(object):
     A context manager representing a Superset browser session accessed via the
     PhantomJS web-driver.
     """
-    def __init__(self, request):
-        self.request = request
-
     @staticmethod
-    def flask_to_driver(flask_request, selenium_driver):
-        """Copies the flask request into the selenium driver"""
-        for k, v in flask_request.cookies.items():
-            selenium_driver.add_cookie({'name': k, 'value': v})
+    def get_session_cookie(driver):
+        """Hack to find the cookie domain, can be removed if predicted"""
+        driver.get(request.url_root + 'superset/welcome')
+        session_cookie = None
+        for cookie in driver.get_cookies():
+            if cookie['name'] == 'session':
+                session_cookie = cookie
+        return session_cookie
 
-        for k, v in flask_request.headers.items():
+    @classmethod
+    def flask_to_driver(cls, driver):
+        """Copies the flask request into the selenium driver"""
+        session_cookie = cls.get_session_cookie(driver)
+        if not session_cookie['domain'].statswith('.'):
+            session_cookie['domain'] = '.' + session_cookie['domain']
+        for k, v in request.cookies.items():
+            if k == 'session':
+                session_cookie['value'] = v
+                driver.add_cookie(session_cookie)
+                '''
+                driver.add_cookie({
+                    'name': k,
+                    'value': v,
+                    'domain': '.localhost',
+                    'path': '/',
+                })
+                '''
+
+        for k, v in request.headers.items():
             field = 'phantomjs.page.customHeaders.{}'.format(k)
             webdriver.DesiredCapabilities.PHANTOMJS[field] = v
 
@@ -45,8 +68,7 @@ class BrowserSession(object):
         :rtype: BrowserSession
         """
         self.driver = webdriver.PhantomJS(service_log_path=os.path.devnull)
-        self.flask_to_driver(request, self.driver)
-        self.base_url = request.base_url
+        self.flask_to_driver(self.driver)
         return self
 
     def __exit__(self, *args):
@@ -60,7 +82,7 @@ class BrowserSession(object):
         self.driver.service.process.send_signal(signal.SIGTERM)
         self.driver.quit()
 
-    def capture(self, path, wait=15, width=1024):
+    def capture(self, path, wait=15, width=1280, height=800):
         """
         Capture the screenshot of the rendered path as a PNG image using the
         PhantomJS headless browser.
@@ -90,15 +112,11 @@ class BrowserSession(object):
         :raises socket.timeout: If the page becomes non-responsive
         :raises URLError: If the connection is refused
         """
-
-        href = Href(urljoin(self.base_url, path))
-        url = href({'standalone': 'true'})
-        print(url)
+        url = request.url_root[:-1] + path
         self.driver.get(url)
 
         # The non-zero window height is merely a lower bound.
-        self.driver.set_window_size(width, 1)
-
+        self.driver.set_window_size(width, height)
         try:
             elements = self.driver.find_elements_by_css_selector('.loading')
             try:
@@ -116,9 +134,27 @@ class BrowserSession(object):
         except WebDriverException:
             self.driver.implicitly_wait(wait)
         png = self.driver.get_screenshot_as_png()
-        import StringIO
         box = (0, 0, 1366, 728)
         im = Image.open(StringIO.StringIO(png))
         region = im.crop(box)
         region.save('/tmp/test.jpg', 'JPEG', optimize=True, quality=95)
         return io.BytesIO(png)
+
+
+class Img(BaseSupersetView):
+
+    """The base views for Superset!"""
+
+    @expose("/slice/<slice_id>/")
+    def slice(self, slice_id):
+        """Assigns a list of found users to the given role."""
+
+        slice_id = int(slice_id)
+        slc = db.session.query(Slice).filter_by(id=slice_id).first()
+        with BrowserSession() as browser:
+            img = browser.capture(slc.slice_url + '&standalone=true')
+            print(slc.slice_url + '&standalone=true')
+            return send_file(img, mimetype='image/png')
+        return "Nope"
+
+appbuilder.add_view_no_menu(Img)
