@@ -1,3 +1,4 @@
+/* global notify */
 /* eslint global-require: 0 */
 import $ from 'jquery';
 const d3 = window.d3 || require('d3');
@@ -78,12 +79,8 @@ export function getShortUrl(longUrl, callback) {
     success: (data) => {
       callback(data);
     },
-    error: (error) => {
-      /* eslint no-console: 0 */
-      if (console && console.warn) {
-        console.warn('Something went wrong...');
-        console.warn(error);
-      }
+    error: () => {
+      notify.error('Error getting the short URL');
       callback(longUrl);
     },
   });

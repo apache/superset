@@ -1,5 +1,5 @@
 import React from 'react';
-import AlertsWrapper from '../../../javascripts/SqlLab/components/AlertsWrapper';
+import AlertsWrapper from '../../../javascripts/components/AlertsWrapper';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
