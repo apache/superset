@@ -356,7 +356,7 @@ export function popSavedQuery(saveQueryId) {
         const sq = data.result;
         const queryEditorProps = {
           title: sq.label,
-          dbId: sq.db_id,
+          dbId: sq.db_id ? parseInt(sq.db_id, 10) : null,
           schema: sq.schema,
           autorun: false,
           sql: sq.sql,
