@@ -688,6 +688,7 @@ class CsvToDatabaseView(SimpleFormView):
         filename = self.upload_file(form)
 
         # Use Pandas to convert csv to dataframe
+        datetime_flag = form.infer_datetime_format.data
         df = self.csv_to_df(filepath_or_buffer=filename,
                             sep=form.sep.data,
                             header=form.header.data,
@@ -701,7 +702,7 @@ class CsvToDatabaseView(SimpleFormView):
                             nrows=form.nrows.data,
                             skip_blank_lines=form.skip_blank_lines.data,
                             parse_dates=form.parse_dates.data,
-                            infer_datetime_format=form.infer_datetime_format.data,
+                            infer_datetime_format=datetime_flag,
                             dayfirst=form.dayfirst.data,
                             thousands=form.thousands.data,
                             decimal=form.decimal.data,
