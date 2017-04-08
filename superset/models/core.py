@@ -560,26 +560,10 @@ class Database(Model, AuditMixinNullable):
 
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
-        url = make_url(self.sqlalchemy_uri_decrypted)
+        uri = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
-        url.database = self.get_database_for_various_backend(url, schema)
-        return create_engine(url, **params)
-
-    def get_database_for_various_backend(self, uri, default_database=None):
-        database = uri.database
-        if self.backend == 'presto' and default_database:
-            if '/' in database:
-                database = database.split('/')[0] + '/' + default_database
-            else:
-                database += '/' + default_database
-        # Postgres and Redshift use the concept of schema as a logical entity
-        # on top of the database, so the database should not be changed
-        # even if passed default_database
-        elif self.backend in ('redshift', 'postgresql', 'sqlite'):
-            pass
-        elif default_database:
-            database = default_database
-        return database
+        uri = self.db_engine_spec.adjust_database_uri(uri, schema)
+        return create_engine(uri, **params)
 
     def get_reserved_words(self):
         return self.get_sqla_engine().dialect.preparer.reserved_words
@@ -662,9 +646,8 @@ class Database(Model, AuditMixinNullable):
 
     @property
     def db_engine_spec(self):
-        engine_name = self.get_sqla_engine().name or 'base'
         return db_engine_specs.engines.get(
-            engine_name, db_engine_specs.BaseEngineSpec)
+            self.backend, db_engine_specs.BaseEngineSpec)
 
     def grains(self):
         """Defines time granularity database-specific expressions.
