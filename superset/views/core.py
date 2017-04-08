@@ -1199,6 +1199,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/schemas/<db_id>/")
     def schemas(self, db_id):
+        db_id = int(db_id)
         database = (
             db.session
             .query(models.Database)
@@ -1214,6 +1215,7 @@ class Superset(BaseSupersetView):
     @expose("/tables/<db_id>/<schema>/<substr>/")
     def tables(self, db_id, schema, substr):
         """Endpoint to fetch the list of tables for given database"""
+        db_id = int(db_id)
         schema = utils.js_string_to_python(schema)
         substr = utils.js_string_to_python(substr)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
