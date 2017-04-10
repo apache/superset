@@ -6,43 +6,51 @@ from superset.models.core import Database
 
 
 class DatabaseModelTestCase(unittest.TestCase):
-    def test_database_for_various_backend(self):
+
+    def test_database_schema_presto(self):
         sqlalchemy_uri = 'presto://presto.airbnb.io:8080/hive/default'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
-        url = make_url(model.sqlalchemy_uri)
-        db = model.get_database_for_various_backend(url, None)
-        assert db == 'hive/default'
-        db = model.get_database_for_various_backend(url, 'raw_data')
-        assert db == 'hive/raw_data'
 
-        sqlalchemy_uri = 'redshift+psycopg2://superset:XXXXXXXXXX@redshift.airbnb.io:5439/prod'
-        model = Database(sqlalchemy_uri=sqlalchemy_uri)
-        url = make_url(model.sqlalchemy_uri)
-        db = model.get_database_for_various_backend(url, None)
-        assert db == 'prod'
-        db = model.get_database_for_various_backend(url, 'test')
-        assert db == 'prod'
+        db = make_url(model.get_sqla_engine().url).database
+        self.assertEquals('hive/default', db)
 
-        sqlalchemy_uri = 'postgresql+psycopg2://superset:XXXXXXXXXX@postgres.airbnb.io:5439/prod'
-        model = Database(sqlalchemy_uri=sqlalchemy_uri)
-        url = make_url(model.sqlalchemy_uri)
-        db = model.get_database_for_various_backend(url, None)
-        assert db == 'prod'
-        db = model.get_database_for_various_backend(url, 'adhoc')
-        assert db == 'prod'
+        db = make_url(model.get_sqla_engine(schema='core_db').url).database
+        self.assertEquals('hive/core_db', db)
 
-        sqlalchemy_uri = 'hive://hive@hive.airbnb.io:10000/raw_data'
+        sqlalchemy_uri = 'presto://presto.airbnb.io:8080/hive'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
-        url = make_url(model.sqlalchemy_uri)
-        db = model.get_database_for_various_backend(url, None)
-        assert db == 'raw_data'
-        db = model.get_database_for_various_backend(url, 'adhoc')
-        assert db == 'adhoc'
 
-        sqlalchemy_uri = 'mysql://superset:XXXXXXXXXX@mysql.airbnb.io/superset'
+        db = make_url(model.get_sqla_engine().url).database
+        self.assertEquals('hive', db)
+
+        db = make_url(model.get_sqla_engine(schema='core_db').url).database
+        self.assertEquals('hive/core_db', db)
+
+    def test_database_schema_postgres(self):
+        sqlalchemy_uri = 'postgresql+psycopg2://postgres.airbnb.io:5439/prod'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
-        url = make_url(model.sqlalchemy_uri)
-        db = model.get_database_for_various_backend(url, None)
-        assert db == 'superset'
-        db = model.get_database_for_various_backend(url, 'adhoc')
-        assert db == 'adhoc'
+
+        db = make_url(model.get_sqla_engine().url).database
+        self.assertEquals('prod', db)
+
+        db = make_url(model.get_sqla_engine(schema='foo').url).database
+        self.assertEquals('prod', db)
+
+    def test_database_schema_hive(self):
+        sqlalchemy_uri = 'hive://hive@hive.airbnb.io:10000/hive/default'
+        model = Database(sqlalchemy_uri=sqlalchemy_uri)
+        db = make_url(model.get_sqla_engine().url).database
+        self.assertEquals('hive/default', db)
+
+        db = make_url(model.get_sqla_engine(schema='core_db').url).database
+        self.assertEquals('hive/core_db', db)
+
+    def test_database_schema_mysql(self):
+        sqlalchemy_uri = 'mysql://root@localhost/superset'
+        model = Database(sqlalchemy_uri=sqlalchemy_uri)
+
+        db = make_url(model.get_sqla_engine().url).database
+        self.assertEquals('superset', db)
+
+        db = make_url(model.get_sqla_engine(schema='staging').url).database
+        self.assertEquals('staging', db)

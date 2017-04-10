@@ -169,8 +169,8 @@ def generate_download_headers(extension):
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = [
-        'verbose_name', 'backend', 'allow_run_sync', 'allow_run_async',
-        'allow_dml', 'creator', 'changed_on_', 'database_name']
+        'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
+        'allow_dml', 'creator', 'modified']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
@@ -1351,6 +1351,7 @@ class Superset(BaseSupersetView):
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
         except Exception as e:
+            logging.exception(e)
             return json_error_response((
                 "Connection failed!\n\n"
                 "The error message returned was:\n{}").format(e))
