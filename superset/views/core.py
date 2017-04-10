@@ -366,7 +366,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         flash(__(
             "To create a new slice, you can open a data source "
             "through the `Sources` menu, or alter an existing slice "
-            "from the `Slices` menu"), "danger")
+            "from the `Slices` menu"), "info")
         return redirect('/superset/welcome')
 
 appbuilder.add_view(
