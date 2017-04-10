@@ -43,12 +43,14 @@ def url_param(param, default=None):
 
 def current_user_id():
     """The id of the user who is currently logged in"""
-    return g.user.id
+    if g.user:
+        return g.user.id
 
 
 def current_username():
     """The username of the user who is currently logged in"""
-    return g.user.username
+    if g.user:
+        return g.user.username
 
 
 class BaseTemplateProcessor(object):
