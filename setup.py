@@ -49,7 +49,7 @@ setup(
         'flask-cache==0.13.1',
         'flask-migrate==2.0.3',
         'flask-script==2.0.5',
-        'flask-sqlalchemy==2.2',
+        'flask-sqlalchemy==2.0',
         'flask-testing==0.6.2',
         'future>=0.16.0, <0.17',
         'humanize==0.5.1',
