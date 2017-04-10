@@ -82,6 +82,7 @@ class BaseTemplateProcessor(object):
             'url_param': url_param,
             'current_user_id': current_user_id,
             'current_username': current_username,
+            'form_data': {},
         }
         self.context.update(kwargs)
         self.context.update(BASE_CONTEXT)
