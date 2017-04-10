@@ -1402,6 +1402,15 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose("/csrf_token/", methods=['GET'])
+    def csrf_token(self):
+        return Response(
+            self.render_template('superset/csrf_token.json'),
+            mimetype='text/json',
+        )
+
+    @api
+    @has_access_api
     @expose("/fave_dashboards/<user_id>/", methods=['GET'])
     def fave_dashboards(self, user_id):
         qry = (
