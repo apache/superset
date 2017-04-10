@@ -208,6 +208,9 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Athena       | ``pip install "PyAthenaJDBC>1.0.9"``| ``awsathena+jdbc://``                           |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Vertica      | ``pip install                       |  ``vertica+vertica_python://``                  |
+|               | sqlalchemy-vertica-python``         |                                                 |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
