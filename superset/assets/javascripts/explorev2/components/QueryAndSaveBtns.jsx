@@ -37,7 +37,7 @@ export default function QueryAndSaveBtns(
       className="query"
       onClick={onQuery}
       bsStyle={qryButtonStyle}
-      disabled={errorMessage}
+      disabled={!!errorMessage}
     >
       <i className="fa fa-bolt" /> Query
     </Button>
