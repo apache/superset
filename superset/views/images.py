@@ -6,16 +6,16 @@ from __future__ import unicode_literals
 import io
 import os
 import signal
-import socket
-import StringIO
+import time
 
-from PIL import Image
-from flask import request, send_file, session
+from flask import request, send_file
 from flask_appbuilder import expose
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.support import ui
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 
 from superset import appbuilder, db
 from superset.models.core import Slice
@@ -41,20 +41,18 @@ class BrowserSession(object):
     def flask_to_driver(cls, driver):
         """Copies the flask request into the selenium driver"""
         session_cookie = cls.get_session_cookie(driver)
-        if not session_cookie['domain'].statswith('.'):
+        if not session_cookie:
+            session_cookie = {
+                'name': 'session',
+                'domain': '.localhost',
+                'path': '/',
+            }
+        if not session_cookie['domain'].startswith('.'):
             session_cookie['domain'] = '.' + session_cookie['domain']
         for k, v in request.cookies.items():
             if k == 'session':
                 session_cookie['value'] = v
                 driver.add_cookie(session_cookie)
-                '''
-                driver.add_cookie({
-                    'name': k,
-                    'value': v,
-                    'domain': '.localhost',
-                    'path': '/',
-                })
-                '''
 
         for k, v in request.headers.items():
             field = 'phantomjs.page.customHeaders.{}'.format(k)
@@ -113,31 +111,17 @@ class BrowserSession(object):
         :raises URLError: If the connection is refused
         """
         url = request.url_root[:-1] + path
+        print('-='*80)
+        print(url)
         self.driver.get(url)
 
         # The non-zero window height is merely a lower bound.
         self.driver.set_window_size(width, height)
-        try:
-            elements = self.driver.find_elements_by_css_selector('.loading')
-            try:
-                # Ensure that the socket timeout exceeds the implicit wait.
-                timeout = max(wait + 1, 60)
-                socket.setdefaulttimeout(timeout)
-
-                ui.WebDriverWait(self.driver, wait).until_not(
-                    lambda x: any([elem.is_displayed() for elem in elements])
-                )
-            except TimeoutException:
-                pass
-            finally:
-                socket.setdefaulttimeout(None)
-        except WebDriverException:
-            self.driver.implicitly_wait(wait)
+        wait = ui.WebDriverWait(self.driver, 30)
+        wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, ".first-render-done")))
+        time.sleep(1)
         png = self.driver.get_screenshot_as_png()
-        box = (0, 0, 1366, 728)
-        im = Image.open(StringIO.StringIO(png))
-        region = im.crop(box)
-        region.save('/tmp/test.jpg', 'JPEG', optimize=True, quality=95)
         return io.BytesIO(png)
 
 
@@ -148,12 +132,14 @@ class Img(BaseSupersetView):
     @expose("/slice/<slice_id>/")
     def slice(self, slice_id):
         """Assigns a list of found users to the given role."""
+        height = int(request.args.get('height', '800'))
+        width = int(request.args.get('width', '800'))
 
         slice_id = int(slice_id)
         slc = db.session.query(Slice).filter_by(id=slice_id).first()
         with BrowserSession() as browser:
-            img = browser.capture(slc.slice_url + '&standalone=true')
-            print(slc.slice_url + '&standalone=true')
+            img = browser.capture(
+                slc.slice_url + '&standalone=true', width=width, height=height)
             return send_file(img, mimetype='image/png')
         return "Nope"
 
