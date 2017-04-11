@@ -5,3 +5,7 @@ export function getTextWidth(text, fontDetails = '12px Roboto') {
   const metrics = context.measureText(text);
   return metrics.width;
 }
+
+export default {
+  getTextWidth,
+};
