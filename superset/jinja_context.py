@@ -4,15 +4,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import inspect
-from jinja2.sandbox import SandboxedEnvironment
-from flask import request
-
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
+import inspect
+import random
 import time
 import uuid
-import random
+
+from jinja2.sandbox import SandboxedEnvironment
+from flask import request, g
+
+from dateutil.relativedelta import relativedelta
 
 from superset import app
 
@@ -38,6 +39,18 @@ def url_param(param, default=None):
     """
     print(request.args)
     return request.args.get(param, default)
+
+
+def current_user_id():
+    """The id of the user who is currently logged in"""
+    if g.user:
+        return g.user.id
+
+
+def current_username():
+    """The username of the user who is currently logged in"""
+    if g.user:
+        return g.user.username
 
 
 class BaseTemplateProcessor(object):
@@ -67,6 +80,8 @@ class BaseTemplateProcessor(object):
             self.schema = table.schema
         self.context = {
             'url_param': url_param,
+            'current_user_id': current_user_id,
+            'current_username': current_username,
         }
         self.context.update(kwargs)
         self.context.update(BASE_CONTEXT)
