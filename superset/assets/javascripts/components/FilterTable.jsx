@@ -6,7 +6,7 @@ import {
   SortDirection,
   SortIndicator,
 } from 'react-virtualized';
-import { getTextWidth } from '../modules/utils';
+import { getTextWidth } from '../modules/visUtils';
 
 require('../../stylesheets/react-virtualized/table-styles.css');
 
