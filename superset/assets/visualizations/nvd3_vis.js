@@ -211,6 +211,13 @@ function nvd3Vis(slice, payload) {
         chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
           .labelType(fd.pie_label_type);
         chart.cornerRadius(true);
+
+        if (fd.pie_label_type === 'percent') {
+          let total = 0;
+          payload.data.forEach((d) => { total += d.y; });
+          chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
+        }
+
         break;
 
       case 'column':
