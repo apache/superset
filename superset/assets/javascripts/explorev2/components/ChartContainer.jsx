@@ -228,7 +228,6 @@ class ChartContainer extends React.PureComponent {
       return this.renderChart();
     }
     const queryResponse = this.props.queryResponse;
-    const query = queryResponse && queryResponse.query ? queryResponse.query : null;
     return (
       <div className="chart-container">
         <Panel
@@ -266,14 +265,14 @@ class ChartContainer extends React.PureComponent {
                 {this.props.chartStatus === 'success' &&
                  this.props.queryResponse &&
                  this.props.queryResponse.is_cached &&
-                 <TooltipWrapper
-                   tooltip="Loaded from cache. Click to force refresh"
-                   label="cache-desc"
-                 >
-                   <Label
-                     style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
-                     onClick={this.runQuery.bind(this)}
-                   >
+                  <TooltipWrapper
+                    tooltip="Loaded from cache. Click to force refresh"
+                    label="cache-desc"
+                  >
+                    <Label
+                      style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
+                      onClick={this.runQuery.bind(this)}
+                    >
                       cached
                     </Label>
                  </TooltipWrapper>
@@ -288,7 +287,8 @@ class ChartContainer extends React.PureComponent {
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
-                  query={query}
+                  chartStatus={this.props.chartStatus}
+                  queryResponse={queryResponse}
                   queryEndpoint={getExploreUrl(this.props.latestQueryFormData, 'query')}
                 />
               </div>

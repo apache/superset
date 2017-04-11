@@ -1,17 +1,30 @@
 import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
+import { mount } from 'enzyme';
+import { Modal } from 'react-bootstrap';
+import ModalTrigger from './../../../../javascripts/components/ModalTrigger.jsx';
 
 import DisplayQueryButton from '../../../../javascripts/explorev2/components/DisplayQueryButton';
 
 describe('DisplayQueryButton', () => {
   const defaultProps = {
-    slice: {
-      viewSqlQuery: 'sql query string',
+    animation: false,
+    queryResponse: {
+      query: 'SELECT * FROM foo',
+      language: 'sql',
     },
+    chartStatus: 'success',
+    queryEndpoint: 'localhost',
   };
 
-  it('renders', () => {
+  it('is valid', () => {
     expect(React.isValidElement(<DisplayQueryButton {...defaultProps} />)).to.equal(true);
+  });
+  it('renders a button and a modal', () => {
+    const wrapper = mount(<DisplayQueryButton {...defaultProps} />);
+    expect(wrapper.find(ModalTrigger)).to.have.lengthOf(1);
+    wrapper.find('.modal-trigger').simulate('click');
+    expect(wrapper.find(Modal)).to.have.lengthOf(1);
   });
 });
