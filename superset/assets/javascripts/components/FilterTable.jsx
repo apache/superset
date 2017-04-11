@@ -18,7 +18,7 @@ const propTypes = {
   headerHeight: PropTypes.number,
   overscanRowCount: PropTypes.number,
   rowHeight: PropTypes.number,
-  striped: PropTypes.boolean,
+  striped: PropTypes.bool,
 };
 
 const defaultProps = {
