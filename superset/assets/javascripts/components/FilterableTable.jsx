@@ -11,7 +11,7 @@ import { getTextWidth } from '../modules/visUtils';
 require('../../stylesheets/react-virtualized/table-styles.css');
 
 const propTypes = {
-  columns: PropTypes.array.isRequired,
+  orderedColumnKeys: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
   height: PropTypes.number.isRequired,
   filterText: PropTypes.string,
@@ -33,19 +33,18 @@ export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
-    this.columnKeys = props.columns.map(col => col.name);
     this.headerRenderer = this.headerRenderer.bind(this);
     this.rowClassName = this.rowClassName.bind(this);
     this.sort = this.sort.bind(this);
 
     this.widthsForColumnsByKey = this.getWidthsForColumns();
-    this.totalTableWidth = this.columnKeys
+    this.totalTableWidth = props.orderedColumnKeys
       .map(key => this.widthsForColumnsByKey[key])
       .reduce((curr, next) => curr + next);
 
     this.state = {
       height: props.height - 2, // minus 2 to account for top/bottom borders
-      sortBy: this.columnKeys[0],
+      sortBy: props.orderedColumnKeys[0],
       sortDirection: SortDirection.ASC,
     };
   }
@@ -79,7 +78,7 @@ export default class FilterableTable extends PureComponent {
   getWidthsForColumns() {
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
-    this.columnKeys.forEach((key) => {
+    this.props.orderedColumnKeys.forEach((key) => {
       const colWidths = this.list.toArray().map(d => getTextWidth(d[key]) + PADDING);
       // push width of column key to array as well
       colWidths.push(getTextWidth(key) + PADDING);
@@ -91,7 +90,7 @@ export default class FilterableTable extends PureComponent {
 
   render() {
     const { height, sortBy, sortDirection } = this.state;
-    const { filterText, overscanRowCount, rowHeight, headerHeight } = this.props;
+    const { filterText, overscanRowCount, rowHeight, headerHeight, orderedColumnKeys } = this.props;
 
     let sortedAndFilteredList = this.list;
     // filter list
@@ -120,7 +119,7 @@ export default class FilterableTable extends PureComponent {
         sortDirection={sortDirection}
         width={this.totalTableWidth}
       >
-        {this.columnKeys.map((columnKey) => (
+        {orderedColumnKeys.map((columnKey) => (
           <Column
             dataKey={columnKey}
             disableSort={false}
