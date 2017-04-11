@@ -363,20 +363,11 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        widget = self._add()
-        if not widget:
-            return redirect(self.get_redirect())
-
-        sources = ConnectorRegistry.sources
-        for source in sources:
-            ds = db.session.query(ConnectorRegistry.sources[source]).first()
-            if ds is not None:
-                url = "/{}/list/".format(ds.baselink)
-                msg = _("Click on a {} link to create a Slice".format(source))
-                break
-
-        redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
-        return redirect(redirect_url)
+        flash(__(
+            "To create a new slice, you can open a data source "
+            "through the `Sources` menu, or alter an existing slice "
+            "from the `Slices` menu"), "info")
+        return redirect('/superset/welcome')
 
 appbuilder.add_view(
     SliceModelView,
