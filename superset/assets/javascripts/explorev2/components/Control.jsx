@@ -48,8 +48,12 @@ export default class Control extends React.PureComponent {
     super(props);
     this.validate = this.validate.bind(this);
     this.onChange = this.onChange.bind(this);
+    this.validateAndSetValue(props.value, []);
   }
   onChange(value, errors) {
+    this.validateAndSetValue(value, errors);
+  }
+  validateAndSetValue(value, errors) {
     let validationErrors = this.validate(value);
     if (errors && errors.length > 0) {
       validationErrors = validationErrors.concat(errors);

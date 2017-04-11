@@ -58,6 +58,7 @@ class ChartContainer extends React.PureComponent {
 
   componentDidUpdate(prevProps) {
     if (
+        this.props.queryResponse &&
         (
           prevProps.queryResponse !== this.props.queryResponse ||
           prevProps.height !== this.props.height ||

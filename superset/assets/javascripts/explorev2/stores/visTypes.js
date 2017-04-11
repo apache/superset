@@ -255,10 +255,6 @@ const visTypes = {
       },
     ],
     controlOverrides: {
-      metrics: {
-        default: null,
-        validators: null,
-      },
       time_grain_sqla: {
         default: null,
       },

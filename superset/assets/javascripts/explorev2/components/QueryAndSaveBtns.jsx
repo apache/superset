@@ -9,7 +9,7 @@ const propTypes = {
   onSave: PropTypes.func,
   onStop: PropTypes.func,
   loading: PropTypes.bool,
-  errorMessage: PropTypes.string,
+  errorMessage: PropTypes.node,
 };
 
 const defaultProps = {
@@ -37,6 +37,7 @@ export default function QueryAndSaveBtns(
       className="query"
       onClick={onQuery}
       bsStyle={qryButtonStyle}
+      disabled={!!errorMessage}
     >
       <i className="fa fa-bolt" /> Query
     </Button>
