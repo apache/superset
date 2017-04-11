@@ -178,6 +178,7 @@ class BaseViz(object):
             'timeseries_limit': limit,
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
+            'form_data': form_data,
         }
         return d
 

@@ -709,7 +709,7 @@ class DruidDatasource(Model, BaseDatasource):
             orderby=None,
             extras=None,  # noqa
             select=None,  # noqa
-            columns=None, phase=2, client=None):
+            columns=None, phase=2, client=None, form_data=None):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
