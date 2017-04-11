@@ -29,7 +29,7 @@ const defaultProps = {
   striped: true,
 };
 
-export default class FilterTable extends PureComponent {
+export default class FilterableTable extends PureComponent {
   constructor(props) {
     super(props);
     this.list = List(this.formatTableData(props.data));
@@ -162,5 +162,5 @@ export default class FilterTable extends PureComponent {
   }
 }
 
-FilterTable.propTypes = propTypes;
-FilterTable.defaultProps = defaultProps;
+FilterableTable.propTypes = propTypes;
+FilterableTable.defaultProps = defaultProps;
