@@ -14,11 +14,19 @@ const propTypes = {
   columns: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,
   height: PropTypes.number.isRequired,
-  searchText: PropTypes.string,
+  filterText: PropTypes.string,
+  headerHeight: PropTypes.number,
+  overscanRowCount: PropTypes.number,
+  rowHeight: PropTypes.number,
+  striped: PropTypes.boolean,
 };
 
 const defaultProps = {
-  searchText: '',
+  filterText: '',
+  headerHeight: 32,
+  overscanRowCount: 10,
+  rowHeight: 32,
+  striped: true,
 };
 
 export default class FilterTable extends PureComponent {
@@ -36,10 +44,7 @@ export default class FilterTable extends PureComponent {
       .reduce((curr, next) => curr + next);
 
     this.state = {
-      headerHeight: 32,
       height: props.height - 2, // minus 2 to account for top/bottom borders
-      overscanRowCount: 10,
-      rowHeight: 32,
       sortBy: this.columnKeys[0],
       sortDirection: SortDirection.ASC,
     };
@@ -85,20 +90,13 @@ export default class FilterTable extends PureComponent {
   }
 
   render() {
-    const {
-      headerHeight,
-      height,
-      overscanRowCount,
-      rowHeight,
-      sortBy,
-      sortDirection,
-    } = this.state;
-    const { searchText } = this.props;
+    const { height, sortBy, sortDirection } = this.state;
+    const { filterText, overscanRowCount, rowHeight, headerHeight } = this.props;
 
     let sortedAndFilteredList = this.list;
     // filter list
-    if (searchText) {
-      sortedAndFilteredList = this.list.filter(row => this.hasMatch(searchText, row));
+    if (filterText) {
+      sortedAndFilteredList = this.list.filter(row => this.hasMatch(filterText, row));
     }
     // sort list
     sortedAndFilteredList = sortedAndFilteredList
