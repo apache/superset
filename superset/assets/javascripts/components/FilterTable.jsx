@@ -150,7 +150,11 @@ export default class FilterTable extends PureComponent {
   }
 
   rowClassName({ index }) {
-    return index % 2 === 0 ? 'even-row' : 'odd-row';
+    let className = '';
+    if (this.props.striped) {
+      className = index % 2 === 0 ? 'even-row' : 'odd-row';
+    }
+    return className;
   }
 
   sort({ sortBy, sortDirection }) {
