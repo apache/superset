@@ -2,25 +2,14 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { Table } from 'reactable';
-
 import ResultSet from '../../../javascripts/SqlLab/components/ResultSet';
-import { queries } from './fixtures';
+import FilterTable from '../../../javascripts/components/FilterTable';
 
 describe('ResultSet', () => {
   const mockedProps = {
     query: queries[0],
   };
-  it('renders', () => {
+  it('is a valid component', () => {
     expect(React.isValidElement(<ResultSet />)).to.equal(true);
-  });
-  it('renders with props', () => {
-    expect(
-      React.isValidElement(<ResultSet />),
-    ).to.equal(true);
-  });
-  it('renders a Table', () => {
-    const wrapper = shallow(<ResultSet {...mockedProps} />);
-    expect(wrapper.find(Table)).to.have.length(1);
   });
 });
