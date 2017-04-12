@@ -45,6 +45,7 @@ export default class FilterableTable extends PureComponent {
     this.state = {
       sortBy: props.orderedColumnKeys[0],
       sortDirection: SortDirection.ASC,
+      fitted: false,
     };
   }
 
@@ -87,7 +88,17 @@ export default class FilterableTable extends PureComponent {
     return widthsByColumnKey;
   }
 
+  fitTableToWidthIfNeeded() {
+    const containerWidth = this.container.getBoundingClientRect().width;
+    if (containerWidth > this.totalTableWidth) {
+      this.totalTableWidth = containerWidth - 2; // accomodates 1px border on container
+    }
+    this.setState({ fitted: true });
+  }
 
+  componentDidMount() {
+    this.fitTableToWidthIfNeeded();
+  }
 
   render() {
     const { sortBy, sortDirection } = this.state;
@@ -113,32 +124,38 @@ export default class FilterableTable extends PureComponent {
     const rowGetter = ({ index }) => this.getDatum(sortedAndFilteredList, index);
 
     return (
-      <div style={{ height }} className="filterable-table-container">
-        <Table
-          ref="Table"
-          headerHeight={headerHeight}
-          height={height - 2}
-          overscanRowCount={overscanRowCount}
-          rowClassName={this.rowClassName}
-          rowHeight={rowHeight}
-          rowGetter={rowGetter}
-          rowCount={sortedAndFilteredList.size}
-          sort={this.sort}
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          width={this.totalTableWidth}
-        >
-          {orderedColumnKeys.map((columnKey) => (
-            <Column
-              dataKey={columnKey}
-              disableSort={false}
-              headerRenderer={this.headerRenderer}
-              width={this.widthsForColumnsByKey[columnKey]}
-              label={columnKey}
-              key={columnKey}
-            />
-          ))}
-        </Table>
+      <div
+        style={{ height }}
+        className="filterable-table-container"
+        ref={(ref) => { this.container = ref; }}
+      >
+        {this.state.fitted &&
+          <Table
+            ref="Table"
+            headerHeight={headerHeight}
+            height={height - 2}
+            overscanRowCount={overscanRowCount}
+            rowClassName={this.rowClassName}
+            rowHeight={rowHeight}
+            rowGetter={rowGetter}
+            rowCount={sortedAndFilteredList.size}
+            sort={this.sort}
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            width={this.totalTableWidth}
+          >
+            {orderedColumnKeys.map((columnKey) => (
+              <Column
+                dataKey={columnKey}
+                disableSort={false}
+                headerRenderer={this.headerRenderer}
+                width={this.widthsForColumnsByKey[columnKey]}
+                label={columnKey}
+                key={columnKey}
+              />
+            ))}
+          </Table>
+        }
       </div>
     );
   }
