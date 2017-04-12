@@ -624,47 +624,24 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def progress(cls, logs):
-        # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
-        jobs_stats_r = re.compile(
-            r'.*INFO.*Total jobs = (?P<max_jobs>[0-9]+)')
-        # 17/02/07 19:37:08 INFO ql.Driver: Launching Job 2 out of 5
-        launching_job_r = re.compile(
-            '.*INFO.*Launching Job (?P<job_number>[0-9]+) out of '
-            '(?P<max_jobs>[0-9]+)')
-        # 17/02/07 19:36:58 INFO exec.Task: 2017-02-07 19:36:58,152 Stage-18
-        # map = 0%,  reduce = 0%
+        # 2017-04-11 20:35:22,230 Stage-1 map = 91%,  reduce = 30%, Cumulative CPU 1892.47 sec
         stage_progress = re.compile(
-            r'.*INFO.*Stage-(?P<stage_number>[0-9]+).*'
+            r'.*Stage.*'
             r'map = (?P<map_progress>[0-9]+)%.*'
             r'reduce = (?P<reduce_progress>[0-9]+)%.*')
-        total_jobs = None
-        current_job = None
-        stages = {}
-        lines = logs.splitlines()
-        for line in lines:
-            match = jobs_stats_r.match(line)
-            if match:
-                total_jobs = int(match.groupdict()['max_jobs'])
-            match = launching_job_r.match(line)
-            if match:
-                current_job = int(match.groupdict()['job_number'])
-                stages = {}
+
+        stage_percentage = None
+        for line in logs:
             match = stage_progress.match(line)
             if match:
-                stage_number = int(match.groupdict()['stage_number'])
                 map_progress = int(match.groupdict()['map_progress'])
                 reduce_progress = int(match.groupdict()['reduce_progress'])
-                stages[stage_number] = (map_progress + reduce_progress) / 2
+                stage_percentage = (map_progress + reduce_progress) / 2
 
-        if not total_jobs or not current_job:
+        if not stage_percentage:
             return 0
-        stage_progress = sum(
-            stages.values()) / len(stages.values()) if stages else 0
 
-        progress = (
-            100 * (current_job - 1) / total_jobs + stage_progress / total_jobs
-        )
-        return int(progress)
+        return int(stage_percentage)
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -675,18 +652,20 @@ class HiveEngineSpec(PrestoEngineSpec):
             hive.ttypes.TOperationState.RUNNING_STATE,
         )
         polled = cursor.poll()
+        import logging
         while polled.operationState in unfinished_states:
-            query = session.query(type(query)).filter_by(id=query.id)
+            query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
-
             resp = cursor.fetch_logs()
-            if resp and resp.log:
-                progress = cls.progress(resp.log)
+            if resp and len(resp)>0:
+                progress = cls.progress(resp)
                 if progress > query.progress:
+                    logging.info("setting progress")
                     query.progress = progress
-                session.commit()
+                    session.commit()
+
             time.sleep(5)
             polled = cursor.poll()
 
