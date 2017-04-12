@@ -9,7 +9,7 @@ const $ = window.$ = require('jquery');
 const propTypes = {
   animation: PropTypes.bool,
   queryResponse: PropTypes.object,
-  chartStatus: PropTypes.string.isRequired,
+  chartStatus: PropTypes.string,
   queryEndpoint: PropTypes.string.isRequired,
 };
 const defaultProps = {
@@ -57,7 +57,7 @@ export default class DisplayQueryButton extends React.PureComponent {
     });
   }
   beforeOpen() {
-    if (this.props.chartStatus === 'loading') {
+    if (this.props.chartStatus === 'loading' || this.props.chartStatus === null) {
       this.fetchQuery();
     } else {
       this.setStateFromQueryResponse();

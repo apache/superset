@@ -9,7 +9,7 @@ const propTypes = {
   slice: PropTypes.object,
   queryEndpoint: PropTypes.string,
   queryResponse: PropTypes.object,
-  chartStatus: PropTypes.string.isRequired,
+  chartStatus: PropTypes.string,
 };
 
 export default function ExploreActionButtons({
