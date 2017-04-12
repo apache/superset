@@ -6,9 +6,9 @@ import {
   SortDirection,
   SortIndicator,
 } from 'react-virtualized';
-import { getTextWidth } from '../modules/visUtils';
+import { getTextWidth } from '../../modules/visUtils';
 
-require('../../stylesheets/FilterableTable/styles.css');
+require('./FilterableTableStyles.css');
 
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,

@@ -4,7 +4,7 @@ import shortid from 'shortid';
 
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
-import FilterableTable from '../../components/FilterableTable';
+import FilterableTable from '../../components/FilterableTable/FilterableTable';
 
 const propTypes = {
   actions: React.PropTypes.object,

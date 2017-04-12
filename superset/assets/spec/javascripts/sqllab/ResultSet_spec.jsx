@@ -2,7 +2,7 @@ import React from 'react';
 <<<<<<< HEAD
 =======
 import ResultSet from '../../../javascripts/SqlLab/components/ResultSet';
-import FilterableTable from '../../../javascripts/components/FilterableTable';
+import FilterableTable from '../../../javascripts/components/FilterableTable/FilterableTable';
 
 >>>>>>> update name to FilterableTable
 import { shallow } from 'enzyme';
