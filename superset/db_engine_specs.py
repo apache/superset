@@ -150,6 +150,10 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
+    def get_table_names(cls, schema, inspector):
+        return sorted(inspector.get_table_names(schema))
+
+    @classmethod
     def where_latest_partition(
             cls, table_name, schema, database, qry, columns=None):
         return False
@@ -272,11 +276,35 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type, force=False):
+        schemas = db.inspector.get_schema_names()
+        result_sets = {}
+        all_result_sets = []
+        schema = schemas[0]
+        if datasource_type == 'table':
+            result_sets[schema] = sorted(db.inspector.get_table_names())
+        elif datasource_type == 'view':
+            result_sets[schema] = sorted(db.inspector.get_view_names())
+        all_result_sets += [
+            '{}.{}'.format(schema, t) for t in result_sets[schema]]
+        if all_result_sets:
+            result_sets[""] = all_result_sets
+        return result_sets
+
+    @classmethod
     def convert_dttm(cls, target_type, dttm):
         iso = dttm.isoformat().replace('T', ' ')
         if '.' not in iso:
             iso += '.000000'
         return "'{}'".format(iso)
+
+    @classmethod
+    def get_table_names(cls, inspector, schema):
+        """Need to disregard the schema for Sqlite"""
+        return sorted(inspector.get_table_names())
 
 
 class MySQLEngineSpec(BaseEngineSpec):
