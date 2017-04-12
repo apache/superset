@@ -697,7 +697,7 @@ class DruidDatasource(Model, BaseDatasource):
         return [row[column_name] for row in df.to_records(index=False)]
 
     def get_query_str(self, query_obj, phase=1, client=None):
-        return self.run_query(client=client, phase=phase, **query_obj) 
+        return self.run_query(client=client, phase=phase, **query_obj)
 
     def run_query(  # noqa / druid
             self,
