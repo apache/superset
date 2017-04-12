@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 from superset import frontend_config
 import re
 
-FORM_DATA_KEY_WHITELIST = list(frontend_config.get('fields').keys()) + ['slice_id']
+FORM_DATA_KEY_WHITELIST = list(frontend_config.get('controls').keys()) + ['slice_id']
 
 
 def cast_filter_data(form_data):
