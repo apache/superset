@@ -1257,7 +1257,7 @@ class Superset(BaseSupersetView):
         self._set_dash_metadata(dash, data)
         session.add(dash)
         session.commit()
-        dash_json = dash.json_data
+        dash_json = json.dumps(dash.data)
         session.close()
         return json_success(dash_json)
 
@@ -1628,29 +1628,36 @@ class Superset(BaseSupersetView):
                     "danger")
                 return redirect(
                     'superset/request_access/?'
-                    'dashboard_id={dash.id}&'
-                    ''.format(**locals()))
+                    'dashboard_id={dash.id}&'.format(**locals()))
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
         def dashboard(**kwargs):  # noqa
             pass
         dashboard(dashboard_id=dash.id)
+
         dash_edit_perm = check_ownership(dash, raise_if_false=False)
         dash_save_perm = \
             dash_edit_perm and self.can_access('can_save_dash', 'Superset')
-        standalone = request.args.get("standalone") == "true"
-        context = dict(
-            user_id=g.user.get_id(),
-            dash_save_perm=dash_save_perm,
-            dash_edit_perm=dash_edit_perm,
-            standalone_mode=standalone,
-        )
+
+        dashboard_data = dash.data
+        dashboard_data.update({
+            'standalone_mode': request.args.get("standalone") == "true",
+        })
+
+        bootstrap_data = {
+            'user_id': g.user.get_id(),
+            'dash_save_perm': dash_save_perm,
+            'dash_edit_perm': dash_edit_perm,
+            'dash_edit_perm': check_ownership(dash, raise_if_false=False),
+            'dashboard_data': dash.data,
+            'datasources': {ds.uid: ds.data for ds in datasources},
+        }
+
         return self.render_template(
             "superset/dashboard.html",
-            dashboard=dash,
-            context=json.dumps(context),
-            standalone_mode=standalone,
+            dashboard_title=dash.dashboard_title,
+            bootstrap_data=json.dumps(bootstrap_data),
         )
 
     @has_access

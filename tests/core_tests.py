@@ -396,7 +396,7 @@ class CoreTests(SupersetTestCase):
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(models.Dashboard).filter_by(
             id=dash_id).first()
-        orig_json_data = json.loads(dash.json_data)
+        orig_json_data = dash.data
 
         # Verify that copy matches original
         url = '/superset/copy_dash/{}/'.format(dash_id)

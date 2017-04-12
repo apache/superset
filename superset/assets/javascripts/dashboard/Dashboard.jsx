@@ -14,8 +14,8 @@ import Header from './components/Header';
 require('bootstrap');
 require('../../stylesheets/dashboard.css');
 
-export function getInitialState(dashboardData, context) {
-  const dashboard = Object.assign({ context }, utils.controllerInterface, dashboardData);
+export function getInitialState(boostrapData) {
+  const dashboard = Object.assign({}, utils.controllerInterface, boostrapData.dashboard_data);
   dashboard.firstLoad = true;
 
   dashboard.posDict = {};
@@ -24,12 +24,8 @@ export function getInitialState(dashboardData, context) {
       dashboard.posDict[position.slice_id] = position;
     });
   }
-  dashboard.curUserId = dashboard.context.user_id;
   dashboard.refreshTimer = null;
-
-  const state = {
-    dashboard,
-  };
+  const state = Object.assign({}, boostrapData, { dashboard });
   return state;
 }
 
@@ -98,19 +94,19 @@ function initDashboardView(dashboard) {
   $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 }
 
-export function dashboardContainer(dashboard) {
+export function dashboardContainer(dashboard, datasources) {
   return Object.assign({}, dashboard, {
     type: 'dashboard',
     filters: {},
     init() {
       this.sliceObjects = [];
-      dashboard.slices.forEach((data) => {
+      dashboard.slices.forEach(data => {
         if (data.error) {
-          const html = '<div class="alert alert-danger">' + data.error + '</div>';
-          $('#slice_' + data.slice_id).find('.token').html(html);
+          const html = `<div class="alert alert-danger">${data.error}</div>`;
+          $(`#slice_${data.slice_id}`).find('.token').html(html);
         } else {
-          const slice = px.Slice(data, this);
-          $('#slice_' + data.slice_id).find('a.refresh').click(() => {
+          const slice = px.Slice(data, datasources[data.form_data.datasource], this);
+          $(`#slice_${data.slice_id}`).find('a.refresh').click(() => {
             slice.render(true);
           });
           this.sliceObjects.push(slice);
@@ -337,11 +333,10 @@ export function dashboardContainer(dashboard) {
 $(document).ready(() => {
   // Getting bootstrapped data from the DOM
   utils.initJQueryAjaxCSRF();
-  const dashboardData = $('.dashboard').data('dashboard');
-  const contextData = $('.dashboard').data('context');
+  const dashboardData = $('.dashboard').data('bootstrap');
 
-  const state = getInitialState(dashboardData, contextData);
-  const dashboard = dashboardContainer(state.dashboard);
+  const state = getInitialState(dashboardData);
+  const dashboard = dashboardContainer(state.dashboard, state.datasources);
   initDashboardView(dashboard);
   dashboard.init();
 });

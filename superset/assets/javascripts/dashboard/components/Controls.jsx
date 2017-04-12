@@ -43,7 +43,7 @@ class Controls extends React.PureComponent {
   }
   render() {
     const dashboard = this.props.dashboard;
-    const canSave = dashboard.context.dash_save_perm;
+    const canSave = dashboard.dash_save_perm;
     const emailBody = `Checkout this dashboard: ${window.location.href}`;
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
       + `${dashboard.dashboard_title}&Body=${emailBody}`;
