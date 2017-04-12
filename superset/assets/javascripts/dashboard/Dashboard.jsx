@@ -193,10 +193,12 @@ export function dashboardContainer(dashboard) {
       if (!(sliceId in this.filters)) {
         this.filters[sliceId] = {};
       }
-      if (!(col in this.filters[sliceId]) || !merge) {
-        this.filters[sliceId][col] = vals;
-      } else {
-        this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
+      if (!(col in this.filters[sliceId])) {
+        if (!merge) {
+          this.filters[sliceId][col] = vals;
+        } else {
+          this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
+        }
       }
       if (refresh) {
         this.refreshExcept(sliceId);
