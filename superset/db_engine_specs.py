@@ -624,7 +624,8 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def progress(cls, logs):
-        # 2017-04-11 20:35:22,230 Stage-1 map = 91%,  reduce = 30%, Cumulative CPU 1892.47 sec
+        # 2017-04-11 20:35:22,230 Stage-1 map = 91%,  
+        # ... reduce = 30%, Cumulative CPU 1892.47 sec
         stage_progress = re.compile(
             r'.*Stage.*'
             r'map = (?P<map_progress>[0-9]+)%.*'
@@ -659,7 +660,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 cursor.cancel()
                 break
             resp = cursor.fetch_logs()
-            if resp and len(resp)>0:
+            if resp and len(resp) > 0:
                 progress = cls.progress(resp)
                 if progress > query.progress:
                     logging.info("setting progress")
