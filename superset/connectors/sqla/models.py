@@ -572,6 +572,7 @@ class SqlaTable(Model, BaseDatasource):
         M = SqlMetric  # noqa
         metrics = []
         any_date_col = None
+        db_dialect = self.database.get_sqla_engine().dialect
         for col in table.columns:
             try:
                 datatype = "{}".format(col.type).upper()
@@ -603,7 +604,7 @@ class SqlaTable(Model, BaseDatasource):
                 any_date_col = col.name
 
             quoted = "{}".format(
-                column(dbcol.column_name).compile(dialect=db.engine.dialect))
+                column(dbcol.column_name).compile(dialect=db_dialect))
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,
