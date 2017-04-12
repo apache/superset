@@ -43,7 +43,6 @@ export default class FilterableTable extends PureComponent {
       .reduce((curr, next) => curr + next);
 
     this.state = {
-      height: props.height - 2, // minus 2 to account for top/bottom borders
       sortBy: props.orderedColumnKeys[0],
       sortDirection: SortDirection.ASC,
     };
@@ -88,9 +87,18 @@ export default class FilterableTable extends PureComponent {
     return widthsByColumnKey;
   }
 
+
+
   render() {
-    const { height, sortBy, sortDirection } = this.state;
-    const { filterText, overscanRowCount, rowHeight, headerHeight, orderedColumnKeys } = this.props;
+    const { sortBy, sortDirection } = this.state;
+    const {
+      filterText,
+      headerHeight,
+      height,
+      orderedColumnKeys,
+      overscanRowCount,
+      rowHeight,
+    } = this.props;
 
     let sortedAndFilteredList = this.list;
     // filter list
@@ -105,31 +113,33 @@ export default class FilterableTable extends PureComponent {
     const rowGetter = ({ index }) => this.getDatum(sortedAndFilteredList, index);
 
     return (
-      <Table
-        ref="Table"
-        headerHeight={headerHeight}
-        height={height}
-        overscanRowCount={overscanRowCount}
-        rowClassName={this.rowClassName}
-        rowHeight={rowHeight}
-        rowGetter={rowGetter}
-        rowCount={sortedAndFilteredList.size}
-        sort={this.sort}
-        sortBy={sortBy}
-        sortDirection={sortDirection}
-        width={this.totalTableWidth}
-      >
-        {orderedColumnKeys.map((columnKey) => (
-          <Column
-            dataKey={columnKey}
-            disableSort={false}
-            headerRenderer={this.headerRenderer}
-            width={this.widthsForColumnsByKey[columnKey]}
-            label={columnKey}
-            key={columnKey}
-          />
-        ))}
-      </Table>
+      <div style={{ height }} className="filterable-table-container">
+        <Table
+          ref="Table"
+          headerHeight={headerHeight}
+          height={height - 2}
+          overscanRowCount={overscanRowCount}
+          rowClassName={this.rowClassName}
+          rowHeight={rowHeight}
+          rowGetter={rowGetter}
+          rowCount={sortedAndFilteredList.size}
+          sort={this.sort}
+          sortBy={sortBy}
+          sortDirection={sortDirection}
+          width={this.totalTableWidth}
+        >
+          {orderedColumnKeys.map((columnKey) => (
+            <Column
+              dataKey={columnKey}
+              disableSort={false}
+              headerRenderer={this.headerRenderer}
+              width={this.widthsForColumnsByKey[columnKey]}
+              label={columnKey}
+              key={columnKey}
+            />
+          ))}
+        </Table>
+      </div>
     );
   }
 
