@@ -55,7 +55,7 @@ function bigNumberVis(slice, payload) {
   .y(function (d) {
     return scaleY(d[1]);
   })
-  .interpolate('basis');
+  .interpolate('cardinal');
 
   let y = height / 2;
   let g = svg.append('g');
@@ -145,6 +145,46 @@ function bigNumberVis(slice, payload) {
 
     g.selectAll('text')
     .style('font-size', '10px');
+
+    // Define the div for the tooltip
+    const tooltipEl =
+      d3.select('body')
+        .append('div')
+        .attr('class', 'line-tooltip')
+        .attr('width', 200)
+        .attr('height', 200)
+        .style('opacity', 0);
+
+    const renderTooltip = (d) => {
+      const date = formatDate(d[0]);
+      const value = f(d[1]);
+      return `
+        <div>
+          <span style="float: left; margin-right: 20px;"><strong>${date}</strong></span>
+          <span style="float: right">${value}</span>
+        </div>
+      `;
+    };
+
+    // Add the scatterplot and trigger the mouse events for the tooltips
+    svg
+      .selectAll('dot')
+      .data(data)
+      .enter()
+      .append('circle')
+      .attr('r', 10)
+      .attr('cx', d => scaleX(d[0]))
+      .attr('cy', d => scaleY(d[1]))
+      .attr('fill-opacity', '0')
+      .on('mouseover', (d) => {
+        tooltipEl.html(renderTooltip(d))
+          .style('left', (d3.event.pageX) + 'px')
+          .style('top', (d3.event.pageY) + 'px');
+        tooltipEl.transition().duration(200).style('opacity', 0.9);
+      })
+      .on('mouseout', () => {
+        tooltipEl.transition().duration(500).style('opacity', 0);
+      });
 
     div.on('mouseover', function () {
       const el = d3.select(this);
