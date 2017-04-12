@@ -23,6 +23,14 @@
   padding: 12px;
   font-size: 12px;
 }
+.ReactVirtualized__Table__headerColumn:last-of-type,
+.ReactVirtualized__Table__rowColumn:last-of-type {
+  border-right: 0px;
+}
+.ReactVirtualized__Table__headerColumn:focus,
+.ReactVirtualized__Table__Grid:focus {
+  outline: none;
+}
 .ReactVirtualized__Table__rowColumn {
   text-overflow: ellipsis;
   white-space: nowrap;
