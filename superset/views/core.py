@@ -1257,7 +1257,7 @@ class Superset(BaseSupersetView):
         self._set_dash_metadata(dash, data)
         session.add(dash)
         session.commit()
-        dash_json = dash.json_data
+        dash_json = json.dumps(dash.data)
         session.close()
         return json_success(dash_json)
 
