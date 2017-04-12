@@ -130,9 +130,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     def query(self, query_obj):
         """Executes the query and returns a dataframe
 
-        query_obj is a dictionary representing Superset's query interface
+        query_obj is a dictionary representing Superset's query interface.
+        Should return a ``superset.models.helpers.QueryResult``
         """
         raise NotImplementedError()
+
     def values_for_column(self, column_name, limit=10000):
         """Given a column, returns an iterable of distinct values
 

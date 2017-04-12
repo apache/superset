@@ -918,7 +918,8 @@ class DruidDatasource(Model, BaseDatasource):
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         client = self.cluster.get_pydruid_client()
-        query_str = self.get_query_str(client=client, query_obj=query_obj, phase=2)
+        query_str = self.get_query_str(
+            client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
 
         if df is None or df.size == 0:
