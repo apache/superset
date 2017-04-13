@@ -62,12 +62,16 @@ class AceEditorWrapper extends React.PureComponent {
   onBlur() {
     this.props.onBlur(this.state.sql);
   }
+  onAltEnter() {
+    this.props.onBlur(this.state.sql);
+    this.props.onAltEnter();
+  }
   onEditorLoad(editor) {
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
       exec: () => {
-        this.props.onAltEnter();
+        this.onAltEnter();
       },
     });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
@@ -75,6 +79,9 @@ class AceEditorWrapper extends React.PureComponent {
       this.props.actions.queryEditorSetSelectedText(
         this.props.queryEditor, editor.getSelectedText());
     });
+  }
+  getCompletions(aceEditor, session, pos, prefix, callback) {
+    callback(null, this.state.words);
   }
   setAutoCompleter(props) {
     // Loading table and column names as auto-completable words
@@ -100,9 +107,6 @@ class AceEditorWrapper extends React.PureComponent {
         langTools.setCompleters([completer]);
       }
     });
-  }
-  getCompletions(aceEditor, session, pos, prefix, callback) {
-    callback(null, this.state.words);
   }
   textChange(text) {
     this.setState({ sql: text });
