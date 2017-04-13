@@ -97,7 +97,8 @@ class ExploreViewContainer extends React.Component {
   }
   hasErrors() {
     const ctrls = this.props.controls;
-    return Object.keys(ctrls).some(k => ctrls[k].validationErrors.length > 0);
+    return Object.keys(ctrls).some(
+      k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0);
   }
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
