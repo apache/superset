@@ -135,7 +135,12 @@ class SqlEditorLeftBar extends React.PureComponent {
         <div className="clearfix sql-toolbar scrollbar-content">
           <div>
             <AsyncSelect
-              dataEndpoint="/databaseasync/api/read?_flt_0_expose_in_sqllab=1"
+              dataEndpoint={
+                '/databaseasync/api/' +
+                'read?_flt_0_expose_in_sqllab=1&' +
+                '_oc_DatabaseView=database_name&' +
+                '_od_DatabaseView=asc'
+              }
               onChange={this.onChange.bind(this)}
               value={this.props.queryEditor.dbId}
               databaseId={this.props.queryEditor.dbId}
