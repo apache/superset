@@ -41,11 +41,11 @@ const bootstrappedState = Object.assign(
     queryResponse: null,
     triggerQuery: true,
     triggerRender: false,
-  }
+  },
 );
 
 const store = createStore(exploreReducer, bootstrappedState,
-  compose(applyMiddleware(thunk), initEnhancer(false))
+  compose(applyMiddleware(thunk), initEnhancer(false)),
 );
 
 ReactDOM.render(
@@ -55,5 +55,5 @@ ReactDOM.render(
       <AlertsWrapper />
     </div>
   </Provider>,
-  exploreViewContainer
+  exploreViewContainer,
 );

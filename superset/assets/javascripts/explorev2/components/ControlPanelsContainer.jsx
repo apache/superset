@@ -54,7 +54,7 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {this.sectionsToRender().map((section) => (
+          {this.sectionsToRender().map(section => (
             <ControlPanelSection
               key={section.label}
               label={section.label}

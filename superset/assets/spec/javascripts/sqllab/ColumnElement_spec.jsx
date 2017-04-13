@@ -13,7 +13,7 @@ describe('ColumnElement', () => {
   };
   it('is valid with props', () => {
     expect(
-      React.isValidElement(<ColumnElement {...mockedProps} />)
+      React.isValidElement(<ColumnElement {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a proper primary key', () => {

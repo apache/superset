@@ -29,7 +29,7 @@ class Controls extends React.PureComponent {
   }
   componentWillMount() {
     $.get('/csstemplateasyncmodelview/api/read', (data) => {
-      const cssTemplates = data.result.map((row) => ({
+      const cssTemplates = data.result.map(row => ({
         value: row.template_name,
         css: row.css,
         label: row.template_name,
@@ -99,7 +99,7 @@ class Controls extends React.PureComponent {
         <Button
           onClick={() => { window.location = emailLink; }}
         >
-          <i className="fa fa-envelope"></i>
+          <i className="fa fa-envelope" />
         </Button>
       </ButtonGroup>
     );

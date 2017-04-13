@@ -17,7 +17,7 @@ describe('TabbedSqlEditors', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<TabbedSqlEditors {...mockedProps} />)
+      React.isValidElement(<TabbedSqlEditors {...mockedProps} />),
     ).to.equal(true);
   });
   it('shallow mounts', () => {

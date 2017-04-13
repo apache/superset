@@ -37,9 +37,9 @@ export default class DisplayQueryButton extends React.PureComponent {
         url: this.props.queryEndpoint,
         success: (data) => {
           const modalBody = data.language ?
-            <SyntaxHighlighter language={data.language} style={github}>
+            (<SyntaxHighlighter language={data.language} style={github}>
               {data.query}
-            </SyntaxHighlighter>
+            </SyntaxHighlighter>)
             :
             <pre>{data.query}</pre>;
           this.setState({ modalBody });

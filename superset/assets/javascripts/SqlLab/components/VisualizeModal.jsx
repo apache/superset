@@ -129,7 +129,7 @@ class VisualizeModal extends React.PureComponent {
         data: JSON.stringify(vizOptions),
       },
       dataType: 'json',
-      success: resp => {
+      success: (resp) => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
         const data = JSON.parse(resp);
         const mainMetric = columns.filter(d => d.agg)[0];
@@ -181,7 +181,7 @@ class VisualizeModal extends React.PureComponent {
         </div>
       );
     }
-    const tableData = this.props.query.results.columns.map((col) => ({
+    const tableData = this.props.query.results.columns.map(col => ({
       column: col.name,
       is_dimension: (
         <input

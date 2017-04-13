@@ -762,6 +762,6 @@ export function sectionsToRender(vizType, datasourceType) {
     datasourceType === 'table' ? sections.sqlaTimeSeries : sections.druidTimeSeries,
     viz.controlPanelSections,
     datasourceType === 'table' ? sections.sqlClause : [],
-    datasourceType === 'table' ? sections.filters[0] : sections.filters
+    datasourceType === 'table' ? sections.filters[0] : sections.filters,
   );
 }

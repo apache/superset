@@ -109,7 +109,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             const fontHeight = d3.round(scaledRadius * 0.5, 1);
             const gradient = ctx.createRadialGradient(
               pixelRounded[0], pixelRounded[1], scaledRadius,
-              pixelRounded[0], pixelRounded[1], 0
+              pixelRounded[0], pixelRounded[1], 0,
             );
 
             gradient.addColorStop(1, 'rgba(' + rgb[1] + ', ' + rgb[2] + ', ' + rgb[3] + ', 0.8)');
@@ -333,7 +333,7 @@ function mapbox(slice, json) {
       pointRadius={DEFAULT_POINT_RADIUS}
       aggregatorName={aggName}
     />,
-    div.node()
+    div.node(),
   );
 }
 

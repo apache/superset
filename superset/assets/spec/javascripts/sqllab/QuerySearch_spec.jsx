@@ -13,7 +13,7 @@ describe('QuerySearch', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<QuerySearch {...mockedProps} />)
+      React.isValidElement(<QuerySearch {...mockedProps} />),
     ).to.equal(true);
   });
   const wrapper = shallow(<QuerySearch {...mockedProps} />);

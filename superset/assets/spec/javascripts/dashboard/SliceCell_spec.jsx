@@ -14,7 +14,7 @@ describe('SliceCell', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<SliceCell {...mockedProps} />)
+      React.isValidElement(<SliceCell {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders five links', () => {

@@ -262,7 +262,7 @@ export function addTable(query, tableName, schemaName) {
           queryEditorId: query.id,
           schema: schemaName,
           expanded: true,
-        }), dataPreviewQuery)
+        }), dataPreviewQuery),
       );
       // Run query to get preview data for table
       dispatch(runQuery(dataPreviewQuery));
@@ -272,7 +272,7 @@ export function addTable(query, tableName, schemaName) {
         addAlert({
           msg: 'Error occurred while fetching metadata',
           bsStyle: 'danger',
-        })
+        }),
       );
     });
 

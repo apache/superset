@@ -217,14 +217,14 @@ const px = function () {
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('label-danger label-success');
         $('#timer').addClass('label-warning');
-        $.getJSON(this.jsonEndpoint(), queryResponse => {
+        $.getJSON(this.jsonEndpoint(), (queryResponse) => {
           try {
             vizMap[formData.viz_type](this, queryResponse);
             this.done(queryResponse);
           } catch (e) {
             this.error('An error occurred while rendering the visualization: ' + e);
           }
-        }).fail(err => {
+        }).fail((err) => {
           this.error(err.responseText, err);
         });
       },

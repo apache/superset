@@ -10,7 +10,7 @@ describe('CopyQueryTabUrl', () => {
   };
   it('is valid with props', () => {
     expect(
-      React.isValidElement(<CopyQueryTabUrl {...mockedProps} />)
+      React.isValidElement(<CopyQueryTabUrl {...mockedProps} />),
     ).to.equal(true);
   });
 });

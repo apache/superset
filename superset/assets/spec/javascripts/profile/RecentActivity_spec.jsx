@@ -13,7 +13,7 @@ describe('RecentActivity', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<RecentActivity {...mockedProps} />)
+      React.isValidElement(<RecentActivity {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a TableLoader', () => {

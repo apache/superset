@@ -64,7 +64,7 @@ export default class Control extends React.PureComponent {
     const validators = this.props.validators;
     const validationErrors = [];
     if (validators && validators.length > 0) {
-      validators.forEach(f => {
+      validators.forEach((f) => {
         const v = f(value);
         if (v) {
           validationErrors.push(v);

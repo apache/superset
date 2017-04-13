@@ -17,5 +17,5 @@ const bootstrap = JSON.parse(profileViewContainer.getAttribute('data-bootstrap')
 const user = bootstrap.user;
 ReactDOM.render(
   <App user={user} />,
-  profileViewContainer
+  profileViewContainer,
 );

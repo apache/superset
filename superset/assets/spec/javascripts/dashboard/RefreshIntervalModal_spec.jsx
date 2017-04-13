@@ -11,7 +11,7 @@ describe('RefreshIntervalModal', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<RefreshIntervalModal {...mockedProps} />)
+      React.isValidElement(<RefreshIntervalModal {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders the trigger node', () => {

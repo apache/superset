@@ -13,7 +13,7 @@ describe('CreatedContent', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<CreatedContent {...mockedProps} />)
+      React.isValidElement(<CreatedContent {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 TableLoader', () => {

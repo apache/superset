@@ -36,8 +36,8 @@ function bigNumberVis(slice, payload) {
       }
     }
   }
-  const dateExt = d3.extent(data, (d) => d[0]);
-  const valueExt = d3.extent(data, (d) => d[1]);
+  const dateExt = d3.extent(data, d => d[0]);
+  const valueExt = d3.extent(data, d => d[1]);
 
   const margin = 20;
   const scaleX = d3.time.scale.utc().domain(dateExt).range([margin, width - margin]);

@@ -95,8 +95,8 @@ class ChartContainer extends React.PureComponent {
         },
         height: getHeight,
         show: () => { },
-        get: (n) => ($(this.state.selector).get(n)),
-        find: (classname) => ($(this.state.selector).find(classname)),
+        get: n => ($(this.state.selector).get(n)),
+        find: classname => ($(this.state.selector).find(classname)),
       },
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
@@ -204,7 +204,7 @@ class ChartContainer extends React.PureComponent {
         }
         <div
           id={this.props.containerId}
-          ref={ref => { this.chartContainerRef = ref; }}
+          ref={(ref) => { this.chartContainerRef = ref; }}
           className={this.props.viz_type}
           style={{
             opacity: loading ? '0.25' : '1',
@@ -262,17 +262,17 @@ class ChartContainer extends React.PureComponent {
                 {this.props.chartStatus === 'success' &&
                  this.props.queryResponse &&
                  this.props.queryResponse.is_cached &&
-                  <TooltipWrapper
-                    tooltip="Loaded from cache. Click to force refresh"
-                    label="cache-desc"
-                  >
-                    <Label
-                      style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
-                      onClick={this.runQuery.bind(this)}
-                    >
+                 <TooltipWrapper
+                   tooltip="Loaded from cache. Click to force refresh"
+                   label="cache-desc"
+                 >
+                   <Label
+                     style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
+                     onClick={this.runQuery.bind(this)}
+                   >
                       cached
                     </Label>
-                  </TooltipWrapper>
+                 </TooltipWrapper>
                 }
                 <Timer
                   startTime={this.props.chartUpdateStartTime}

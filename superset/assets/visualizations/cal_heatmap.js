@@ -15,7 +15,7 @@ function calHeatmap(slice, payload) {
   const cal = new CalHeatMap();
 
   const timestamps = data.timestamps;
-  const extents = d3.extent(Object.keys(timestamps), (key) => timestamps[key]);
+  const extents = d3.extent(Object.keys(timestamps), key => timestamps[key]);
   const step = (extents[1] - extents[0]) / 5;
 
   try {

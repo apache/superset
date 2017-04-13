@@ -15,7 +15,7 @@ describe('Link', () => {
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<Link {...mockedProps} >TEST</Link>)
+      React.isValidElement(<Link {...mockedProps} >TEST</Link>),
     ).to.equal(true);
   });
   it('renders an anchor tag', () => {

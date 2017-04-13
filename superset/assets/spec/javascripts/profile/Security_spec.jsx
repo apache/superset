@@ -12,7 +12,7 @@ describe('Security', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<Security {...mockedProps} />)
+      React.isValidElement(<Security {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 role labels', () => {

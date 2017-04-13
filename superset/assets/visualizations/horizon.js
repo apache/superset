@@ -49,7 +49,7 @@ const horizonChart = function () {
     context.imageSmoothingEnabled = false;
 
     // update the y scale, based on the data extents
-    const ext = extent || d3.extent(data, (d) => d.y);
+    const ext = extent || d3.extent(data, d => d.y);
 
     const max = Math.max(-ext[0], ext[1]);
     y.domain([0, max]);
@@ -61,8 +61,8 @@ const horizonChart = function () {
     // context.translate(0.5, 0.5);
 
     // the data frame currently being shown:
-    const startIndex = ~~ Math.max(0, -(offsetX / step));
-    const endIndex = ~~ Math.min(data.length, startIndex + width / step);
+    const startIndex = ~~Math.max(0, -(offsetX / step));
+    const endIndex = ~~Math.min(data.length, startIndex + width / step);
 
     // skip drawing if there's no data to be drawn
     if (startIndex > data.length) {
@@ -200,12 +200,12 @@ function horizonViz(slice, payload) {
     payload.data.forEach(function (d) {
       allValues = allValues.concat(d.values);
     });
-    extent = d3.extent(allValues, (d) => d.y);
+    extent = d3.extent(allValues, d => d.y);
   } else if (fd.horizon_color_scale === 'change') {
     payload.data.forEach(function (series) {
       const t0y = series.values[0].y;  // value at time 0
-      series.values = series.values.map((d) =>
-        Object.assign({}, d, { y: d.y - t0y })
+      series.values = series.values.map(d =>
+        Object.assign({}, d, { y: d.y - t0y }),
       );
     });
   }

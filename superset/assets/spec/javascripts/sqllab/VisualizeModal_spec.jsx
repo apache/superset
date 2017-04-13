@@ -17,7 +17,7 @@ describe('VisualizeModal', () => {
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<VisualizeModal {...mockedProps} />)
+      React.isValidElement(<VisualizeModal {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a Modal', () => {

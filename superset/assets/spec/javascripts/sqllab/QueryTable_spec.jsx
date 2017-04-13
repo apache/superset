@@ -15,7 +15,7 @@ describe('QueryTable', () => {
   });
   it('is valid with props', () => {
     expect(
-      React.isValidElement(<QueryTable {...mockedProps} />)
+      React.isValidElement(<QueryTable {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a proper table', () => {

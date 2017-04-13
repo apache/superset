@@ -15,7 +15,7 @@ describe('ResultSet', () => {
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<ResultSet />)
+      React.isValidElement(<ResultSet />),
     ).to.equal(true);
   });
   it('renders a Table', () => {

@@ -16,12 +16,12 @@ describe('TableElement', () => {
   };
   it('renders', () => {
     expect(
-      React.isValidElement(<TableElement />)
+      React.isValidElement(<TableElement />),
     ).to.equal(true);
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<TableElement {...mockedProps} />)
+      React.isValidElement(<TableElement {...mockedProps} />),
     ).to.equal(true);
   });
   it('has 2 Link elements', () => {

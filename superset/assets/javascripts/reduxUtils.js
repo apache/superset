@@ -99,7 +99,7 @@ export function areObjectsEqual(obj1, obj2) {
   if (!obj1 || !obj2) {
     return false;
   }
-  if (! Object.keys(obj1).length !== Object.keys(obj2).length) {
+  if (!Object.keys(obj1).length !== Object.keys(obj2).length) {
     return false;
   }
   for (const id in obj1) {

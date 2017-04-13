@@ -11,7 +11,7 @@ describe('CssEditor', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<CssEditor {...mockedProps} />)
+      React.isValidElement(<CssEditor {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders the trigger node', () => {

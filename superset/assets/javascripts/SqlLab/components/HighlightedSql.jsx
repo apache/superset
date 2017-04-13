@@ -42,7 +42,7 @@ class HighlightedSql extends React.Component {
   }
   triggerNode() {
     const props = this.props;
-    let shownSql = props.shrink ? this.shrinkSql(props.sql) : props.sql;
+    const shownSql = props.shrink ? this.shrinkSql(props.sql) : props.sql;
     return (
       <SyntaxHighlighter language="sql" style={github}>
         {shownSql}

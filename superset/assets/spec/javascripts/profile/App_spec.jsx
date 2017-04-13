@@ -12,7 +12,7 @@ describe('App', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<App {...mockedProps} />)
+      React.isValidElement(<App {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 Col', () => {

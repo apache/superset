@@ -26,7 +26,6 @@ const config = {
   },
   resolve: {
     extensions: [
-      '',
       '.js',
       '.jsx',
     ],
@@ -43,12 +42,12 @@ const config = {
     loaders: [
       {
         test: /datatables\.net.*/,
-        loader: 'imports?define=>false',
+        loader: 'imports-loader?define=>false',
       },
       {
         test: /\.jsx?$/,
         exclude: APP_DIR + '/node_modules',
-        loader: 'babel',
+        loader: 'babel-loader',
         query: {
           presets: [
             'airbnb',
@@ -61,7 +60,7 @@ const config = {
       {
         test: /\.react\.js$/,
         include: APP_DIR + '/node_modules/react-map-gl/src/overlays',
-        loader: 'babel',
+        loader: 'babel-loader',
       },
       /* for require('*.css') */
       {
@@ -95,7 +94,7 @@ const config = {
       {
         test: /\.less$/,
         include: APP_DIR,
-        loader: 'style!css!less',
+        loader: 'style-loader!css-loader!less-loader',
       },
       /* for mapbox */
       {
@@ -108,11 +107,6 @@ const config = {
         loader: 'transform/cacheable?brfs',
       },
     ],
-    postLoaders: [{
-      include: /node_modules\/mapbox-gl/,
-      loader: 'transform',
-      query: 'brfs',
-    }],
   },
   externals: {
     cheerio: 'window',

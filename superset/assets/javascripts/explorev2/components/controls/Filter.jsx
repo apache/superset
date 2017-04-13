@@ -17,7 +17,7 @@ const operatorsArr = [
   { val: 'LIKE', type: 'string', datasourceTypes: ['table'] },
 ];
 const operators = {};
-operatorsArr.forEach(op => {
+operatorsArr.forEach((op) => {
   operators[op.val] = op;
 });
 

@@ -14,7 +14,7 @@ describe('UserInfo', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<UserInfo {...mockedProps} />)
+      React.isValidElement(<UserInfo {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a Gravatar', () => {

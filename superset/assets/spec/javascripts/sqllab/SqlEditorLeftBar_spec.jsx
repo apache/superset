@@ -14,7 +14,7 @@ describe('SqlEditorLeftBar', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<SqlEditorLeftBar {...mockedProps} />)
+      React.isValidElement(<SqlEditorLeftBar {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a TableElement', () => {

@@ -12,7 +12,7 @@ describe('Favorites', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<Favorites {...mockedProps} />)
+      React.isValidElement(<Favorites {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 TableLoader', () => {

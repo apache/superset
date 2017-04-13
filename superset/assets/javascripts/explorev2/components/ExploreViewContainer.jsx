@@ -109,7 +109,7 @@ class ExploreViewContainer extends React.Component {
           <div key={controlName}>
             <strong>{`[ ${control.label} ] `}</strong>
             {control.validationErrors.join('. ')}
-          </div>
+          </div>,
         );
       }
     }
@@ -142,7 +142,7 @@ class ExploreViewContainer extends React.Component {
           overflow: 'hidden',
         }}
       >
-      {this.state.showModal &&
+        {this.state.showModal &&
         <SaveModal
           onHide={this.toggleModal.bind(this)}
           actions={this.props.actions}

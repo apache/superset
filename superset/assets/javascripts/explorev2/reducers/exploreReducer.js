@@ -77,7 +77,7 @@ export const exploreReducer = function (state, action) {
         {
           chartStatus: 'success',
           queryResponse: action.queryResponse,
-        }
+        },
       );
     },
     [actions.CHART_UPDATE_STARTED]() {

@@ -28,7 +28,7 @@ export default function ExploreActionButtons({ canDownload, slice, query, queryE
           title="Export to .json"
           target="_blank"
         >
-          <i className="fa fa-file-code-o"></i> .json
+          <i className="fa fa-file-code-o" /> .json
         </a>
 
         <a
@@ -37,7 +37,7 @@ export default function ExploreActionButtons({ canDownload, slice, query, queryE
           title="Export to .csv format"
           target="_blank"
         >
-          <i className="fa fa-file-text-o"></i> .csv
+          <i className="fa fa-file-text-o" /> .csv
         </a>
 
         <DisplayQueryButton

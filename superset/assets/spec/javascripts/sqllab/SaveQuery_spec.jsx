@@ -16,12 +16,12 @@ describe('SavedQuery', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<SaveQuery />)
+      React.isValidElement(<SaveQuery />),
     ).to.equal(true);
   });
   it('is valid with props', () => {
     expect(
-      React.isValidElement(<SaveQuery {...mockedProps} />)
+      React.isValidElement(<SaveQuery {...mockedProps} />),
     ).to.equal(true);
   });
   it('has an Overlay and a Popover', () => {

@@ -190,7 +190,7 @@ class TabbedSqlEditors extends React.PureComponent {
               {isSelected &&
                 <SqlEditor
                   height={this.props.editorHeight}
-                  tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
+                  tables={this.props.tables.filter(t => (t.queryEditorId === qe.id))}
                   queryEditor={qe}
                   editorQueries={this.state.queriesArray}
                   dataPreviewQueries={this.state.dataPreviewQueries}

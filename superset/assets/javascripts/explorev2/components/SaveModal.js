@@ -146,7 +146,7 @@ class SaveModal extends React.Component {
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
             >
-            {`Overwrite slice ${this.props.slice.slice_name}`}
+              {`Overwrite slice ${this.props.slice.slice_name}`}
             </Radio>
           }
 

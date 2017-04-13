@@ -68,7 +68,7 @@ function getMaxLabelSize(container, axisClass, widthOrHeight) {
   // axis class = .nv-x  // x axis on time series line chart
   const labelEls = container.find(`.${axisClass} .tick text`);
   const labelDimensions = labelEls.map(i => labelEls[i].getBoundingClientRect()[widthOrHeight]);
-  const max = Math.max.apply(Math, labelDimensions);
+  const max = Math.max(...labelDimensions);
   return max;
 }
 
@@ -185,7 +185,7 @@ function nvd3Vis(slice, payload) {
                 if (a.x < b.x) return -1;
                 if (a.x > b.x) return 1;
                 return 0;
-              }
+              },
             );
           });
         }
@@ -346,7 +346,7 @@ function nvd3Vis(slice, payload) {
       }
     }
     if (vizType !== 'bullet') {
-      chart.color((d) => category21(d[colorKey]));
+      chart.color(d => category21(d[colorKey]));
     }
 
     if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {

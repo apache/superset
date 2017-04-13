@@ -11,7 +11,7 @@ describe('CodeModal', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<CodeModal {...mockedProps} />)
+      React.isValidElement(<CodeModal {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders the trigger node', () => {

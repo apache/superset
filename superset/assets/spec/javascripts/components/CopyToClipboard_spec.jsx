@@ -11,7 +11,7 @@ describe('CopyToClipboard', () => {
 
   it('renders', () => {
     expect(
-      React.isValidElement(<CopyToClipboard {...defaultProps} />)
+      React.isValidElement(<CopyToClipboard {...defaultProps} />),
     ).to.equal(true);
   });
 });
