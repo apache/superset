@@ -1,12 +1,13 @@
-const $ = window.$ = require('jquery');
 /* eslint no-unused-vars: 0 */
-const jQuery = window.jQuery = $;
-require('../stylesheets/welcome.css');
-require('bootstrap');
-
-require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 import 'datatables.net';
 import dt from 'datatables.net-bs';
+
+require('../stylesheets/welcome.css');
+require('bootstrap');
+require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
+const $ = window.$ = require('jquery');
+
+const jQuery = window.jQuery = $;
 dt(window, $);
 
 const d3 = require('d3');

@@ -1,13 +1,15 @@
 // JS
 import $ from 'jquery';
+import throttle from 'lodash.throttle';
+import d3 from 'd3';
+
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 import { customizeToolTip } from '../javascripts/modules/utils';
-import throttle from 'lodash.throttle';
 
-const d3 = require('d3');
-const nv = require('nvd3');
 import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/controls';
+
+const nv = require('nvd3');
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');

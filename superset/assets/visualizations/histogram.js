@@ -1,5 +1,5 @@
-import { category21 } from '../javascripts/modules/colors';
 import d3 from 'd3';
+import { category21 } from '../javascripts/modules/colors';
 
 require('./histogram.css');
 

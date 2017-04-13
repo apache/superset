@@ -1,6 +1,7 @@
-import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import 'datatables.net';
 import dt from 'datatables.net-bs';
+
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 
 const $ = require('jquery');
 

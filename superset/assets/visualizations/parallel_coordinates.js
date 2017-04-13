@@ -1,4 +1,3 @@
-const $ = require('jquery');
 import d3 from 'd3';
 import '../vendor/parallel_coordinates/d3.parcoords.css';
 import './parallel_coordinates.css';
@@ -6,6 +5,7 @@ import './parallel_coordinates.css';
 d3.parcoords = require('../vendor/parallel_coordinates/d3.parcoords.js');
 d3.divgrid = require('../vendor/parallel_coordinates/divgrid.js');
 
+const $ = require('jquery');
 
 function parallelCoordVis(slice, payload) {
   $('#code').attr('rows', '15');

@@ -1,6 +1,7 @@
-const $ = window.$ = require('jquery');
 import React from 'react';
 import Select from 'react-select';
+
+const $ = window.$ = require('jquery');
 
 const propTypes = {
   dataEndpoint: React.PropTypes.string.isRequired,

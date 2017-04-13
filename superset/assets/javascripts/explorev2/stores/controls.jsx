@@ -1,5 +1,5 @@
-import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import React from 'react';
+import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import visTypes from './visTypes';
 import * as v from '../validators';
 

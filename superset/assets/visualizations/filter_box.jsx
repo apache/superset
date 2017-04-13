@@ -1,15 +1,13 @@
 // JS
 import d3 from 'd3';
-
 import React from 'react';
 import ReactDOM from 'react-dom';
-
 import Select from 'react-select';
-import '../stylesheets/react-select/select.less';
 import { Button } from 'react-bootstrap';
 
+import '../stylesheets/react-select/select.less';
+import { TIME_CHOICES } from './constants';
 import './filter_box.css';
-import { TIME_CHOICES } from './constants.js';
 
 const propTypes = {
   origSelectedValues: React.PropTypes.object,

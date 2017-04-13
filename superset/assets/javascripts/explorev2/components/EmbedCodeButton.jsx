@@ -1,6 +1,6 @@
 import React, { PropTypes } from 'react';
-import CopyToClipboard from './../../components/CopyToClipboard';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
+import CopyToClipboard from './../../components/CopyToClipboard';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,

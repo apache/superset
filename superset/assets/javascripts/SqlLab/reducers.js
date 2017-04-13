@@ -2,7 +2,7 @@ import shortid from 'shortid';
 import * as actions from './actions';
 import { now } from '../modules/dates';
 import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
-  from '../reduxUtils.js';
+  from '../reduxUtils';
 
 export function getInitialState(defaultDbId) {
   const defaultQueryEditor = {

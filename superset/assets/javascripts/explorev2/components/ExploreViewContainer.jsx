@@ -1,13 +1,13 @@
 /* eslint camelcase: 0 */
 import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
+import * as actions from '../actions/exploreActions';
 import { getFormDataFromControls } from '../stores/store';
 
 const propTypes = {

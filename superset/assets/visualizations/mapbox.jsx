@@ -1,10 +1,9 @@
 /* eslint-disable no-param-reassign */
-
 import d3 from 'd3';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
-import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react.js';
+import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
@@ -277,7 +276,6 @@ function mapbox(slice, json) {
   const div = d3.select(slice.selector);
   const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_MAX_ZOOM = 16;
-  let clusterer;
 
   // Validate mapbox color
   const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(json.data.color);
@@ -314,7 +312,7 @@ function mapbox(slice, json) {
     };
   }
 
-  clusterer = supercluster({
+  const clusterer = supercluster({
     radius: json.data.clusteringRadius,
     maxZoom: DEFAULT_MAX_ZOOM,
     metricKey: 'metric',

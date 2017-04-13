@@ -1,20 +1,20 @@
-const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = $; // eslint-disable-line
-require('bootstrap');
-
 import React from 'react';
 import { render } from 'react-dom';
-import { getInitialState, sqlLabReducer } from './reducers';
-import { initEnhancer } from '../reduxUtils';
-import { initJQueryAjaxCSRF } from '../modules/utils';
 import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 
+import { getInitialState, sqlLabReducer } from './reducers';
+import { initEnhancer } from '../reduxUtils';
+import { initJQueryAjaxCSRF } from '../modules/utils';
 import App from './components/App';
 
-
+require('bootstrap');
 require('./main.css');
+const $ = window.$ = require('jquery');
+
+const jQuery = window.jQuery = $; // eslint-disable-line
+
 initJQueryAjaxCSRF();
 
 const appContainer = document.getElementById('app');

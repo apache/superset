@@ -2,7 +2,7 @@
 // Copied and modified from
 // https://github.com/kmandov/d3-horizon-chart
 import d3 from 'd3';
-require('./horizon.css');
+import './horizon.css';
 
 const horizonChart = function () {
   let colors = [

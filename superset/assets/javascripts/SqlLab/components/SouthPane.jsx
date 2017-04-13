@@ -1,12 +1,12 @@
+import React from 'react';
+import shortid from 'shortid';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
-import QueryHistory from './QueryHistory';
-import ResultSet from './ResultSet';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
-import React from 'react';
 
-import shortid from 'shortid';
+import * as Actions from '../actions';
+import QueryHistory from './QueryHistory';
+import ResultSet from './ResultSet';
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component

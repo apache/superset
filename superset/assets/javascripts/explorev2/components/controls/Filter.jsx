@@ -1,8 +1,9 @@
-const $ = window.$ = require('jquery');
 import React, { PropTypes } from 'react';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
+
+const $ = window.$ = require('jquery');
 
 const operatorsArr = [
   { val: 'in', type: 'array', useSelect: true, multi: true },

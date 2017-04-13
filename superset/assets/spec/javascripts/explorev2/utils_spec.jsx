@@ -1,7 +1,7 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import URI from 'urijs';
-import { getExploreUrl } from '../../../javascripts/explorev2/exploreUtils.js';
+import { getExploreUrl } from '../../../javascripts/explorev2/exploreUtils';
 
 describe('utils', () => {
   const formData = {

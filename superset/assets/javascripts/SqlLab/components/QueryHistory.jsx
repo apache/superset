@@ -1,7 +1,7 @@
 import React from 'react';
+import { Alert } from 'react-bootstrap';
 
 import QueryTable from './QueryTable';
-import { Alert } from 'react-bootstrap';
 
 const propTypes = {
   queries: React.PropTypes.array.isRequired,

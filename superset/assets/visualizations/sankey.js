@@ -1,10 +1,10 @@
 /* eslint-disable no-param-reassign */
-import { category21 } from '../javascripts/modules/colors';
 import d3 from 'd3';
+import { category21 } from '../javascripts/modules/colors';
+import './sankey.css';
 
 d3.sankey = require('d3-sankey').sankey;
 
-require('./sankey.css');
 
 function sankeyVis(slice, payload) {
   const div = d3.select(slice.selector);

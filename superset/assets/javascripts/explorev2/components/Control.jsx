@@ -22,6 +22,7 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   name: PropTypes.string.isRequired,
   type: PropTypes.oneOf(controlTypes).isRequired,
+  hidden: PropTypes.bool,
   label: PropTypes.string.isRequired,
   choices: PropTypes.arrayOf(PropTypes.array),
   description: PropTypes.string,
@@ -40,6 +41,7 @@ const propTypes = {
 const defaultProps = {
   renderTrigger: false,
   validators: [],
+  hidden: false,
   validationErrors: [],
 };
 

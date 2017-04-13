@@ -11,6 +11,7 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
+  height: React.PropTypes.integer,
 };
 
 class QuerySearch extends React.PureComponent {

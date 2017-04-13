@@ -1,7 +1,8 @@
 import React, { PropTypes } from 'react';
 import { ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import Button from '../../components/Button';
 import classnames from 'classnames';
+
+import Button from '../../components/Button';
 
 const propTypes = {
   canAdd: PropTypes.string.isRequired,
