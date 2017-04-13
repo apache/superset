@@ -1,4 +1,4 @@
-.markup .slice_container {
+.markup.slice_container {
     padding: 10px;
     overflow: auto;
 }
