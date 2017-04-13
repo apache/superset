@@ -375,7 +375,7 @@ function nvd3Vis(slice, payload) {
     } else {
       chart.margin({ bottom: fd.bottom_margin });
     }
-    
+
     if (vizType === 'dual_line') {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
