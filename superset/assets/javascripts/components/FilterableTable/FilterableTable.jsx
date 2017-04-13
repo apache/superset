@@ -8,8 +8,6 @@ import {
 } from 'react-virtualized';
 import { getTextWidth } from '../../modules/visUtils';
 
-require('./FilterableTableStyles.css');
-
 const propTypes = {
   orderedColumnKeys: PropTypes.array.isRequired,
   data: PropTypes.array.isRequired,

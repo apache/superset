@@ -9,7 +9,9 @@ import { initEnhancer } from '../reduxUtils';
 import { initJQueryAjaxCSRF } from '../modules/utils';
 import App from './components/App';
 import { appSetup } from '../common';
-import './main.css';
+
+require('./main.css');
+require('../components/FilterableTable/FilterableTableStyles.css');
 
 appSetup();
 initJQueryAjaxCSRF();
