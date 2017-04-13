@@ -1320,6 +1320,9 @@ class IFrameViz(BaseViz):
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
 
+    def get_df(self):
+       return None
+
 
 class ParallelCoordinatesViz(BaseViz):
 

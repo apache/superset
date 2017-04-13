@@ -402,6 +402,18 @@ class PrestoEngineSpec(BaseEngineSpec):
         return result_sets
 
     @classmethod
+    def extract_error_message(cls, e):
+        """Extract error message for queries"""
+        logging.error(e)
+        print("-="*100)
+        print("-="*100)
+        print("-="*100)
+        print("-="*100)
+        print(type(e))
+        print(dir(e))
+        return error_msg_from_exception(e)
+
+    @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
         indexes = database.get_indexes(table_name, schema_name)
         if not indexes:
