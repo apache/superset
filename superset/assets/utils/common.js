@@ -1,6 +1,7 @@
 /* global notify */
 /* eslint global-require: 0 */
 import $ from 'jquery';
+
 const d3 = window.d3 || require('d3');
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;
@@ -31,7 +32,7 @@ export function rgbLuminance(r, g, b) {
 
 export function getParamFromQuery(query, param) {
   const vars = query.split('&');
-  for (let i = 0; i < vars.length; i++) {
+  for (let i = 0; i < vars.length; i += 1) {
     const pair = vars[i].split('=');
     if (decodeURIComponent(pair[0]) === param) {
       return decodeURIComponent(pair[1]);

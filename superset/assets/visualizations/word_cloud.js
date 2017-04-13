@@ -14,11 +14,11 @@ function wordCloudChart(slice, payload) {
   const rotation = fd.rotation;
   let fRotation;
   if (rotation === 'square') {
-    fRotation = () => ~~(Math.random() * 2) * 90;
+    fRotation = () => Math.floor((Math.random() * 2) * 90);
   } else if (rotation === 'flat') {
     fRotation = () => 0;
   } else {
-    fRotation = () => (~~(Math.random() * 6) - 3) * 30;
+    fRotation = () => Math.floor(((Math.random() * 6) - 3) * 30);
   }
   const size = [slice.width(), slice.height()];
 

@@ -1,9 +1,9 @@
 import React from 'react';
-import CodeModal from '../../../javascripts/dashboard/components/CodeModal';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import CodeModal from '../../../javascripts/dashboard/components/CodeModal';
 
 describe('CodeModal', () => {
   const mockedProps = {

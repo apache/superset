@@ -1,10 +1,11 @@
 import React from 'react';
-import { TabbedSqlEditors } from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
 import { Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { initialState } from './fixtures';
+import { TabbedSqlEditors } from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
 
 describe('TabbedSqlEditors', () => {
   const mockedProps = {

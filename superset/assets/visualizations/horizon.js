@@ -61,8 +61,8 @@ const horizonChart = function () {
     // context.translate(0.5, 0.5);
 
     // the data frame currently being shown:
-    const startIndex = ~~Math.max(0, -(offsetX / step));
-    const endIndex = ~~Math.min(data.length, startIndex + width / step);
+    const startIndex = Math.floor(Math.max(0, -(offsetX / step)));
+    const endIndex = Math.floor(Math.min(data.length, startIndex + (width / step)));
 
     // skip drawing if there's no data to be drawn
     if (startIndex > data.length) {
@@ -75,7 +75,7 @@ const horizonChart = function () {
     // draw positive bands
     let value;
     let bExtents;
-    for (let b = 0; b < bands; b++) {
+    for (let b = 0; b < bands; b += 1) {
       context.fillStyle = colors[bands + b];
 
       // Adjust the range based on the current band index.

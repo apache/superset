@@ -1,10 +1,10 @@
 import React from 'react';
-import SaveQuery from '../../../javascripts/SqlLab/components/SaveQuery';
 import { Overlay, Popover, FormControl } from 'react-bootstrap';
 import { shallow, mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import SaveQuery from '../../../javascripts/SqlLab/components/SaveQuery';
 
 describe('SavedQuery', () => {
   const mockedProps = {

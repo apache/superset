@@ -1,9 +1,9 @@
 import React from 'react';
-import RefreshIntervalModal from '../../../javascripts/dashboard/components/RefreshIntervalModal';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import RefreshIntervalModal from '../../../javascripts/dashboard/components/RefreshIntervalModal';
 
 describe('RefreshIntervalModal', () => {
   const mockedProps = {

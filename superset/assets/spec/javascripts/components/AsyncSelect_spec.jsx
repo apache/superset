@@ -1,10 +1,11 @@
 import React from 'react';
 import Select from 'react-select';
-import AsyncSelect from '../../../javascripts/components/AsyncSelect';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
+
+import AsyncSelect from '../../../javascripts/components/AsyncSelect';
 
 describe('AsyncSelect', () => {
   const mockedProps = {

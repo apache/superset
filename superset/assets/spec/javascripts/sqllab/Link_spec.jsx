@@ -1,9 +1,9 @@
 import React from 'react';
-import Link from '../../../javascripts/SqlLab/components/Link';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import Link from '../../../javascripts/SqlLab/components/Link';
 
 describe('Link', () => {
   const mockedProps = {

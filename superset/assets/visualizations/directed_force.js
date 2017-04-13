@@ -55,7 +55,7 @@ const directedForceVis = function (slice, json) {
     path.attr('d', function (d) {
       const dx = d.target.x - d.source.x;
       const dy = d.target.y - d.source.y;
-      const dr = Math.sqrt(dx * dx + dy * dy);
+      const dr = Math.sqrt((dx * dx) + (dy * dy));
       return (
         'M' +
         d.source.x + ',' +

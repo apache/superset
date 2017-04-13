@@ -1,10 +1,11 @@
 import React from 'react';
-import RecentActivity from '../../../javascripts/profile/components/RecentActivity';
-import TableLoader from '../../../javascripts/profile/components/TableLoader';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { user } from './fixtures';
+import RecentActivity from '../../../javascripts/profile/components/RecentActivity';
+import TableLoader from '../../../javascripts/profile/components/TableLoader';
 
 
 describe('RecentActivity', () => {

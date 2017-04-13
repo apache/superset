@@ -1,4 +1,3 @@
-const $ = window.$ = require('jquery');
 import React from 'react';
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
@@ -7,6 +6,8 @@ import { now, epochTimeXHoursAgo,
   epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
+
+const $ = window.$ = require('jquery');
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
