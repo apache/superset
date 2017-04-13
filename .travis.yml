@@ -14,7 +14,7 @@ cache:
 env:
   global:
     - TRAVIS_CACHE=$HOME/.travis_cache/
-    - TRAVIS_NODE_VERSION="5.11"
+    - TRAVIS_NODE_VERSION="6.10.2"
   matrix:
     - TOX_ENV=javascript
     - TOX_ENV=pylint
