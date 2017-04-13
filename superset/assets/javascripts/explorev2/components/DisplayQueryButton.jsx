@@ -7,62 +7,91 @@ import ModalTrigger from './../../components/ModalTrigger';
 const $ = window.$ = require('jquery');
 
 const propTypes = {
-  query: PropTypes.string,
+  animation: PropTypes.bool,
+  queryResponse: PropTypes.object,
+  chartStatus: PropTypes.string,
   queryEndpoint: PropTypes.string.isRequired,
+};
+const defaultProps = {
+  animation: true,
 };
 
 export default class DisplayQueryButton extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      modalBody: <pre />,
+      language: null,
+      query: null,
+      isLoading: false,
+      error: null,
     };
+    this.beforeOpen = this.beforeOpen.bind(this);
+    this.fetchQuery = this.fetchQuery.bind(this);
+  }
+  fetchQuery() {
+    this.setState({ isLoading: true });
+    $.ajax({
+      type: 'GET',
+      url: this.props.queryEndpoint,
+      success: data => {
+        this.setState({
+          language: data.language,
+          query: data.query,
+          isLoading: false,
+        });
+      },
+      error: data => {
+        this.setState({
+          error: data.error,
+          isLoading: false,
+        });
+      },
+    });
+  }
+  setStateFromQueryResponse() {
+    const qr = this.props.queryResponse;
+    this.setState({
+      language: qr.language,
+      query: qr.query,
+      isLoading: false,
+    });
   }
   beforeOpen() {
-    this.setState({
-      modalBody:
-        (<img
-          className="loading"
-          alt="Loading..."
-          src="/static/assets/images/loading.gif"
-        />),
-    });
-    if (this.props.query) {
-      const modalBody = (
-        <pre>{this.props.query}</pre>
-      );
-      this.setState({ modalBody });
+    if (this.props.chartStatus === 'loading' || this.props.chartStatus === null) {
+      this.fetchQuery();
     } else {
-      $.ajax({
-        type: 'GET',
-        url: this.props.queryEndpoint,
-        success: (data) => {
-          const modalBody = data.language ?
-            (<SyntaxHighlighter language={data.language} style={github}>
-              {data.query}
-            </SyntaxHighlighter>)
-            :
-            <pre>{data.query}</pre>;
-          this.setState({ modalBody });
-        },
-        error(data) {
-          this.setState({ modalBody: (<pre>{data.error}</pre>) });
-        },
-      });
+      this.setStateFromQueryResponse();
     }
+  }
+  renderModalBody() {
+    if (this.state.isLoading) {
+      return (<img
+        className="loading"
+        alt="Loading..."
+        src="/static/assets/images/loading.gif"
+      />);
+    } else if (this.state.error) {
+      return <pre>{this.state.error}</pre>;
+    }
+    return (
+      <SyntaxHighlighter language={this.state.language} style={github}>
+        {this.state.query}
+      </SyntaxHighlighter>);
   }
   render() {
     return (
       <ModalTrigger
+        animation={this.props.animation}
         isButton
         triggerNode={<span>Query</span>}
         modalTitle="Query"
         bsSize="large"
-        beforeOpen={this.beforeOpen.bind(this)}
-        modalBody={this.state.modalBody}
+        beforeOpen={this.beforeOpen}
+        modalBody={this.renderModalBody()}
       />
     );
   }
 }
 
 DisplayQueryButton.propTypes = propTypes;
+DisplayQueryButton.defaultProps = defaultProps;

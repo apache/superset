@@ -923,11 +923,7 @@ class Superset(BaseSupersetView):
         if request.args.get("query") == "true":
             try:
                 query_obj = viz_obj.query_obj()
-                if datasource_type == 'druid':
-                    # only retrive first phase query for druid
-                    query_obj['phase'] = 1
-                query = viz_obj.datasource.get_query_str(
-                    datetime.now(), **query_obj)
+                query = viz_obj.datasource.get_query_str(query_obj)
             except Exception as e:
                 return json_error_response(e)
             return Response(

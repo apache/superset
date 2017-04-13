@@ -8,10 +8,12 @@ const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
   slice: PropTypes.object,
   queryEndpoint: PropTypes.string,
-  query: PropTypes.string,
+  queryResponse: PropTypes.object,
+  chartStatus: PropTypes.string,
 };
 
-export default function ExploreActionButtons({ canDownload, slice, query, queryEndpoint }) {
+export default function ExploreActionButtons({
+    chartStatus, canDownload, slice, queryResponse, queryEndpoint }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
@@ -43,8 +45,9 @@ export default function ExploreActionButtons({ canDownload, slice, query, queryE
         </a>
 
         <DisplayQueryButton
-          query={query}
+          queryResponse={queryResponse}
           queryEndpoint={queryEndpoint}
+          chartStatus={chartStatus}
         />
       </div>
     );
