@@ -1,10 +1,11 @@
 import React from 'react';
-import ResultSet from '../../../javascripts/SqlLab/components/ResultSet';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { queries } from './fixtures';
 import { Table } from 'reactable';
+
+import ResultSet from '../../../javascripts/SqlLab/components/ResultSet';
+import { queries } from './fixtures';
 
 describe('ResultSet', () => {
   const mockedProps = {
@@ -15,7 +16,7 @@ describe('ResultSet', () => {
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<ResultSet />)
+      React.isValidElement(<ResultSet />),
     ).to.equal(true);
   });
   it('renders a Table', () => {

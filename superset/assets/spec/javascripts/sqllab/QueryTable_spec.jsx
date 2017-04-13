@@ -1,9 +1,10 @@
 import React from 'react';
-import QueryTable from '../../../javascripts/SqlLab/components/QueryTable';
-import { queries } from './fixtures';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
+import { queries } from './fixtures';
+import QueryTable from '../../../javascripts/SqlLab/components/QueryTable';
 
 
 describe('QueryTable', () => {
@@ -15,7 +16,7 @@ describe('QueryTable', () => {
   });
   it('is valid with props', () => {
     expect(
-      React.isValidElement(<QueryTable {...mockedProps} />)
+      React.isValidElement(<QueryTable {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a proper table', () => {

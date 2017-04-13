@@ -18,7 +18,7 @@ describe('ExploreActionButtons', () => {
 
   it('renders', () => {
     expect(
-      React.isValidElement(<ExploreActionButtons {...defaultProps} />)
+      React.isValidElement(<ExploreActionButtons {...defaultProps} />),
     ).to.equal(true);
   });
 

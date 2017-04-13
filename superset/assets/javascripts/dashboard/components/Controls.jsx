@@ -1,14 +1,14 @@
-const $ = window.$ = require('jquery');
-
 import React from 'react';
-
 import { ButtonGroup } from 'react-bootstrap';
+
 import Button from '../../components/Button';
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
 import CodeModal from './CodeModal';
 import SliceAdder from './SliceAdder';
+
+const $ = window.$ = require('jquery');
 
 const propTypes = {
   dashboard: React.PropTypes.object.isRequired,
@@ -22,19 +22,19 @@ class Controls extends React.PureComponent {
       cssTemplates: [],
     };
   }
-  refresh() {
-    this.props.dashboard.sliceObjects.forEach((slice) => {
-      slice.render(true);
-    });
-  }
   componentWillMount() {
     $.get('/csstemplateasyncmodelview/api/read', (data) => {
-      const cssTemplates = data.result.map((row) => ({
+      const cssTemplates = data.result.map(row => ({
         value: row.template_name,
         css: row.css,
         label: row.template_name,
       }));
       this.setState({ cssTemplates });
+    });
+  }
+  refresh() {
+    this.props.dashboard.sliceObjects.forEach((slice) => {
+      slice.render(true);
     });
   }
   changeCss(css) {
@@ -99,7 +99,7 @@ class Controls extends React.PureComponent {
         <Button
           onClick={() => { window.location = emailLink; }}
         >
-          <i className="fa fa-envelope"></i>
+          <i className="fa fa-envelope" />
         </Button>
       </ButtonGroup>
     );

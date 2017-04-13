@@ -17,6 +17,7 @@ const propTypes = {
   showSql: React.PropTypes.bool,
   visualize: React.PropTypes.bool,
   cache: React.PropTypes.bool,
+  resultSetHeight: React.PropTypes.number,
 };
 const defaultProps = {
   search: true,
@@ -36,7 +37,6 @@ class ResultSet extends React.PureComponent {
       searchText: '',
       showModal: false,
       data: [],
-      resultSetHeight: '0',
     };
   }
   componentWillReceiveProps(nextProps) {
@@ -46,7 +46,7 @@ class ResultSet extends React.PureComponent {
       && nextProps.query.results.data.length > 0) {
       this.setState(
         { data: nextProps.query.results.data },
-        this.clearQueryResults(nextProps.query)
+        this.clearQueryResults(nextProps.query),
       );
     }
     if (nextProps.query.resultsKey
@@ -204,7 +204,7 @@ class ResultSet extends React.PureComponent {
                   const newRow = {};
                   for (const k in row) {
                     const val = row[k];
-                    if (typeof(val) === 'string') {
+                    if (typeof (val) === 'string') {
                       newRow[k] = val;
                     } else {
                       newRow[k] = JSON.stringify(val);
@@ -212,11 +212,11 @@ class ResultSet extends React.PureComponent {
                   }
                   return newRow;
                 })}
-                columns={results.columns.map((col) => col.name)}
+                columns={results.columns.map(col => col.name)}
                 sortable
                 className="table table-condensed table-bordered"
                 filterBy={this.state.searchText}
-                filterable={results.columns.map((c) => c.name)}
+                filterable={results.columns.map(c => c.name)}
                 hideFilterInput
               />
             </div>

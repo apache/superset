@@ -34,6 +34,9 @@ const propTypes = {
   viz_type: PropTypes.string.isRequired,
   formData: PropTypes.object,
   latestQueryFormData: PropTypes.object,
+  queryResponse: PropTypes.object,
+  triggerRender: PropTypes.bool,
+  standalone: PropTypes.bool,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -43,17 +46,6 @@ class ChartContainer extends React.PureComponent {
       selector: `#${props.containerId}`,
       showStackTrace: false,
     };
-  }
-
-  renderViz() {
-    this.props.actions.renderTriggered();
-    const mockSlice = this.getMockedSliceObject();
-    this.setState({ mockSlice });
-    try {
-      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
-    } catch (e) {
-      this.props.actions.chartRenderingFailed(e);
-    }
   }
 
   componentDidUpdate(prevProps) {
@@ -95,8 +87,8 @@ class ChartContainer extends React.PureComponent {
         },
         height: getHeight,
         show: () => { },
-        get: (n) => ($(this.state.selector).get(n)),
-        find: (classname) => ($(this.state.selector).find(classname)),
+        get: n => ($(this.state.selector).get(n)),
+        find: classname => ($(this.state.selector).find(classname)),
       },
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
@@ -149,6 +141,10 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.removeChartAlert();
   }
 
+  runQuery() {
+    this.props.actions.runQuery(this.props.formData, true);
+  }
+
   renderChartTitle() {
     let title;
     if (this.props.slice) {
@@ -157,6 +153,17 @@ class ChartContainer extends React.PureComponent {
       title = `[${this.props.table_name}] - untitled`;
     }
     return title;
+  }
+
+  renderViz() {
+    this.props.actions.renderTriggered();
+    const mockSlice = this.getMockedSliceObject();
+    this.setState({ mockSlice });
+    try {
+      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+    } catch (e) {
+      this.props.actions.chartRenderingFailed(e);
+    }
   }
 
   renderAlert() {
@@ -204,7 +211,7 @@ class ChartContainer extends React.PureComponent {
         }
         <div
           id={this.props.containerId}
-          ref={ref => { this.chartContainerRef = ref; }}
+          ref={(ref) => { this.chartContainerRef = ref; }}
           className={this.props.viz_type}
           style={{
             opacity: loading ? '0.25' : '1',
@@ -212,9 +219,6 @@ class ChartContainer extends React.PureComponent {
         />
       </div>
     );
-  }
-  runQuery() {
-    this.props.actions.runQuery(this.props.formData, true);
   }
 
   render() {
@@ -262,17 +266,17 @@ class ChartContainer extends React.PureComponent {
                 {this.props.chartStatus === 'success' &&
                  this.props.queryResponse &&
                  this.props.queryResponse.is_cached &&
-                  <TooltipWrapper
-                    tooltip="Loaded from cache. Click to force refresh"
-                    label="cache-desc"
-                  >
-                    <Label
-                      style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
-                      onClick={this.runQuery.bind(this)}
-                    >
+                 <TooltipWrapper
+                   tooltip="Loaded from cache. Click to force refresh"
+                   label="cache-desc"
+                 >
+                   <Label
+                     style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
+                     onClick={this.runQuery.bind(this)}
+                   >
                       cached
                     </Label>
-                  </TooltipWrapper>
+                 </TooltipWrapper>
                 }
                 <Timer
                   startTime={this.props.chartUpdateStartTime}

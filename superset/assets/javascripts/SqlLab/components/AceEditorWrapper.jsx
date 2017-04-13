@@ -59,14 +59,8 @@ class AceEditorWrapper extends React.PureComponent {
       this.setState({ sql: nextProps.sql });
     }
   }
-  textChange(text) {
-    this.setState({ sql: text });
-  }
   onBlur() {
     this.props.onBlur(this.state.sql);
-  }
-  getCompletions(aceEditor, session, pos, prefix, callback) {
-    callback(null, this.state.words);
   }
   onEditorLoad(editor) {
     editor.commands.addCommand({
@@ -87,10 +81,10 @@ class AceEditorWrapper extends React.PureComponent {
     let words = [];
     const columns = {};
     const tables = props.tables || [];
-    tables.forEach(t => {
+    tables.forEach((t) => {
       words.push({ name: t.name, value: t.name, score: 55, meta: 'table' });
       const cols = t.columns || [];
-      cols.forEach(col => {
+      cols.forEach((col) => {
         columns[col.name] = null;  // using an object as a unique set
       });
     });
@@ -106,6 +100,12 @@ class AceEditorWrapper extends React.PureComponent {
         langTools.setCompleters([completer]);
       }
     });
+  }
+  getCompletions(aceEditor, session, pos, prefix, callback) {
+    callback(null, this.state.words);
+  }
+  textChange(text) {
+    this.setState({ sql: text });
   }
   render() {
     return (

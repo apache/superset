@@ -1,8 +1,9 @@
 import React from 'react';
-import CopyQueryTabUrl from '../../../javascripts/SqlLab/components/CopyQueryTabUrl';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { initialState } from './fixtures';
+
+import CopyQueryTabUrl from '../../../javascripts/SqlLab/components/CopyQueryTabUrl';
 
 describe('CopyQueryTabUrl', () => {
   const mockedProps = {
@@ -10,7 +11,7 @@ describe('CopyQueryTabUrl', () => {
   };
   it('is valid with props', () => {
     expect(
-      React.isValidElement(<CopyQueryTabUrl {...mockedProps} />)
+      React.isValidElement(<CopyQueryTabUrl {...mockedProps} />),
     ).to.equal(true);
   });
 });

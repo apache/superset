@@ -1,9 +1,9 @@
-import * as Actions from '../actions';
 import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Modal } from 'react-bootstrap';
 
+import * as Actions from '../actions';
 import ResultSet from './ResultSet';
 
 const propTypes = {

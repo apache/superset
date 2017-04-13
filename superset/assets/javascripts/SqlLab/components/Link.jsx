@@ -22,7 +22,7 @@ const defaultProps = {
 
 class Link extends React.PureComponent {
   render() {
-    let tooltip = (
+    const tooltip = (
       <Tooltip id="tooltip">
         {this.props.tooltip}
       </Tooltip>
@@ -34,7 +34,7 @@ class Link extends React.PureComponent {
         style={this.props.style}
         className={'Link ' + this.props.className}
       >
-          {this.props.children}
+        {this.props.children}
       </a>
     );
     if (this.props.tooltip) {

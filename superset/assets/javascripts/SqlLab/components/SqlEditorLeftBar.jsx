@@ -1,10 +1,12 @@
-const $ = window.$ = require('jquery');
 import React from 'react';
 import { Button } from 'react-bootstrap';
-import TableElement from './TableElement';
-import AsyncSelect from '../../components/AsyncSelect';
 import Select from 'react-virtualized-select';
 import createFilterOptions from 'react-select-fast-filter-options';
+
+import TableElement from './TableElement';
+import AsyncSelect from '../../components/AsyncSelect';
+
+const $ = window.$ = require('jquery');
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -43,8 +45,16 @@ class SqlEditorLeftBar extends React.PureComponent {
       this.fetchSchemas(val);
     }
   }
+  getTableNamesBySubStr(input) {
+    if (!this.props.queryEditor.dbId || !input) {
+      return Promise.resolve({ options: [] });
+    }
+    const url = `/superset/tables/${this.props.queryEditor.dbId}/` +
+                `${this.props.queryEditor.schema}/${input}`;
+    return $.get(url).then(data => ({ options: data.options }));
+  }
   dbMutator(data) {
-    const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
+    const options = data.result.map(db => ({ value: db.id, label: db.database_name }));
     this.props.actions.setDatabases(data.result);
     if (data.result.length === 0) {
       this.props.actions.addAlert({
@@ -56,14 +66,6 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
   resetState() {
     this.props.actions.resetState();
-  }
-  getTableNamesBySubStr(input) {
-    if (!this.props.queryEditor.dbId || !input) {
-      return Promise.resolve({ options: [] });
-    }
-    const url = `/superset/tables/${this.props.queryEditor.dbId}/` +
-                `${this.props.queryEditor.schema}/${input}`;
-    return $.get(url).then((data) => ({ options: data.options }));
   }
   fetchTables(dbId, schema, substr) {
     // This can be large so it shouldn't be put in the Redux store
@@ -117,7 +119,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       this.setState({ schemaLoading: true });
       const url = `/superset/schemas/${actualDbId}/`;
       $.get(url, (data) => {
-        const schemaOptions = data.schemas.map((s) => ({ value: s, label: s }));
+        const schemaOptions = data.schemas.map(s => ({ value: s, label: s }));
         this.setState({ schemaOptions });
         this.setState({ schemaLoading: false });
       });
@@ -138,7 +140,7 @@ class SqlEditorLeftBar extends React.PureComponent {
               value={this.props.queryEditor.dbId}
               databaseId={this.props.queryEditor.dbId}
               actions={this.props.actions}
-              valueRenderer={(o) => (
+              valueRenderer={o => (
                 <div>
                   <span className="text-muted">Database:</span> {o.label}
                 </div>
@@ -153,7 +155,7 @@ class SqlEditorLeftBar extends React.PureComponent {
               placeholder={`Select a schema (${this.state.schemaOptions.length})`}
               options={this.state.schemaOptions}
               value={this.props.queryEditor.schema}
-              valueRenderer={(o) => (
+              valueRenderer={o => (
                 <div>
                   <span className="text-muted">Schema:</span> {o.label}
                 </div>
@@ -183,7 +185,7 @@ class SqlEditorLeftBar extends React.PureComponent {
                 name="async-select-table"
                 ref="selectTable"
                 value={this.state.tableName}
-                placeholder={"Type to search ..."}
+                placeholder={'Type to search ...'}
                 autosize={false}
                 onChange={this.changeTable.bind(this)}
                 loadOptions={this.getTableNamesBySubStr.bind(this)}
@@ -192,7 +194,7 @@ class SqlEditorLeftBar extends React.PureComponent {
           </div>
           <hr />
           <div className="m-t-5">
-            {this.props.tables.map((table) => (
+            {this.props.tables.map(table => (
               <TableElement
                 table={table}
                 key={table.id}

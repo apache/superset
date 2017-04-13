@@ -1,14 +1,14 @@
-const $ = window.$ = require('jquery');
-import * as Actions from '../actions';
 import React from 'react';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 
 import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
 import AlertsWrapper from '../../components/AlertsWrapper';
+import * as Actions from '../actions';
 
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+const $ = window.$ = require('jquery');
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -28,6 +28,9 @@ class App extends React.PureComponent {
     window.removeEventListener('hashchange', this.onHashChanged.bind(this));
     window.removeEventListener('resize', this.handleResize.bind(this));
   }
+  onHashChanged() {
+    this.setState({ hash: window.location.hash });
+  }
   getHeight() {
     const navHeight = 90;
     const headerHeight = $('.nav-tabs').outerHeight() ?
@@ -38,9 +41,6 @@ class App extends React.PureComponent {
   }
   handleResize() {
     this.setState({ contentHeight: this.getHeight() });
-  }
-  onHashChanged() {
-    this.setState({ hash: window.location.hash });
   }
   render() {
     let content;

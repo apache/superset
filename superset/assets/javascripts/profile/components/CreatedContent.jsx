@@ -17,7 +17,7 @@ class CreatedContent extends React.PureComponent {
     };
   }
   renderSliceTable() {
-    const mutator = (data) => data.map(slice => ({
+    const mutator = data => data.map(slice => ({
       slice: <a href={slice.url}>{slice.title}</a>,
       favorited: moment.utc(slice.dttm).fromNow(),
       _favorited: slice.dttm,
@@ -34,7 +34,7 @@ class CreatedContent extends React.PureComponent {
     );
   }
   renderDashboardTable() {
-    const mutator = (data) => data.map(dash => ({
+    const mutator = data => data.map(dash => ({
       dashboard: <a href={dash.url}>{dash.title}</a>,
       favorited: moment.utc(dash.dttm).fromNow(),
       _favorited: dash.dttm,

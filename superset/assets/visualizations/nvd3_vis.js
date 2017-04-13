@@ -1,13 +1,15 @@
 // JS
 import $ from 'jquery';
+import throttle from 'lodash.throttle';
+import d3 from 'd3';
+
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 import { customizeToolTip } from '../javascripts/modules/utils';
-import throttle from 'lodash.throttle';
 
-const d3 = require('d3');
-const nv = require('nvd3');
 import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/controls';
+
+const nv = require('nvd3');
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');
@@ -68,7 +70,7 @@ function getMaxLabelSize(container, axisClass, widthOrHeight) {
   // axis class = .nv-x  // x axis on time series line chart
   const labelEls = container.find(`.${axisClass} .tick text`);
   const labelDimensions = labelEls.map(i => labelEls[i].getBoundingClientRect()[widthOrHeight]);
-  const max = Math.max.apply(Math, labelDimensions);
+  const max = Math.max(...labelDimensions);
   return max;
 }
 
@@ -185,7 +187,7 @@ function nvd3Vis(slice, payload) {
                 if (a.x < b.x) return -1;
                 if (a.x > b.x) return 1;
                 return 0;
-              }
+              },
             );
           });
         }
@@ -346,7 +348,7 @@ function nvd3Vis(slice, payload) {
       }
     }
     if (vizType !== 'bullet') {
-      chart.color((d) => category21(d[colorKey]));
+      chart.color(d => category21(d[colorKey]));
     }
 
     if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {

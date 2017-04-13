@@ -1,11 +1,11 @@
-import $ from 'jquery';
-const utils = require('./utils');
-// vis sources
 /* eslint camel-case: 0 */
+import $ from 'jquery';
 import Mustache from 'mustache';
-import vizMap from '../../visualizations/main.js';
+import vizMap from '../../visualizations/main';
 import { getExploreUrl } from '../explorev2/exploreUtils';
 import { applyDefaultFormData } from '../explorev2/stores/store';
+
+const utils = require('./utils');
 
 /* eslint wrap-iife: 0*/
 const px = function () {
@@ -217,14 +217,14 @@ const px = function () {
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('label-danger label-success');
         $('#timer').addClass('label-warning');
-        $.getJSON(this.jsonEndpoint(), queryResponse => {
+        $.getJSON(this.jsonEndpoint(), (queryResponse) => {
           try {
             vizMap[formData.viz_type](this, queryResponse);
             this.done(queryResponse);
           } catch (e) {
             this.error('An error occurred while rendering the visualization: ' + e);
           }
-        }).fail(err => {
+        }).fail((err) => {
           this.error(err.responseText, err);
         });
       },

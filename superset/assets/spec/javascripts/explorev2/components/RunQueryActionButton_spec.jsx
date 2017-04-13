@@ -24,7 +24,7 @@ describe('RunQueryActionButton', () => {
 
   it('is a valid react element', () => {
     expect(
-      React.isValidElement(<RunQueryActionButton {...defaultProps} />)
+      React.isValidElement(<RunQueryActionButton {...defaultProps} />),
     ).to.equal(true);
   });
 

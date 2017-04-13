@@ -1,8 +1,8 @@
 import React from 'react';
-import AlertsWrapper from '../../../javascripts/components/AlertsWrapper';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import AlertsWrapper from '../../../javascripts/components/AlertsWrapper';
 
 describe('AlertsWrapper', () => {
   it('is valid', () => {

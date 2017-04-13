@@ -1,7 +1,8 @@
 import React, { PropTypes } from 'react';
-import ModalTrigger from './../../components/ModalTrigger';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
+
+import ModalTrigger from './../../components/ModalTrigger';
 
 const $ = window.$ = require('jquery');
 
@@ -37,9 +38,9 @@ export default class DisplayQueryButton extends React.PureComponent {
         url: this.props.queryEndpoint,
         success: (data) => {
           const modalBody = data.language ?
-            <SyntaxHighlighter language={data.language} style={github}>
+            (<SyntaxHighlighter language={data.language} style={github}>
               {data.query}
-            </SyntaxHighlighter>
+            </SyntaxHighlighter>)
             :
             <pre>{data.query}</pre>;
           this.setState({ modalBody });

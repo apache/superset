@@ -5,7 +5,7 @@ export default class AlertsWrapper extends React.PureComponent {
   render() {
     return (
       <AlertContainer
-        ref={ref => {
+        ref={(ref) => {
           global.notify = ref;
         }}
         offset={14}

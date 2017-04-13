@@ -25,7 +25,7 @@ class Header extends React.PureComponent {
           </h1>
         </div>
         <div className="pull-right" style={{ marginTop: '35px' }}>
-        {!this.props.dashboard.standalone_mode &&
+          {!this.props.dashboard.standalone_mode &&
           <Controls dashboard={dashboard} />
         }
         </div>

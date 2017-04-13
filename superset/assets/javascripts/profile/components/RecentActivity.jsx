@@ -1,7 +1,8 @@
 import React from 'react';
-import TableLoader from './TableLoader';
 import moment from 'moment';
 import $ from 'jquery';
+
+import TableLoader from './TableLoader';
 
 const propTypes = {
   user: React.PropTypes.object,

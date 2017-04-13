@@ -1,18 +1,19 @@
-const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
-const px = require('../modules/superset');
-const d3 = require('d3');
-const urlLib = require('url');
-const utils = require('../modules/utils');
-const { Alert } = require('react-bootstrap');
-
 import React from 'react';
 import { render } from 'react-dom';
+import d3 from 'd3';
+import { Alert } from 'react-bootstrap';
+
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
+import { appSetup } from '../common';
 
-require('bootstrap');
-require('../../stylesheets/dashboard.css');
+import '../../stylesheets/dashboard.css';
+
+const px = require('../modules/superset');
+const urlLib = require('url');
+const utils = require('../modules/utils');
+
+appSetup();
 
 export function getInitialState(boostrapData) {
   const dashboard = Object.assign({}, utils.controllerInterface, boostrapData.dashboard_data);
@@ -20,7 +21,7 @@ export function getInitialState(boostrapData) {
 
   dashboard.posDict = {};
   if (dashboard.position_json) {
-    dashboard.position_json.forEach(position => {
+    dashboard.position_json.forEach((position) => {
       dashboard.posDict[position.slice_id] = position;
     });
   }
@@ -52,19 +53,19 @@ function renderAlert() {
         button on the top right to save your changes.
       </Alert>
     </div>,
-    document.getElementById('alert-container')
+    document.getElementById('alert-container'),
   );
 }
 
 function initDashboardView(dashboard) {
   render(
     <Header dashboard={dashboard} />,
-    document.getElementById('dashboard-header')
+    document.getElementById('dashboard-header'),
   );
   // eslint-disable-next-line no-param-reassign
   dashboard.reactGridLayout = render(
     <GridLayout dashboard={dashboard} />,
-    document.getElementById('grid-container')
+    document.getElementById('grid-container'),
   );
 
   // Displaying widget controls on hover
@@ -74,7 +75,7 @@ function initDashboardView(dashboard) {
     },
     function () {
       $(this).find('.chart-controls').fadeOut(300);
-    }
+    },
   );
   $('div.grid-container').css('visibility', 'visible');
 
@@ -100,7 +101,7 @@ export function dashboardContainer(dashboard, datasources) {
     filters: {},
     init() {
       this.sliceObjects = [];
-      dashboard.slices.forEach(data => {
+      dashboard.slices.forEach((data) => {
         if (data.error) {
           const html = `<div class="alert alert-danger">${data.error}</div>`;
           $(`#slice_${data.slice_id}`).find('.token').html(html);
@@ -235,7 +236,7 @@ export function dashboardContainer(dashboard, datasources) {
       const dash = this;
       const maxRandomDelay = Math.max(interval * 0.2, 5000);
       const refreshAll = () => {
-        dash.sliceObjects.forEach(slice => {
+        dash.sliceObjects.forEach((slice) => {
           const force = !dash.firstLoad;
           setTimeout(() => {
             slice.render(force);
@@ -258,7 +259,7 @@ export function dashboardContainer(dashboard, datasources) {
     },
     refreshExcept(sliceId) {
       const immune = this.metadata.filter_immune_slices || [];
-      this.sliceObjects.forEach(slice => {
+      this.sliceObjects.forEach((slice) => {
         if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
           const sliceSeletor = $(`#${slice.data.slice_id}-cell`);

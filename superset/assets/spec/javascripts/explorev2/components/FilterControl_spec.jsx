@@ -30,7 +30,7 @@ describe('FilterControl', () => {
 
   it('renders Filters', () => {
     expect(
-      React.isValidElement(<FilterControl {...defaultProps} />)
+      React.isValidElement(<FilterControl {...defaultProps} />),
     ).to.equal(true);
   });
 

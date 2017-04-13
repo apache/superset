@@ -1,7 +1,8 @@
 import React, { PropTypes } from 'react';
 import { ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import Button from '../../components/Button';
 import classnames from 'classnames';
+
+import Button from '../../components/Button';
 
 const propTypes = {
   canAdd: PropTypes.string.isRequired,
@@ -54,7 +55,7 @@ export default function QueryAndSaveBtns(
           disabled={saveButtonDisabled}
           onClick={onSave}
         >
-          <i className="fa fa-plus-circle"></i> Save as
+          <i className="fa fa-plus-circle" /> Save as
         </Button>
       </ButtonGroup>
       {errorMessage &&

@@ -1,11 +1,13 @@
+import 'datatables.net';
+import dt from 'datatables.net-bs';
+
 import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
+
 const $ = require('jquery');
 
 require('./pivot_table.css');
-
 require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
-import 'datatables.net';
-import dt from 'datatables.net-bs';
+
 dt(window, $);
 
 module.exports = function (slice, payload) {

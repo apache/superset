@@ -1,5 +1,5 @@
-import { category21 } from '../javascripts/modules/colors';
 import d3 from 'd3';
+import { category21 } from '../javascripts/modules/colors';
 
 require('./histogram.css');
 
@@ -36,10 +36,10 @@ function histogram(slice, payload) {
     const bins = d3.layout.histogram().bins(numBins)(data);
 
     // Set the x-values
-    x.domain(bins.map((d) => d.x))
+    x.domain(bins.map(d => d.x))
     .rangeRoundBands([0, width], 0.1);
     // Set the y-values
-    y.domain([0, d3.max(bins, (d) => d.y)])
+    y.domain([0, d3.max(bins, d => d.y)])
     .range([height, 0]);
 
     // Create the svg value with the bins
@@ -73,14 +73,14 @@ function histogram(slice, payload) {
     bar.exit().remove();
     // Set the Height and Width for each bar
     bar.attr('width', x.rangeBand())
-    .attr('x', (d) => x(d.x))
-    .attr('y', (d) => y(d.y))
-    .attr('height', (d) => y.range()[0] - y(d.y))
-    .style('fill', (d) => category21(d.length))
+    .attr('x', d => x(d.x))
+    .attr('y', d => y(d.y))
+    .attr('height', d => y.range()[0] - y(d.y))
+    .style('fill', d => category21(d.length))
     .order();
 
     // Find maximum length to position the ticks on top of the bar correctly
-    const maxLength = d3.max(bins, (d) => d.length);
+    const maxLength = d3.max(bins, d => d.length);
     function textAboveBar(d) {
       return d.length / maxLength < 0.1;
     }
@@ -100,12 +100,12 @@ function histogram(slice, payload) {
       }
       return y(d.y) - padding;
     })
-    .attr('x', (d) => x(d.x) + (x.rangeBand() / 2))
+    .attr('x', d => x(d.x) + (x.rangeBand() / 2))
     .attr('text-anchor', 'middle')
     .attr('font-weight', 'bold')
     .attr('font-size', '15px')
-    .text((d) => formatNumber(d.y))
-    .attr('fill', (d) => textAboveBar(d) ? 'black' : 'white')
+    .text(d => formatNumber(d.y))
+    .attr('fill', d => textAboveBar(d) ? 'black' : 'white')
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
     // Update the x-axis
