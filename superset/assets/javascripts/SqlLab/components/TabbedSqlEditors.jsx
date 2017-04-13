@@ -11,7 +11,7 @@ import { areArraysShallowEqual } from '../../reduxUtils';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
-  defaultDbId: React.PropTypes.integer,
+  defaultDbId: React.PropTypes.number,
   databases: React.PropTypes.object.isRequired,
   queries: React.PropTypes.object.isRequired,
   queryEditors: React.PropTypes.array,

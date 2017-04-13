@@ -17,7 +17,7 @@ const propTypes = {
   showSql: React.PropTypes.bool,
   visualize: React.PropTypes.bool,
   cache: React.PropTypes.bool,
-  resultSetHeight: React.PropTypes.string,
+  resultSetHeight: React.PropTypes.number,
 };
 const defaultProps = {
   search: true,
@@ -37,7 +37,6 @@ class ResultSet extends React.PureComponent {
       searchText: '',
       showModal: false,
       data: [],
-      resultSetHeight: '0',
     };
   }
   componentWillReceiveProps(nextProps) {

@@ -8,13 +8,10 @@ import { getInitialState, sqlLabReducer } from './reducers';
 import { initEnhancer } from '../reduxUtils';
 import { initJQueryAjaxCSRF } from '../modules/utils';
 import App from './components/App';
+import { appSetup } from '../common';
+import './main.css';
 
-require('bootstrap');
-require('./main.css');
-const $ = window.$ = require('jquery');
-
-const jQuery = window.jQuery = $; // eslint-disable-line
-
+appSetup();
 initJQueryAjaxCSRF();
 
 const appContainer = document.getElementById('app');

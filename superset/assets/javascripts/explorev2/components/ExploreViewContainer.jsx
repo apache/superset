@@ -13,7 +13,7 @@ import { getFormDataFromControls } from '../stores/store';
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
-  chartStatus: PropTypes.string.isRequired,
+  chartStatus: PropTypes.string,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,

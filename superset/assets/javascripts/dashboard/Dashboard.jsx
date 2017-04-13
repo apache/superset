@@ -5,17 +5,15 @@ import { Alert } from 'react-bootstrap';
 
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
+import { appSetup } from '../common';
 
 import '../../stylesheets/dashboard.css';
 
-const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 const px = require('../modules/superset');
 const urlLib = require('url');
 const utils = require('../modules/utils');
 
-require('bootstrap');
-
+appSetup();
 
 export function getInitialState(boostrapData) {
   const dashboard = Object.assign({}, utils.controllerInterface, boostrapData.dashboard_data);

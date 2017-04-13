@@ -12,13 +12,9 @@ import { getControlsState, getFormDataFromControls } from './stores/store';
 import { initJQueryAjaxCSRF } from '../modules/utils';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { exploreReducer } from './reducers/exploreReducer';
+import { appSetup } from '../common';
 
-// jquery and bootstrap required to make bootstrap dropdown menu's work
-const $ = window.$ = require('jquery'); // eslint-disable-line
-const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
-require('bootstrap');
-require('./main.css');
-
+appSetup();
 initJQueryAjaxCSRF();
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');

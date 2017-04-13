@@ -4,15 +4,12 @@ import dt from 'datatables.net-bs';
 import d3 from 'd3';
 
 import '../stylesheets/welcome.css';
+import { appSetup } from './common';
 
-require('bootstrap');
+appSetup();
 require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 
-const $ = window.$ = require('jquery');
-
-const jQuery = window.jQuery = $;
 dt(window, $);
-
 
 function modelViewTable(selector, modelView, orderCol, order) {
   // Builds a dataTable from a flask appbuilder api endpoint
