@@ -17,6 +17,7 @@ const propTypes = {
   showSql: React.PropTypes.bool,
   visualize: React.PropTypes.bool,
   cache: React.PropTypes.bool,
+  resultSetHeight: React.PropTypes.string,
 };
 const defaultProps = {
   search: true,

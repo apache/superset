@@ -1,7 +1,9 @@
 import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
+
 import ModalTrigger from '../../components/ModalTrigger';
+
 require('react-bootstrap-table/css/react-bootstrap-table.css');
 
 const propTypes = {

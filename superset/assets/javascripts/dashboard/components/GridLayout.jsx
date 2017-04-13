@@ -1,10 +1,12 @@
-import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
+import $ from 'jquery';
+
 import SliceCell from './SliceCell';
 
 require('react-grid-layout/css/styles.css');
 require('react-resizable/css/styles.css');
+
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const propTypes = {

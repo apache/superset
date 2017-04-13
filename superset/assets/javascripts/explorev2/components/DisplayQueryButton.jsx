@@ -1,7 +1,8 @@
 import React, { PropTypes } from 'react';
-import ModalTrigger from './../../components/ModalTrigger';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
+
+import ModalTrigger from './../../components/ModalTrigger';
 
 const $ = window.$ = require('jquery');
 

@@ -28,15 +28,15 @@ class AsyncSelect extends React.PureComponent {
   componentDidMount() {
     this.fetchOptions();
   }
+  onChange(opt) {
+    this.props.onChange(opt);
+  }
   fetchOptions() {
     this.setState({ isLoading: true });
     const mutator = this.props.mutator;
     $.get(this.props.dataEndpoint, (data) => {
       this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
     });
-  }
-  onChange(opt) {
-    this.props.onChange(opt);
   }
   render() {
     return (

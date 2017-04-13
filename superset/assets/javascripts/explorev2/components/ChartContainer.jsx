@@ -34,6 +34,9 @@ const propTypes = {
   viz_type: PropTypes.string.isRequired,
   formData: PropTypes.object,
   latestQueryFormData: PropTypes.object,
+  queryResponse: PropTypes.object,
+  triggerRender: PropTypes.bool,
+  standalone: PropTypes.bool,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -43,17 +46,6 @@ class ChartContainer extends React.PureComponent {
       selector: `#${props.containerId}`,
       showStackTrace: false,
     };
-  }
-
-  renderViz() {
-    this.props.actions.renderTriggered();
-    const mockSlice = this.getMockedSliceObject();
-    this.setState({ mockSlice });
-    try {
-      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
-    } catch (e) {
-      this.props.actions.chartRenderingFailed(e);
-    }
   }
 
   componentDidUpdate(prevProps) {
@@ -149,6 +141,10 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.removeChartAlert();
   }
 
+  runQuery() {
+    this.props.actions.runQuery(this.props.formData, true);
+  }
+
   renderChartTitle() {
     let title;
     if (this.props.slice) {
@@ -157,6 +153,17 @@ class ChartContainer extends React.PureComponent {
       title = `[${this.props.table_name}] - untitled`;
     }
     return title;
+  }
+
+  renderViz() {
+    this.props.actions.renderTriggered();
+    const mockSlice = this.getMockedSliceObject();
+    this.setState({ mockSlice });
+    try {
+      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+    } catch (e) {
+      this.props.actions.chartRenderingFailed(e);
+    }
   }
 
   renderAlert() {
@@ -212,9 +219,6 @@ class ChartContainer extends React.PureComponent {
         />
       </div>
     );
-  }
-  runQuery() {
-    this.props.actions.runQuery(this.props.formData, true);
   }
 
   render() {

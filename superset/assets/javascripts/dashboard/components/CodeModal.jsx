@@ -12,12 +12,6 @@ const defaultProps = {
 };
 
 export default class CodeModal extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      refreshFrequency: props.initialRefreshFrequency,
-    };
-  }
   beforeOpen() {
     let code = this.props.code;
     if (this.props.codeCallback) {

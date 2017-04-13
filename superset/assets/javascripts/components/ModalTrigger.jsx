@@ -1,7 +1,7 @@
 import React, { PropTypes } from 'react';
 import { Modal } from 'react-bootstrap';
-import Button from './Button';
 import cx from 'classnames';
+import Button from './Button';
 
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,

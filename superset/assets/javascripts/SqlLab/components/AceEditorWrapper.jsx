@@ -59,6 +59,23 @@ class AceEditorWrapper extends React.PureComponent {
       this.setState({ sql: nextProps.sql });
     }
   }
+  onBlur() {
+    this.props.onBlur(this.state.sql);
+  }
+  onEditorLoad(editor) {
+    editor.commands.addCommand({
+      name: 'runQuery',
+      bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
+      exec: () => {
+        this.props.onAltEnter();
+      },
+    });
+    editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
+    editor.selection.on('changeSelection', () => {
+      this.props.actions.queryEditorSetSelectedText(
+        this.props.queryEditor, editor.getSelectedText());
+    });
+  }
   setAutoCompleter(props) {
     // Loading table and column names as auto-completable words
     let words = [];
@@ -89,23 +106,6 @@ class AceEditorWrapper extends React.PureComponent {
   }
   textChange(text) {
     this.setState({ sql: text });
-  }
-  onBlur() {
-    this.props.onBlur(this.state.sql);
-  }
-  onEditorLoad(editor) {
-    editor.commands.addCommand({
-      name: 'runQuery',
-      bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
-      exec: () => {
-        this.props.onAltEnter();
-      },
-    });
-    editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
-    editor.selection.on('changeSelection', () => {
-      this.props.actions.queryEditorSetSelectedText(
-        this.props.queryEditor, editor.getSelectedText());
-    });
   }
   render() {
     return (

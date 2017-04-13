@@ -1,10 +1,9 @@
-const $ = window.$ = require('jquery');
-
 import React from 'react';
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
 import { getAjaxErrorMsg, showModal } from '../../modules/utils';
-
 import ModalTrigger from '../../components/ModalTrigger';
+
+const $ = window.$ = require('jquery');
 
 const propTypes = {
   css: React.PropTypes.string,

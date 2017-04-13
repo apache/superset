@@ -1,18 +1,21 @@
-const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
-const px = require('../modules/superset');
-const d3 = require('d3');
-const urlLib = require('url');
-const utils = require('../modules/utils');
-const { Alert } = require('react-bootstrap');
-
 import React from 'react';
 import { render } from 'react-dom';
+import d3 from 'd3';
+import { Alert } from 'react-bootstrap';
+
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
 
+import '../../stylesheets/dashboard.css';
+
+const $ = window.$ = require('jquery');
+const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
+const px = require('../modules/superset');
+const urlLib = require('url');
+const utils = require('../modules/utils');
+
 require('bootstrap');
-require('../../stylesheets/dashboard.css');
+
 
 export function getInitialState(boostrapData) {
   const dashboard = Object.assign({}, utils.controllerInterface, boostrapData.dashboard_data);

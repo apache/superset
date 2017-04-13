@@ -1,7 +1,9 @@
 /* eslint camelcase: 0 */
-const $ = window.$ = require('jquery');
-const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 import { getExploreUrl } from '../exploreUtils';
+
+const $ = window.$ = require('jquery');
+
+const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export function setDatasourceType(datasourceType) {

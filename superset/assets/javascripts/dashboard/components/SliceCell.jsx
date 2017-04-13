@@ -1,3 +1,4 @@
+/* eslint-disable react/no-danger */
 import React, { PropTypes } from 'react';
 
 const propTypes = {
