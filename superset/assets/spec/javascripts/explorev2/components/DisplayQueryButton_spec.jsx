@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { mount } from 'enzyme';
 import { Modal } from 'react-bootstrap';
-import ModalTrigger from './../../../../javascripts/components/ModalTrigger.jsx';
+import ModalTrigger from './../../../../javascripts/components/ModalTrigger';
 
 import DisplayQueryButton from '../../../../javascripts/explorev2/components/DisplayQueryButton';
 

@@ -263,8 +263,8 @@ class ChartContainer extends React.PureComponent {
 
               <div className="pull-right">
                 {this.props.chartStatus === 'success' &&
-                 this.props.queryResponse &&
-                 this.props.queryResponse.is_cached &&
+                this.props.queryResponse &&
+                this.props.queryResponse.is_cached &&
                   <TooltipWrapper
                     tooltip="Loaded from cache. Click to force refresh"
                     label="cache-desc"
@@ -275,7 +275,7 @@ class ChartContainer extends React.PureComponent {
                     >
                       cached
                     </Label>
-                 </TooltipWrapper>
+                  </TooltipWrapper>
                 }
                 <Timer
                   startTime={this.props.chartUpdateStartTime}

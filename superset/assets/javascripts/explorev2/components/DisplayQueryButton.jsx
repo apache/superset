@@ -28,32 +28,32 @@ export default class DisplayQueryButton extends React.PureComponent {
     this.beforeOpen = this.beforeOpen.bind(this);
     this.fetchQuery = this.fetchQuery.bind(this);
   }
-  fetchQuery() {
-    this.setState({ isLoading: true });
-    $.ajax({
-      type: 'GET',
-      url: this.props.queryEndpoint,
-      success: data => {
-        this.setState({
-          language: data.language,
-          query: data.query,
-          isLoading: false,
-        });
-      },
-      error: data => {
-        this.setState({
-          error: data.error,
-          isLoading: false,
-        });
-      },
-    });
-  }
   setStateFromQueryResponse() {
     const qr = this.props.queryResponse;
     this.setState({
       language: qr.language,
       query: qr.query,
       isLoading: false,
+    });
+  }
+  fetchQuery() {
+    this.setState({ isLoading: true });
+    $.ajax({
+      type: 'GET',
+      url: this.props.queryEndpoint,
+      success: (data) => {
+        this.setState({
+          language: data.language,
+          query: data.query,
+          isLoading: false,
+        });
+      },
+      error: (data) => {
+        this.setState({
+          error: data.error,
+          isLoading: false,
+        });
+      },
     });
   }
   beforeOpen() {
