@@ -9,9 +9,14 @@ const propTypes = {
 };
 
 const defaultProps = {
+  codeCallback: () => {},
 };
 
 export default class CodeModal extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = { code: props.code };
+  }
   beforeOpen() {
     let code = this.props.code;
     if (this.props.codeCallback) {

@@ -1,3 +1,4 @@
+# pylint: disable=invalid-unary-operand-type
 from collections import OrderedDict
 import json
 import logging
