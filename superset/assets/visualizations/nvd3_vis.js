@@ -19,6 +19,10 @@ const timeStampFormats = TIME_STAMP_OPTIONS.map(opt => opt[0]);
 const minBarWidth = 15;
 const animationTime = 1000;
 
+const BREAKPOINTS = {
+  small: 340,
+};
+
 const addTotalBarValues = function (chart, data, stacked) {
   const svg = d3.select('svg');
   const format = d3.format('.3s');
@@ -286,7 +290,11 @@ function nvd3Vis(slice, payload) {
     }
 
     if ('showLegend' in chart && typeof fd.show_legend !== 'undefined') {
-      chart.showLegend(fd.show_legend);
+      if (width < BREAKPOINTS.small && vizType !== 'pie') {
+        chart.showLegend(false);
+      } else {
+        chart.showLegend(fd.show_legend);
+      }
     }
 
     let height = slice.height() - 15;
@@ -385,7 +393,7 @@ function nvd3Vis(slice, payload) {
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
       customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
-      chart.showLegend(true);
+      chart.showLegend(width > BREAKPOINTS.small);
     }
     svg
     .datum(payload.data)
