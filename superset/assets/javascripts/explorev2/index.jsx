@@ -14,6 +14,8 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import { exploreReducer } from './reducers/exploreReducer';
 import { appSetup } from '../common';
 
+require('./main.css');
+
 appSetup();
 initJQueryAjaxCSRF();
 
