@@ -453,6 +453,9 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             obj.owners.append(g.user)
         utils.validate_json(obj.json_metadata)
         utils.validate_json(obj.position_json)
+        owners = [o for o in obj.owners]
+        for slc in obj.slices:
+            slc.owners = list(set(owners) | set(slc.owners))
 
     def pre_update(self, obj):
         check_ownership(obj)
