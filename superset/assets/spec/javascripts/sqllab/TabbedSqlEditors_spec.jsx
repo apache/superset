@@ -15,6 +15,7 @@ describe('TabbedSqlEditors', () => {
     queries: {},
     queryEditors: initialState.queryEditors,
     tabHistory: initialState.tabHistory,
+    editorHeight: '',
   };
   it('is valid', () => {
     expect(
