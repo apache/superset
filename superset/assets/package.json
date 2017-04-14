@@ -97,7 +97,6 @@
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {
-    "babel": "^6.3.26",
     "babel-cli": "^6.14.0",
     "babel-core": "^6.10.4",
     "babel-loader": "^6.2.4",
