@@ -8,7 +8,7 @@ import DisplayQueryButton from './DisplayQueryButton';
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
   slice: PropTypes.object,
-  queryEndpoint: PropTypes.string,
+  queryEndpoint: PropTypes.string.isRequired,
   queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
 };
