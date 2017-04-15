@@ -56,19 +56,12 @@ const px = function () {
     .tooltip();
   }
   const Slice = function (data, datasource, controller) {
-    let timer;
     const token = $('#token_' + data.slice_id);
     const containerId = 'con_' + data.slice_id;
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
     const formData = applyDefaultFormData(data.form_data);
-    let dttm = 0;
-    const stopwatch = function () {
-      dttm += 10;
-      const num = dttm / 1000;
-      $('#timer').text(num.toFixed(2) + ' sec');
-    };
     slice = {
       data,
       formData,
@@ -114,8 +107,6 @@ const px = function () {
       },
       /* eslint no-shadow: 0 */
       always(data) {
-        clearInterval(timer);
-        $('#timer').removeClass('btn-warning');
         if (data && data.query) {
           slice.viewSqlQuery = data.query;
         }
@@ -123,13 +114,10 @@ const px = function () {
       done(payload) {
         Object.assign(data, payload);
 
-        clearInterval(timer);
         token.find('img.loading').hide();
         container.fadeTo(0.5, 1);
         container.show();
 
-        $('#timer').addClass('label-success');
-        $('#timer').removeClass('label-warning label-danger');
         $('.query-and-save button').removeAttr('disabled');
         this.always(data);
         controller.done(this);
@@ -173,7 +161,6 @@ const px = function () {
         container.html(errHtml);
         container.show();
         $('span.query').removeClass('disabled');
-        $('#timer').addClass('btn-danger');
         $('.query-and-save button').removeAttr('disabled');
         this.always(o);
         controller.error(this);
@@ -213,10 +200,6 @@ const px = function () {
         token.find('img.loading').show();
         container.fadeTo(0.5, 0.25);
         container.css('height', this.height());
-        dttm = 0;
-        timer = setInterval(stopwatch, 10);
-        $('#timer').removeClass('label-danger label-success');
-        $('#timer').addClass('label-warning');
         $.getJSON(this.jsonEndpoint(), (queryResponse) => {
           try {
             vizMap[formData.viz_type](this, queryResponse);

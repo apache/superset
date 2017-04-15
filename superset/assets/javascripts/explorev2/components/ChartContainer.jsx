@@ -2,7 +2,7 @@ import $ from 'jquery';
 import Mustache from 'mustache';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Alert, Collapse, Label, Panel } from 'react-bootstrap';
+import { Alert, Collapse, Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from './ExploreActionButtons';
@@ -11,6 +11,7 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
+import CachedLabel from '../../components/CachedLabel';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -265,17 +266,10 @@ class ChartContainer extends React.PureComponent {
                 {this.props.chartStatus === 'success' &&
                 this.props.queryResponse &&
                 this.props.queryResponse.is_cached &&
-                  <TooltipWrapper
-                    tooltip="Loaded from cache. Click to force refresh"
-                    label="cache-desc"
-                  >
-                    <Label
-                      style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
-                      onClick={this.runQuery.bind(this)}
-                    >
-                      cached
-                    </Label>
-                  </TooltipWrapper>
+                  <CachedLabel
+                    onClick={this.runQuery.bind(this)}
+                    cachedTimestamp={queryResponse.cached_dttm}
+                  />
                 }
                 <Timer
                   startTime={this.props.chartUpdateStartTime}
