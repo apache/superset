@@ -13,6 +13,7 @@ import { initJQueryAjaxCSRF } from '../modules/utils';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import { exploreReducer } from './reducers/exploreReducer';
 import { appSetup } from '../common';
+import './main.css';
 
 appSetup();
 initJQueryAjaxCSRF();
