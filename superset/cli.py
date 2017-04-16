@@ -46,8 +46,11 @@ def init():
 @manager.option(
     '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, no_reload, address, port, timeout, workers):
-    """Starts a Superset web server"""
+@manager.option(
+    '-s', '--socket', default=config.get("SUPERSET_WEBSERVER_SOCKET"),
+    help="Path to a UNIX socket as an alternative to address:port, e.g. /var/run/superset.sock. Will override the address and port values.")
+def runserver(debug, no_reload, address, port, timeout, workers, socket):
+    """Starts a Superset web server."""
     debug = debug or config.get("DEBUG")
     if debug:
         app.run(
@@ -57,14 +60,24 @@ def runserver(debug, no_reload, address, port, timeout, workers):
             debug=True,
             use_reloader=no_reload)
     else:
-        cmd = (
-            "gunicorn "
-            "-w {workers} "
-            "--timeout {timeout} "
-            "-b {address}:{port} "
-            "--limit-request-line 0 "
-            "--limit-request-field_size 0 "
-            "superset:app").format(**locals())
+        if socket:
+            cmd = (
+                "gunicorn "
+                "-w {workers} "
+                "--timeout {timeout} "
+                "-b unix:{socket} "
+                "--limit-request-line 0 "
+                "--limit-request-field_size 0 "
+                "superset:app").format(**locals())
+        else:
+            cmd = (
+                "gunicorn "
+                "-w {workers} "
+                "--timeout {timeout} "
+                "-b {address}:{port} "
+                "--limit-request-line 0 "
+                "--limit-request-field_size 0 "
+                "superset:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
 
