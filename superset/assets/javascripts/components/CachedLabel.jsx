@@ -21,7 +21,7 @@ class CacheLabel extends React.PureComponent {
   updateTooltipContent() {
     const cachedText = this.props.cachedTimestamp ? (
       <span>
-        Loaded data cached <b>{moment(this.props.cachedTimestamp).fromNow()}</b>
+        Loaded data cached <b>{moment.utc(this.props.cachedTimestamp).fromNow()}</b>
       </span>) :
       'Loaded from cache';
 

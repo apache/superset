@@ -250,7 +250,7 @@ class BaseViz(object):
                 'status': self.status,
                 'stacktrace': stacktrace,
             }
-            payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
+            payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
             data = self.json_dumps(payload)

@@ -144,7 +144,7 @@ export function dashboardContainer(dashboard, datasources) {
     done(slice) {
       const refresh = slice.getWidgetHeader().find('.refresh');
       const data = slice.data;
-      const cachedWhen = moment(data.cached_dttm).fromNow();
+      const cachedWhen = moment.utc(data.cached_dttm).fromNow();
       if (data !== undefined && data.is_cached) {
         refresh
         .addClass('danger')
