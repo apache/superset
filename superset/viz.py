@@ -42,13 +42,12 @@ class BaseViz(object):
     credits = ""
     is_timeseries = False
 
-    def __init__(self, datasource, form_data, slice_=None):
+    def __init__(self, datasource, form_data):
         if not datasource:
             raise Exception("Viz is missing a datasource")
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
-        self.slice = slice_
         self.form_data = form_data
 
         self.query = ""
@@ -184,9 +183,8 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
-
-        if self.slice and self.slice.cache_timeout:
-            return self.slice.cache_timeout
+        if self.form_data.get('cache_timeout'):
+            return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
         if (

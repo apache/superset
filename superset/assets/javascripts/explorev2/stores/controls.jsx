@@ -1199,5 +1199,12 @@ export const controls = {
     hidden: true,
     description: 'The id of the active slice',
   },
+
+  cache_timeout: {
+    type: 'HiddenControl',
+    label: 'Cache Timeout (seconds)',
+    hidden: true,
+    description: 'The number of seconds before expiring the cache',
+  },
 };
 export default controls;

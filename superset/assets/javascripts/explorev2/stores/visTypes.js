@@ -12,7 +12,7 @@ export const sections = {
     controlSetRows: [
       ['datasource'],
       ['viz_type'],
-      ['slice_id'],
+      ['slice_id', 'cache_timeout'],
     ],
   },
   sqlaTimeSeries: {
