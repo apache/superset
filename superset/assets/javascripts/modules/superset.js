@@ -164,7 +164,6 @@ const px = function () {
         } catch (e) {
           // pass
         }
-        console.log(errorMsg);
         if (errorMsg) {
           errHtml += `<div class="alert alert-danger">${errorMsg}</div>`;
         }
