@@ -2,6 +2,7 @@ import React from 'react';
 import { render } from 'react-dom';
 import d3 from 'd3';
 import { Alert } from 'react-bootstrap';
+import moment from 'moment';
 
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
@@ -143,13 +144,15 @@ export function dashboardContainer(dashboard, datasources) {
     done(slice) {
       const refresh = slice.getWidgetHeader().find('.refresh');
       const data = slice.data;
+      const cachedWhen = moment(data.cached_dttm).fromNow();
       if (data !== undefined && data.is_cached) {
         refresh
         .addClass('danger')
-        .attr('title',
-              'Served from data cached at ' + data.cached_dttm +
-                '. Click to force refresh')
-                .tooltip('fixTitle');
+        .attr(
+          'title',
+          `Served from data cached ${cachedWhen}. ` +
+          'Click to force refresh')
+        .tooltip('fixTitle');
       } else {
         refresh
         .removeClass('danger')

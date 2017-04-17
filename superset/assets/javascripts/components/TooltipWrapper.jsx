@@ -4,7 +4,7 @@ import { slugify } from '../modules/utils';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
-  tooltip: PropTypes.string.isRequired,
+  tooltip: PropTypes.node.isRequired,
   children: PropTypes.node.isRequired,
   placement: PropTypes.string,
 };
