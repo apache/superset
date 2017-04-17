@@ -628,7 +628,7 @@ class Database(Model, AuditMixinNullable):
                 self, 'table', force=force)
             return tables_dict.get("", [])
         return sorted(
-            self.db_engine_spec.get_table_names(self.inspector, schema))
+            self.db_engine_spec.get_table_names(schema, self.inspector))
 
     def all_view_names(self, schema=None, force=False):
         if not schema:
