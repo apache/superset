@@ -57,7 +57,7 @@ export default class DisplayQueryButton extends React.PureComponent {
     });
   }
   beforeOpen() {
-    if (this.props.chartStatus === 'loading' || this.props.chartStatus === null) {
+    if (['loading', null].indexOf(this.props.chartStatus) >= 0 || !this.props.queryResponse) {
       this.fetchQuery();
     } else {
       this.setStateFromQueryResponse();
@@ -72,11 +72,13 @@ export default class DisplayQueryButton extends React.PureComponent {
       />);
     } else if (this.state.error) {
       return <pre>{this.state.error}</pre>;
+    } else if (this.state.query) {
+      return (
+        <SyntaxHighlighter language={this.state.language} style={github}>
+          {this.state.query}
+        </SyntaxHighlighter>);
     }
-    return (
-      <SyntaxHighlighter language={this.state.language} style={github}>
-        {this.state.query}
-      </SyntaxHighlighter>);
+    return null;
   }
   render() {
     return (
