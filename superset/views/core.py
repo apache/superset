@@ -33,7 +33,7 @@ from superset import (
     sm, sql_lab, results_backend, security,
 )
 from superset.legacy import cast_form_data
-from superset.utils import has_access
+from superset.utils import has_access, QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
 import superset.models.core as models
 from superset.models.sql_lab import Query
@@ -47,7 +47,6 @@ from .base import (
 config = app.config
 log_this = models.Log.log_this
 can_access = utils.can_access
-QueryStatus = models.QueryStatus
 DAR = models.DatasourceAccessRequest
 
 
