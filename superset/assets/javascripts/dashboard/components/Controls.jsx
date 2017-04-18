@@ -95,7 +95,6 @@ class Controls extends React.PureComponent {
         </Button>
         <SaveModal
           dashboard={dashboard}
-          disabled={!dashboard.dash_save_perm}
           css={this.state.css}
           triggerNode={
             <Button disabled={!dashboard.dash_save_perm}>

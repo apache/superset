@@ -15,7 +15,6 @@ const propTypes = {
   bsSize: PropTypes.string,
   className: PropTypes.string,
   tooltip: PropTypes.string,
-  disabled: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -25,7 +24,6 @@ const defaultProps = {
   isButton: false,
   bsSize: null,
   className: '',
-  disabled: false,
 };
 
 export default class ModalTrigger extends React.Component {
@@ -82,7 +80,6 @@ export default class ModalTrigger extends React.Component {
           className="modal-trigger"
           tooltip={this.props.tooltip}
           onClick={this.open}
-          disabled={this.props.disabled}
         >
           {this.props.triggerNode}
           {this.renderModal()}
