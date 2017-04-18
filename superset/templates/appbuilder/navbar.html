@@ -1,5 +1,6 @@
 {% set menu = appbuilder.menu %}
 {% set languages = appbuilder.languages %}
+{% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
 
 <div class="navbar navbar-static-top {{menu.extra_classes}}" role="navigation">
   <div class="container{{ '-fluid' if not navbar_container else '' }}">
@@ -18,9 +19,15 @@
     </div>
     <div class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
+        {% if WARNING_MSG %}
+          <li class="alert alert-danger">
+            {{ WARNING_MSG | safe }}
+          </li>
+        {% endif %}
         {% include 'appbuilder/navbar_menu.html' %}
       </ul>
       <ul class="nav navbar-nav navbar-right">
+        {% include 'appbuilder/navbar_right.html' %}
         <li>
           <a href="/static/assets/version_info.json" title="Version info">
             <i class="fa fa-code-fork"></i> &nbsp;
@@ -36,17 +43,8 @@
             <i class="fa fa-book"></i> &nbsp;
           </a>
         </li>
-        {% include 'appbuilder/navbar_right.html' %}
       </ul>
     </div>
   </div>
 </div>
 
-{% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
-{% if WARNING_MSG %}
-  <div class="container">
-    <div id="navbar-warning" class="alert alert-danger">
-      {{ WARNING_MSG | safe }}
-    </div>
-  </div>
-{% endif %}
