@@ -865,6 +865,40 @@ class AthenaEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
+class ClickHouseEngineSpec(BaseEngineSpec):
+
+    """Dialect for ClickHouse analytical DB."""
+
+    engine = 'clickhouse'
+
+    time_groupby_inline = True
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('minute', _('minute'),
+              "toStartOfMinute(toDateTime({col}))"),
+        Grain('5 minute', _('5 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)"),
+        Grain('10 minute', _('10 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)"),
+        Grain('hour', _('hour'),
+              "toStartOfHour(toDateTime({col}))"),
+        Grain('month', _('month'),
+              "toStartOfMonth(toDateTime({col}))"),
+        Grain('quarter', _('quarter'),
+              "toStartOfQuarter(toDateTime({col}))"),
+        Grain('year', _('year'),
+              "toStartOfYear(toDateTime({col}))"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "toDate('{}')".format(dttm.strftime('%Y-%m-%d'))
+        if tt == 'DATETIME':
+            return "toDateTime('{}')".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
 engines = {
     o.engine: o for o in globals().values()
     if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}
