@@ -10,6 +10,7 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
+  height: React.PropTypes.number.isRequired,
   tables: React.PropTypes.array,
   actions: React.PropTypes.object,
 };
