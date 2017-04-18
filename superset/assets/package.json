@@ -84,6 +84,7 @@
     "react-select-fast-filter-options": "^0.2.1",
     "react-syntax-highlighter": "^5.0.0",
     "react-virtualized-select": "^2.4.0",
+    "react-virtualized": "^9.3.0",
     "reactable": "^0.14.0",
     "redux": "^3.5.2",
     "redux-localstorage": "^0.4.1",

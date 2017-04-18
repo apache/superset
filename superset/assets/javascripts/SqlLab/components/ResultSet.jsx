@@ -1,42 +1,40 @@
 import React from 'react';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
-import { Table } from 'reactable';
 import shortid from 'shortid';
 
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
-
-const RESULTS_CONTROLS_HEIGHT = 36;
+import FilterableTable from '../../components/FilterableTable/FilterableTable';
 
 const propTypes = {
   actions: React.PropTypes.object,
   csv: React.PropTypes.bool,
   query: React.PropTypes.object,
   search: React.PropTypes.bool,
-  searchText: React.PropTypes.string,
   showSql: React.PropTypes.bool,
   visualize: React.PropTypes.bool,
   cache: React.PropTypes.bool,
-  resultSetHeight: React.PropTypes.number,
+  height: React.PropTypes.number.isRequired,
 };
 const defaultProps = {
   search: true,
   visualize: true,
   showSql: false,
   csv: true,
-  searchText: '',
   actions: {},
   cache: false,
 };
 
+const RESULT_SET_CONTROLS_HEIGHT = 46;
 
-class ResultSet extends React.PureComponent {
+export default class ResultSet extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       searchText: '',
       showModal: false,
       data: [],
+      height: props.search ? props.height - RESULT_SET_CONTROLS_HEIGHT : props.height,
     };
   }
   componentWillReceiveProps(nextProps) {
@@ -54,6 +52,7 @@ class ResultSet extends React.PureComponent {
       this.fetchResults(nextProps.query);
     }
   }
+
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let csvButton;
@@ -132,6 +131,7 @@ class ResultSet extends React.PureComponent {
   reFetchQueryResults(query) {
     this.props.actions.reFetchQueryResults(query);
   }
+
   render() {
     const query = this.props.query;
     const results = query.results;
@@ -195,31 +195,12 @@ class ResultSet extends React.PureComponent {
             />
             {this.getControls.bind(this)()}
             {sql}
-            <div
-              className="ResultSet"
-              style={{ height: `${this.props.resultSetHeight - RESULTS_CONTROLS_HEIGHT}px` }}
-            >
-              <Table
-                data={data.map(function (row) {
-                  const newRow = {};
-                  for (const k in row) {
-                    const val = row[k];
-                    if (typeof (val) === 'string') {
-                      newRow[k] = val;
-                    } else {
-                      newRow[k] = JSON.stringify(val);
-                    }
-                  }
-                  return newRow;
-                })}
-                columns={results.columns.map(col => col.name)}
-                sortable
-                className="table table-condensed table-bordered"
-                filterBy={this.state.searchText}
-                filterable={results.columns.map(c => c.name)}
-                hideFilterInput
-              />
-            </div>
+            <FilterableTable
+              data={data}
+              orderedColumnKeys={results.columns.map(col => col.name)}
+              height={this.state.height}
+              filterText={this.state.searchText}
+            />
           </div>
         );
       }
@@ -240,5 +221,3 @@ class ResultSet extends React.PureComponent {
 }
 ResultSet.propTypes = propTypes;
 ResultSet.defaultProps = defaultProps;
-
-export default ResultSet;

@@ -134,7 +134,9 @@ class QueryTable extends React.PureComponent {
             modalTitle={'Data preview'}
             beforeOpen={this.openAsyncResults.bind(this, query)}
             onExit={this.clearQueryResults.bind(this, query)}
-            modalBody={<ResultSet showSql query={query} actions={this.props.actions} />}
+            modalBody={
+              <ResultSet showSql query={query} actions={this.props.actions} height={400} />
+            }
           />
         );
       } else {
