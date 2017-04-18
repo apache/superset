@@ -632,8 +632,7 @@ class SqlaTable(Model, BaseDatasource):
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
 
-            quoted = "{}".format(
-                column(dbcol.column_name).compile(dialect=db_dialect))
+            quoted = "{}".format(col.compile(dialect=db_dialect))
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,
