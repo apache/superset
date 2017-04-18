@@ -651,6 +651,12 @@ class HiveEngineSpec(PrestoEngineSpec):
             db, datasource_type, force=force)
 
     @classmethod
+    def adjust_database_uri(cls, uri, selected_schema=None):
+        if selected_schema:
+            uri.database = selected_schema
+        return uri
+
+    @classmethod
     def progress(cls, logs):
         # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
         jobs_stats_r = re.compile(
