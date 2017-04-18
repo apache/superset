@@ -197,9 +197,9 @@ export default class ResultSet extends React.PureComponent {
             {sql}
             <FilterableTable
               data={data}
-              columns={results.columns}
+              orderedColumnKeys={results.columns.map(col => col.name)}
               height={this.state.height}
-              searchText={this.state.searchText}
+              filterText={this.state.searchText}
             />
           </div>
         );
