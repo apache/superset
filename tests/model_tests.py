@@ -37,13 +37,13 @@ class DatabaseModelTestCase(unittest.TestCase):
         self.assertEquals('prod', db)
 
     def test_database_schema_hive(self):
-        sqlalchemy_uri = 'hive://hive@hive.airbnb.io:10000/hive/default'
+        sqlalchemy_uri = 'hive://hive@hive.airbnb.io:10000/default?auth=NOSASL'
         model = Database(sqlalchemy_uri=sqlalchemy_uri)
         db = make_url(model.get_sqla_engine().url).database
-        self.assertEquals('hive/default', db)
+        self.assertEquals('default', db)
 
         db = make_url(model.get_sqla_engine(schema='core_db').url).database
-        self.assertEquals('hive/core_db', db)
+        self.assertEquals('core_db', db)
 
     def test_database_schema_mysql(self):
         sqlalchemy_uri = 'mysql://root@localhost/superset'
