@@ -195,7 +195,7 @@ export default class ResultSet extends React.PureComponent {
             />
             {this.getControls.bind(this)()}
             {sql}
-            <FilterTable
+            <FilterableTable
               data={data}
               columns={results.columns}
               height={this.state.height}

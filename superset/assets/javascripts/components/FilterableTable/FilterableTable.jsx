@@ -47,30 +47,12 @@ export default class FilterableTable extends PureComponent {
     };
   }
 
-  hasMatch(text, row) {
-    const values = [];
-    for (const key in row) {
-      if (row.hasOwnProperty(key)) {
-        values.push(row[key].toLowerCase());
-      }
-    }
-    return values.some(v => v.includes(text.toLowerCase()));
+  componentDidMount() {
+    this.fitTableToWidthIfNeeded();
   }
 
-  formatTableData(data) {
-    const formattedData = data.map((row) => {
-      const newRow = {};
-      for (const k in row) {
-        const val = row[k];
-        if (typeof(val) === 'string') {
-          newRow[k] = val;
-        } else {
-          newRow[k] = JSON.stringify(val);
-        }
-      }
-      return newRow;
-    });
-    return formattedData;
+  getDatum(list, index) {
+    return list.get(index % list.size);
   }
 
   getWidthsForColumns() {
@@ -94,8 +76,53 @@ export default class FilterableTable extends PureComponent {
     this.setState({ fitted: true });
   }
 
-  componentDidMount() {
-    this.fitTableToWidthIfNeeded();
+  formatTableData(data) {
+    const formattedData = data.map((row) => {
+      const newRow = {};
+      for (const k in row) {
+        const val = row[k];
+        if (typeof (val) === 'string') {
+          newRow[k] = val;
+        } else {
+          newRow[k] = JSON.stringify(val);
+        }
+      }
+      return newRow;
+    });
+    return formattedData;
+  }
+
+  hasMatch(text, row) {
+    const values = [];
+    for (const key in row) {
+      if (row.hasOwnProperty(key)) {
+        values.push(row[key].toLowerCase());
+      }
+    }
+    return values.some(v => v.includes(text.toLowerCase()));
+  }
+
+  headerRenderer({ dataKey, label, sortBy, sortDirection }) {
+    return (
+      <div>
+        {label}
+        {sortBy === dataKey &&
+          <SortIndicator sortDirection={sortDirection} />
+        }
+      </div>
+    );
+  }
+
+  rowClassName({ index }) {
+    let className = '';
+    if (this.props.striped) {
+      className = index % 2 === 0 ? 'even-row' : 'odd-row';
+    }
+    return className;
+  }
+
+  sort({ sortBy, sortDirection }) {
+    this.setState({ sortBy, sortDirection });
   }
 
   render() {
@@ -142,7 +169,7 @@ export default class FilterableTable extends PureComponent {
             sortDirection={sortDirection}
             width={this.totalTableWidth}
           >
-            {orderedColumnKeys.map((columnKey) => (
+            {orderedColumnKeys.map(columnKey => (
               <Column
                 dataKey={columnKey}
                 disableSort={false}
@@ -156,33 +183,6 @@ export default class FilterableTable extends PureComponent {
         }
       </div>
     );
-  }
-
-  getDatum(list, index) {
-    return list.get(index % list.size);
-  }
-
-  headerRenderer({ dataKey, label, sortBy, sortDirection }) {
-    return (
-      <div>
-        {label}
-        {sortBy === dataKey &&
-          <SortIndicator sortDirection={sortDirection} />
-        }
-      </div>
-    );
-  }
-
-  rowClassName({ index }) {
-    let className = '';
-    if (this.props.striped) {
-      className = index % 2 === 0 ? 'even-row' : 'odd-row';
-    }
-    return className;
-  }
-
-  sort({ sortBy, sortDirection }) {
-    this.setState({ sortBy, sortDirection });
   }
 }
 
