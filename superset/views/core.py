@@ -1641,14 +1641,13 @@ class Superset(BaseSupersetView):
         dashboard_data = dash.data
         dashboard_data.update({
             'standalone_mode': request.args.get("standalone") == "true",
+            'dash_save_perm': dash_save_perm,
+            'dash_edit_perm': dash_edit_perm,
         })
 
         bootstrap_data = {
             'user_id': g.user.get_id(),
-            'dash_save_perm': dash_save_perm,
-            'dash_edit_perm': dash_edit_perm,
-            'dash_edit_perm': check_ownership(dash, raise_if_false=False),
-            'dashboard_data': dash.data,
+            'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
         }
 

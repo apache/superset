@@ -43,7 +43,6 @@ class Controls extends React.PureComponent {
   }
   render() {
     const dashboard = this.props.dashboard;
-    const canSave = dashboard.dash_save_perm;
     const emailBody = `Checkout this dashboard: ${window.location.href}`;
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
       + `${dashboard.dashboard_title}&Body=${emailBody}`;
@@ -81,11 +80,16 @@ class Controls extends React.PureComponent {
           onChange={this.changeCss.bind(this)}
         />
         <Button
-          disabled={!canSave}
+          onClick={() => { window.location = emailLink; }}
+        >
+          <i className="fa fa-envelope" />
+        </Button>
+        <Button
+          disabled={!dashboard.dash_edit_perm}
           onClick={() => {
             window.location = `/dashboardmodelview/edit/${dashboard.id}`;
           }}
-          tooltip="Edit this dashboard's property"
+          tooltip="Edit this dashboard's properties"
         >
           <i className="fa fa-edit" />
         </Button>
@@ -93,14 +97,11 @@ class Controls extends React.PureComponent {
           dashboard={dashboard}
           css={this.state.css}
           triggerNode={
-            <i className="fa fa-save" />
+            <Button disabled={!dashboard.dash_save_perm}>
+              <i className="fa fa-save" />
+            </Button>
           }
         />
-        <Button
-          onClick={() => { window.location = emailLink; }}
-        >
-          <i className="fa fa-envelope" />
-        </Button>
       </ButtonGroup>
     );
   }
