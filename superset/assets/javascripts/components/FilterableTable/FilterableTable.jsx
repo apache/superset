@@ -59,9 +59,9 @@ export default class FilterableTable extends PureComponent {
     const PADDING = 40; // accounts for cell padding and width of sorting icon
     const widthsByColumnKey = {};
     this.props.orderedColumnKeys.forEach((key) => {
-      const colWidths = this.list.toArray().map(d => getTextWidth(d[key]) + PADDING);
-      // push width of column key to array as well
-      colWidths.push(getTextWidth(key) + PADDING);
+      const colWidths = this.list
+        .map(d => getTextWidth(d[key]) + PADDING) // get width for each value for a key
+        .push(getTextWidth(key) + PADDING); // add width of column key to end of list
       // set max width as value for key
       widthsByColumnKey[key] = Math.max(...colWidths);
     });
