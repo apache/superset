@@ -69,13 +69,12 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
-function getMaxLabelSize(container, axisClass, widthOrHeight) {
+function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
-  const labelEls = container.find(`.${axisClass} .tick text`);
-  const labelDimensions = labelEls.map(i => labelEls[i].getBoundingClientRect()[widthOrHeight]);
-  const max = Math.max(...labelDimensions);
-  return max;
+  const labelEls = container.find(`.${axisClass} text`);
+  const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength());
+  return Math.max(...labelDimensions);
 }
 
 function nvd3Vis(slice, payload) {
@@ -414,7 +413,7 @@ function nvd3Vis(slice, payload) {
     // ---- (x axis labels are rotated 45 degrees so we use height),
     // - adjust margins based on these measures and render again
     if (isTimeSeries && vizType !== 'bar') {
-      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x', 'height');
+      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
       const marginPad = isExplore ? width * 0.01 : width * 0.03;
       const chartMargins = {
         bottom: maxXAxisLabelHeight + marginPad,
@@ -422,7 +421,7 @@ function nvd3Vis(slice, payload) {
       };
 
       if (vizType === 'dual_line') {
-        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2', 'width');
+        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
         // use y axis width if it's wider than axis width/height
         if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
           chartMargins.right = maxYAxis2LabelWidth + marginPad;
