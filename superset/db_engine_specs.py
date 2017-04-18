@@ -484,11 +484,12 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def extract_error_message(cls, e):
-        if hasattr(e, 'orig') \
-           and type(e.orig).__name__ == 'DatabaseError' \
-           and isinstance(e.orig[0], dict):
+        if (
+                hasattr(e, 'orig') and
+                type(e.orig).__name__ == 'DatabaseError' and
+                isinstance(e.orig[0], dict)):
             error_dict = e.orig[0]
-            e = '{} at {}: {}'.format(
+            return '{} at {}: {}'.format(
                 error_dict['errorName'],
                 error_dict['errorLocation'],
                 error_dict['message']

@@ -547,7 +547,8 @@ class SqlaTable(Model, BaseDatasource):
         except Exception as e:
             status = QueryStatus.FAILED
             logging.exception(e)
-            error_message = str(e)
+            error_message = (
+                self.database.db_engine_spec.extract_error_message(e))
 
         return QueryResult(
             status=status,
