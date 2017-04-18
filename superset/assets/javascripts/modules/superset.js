@@ -129,10 +129,13 @@ const px = function () {
         let msg = '';
         if (!xhr.responseText) {
           const status = xhr.status;
-          msg += 'An unknown error occurred. (Status: ' + status + ')';
           if (status === 0) {
             // This may happen when the worker in gunicorn times out
-            msg += ' Maybe the request timed out?';
+            msg += (
+              'The server could not be reached. You may want to ' +
+              'verify your connection and try again.');
+          } else {
+            msg += 'An unknown error occurred. (Status: ' + status + ')';
           }
         }
         return msg;
@@ -151,7 +154,9 @@ const px = function () {
         } catch (e) {
           // pass
         }
-        errHtml = `<div class="alert alert-danger">${errorMsg}</div>`;
+        if (errorMsg) {
+          errHtml += `<div class="alert alert-danger">${errorMsg}</div>`;
+        }
         if (xhr) {
           const extendedMsg = this.getErrorMsg(xhr);
           if (extendedMsg) {
