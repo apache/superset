@@ -22,6 +22,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.security import views as fab_views
 from flask_appbuilder.security.sqla import models as ab_models
 
 from flask_babel import gettext as __
@@ -1668,6 +1669,47 @@ class Superset(BaseSupersetView):
         session.commit()
         return json_success(json.dumps({'count': count}))
 
+    @has_access_api
+    @expose("/dashboard/<dashboard_id>/stats/")
+    def dashboard_stats(self, dashboard_id):
+        session = db.session()
+        Log = models.Log
+        stats = (
+            session.query(
+                ab_models.User.username,
+                ab_models.User.email,
+                ab_models.User.first_name,
+                ab_models.User.last_name,
+                ab_models.User.slack_username,
+                ab_models.User.image_url,
+                sqla.func.count())
+            .filter(
+                Log.dashboard_id == str(dashboard_id),
+                Log.action == 'dashboard',
+                Log.user_id == ab_models.User.id)
+            .group_by(
+                ab_models.User.username,
+                ab_models.User.email,
+                ab_models.User.first_name,
+                ab_models.User.last_name,
+                ab_models.User.slack_username,
+                ab_models.User.image_url)
+            .order_by(
+                sqla.desc(sqla.func.count())
+            )
+        )
+        print(stats)
+        payload = [{
+            'username': row[0],
+            'email': row[1],
+            'first_name': row[2],
+            'last_name': row[3],
+            'slack_username': row[4],
+            'image_url': row[5],
+            'views': row[6],
+        } for row in stats.all()]
+        return json_success(json.dumps(payload))
+
     @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
@@ -2257,17 +2299,7 @@ class Superset(BaseSupersetView):
                 for perm in role.permissions
             ]
         payload = {
-            'user': {
-                'username': user.username,
-                'firstName': user.first_name,
-                'lastName': user.last_name,
-                'userId': user.id,
-                'isActive': user.is_active(),
-                'createdOn': user.created_on.isoformat(),
-                'email': user.email,
-                'roles': roles,
-                'permissions': permissions,
-            }
+            'user': user.data_extended,
         }
         return self.render_template(
             'superset/profile.html',
@@ -2330,6 +2362,25 @@ appbuilder.add_link(
     category='SQL Lab',
     category_label=__("SQL Lab"),
 )
+
+
+class SupersetUserModelView(fab_views.UserDBModelView):
+    route_base = '/userext'
+    datamodel = SQLAInterface(models.SupersetUser)
+    edit_columns = fab_views.UserDBModelView.edit_columns + [
+        'image_url', 'slack_username']
+    add_columns = fab_views.UserDBModelView.add_columns + [
+        'image_url', 'slack_username']
+fab_views.UserDBModelView = SupersetUserModelView
+
+appbuilder.add_view(
+    SupersetUserModelView,
+    "UsersExtended",
+    label=__("Users - Extended"),
+    icon="fa-user",
+    category="Security",
+    category_label=__("Security"),
+    category_icon='fa-cogs',)
 
 
 @app.after_request

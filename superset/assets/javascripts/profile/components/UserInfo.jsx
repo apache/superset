@@ -1,46 +1,39 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Gravatar from 'react-gravatar';
 import moment from 'moment';
-import { Panel } from 'react-bootstrap';
+import { Label, Panel } from 'react-bootstrap';
+import UserImage from '../../components/UserImage';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
 };
 const UserInfo = ({ user }) => (
   <div>
-    <a href="https://en.gravatar.com/">
-      <Gravatar
-        email={user.email}
-        width="100%"
-        height=""
-        alt="Profile picture provided by Gravatar"
-        className="img-rounded"
-        style={{ borderRadius: 15 }}
-      />
-    </a>
+    <UserImage width="100%" user={user} showTooltip={false} linkToProfile={false} />
     <hr />
     <Panel>
       <h3>
-        <strong>{user.firstName} {user.lastName}</strong>
+        <strong>{user.first_name} {user.last_name}</strong>
       </h3>
       <h4 className="username">
         <i className="fa fa-user-o" /> {user.username}
       </h4>
       <hr />
       <p>
-        <i className="fa fa-clock-o" /> joined {moment(user.createdOn, 'YYYYMMDD').fromNow()}
+        <i className="fa fa-clock-o" /> joined {moment(user.created_on, 'YYYYMMDD').fromNow()}
       </p>
       <p className="email">
         <i className="fa fa-envelope-o" /> {user.email}
       </p>
       <p className="roles">
-        <i className="fa fa-lock" /> {Object.keys(user.roles).join(', ')}
+        <i className="fa fa-lock" /> {Object.keys(user.roles).map(k => (
+          <Label key={`${k}-label`}>{k}</Label>
+        ))}
       </p>
       <p>
         <i className="fa fa-key" />&nbsp;
         <span className="text-muted">id:</span>&nbsp;
-        <span className="user-id">{user.userId}</span>
+        <span className="user-id">{user.id}</span>
       </p>
     </Panel>
   </div>

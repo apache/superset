@@ -6,6 +6,7 @@ import moment from 'moment';
 
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import { appSetup } from '../common';
 import AlertsWrapper from '../components/AlertsWrapper';
 
@@ -71,6 +72,10 @@ function initDashboardView(dashboard) {
   dashboard.reactGridLayout = render(
     <GridLayout dashboard={dashboard} />,
     document.getElementById('grid-container'),
+  );
+  render(
+    <Footer dashboard={dashboard} />,
+    document.getElementById('dash-footer'),
   );
 
   // Displaying widget controls on hover

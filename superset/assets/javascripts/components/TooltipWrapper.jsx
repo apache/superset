@@ -5,7 +5,7 @@ import { slugify } from '../modules/utils';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
-  tooltip: PropTypes.node.isRequired,
+  tooltip: PropTypes.node,
   children: PropTypes.node.isRequired,
   placement: PropTypes.string,
 };
@@ -15,14 +15,17 @@ const defaultProps = {
 };
 
 export default function TooltipWrapper({ label, tooltip, children, placement }) {
-  return (
-    <OverlayTrigger
-      placement={placement}
-      overlay={<Tooltip id={`${slugify(label)}-tooltip`}>{tooltip}</Tooltip>}
-    >
-      {children}
-    </OverlayTrigger>
-  );
+  if (tooltip) {
+    return (
+      <OverlayTrigger
+        placement={placement}
+        overlay={<Tooltip id={`${slugify(label)}-tooltip`}>{tooltip}</Tooltip>}
+      >
+        {children}
+      </OverlayTrigger>
+    );
+  }
+  return children;
 }
 
 TooltipWrapper.propTypes = propTypes;

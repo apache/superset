@@ -163,6 +163,13 @@ def set_perm(mapper, connection, target):  # noqa
             .where(link_table.c.id == target.id)
             .values(perm=target.get_perm())
         )
-
     # add to view menu if not already exists
     merge_perm(sm, 'datasource_access', target.get_perm(), connection)
+
+def user_data(user):
+    """Returns a json-serializable representation of the user"""
+    return {
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+    }

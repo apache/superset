@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import defaultdict
 import functools
 import json
 import logging
@@ -22,6 +23,7 @@ from sqlalchemy.orm import subqueryload
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
+from flask_appbuilder.security.sqla import models as ab_models
 
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
@@ -38,7 +40,8 @@ from sqlalchemy_utils import EncryptedType
 from superset import app, db, db_engine_specs, utils, sm
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.viz import viz_types
-from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.models.helpers import (
+        AuditMixinNullable, ImportMixin, set_perm)
 install_aliases()
 from urllib import parse  # noqa
 
@@ -349,6 +352,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             'metadata': self.params_dict,
             'css': self.css,
             'dashboard_title': self.dashboard_title,
+            'owners': [u.data for u in self.owners],
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
             'position_json': positions,
@@ -721,7 +725,7 @@ class Log(Model):
     __tablename__ = 'logs'
 
     id = Column(Integer, primary_key=True)
-    action = Column(String(512))
+    action = Column(String(64))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
@@ -731,6 +735,10 @@ class Log(Model):
     dt = Column(Date, default=date.today())
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
+
+    __table_args__ = (
+        sqla.Index('log_dash_status', dashboard_id, action, dttm, user_id),
+    )
 
     @classmethod
     def log_this(cls, f):
@@ -851,3 +859,54 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 href = "{} Role".format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+
+class SupersetUser(ab_models.User):
+    """Deriving FAB's USER to enrich it"""
+    image_url = Column(String(1000))
+    slack_username = Column(String(500))
+
+    @property
+    def full_name(self):
+        return self.first_name + ' ' + self.last_name
+
+    @property
+    def data(self):
+        """Returns a json-serializable representation of the self"""
+        return {
+            'id': self.id,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'slack_username': self.slack_username,
+            'email': self.email,
+            'image_url': self.image_url,
+            'username': self.username,
+            'is_active': self.is_active(),
+            'created_on': self.created_on.isoformat(),
+        }
+    @property
+    def data_extended(self):
+        """Superset of data property with roles and perms"""
+        d = self.data
+        roles = {}
+        permissions = defaultdict(set)
+        for role in self.roles:
+            perms = set()
+            for perm in role.permissions:
+                perms.add(
+                    (perm.permission.name, perm.view_menu.name)
+                )
+                if perm.permission.name in ('datasource_access', 'database_access'):
+                    permissions[perm.permission.name].add(perm.view_menu.name)
+            roles[role.name] = [
+                [perm.permission.name, perm.view_menu.name]
+                for perm in role.permissions
+            ]
+        d.update({
+            'roles': roles,
+            'permissions': permissions,
+        })
+        return d
+
+# hoo hoo hoo hee hee hee
+ab_models.User = SupersetUser

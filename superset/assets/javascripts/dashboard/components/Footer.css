@@ -1,0 +1,21 @@
+.dash-footer {
+    background-color: white;
+    margin-top: 10px;
+}
+.m-l-3 {
+    margin-left: 3;
+}
+.user-icon {
+    opacity: 0.8;
+}
+.user-icon:hover {
+    opacity: 1;
+}
+.navbar.bottom {
+    margin-bottom: 10px;
+    border-color: #DDD;
+    border-width: 1px;
+}
+.navbar .profile-images img {
+    margin-top: 8px;
+}
