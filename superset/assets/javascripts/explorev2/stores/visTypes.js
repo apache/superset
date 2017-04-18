@@ -242,7 +242,8 @@ const visTypes = {
         label: 'NOT GROUPED BY',
         description: 'Use this section if you want to query atomic rows',
         controlSetRows: [
-          ['all_columns', 'order_by_cols'],
+          ['all_columns'],
+          ['order_by_cols'],
         ],
       },
       {
@@ -255,6 +256,9 @@ const visTypes = {
       },
     ],
     controlOverrides: {
+      metrics: {
+        validators: [],
+      },
       time_grain_sqla: {
         default: null,
       },
