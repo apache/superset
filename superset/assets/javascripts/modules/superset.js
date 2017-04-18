@@ -143,7 +143,9 @@ const px = function () {
           const status = xhr.status;
           if (status === 0) {
             // This may happen when the worker in gunicorn times out
-            msg += 'Could not reach server';
+            msg += (
+              'The server could not be reached. You may want to ' +
+              'verify your connection and try again.');
           } else {
             msg += 'An unknown error occurred. (Status: ' + status + ')';
           }
