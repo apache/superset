@@ -389,7 +389,7 @@ class SqlaTable(Model, BaseDatasource):
         if timeseries_limit_metric:
             timeseries_limit_metric_expr = \
                 timeseries_limit_metric.sqla_col
-        if metrics:
+        if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
             main_metric_expr = literal_column("COUNT(*)").label("ccount")
@@ -439,13 +439,22 @@ class SqlaTable(Model, BaseDatasource):
 
             dttm_col = cols[granularity]
             time_grain = extras.get('time_grain_sqla')
+            time_filters = []
 
             if is_timeseries:
                 timestamp = dttm_col.get_timestamp_expression(time_grain)
                 select_exprs += [timestamp]
                 groupby_exprs += [timestamp]
 
-            time_filter = dttm_col.get_time_filter(from_dttm, to_dttm)
+            # Use all dttm columns to support index with secondary dttm columns
+            dttm_col_all = False
+            if hasattr(self.database.db_engine_spec, 'time_secondary_columns'):
+                dttm_col_all = self.database.db_engine_spec.time_secondary_columns
+            if dttm_col_all:
+                for c in self.dttm_cols:
+                    if c in cols:
+                        time_filters.append(cols[c].get_time_filter(from_dttm, to_dttm))
+            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
 
         select_exprs += metrics_exprs
         qry = sa.select(select_exprs)
@@ -512,7 +521,7 @@ class SqlaTable(Model, BaseDatasource):
                 having = template_processor.process_template(having)
                 having_clause_and += [sa.text('({})'.format(having))]
         if granularity:
-            qry = qry.where(and_(*([time_filter] + where_clause_and)))
+            qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))

@@ -52,6 +52,7 @@ class BaseEngineSpec(object):
     time_grains = tuple()
     time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
+    time_secondary_columns = False
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -872,6 +873,7 @@ class ClickHouseEngineSpec(BaseEngineSpec):
 
     engine = 'clickhouse'
 
+    time_secondary_columns = True
     time_groupby_inline = True
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
@@ -883,6 +885,8 @@ class ClickHouseEngineSpec(BaseEngineSpec):
               "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)"),
         Grain('hour', _('hour'),
               "toStartOfHour(toDateTime({col}))"),
+        Grain('day', _('day'),
+              "toStartOfDay(toDateTime({col}))"),
         Grain('month', _('month'),
               "toStartOfMonth(toDateTime({col}))"),
         Grain('quarter', _('quarter'),
