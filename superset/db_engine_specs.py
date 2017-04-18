@@ -50,6 +50,7 @@ class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     cursor_execute_kwargs = {}
     time_grains = tuple()
+    time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
 
     @classmethod

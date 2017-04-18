@@ -370,6 +370,9 @@ class SqlaTable(Model, BaseDatasource):
         if granularity not in self.dttm_cols:
             granularity = self.main_dttm_col
 
+        # Database spec supports join-free timeslot grouping
+        time_groupby_inline = self.database.db_engine_spec.time_groupby_inline
+
         cols = {col.column_name: col for col in self.columns}
         metrics_dict = {m.metric_name: m for m in self.metrics}
 
@@ -522,7 +525,7 @@ class SqlaTable(Model, BaseDatasource):
 
         qry = qry.limit(row_limit)
 
-        if is_timeseries and timeseries_limit and groupby:
+        if is_timeseries and timeseries_limit and groupby and not time_groupby_inline:
             # some sql dialects require for order by expressions
             # to also be in the select clause -- others, e.g. vertica,
             # require a unique inner alias
