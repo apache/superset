@@ -194,7 +194,7 @@ class SqlEditor extends React.PureComponent {
           >
             <Col md={3}>
               <SqlEditorLeftBar
-                style={{ height: this.props.height }}
+                height={this.sqlEditorHeight()}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
                 actions={this.props.actions}

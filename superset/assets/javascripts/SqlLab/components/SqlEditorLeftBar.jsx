@@ -10,6 +10,7 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
+  height: React.PropTypes.number.isRequired,
   tables: React.PropTypes.array,
   actions: React.PropTypes.object,
 };
@@ -128,91 +129,95 @@ class SqlEditorLeftBar extends React.PureComponent {
   closePopover(ref) {
     this.refs[ref].hide();
   }
+
   render() {
     const shouldShowReset = window.location.search === '?reset=1';
+    const tableMetaDataHeight = this.props.height - 130; // 130 is the height of the selects above
     return (
-      <div className="scrollbar-container">
-        <div className="clearfix sql-toolbar scrollbar-content">
-          <div>
-            <AsyncSelect
-              dataEndpoint={
-                '/databaseasync/api/' +
-                'read?_flt_0_expose_in_sqllab=1&' +
-                '_oc_DatabaseView=database_name&' +
-                '_od_DatabaseView=asc'
-              }
-              onChange={this.onChange.bind(this)}
-              value={this.props.queryEditor.dbId}
-              databaseId={this.props.queryEditor.dbId}
-              actions={this.props.actions}
-              valueRenderer={o => (
-                <div>
-                  <span className="text-muted">Database:</span> {o.label}
-                </div>
-              )}
-              mutator={this.dbMutator.bind(this)}
-              placeholder="Select a database"
-            />
-          </div>
-          <div className="m-t-5">
+      <div className="clearfix sql-toolbar">
+        <div>
+          <AsyncSelect
+            dataEndpoint={
+              '/databaseasync/api/' +
+              'read?_flt_0_expose_in_sqllab=1&' +
+              '_oc_DatabaseView=database_name&' +
+              '_od_DatabaseView=asc'
+            }
+            onChange={this.onChange.bind(this)}
+            value={this.props.queryEditor.dbId}
+            databaseId={this.props.queryEditor.dbId}
+            actions={this.props.actions}
+            valueRenderer={o => (
+              <div>
+                <span className="text-muted">Database:</span> {o.label}
+              </div>
+            )}
+            mutator={this.dbMutator.bind(this)}
+            placeholder="Select a database"
+          />
+        </div>
+        <div className="m-t-5">
+          <Select
+            name="select-schema"
+            placeholder={`Select a schema (${this.state.schemaOptions.length})`}
+            options={this.state.schemaOptions}
+            value={this.props.queryEditor.schema}
+            valueRenderer={o => (
+              <div>
+                <span className="text-muted">Schema:</span> {o.label}
+              </div>
+            )}
+            isLoading={this.state.schemaLoading}
+            autosize={false}
+            onChange={this.changeSchema.bind(this)}
+          />
+        </div>
+        <div className="m-t-5">
+          {this.props.queryEditor.schema &&
             <Select
-              name="select-schema"
-              placeholder={`Select a schema (${this.state.schemaOptions.length})`}
-              options={this.state.schemaOptions}
-              value={this.props.queryEditor.schema}
-              valueRenderer={o => (
-                <div>
-                  <span className="text-muted">Schema:</span> {o.label}
-                </div>
-              )}
-              isLoading={this.state.schemaLoading}
+              name="select-table"
+              ref="selectTable"
+              isLoading={this.state.tableLoading}
+              value={this.state.tableName}
+              placeholder={`Add a table (${this.state.tableOptions.length})`}
               autosize={false}
-              onChange={this.changeSchema.bind(this)}
+              onChange={this.changeTable.bind(this)}
+              filterOptions={this.state.filterOptions}
+              options={this.state.tableOptions}
             />
-          </div>
-          <div className="m-t-5">
-            {this.props.queryEditor.schema &&
-              <Select
-                name="select-table"
-                ref="selectTable"
-                isLoading={this.state.tableLoading}
-                value={this.state.tableName}
-                placeholder={`Add a table (${this.state.tableOptions.length})`}
-                autosize={false}
-                onChange={this.changeTable.bind(this)}
-                filterOptions={this.state.filterOptions}
-                options={this.state.tableOptions}
-              />
-            }
-            {!this.props.queryEditor.schema &&
-              <Select
-                async
-                name="async-select-table"
-                ref="selectTable"
-                value={this.state.tableName}
-                placeholder={'Type to search ...'}
-                autosize={false}
-                onChange={this.changeTable.bind(this)}
-                loadOptions={this.getTableNamesBySubStr.bind(this)}
-              />
-            }
-          </div>
-          <hr />
-          <div className="m-t-5">
-            {this.props.tables.map(table => (
-              <TableElement
-                table={table}
-                key={table.id}
-                actions={this.props.actions}
-              />
-            ))}
-          </div>
-          {shouldShowReset &&
-            <Button bsSize="small" bsStyle="danger" onClick={this.resetState.bind(this)}>
-              <i className="fa fa-bomb" /> Reset State
-            </Button>
+          }
+          {!this.props.queryEditor.schema &&
+            <Select
+              async
+              name="async-select-table"
+              ref="selectTable"
+              value={this.state.tableName}
+              placeholder={'Type to search ...'}
+              autosize={false}
+              onChange={this.changeTable.bind(this)}
+              loadOptions={this.getTableNamesBySubStr.bind(this)}
+            />
           }
         </div>
+        <hr />
+        <div className="m-t-5">
+          <div className="scrollbar-container">
+            <div className="scrollbar-content" style={{ height: tableMetaDataHeight }}>
+              {this.props.tables.map(table => (
+                <TableElement
+                  table={table}
+                  key={table.id}
+                  actions={this.props.actions}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+        {shouldShowReset &&
+          <Button bsSize="small" bsStyle="danger" onClick={this.resetState.bind(this)}>
+            <i className="fa fa-bomb" /> Reset State
+          </Button>
+        }
       </div>
     );
   }
