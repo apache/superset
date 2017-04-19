@@ -125,7 +125,6 @@ class QuerySearch extends React.PureComponent {
     });
   }
   render() {
-    console.log('this.props.height', this.props.height)
     return (
       <div>
         <div id="search-header" className="row space-1">
