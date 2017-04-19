@@ -15,7 +15,7 @@ class App extends React.PureComponent {
     super(props);
     this.state = {
       hash: window.location.hash,
-      contentHeight: this.getHeight(),
+      contentHeight: '0px',
     };
   }
   componentDidMount() {
@@ -32,11 +32,16 @@ class App extends React.PureComponent {
     this.setState({ hash: window.location.hash });
   }
   getHeight() {
-    const navHeight = 90;
-    const headerHeight = $('.nav-tabs').outerHeight() ?
-      $('.nav-tabs').outerHeight() : $('#search-header').outerHeight();
-    const warningHeight = $('#navbar-warning').outerHeight();
-    const alertHeight = $('#sqllab-alerts').outerHeight();
+    const warningEl = $('#navbar-warning');
+    const navTabsEl = $('.nav-tabs');
+    const searchHeaderEl = $('#search-header');
+    const alertEl = $('#sqllab-alerts');
+    const headerNavEl = $('header .navbar');
+    const navHeight = headerNavEl.outerHeight() + parseInt(headerNavEl.css('marginBottom'), 10);
+    const searchHeaderHeight = searchHeaderEl.outerHeight() + parseInt(searchHeaderEl.css('marginBottom'), 10);
+    const headerHeight = navTabsEl.outerHeight() ? navTabsEl.outerHeight() : searchHeaderHeight;
+    const warningHeight = warningEl.length > 0 ? warningEl.outerHeight() : 0;
+    const alertHeight = alertEl.length > 0 ? alertEl.outerHeight() : 0;
     return `${window.innerHeight - navHeight - headerHeight - warningHeight - alertHeight}px`;
   }
   handleResize() {
