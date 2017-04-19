@@ -1,0 +1,21 @@
+.reactable-pagination td {
+  padding: 15px 0 0 0!important;
+}
+.reactable-page-button,
+.reactable-next-page,
+.reactable-previous-page {
+  border: 1px solid #ccc;
+  background: #fff;
+  padding: 5px 10px;
+  margin-right: 5px;
+}
+.reactable-current-page {
+  font-weight: bold;
+  border-color: #333;
+  color: #333;
+}
+.reactable-current-page:hover {
+  color: #333;
+  text-decoration: none;
+  cursor: default;
+}
