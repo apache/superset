@@ -1,0 +1,40 @@
+.reactable-pagination td {
+  padding: 15px 0 0 0!important;
+}
+.reactable-pagination a:focus {
+  text-decoration: none;
+  color: #555555;
+  outline: 1;
+}
+.reactable-page-button,
+.reactable-next-page,
+.reactable-previous-page {
+  background: #fff;
+  border-radius: 2px;
+  border: 1px solid #b3b3b3;
+  color: #555555;
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-right: 5px;
+  padding: 5px 10px;
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.reactable-current-page {
+  border: 1px solid #b3b3b3;
+  color: #555555;
+  font-weight: bold;
+  pointer-events: none;
+  opacity: 0.65;
+}
+.reactable-page-button:hover,
+.reactable-next-page:hover,
+.reactable-previous-page:hover {
+  background-color: #efefef;
+  border-color: #949494;
+  color: #555555;
+  text-decoration: none;
+}

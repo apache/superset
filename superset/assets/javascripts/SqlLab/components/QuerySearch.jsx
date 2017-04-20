@@ -11,7 +11,7 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
-  height: React.PropTypes.integer,
+  height: React.PropTypes.number.isRequired,
 };
 
 class QuerySearch extends React.PureComponent {
@@ -192,11 +192,11 @@ class QuerySearch extends React.PureComponent {
           (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)
           :
           (
-            <div
-              style={{ height: this.props.height }}
-              className="scrollbar-container"
-            >
-              <div className="scrollbar-content">
+            <div className="scrollbar-container">
+              <div
+                className="scrollbar-content"
+                style={{ height: this.props.height }}
+              >
                 <QueryTable
                   columns={[
                     'state', 'db', 'user', 'time',

@@ -10,8 +10,9 @@ import { initJQueryAjaxCSRF } from '../modules/utils';
 import App from './components/App';
 import { appSetup } from '../common';
 
-require('./main.css');
-require('../components/FilterableTable/FilterableTableStyles.css');
+import './main.css';
+import './reactable-pagination.css';
+import '../components/FilterableTable/FilterableTableStyles.css';
 
 appSetup();
 initJQueryAjaxCSRF();
