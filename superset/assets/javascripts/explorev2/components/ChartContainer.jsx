@@ -232,7 +232,7 @@ class ChartContainer extends React.PureComponent {
     return (
       <div className="chart-container">
         <Panel
-          style={{ height: this.props.height }}
+          style={{ height: this.props.height, overflow: "auto" }}
           header={
             <div
               id="slice-header"
