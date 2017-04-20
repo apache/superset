@@ -17,6 +17,11 @@ from collections import OrderedDict
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
+from superset.stats_logger import DummyStatsLogger
+
+# Realtime stats logger, a StatsD implementation exists
+STATS_LOGGER = DummyStatsLogger()
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
 if not os.path.exists(DATA_DIR):
