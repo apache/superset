@@ -463,7 +463,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     def pre_delete(self, obj):
         check_ownership(obj)
 
-    @action("mulexport", "Export", "Export dashboards?", "fa-database")
+    @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(self, items):
         ids = ''.join('&id={}'.format(d.id) for d in items)
         return redirect(
@@ -495,7 +495,10 @@ appbuilder.add_view(
 class DashboardModelViewAsync(DashboardModelView):  # noqa
     list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
     label_columns = {
-        'dashboard_link': 'Dashboard',
+        'dashboard_link': _('Dashboard'),
+        'dashboard_title': _('Title'),
+        'creator': _('Creator'),
+        'modified': _('Modified'),
     }
 
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
