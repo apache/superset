@@ -41,7 +41,7 @@ export default class FilterableTable extends PureComponent {
       .reduce((curr, next) => curr + next);
 
     this.state = {
-      sortBy: props.orderedColumnKeys[0],
+      sortBy: null,
       sortDirection: SortDirection.ASC,
       fitted: false,
     };
@@ -142,9 +142,11 @@ export default class FilterableTable extends PureComponent {
       sortedAndFilteredList = this.list.filter(row => this.hasMatch(filterText, row));
     }
     // sort list
-    sortedAndFilteredList = sortedAndFilteredList
+    if (sortBy) {
+      sortedAndFilteredList = sortedAndFilteredList
       .sortBy(item => item[sortBy])
       .update(list => sortDirection === SortDirection.DESC ? list.reverse() : list);
+    }
 
     const rowGetter = ({ index }) => this.getDatum(sortedAndFilteredList, index);
 
