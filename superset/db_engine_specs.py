@@ -571,7 +571,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return part_field, cls._latest_partition_from_df(df)
 
     @classmethod
-    def latest_sub_partition(cls, table_name, schema, database,  **kwargs):
+    def latest_sub_partition(cls, table_name, schema, database, **kwargs):
         """Returns the latest (max) partition value for a table
 
         A filtering criteria should be passed for all fields that are
@@ -740,7 +740,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return False
 
     @classmethod
-    def latest_sub_partition(cls, table_name, **kwargs):
+    def latest_sub_partition(cls, table_name, schema, database, **kwargs):
         # TODO(bogdan): implement`
         pass
 

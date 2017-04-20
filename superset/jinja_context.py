@@ -124,7 +124,10 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     def latest_sub_partition(self, table_name, **kwargs):
         table_name, schema = self._schema_table(table_name, self.schema)
         return self.database.db_engine_spec.latest_sub_partition(
-            table_name, schema, self.database, kwargs)
+            table_name=table_name,
+            schema=schema,
+            database=self.database,
+            **kwargs)
 
 
 class HiveTemplateProcessor(PrestoTemplateProcessor):
