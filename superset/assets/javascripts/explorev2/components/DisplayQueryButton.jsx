@@ -46,11 +46,12 @@ export default class DisplayQueryButton extends React.PureComponent {
           language: data.language,
           query: data.query,
           isLoading: false,
+          error: null,
         });
       },
       error: (data) => {
         this.setState({
-          error: data.error,
+          error: data.responseJSON ? data.responseJSON.error : 'Error...',
           isLoading: false,
         });
       },

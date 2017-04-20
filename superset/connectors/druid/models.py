@@ -835,7 +835,7 @@ class DruidDatasource(Model, BaseDatasource):
             qry['having'] = having_filters
 
         orig_filters = filters
-        if len(groupby) == 0:
+        if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
         if not having_filters and len(groupby) == 1:
