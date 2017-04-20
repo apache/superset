@@ -1,10 +1,11 @@
 import React from 'react';
-import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
-import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { initialState, queries, table } from './fixtures';
+import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
+import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -17,7 +18,7 @@ describe('SqlEditor', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<SqlEditor {...mockedProps} />)
+      React.isValidElement(<SqlEditor {...mockedProps} />),
     ).to.equal(true);
   });
   it('render a SqlEditorLeftBar', () => {

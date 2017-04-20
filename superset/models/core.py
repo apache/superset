@@ -37,7 +37,6 @@ from sqlalchemy_utils import EncryptedType
 from superset import app, db, db_engine_specs, utils, sm
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.viz import viz_types
-from superset.utils import QueryStatus
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
 install_aliases()
 from urllib import parse  # noqa
@@ -181,10 +180,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @property
     def form_data(self):
         form_data = json.loads(self.params)
-        form_data['slice_id'] = self.id
-        form_data['viz_type'] = self.viz_type
-        form_data['datasource'] = (
-            str(self.datasource_id) + '__' + self.datasource_type)
+        form_data.update({
+            'slice_id': self.id,
+            'viz_type': self.viz_type,
+            'datasource': str(self.datasource_id) + '__' + self.datasource_type
+        })
+        if self.cache_timeout:
+            form_data['cache_timeout'] = self.cache_timeout
         return form_data
 
     @property
@@ -230,7 +232,6 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return viz_types[slice_params.get('viz_type')](
             self.datasource,
             form_data=slice_params,
-            slice_=self
         )
 
     @classmethod
@@ -626,7 +627,8 @@ class Database(Model, AuditMixinNullable):
             tables_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'table', force=force)
             return tables_dict.get("", [])
-        return sorted(self.inspector.get_table_names(schema))
+        return sorted(
+            self.db_engine_spec.get_table_names(schema, self.inspector))
 
     def all_view_names(self, schema=None, force=False):
         if not schema:

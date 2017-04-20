@@ -34,8 +34,8 @@ function sunburstVis(slice, payload) {
     .value(function (d) { return d.m1; });
 
   const arc = d3.svg.arc()
-    .startAngle((d) => d.x)
-    .endAngle((d) => d.x + d.dx)
+    .startAngle(d => d.x)
+    .endAngle(d => d.x + d.dx)
     .innerRadius(function (d) {
       return Math.sqrt(d.y);
     })
@@ -345,7 +345,7 @@ function sunburstVis(slice, payload) {
 
     if (fd.metric !== fd.secondary_metric) {
       colorByCategory = false;
-      ext = d3.extent(nodes, (d) => d.m2 / d.m1);
+      ext = d3.extent(nodes, d => d.m2 / d.m1);
       colorScale = d3.scale.linear()
         .domain([ext[0], ext[0] + ((ext[1] - ext[0]) / 2), ext[1]])
         .range(['#00D1C1', 'white', '#FFB400']);
@@ -360,7 +360,7 @@ function sunburstVis(slice, payload) {
       })
       .attr('d', arc)
       .attr('fill-rule', 'evenodd')
-      .style('fill', (d) => colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1))
+      .style('fill', d => colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1))
       .style('opacity', 1)
       .on('mouseenter', mouseenter);
 

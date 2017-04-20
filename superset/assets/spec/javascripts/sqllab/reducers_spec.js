@@ -1,7 +1,8 @@
-import * as r from '../../../javascripts/SqlLab/reducers';
-import * as actions from '../../../javascripts/SqlLab/actions';
 import { beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
+
+import * as r from '../../../javascripts/SqlLab/reducers';
+import * as actions from '../../../javascripts/SqlLab/actions';
 import { alert, table, initialState } from './fixtures';
 
 describe('sqlLabReducer', () => {

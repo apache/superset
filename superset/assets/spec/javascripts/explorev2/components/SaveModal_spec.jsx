@@ -2,10 +2,11 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import { defaultFormData } from '../../../../javascripts/explorev2/stores/store';
-import { SaveModal } from '../../../../javascripts/explorev2/components/SaveModal';
 import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
+
+import { defaultFormData } from '../../../../javascripts/explorev2/stores/store';
+import { SaveModal } from '../../../../javascripts/explorev2/components/SaveModal';
 
 const defaultProps = {
   can_edit: true,

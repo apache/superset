@@ -19,7 +19,7 @@ import SaveQuery from './SaveQuery';
 import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
-import { STATE_BSSTYLE_MAP } from '../constants.js';
+import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 
 const propTypes = {
@@ -59,6 +59,9 @@ class SqlEditor extends React.PureComponent {
       this.startQuery();
     }
   }
+  setQueryEditorSql(sql) {
+    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
+  }
   runQuery(runAsync = false) {
     let effectiveRunAsync = runAsync;
     if (!this.props.database.allow_run_sync) {
@@ -86,9 +89,6 @@ class SqlEditor extends React.PureComponent {
   }
   createTableAs() {
     this.startQuery(true, true);
-  }
-  setQueryEditorSql(sql) {
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
@@ -194,7 +194,7 @@ class SqlEditor extends React.PureComponent {
           >
             <Col md={3}>
               <SqlEditorLeftBar
-                style={{ height: this.props.height }}
+                height={this.sqlEditorHeight()}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
                 actions={this.props.actions}

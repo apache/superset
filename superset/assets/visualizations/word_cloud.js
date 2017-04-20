@@ -14,11 +14,11 @@ function wordCloudChart(slice, payload) {
   const rotation = fd.rotation;
   let fRotation;
   if (rotation === 'square') {
-    fRotation = () => ~~(Math.random() * 2) * 90;
+    fRotation = () => Math.floor((Math.random() * 2) * 90);
   } else if (rotation === 'flat') {
     fRotation = () => 0;
   } else {
-    fRotation = () => (~~(Math.random() * 6) - 3) * 30;
+    fRotation = () => Math.floor(((Math.random() * 6) - 3) * 30);
   }
   const size = [slice.width(), slice.height()];
 
@@ -40,12 +40,12 @@ function wordCloudChart(slice, payload) {
     .data(words)
     .enter()
     .append('text')
-    .style('font-size', (d) => d.size + 'px')
+    .style('font-size', d => d.size + 'px')
     .style('font-family', 'Impact')
-    .style('fill', (d) => category21(d.text))
+    .style('fill', d => category21(d.text))
     .attr('text-anchor', 'middle')
-    .attr('transform', (d) => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
-    .text((d) => d.text);
+    .attr('transform', d => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
+    .text(d => d.text);
   }
 
   const layout = cloudLayout()
@@ -54,7 +54,7 @@ function wordCloudChart(slice, payload) {
   .padding(5)
   .rotate(fRotation)
   .font('serif')
-  .fontSize((d) => scale(d.size))
+  .fontSize(d => scale(d.size))
   .on('end', draw);
 
   layout.start();

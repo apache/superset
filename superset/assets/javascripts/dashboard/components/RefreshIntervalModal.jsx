@@ -1,7 +1,6 @@
 import React from 'react';
-
-import ModalTrigger from '../../components/ModalTrigger';
 import Select from 'react-select';
+import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   triggerNode: React.PropTypes.node.isRequired,

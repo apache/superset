@@ -1,7 +1,6 @@
 /* eslint camelcase: 0 */
 import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
 import { sectionsToRender } from '../stores/visTypes';
@@ -9,6 +8,7 @@ import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import controls from '../stores/controls';
+import * as actions from '../actions/exploreActions';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -54,7 +54,7 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {this.sectionsToRender().map((section) => (
+          {this.sectionsToRender().map(section => (
             <ControlPanelSection
               key={section.label}
               label={section.label}

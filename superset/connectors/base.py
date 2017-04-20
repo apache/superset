@@ -120,6 +120,28 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
         return d
 
+    def get_query_str(self, query_obj):
+        """Returns a query as a string
+
+        This is used to be displayed to the user so that she/he can
+        understand what is taking place behind the scene"""
+        raise NotImplementedError()
+
+    def query(self, query_obj):
+        """Executes the query and returns a dataframe
+
+        query_obj is a dictionary representing Superset's query interface.
+        Should return a ``superset.models.helpers.QueryResult``
+        """
+        raise NotImplementedError()
+
+    def values_for_column(self, column_name, limit=10000):
+        """Given a column, returns an iterable of distinct values
+
+        This is used to populate the dropdown showing a list of
+        values in filters in the explore view"""
+        raise NotImplementedError()
+
 
 class BaseColumn(AuditMixinNullable, ImportMixin):
     """Interface for column"""

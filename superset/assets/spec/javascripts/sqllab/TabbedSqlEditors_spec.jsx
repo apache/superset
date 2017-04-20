@@ -1,10 +1,11 @@
 import React from 'react';
-import { TabbedSqlEditors } from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
 import { Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { initialState } from './fixtures';
+import { TabbedSqlEditors } from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
 
 describe('TabbedSqlEditors', () => {
   const mockedProps = {
@@ -17,7 +18,7 @@ describe('TabbedSqlEditors', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<TabbedSqlEditors {...mockedProps} />)
+      React.isValidElement(<TabbedSqlEditors {...mockedProps} />),
     ).to.equal(true);
   });
   it('shallow mounts', () => {

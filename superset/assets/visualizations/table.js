@@ -1,13 +1,14 @@
 import d3 from 'd3';
-import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
-import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
-
-require('./table.css');
-const $ = require('jquery');
-
-require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
+import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
 import 'datatables.net';
 import dt from 'datatables.net-bs';
+
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
+import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
+import './table.css';
+
+const $ = require('jquery');
+
 dt(window, $);
 
 function tableVis(slice, payload) {
@@ -24,13 +25,13 @@ function tableVis(slice, payload) {
 
   function col(c) {
     const arr = [];
-    for (let i = 0; i < data.records.length; i++) {
+    for (let i = 0; i < data.records.length; i += 1) {
       arr.push(data.records[i][c]);
     }
     return arr;
   }
   const maxes = {};
-  for (let i = 0; i < metrics.length; i++) {
+  for (let i = 0; i < metrics.length; i += 1) {
     maxes[metrics[i]] = d3.max(col(metrics[i]));
   }
 
@@ -63,14 +64,14 @@ function tableVis(slice, payload) {
     .enter()
     .append('tr')
     .selectAll('td')
-    .data(row => data.columns.map(c => {
+    .data(row => data.columns.map((c) => {
       const val = row[c];
       let html;
       const isMetric = metrics.indexOf(c) >= 0;
       if (c === 'timestamp') {
         html = timestampFormatter(val);
       }
-      if (typeof(val) === 'string') {
+      if (typeof (val) === 'string') {
         html = `<span class="like-pre">${val}</span>`;
       }
       if (isMetric) {

@@ -1,12 +1,12 @@
 import React from 'react';
-import Link from '../../../javascripts/SqlLab/components/Link';
-import TableElement from '../../../javascripts/SqlLab/components/TableElement';
-import ColumnElement from '../../../javascripts/SqlLab/components/ColumnElement';
-import { mockedActions, table } from './fixtures';
 import { mount, shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import Link from '../../../javascripts/SqlLab/components/Link';
+import TableElement from '../../../javascripts/SqlLab/components/TableElement';
+import ColumnElement from '../../../javascripts/SqlLab/components/ColumnElement';
+import { mockedActions, table } from './fixtures';
 
 describe('TableElement', () => {
   const mockedProps = {
@@ -16,12 +16,12 @@ describe('TableElement', () => {
   };
   it('renders', () => {
     expect(
-      React.isValidElement(<TableElement />)
+      React.isValidElement(<TableElement />),
     ).to.equal(true);
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<TableElement {...mockedProps} />)
+      React.isValidElement(<TableElement {...mockedProps} />),
     ).to.equal(true);
   });
   it('has 2 Link elements', () => {

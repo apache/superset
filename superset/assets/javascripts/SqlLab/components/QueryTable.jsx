@@ -134,14 +134,16 @@ class QueryTable extends React.PureComponent {
             modalTitle={'Data preview'}
             beforeOpen={this.openAsyncResults.bind(this, query)}
             onExit={this.clearQueryResults.bind(this, query)}
-            modalBody={<ResultSet showSql query={query} actions={this.props.actions} />}
+            modalBody={
+              <ResultSet showSql query={query} actions={this.props.actions} height={400} />
+            }
           />
         );
       } else {
         // if query was run using ctas and force_ctas_schema was set
         // tempTable will have the schema
         const schemaUsed = q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
-        q.output = [schemaUsed, q.tempTable].filter((v) => (v)).join('.');
+        q.output = [schemaUsed, q.tempTable].filter(v => (v)).join('.');
       }
       q.progress = (
         <ProgressBar

@@ -97,7 +97,7 @@ export default class CopyToClipboard extends React.Component {
           onClick={this.onClick.bind(this)}
           onMouseOut={this.onMouseOut}
         >
-            {this.props.copyNode}
+          {this.props.copyNode}
         </OverlayTrigger>
       </span>
     );

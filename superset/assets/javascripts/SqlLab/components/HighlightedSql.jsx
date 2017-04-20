@@ -25,38 +25,35 @@ class HighlightedSql extends React.Component {
     };
   }
   shrinkSql() {
-    const props = this.props;
-    const sql = props.sql || '';
+    const sql = this.props.sql || '';
     let lines = sql.split('\n');
-    if (lines.length >= props.maxLines) {
-      lines = lines.slice(0, props.maxLines);
+    if (lines.length >= this.props.maxLines) {
+      lines = lines.slice(0, this.props.maxLines);
       lines.push('{...}');
     }
     return lines.map((line) => {
-      if (line.length > props.maxWidth) {
-        return line.slice(0, props.maxWidth) + '{...}';
+      if (line.length > this.props.maxWidth) {
+        return line.slice(0, this.props.maxWidth) + '{...}';
       }
       return line;
     })
     .join('\n');
   }
   triggerNode() {
-    const props = this.props;
-    let shownSql = props.shrink ? this.shrinkSql(props.sql) : props.sql;
+    const shownSql = this.props.shrink ? this.shrinkSql(this.props.sql) : this.props.sql;
     return (
       <SyntaxHighlighter language="sql" style={github}>
         {shownSql}
       </SyntaxHighlighter>);
   }
   generateModal() {
-    const props = this.props;
     let rawSql;
-    if (props.rawSql && props.rawSql !== this.props.sql) {
+    if (this.props.rawSql && this.props.rawSql !== this.props.sql) {
       rawSql = (
         <div>
           <h4>Raw SQL</h4>
           <SyntaxHighlighter language="sql" style={github}>
-            {props.rawSql}
+            {this.props.rawSql}
           </SyntaxHighlighter>
         </div>
       );

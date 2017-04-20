@@ -14,7 +14,7 @@ cache:
 env:
   global:
     - TRAVIS_CACHE=$HOME/.travis_cache/
-    - TRAVIS_NODE_VERSION="5.11"
+    - TRAVIS_NODE_VERSION="6.10.2"
   matrix:
     - TOX_ENV=javascript
     - TOX_ENV=pylint
@@ -23,7 +23,7 @@ env:
     - TOX_ENV=py27-mysql
     - TOX_ENV=py27-sqlite
 before_install:
-  - npm install -g npm@'>=3.9.5'
+  - npm install -g npm@'>=4.5.0'
 before_script:
   - mysql -e 'drop database if exists superset; create database superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"

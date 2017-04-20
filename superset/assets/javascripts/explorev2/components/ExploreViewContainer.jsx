@@ -1,19 +1,19 @@
 /* eslint camelcase: 0 */
 import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
+import * as actions from '../actions/exploreActions';
 import { getFormDataFromControls } from '../stores/store';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
-  chartStatus: PropTypes.string.isRequired,
+  chartStatus: PropTypes.string,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
@@ -110,7 +110,7 @@ class ExploreViewContainer extends React.Component {
           <div key={controlName}>
             <strong>{`[ ${control.label} ] `}</strong>
             {control.validationErrors.join('. ')}
-          </div>
+          </div>,
         );
       }
     }
@@ -143,7 +143,7 @@ class ExploreViewContainer extends React.Component {
           overflow: 'hidden',
         }}
       >
-      {this.state.showModal &&
+        {this.state.showModal &&
         <SaveModal
           onHide={this.toggleModal.bind(this)}
           actions={this.props.actions}

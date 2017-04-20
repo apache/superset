@@ -33,7 +33,7 @@ from superset import (
     sm, sql_lab, results_backend, security,
 )
 from superset.legacy import cast_form_data
-from superset.utils import has_access
+from superset.utils import has_access, QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
 import superset.models.core as models
 from superset.models.sql_lab import Query
@@ -47,7 +47,6 @@ from .base import (
 config = app.config
 log_this = models.Log.log_this
 can_access = utils.can_access
-QueryStatus = models.QueryStatus
 DAR = models.DatasourceAccessRequest
 
 
@@ -453,6 +452,9 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             obj.owners.append(g.user)
         utils.validate_json(obj.json_metadata)
         utils.validate_json(obj.position_json)
+        owners = [o for o in obj.owners]
+        for slc in obj.slices:
+            slc.owners = list(set(owners) | set(slc.owners))
 
     def pre_update(self, obj):
         check_ownership(obj)
@@ -923,11 +925,7 @@ class Superset(BaseSupersetView):
         if request.args.get("query") == "true":
             try:
                 query_obj = viz_obj.query_obj()
-                if datasource_type == 'druid':
-                    # only retrive first phase query for druid
-                    query_obj['phase'] = 1
-                query = viz_obj.datasource.get_query_str(
-                    datetime.now(), **query_obj)
+                query = viz_obj.datasource.get_query_str(query_obj)
             except Exception as e:
                 return json_error_response(e)
             return Response(
@@ -1643,14 +1641,13 @@ class Superset(BaseSupersetView):
         dashboard_data = dash.data
         dashboard_data.update({
             'standalone_mode': request.args.get("standalone") == "true",
+            'dash_save_perm': dash_save_perm,
+            'dash_edit_perm': dash_edit_perm,
         })
 
         bootstrap_data = {
             'user_id': g.user.get_id(),
-            'dash_save_perm': dash_save_perm,
-            'dash_edit_perm': dash_edit_perm,
-            'dash_edit_perm': check_ownership(dash, raise_if_false=False),
-            'dashboard_data': dash.data,
+            'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
         }
 
@@ -2238,16 +2235,22 @@ appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
 appbuilder.add_link(
     'SQL Editor',
+    label=_("SQL Editor"),
     href='/superset/sqllab',
     category_icon="fa-flask",
     icon="fa-flask",
-    category='SQL Lab')
+    category='SQL Lab',
+    category_label=__("SQL Lab"),
+)
 appbuilder.add_link(
     'Query Search',
+    label=_("Query Search"),
     href='/superset/sqllab#search',
     icon="fa-search",
     category_icon="fa-flask",
-    category='SQL Lab')
+    category='SQL Lab',
+    category_label=__("SQL Lab"),
+)
 
 
 @app.after_request

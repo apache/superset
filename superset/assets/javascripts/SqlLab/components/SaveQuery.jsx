@@ -51,6 +51,9 @@ class SaveQuery extends React.PureComponent {
   onDescriptionChange(e) {
     this.setState({ description: e.target.value });
   }
+  toggleSave(e) {
+    this.setState({ target: e.target, showSave: !this.state.showSave });
+  }
   renderPopover() {
     return (
       <Popover id="embed-code-popover">
@@ -102,9 +105,6 @@ class SaveQuery extends React.PureComponent {
         </FormGroup>
       </Popover>
     );
-  }
-  toggleSave(e) {
-    this.setState({ target: e.target, showSave: !this.state.showSave });
   }
   render() {
     return (

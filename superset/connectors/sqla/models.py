@@ -312,9 +312,9 @@ class SqlaTable(Model, BaseDatasource):
         return get_template_processor(
             table=self, database=self.database, **kwargs)
 
-    def get_query_str(self, **kwargs):
+    def get_query_str(self, query_obj):
         engine = self.database.get_sqla_engine()
-        qry = self.get_sqla_query(**kwargs)
+        qry = self.get_sqla_query(**query_obj)
         sql = str(
             qry.compile(
                 engine,
@@ -538,7 +538,7 @@ class SqlaTable(Model, BaseDatasource):
         qry_start_dttm = datetime.now()
         engine = self.database.get_sqla_engine()
         qry = self.get_sqla_query(**query_obj)
-        sql = self.get_query_str(**query_obj)
+        sql = self.get_query_str(query_obj)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -547,7 +547,8 @@ class SqlaTable(Model, BaseDatasource):
         except Exception as e:
             status = QueryStatus.FAILED
             logging.exception(e)
-            error_message = str(e)
+            error_message = (
+                self.database.db_engine_spec.extract_error_message(e))
 
         return QueryResult(
             status=status,

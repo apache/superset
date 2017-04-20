@@ -1,3 +1,4 @@
+/* eslint-disable react/no-danger */
 import React, { PropTypes } from 'react';
 
 const propTypes = {
@@ -62,9 +63,7 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
           expandedSlices[String(slice.slice_id)] ? {} : { display: 'none' }
         }
         dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-      >
-
-      </div>
+      />
       <div className="row chart-container">
         <input type="hidden" value="false" />
         <div id={'token_' + slice.slice_id} className="token col-md-12">
@@ -76,8 +75,7 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
           <div
             id={'con_' + slice.slice_id}
             className={`slice_container ${slice.form_data.viz_type}`}
-          >
-          </div>
+          />
         </div>
       </div>
     </div>

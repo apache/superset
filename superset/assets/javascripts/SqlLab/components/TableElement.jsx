@@ -57,6 +57,10 @@ class TableElement extends React.PureComponent {
     this.setState({ sortColumns: !this.state.sortColumns });
   }
 
+  removeFromStore() {
+    this.props.actions.removeTable(this.props.table);
+  }
+
   renderHeader() {
     const table = this.props.table;
     let header;
@@ -118,9 +122,6 @@ class TableElement extends React.PureComponent {
       </Collapse>
     );
     return metadata;
-  }
-  removeFromStore() {
-    this.props.actions.removeTable(this.props.table);
   }
 
   render() {

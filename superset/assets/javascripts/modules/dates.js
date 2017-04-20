@@ -9,7 +9,7 @@ function UTC(dttm) {
     dttm.getUTCDate(),
     dttm.getUTCHours(),
     dttm.getUTCMinutes(),
-    dttm.getUTCSeconds()
+    dttm.getUTCSeconds(),
   );
 }
 export const tickMultiFormat = d3.time.format.multi([

@@ -2,14 +2,16 @@ import React from 'react';
 import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import URI from 'urijs';
+
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
-import URI from 'urijs';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
+  defaultDbId: React.PropTypes.number,
   databases: React.PropTypes.object.isRequired,
   queries: React.PropTypes.object.isRequired,
   queryEditors: React.PropTypes.array,
@@ -68,11 +70,6 @@ class TabbedSqlEditors extends React.PureComponent {
       this.popNewTab();
     }
   }
-  popNewTab() {
-    queryCount++;
-    // Clean the url in browser history
-    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
-  }
   componentWillReceiveProps(nextProps) {
     const nextActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
     const queriesArray = [];
@@ -95,6 +92,11 @@ class TabbedSqlEditors extends React.PureComponent {
     if (!areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)) {
       this.setState({ dataPreviewQueries });
     }
+  }
+  popNewTab() {
+    queryCount++;
+    // Clean the url in browser history
+    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
   renameTab(qe) {
     /* eslint no-alert: 0 */
@@ -190,7 +192,7 @@ class TabbedSqlEditors extends React.PureComponent {
               {isSelected &&
                 <SqlEditor
                   height={this.props.editorHeight}
-                  tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
+                  tables={this.props.tables.filter(t => (t.queryEditorId === qe.id))}
                   queryEditor={qe}
                   editorQueries={this.state.queriesArray}
                   dataPreviewQueries={this.state.dataPreviewQueries}
