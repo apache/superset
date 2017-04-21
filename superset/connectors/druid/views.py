@@ -135,6 +135,18 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, cluster):
         self.pre_add(cluster)
 
+    def post_delete(self, cluster):
+        logging.info("Clean up permission views for {}".format(cluster))
+
+        view_menu = sm.find_view_menu(cluster.get_perm())
+        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+            view_menu=view_menu).all()
+        for pv in pvs:
+            sm.get_session.delete(pv)
+        sm.get_session.delete(view_menu)
+        sm.get_session.commit()
+
+
 
 appbuilder.add_view(
     DruidClusterModelView,
@@ -226,6 +238,18 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_update(self, datasource):
         self.post_add(datasource)
+
+    def post_delete(self, datasource):
+        logging.info("Clean up permission views for {}".format(datasource))
+
+        view_menu = sm.find_view_menu(datasource.get_perm())
+        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+            view_menu=view_menu).all()
+        for pv in pvs:
+            sm.get_session.delete(pv)
+        sm.get_session.delete(view_menu)
+        sm.get_session.commit()
+
 
 appbuilder.add_view(
     DruidDatasourceModelView,

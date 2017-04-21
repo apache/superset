@@ -248,6 +248,32 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
+    def post_delete(self, db):
+        logging.info("Clean up permission views for {}".format(db))
+
+        db_view_menu = sm.find_view_menu(db.perm)
+        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+            view_menu=db_view_menu).all()
+
+        for pv in pvs:
+            sm.get_session.delete(pv)
+
+        sm.get_session.delete(db_view_menu)
+
+
+        for schema in db.all_schema_names():
+            schema_view_menu = sm.find_view_menu(utils.get_schema_perm(db, schema))
+
+            schema_pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=schema_view_menu).all()
+
+            for pv in schema_pvs:
+                sm.get_session.delete(pv)
+
+            sm.get_session.delete(schema_view_menu)
+
+        sm.get_session.commit()
+
 
 appbuilder.add_link(
     'Import Dashboards',

@@ -239,6 +239,28 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     def post_update(self, table):
         self.post_add(table, flash_message=False)
 
+    def post_delete(self, table):
+        logging.info("Clean up permission views for {}".format(table))
+
+        table_view_menu = sm.find_view_menu(table.get_perm())
+        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+            view_menu=table_view_menu).all()
+
+        schema_view_menu = sm.find_view_menu(table.schema_perm)
+
+        pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
+            view_menu=schema_view_menu).all())
+
+
+        for pv in pvs:
+            sm.get_session.delete(pv)
+
+        sm.get_session.delete(table_view_menu)
+        sm.get_session.delete(schema_view_menu)
+
+        sm.get_session.commit()
+
+
     @expose('/edit/<pk>', methods=['GET', 'POST'])
     @has_access
     def edit(self, pk):

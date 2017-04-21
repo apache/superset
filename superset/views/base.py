@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 
-from flask import g, redirect, Response
+from flask import g, redirect, Response, flash
 from flask_babel import gettext as __
 
 from flask_appbuilder import BaseView
@@ -181,7 +181,17 @@ class DeleteMixin(object):
     @action(
         "muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
     def muldelete(self, items):
-        self.datamodel.delete_all(items)
+        if not items:
+            abort(404)
+        for item in items:
+            try:
+                self.pre_delete(item)
+            except Exception as e:
+                flash(str(e), "danger")
+            else:
+                if self.datamodel.delete(item):
+                    self.post_delete(item)
+                flash(*self.datamodel.message)
         self.update_redirect()
         return redirect(self.get_redirect())
 
