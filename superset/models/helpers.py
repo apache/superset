@@ -12,6 +12,7 @@ from flask_appbuilder.models.decorators import renders
 from superset.utils import QueryStatus
 from superset import sm
 
+
 class ImportMixin(object):
     def override(self, obj):
         """Overrides the plain fields of the dashboard."""
@@ -116,6 +117,7 @@ class QueryResult(object):
         self.status = status
         self.error_message = error_message
 
+
 def merge_perm(sm, permission_name, view_menu_name, connection):
 
     permission = sm.find_permission(permission_name)
@@ -145,9 +147,12 @@ def merge_perm(sm, permission_name, view_menu_name, connection):
         permission_view_table = sm.permissionview_model.__table__
         connection.execute(
             permission_view_table.insert()
-            .values(permission_id=permission.id,
-            view_menu_id=view_menu.id)
+            .values(
+                permission_id=permission.id,
+                view_menu_id=view_menu.id
+                )
         )
+
 
 def set_perm(mapper, connection, target):  # noqa
 
