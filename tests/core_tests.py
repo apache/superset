@@ -609,8 +609,8 @@ class CoreTests(SupersetTestCase):
         for k in keys:
             self.assertIn(k, resp.keys())
 
-    def test_user_profile(self):
-        self.login(username='admin')
+    def test_user_profile(self, username='admin'):
+        self.login(username=username)
         slc = self.get_slice("Girls", db.session)
 
         # Setting some faves
@@ -640,6 +640,8 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp('/superset/fave_slices/{}/'.format(userid))
         self.assertNotIn('message', data)
         data = self.get_json_resp('/superset/fave_dashboards/{}/'.format(userid))
+        self.assertNotIn('message', data)
+        data = self.get_json_resp('/superset/fave_dashboards_by_username/{}/'.format(username))
         self.assertNotIn('message', data)
 
 
