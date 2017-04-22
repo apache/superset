@@ -302,7 +302,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "'{}'".format(iso)
 
     @classmethod
-    def get_table_names(cls, inspector, schema):
+    def get_table_names(cls, schema, inspector):
         """Need to disregard the schema for Sqlite"""
         return sorted(inspector.get_table_names())
 
