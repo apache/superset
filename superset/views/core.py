@@ -372,11 +372,10 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        flash(__(
-            "To create a new slice, you can open a data source "
-            "through the `Sources` menu, or alter an existing slice "
-            "from the `Slices` menu"), "info")
-        return redirect('/superset/welcome')
+        return self.render_template(
+            "superset/add-slice.html",
+            bootstrap_data=json.dumps({'data': 'data'}),
+        )
 
 appbuilder.add_view(
     SliceModelView,
