@@ -119,7 +119,7 @@ export default class Filter extends React.Component {
     const datasource = this.props.datasource;
     const filter = this.props.filter;
     const opsChoices = operatorsArr
-    .filter(o => {
+    .filter((o) => {
       if (this.props.having) {
         return !!o.havingOnly;
       }
@@ -129,7 +129,7 @@ export default class Filter extends React.Component {
     let colChoices;
     if (datasource) {
       if (this.props.having) {
-        colChoices = datasource.metrics_combo.map(c => ({value: c[0], label: c[1] }));
+        colChoices = datasource.metrics_combo.map(c => ({ value: c[0], label: c[1] }));
       } else {
         colChoices = datasource.filterable_cols.map(c => ({ value: c[0], label: c[1] }));
       }
