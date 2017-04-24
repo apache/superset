@@ -1,11 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Alert } from 'react-bootstrap';
 
 import QueryTable from './QueryTable';
 
 const propTypes = {
-  queries: React.PropTypes.array.isRequired,
-  actions: React.PropTypes.object.isRequired,
+  queries: PropTypes.array.isRequired,
+  actions: PropTypes.object.isRequired,
 };
 
 const QueryHistory = (props) => {

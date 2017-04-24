@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   Col,
   FormGroup,
@@ -23,15 +24,15 @@ import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  height: React.PropTypes.string.isRequired,
-  database: React.PropTypes.object,
-  latestQuery: React.PropTypes.object,
-  tables: React.PropTypes.array.isRequired,
-  editorQueries: React.PropTypes.array.isRequired,
-  dataPreviewQueries: React.PropTypes.array.isRequired,
-  queryEditor: React.PropTypes.object.isRequired,
-  hideLeftBar: React.PropTypes.bool,
+  actions: PropTypes.object.isRequired,
+  height: PropTypes.string.isRequired,
+  database: PropTypes.object,
+  latestQuery: PropTypes.object,
+  tables: PropTypes.array.isRequired,
+  editorQueries: PropTypes.array.isRequired,
+  dataPreviewQueries: PropTypes.array.isRequired,
+  queryEditor: PropTypes.object.isRequired,
+  hideLeftBar: PropTypes.bool,
 };
 
 const defaultProps = {

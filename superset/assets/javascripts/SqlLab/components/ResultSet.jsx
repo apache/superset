@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
 
@@ -7,14 +8,14 @@ import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 
 const propTypes = {
-  actions: React.PropTypes.object,
-  csv: React.PropTypes.bool,
-  query: React.PropTypes.object,
-  search: React.PropTypes.bool,
-  showSql: React.PropTypes.bool,
-  visualize: React.PropTypes.bool,
-  cache: React.PropTypes.bool,
-  height: React.PropTypes.number.isRequired,
+  actions: PropTypes.object,
+  csv: PropTypes.bool,
+  query: PropTypes.object,
+  search: PropTypes.bool,
+  showSql: PropTypes.bool,
+  visualize: PropTypes.bool,
+  cache: PropTypes.bool,
+  height: PropTypes.number.isRequired,
 };
 const defaultProps = {
   search: true,

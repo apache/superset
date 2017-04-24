@@ -1,11 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
-  triggerNode: React.PropTypes.node.isRequired,
-  code: React.PropTypes.string,
-  codeCallback: React.PropTypes.func,
+  triggerNode: PropTypes.node.isRequired,
+  code: PropTypes.string,
+  codeCallback: PropTypes.func,
 };
 
 const defaultProps = {

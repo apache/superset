@@ -3,7 +3,7 @@ import React from 'react';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 const propTypes = {
-  column: React.PropTypes.object.isRequired,
+  column: PropTypes.object.isRequired,
 };
 
 const iconMap = {

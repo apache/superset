@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
@@ -79,8 +80,8 @@ class App extends React.PureComponent {
 }
 
 App.propTypes = {
-  alerts: React.PropTypes.array,
-  actions: React.PropTypes.object,
+  alerts: PropTypes.array,
+  actions: PropTypes.object,
 };
 
 function mapStateToProps(state) {

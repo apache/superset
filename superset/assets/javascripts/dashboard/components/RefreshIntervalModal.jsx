@@ -1,11 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Select from 'react-select';
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
-  triggerNode: React.PropTypes.node.isRequired,
-  initialRefreshFrequency: React.PropTypes.number,
-  onChange: React.PropTypes.func,
+  triggerNode: PropTypes.node.isRequired,
+  initialRefreshFrequency: PropTypes.number,
+  onChange: PropTypes.func,
 };
 
 const defaultProps = {

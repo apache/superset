@@ -1,6 +1,7 @@
 import $ from 'jquery';
+import React from 'react';
+import PropTypes from 'prop-types';
 import Mustache from 'mustache';
-import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { Alert, Collapse, Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';

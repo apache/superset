@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import moment from 'moment';
 import { Table } from 'reactable';
@@ -13,11 +14,11 @@ import { fDuration } from '../../modules/dates';
 import { storeQuery } from '../../../utils/common';
 
 const propTypes = {
-  columns: React.PropTypes.array,
-  actions: React.PropTypes.object,
-  queries: React.PropTypes.array,
-  onUserClicked: React.PropTypes.func,
-  onDbClicked: React.PropTypes.func,
+  columns: PropTypes.array,
+  actions: PropTypes.object,
+  queries: PropTypes.array,
+  onUserClicked: PropTypes.func,
+  onDbClicked: PropTypes.func,
 };
 const defaultProps = {
   columns: ['started', 'duration', 'rows'],

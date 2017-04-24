@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
@@ -9,9 +10,9 @@ import ColumnElement from './ColumnElement';
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
-  table: React.PropTypes.object,
-  actions: React.PropTypes.object,
-  timeout: React.PropTypes.number,  // used for tests
+  table: PropTypes.object,
+  actions: PropTypes.object,
+  timeout: PropTypes.number,  // used for tests
 };
 
 const defaultProps = {

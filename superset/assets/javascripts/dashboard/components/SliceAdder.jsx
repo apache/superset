@@ -1,5 +1,6 @@
+import React from 'react';
 import $ from 'jquery';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
 
 import ModalTrigger from '../../components/ModalTrigger';

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
@@ -25,12 +26,12 @@ const sqlWords = sqlKeywords.map(s => ({
 }));
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  onBlur: React.PropTypes.func,
-  onAltEnter: React.PropTypes.func,
-  sql: React.PropTypes.string.isRequired,
-  tables: React.PropTypes.array,
-  queryEditor: React.PropTypes.object.isRequired,
+  actions: PropTypes.object.isRequired,
+  onBlur: PropTypes.func,
+  onAltEnter: PropTypes.func,
+  sql: PropTypes.string.isRequired,
+  tables: PropTypes.array,
+  queryEditor: PropTypes.object.isRequired,
 };
 
 const defaultProps = {

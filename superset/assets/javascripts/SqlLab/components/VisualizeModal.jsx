@@ -1,5 +1,6 @@
 /* global notify */
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Alert, Button, Col, Modal } from 'react-bootstrap';
 
 import Select from 'react-select';
@@ -16,9 +17,9 @@ const CHART_TYPES = [
 ];
 
 const propTypes = {
-  onHide: React.PropTypes.func,
-  query: React.PropTypes.object,
-  show: React.PropTypes.bool,
+  onHide: PropTypes.func,
+  query: PropTypes.object,
+  show: PropTypes.bool,
 };
 const defaultProps = {
   show: false,
