@@ -134,16 +134,16 @@ def string_to_num(s):
 
     Returns ``None`` if it can't be converted
 
-    >>> '5'
+    >>> string_to_num('5')
     5
-    >>> '5.2'
+    >>> string_to_num('5.2')
     5.2
-    >>> 10
+    >>> string_to_num(10)
     10
-    >>> 10.1
+    >>> string_to_num(10.1)
     10.1
-    >>> 'this is not a string'
-    None
+    >>> string_to_num('this is not a string') is None
+    True
     """
     if isinstance(s, (int, float)):
         return s
