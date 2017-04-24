@@ -32,8 +32,11 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidMount() {
-    this.props.actions.fetchDatasources();
+    if (!this.props.standalone) {
+      this.props.actions.fetchDatasources();
+    }
     window.addEventListener('resize', this.handleResize.bind(this));
+    this.triggerQueryIfNeeded();
   }
 
   componentWillReceiveProps(np) {
@@ -47,9 +50,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidUpdate() {
-    if (this.props.triggerQuery && !this.hasErrors()) {
-      this.runQuery();
-    }
+    this.triggerQueryIfNeeded();
   }
 
   componentWillUnmount() {
@@ -61,7 +62,8 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.removeControlPanelAlert();
     this.props.actions.removeChartAlert();
 
-    this.runQuery();
+    this.props.actions.triggerQuery();
+
     history.pushState(
       {},
       document.title,
@@ -81,8 +83,10 @@ class ExploreViewContainer extends React.Component {
   }
 
 
-  runQuery() {
-    this.props.actions.runQuery(this.props.form_data);
+  triggerQueryIfNeeded() {
+    if (this.props.triggerQuery && !this.hasErrors()) {
+      this.props.actions.runQuery(this.props.form_data);
+    }
   }
 
   handleResize() {
