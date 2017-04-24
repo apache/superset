@@ -1399,7 +1399,6 @@ class Superset(BaseSupersetView):
             mimetype='text/json',
         )
 
-
     @api
     @has_access_api
     @expose("/fave_dashboards_by_username/<username>/", methods=['GET'])
@@ -1407,7 +1406,6 @@ class Superset(BaseSupersetView):
         """This lets us use a user's username to pull favourite dashboards"""
         user = sm.find_user(username=username)
         return self.fave_dashboards(user.get_id())
-
 
     @api
     @has_access_api
