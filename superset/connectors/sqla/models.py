@@ -474,7 +474,7 @@ class SqlaTable(Model, BaseDatasource):
 
                         # Removing empty strings and non numeric values
                         # targeting numeric columns
-                        if v:
+                        if v is not None:
                             values.append(v)
                     cond = col_obj.sqla_col.in_(values)
                     if op == 'not in':
