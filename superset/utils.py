@@ -128,14 +128,32 @@ class memoized(object):  # noqa
 def js_string_to_python(item):
     return None if item in ('null', 'undefined') else item
 
-def js_string_to_num(item):
-    if item.isdigit():
-        return int(item)
-    s = item
-    try:
-        s = float(item)
-    except ValueError:
+
+def string_to_num(s):
+    """Converts a string to an int/float
+
+    Returns ``None`` if it can't be converted
+
+    >>> '5'
+    5
+    >>> '5.2'
+    5.2
+    >>> 10
+    10
+    >>> 10.1
+    10.1
+    >>> 'this is not a string'
+    None
+    """
+    if isinstance(s, (int, float)):
         return s
+    if s.isdigit():
+        return int(s)
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
 
 class DimSelector(Having):
     def __init__(self, **args):
