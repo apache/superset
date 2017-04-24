@@ -931,7 +931,6 @@ class DruidDatasource(Model, BaseDatasource):
             if 'is_timeseries' in query_obj else True
         if (
                 not is_timeseries and
-                query_obj['granularity'] == "all" and
                 DTTM_ALIAS in df.columns):
             del df[DTTM_ALIAS]
 
