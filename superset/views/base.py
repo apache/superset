@@ -29,7 +29,7 @@ def get_error_msg():
 
 
 def json_error_response(msg, status=None, stacktrace=None):
-    data = {'error': msg}
+    data = {'error': str(msg)}
     if stacktrace:
         data['stacktrace'] = stacktrace
     status = status if status else 500

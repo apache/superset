@@ -22,6 +22,10 @@ const defaultProps = {
     type: 'qtable',
     filter_select: false,
     filterable_cols: ['col1', 'col2'],
+    metrics_combo: [
+      ['m1', 'v1'],
+      ['m2', 'v2'],
+    ],
   },
 };
 
@@ -46,7 +50,7 @@ describe('Filter', () => {
   });
 
   it('renders five op choices for table datasource', () => {
-    const props = defaultProps;
+    const props = Object.assign({}, defaultProps);
     props.datasource = {
       id: 1,
       type: 'druid',
@@ -58,10 +62,10 @@ describe('Filter', () => {
   });
 
   it('renders six op choices for having filter', () => {
-    const props = defaultProps;
+    const props = Object.assign({}, defaultProps);
     props.having = true;
     const havingWrapper = shallow(<Filter {...props} />);
-    expect(havingWrapper.find('#select-op').prop('options')).to.have.lengthOf(9);
+    expect(havingWrapper.find('#select-op').prop('options')).to.have.lengthOf(6);
   });
 
   it('calls changeFilter when select is changed', () => {
@@ -75,7 +79,7 @@ describe('Filter', () => {
   });
 
   it('renders input for regex filters', () => {
-    const props = defaultProps;
+    const props = Object.assign({}, defaultProps);
     props.filter = {
       col: null,
       op: 'regex',
