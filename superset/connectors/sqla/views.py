@@ -142,7 +142,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'link', 'database', 'changed_on_']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
-        'table_name', 'sql', 'filter_select_enabled',
+        'table_name', 'sql', 'filter_select_enabled', 'slices',
         'fetch_values_predicate', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
@@ -150,6 +150,14 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
+        'slices': _(
+            "The list of slices associated with this table. By "
+            "altering this datasource, you may change how these associated "
+            "slices behave. "
+            "Also note that slices need to point to a datasource, so "
+            "this form will fail at saving if removing slices from a "
+            "datasource. If you want to change the datasource for a slice, "
+            "overwrite the slice from the 'explore view'"),
         'offset': _("Timezone offset (in hours) for this datasource"),
         'table_name': _(
             "Name of the table that exists in the source database"),
@@ -179,6 +187,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
+        'slices': _("Associated Slices"),
         'link': _("Table"),
         'changed_by_': _("Changed By"),
         'database': _("Database"),
