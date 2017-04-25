@@ -13,9 +13,13 @@ dt(window, $);
 module.exports = function (slice, payload) {
   const container = slice.container;
   const fd = slice.formData;
+  const height = container.height();
+  container.css({
+    overflow: 'auto',
+    height: `${height+10}px`,
+  });
   container.html(payload.data);
   if (fd.groupby.length === 1) {
-    const height = container.height();
     const table = container.find('table').DataTable({
       paging: false,
       searching: false,
