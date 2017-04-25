@@ -467,7 +467,7 @@ class SqlaTable(Model, BaseDatasource):
             col_obj = cols.get(col)
             if col_obj:
                 if op in ('in', 'not in'):
-                    values = [types.strip("'").strip('"') for types in eq]
+                    values = [str(types).strip("'").strip('"') for types in eq]
                     if col_obj.is_num:
                         values = [utils.js_string_to_num(s) for s in values]
                     cond = col_obj.sqla_col.in_(values)
