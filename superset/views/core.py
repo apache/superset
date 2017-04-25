@@ -1401,6 +1401,14 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose("/fave_dashboards_by_username/<username>/", methods=['GET'])
+    def fave_dashboards_by_username(self, username):
+        """This lets us use a user's username to pull favourite dashboards"""
+        user = sm.find_user(username=username)
+        return self.fave_dashboards(user.get_id())
+
+    @api
+    @has_access_api
     @expose("/fave_dashboards/<user_id>/", methods=['GET'])
     def fave_dashboards(self, user_id):
         qry = (
