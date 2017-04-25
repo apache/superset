@@ -1,10 +1,9 @@
 import 'datatables.net';
 import dt from 'datatables.net-bs';
-import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import $ from 'jquery';
-
-import './pivot_table.css';
 import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
+import './pivot_table.css';
 
 dt(window, $);
 
@@ -37,6 +36,6 @@ module.exports = function (slice, payload) {
     // the DataTable plugin, so we need to handle the scrolling ourselves.
     // In this case the header is not fixed.
     container.css('overflow', 'auto');
-    container.css('height', `${height+10}px`);
+    container.css('height', `${height + 10}px`);
   }
 };
