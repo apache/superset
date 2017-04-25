@@ -991,7 +991,7 @@ export const controls = {
     description: 'Overlay a timeseries from a ' +
                  'relative time period. Expects relative time delta ' +
                  'in natural language (example:  24 hours, 7 days, ' +
-                 '56 weeks, 365 days',
+                 '56 weeks, 365 days)',
   },
 
   subheader: {

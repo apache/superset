@@ -155,7 +155,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'datasource_link', 'changed_on_', 'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'slices', 'description', 'owner',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -164,6 +164,14 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
+        'slices': _(
+            "The list of slices associated with this table. By "
+            "altering this datasource, you may change how these associated "
+            "slices behave. "
+            "Also note that slices need to point to a datasource, so "
+            "this form will fail at saving if removing slices from a "
+            "datasource. If you want to change the datasource for a slice, "
+            "overwrite the slice from the 'explore view'"),
         'offset': _("Timezone offset (in hours) for this datasource"),
         'description': Markup(
             "Supports <a href='"
@@ -185,6 +193,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
+        'slices': _("Associated Slices"),
         'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
         'description': _("Description"),

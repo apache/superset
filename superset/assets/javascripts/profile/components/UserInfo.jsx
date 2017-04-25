@@ -1,10 +1,11 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Gravatar from 'react-gravatar';
 import moment from 'moment';
 import { Panel } from 'react-bootstrap';
 
 const propTypes = {
-  user: React.PropTypes.object.isRequired,
+  user: PropTypes.object.isRequired,
 };
 const UserInfo = ({ user }) => (
   <div>

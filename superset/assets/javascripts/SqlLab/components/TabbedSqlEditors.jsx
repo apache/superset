@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -10,14 +11,14 @@ import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  defaultDbId: React.PropTypes.number,
-  databases: React.PropTypes.object.isRequired,
-  queries: React.PropTypes.object.isRequired,
-  queryEditors: React.PropTypes.array,
-  tabHistory: React.PropTypes.array.isRequired,
-  tables: React.PropTypes.array.isRequired,
-  editorHeight: React.PropTypes.string.isRequired,
+  actions: PropTypes.object.isRequired,
+  defaultDbId: PropTypes.number,
+  databases: PropTypes.object.isRequired,
+  queries: PropTypes.object.isRequired,
+  queryEditors: PropTypes.array,
+  tabHistory: PropTypes.array.isRequired,
+  tables: PropTypes.array.isRequired,
+  editorHeight: PropTypes.string.isRequired,
 };
 const defaultProps = {
   queryEditors: [],

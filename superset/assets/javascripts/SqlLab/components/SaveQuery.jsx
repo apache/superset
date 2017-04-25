@@ -1,15 +1,16 @@
 /* global notify */
 import React from 'react';
+import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Overlay, Popover, Row, Col } from 'react-bootstrap';
 import Button from '../../components/Button';
 
 const propTypes = {
-  defaultLabel: React.PropTypes.string,
-  sql: React.PropTypes.string,
-  schema: React.PropTypes.string,
-  dbId: React.PropTypes.number,
-  animation: React.PropTypes.bool,
-  onSave: React.PropTypes.func,
+  defaultLabel: PropTypes.string,
+  sql: PropTypes.string,
+  schema: PropTypes.string,
+  dbId: PropTypes.number,
+  animation: PropTypes.bool,
+  onSave: PropTypes.func,
 };
 const defaultProps = {
   defaultLabel: 'Undefined',

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
 import { getAjaxErrorMsg, showModal } from '../../modules/utils';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -6,9 +7,9 @@ import ModalTrigger from '../../components/ModalTrigger';
 const $ = window.$ = require('jquery');
 
 const propTypes = {
-  css: React.PropTypes.string,
-  dashboard: React.PropTypes.object.isRequired,
-  triggerNode: React.PropTypes.node.isRequired,
+  css: PropTypes.string,
+  dashboard: PropTypes.object.isRequired,
+  triggerNode: PropTypes.node.isRequired,
 };
 
 class SaveModal extends React.PureComponent {

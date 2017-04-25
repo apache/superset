@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -10,11 +11,11 @@ const defaultProps = {
 };
 
 const propTypes = {
-  sql: React.PropTypes.string.isRequired,
-  rawSql: React.PropTypes.string,
-  maxWidth: React.PropTypes.number,
-  maxLines: React.PropTypes.number,
-  shrink: React.PropTypes.bool,
+  sql: PropTypes.string.isRequired,
+  rawSql: PropTypes.string,
+  maxWidth: PropTypes.number,
+  maxLines: PropTypes.number,
+  shrink: PropTypes.bool,
 };
 
 class HighlightedSql extends React.Component {

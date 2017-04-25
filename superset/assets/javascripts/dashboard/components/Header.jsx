@@ -1,9 +1,10 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import Controls from './Controls';
 
 const propTypes = {
-  dashboard: React.PropTypes.object,
+  dashboard: PropTypes.object,
 };
 const defaultProps = {
 };

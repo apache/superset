@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { ButtonGroup } from 'react-bootstrap';
 
 import Button from '../../components/Button';
@@ -11,7 +12,7 @@ import SliceAdder from './SliceAdder';
 const $ = window.$ = require('jquery');
 
 const propTypes = {
-  dashboard: React.PropTypes.object.isRequired,
+  dashboard: PropTypes.object.isRequired,
 };
 
 class Controls extends React.PureComponent {

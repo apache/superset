@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from '../actions';
@@ -48,9 +49,9 @@ class QueryAutoRefresh extends React.PureComponent {
   }
 }
 QueryAutoRefresh.propTypes = {
-  queries: React.PropTypes.object.isRequired,
-  actions: React.PropTypes.object.isRequired,
-  queriesLastUpdate: React.PropTypes.number.isRequired,
+  queries: PropTypes.object.isRequired,
+  actions: PropTypes.object.isRequired,
+  queriesLastUpdate: PropTypes.number.isRequired,
 };
 
 function mapStateToProps(state) {

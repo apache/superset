@@ -331,6 +331,11 @@ class DruidDatasource(Model, BaseDatasource):
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params'
     )
+    slices = relationship(
+        'Slice',
+        primaryjoin=(
+            "DruidDatasource.id == foreign(Slice.datasource_id) and "
+            "Slice.datasource_type == 'druid'"))
 
     @property
     def database(self):
@@ -835,7 +840,7 @@ class DruidDatasource(Model, BaseDatasource):
             qry['having'] = having_filters
 
         orig_filters = filters
-        if len(groupby) == 0:
+        if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
         if not having_filters and len(groupby) == 1:
@@ -931,7 +936,6 @@ class DruidDatasource(Model, BaseDatasource):
             if 'is_timeseries' in query_obj else True
         if (
                 not is_timeseries and
-                query_obj['granularity'] == "all" and
                 DTTM_ALIAS in df.columns):
             del df[DTTM_ALIAS]
 

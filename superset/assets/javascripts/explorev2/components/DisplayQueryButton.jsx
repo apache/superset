@@ -1,4 +1,5 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
 
@@ -46,11 +47,12 @@ export default class DisplayQueryButton extends React.PureComponent {
           language: data.language,
           query: data.query,
           isLoading: false,
+          error: null,
         });
       },
       error: (data) => {
         this.setState({
-          error: data.error,
+          error: data.responseJSON ? data.responseJSON.error : 'Error...',
           isLoading: false,
         });
       },

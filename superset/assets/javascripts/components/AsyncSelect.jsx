@@ -1,15 +1,16 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Select from 'react-select';
 
 const $ = window.$ = require('jquery');
 
 const propTypes = {
-  dataEndpoint: React.PropTypes.string.isRequired,
-  onChange: React.PropTypes.func.isRequired,
-  mutator: React.PropTypes.func.isRequired,
-  value: React.PropTypes.number,
-  valueRenderer: React.PropTypes.func,
-  placeholder: React.PropTypes.string,
+  dataEndpoint: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  mutator: PropTypes.func.isRequired,
+  value: PropTypes.number,
+  valueRenderer: PropTypes.func,
+  placeholder: PropTypes.string,
 };
 
 const defaultProps = {
