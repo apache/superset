@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import Select from 'react-select';
 
 import AceEditor from 'react-ace';
@@ -8,10 +9,10 @@ import 'brace/theme/github';
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
-  initialCss: React.PropTypes.string,
-  triggerNode: React.PropTypes.node.isRequired,
-  onChange: React.PropTypes.func,
-  templates: React.PropTypes.array,
+  initialCss: PropTypes.string,
+  triggerNode: PropTypes.node.isRequired,
+  onChange: PropTypes.func,
+  templates: PropTypes.array,
 };
 
 const defaultProps = {

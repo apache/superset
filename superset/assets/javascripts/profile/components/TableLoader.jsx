@@ -1,12 +1,13 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Table, Tr, Td } from 'reactable';
 import { Collapse } from 'react-bootstrap';
 import $ from 'jquery';
 
 const propTypes = {
-  dataEndpoint: React.PropTypes.string.isRequired,
-  mutator: React.PropTypes.func,
-  columns: React.PropTypes.arrayOf(React.PropTypes.string),
+  dataEndpoint: PropTypes.string.isRequired,
+  mutator: PropTypes.func,
+  columns: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default class TableLoader extends React.PureComponent {

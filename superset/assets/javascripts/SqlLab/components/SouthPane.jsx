@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import shortid from 'shortid';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
@@ -13,10 +14,10 @@ import ResultSet from './ResultSet';
     dataPrebiewQueries are all queries executed for preview of table data (from SqlEditorLeft)
 */
 const propTypes = {
-  editorQueries: React.PropTypes.array.isRequired,
-  dataPreviewQueries: React.PropTypes.array.isRequired,
-  actions: React.PropTypes.object.isRequired,
-  activeSouthPaneTab: React.PropTypes.string,
+  editorQueries: PropTypes.array.isRequired,
+  dataPreviewQueries: PropTypes.array.isRequired,
+  actions: PropTypes.object.isRequired,
+  activeSouthPaneTab: PropTypes.string,
 };
 
 const defaultProps = {

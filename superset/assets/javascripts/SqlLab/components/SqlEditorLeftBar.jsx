@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import createFilterOptions from 'react-select-fast-filter-options';
@@ -9,10 +10,10 @@ import AsyncSelect from '../../components/AsyncSelect';
 const $ = window.$ = require('jquery');
 
 const propTypes = {
-  queryEditor: React.PropTypes.object.isRequired,
-  height: React.PropTypes.number.isRequired,
-  tables: React.PropTypes.array,
-  actions: React.PropTypes.object,
+  queryEditor: PropTypes.object.isRequired,
+  height: PropTypes.number.isRequired,
+  tables: PropTypes.array,
+  actions: PropTypes.object,
 };
 
 const defaultProps = {

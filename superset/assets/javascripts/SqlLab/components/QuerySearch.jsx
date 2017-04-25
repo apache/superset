@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
 import QueryTable from './QueryTable';
@@ -10,8 +11,8 @@ import AsyncSelect from '../../components/AsyncSelect';
 const $ = window.$ = require('jquery');
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  height: React.PropTypes.number.isRequired,
+  actions: PropTypes.object.isRequired,
+  height: PropTypes.number.isRequired,
 };
 
 class QuerySearch extends React.PureComponent {
