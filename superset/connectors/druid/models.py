@@ -361,7 +361,7 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def schema_perm(self):
         """Returns schema permission if present, cluster one otherwise."""
-        return utils.get_schema_perm(self.cluster, self.schema)
+        return utils.get_schema_perm(self.cluster_name, self.schema)
 
     def get_perm(self):
         return (

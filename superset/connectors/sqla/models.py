@@ -171,6 +171,7 @@ class SqlaTable(Model, BaseDatasource):
         'User',
         backref='tables',
         foreign_keys=[user_id])
+    database_name = Column(String(250))
     database = relationship(
         'Database',
         backref=backref('tables', cascade='all, delete-orphan'),
@@ -210,11 +211,11 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def schema_perm(self):
         """Returns schema permission if present, database one otherwise."""
-        return utils.get_schema_perm(self.database, self.schema)
+        return utils.get_schema_perm(self.database_name, self.schema)
 
     def get_perm(self):
         return (
-            "[{obj.database}].[{obj.table_name}]"
+            "[{obj.database_name}].[{obj.table_name}]"
             "(id:{obj.id})").format(obj=self)
 
     @property
@@ -573,6 +574,8 @@ class SqlaTable(Model, BaseDatasource):
             raise Exception(
                 "Table doesn't seem to exist in the specified database, "
                 "couldn't fetch column information")
+
+        self.database_name = self.database.database_name
 
         TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa
