@@ -226,6 +226,18 @@ def load_world_bank_health_n_pop():
                 metric='sum__SP_POP_TOTL',
                 compare_suffix="over 10Y")),
         Slice(
+            slice_name="World's Culture",
+            viz_type='big_string',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                since='2005',
+                viz_type='big_string',
+                compare_lag="10",
+                metric='str__SP_WORLD_CULTURE',
+                compare_suffix="over 15Y")),
+        Slice(
             slice_name="Most Populated Countries",
             viz_type='table',
             datasource_type='table',
@@ -632,6 +644,15 @@ def load_birth_names():
                 defaults,
                 viz_type="big_number", granularity="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
+        Slice(
+            slice_name="Culture",
+            viz_type='big_string',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                viz_type="big_string", granularity="ds",
+                compare_lag="6", compare_suffix="over 6Y")),
         Slice(
             slice_name="Genders",
             viz_type='pie',

@@ -419,6 +419,30 @@ const visTypes = {
     ],
   },
 
+  /* big string start */
+
+  big_string: {
+    label: 'Big String with Trendline',
+    controlPanelSections: [
+      {
+        label: null,
+        controlSetRows: [
+          ['metric'],
+          ['compare_lag'],
+          ['compare_suffix'],
+          ['y_axis_format'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      y_axis_format: {
+        label: 'String format',
+      },
+    },
+  },
+
+  /* big string end */
+  
   big_number: {
     label: 'Big Number with Trendline',
     controlPanelSections: [

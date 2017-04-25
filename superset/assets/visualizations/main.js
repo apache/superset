@@ -2,6 +2,7 @@
 const vizMap = {
   area: require('./nvd3_vis.js'),
   bar: require('./nvd3_vis.js'),
+  big_string: require('./big_string.js'),
   big_number: require('./big_number.js'),
   big_number_total: require('./big_number.js'),
   box_plot: require('./nvd3_vis.js'),
