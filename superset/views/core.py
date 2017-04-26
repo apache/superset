@@ -120,6 +120,14 @@ def check_ownership(obj, raise_if_false=True):
     else:
         return False
 
+def get_short_url(url):
+    obj = models.Url(url=url)
+    session = db.session()
+    session.add(obj)
+    session.commit()
+    return("http://{request.headers[Host]}/r/{obj.id}".format(
+        request=request, obj=obj))
+
 
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
@@ -593,11 +601,7 @@ class R(BaseSupersetView):
     @expose("/shortner/", methods=['POST', 'GET'])
     def shortner(self):
         url = request.form.get('data')
-        obj = models.Url(url=url)
-        db.session.add(obj)
-        db.session.commit()
-        return("http://{request.headers[Host]}/r/{obj.id}".format(
-            request=request, obj=obj))
+        return get_short_url(url)
 
     @expose("/msg/")
     def msg(self):
@@ -1146,7 +1150,7 @@ class Superset(BaseSupersetView):
         if request.args.get('goto_dash') == 'true':
             return dash.url
         else:
-            return slc.slice_url
+            return get_short_url('/' + slc.slice_url)
 
     def save_slice(self, slc):
         session = db.session()
