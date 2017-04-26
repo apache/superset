@@ -980,9 +980,9 @@ class DruidDatasource(Model, BaseDatasource):
                 eq = eq[0] if len(eq) > 0 else ''
             if col in self.num_cols:
                 if op in ('in', 'not in'):
-                    eq = [utils.js_string_to_num(v) for v in eq]
+                    eq = [utils.string_to_num(v) for v in eq]
                 else:
-                    eq = utils.js_string_to_num(eq)
+                    eq = utils.string_to_num(eq)
             if op == '==':
                 cond = Dimension(col) == eq
             elif op == '!=':
