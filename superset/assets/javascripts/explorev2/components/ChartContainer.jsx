@@ -81,11 +81,8 @@ class ChartContainer extends React.PureComponent {
           // this should be a callback to clear the contents of the slice container
           $(this.state.selector).html(data);
         },
-        css: (dim, size) => {
-          // dimension can be 'height'
-          // pixel string can be '300px'
-          // should call callback to adjust height of chart
-          $(this.state.selector).css(dim, size);
+        css: (property, value) => {
+          $(this.state.selector).css(property, value);
         },
         height: getHeight,
         show: () => { },
