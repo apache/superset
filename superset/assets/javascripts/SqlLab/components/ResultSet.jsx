@@ -38,6 +38,12 @@ export default class ResultSet extends React.PureComponent {
       height: props.search ? props.height - RESULT_SET_CONTROLS_HEIGHT : props.height,
     };
   }
+  // componentDidMount() {
+  //   // if the previous state/query failed, retry query on reload.
+  //   if (this.props.query.state === 'failed') {
+  //     this.props.actions.runQuery(this.props.query);
+  //   }
+  // }
   componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
     if (this.props.cache && (!nextProps.query.cached)
