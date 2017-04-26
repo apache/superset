@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 
-from flask import g, redirect, Response, flash
+from flask import g, redirect, Response, flash, abort
 from flask_babel import gettext as __
 
 from flask_appbuilder import BaseView

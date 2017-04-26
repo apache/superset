@@ -146,8 +146,6 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
         sm.get_session.delete(view_menu)
         sm.get_session.commit()
 
-
-
 appbuilder.add_view(
     DruidClusterModelView,
     name="Druid Clusters",

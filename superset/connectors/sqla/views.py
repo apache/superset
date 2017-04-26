@@ -251,7 +251,6 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
             view_menu=schema_view_menu).all())
 
-
         for pv in pvs:
             sm.get_session.delete(pv)
 
@@ -259,7 +258,6 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         sm.get_session.delete(schema_view_menu)
 
         sm.get_session.commit()
-
 
     @expose('/edit/<pk>', methods=['GET', 'POST'])
     @has_access
