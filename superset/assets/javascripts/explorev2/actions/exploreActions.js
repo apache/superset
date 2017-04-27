@@ -231,12 +231,12 @@ export function saveSlice(url, formData) {
           if (data.dash_url) {
             window.location = data.dash_url;
           } else {
-            notify.success('Your slice was saved')
+            notify.success('Your slice was saved');
           }
         } else {
           dispatch(saveSliceFailed());
         }
-      }
+      },
     });
   };
 }

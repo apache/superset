@@ -984,7 +984,8 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access
-    @expose("/explore/<datasource_type>/<datasource_id>/", methods=["GET", "POST"])
+    @expose("/explore/<datasource_type>/<datasource_id>/",
+        methods=["GET", "POST"])
     def explore(self, datasource_type, datasource_id):
         form_data = self.get_form_data()
 
@@ -1106,9 +1107,9 @@ class Superset(BaseSupersetView):
                 form_data.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
-        form_data.pop('goto_dash') # don't save this param
-        form_data.pop('add_to_dash') # don't save this param
-        form_data.pop('action') # don't save this param
+        form_data.pop('goto_dash')  # don't save this param
+        form_data.pop('add_to_dash')  # don't save this param
+        form_data.pop('action')  # don't save this param
 
         slc.params = json.dumps(form_data)
         slc.datasource_name = form_data.get('datasource_name')
