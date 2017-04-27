@@ -1152,13 +1152,11 @@ class Superset(BaseSupersetView):
             db.session.commit()
 
         if goto_dash:
-            return_data = {
-                'dash_url': dash.url
-            }
+            url = dash.url
         else:
-            return_data = {}
+            url = slc.slice_url
 
-        return json_success(json.dumps(return_data))
+        return json_success(json.dumps({ 'url': url }))
 
     def save_slice(self, slc):
         session = db.session()

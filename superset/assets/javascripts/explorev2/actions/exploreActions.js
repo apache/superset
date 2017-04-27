@@ -1,4 +1,3 @@
-/* global notify */
 /* eslint camelcase: 0 */
 import { getExploreUrl } from '../exploreUtils';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
@@ -228,11 +227,7 @@ export function saveSlice(url, formData) {
       contentType: 'application/json',
       success: (data, status) => {
         if (status === 'success') {
-          if (data.dash_url) {
-            window.location = data.dash_url;
-          } else {
-            notify.success('Your slice was saved');
-          }
+          window.location = data.url;
         } else {
           dispatch(saveSliceFailed());
         }
