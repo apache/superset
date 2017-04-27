@@ -1156,7 +1156,6 @@ class Superset(BaseSupersetView):
         else:
             return slc.slice_url
 
-
     def save_slice(self, slc):
         session = db.session()
         msg = "Slice [{}] has been saved".format(slc.slice_name)
