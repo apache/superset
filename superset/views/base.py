@@ -179,7 +179,12 @@ def validate_json(form, field):  # noqa
 
 class DeleteMixin(object):
     @action(
-        "muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
+        "muldelete",
+        __("Delete"),
+        __("Delete all Really?"),
+        "fa-trash",
+        single=False
+    )
     def muldelete(self, items):
         self.datamodel.delete_all(items)
         self.update_redirect()
