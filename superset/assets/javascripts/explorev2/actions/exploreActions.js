@@ -1,3 +1,4 @@
+/* global notify */
 /* eslint camelcase: 0 */
 import { getExploreUrl } from '../exploreUtils';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
@@ -218,14 +219,23 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
-export function saveSlice(url) {
+export function saveSlice(url, formData) {
   return function (dispatch) {
-    $.get(url, (data, status) => {
-      if (status === 'success') {
-        // Go to new slice url or dashboard url
-        window.location = data;
-      } else {
-        dispatch(saveSliceFailed());
+    $.ajax({
+      type: 'POST',
+      url,
+      data: JSON.stringify({ form_data: formData }),
+      contentType: 'application/json',
+      success: (data, status) => {
+        if (status === 'success') {
+          if (data.dash_url) {
+            window.location = data.dash_url;
+          } else {
+            notify.success('Your slice was saved')
+          }
+        } else {
+          dispatch(saveSliceFailed());
+        }
       }
     });
   };

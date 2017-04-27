@@ -859,19 +859,19 @@ class Superset(BaseSupersetView):
     def get_form_data(self):
         # get form data from url
         if request.args.get("form_data"):
-            form_data = request.args.get("form_data")
+            form_data = json.loads(request.args.get("form_data"))
         elif request.form.get("form_data"):
             # Supporting POST as well as get
-            form_data = request.form.get("form_data")
+            form_data = json.loads(request.form.get("form_data"))
+        elif request.json['form_data']:
+            form_data = request.json['form_data']
         else:
             form_data = '{}'
 
-        d = json.loads(form_data)
-
         if request.args.get("viz_type"):
             # Converting old URLs
-            d = cast_form_data(request.args)
-        return d
+            form_data = cast_form_data(request.args)
+        return form_data
 
     def get_viz(
             self,
@@ -988,7 +988,7 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access
-    @expose("/explore/<datasource_type>/<datasource_id>/")
+    @expose("/explore/<datasource_type>/<datasource_id>/", methods=["GET", "POST"])
     def explore(self, datasource_type, datasource_id):
         form_data = self.get_form_data()
 
@@ -1031,17 +1031,18 @@ class Superset(BaseSupersetView):
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         # handle save or overwrite
-        action = request.args.get('action')
+        action = form_data.get('action')
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
-                request.args,
-                slc, slice_add_perm,
+                form_data,
+                slc,
+                slice_add_perm,
                 slice_overwrite_perm,
                 datasource_id,
                 datasource_type)
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
-        standalone = request.args.get("standalone") == "true"
+        standalone = form_data.get("standalone") == "true"
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
@@ -1054,11 +1055,12 @@ class Superset(BaseSupersetView):
             "slice": slc.data if slc else None,
             "standalone": standalone,
             "user_id": user_id,
-            "forced_height": request.args.get('height'),
+            "forced_height": form_data.get('height'),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
             else datasource.datasource_name
+
         return self.render_template(
             "superset/explorev2.html",
             bootstrap_data=json.dumps(bootstrap_data),
@@ -1095,20 +1097,25 @@ class Superset(BaseSupersetView):
         return json_success(payload)
 
     def save_or_overwrite_slice(
-            self, args, slc, slice_add_perm, slice_overwrite_perm,
+            self, form_data, slc, slice_add_perm, slice_overwrite_perm,
             datasource_id, datasource_type):
         """Save or overwrite a slice"""
-        slice_name = args.get('slice_name')
-        action = args.get('action')
-        form_data = self.get_form_data()
+        slice_name = form_data.get('slice_name')
+        action = form_data.get('action')
+        goto_dash = form_data.get('goto_dash')
+        add_to_dash = form_data.get('add_to_dash')
 
         if action in ('saveas'):
             if 'slice_id' in form_data:
                 form_data.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
+        form_data.pop('goto_dash') # don't save this param
+        form_data.pop('add_to_dash') # don't save this param
+        form_data.pop('action') # don't save this param
+
         slc.params = json.dumps(form_data)
-        slc.datasource_name = args.get('datasource_name')
+        slc.datasource_name = form_data.get('datasource_name')
         slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
@@ -1121,10 +1128,10 @@ class Superset(BaseSupersetView):
 
         # Adding slice to a dashboard if requested
         dash = None
-        if request.args.get('add_to_dash') == 'existing':
+        if add_to_dash == 'existing':
             dash = (
                 db.session.query(models.Dashboard)
-                .filter_by(id=int(request.args.get('save_to_dashboard_id')))
+                .filter_by(id=int(form_data.get('save_to_dashboard_id')))
                 .one()
             )
             flash(
@@ -1132,9 +1139,9 @@ class Superset(BaseSupersetView):
                     slc.slice_name,
                     dash.dashboard_title),
                 "info")
-        elif request.args.get('add_to_dash') == 'new':
+        elif add_to_dash == 'new':
             dash = models.Dashboard(
-                dashboard_title=request.args.get('new_dashboard_name'),
+                dashboard_title=form_data.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
             flash(
                 "Dashboard [{}] just got created and slice [{}] was added "
@@ -1147,10 +1154,14 @@ class Superset(BaseSupersetView):
             dash.slices.append(slc)
             db.session.commit()
 
-        if request.args.get('goto_dash') == 'true':
-            return dash.url
+        if goto_dash:
+            return_data = {
+                'dash_url': dash.url
+            }
         else:
-            return get_short_url('/' + slc.slice_url)
+            return_data = {}
+
+        return json_success(json.dumps(return_data))
 
     def save_slice(self, slc):
         session = db.session()
