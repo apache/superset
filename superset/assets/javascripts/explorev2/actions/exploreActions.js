@@ -227,7 +227,7 @@ export function saveSlice(url, formData) {
       contentType: 'application/json',
       success: (data, status) => {
         if (status === 'success') {
-          window.location = data.url;
+          window.location = data;
         } else {
           dispatch(saveSliceFailed());
         }

@@ -985,7 +985,7 @@ class Superset(BaseSupersetView):
     @log_this
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/",
-        methods=["GET", "POST"])
+            methods=["GET", "POST"])
     def explore(self, datasource_type, datasource_id):
         form_data = self.get_form_data()
 
@@ -1152,11 +1152,10 @@ class Superset(BaseSupersetView):
             db.session.commit()
 
         if goto_dash:
-            url = dash.url
+            return dash.url
         else:
-            url = slc.slice_url
+            return slc.slice_url
 
-        return json_success(json.dumps({ 'url': url }))
 
     def save_slice(self, slc):
         session = db.session()
