@@ -146,7 +146,7 @@ class VisualizeModal extends React.PureComponent {
           formData.metric = mainMetric.name;
         }
         if (mainGroupBy) {
-          formData.groupby = mainGroupBy.name;
+          formData.groupby = [mainGroupBy.name];
         }
         window.open(getExploreUrl(formData));
       },
