@@ -72,7 +72,7 @@ function hideTooltips() {
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
-  const labelEls = container.find(`.${axisClass} text`);
+  const labelEls = container.find(`.${axisClass} text`).not('.nv-axislabel');
   const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength());
   return Math.max(...labelDimensions);
 }
@@ -93,7 +93,7 @@ function nvd3Vis(slice, payload) {
     payloadData.data.forEach((d) => {
       const axisLabels = d.values;
       for (let i = 0; i < axisLabels.length; i++) {
-        maxLabelSize = Math.max(axisLabels[i].x.length, maxLabelSize);
+        maxLabelSize = Math.max(axisLabels[i].x.toString().length, maxLabelSize);
       }
     });
     stretchMargin = Math.ceil(pixelsPerCharX * maxLabelSize);
@@ -411,14 +411,17 @@ function nvd3Vis(slice, payload) {
       // Hack to adjust y axis left margin to accommodate long numbers
       const marginPad = isExplore ? width * 0.01 : width * 0.03;
       const maxYAxisLabelWidth = getMaxLabelSize(slice.container, 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
+      if (fd.y_axis_label && fd.y_axis_label !== '') {
+        chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
+      }
       // Hack to adjust margins to accommodate long axis tick labels.
       // - has to be done only after the chart has been rendered once
       // - measure the width or height of the labels
       // ---- (x axis labels are rotated 45 degrees so we use height),
       // - adjust margins based on these measures and render again
       if (isTimeSeries && vizType !== 'bar') {
-        const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
         const chartMargins = {
           bottom: maxXAxisLabelHeight + marginPad,
           right: maxXAxisLabelHeight + marginPad,
@@ -434,6 +437,9 @@ function nvd3Vis(slice, payload) {
 
         // apply margins
         chart.margin(chartMargins);
+      }
+      if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+        chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
       }
 
       // render chart

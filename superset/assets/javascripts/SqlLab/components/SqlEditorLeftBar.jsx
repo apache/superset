@@ -35,7 +35,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     this.fetchSchemas(this.props.queryEditor.dbId);
     this.fetchTables(this.props.queryEditor.dbId, this.props.queryEditor.schema);
   }
-  onChange(db) {
+  onDatabaseChange(db) {
     const val = db ? db.value : null;
     this.setState({ schemaOptions: [] });
     this.props.actions.queryEditorSetSchema(this.props.queryEditor, null);
@@ -144,7 +144,7 @@ class SqlEditorLeftBar extends React.PureComponent {
               '_oc_DatabaseView=database_name&' +
               '_od_DatabaseView=asc'
             }
-            onChange={this.onChange.bind(this)}
+            onChange={this.onDatabaseChange.bind(this)}
             value={this.props.queryEditor.dbId}
             databaseId={this.props.queryEditor.dbId}
             actions={this.props.actions}
