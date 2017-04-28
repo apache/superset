@@ -431,7 +431,7 @@ function nvd3Vis(slice, payload) {
       // apply margins
       chart.margin(chartMargins);
       if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
-        chart.margin({ bottom : maxXAxisLabelHeight + marginPad + 25 });
+        chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
       }
 
       // render chart
