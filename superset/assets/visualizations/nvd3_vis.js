@@ -434,15 +434,15 @@ function nvd3Vis(slice, payload) {
 
         // apply margins
         chart.margin(chartMargins);
-
-        // render chart
-        svg
-        .datum(payload.data)
-        .transition().duration(500)
-        .attr('height', height)
-        .attr('width', width)
-        .call(chart);
       }
+
+      // render chart
+      svg
+      .datum(payload.data)
+      .transition().duration(500)
+      .attr('height', height)
+      .attr('width', width)
+      .call(chart);
     }
 
     // on scroll, hide tooltips. throttle to only 4x/second.
