@@ -65,7 +65,7 @@ Superset provides:
 * An extensible, high granularity security model allowing intricate rules
     on who can access which features, and integration with major
     authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER
-    through Flask AppBuiler)
+    through Flask AppBuilder)
 * A simple semantic layer, allowing to control how data sources are
     displayed in the UI, by defining which fields should show up in
     which dropdown and which aggregation and function (metrics) are
