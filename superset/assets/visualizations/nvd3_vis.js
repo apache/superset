@@ -93,7 +93,7 @@ function nvd3Vis(slice, payload) {
     payloadData.data.forEach((d) => {
       const axisLabels = d.values;
       for (let i = 0; i < axisLabels.length; i++) {
-        maxLabelSize = Math.max(axisLabels[i].x.length, maxLabelSize);
+        maxLabelSize = Math.max(axisLabels[i].x.toString().length, maxLabelSize);
       }
     });
     stretchMargin = Math.ceil(pixelsPerCharX * maxLabelSize);
