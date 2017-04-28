@@ -72,7 +72,7 @@ function hideTooltips() {
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
-  const labelEls = container.find(`.${axisClass} text`);
+  const labelEls = container.find(`.${axisClass} text`).not('.nv-axislabel');
   const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength());
   return Math.max(...labelDimensions);
 }
@@ -430,6 +430,9 @@ function nvd3Vis(slice, payload) {
 
       // apply margins
       chart.margin(chartMargins);
+      if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+        chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
+      }
 
       // render chart
       svg
