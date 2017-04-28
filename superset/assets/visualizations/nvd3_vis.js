@@ -407,49 +407,42 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    // Hack to adjust margins to accommodate long axis tick labels.
-    // - has to be done only after the chart has been rendered once
-    // - measure the width or height of the labels
-    // ---- (x axis labels are rotated 45 degrees so we use height),
-    // - adjust margins based on these measures and render again
-    const marginPad = isExplore ? width * 0.01 : width * 0.03;
-    if (isTimeSeries && vizType !== 'bar') {
-      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
-      const chartMargins = {
-        bottom: maxXAxisLabelHeight + marginPad,
-        right: maxXAxisLabelHeight + marginPad,
-      };
-
-      if (vizType === 'dual_line') {
-        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
-        // use y axis width if it's wider than axis width/height
-        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-          chartMargins.right = maxYAxis2LabelWidth + marginPad;
-        }
-      }
-
-      // apply margins
-      chart.margin(chartMargins);
-
-      // render chart
-      svg
-      .datum(payload.data)
-      .transition().duration(500)
-      .attr('height', height)
-      .attr('width', width)
-      .call(chart);
-    }
-
-    // Hack to adjust y axis left margin to accormadate long y axis numbers
     if (chart.yAxis !== undefined) {
+      // Hack to adjust y axis left margin to accommodate long numbers
+      const marginPad = isExplore ? width * 0.01 : width * 0.03;
       const maxYAxisLabelWidth = getMaxLabelSize(slice.container, 'nv-y');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
-      svg
-      .datum(payload.data)
-      .transition().duration(500)
-      .attr('height', height)
-      .attr('width', width)
-      .call(chart);
+      // Hack to adjust margins to accommodate long axis tick labels.
+      // - has to be done only after the chart has been rendered once
+      // - measure the width or height of the labels
+      // ---- (x axis labels are rotated 45 degrees so we use height),
+      // - adjust margins based on these measures and render again
+      if (isTimeSeries && vizType !== 'bar') {
+        const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+        const chartMargins = {
+          bottom: maxXAxisLabelHeight + marginPad,
+          right: maxXAxisLabelHeight + marginPad,
+        };
+
+        if (vizType === 'dual_line') {
+          const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
+          // use y axis width if it's wider than axis width/height
+          if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
+            chartMargins.right = maxYAxis2LabelWidth + marginPad;
+          }
+        }
+
+        // apply margins
+        chart.margin(chartMargins);
+
+        // render chart
+        svg
+        .datum(payload.data)
+        .transition().duration(500)
+        .attr('height', height)
+        .attr('width', width)
+        .call(chart);
+      }
     }
 
     // on scroll, hide tooltips. throttle to only 4x/second.
