@@ -412,9 +412,9 @@ function nvd3Vis(slice, payload) {
     // - measure the width or height of the labels
     // ---- (x axis labels are rotated 45 degrees so we use height),
     // - adjust margins based on these measures and render again
+    const marginPad = isExplore ? width * 0.01 : width * 0.03;
     if (isTimeSeries && vizType !== 'bar') {
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
-      const marginPad = isExplore ? width * 0.01 : width * 0.03;
       const chartMargins = {
         bottom: maxXAxisLabelHeight + marginPad,
         right: maxXAxisLabelHeight + marginPad,
@@ -432,6 +432,18 @@ function nvd3Vis(slice, payload) {
       chart.margin(chartMargins);
 
       // render chart
+      svg
+      .datum(payload.data)
+      .transition().duration(500)
+      .attr('height', height)
+      .attr('width', width)
+      .call(chart);
+    }
+
+    // Hack to adjust y axis left margin to accormadate long y axis numbers
+    if (chart.yAxis !== undefined) {
+      const maxYAxisLabelWidth = getMaxLabelSize(slice.container, 'nv-y');
+      chart.margin({ left: maxYAxisLabelWidth + marginPad });
       svg
       .datum(payload.data)
       .transition().duration(500)
