@@ -1039,7 +1039,7 @@ class Superset(BaseSupersetView):
                 datasource_type)
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
-        standalone = form_data.get("standalone") == "true"
+        standalone = request.args.get("standalone") == "true"
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
@@ -1052,7 +1052,7 @@ class Superset(BaseSupersetView):
             "slice": slc.data if slc else None,
             "standalone": standalone,
             "user_id": user_id,
-            "forced_height": form_data.get('height'),
+            "forced_height": request.args.get('height'),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
