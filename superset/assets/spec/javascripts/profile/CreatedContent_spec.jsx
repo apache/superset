@@ -1,10 +1,10 @@
 import React from 'react';
-import CreatedContent from '../../../javascripts/profile/components/CreatedContent';
-import TableLoader from '../../../javascripts/profile/components/TableLoader';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { user } from './fixtures';
+import CreatedContent from '../../../javascripts/profile/components/CreatedContent';
+import TableLoader from '../../../javascripts/profile/components/TableLoader';
 
 
 describe('CreatedContent', () => {
@@ -13,7 +13,7 @@ describe('CreatedContent', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<CreatedContent {...mockedProps} />)
+      React.isValidElement(<CreatedContent {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 TableLoader', () => {

@@ -1,9 +1,10 @@
 import React from 'react';
-import Security from '../../../javascripts/profile/components/Security';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { user, userNoPerms } from './fixtures';
+import Security from '../../../javascripts/profile/components/Security';
 
 
 describe('Security', () => {
@@ -12,7 +13,7 @@ describe('Security', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<Security {...mockedProps} />)
+      React.isValidElement(<Security {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 role labels', () => {

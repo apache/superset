@@ -1,10 +1,11 @@
 import React from 'react';
-import HighlightedSql from '../../../javascripts/SqlLab/components/HighlightedSql';
-import ModalTrigger from '../../../javascripts/components/ModalTrigger';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { mount, shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
+import HighlightedSql from '../../../javascripts/SqlLab/components/HighlightedSql';
+import ModalTrigger from '../../../javascripts/components/ModalTrigger';
 
 
 describe('HighlightedSql', () => {

@@ -13,7 +13,7 @@ function worldMapChart(slice, payload) {
   div.selectAll('*').remove();
   const fd = slice.formData;
   // Ignore XXX's to get better normalization
-  let data = payload.data.filter((d) => (d.country && d.country !== 'XXX'));
+  let data = payload.data.filter(d => (d.country && d.country !== 'XXX'));
 
   const ext = d3.extent(data, function (d) {
     return d.m1;
@@ -29,7 +29,7 @@ function worldMapChart(slice, payload) {
     .domain([ext[0], ext[1]])
     .range(['#FFF', 'black']);
 
-  data = data.map((d) => Object.assign({}, d, {
+  data = data.map(d => Object.assign({}, d, {
     radius: radiusScale(d.m2),
     fillColor: colorScale(d.m1),
   }));

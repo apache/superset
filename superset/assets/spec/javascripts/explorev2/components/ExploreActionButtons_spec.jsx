@@ -14,11 +14,12 @@ describe('ExploreActionButtons', () => {
         json_endpoint: '',
       },
     },
+    queryEndpoint: 'localhost',
   };
 
   it('renders', () => {
     expect(
-      React.isValidElement(<ExploreActionButtons {...defaultProps} />)
+      React.isValidElement(<ExploreActionButtons {...defaultProps} />),
     ).to.equal(true);
   });
 

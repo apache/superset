@@ -36,7 +36,7 @@ that the required dependencies are installed: ::
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
     brew install pkg-config libffi openssl python
-    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography
+    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==1.7.2
 
 **Windows** isn't officially supported at this point, but if you want to
 attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
@@ -206,11 +206,31 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Greenplum    | ``pip install psycopg2``            | ``postgresql+psycopg2://``                      |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Athena       | ``pip install "PyAthenaJDBC>1.0.9"``| ``awsathena+jdbc://``                           |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Vertica      | ``pip install                       |  ``vertica+vertica_python://``                  |
+|               | sqlalchemy-vertica-python``         |                                                 |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword ``sqlalchemy`` in addition of a keyword that describes the
 database you want to connect to should get you to the right place.
+
+(AWS) Athena
+------------
+
+This currently relies on an unreleased future version of `PyAthenaJDBC <https://github.com/laughingman7743/PyAthenaJDBC>`_. If you're adventurous or simply impatient, you can install directly from git: ::
+
+    pip install git+https://github.com/laughingman7743/PyAthenaJDBC@support_sqlalchemy
+
+The connection string for Athena looks like this ::
+
+    awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+
+Where you need to escape/encode at least the s3_staging_dir, i.e., ::
+
+    s3://... -> s3%3A//...
 
 
 Caching
@@ -223,9 +243,11 @@ complies with the Flask-Cache specifications.
 
 Flask-Cache supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
-Memcached please use the pylibmc client library as python-memcached does
+Memcached please use the `pylibmc` client library as `python-memcached` does
 not handle storing binary data correctly. If you use Redis, please install
-`python-redis <https://pypi.python.org/pypi/redis>`.
+the `redis <https://pypi.python.org/pypi/redis>`_ Python package: ::
+
+    pip install redis
 
 For setting your timeouts, this is done in the Superset metadata and goes
 up the "timeout searchpath", from your slice configuration, to your

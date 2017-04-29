@@ -1,10 +1,10 @@
 /* eslint-disable no-param-reassign */
-import { category21 } from '../javascripts/modules/colors';
 import d3 from 'd3';
+import { category21 } from '../javascripts/modules/colors';
+import './sankey.css';
 
 d3.sankey = require('d3-sankey').sankey;
 
-require('./sankey.css');
 
 function sankeyVis(slice, payload) {
   const div = d3.select(slice.selector);
@@ -100,7 +100,7 @@ function sankeyVis(slice, payload) {
     .append('path')
     .attr('class', 'link')
     .attr('d', path)
-    .style('stroke-width', (d) => Math.max(1, d.dy))
+    .style('stroke-width', d => Math.max(1, d.dy))
     .sort((a, b) => b.dy - a.dy)
     .on('mouseover', onmouseover)
     .on('mouseout', onmouseout);
@@ -109,7 +109,7 @@ function sankeyVis(slice, payload) {
     d3.select(this)
       .attr(
         'transform',
-        `translate(${d.x},${(d.y = Math.max(0, Math.min(height - d.dy, d3.event.y)))})`
+        `translate(${d.x},${(d.y = Math.max(0, Math.min(height - d.dy, d3.event.y)))})`,
       );
     sankey.relayout();
     link.attr('d', path);
@@ -130,7 +130,7 @@ function sankeyVis(slice, payload) {
       .on('dragstart', function () {
         this.parentNode.appendChild(this);
       })
-      .on('drag', dragmove)
+      .on('drag', dragmove),
     );
   const minRectHeight = 5;
   node.append('rect')

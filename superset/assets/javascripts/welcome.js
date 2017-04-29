@@ -1,15 +1,16 @@
-const $ = window.$ = require('jquery');
 /* eslint no-unused-vars: 0 */
-const jQuery = window.jQuery = $;
-require('../stylesheets/welcome.css');
-require('bootstrap');
-
-require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 import 'datatables.net';
 import dt from 'datatables.net-bs';
+import d3 from 'd3';
+
+import '../stylesheets/welcome.css';
+import { appSetup } from './common';
+
+appSetup();
+require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
+
 dt(window, $);
 
-const d3 = require('d3');
 function modelViewTable(selector, modelView, orderCol, order) {
   // Builds a dataTable from a flask appbuilder api endpoint
   let url = '/' + modelView.toLowerCase() + '/api/read';

@@ -1,5 +1,5 @@
 import $ from 'jquery';
-const d3 = require('d3');
+import d3 from 'd3';
 
 // Color related utility functions go in this object
 export const bnbColors = [

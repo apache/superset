@@ -1,4 +1,5 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import Select, { Creatable } from 'react-select';
 
 const propTypes = {
@@ -42,13 +43,13 @@ export default class SelectControl extends React.PureComponent {
     let optionValue = opt ? opt.value : null;
     // if multi, return options values as an array
     if (this.props.multi) {
-      optionValue = opt ? opt.map((o) => o.value) : null;
+      optionValue = opt ? opt.map(o => o.value) : null;
     }
     this.props.onChange(optionValue);
   }
   getOptions(props) {
     // Accepts different formats of input
-    const options = props.choices.map(c => {
+    const options = props.choices.map((c) => {
       let option;
       if (Array.isArray(c)) {
         const label = c.length > 1 ? c[1] : c[0];
@@ -75,7 +76,7 @@ export default class SelectControl extends React.PureComponent {
         if (!Array.isArray(valuesToAdd)) {
           valuesToAdd = [valuesToAdd];
         }
-        valuesToAdd.forEach(v => {
+        valuesToAdd.forEach((v) => {
           if (values.indexOf(v) < 0) {
             options.push({ value: v, label: v });
           }

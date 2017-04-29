@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { now, fDuration } from '../modules/dates';
 
 class Timer extends React.PureComponent {
@@ -54,11 +55,11 @@ class Timer extends React.PureComponent {
   }
 }
 Timer.propTypes = {
-  startTime: React.PropTypes.number,
-  endTime: React.PropTypes.number,
-  isRunning: React.PropTypes.bool.isRequired,
-  status: React.PropTypes.string,
-  style: React.PropTypes.object,
+  startTime: PropTypes.number,
+  endTime: PropTypes.number,
+  isRunning: PropTypes.bool.isRequired,
+  status: PropTypes.string,
+  style: PropTypes.object,
 };
 
 Timer.defaultProps = {

@@ -1,7 +1,7 @@
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from superset.utils import (
-    json_int_dttm_ser, json_iso_dttm_ser, base_json_conv, parse_human_timedelta
+    json_int_dttm_ser, json_iso_dttm_ser, base_json_conv, parse_human_timedelta, zlib_compress, zlib_decompress_to_string
 )
 import unittest
 import uuid
@@ -45,3 +45,10 @@ class UtilsTestCase(unittest.TestCase):
     def test_parse_human_timedelta(self, mock_now):
         mock_now.return_value = datetime(2016, 12, 1)
         self.assertEquals(parse_human_timedelta('now'), timedelta(0))
+
+    def test_zlib_compression(self):
+        json_str = """{"test": 1}"""
+        blob = zlib_compress(json_str)
+        got_str = zlib_decompress_to_string(blob)
+        self.assertEquals(json_str, got_str)
+

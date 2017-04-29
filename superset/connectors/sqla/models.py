@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 import sqlparse
+from past.builtins import basestring
 
 import pandas as pd
 
@@ -177,11 +178,16 @@ class SqlaTable(Model, BaseDatasource):
         foreign_keys=[database_id])
     schema = Column(String(255))
     sql = Column(Text)
+    slices = relationship(
+        'Slice',
+        primaryjoin=(
+            "SqlaTable.id == foreign(Slice.datasource_id) and "
+            "Slice.datasource_type == 'table'"))
 
     baselink = "tablemodelview"
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
-        'database_id', 'is_featured', 'offset', 'cache_timeout', 'schema',
+        'database_id', 'offset', 'cache_timeout', 'schema',
         'sql', 'params')
 
     __table_args__ = (
@@ -252,14 +258,6 @@ class SqlaTable(Model, BaseDatasource):
                 "table-condensed"))
 
     @property
-    def metrics_combo(self):
-        return sorted(
-            [
-                (m.metric_name, m.verbose_name or m.metric_name)
-                for m in self.metrics],
-            key=lambda x: x[1])
-
-    @property
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
@@ -275,6 +273,17 @@ class SqlaTable(Model, BaseDatasource):
         for col in columns:
             if col_name == col.column_name:
                 return col
+
+    @property
+    def data(self):
+        d = super(SqlaTable, self).data
+        if self.type == 'table':
+            grains = self.database.grains() or []
+            if grains:
+                grains = [(g.name, g.name) for g in grains]
+            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
+            d['time_grain_sqla'] = grains
+        return d
 
     def values_for_column(self, column_name, limit=10000):
         """Runs query against sqla to retrieve some
@@ -309,9 +318,9 @@ class SqlaTable(Model, BaseDatasource):
         return get_template_processor(
             table=self, database=self.database, **kwargs)
 
-    def get_query_str(self, **kwargs):
+    def get_query_str(self, query_obj):
         engine = self.database.get_sqla_engine()
-        qry = self.get_sqla_query(**kwargs)
+        qry = self.get_sqla_query(**query_obj)
         sql = str(
             qry.compile(
                 engine,
@@ -343,7 +352,8 @@ class SqlaTable(Model, BaseDatasource):
             inner_to_dttm=None,
             orderby=None,
             extras=None,
-            columns=None):
+            columns=None,
+            form_data=None):
         """Querying any sqla table from this common interface"""
 
         template_kwargs = {
@@ -352,6 +362,7 @@ class SqlaTable(Model, BaseDatasource):
             'metrics': metrics,
             'row_limit': row_limit,
             'to_dttm': to_dttm,
+            'form_data': form_data,
         }
         template_processor = self.get_template_processor(**template_kwargs)
 
@@ -457,9 +468,19 @@ class SqlaTable(Model, BaseDatasource):
             col_obj = cols.get(col)
             if col_obj:
                 if op in ('in', 'not in'):
-                    values = [types.strip("'").strip('"') for types in eq]
-                    if col_obj.is_num:
-                        values = [utils.js_string_to_num(s) for s in values]
+                    values = []
+                    for v in eq:
+                        # For backwards compatibility and edge cases
+                        # where a column data type might have changed
+                        if isinstance(v, basestring):
+                            v = v.strip("'").strip('"')
+                            if col_obj.is_num:
+                                v = utils.string_to_num(v)
+
+                        # Removing empty strings and non numeric values
+                        # targeting numeric columns
+                        if v is not None:
+                            values.append(v)
                     cond = col_obj.sqla_col.in_(values)
                     if op == 'not in':
                         cond = ~cond
@@ -533,7 +554,7 @@ class SqlaTable(Model, BaseDatasource):
         qry_start_dttm = datetime.now()
         engine = self.database.get_sqla_engine()
         qry = self.get_sqla_query(**query_obj)
-        sql = self.get_query_str(**query_obj)
+        sql = self.get_query_str(query_obj)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -542,7 +563,8 @@ class SqlaTable(Model, BaseDatasource):
         except Exception as e:
             status = QueryStatus.FAILED
             logging.exception(e)
-            error_message = str(e)
+            error_message = (
+                self.database.db_engine_spec.extract_error_message(e))
 
         return QueryResult(
             status=status,
@@ -567,6 +589,7 @@ class SqlaTable(Model, BaseDatasource):
         M = SqlMetric  # noqa
         metrics = []
         any_date_col = None
+        db_dialect = self.database.get_sqla_engine().dialect
         for col in table.columns:
             try:
                 datatype = "{}".format(col.type).upper()
@@ -598,7 +621,7 @@ class SqlaTable(Model, BaseDatasource):
                 any_date_col = col.name
 
             quoted = "{}".format(
-                column(dbcol.column_name).compile(dialect=db.engine.dialect))
+                column(dbcol.column_name).compile(dialect=db_dialect))
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,

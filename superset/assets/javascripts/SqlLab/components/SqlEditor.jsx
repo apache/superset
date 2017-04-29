@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   Col,
   FormGroup,
@@ -15,22 +16,23 @@ import {
 import Button from '../../components/Button';
 
 import SouthPane from './SouthPane';
+import SaveQuery from './SaveQuery';
 import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
-import { STATE_BSSTYLE_MAP } from '../constants.js';
+import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  height: React.PropTypes.string.isRequired,
-  database: React.PropTypes.object,
-  latestQuery: React.PropTypes.object,
-  tables: React.PropTypes.array.isRequired,
-  editorQueries: React.PropTypes.array.isRequired,
-  dataPreviewQueries: React.PropTypes.array.isRequired,
-  queryEditor: React.PropTypes.object.isRequired,
-  hideLeftBar: React.PropTypes.bool,
+  actions: PropTypes.object.isRequired,
+  height: PropTypes.string.isRequired,
+  database: PropTypes.object,
+  latestQuery: PropTypes.object,
+  tables: PropTypes.array.isRequired,
+  editorQueries: PropTypes.array.isRequired,
+  dataPreviewQueries: PropTypes.array.isRequired,
+  queryEditor: PropTypes.object.isRequired,
+  hideLeftBar: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -57,6 +59,9 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);
       this.startQuery();
     }
+  }
+  setQueryEditorSql(sql) {
+    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
   runQuery(runAsync = false) {
     let effectiveRunAsync = runAsync;
@@ -86,9 +91,6 @@ class SqlEditor extends React.PureComponent {
   createTableAs() {
     this.startQuery(true, true);
   }
-  setQueryEditorSql(sql) {
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
-  }
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
@@ -101,6 +103,7 @@ class SqlEditor extends React.PureComponent {
   }
 
   render() {
+    const qe = this.props.queryEditor;
     let limitWarning = null;
     if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
       const tooltip = (
@@ -148,12 +151,19 @@ class SqlEditor extends React.PureComponent {
         <div className="pull-left">
           <Form inline>
             <RunQueryActionButton
-              allowAsync={this.props.database && this.props.database.allow_run_async}
-              dbId={this.props.queryEditor.dbId}
+              allowAsync={this.props.database ? this.props.database.allow_run_async : false}
+              dbId={qe.dbId}
               queryState={this.props.latestQuery && this.props.latestQuery.state}
               runQuery={this.runQuery.bind(this)}
-              selectedText={this.props.queryEditor.selectedText}
+              selectedText={qe.selectedText}
               stopQuery={this.stopQuery.bind(this)}
+            />
+            <SaveQuery
+              defaultLabel={qe.title}
+              sql={qe.sql}
+              onSave={this.props.actions.saveQuery}
+              schema={qe.schema}
+              dbId={qe.dbId}
             />
             {ctasControls}
           </Form>
@@ -185,7 +195,7 @@ class SqlEditor extends React.PureComponent {
           >
             <Col md={3}>
               <SqlEditorLeftBar
-                style={{ height: this.props.height }}
+                height={this.sqlEditorHeight()}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
                 actions={this.props.actions}

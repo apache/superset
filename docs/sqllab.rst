@@ -58,3 +58,5 @@ Superset's Jinja context:
 
 .. autoclass:: superset.jinja_context.PrestoTemplateProcessor
     :members:
+
+.. autofunction:: superset.jinja_context.url_param

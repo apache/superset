@@ -5,6 +5,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
+
 import CheckboxControl from '../../../../javascripts/explorev2/components/controls/CheckboxControl';
 
 const defaultProps = {

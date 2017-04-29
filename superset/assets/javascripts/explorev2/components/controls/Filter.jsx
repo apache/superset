@@ -1,23 +1,25 @@
-const $ = window.$ = require('jquery');
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
 
+const $ = window.$ = require('jquery');
+
 const operatorsArr = [
   { val: 'in', type: 'array', useSelect: true, multi: true },
   { val: 'not in', type: 'array', useSelect: true, multi: true },
-  { val: '==', type: 'string', useSelect: true, multi: false },
-  { val: '!=', type: 'string', useSelect: true, multi: false },
-  { val: '>=', type: 'string' },
-  { val: '<=', type: 'string' },
-  { val: '>', type: 'string' },
-  { val: '<', type: 'string' },
+  { val: '==', type: 'string', useSelect: true, multi: false, havingOnly: true },
+  { val: '!=', type: 'string', useSelect: true, multi: false, havingOnly: true },
+  { val: '>=', type: 'string', havingOnly: true },
+  { val: '<=', type: 'string', havingOnly: true },
+  { val: '>', type: 'string', havingOnly: true },
+  { val: '<', type: 'string', havingOnly: true },
   { val: 'regex', type: 'string', datasourceTypes: ['druid'] },
   { val: 'LIKE', type: 'string', datasourceTypes: ['table'] },
 ];
 const operators = {};
-operatorsArr.forEach(op => {
+operatorsArr.forEach((op) => {
   operators[op.val] = op;
 });
 
@@ -26,12 +28,14 @@ const propTypes = {
   removeFilter: PropTypes.func,
   filter: PropTypes.object.isRequired,
   datasource: PropTypes.object,
+  having: PropTypes.bool,
 };
 
 const defaultProps = {
   changeFilter: () => {},
   removeFilter: () => {},
   datasource: null,
+  having: false,
 };
 
 export default class Filter extends React.Component {
@@ -46,7 +50,7 @@ export default class Filter extends React.Component {
   }
   fetchFilterValues(col) {
     const datasource = this.props.datasource;
-    if (col && this.props.datasource && this.props.datasource.filter_select) {
+    if (col && this.props.datasource && this.props.datasource.filter_select && !this.props.having) {
       this.setState({ valuesLoading: true });
       $.ajax({
         type: 'GET',
@@ -89,7 +93,7 @@ export default class Filter extends React.Component {
   }
   renderFilterFormControl(filter) {
     const operator = operators[filter.op];
-    if (operator.useSelect) {
+    if (operator.useSelect && !this.props.having) {
       return (
         <SelectControl
           multi={operator.multi}
@@ -116,18 +120,28 @@ export default class Filter extends React.Component {
     const datasource = this.props.datasource;
     const filter = this.props.filter;
     const opsChoices = operatorsArr
-    .filter(o => !o.datasourceTypes || o.datasourceTypes.indexOf(datasource.type) >= 0)
+    .filter((o) => {
+      if (this.props.having) {
+        return !!o.havingOnly;
+      }
+      return (!o.datasourceTypes || o.datasourceTypes.indexOf(datasource.type) >= 0);
+    })
     .map(o => ({ value: o.val, label: o.val }));
-    const colChoices = datasource ?
-      datasource.filterable_cols.map(c => ({ value: c[0], label: c[1] })) :
-      null;
+    let colChoices;
+    if (datasource) {
+      if (this.props.having) {
+        colChoices = datasource.metrics_combo.map(c => ({ value: c[0], label: c[1] }));
+      } else {
+        colChoices = datasource.filterable_cols.map(c => ({ value: c[0], label: c[1] }));
+      }
+    }
     return (
       <div>
         <Row className="space-1">
           <Col md={12}>
             <Select
               id="select-col"
-              placeholder="Select column"
+              placeholder={this.props.having ? 'Select metric' : 'Select column'}
               clearable={false}
               options={colChoices}
               value={filter.col}

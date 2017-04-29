@@ -1,7 +1,9 @@
 import $ from 'jquery';
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
+import Mustache from 'mustache';
 import { connect } from 'react-redux';
-import { Alert, Collapse, Label, Panel } from 'react-bootstrap';
+import { Alert, Collapse, Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from './ExploreActionButtons';
@@ -10,6 +12,7 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
+import CachedLabel from '../../components/CachedLabel';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -33,6 +36,9 @@ const propTypes = {
   viz_type: PropTypes.string.isRequired,
   formData: PropTypes.object,
   latestQueryFormData: PropTypes.object,
+  queryResponse: PropTypes.object,
+  triggerRender: PropTypes.bool,
+  standalone: PropTypes.bool,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -44,19 +50,9 @@ class ChartContainer extends React.PureComponent {
     };
   }
 
-  renderViz() {
-    this.props.actions.renderTriggered();
-    const mockSlice = this.getMockedSliceObject();
-    this.setState({ mockSlice });
-    try {
-      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
-    } catch (e) {
-      this.props.actions.chartRenderingFailed(e);
-    }
-  }
-
   componentDidUpdate(prevProps) {
     if (
+        this.props.queryResponse &&
         (
           prevProps.queryResponse !== this.props.queryResponse ||
           prevProps.height !== this.props.height ||
@@ -85,21 +81,26 @@ class ChartContainer extends React.PureComponent {
           // this should be a callback to clear the contents of the slice container
           $(this.state.selector).html(data);
         },
-        css: (dim, size) => {
-          // dimension can be 'height'
-          // pixel string can be '300px'
-          // should call callback to adjust height of chart
-          $(this.state.selector).css(dim, size);
+        css: (property, value) => {
+          $(this.state.selector).css(property, value);
         },
         height: getHeight,
         show: () => { },
-        get: (n) => ($(this.state.selector).get(n)),
-        find: (classname) => ($(this.state.selector).find(classname)),
+        get: n => ($(this.state.selector).get(n)),
+        find: classname => ($(this.state.selector).find(classname)),
       },
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
       height: getHeight,
+
+      render_template: (s) => {
+        const context = {
+          width: this.width,
+          height: this.height,
+        };
+        return Mustache.render(s, context);
+      },
 
       setFilter: () => {},
 
@@ -139,6 +140,10 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.removeChartAlert();
   }
 
+  runQuery() {
+    this.props.actions.runQuery(this.props.formData, true);
+  }
+
   renderChartTitle() {
     let title;
     if (this.props.slice) {
@@ -147,6 +152,17 @@ class ChartContainer extends React.PureComponent {
       title = `[${this.props.table_name}] - untitled`;
     }
     return title;
+  }
+
+  renderViz() {
+    this.props.actions.renderTriggered();
+    const mockSlice = this.getMockedSliceObject();
+    this.setState({ mockSlice });
+    try {
+      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+    } catch (e) {
+      this.props.actions.chartRenderingFailed(e);
+    }
   }
 
   renderAlert() {
@@ -194,7 +210,7 @@ class ChartContainer extends React.PureComponent {
         }
         <div
           id={this.props.containerId}
-          ref={ref => { this.chartContainerRef = ref; }}
+          ref={(ref) => { this.chartContainerRef = ref; }}
           className={this.props.viz_type}
           style={{
             opacity: loading ? '0.25' : '1',
@@ -202,9 +218,6 @@ class ChartContainer extends React.PureComponent {
         />
       </div>
     );
-  }
-  runQuery() {
-    this.props.actions.runQuery(this.props.formData, true);
   }
 
   render() {
@@ -214,7 +227,6 @@ class ChartContainer extends React.PureComponent {
       return this.renderChart();
     }
     const queryResponse = this.props.queryResponse;
-    const query = queryResponse && queryResponse.query ? queryResponse.query : null;
     return (
       <div className="chart-container">
         <Panel
@@ -250,19 +262,12 @@ class ChartContainer extends React.PureComponent {
 
               <div className="pull-right">
                 {this.props.chartStatus === 'success' &&
-                 this.props.queryResponse &&
-                 this.props.queryResponse.is_cached &&
-                  <TooltipWrapper
-                    tooltip="Loaded from cache. Click to force refresh"
-                    label="cache-desc"
-                  >
-                    <Label
-                      style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
-                      onClick={this.runQuery.bind(this)}
-                    >
-                      cached
-                    </Label>
-                  </TooltipWrapper>
+                this.props.queryResponse &&
+                this.props.queryResponse.is_cached &&
+                  <CachedLabel
+                    onClick={this.runQuery.bind(this)}
+                    cachedTimestamp={queryResponse.cached_dttm}
+                  />
                 }
                 <Timer
                   startTime={this.props.chartUpdateStartTime}
@@ -274,7 +279,8 @@ class ChartContainer extends React.PureComponent {
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
-                  query={query}
+                  chartStatus={this.props.chartStatus}
+                  queryResponse={queryResponse}
                   queryEndpoint={getExploreUrl(this.props.latestQueryFormData, 'query')}
                 />
               </div>

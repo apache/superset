@@ -2,7 +2,7 @@ import shortid from 'shortid';
 import * as actions from './actions';
 import { now } from '../modules/dates';
 import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
-  from '../reduxUtils.js';
+  from '../reduxUtils';
 
 export function getInitialState(defaultDbId) {
   const defaultQueryEditor = {
@@ -36,7 +36,7 @@ export const sqlLabReducer = function (state, action) {
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
     [actions.CLONE_QUERY_TO_NEW_TAB]() {
-      const progenitor = state.queryEditors.find((qe) =>
+      const progenitor = state.queryEditors.find(qe =>
           qe.id === state.tabHistory[state.tabHistory.length - 1]);
       const qe = {
         id: shortid.generate(),
@@ -52,7 +52,7 @@ export const sqlLabReducer = function (state, action) {
     [actions.REMOVE_QUERY_EDITOR]() {
       let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
-      const qeIds = newState.queryEditors.map((qe) => qe.id);
+      const qeIds = newState.queryEditors.map(qe => qe.id);
       const queries = {};
       Object.keys(state.queries).forEach((k) => {
         const query = state.queries[k];
@@ -61,7 +61,7 @@ export const sqlLabReducer = function (state, action) {
         }
       });
       let tabHistory = state.tabHistory.slice();
-      tabHistory = tabHistory.filter((id) => qeIds.indexOf(id) > -1);
+      tabHistory = tabHistory.filter(id => qeIds.indexOf(id) > -1);
       newState = Object.assign({}, newState, { tabHistory, queries });
       return newState;
     },
@@ -187,7 +187,7 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
-      const qeIds = state.queryEditors.map((qe) => qe.id);
+      const qeIds = state.queryEditors.map(qe => qe.id);
       if (qeIds.indexOf(action.queryEditor.id) > -1) {
         const tabHistory = state.tabHistory.slice();
         tabHistory.push(action.queryEditor.id);

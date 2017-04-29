@@ -1,19 +1,20 @@
 /* eslint camelcase: 0 */
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
+import * as actions from '../actions/exploreActions';
 import { getFormDataFromControls } from '../stores/store';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
-  chartStatus: PropTypes.string.isRequired,
+  chartStatus: PropTypes.string,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
@@ -32,8 +33,11 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidMount() {
-    this.props.actions.fetchDatasources();
+    if (!this.props.standalone) {
+      this.props.actions.fetchDatasources();
+    }
     window.addEventListener('resize', this.handleResize.bind(this));
+    this.triggerQueryIfNeeded();
   }
 
   componentWillReceiveProps(np) {
@@ -47,9 +51,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidUpdate() {
-    if (this.props.triggerQuery) {
-      this.runQuery();
-    }
+    this.triggerQueryIfNeeded();
   }
 
   componentWillUnmount() {
@@ -61,7 +63,8 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.removeControlPanelAlert();
     this.props.actions.removeChartAlert();
 
-    this.runQuery();
+    this.props.actions.triggerQuery();
+
     history.pushState(
       {},
       document.title,
@@ -81,8 +84,10 @@ class ExploreViewContainer extends React.Component {
   }
 
 
-  runQuery() {
-    this.props.actions.runQuery(this.props.form_data);
+  triggerQueryIfNeeded() {
+    if (this.props.triggerQuery && !this.hasErrors()) {
+      this.props.actions.runQuery(this.props.form_data);
+    }
   }
 
   handleResize() {
@@ -95,6 +100,11 @@ class ExploreViewContainer extends React.Component {
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
   }
+  hasErrors() {
+    const ctrls = this.props.controls;
+    return Object.keys(ctrls).some(
+      k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0);
+  }
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
     const errors = [];
@@ -105,7 +115,7 @@ class ExploreViewContainer extends React.Component {
           <div key={controlName}>
             <strong>{`[ ${control.label} ] `}</strong>
             {control.validationErrors.join('. ')}
-          </div>
+          </div>,
         );
       }
     }
@@ -138,7 +148,7 @@ class ExploreViewContainer extends React.Component {
           overflow: 'hidden',
         }}
       >
-      {this.state.showModal &&
+        {this.state.showModal &&
         <SaveModal
           onHide={this.toggleModal.bind(this)}
           actions={this.props.actions}

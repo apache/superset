@@ -14,6 +14,7 @@ from flask import Flask, redirect
 from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -50,6 +51,8 @@ logging.getLogger('pyhive.presto').setLevel(logging.INFO)
 
 db = SQLA(app)
 
+if conf.get('WTF_CSRF_ENABLED'):
+    csrf = CSRFProtect(app)
 
 utils.pessimistic_connection_handling(db.engine.pool)
 

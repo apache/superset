@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
@@ -25,12 +26,12 @@ const sqlWords = sqlKeywords.map(s => ({
 }));
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  onBlur: React.PropTypes.func,
-  onAltEnter: React.PropTypes.func,
-  sql: React.PropTypes.string.isRequired,
-  tables: React.PropTypes.array,
-  queryEditor: React.PropTypes.object.isRequired,
+  actions: PropTypes.object.isRequired,
+  onBlur: PropTypes.func,
+  onAltEnter: PropTypes.func,
+  sql: PropTypes.string.isRequired,
+  tables: PropTypes.array,
+  queryEditor: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -59,21 +60,19 @@ class AceEditorWrapper extends React.PureComponent {
       this.setState({ sql: nextProps.sql });
     }
   }
-  textChange(text) {
-    this.setState({ sql: text });
-  }
   onBlur() {
     this.props.onBlur(this.state.sql);
   }
-  getCompletions(aceEditor, session, pos, prefix, callback) {
-    callback(null, this.state.words);
+  onAltEnter() {
+    this.props.onBlur(this.state.sql);
+    this.props.onAltEnter();
   }
   onEditorLoad(editor) {
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
       exec: () => {
-        this.props.onAltEnter();
+        this.onAltEnter();
       },
     });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
@@ -82,15 +81,18 @@ class AceEditorWrapper extends React.PureComponent {
         this.props.queryEditor, editor.getSelectedText());
     });
   }
+  getCompletions(aceEditor, session, pos, prefix, callback) {
+    callback(null, this.state.words);
+  }
   setAutoCompleter(props) {
     // Loading table and column names as auto-completable words
     let words = [];
     const columns = {};
     const tables = props.tables || [];
-    tables.forEach(t => {
+    tables.forEach((t) => {
       words.push({ name: t.name, value: t.name, score: 55, meta: 'table' });
       const cols = t.columns || [];
-      cols.forEach(col => {
+      cols.forEach((col) => {
         columns[col.name] = null;  // using an object as a unique set
       });
     });
@@ -106,6 +108,9 @@ class AceEditorWrapper extends React.PureComponent {
         langTools.setCompleters([completer]);
       }
     });
+  }
+  textChange(text) {
+    this.setState({ sql: text });
   }
   render() {
     return (

@@ -4,14 +4,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import inspect
-from jinja2.sandbox import SandboxedEnvironment
-
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
+import inspect
+import random
 import time
 import uuid
-import random
+
+from jinja2.sandbox import SandboxedEnvironment
+from flask import request, g
+
+from dateutil.relativedelta import relativedelta
 
 from superset import app
 
@@ -25,6 +27,30 @@ BASE_CONTEXT = {
     'uuid': uuid,
 }
 BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
+
+
+def url_param(param, default=None):
+    """Get a url paramater
+
+    :param param: the url parameter to lookup
+    :type param: str
+    :param default: the value to return in the absence of the parameter
+    :type default: str
+    """
+    print(request.args)
+    return request.args.get(param, default)
+
+
+def current_user_id():
+    """The id of the user who is currently logged in"""
+    if g.user:
+        return g.user.id
+
+
+def current_username():
+    """The username of the user who is currently logged in"""
+    if g.user:
+        return g.user.username
 
 
 class BaseTemplateProcessor(object):
@@ -52,7 +78,12 @@ class BaseTemplateProcessor(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
-        self.context = {}
+        self.context = {
+            'url_param': url_param,
+            'current_user_id': current_user_id,
+            'current_username': current_username,
+            'form_data': {},
+        }
         self.context.update(kwargs)
         self.context.update(BASE_CONTEXT)
         if self.engine:
@@ -93,7 +124,10 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     def latest_sub_partition(self, table_name, **kwargs):
         table_name, schema = self._schema_table(table_name, self.schema)
         return self.database.db_engine_spec.latest_sub_partition(
-            table_name, schema, self.database, kwargs)
+            table_name=table_name,
+            schema=schema,
+            database=self.database,
+            **kwargs)
 
 
 class HiveTemplateProcessor(PrestoTemplateProcessor):

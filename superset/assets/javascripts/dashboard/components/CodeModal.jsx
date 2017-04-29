@@ -1,22 +1,22 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
-  triggerNode: React.PropTypes.node.isRequired,
-  code: React.PropTypes.string,
-  codeCallback: React.PropTypes.func,
+  triggerNode: PropTypes.node.isRequired,
+  code: PropTypes.string,
+  codeCallback: PropTypes.func,
 };
 
 const defaultProps = {
+  codeCallback: () => {},
 };
 
 export default class CodeModal extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {
-      refreshFrequency: props.initialRefreshFrequency,
-    };
+    this.state = { code: props.code };
   }
   beforeOpen() {
     let code = this.props.code;

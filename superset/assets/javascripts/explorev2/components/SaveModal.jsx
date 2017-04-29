@@ -1,5 +1,6 @@
 /* eslint camelcase: 0 */
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
@@ -146,7 +147,7 @@ class SaveModal extends React.Component {
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
             >
-            {`Overwrite slice ${this.props.slice.slice_name}`}
+              {`Overwrite slice ${this.props.slice.slice_name}`}
             </Radio>
           }
 

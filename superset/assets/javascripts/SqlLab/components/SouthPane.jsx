@@ -1,22 +1,23 @@
+import React from 'react';
+import PropTypes from 'prop-types';
+import shortid from 'shortid';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
-import QueryHistory from './QueryHistory';
-import ResultSet from './ResultSet';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
-import React from 'react';
 
-import shortid from 'shortid';
+import * as Actions from '../actions';
+import QueryHistory from './QueryHistory';
+import ResultSet from './ResultSet';
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
     dataPrebiewQueries are all queries executed for preview of table data (from SqlEditorLeft)
 */
 const propTypes = {
-  editorQueries: React.PropTypes.array.isRequired,
-  dataPreviewQueries: React.PropTypes.array.isRequired,
-  actions: React.PropTypes.object.isRequired,
-  activeSouthPaneTab: React.PropTypes.string,
+  editorQueries: PropTypes.array.isRequired,
+  dataPreviewQueries: PropTypes.array.isRequired,
+  actions: PropTypes.object.isRequired,
+  activeSouthPaneTab: PropTypes.string,
 };
 
 const defaultProps = {
@@ -24,6 +25,36 @@ const defaultProps = {
 };
 
 class SouthPane extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      innerTabHeight: this.getInnerTabHeight(),
+    };
+  }
+  getInnerTabHeight() {
+    // hack to get height the tab container so it can be fixed and scroll in place
+    // calculate inner tab height
+
+    // document.getElementById('brace-editor').getBoundingClientRect().height;
+    const sqlEditorHeight = 192;
+
+    // document.getElementById('js-sql-toolbar').getBoundingClientRect().height;
+    const sqlToolbar = 30;
+
+    // document.getElementsByClassName('nav-tabs')[0].getBoundingClientRect().height * 2;
+    const tabsHeight = 88;
+
+    // document.getElementsByTagName('header')[0].getBoundingClientRect().height;
+    const headerHeight = 59;
+
+    const sum =
+      sqlEditorHeight +
+      sqlToolbar +
+      tabsHeight +
+      headerHeight;
+
+    return window.innerHeight - sum - 95;
+  }
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
@@ -36,19 +67,32 @@ class SouthPane extends React.PureComponent {
     let results;
     if (latestQuery) {
       results = (
-        <ResultSet showControls search query={latestQuery} actions={props.actions} />
+        <ResultSet
+          showControls
+          search
+          query={latestQuery}
+          actions={props.actions}
+          height={this.state.innerTabHeight}
+        />
       );
     } else {
       results = <Alert bsStyle="info">Run a query to display results here</Alert>;
     }
 
-    const dataPreviewTabs = props.dataPreviewQueries.map((query) => (
+    const dataPreviewTabs = props.dataPreviewQueries.map(query => (
       <Tab
         title={`Preview for ${query.tableName}`}
         eventKey={query.id}
         key={query.id}
       >
-        <ResultSet query={query} visualize={false} csv={false} actions={props.actions} cache />
+        <ResultSet
+          query={query}
+          visualize={false}
+          csv={false}
+          actions={props.actions}
+          cache
+          height={this.state.innerTabHeight}
+        />
       </Tab>
     ));
 
@@ -70,7 +114,9 @@ class SouthPane extends React.PureComponent {
             title="Query History"
             eventKey="History"
           >
-            <QueryHistory queries={props.editorQueries} actions={props.actions} />
+            <div style={{ height: `${this.state.innerTabHeight}px`, overflow: 'scroll' }}>
+              <QueryHistory queries={props.editorQueries} actions={props.actions} />
+            </div>
           </Tab>
           {dataPreviewTabs}
         </Tabs>

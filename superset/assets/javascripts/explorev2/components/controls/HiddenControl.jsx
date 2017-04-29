@@ -1,4 +1,5 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import { FormControl } from 'react-bootstrap';
 
 const propTypes = {
@@ -13,11 +14,9 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class HiddenControl extends React.PureComponent {
-  render() {
-    // This wouldn't be necessary but might as well
-    return <FormControl type="hidden" value={this.props.value} />;
-  }
+export default function HiddenControl(props) {
+  // This wouldn't be necessary but might as well
+  return <FormControl type="hidden" value={props.value} />;
 }
 
 HiddenControl.propTypes = propTypes;

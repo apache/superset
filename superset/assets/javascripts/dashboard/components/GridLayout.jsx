@@ -1,10 +1,13 @@
-import $ from 'jquery';
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import { Responsive, WidthProvider } from 'react-grid-layout';
+import $ from 'jquery';
+
 import SliceCell from './SliceCell';
 
 require('react-grid-layout/css/styles.css');
 require('react-resizable/css/styles.css');
+
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const propTypes = {
@@ -98,7 +101,7 @@ class GridLayout extends React.Component {
             id={'slice_' + slice.slice_id}
             key={slice.slice_id}
             data-slice-id={slice.slice_id}
-            className="widget"
+            className={`widget ${slice.form_data.viz_type}`}
           >
             <SliceCell
               slice={slice}

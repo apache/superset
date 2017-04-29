@@ -1,7 +1,7 @@
 /* eslint no-console: 0 */
 import fs from 'fs';
 import path from 'path';
-import { fields } from './explorev2/stores/controls';
+import { controls } from './explorev2/stores/controls';
 
 function exportFile(fileLocation, content) {
   fs.writeFile(fileLocation, content, function (err) {
@@ -19,7 +19,7 @@ function main() {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
-  const blob = { fields };
+  const blob = { controls };
   exportFile(APP_DIR + '/../backendSync.json', JSON.stringify(blob, null, 2));
 }
 main();

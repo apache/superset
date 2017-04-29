@@ -1,7 +1,7 @@
 {
-  "fields": {
+  "controls": {
     "datasource": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Datasource",
       "isLoading": true,
       "clearable": false,
@@ -9,7 +9,7 @@
       "description": ""
     },
     "viz_type": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Visualization Type",
       "clearable": false,
       "default": "table",
@@ -168,7 +168,7 @@
       "description": "The type of visualization to display"
     },
     "metrics": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "multi": true,
       "label": "Metrics",
       "validators": [
@@ -177,27 +177,27 @@
       "description": "One or many metrics to display"
     },
     "order_by_cols": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "multi": true,
       "label": "Ordering",
       "default": [],
       "description": "One or many metrics to display"
     },
     "metric": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Metric",
       "clearable": false,
       "description": "Choose the metric"
     },
     "metric_2": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Right Axis Metric",
       "choices": [],
       "default": [],
       "description": "Choose a metric for right axis"
     },
     "stacked_style": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Stacked Style",
       "choices": [
         [
@@ -217,7 +217,7 @@
       "description": ""
     },
     "linear_color_scheme": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Linear Color Scheme",
       "choices": [
         [
@@ -241,7 +241,7 @@
       "description": ""
     },
     "normalize_across": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Normalize Across",
       "choices": [
         [
@@ -261,7 +261,7 @@
       "description": "Color will be rendered based on a ratio of the cell against the sum of across this criteria"
     },
     "horizon_color_scale": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Horizon Color Scale",
       "choices": [
         [
@@ -281,7 +281,7 @@
       "description": "Defines how the color are attributed."
     },
     "canvas_image_rendering": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Rendering",
       "choices": [
         [
@@ -297,7 +297,7 @@
       "description": "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image"
     },
     "xscale_interval": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "XScale Interval",
       "choices": [
         [
@@ -505,7 +505,7 @@
       "description": "Number of steps to take between ticks when displaying the X scale"
     },
     "yscale_interval": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "YScale Interval",
       "choices": [
         [
@@ -712,62 +712,68 @@
       "default": null,
       "description": "Number of steps to take between ticks when displaying the Y scale"
     },
+    "include_time": {
+      "type": "CheckboxControl",
+      "label": "Include Time",
+      "description": "Whether to include the time granularity as defined in the time section",
+      "default": false
+    },
     "bar_stacked": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Stacked Bars",
       "renderTrigger": true,
       "default": false,
       "description": null
     },
     "show_markers": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Show Markers",
       "renderTrigger": true,
       "default": false,
       "description": "Show data points as circle markers on the lines"
     },
     "show_bar_value": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Bar Values",
       "default": false,
       "renderTrigger": true,
       "description": "Show the value on top of the bar"
     },
     "order_bars": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Sort Bars",
       "default": false,
       "description": "Sort bars by x labels."
     },
     "show_controls": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Extra Controls",
       "renderTrigger": true,
       "default": false,
       "description": "Whether to show extra controls or not. Extra controls include things like making mulitBar charts stacked or side by side."
     },
     "reduce_x_ticks": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Reduce X ticks",
       "renderTrigger": true,
       "default": false,
       "description": "Reduces the number of X axis ticks to be rendered. If true, the x axis wont overflow and labels may be missing. If false, a minimum width will be applied to columns and the width may overflow into an horizontal scroll."
     },
     "include_series": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Include Series",
       "renderTrigger": true,
       "default": false,
       "description": "Include series name as an axis"
     },
     "secondary_metric": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Color Metric",
       "default": null,
       "description": "A metric to use for color"
     },
     "country_fieldtype": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Country Field Type",
       "default": "cca2",
       "choices": [
@@ -791,40 +797,40 @@
       "description": "The country code standard that Superset should expect to find in the [country] column"
     },
     "groupby": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "multi": true,
       "label": "Group by",
       "default": [],
-      "description": "One or many fields to group by"
+      "description": "One or many controls to group by"
     },
     "columns": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "multi": true,
       "label": "Columns",
       "default": [],
-      "description": "One or many fields to pivot as columns"
+      "description": "One or many controls to pivot as columns"
     },
     "all_columns": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "multi": true,
       "label": "Columns",
       "default": [],
       "description": "Columns to display"
     },
     "all_columns_x": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "X",
       "default": null,
       "description": "Columns to display"
     },
     "all_columns_y": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Y",
       "default": null,
       "description": "Columns to display"
     },
     "druid_time_origin": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Origin",
       "choices": [
@@ -841,7 +847,7 @@
       "description": "Defines the origin where time buckets start, accepts natural dates as in `now`, `sunday` or `1970-01-01`"
     },
     "bottom_margin": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Bottom Margin",
       "choices": [
@@ -878,7 +884,7 @@
       "description": "Bottom marging, in pixels, allowing for more room for axis labels"
     },
     "granularity": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Time Granularity",
       "default": "one day",
@@ -939,7 +945,7 @@
       "description": "The time granularity for the visualization. Note that you can type and use simple natural language as in `10 seconds`, `1 day` or `56 weeks`"
     },
     "domain_granularity": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Domain",
       "default": "month",
       "choices": [
@@ -967,7 +973,7 @@
       "description": "The time unit used for the grouping of blocks"
     },
     "subdomain_granularity": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Subdomain",
       "default": "day",
       "choices": [
@@ -995,7 +1001,7 @@
       "description": "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain"
     },
     "link_length": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Link Length",
       "default": "200",
@@ -1036,7 +1042,7 @@
       "description": "Link length in the force layout"
     },
     "charge": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Charge",
       "default": "-500",
@@ -1085,17 +1091,17 @@
       "description": "Charge in the force layout"
     },
     "granularity_sqla": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Time Column",
       "description": "The time column for the visualization. Note that you can define arbitrary expression that return a DATETIME column in the table or. Also note that the filter below is applied against this column or expression"
     },
     "time_grain_sqla": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Time Grain",
       "description": "The time granularity for the visualization. This applies a date transformation to alter your time column and defines a new time granularity. The options here are defined on a per database engine basis in the Superset source code."
     },
     "resample_rule": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Resample Rule",
       "default": null,
@@ -1132,7 +1138,7 @@
       "description": "Pandas resample rule"
     },
     "resample_how": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Resample How",
       "default": null,
@@ -1157,7 +1163,7 @@
       "description": "Pandas resample how"
     },
     "resample_fillmethod": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Resample Fill Method",
       "default": null,
@@ -1178,7 +1184,7 @@
       "description": "Pandas resample fill method"
     },
     "since": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Since",
       "default": "7 days ago",
@@ -1219,7 +1225,7 @@
       "description": "Timestamp from filter. This supports free form typing and natural language as in `1 day ago`, `28 days` or `3 years`"
     },
     "until": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Until",
       "default": "now",
@@ -1251,7 +1257,7 @@
       ]
     },
     "max_bubble_size": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Max Bubble Size",
       "default": "25",
@@ -1287,7 +1293,7 @@
       ]
     },
     "whisker_options": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Whisker/outlier options",
       "default": "Tukey",
@@ -1312,14 +1318,14 @@
       ]
     },
     "treemap_ratio": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Ratio",
       "isFloat": true,
       "default": 1.618033988749895,
       "description": "Target aspect ratio for treemap tiles."
     },
     "number_format": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Number format",
       "default": [
@@ -1355,7 +1361,7 @@
       "description": "D3 format syntax: https://github.com/d3/d3-format"
     },
     "row_limit": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Row limit",
       "default": null,
@@ -1399,7 +1405,7 @@
       ]
     },
     "limit": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Series limit",
       "choices": [
@@ -1436,13 +1442,13 @@
       "description": "Limits the number of time series that get displayed"
     },
     "timeseries_limit_metric": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Sort By",
       "default": null,
       "description": "Metric used to define the top series"
     },
     "rolling_type": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Rolling",
       "default": "None",
       "choices": [
@@ -1470,83 +1476,83 @@
       "description": "Defines a rolling window function to apply, works along with the [Periods] text box"
     },
     "rolling_periods": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Periods",
       "isInt": true,
       "description": "Defines the size of the rolling window function, relative to the time granularity selected"
     },
     "series": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Series",
       "default": null,
       "description": "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a legend toggle"
     },
     "entity": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Entity",
       "default": null,
       "description": "This define the element to be plotted on the chart"
     },
     "x": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "X Axis",
       "default": null,
       "description": "Metric assigned to the [X] axis"
     },
     "y": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Y Axis",
       "default": null,
       "description": "Metric assigned to the [Y] axis"
     },
     "size": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Bubble Size",
       "default": null
     },
     "url": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "URL",
-      "description": "The URL, this field is templated, so you can integrate {{ width }} and/or {{ height }} in your URL string.",
-      "default": "https: //www.youtube.com/embed/JkI5rg_VcQ4"
+      "description": "The URL, this control is templated, so you can integrate {{ width }} and/or {{ height }} in your URL string.",
+      "default": "https://www.youtube.com/embed/AdSZJzb-aX8"
     },
     "x_axis_label": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "X Axis Label",
       "renderTrigger": true,
       "default": ""
     },
     "y_axis_label": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Y Axis Label",
       "renderTrigger": true,
       "default": ""
     },
     "where": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Custom WHERE clause",
       "default": "",
       "description": "The text in this box gets included in your query's WHERE clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards."
     },
     "having": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Custom HAVING clause",
       "default": "",
       "description": "The text in this box gets included in your query's HAVING clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards."
     },
     "compare_lag": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Comparison Period Lag",
       "isInt": true,
       "description": "Based on granularity, number of time periods to compare against"
     },
     "compare_suffix": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Comparison suffix",
       "description": "Suffix to apply after the percentage display"
     },
     "table_timestamp_format": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Table Timestamp Format",
       "default": "smart_date",
@@ -1575,7 +1581,7 @@
       "description": "Timestamp Format"
     },
     "series_height": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Series Height",
       "default": "25",
@@ -1616,7 +1622,7 @@
       "description": "Pixel height of each series"
     },
     "page_length": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Page Length",
       "default": 0,
@@ -1661,7 +1667,7 @@
       "description": "Rows per page, 0 means no pagination"
     },
     "x_axis_format": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "X axis format",
       "renderTrigger": true,
@@ -1691,7 +1697,7 @@
       "description": "D3 format syntax: https://github.com/d3/d3-format"
     },
     "y_axis_format": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Y axis format",
       "renderTrigger": true,
@@ -1725,7 +1731,7 @@
       "description": "D3 format syntax: https://github.com/d3/d3-format"
     },
     "y_axis_2_format": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Right axis format",
       "default": ".3s",
@@ -1758,7 +1764,7 @@
       "description": "D3 format syntax: https://github.com/d3/d3-format"
     },
     "markup_type": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Markup Type",
       "choices": [
         [
@@ -1774,7 +1780,7 @@
       "description": "Pick your favorite markup language"
     },
     "rotation": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Rotation",
       "choices": [
         [
@@ -1794,7 +1800,7 @@
       "description": "Rotation to apply to words in the cloud"
     },
     "line_interpolation": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Line Style",
       "renderTrigger": true,
       "choices": [
@@ -1827,7 +1833,7 @@
       "description": "Line interpolation as defined by d3.js"
     },
     "pie_label_type": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Label Type",
       "default": "key",
       "choices": [
@@ -1847,13 +1853,13 @@
       "description": "What should be shown on the label?"
     },
     "code": {
-      "type": "TextAreaField",
+      "type": "TextAreaControl",
       "label": "Code",
       "description": "Put your code here",
       "default": ""
     },
     "pandas_aggfunc": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Aggregation function",
       "clearable": false,
       "choices": [
@@ -1890,127 +1896,134 @@
       "description": "Aggregate function to apply when pivoting and computing the total rows and columns"
     },
     "size_from": {
-      "type": "TextField",
+      "type": "TextControl",
       "isInt": true,
       "label": "Font Size From",
       "default": "20",
       "description": "Font size for the smallest value in the list"
     },
     "size_to": {
-      "type": "TextField",
+      "type": "TextControl",
       "isInt": true,
       "label": "Font Size To",
       "default": "150",
       "description": "Font size for the biggest value in the list"
     },
+    "instant_filtering": {
+      "type": "CheckboxControl",
+      "label": "Instant Filtering",
+      "renderTrigger": true,
+      "default": true,
+      "description": "Whether to apply filters as they change, or wait forusers to hit an [Apply] button"
+    },
     "show_brush": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Range Filter",
       "renderTrigger": true,
       "default": false,
       "description": "Whether to display the time range interactive selector"
     },
     "date_filter": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Date Filter",
       "default": false,
       "description": "Whether to include a time filter"
     },
     "show_datatable": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Data Table",
       "default": false,
       "description": "Whether to display the interactive data table"
     },
     "include_search": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Search Box",
       "renderTrigger": true,
       "default": false,
       "description": "Whether to include a client side search box"
     },
     "table_filter": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Table Filter",
       "default": false,
       "description": "Whether to apply filter when table cell is clicked"
     },
     "show_bubbles": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Show Bubbles",
       "default": false,
       "renderTrigger": true,
       "description": "Whether to display bubbles on top of countries"
     },
     "show_legend": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Legend",
       "renderTrigger": true,
       "default": true,
       "description": "Whether to display the legend (toggles)"
     },
     "x_axis_showminmax": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "X bounds",
       "renderTrigger": true,
       "default": true,
       "description": "Whether to display the min and max values of the X axis"
     },
     "rich_tooltip": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Rich Tooltip",
       "renderTrigger": true,
       "default": true,
       "description": "The rich tooltip shows a list of all series for that point in time"
     },
     "y_axis_zero": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Y Axis Zero",
       "default": false,
       "renderTrigger": true,
       "description": "Force the Y axis to start at 0 instead of the minimum value"
     },
     "y_log_scale": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Y Log Scale",
       "default": false,
       "renderTrigger": true,
       "description": "Use a log scale for the Y axis"
     },
     "x_log_scale": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "X Log Scale",
       "default": false,
       "renderTrigger": true,
       "description": "Use a log scale for the X axis"
     },
     "donut": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Donut",
       "default": false,
       "description": "Do you want a donut or a pie?"
     },
     "labels_outside": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Put labels outside",
       "default": true,
       "description": "Put the labels outside the pie?"
     },
     "contribution": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Contribution",
       "default": false,
       "description": "Compute the contribution to the total"
     },
     "num_period_compare": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Period Ratio",
       "default": "",
       "isInt": true,
       "description": "[integer] Number of period to compare against, this is relative to the granularity selected"
     },
     "period_ratio_type": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Period Ratio Type",
       "default": "growth",
       "choices": [
@@ -2030,25 +2043,25 @@
       "description": "`factor` means (new/previous), `growth` is ((new/previous) - 1), `value` is (new-previous)"
     },
     "time_compare": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Time Shift",
       "default": null,
       "description": "Overlay a timeseries from a relative time period. Expects relative time delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days"
     },
     "subheader": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Subheader",
       "description": "Description text that shows up below your Big Number"
     },
     "mapbox_label": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "multi": true,
       "label": "label",
       "default": [],
       "description": "`count` is COUNT(*) if a group by is used. Numerical columns will be aggregated with the aggregator. Non-numerical columns will be used to label points. Leave empty to get a count of points in each cluster."
     },
     "mapbox_style": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Map Style",
       "choices": [
         [
@@ -2080,7 +2093,7 @@
       "description": "Base layer map style"
     },
     "clustering_radius": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "Clustering Radius",
       "default": "60",
@@ -2125,13 +2138,13 @@
       "description": "The radius (in pixels) the algorithm uses to define a cluster. Choose 0 to turn off clustering, but beware that a large number of points (>1000) will cause lag."
     },
     "point_radius": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Point Radius",
       "default": "Auto",
       "description": "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster"
     },
     "point_radius_unit": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "label": "Point Radius Unit",
       "default": "Pixels",
       "choices": [
@@ -2151,14 +2164,14 @@
       "description": "The unit of measure for the specified point radius"
     },
     "global_opacity": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Opacity",
       "default": 1,
       "isFloat": true,
       "description": "Opacity of all clusters, points, and labels. Between 0 and 1."
     },
     "viewport_zoom": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Zoom",
       "isFloat": true,
       "default": 11,
@@ -2166,7 +2179,7 @@
       "places": 8
     },
     "viewport_latitude": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Default latitude",
       "default": 37.772123,
       "isFloat": true,
@@ -2174,7 +2187,7 @@
       "places": 8
     },
     "viewport_longitude": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Default longitude",
       "default": -122.405293,
       "isFloat": true,
@@ -2182,13 +2195,13 @@
       "places": 8
     },
     "render_while_dragging": {
-      "type": "CheckboxField",
+      "type": "CheckboxControl",
       "label": "Live render",
       "default": true,
       "description": "Points and clusters will update as viewport is being changed"
     },
     "mapbox_color": {
-      "type": "SelectField",
+      "type": "SelectControl",
       "freeForm": true,
       "label": "RGB Color",
       "default": "rgb(0, 122, 135)",
@@ -2221,55 +2234,55 @@
       "description": "The color for points and clusters in RGB"
     },
     "ranges": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Ranges",
       "default": "",
       "description": "Ranges to highlight with shading"
     },
     "range_labels": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Range labels",
       "default": "",
       "description": "Labels for the ranges"
     },
     "markers": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Markers",
       "default": "",
       "description": "List of values to mark with triangles"
     },
     "marker_labels": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Marker labels",
       "default": "",
       "description": "Labels for the markers"
     },
     "marker_lines": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Marker lines",
       "default": "",
       "description": "List of values to mark with lines"
     },
     "marker_line_labels": {
-      "type": "TextField",
+      "type": "TextControl",
       "label": "Marker line labels",
       "default": "",
       "description": "Labels for the marker lines"
     },
     "filters": {
-      "type": "FilterField",
+      "type": "FilterControl",
       "label": "",
       "default": [],
       "description": ""
     },
     "having_filters": {
-      "type": "FilterField",
+      "type": "FilterControl",
       "label": "",
       "default": [],
       "description": ""
     },
     "slice_id": {
-      "type": "HiddenField",
+      "type": "HiddenControl",
       "label": "Slice ID",
       "hidden": true,
       "description": "The id of the active slice"

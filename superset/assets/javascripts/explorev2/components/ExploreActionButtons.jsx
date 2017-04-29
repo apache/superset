@@ -1,4 +1,5 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import cx from 'classnames';
 import URLShortLinkButton from './URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
@@ -7,11 +8,13 @@ import DisplayQueryButton from './DisplayQueryButton';
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
   slice: PropTypes.object,
-  queryEndpoint: PropTypes.string,
-  query: PropTypes.string,
+  queryEndpoint: PropTypes.string.isRequired,
+  queryResponse: PropTypes.object,
+  chartStatus: PropTypes.string,
 };
 
-export default function ExploreActionButtons({ canDownload, slice, query, queryEndpoint }) {
+export default function ExploreActionButtons({
+    chartStatus, canDownload, slice, queryResponse, queryEndpoint }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
@@ -27,8 +30,9 @@ export default function ExploreActionButtons({ canDownload, slice, query, queryE
           className="btn btn-default btn-sm"
           title="Export to .json"
           target="_blank"
+          rel="noopener noreferrer"
         >
-          <i className="fa fa-file-code-o"></i> .json
+          <i className="fa fa-file-code-o" /> .json
         </a>
 
         <a
@@ -36,13 +40,15 @@ export default function ExploreActionButtons({ canDownload, slice, query, queryE
           className={exportToCSVClasses}
           title="Export to .csv format"
           target="_blank"
+          rel="noopener noreferrer"
         >
-          <i className="fa fa-file-text-o"></i> .csv
+          <i className="fa fa-file-text-o" /> .csv
         </a>
 
         <DisplayQueryButton
-          query={query}
+          queryResponse={queryResponse}
           queryEndpoint={queryEndpoint}
+          chartStatus={chartStatus}
         />
       </div>
     );

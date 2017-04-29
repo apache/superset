@@ -1,11 +1,12 @@
 import React from 'react';
-import UserInfo from '../../../javascripts/profile/components/UserInfo';
 import Gravatar from 'react-gravatar';
 import { Panel } from 'react-bootstrap';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { user } from './fixtures';
+import UserInfo from '../../../javascripts/profile/components/UserInfo';
 
 
 describe('UserInfo', () => {
@@ -14,7 +15,7 @@ describe('UserInfo', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<UserInfo {...mockedProps} />)
+      React.isValidElement(<UserInfo {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a Gravatar', () => {

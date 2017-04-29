@@ -1,10 +1,10 @@
 /* eslint-disable no-param-reassign */
-
 import d3 from 'd3';
 import React from 'react';
+import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
-import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react.js';
+import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
@@ -109,7 +109,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             const fontHeight = d3.round(scaledRadius * 0.5, 1);
             const gradient = ctx.createRadialGradient(
               pixelRounded[0], pixelRounded[1], scaledRadius,
-              pixelRounded[0], pixelRounded[1], 0
+              pixelRounded[0], pixelRounded[1], 0,
             );
 
             gradient.addColorStop(1, 'rgba(' + rgb[1] + ', ' + rgb[2] + ', ' + rgb[3] + ', 0.8)');
@@ -257,27 +257,26 @@ class MapboxViz extends React.Component {
   }
 }
 MapboxViz.propTypes = {
-  aggregatorName: React.PropTypes.string,
-  clusterer: React.PropTypes.object,
-  globalOpacity: React.PropTypes.number,
-  mapStyle: React.PropTypes.string,
-  mapboxApiKey: React.PropTypes.string,
-  pointRadius: React.PropTypes.number,
-  pointRadiusUnit: React.PropTypes.string,
-  renderWhileDragging: React.PropTypes.bool,
-  rgb: React.PropTypes.array,
-  sliceHeight: React.PropTypes.number,
-  sliceWidth: React.PropTypes.number,
-  viewportLatitude: React.PropTypes.number,
-  viewportLongitude: React.PropTypes.number,
-  viewportZoom: React.PropTypes.number,
+  aggregatorName: PropTypes.string,
+  clusterer: PropTypes.object,
+  globalOpacity: PropTypes.number,
+  mapStyle: PropTypes.string,
+  mapboxApiKey: PropTypes.string,
+  pointRadius: PropTypes.number,
+  pointRadiusUnit: PropTypes.string,
+  renderWhileDragging: PropTypes.bool,
+  rgb: PropTypes.array,
+  sliceHeight: PropTypes.number,
+  sliceWidth: PropTypes.number,
+  viewportLatitude: PropTypes.number,
+  viewportLongitude: PropTypes.number,
+  viewportZoom: PropTypes.number,
 };
 
 function mapbox(slice, json) {
   const div = d3.select(slice.selector);
   const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_MAX_ZOOM = 16;
-  let clusterer;
 
   // Validate mapbox color
   const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(json.data.color);
@@ -314,7 +313,7 @@ function mapbox(slice, json) {
     };
   }
 
-  clusterer = supercluster({
+  const clusterer = supercluster({
     radius: json.data.clusteringRadius,
     maxZoom: DEFAULT_MAX_ZOOM,
     metricKey: 'metric',
@@ -333,7 +332,7 @@ function mapbox(slice, json) {
       pointRadius={DEFAULT_POINT_RADIUS}
       aggregatorName={aggName}
     />,
-    div.node()
+    div.node(),
   );
 }
 

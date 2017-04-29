@@ -26,7 +26,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
         'column_name', 'description', 'dimension_spec_json', 'datasource',
-        'groupby', 'count_distinct', 'sum', 'min', 'max']
+        'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -45,6 +45,9 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'max': _("Max"),
     }
     description_columns = {
+        'filterable': _(
+            "Whether this column is exposed in the `Filters` section "
+            "of the explore view."),
         'dimension_spec_json': utils.markdown(
             "this field can be used to specify  "
             "a `dimensionSpec` as documented [here]"
@@ -97,11 +100,12 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     }
 
     def post_add(self, metric):
-        utils.init_metrics_perm(superset, [metric])
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
     def post_update(self, metric):
-        utils.init_metrics_perm(superset, [metric])
-
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
@@ -151,8 +155,8 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'datasource_link', 'changed_on_', 'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden',
+        'datasource_name', 'cluster', 'slices', 'description', 'owner',
+        'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     add_columns = edit_columns
@@ -160,21 +164,40 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
+        'slices': _(
+            "The list of slices associated with this table. By "
+            "altering this datasource, you may change how these associated "
+            "slices behave. "
+            "Also note that slices need to point to a datasource, so "
+            "this form will fail at saving if removing slices from a "
+            "datasource. If you want to change the datasource for a slice, "
+            "overwrite the slice from the 'explore view'"),
         'offset': _("Timezone offset (in hours) for this datasource"),
         'description': Markup(
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
         'fetch_values_from': _(
             "Time expression to use as a predicate when retrieving "
-            "distinct values to populate the filter component"),
+            "distinct values to populate the filter component. "
+            "Only applies when `Enable Filter Select` is on. If "
+            "you enter `7 days ago`, the distinct list of values in "
+            "the filter will be populated based on the distinct value over "
+            "the past week"),
+        'filter_select_enabled': _(
+            "Whether to populate the filter's dropdown in the explore "
+            "view's filter section with a list of distinct values fetched "
+            "from the backend on the fly"),
+        'default_endpoint': _(
+            "Redirects to this endpoint when clicking on the datasource "
+            "from the datasource list"),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
+        'slices': _("Associated Slices"),
         'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
         'description': _("Description"),
         'owner': _("Owner"),
-        'is_featured': _("Is Featured"),
         'is_hidden': _("Is Hidden"),
         'filter_select_enabled': _("Enable Filter Select"),
         'default_endpoint': _("Default Endpoint"),

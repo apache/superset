@@ -20,9 +20,10 @@ logger = logging.getLogger('alembic.env')
 # for 'autogenerate' support
 # from myapp import mymodel
 from flask import current_app
+
 config.set_main_option('sqlalchemy.url',
                        current_app.config.get('SQLALCHEMY_DATABASE_URI'))
-target_metadata = Base.metadata
+target_metadata = Base.metadata   # pylint: disable=no-member
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -1,10 +1,12 @@
 import React from 'react';
-import TableLoader from './TableLoader';
+import PropTypes from 'prop-types';
 import moment from 'moment';
 import $ from 'jquery';
 
+import TableLoader from './TableLoader';
+
 const propTypes = {
-  user: React.PropTypes.object,
+  user: PropTypes.object,
 };
 
 export default class RecentActivity extends React.PureComponent {

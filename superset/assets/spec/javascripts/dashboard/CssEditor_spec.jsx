@@ -1,9 +1,9 @@
 import React from 'react';
-import CssEditor from '../../../javascripts/dashboard/components/CssEditor';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import CssEditor from '../../../javascripts/dashboard/components/CssEditor';
 
 describe('CssEditor', () => {
   const mockedProps = {
@@ -11,7 +11,7 @@ describe('CssEditor', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<CssEditor {...mockedProps} />)
+      React.isValidElement(<CssEditor {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders the trigger node', () => {
