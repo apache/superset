@@ -407,29 +407,37 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    // Hack to adjust margins to accommodate long axis tick labels.
-    // - has to be done only after the chart has been rendered once
-    // - measure the width or height of the labels
-    // ---- (x axis labels are rotated 45 degrees so we use height),
-    // - adjust margins based on these measures and render again
-    if (isTimeSeries && vizType !== 'bar') {
-      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+    if (chart.yAxis !== undefined) {
+      // Hack to adjust y axis left margin to accommodate long numbers
       const marginPad = isExplore ? width * 0.01 : width * 0.03;
-      const chartMargins = {
-        bottom: maxXAxisLabelHeight + marginPad,
-        right: maxXAxisLabelHeight + marginPad,
-      };
-
-      if (vizType === 'dual_line') {
-        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
-        // use y axis width if it's wider than axis width/height
-        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-          chartMargins.right = maxYAxis2LabelWidth + marginPad;
-        }
+      const maxYAxisLabelWidth = getMaxLabelSize(slice.container, 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+      chart.margin({ left: maxYAxisLabelWidth + marginPad });
+      if (fd.y_axis_label && fd.y_axis_label !== '') {
+        chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
       }
+      // Hack to adjust margins to accommodate long axis tick labels.
+      // - has to be done only after the chart has been rendered once
+      // - measure the width or height of the labels
+      // ---- (x axis labels are rotated 45 degrees so we use height),
+      // - adjust margins based on these measures and render again
+      if (isTimeSeries && vizType !== 'bar') {
+        const chartMargins = {
+          bottom: maxXAxisLabelHeight + marginPad,
+          right: maxXAxisLabelHeight + marginPad,
+        };
 
-      // apply margins
-      chart.margin(chartMargins);
+        if (vizType === 'dual_line') {
+          const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
+          // use y axis width if it's wider than axis width/height
+          if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
+            chartMargins.right = maxYAxis2LabelWidth + marginPad;
+          }
+        }
+
+        // apply margins
+        chart.margin(chartMargins);
+      }
       if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
         chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
       }
