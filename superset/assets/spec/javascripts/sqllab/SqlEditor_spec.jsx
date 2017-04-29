@@ -15,6 +15,9 @@ describe('SqlEditor', () => {
     latestQuery: queries[0],
     tables: [table],
     queries,
+    height: '',
+    editorQueries: [],
+    dataPreviewQueries: [],
   };
   it('is valid', () => {
     expect(
