@@ -12,6 +12,7 @@ describe('SqlEditorLeftBar', () => {
   const mockedProps = {
     tables: [table],
     queryEditor: defaultQueryEditor,
+    height: 0,
   };
   it('is valid', () => {
     expect(
