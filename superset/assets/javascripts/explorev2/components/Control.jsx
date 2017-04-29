@@ -68,7 +68,7 @@ export default class Control extends React.PureComponent {
       validationErrors = currentErrors;
     }
 
-    if (value !== this.props.value || validationErrors != this.props.validationErrors) {
+    if (value !== this.props.value || validationErrors !== this.props.validationErrors) {
       this.props.actions.setControlValue(this.props.name, value, validationErrors);
     }
   }
