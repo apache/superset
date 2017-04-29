@@ -360,7 +360,7 @@ function nvd3Vis(slice, payload) {
 
     if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
       let distance = 0;
-      if (fd.bottom_margin) {
+      if (fd.bottom_margin && !isNaN(fd.bottom_margin)) {
         distance = fd.bottom_margin - 50;
       }
       chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
