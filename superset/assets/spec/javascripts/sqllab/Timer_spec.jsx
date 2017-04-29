@@ -14,10 +14,7 @@ describe('Timer', () => {
     isRunning: true,
     state: 'warning',
   };
-  it('renders', () => {
-    expect(React.isValidElement(<Timer />)).to.equal(true);
-  });
-  it('renders with props', () => {
+  it('is valid', () => {
     expect(React.isValidElement(<Timer {...mockedProps} />))
     .to.equal(true);
   });
