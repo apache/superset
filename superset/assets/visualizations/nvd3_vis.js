@@ -266,7 +266,7 @@ function nvd3Vis(slice, payload) {
         chart.style(fd.stacked_style);
         chart.xScale(d3.time.scale.utc());
         chart.xAxis
-        .showMaxMin(false)
+        .showMaxMin(fd.x_axis_showminmax)
         .staggerLabels(true);
         break;
 
