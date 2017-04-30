@@ -9,14 +9,10 @@ import { queries } from './fixtures';
 describe('ResultSet', () => {
   const mockedProps = {
     query: queries[0],
+    height: 0,
   };
-  it('renders', () => {
-    expect(React.isValidElement(<ResultSet />)).to.equal(true);
-  });
-  it('renders with props', () => {
-    expect(
-      React.isValidElement(<ResultSet />),
-    ).to.equal(true);
+  it('is valid', () => {
+    expect(React.isValidElement(<ResultSet {...mockedProps} />)).to.equal(true);
   });
   it('renders a Table', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
