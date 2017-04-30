@@ -711,7 +711,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
         polled = cursor.poll()
         while polled.operationState in unfinished_states:
-            query = session.query(type(query)).filter_by(id=query.id)
+            query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
