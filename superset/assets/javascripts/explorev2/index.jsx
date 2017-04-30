@@ -39,6 +39,7 @@ const bootstrappedState = Object.assign(
     queryResponse: null,
     triggerQuery: true,
     triggerRender: false,
+    alert: null,
   },
 );
 
