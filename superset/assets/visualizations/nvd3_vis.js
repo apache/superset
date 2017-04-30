@@ -23,8 +23,7 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const addTotalBarValues = function (chart, data, stacked) {
-  const svg = d3.select('svg');
+const addTotalBarValues = function (svg, chart, data, stacked) {
   const format = d3.format('.3s');
   const countSeriesDisplayed = data.length;
 
@@ -123,6 +122,10 @@ function nvd3Vis(slice, payload) {
   let row;
 
   const drawGraph = function () {
+    let svg = d3.select(slice.selector).select('svg');
+    if (svg.empty()) {
+      svg = d3.select(slice.selector).append('svg');
+    }
     switch (vizType) {
       case 'line':
         if (fd.show_brush) {
@@ -166,7 +169,7 @@ function nvd3Vis(slice, payload) {
 
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked);
           }, animationTime);
         }
         break;
@@ -196,7 +199,7 @@ function nvd3Vis(slice, payload) {
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked);
           }, animationTime);
         }
         if (!reduceXTicks) {
@@ -382,10 +385,6 @@ function nvd3Vis(slice, payload) {
       chart.margin({ bottom: fd.bottom_margin });
     }
 
-    let svg = d3.select(slice.selector).select('svg');
-    if (svg.empty()) {
-      svg = d3.select(slice.selector).append('svg');
-    }
     if (vizType === 'dual_line') {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
