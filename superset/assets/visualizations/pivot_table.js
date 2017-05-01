@@ -47,5 +47,4 @@ module.exports = function (slice, payload) {
     container.css('overflow', 'auto');
     container.css('height', `${height + 10}px`);
   }
-
 };
