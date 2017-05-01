@@ -23,8 +23,8 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const addTotalBarValues = function (svg, chart, data, stacked) {
-  const format = d3.format('.3s');
+const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
+  const format = d3.format(axisFormat || '.3s');
   const countSeriesDisplayed = data.length;
 
   const totalStackedValues = stacked && data.length !== 0 ?
@@ -169,7 +169,7 @@ function nvd3Vis(slice, payload) {
 
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         break;
@@ -199,7 +199,7 @@ function nvd3Vis(slice, payload) {
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         if (!reduceXTicks) {
