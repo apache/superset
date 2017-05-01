@@ -11,16 +11,16 @@ module.exports = function (slice, payload) {
   const container = slice.container;
   const fd = slice.formData;
   const height = container.height();
-  const number_format = fd.number_format;
+  const numberFormat = fd.number_format;
 
   // payload data is a string of html with a single table element
   container.html(payload.data);
 
   // format number
-  $('td').each(function() {
-    var tdText = $(this)[0].textContent;
-    if (!isNaN(tdText) && tdText != '') {
-      $(this)[0].textContent = d3.format(number_format)(tdText);
+  $('td').each(function () {
+    const tdText = $(this)[0].textContent;
+    if (!isNaN(tdText) && tdText !== '') {
+      $(this)[0].textContent = d3.format(numberFormat)(tdText);
     }
   });
 
