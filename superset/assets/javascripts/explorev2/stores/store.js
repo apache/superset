@@ -65,6 +65,7 @@ export function getControlsState(state, form_data) {
     if (typeof control.default === 'function') {
       control.default = control.default(control);
     }
+    control.validationErrors = [];
     control.value = formData[k] !== undefined ? formData[k] : control.default;
     controlsState[k] = control;
   });

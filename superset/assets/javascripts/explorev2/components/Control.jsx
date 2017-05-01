@@ -51,17 +51,26 @@ export default class Control extends React.PureComponent {
     super(props);
     this.validate = this.validate.bind(this);
     this.onChange = this.onChange.bind(this);
-    this.validateAndSetValue(props.value, []);
+  }
+  componentDidMount() {
+    this.validateAndSetValue(this.props.value, []);
   }
   onChange(value, errors) {
     this.validateAndSetValue(value, errors);
   }
   validateAndSetValue(value, errors) {
-    let validationErrors = this.validate(value);
+    let validationErrors = this.props.validationErrors;
+    let currentErrors = this.validate(value);
     if (errors && errors.length > 0) {
-      validationErrors = validationErrors.concat(errors);
+      currentErrors = validationErrors.concat(errors);
     }
-    this.props.actions.setControlValue(this.props.name, value, validationErrors);
+    if (validationErrors.length + currentErrors.length > 0) {
+      validationErrors = currentErrors;
+    }
+
+    if (value !== this.props.value || validationErrors !== this.props.validationErrors) {
+      this.props.actions.setControlValue(this.props.name, value, validationErrors);
+    }
   }
   validate(value) {
     const validators = this.props.validators;
