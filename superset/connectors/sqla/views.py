@@ -239,25 +239,47 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     def post_update(self, table):
         self.post_add(table, flash_message=False)
 
-    def post_delete(self, table):
-        logging.info("Clean up permission views for {}".format(table))
+    def _delete(self, pk):
+        """
+            Delete function logic, override to implement diferent logic
+            deletes the record with primary_key = pk
 
-        table_view_menu = sm.find_view_menu(table.get_perm())
-        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-            view_menu=table_view_menu).all()
+            :param pk:
+                record primary key to delete
+        """
+        table = self.datamodel.get(pk, self._base_filters)
+        if not table:
+            abort(404)
+        try:
+            self.pre_delete(table)
+        except Exception as e:
+            flash(str(e), "danger")
+        else:
+            table_view_menu = sm.find_view_menu(table.get_perm())
+            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=table_view_menu).all()
 
-        schema_view_menu = sm.find_view_menu(table.schema_perm)
+            schema_view_menu = sm.find_view_menu(table.schema_perm)
 
-        pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
-            view_menu=schema_view_menu).all())
+            pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=schema_view_menu).all())
 
-        for pv in pvs:
-            sm.get_session.delete(pv)
+            if self.datamodel.delete(table):
+                self.post_delete(table)
 
-        sm.get_session.delete(table_view_menu)
-        sm.get_session.delete(schema_view_menu)
+                for pv in pvs:
+                    sm.get_session.delete(pv)
 
-        sm.get_session.commit()
+                if table_view_menu:
+                    sm.get_session.delete(table_view_menu)
+
+                if schema_view_menu:
+                    sm.get_session.delete(schema_view_menu)
+
+                sm.get_session.commit()
+
+            flash(*self.datamodel.message)
+            self.update_redirect()
 
     @expose('/edit/<pk>', methods=['GET', 'POST'])
     @has_access

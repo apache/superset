@@ -248,33 +248,46 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
-    def post_delete(self, db):
-        logging.info("Clean up permission views for {}".format(db))
+    def _delete(self, pk):
+        """
+            Delete function logic, override to implement diferent logic
+            deletes the record with primary_key = pk
 
-        db_view_menu = sm.find_view_menu(db.perm)
-        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-            view_menu=db_view_menu).all()
+            :param pk:
+                record primary key to delete
+        """
+        db = self.datamodel.get(pk, self._base_filters)
+        if not db:
+            abort(404)
+        try:
+            self.pre_delete(db)
+        except Exception as e:
+            flash(str(e), "danger")
+        else:
+            db_view_menu = sm.find_view_menu(db.perm)
+            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=db_view_menu).all()
+            db_schema_menus = db.all_schema_names()
+            for schema in db_schema_menus:
+                pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=db_schema_menus).all())
 
-        for pv in pvs:
-            sm.get_session.delete(pv)
+            if self.datamodel.delete(db):
+                self.post_delete(db)
 
-        sm.get_session.delete(db_view_menu)
+                for pv in pvs:
+                    sm.get_session.delete(pv)
 
-        for schema in db.all_schema_names():
-            schema_view_menu = sm.find_view_menu(
-                    utils.get_schema_perm(db, schema))
+                if db_view_menu:
+                    sm.get_session.delete(db_view_menu)
+                if db_schema_menus:
+                    for schema_view_menu in db_schema_menus:
+                        sm.get_session.delete(schema_view_menu)
 
-            schema_pvs = sm.get_session.query(
-                    sm.permissionview_model).filter_by(
-                            view_menu=schema_view_menu).all()
+                sm.get_session.commit()
 
-            for pv in schema_pvs:
-                sm.get_session.delete(pv)
-
-            sm.get_session.delete(schema_view_menu)
-
-        sm.get_session.commit()
-
+            flash(*self.datamodel.message)
+            self.update_redirect()
 
 appbuilder.add_link(
     'Import Dashboards',

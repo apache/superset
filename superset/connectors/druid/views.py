@@ -135,16 +135,36 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, cluster):
         self.pre_add(cluster)
 
-    def post_delete(self, cluster):
-        logging.info("Clean up permission views for {}".format(cluster))
+    def _delete(self, pk):
+        """
+            Delete function logic, override to implement diferent logic
+            deletes the record with primary_key = pk
 
-        view_menu = sm.find_view_menu(cluster.get_perm())
-        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-            view_menu=view_menu).all()
-        for pv in pvs:
-            sm.get_session.delete(pv)
-        sm.get_session.delete(view_menu)
-        sm.get_session.commit()
+            :param pk:
+                record primary key to delete
+        """
+        cluster = self.datamodel.get(pk, self._base_filters)
+        if not cluster:
+            abort(404)
+        try:
+            self.pre_delete(cluster)
+        except Exception as e:
+            flash(str(e), "danger")
+        else:
+            view_menu = sm.find_view_menu(cluster.get_perm())
+            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=view_menu).all()
+
+            if self.datamodel.delete(cluster):
+                self.post_delete(cluster)
+
+                for pv in pvs:
+                    sm.get_session.delete(pv)
+                sm.get_session.delete(view_menu)
+                sm.get_session.commit()
+
+            flash(*self.datamodel.message)
+            self.update_redirect()
 
 appbuilder.add_view(
     DruidClusterModelView,
@@ -237,17 +257,36 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     def post_update(self, datasource):
         self.post_add(datasource)
 
-    def post_delete(self, datasource):
-        logging.info("Clean up permission views for {}".format(datasource))
+    def _delete(self, pk):
+        """
+            Delete function logic, override to implement diferent logic
+            deletes the record with primary_key = pk
 
-        view_menu = sm.find_view_menu(datasource.get_perm())
-        pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-            view_menu=view_menu).all()
-        for pv in pvs:
-            sm.get_session.delete(pv)
-        sm.get_session.delete(view_menu)
-        sm.get_session.commit()
+            :param pk:
+                record primary key to delete
+        """
+        datasource = self.datamodel.get(pk, self._base_filters)
+        if not datasource:
+            abort(404)
+        try:
+            self.pre_delete(datasource)
+        except Exception as e:
+            flash(str(e), "danger")
+        else:
+            view_menu = sm.find_view_menu(datasource.get_perm())
+            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=view_menu).all()
 
+            if self.datamodel.delete(cluster):
+                self.post_delete(cluster)
+
+                for pv in pvs:
+                    sm.get_session.delete(pv)
+                sm.get_session.delete(view_menu)
+                sm.get_session.commit()
+
+            flash(*self.datamodel.message)
+            self.update_redirect()
 
 appbuilder.add_view(
     DruidDatasourceModelView,

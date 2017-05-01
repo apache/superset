@@ -1,7 +1,6 @@
 from datetime import datetime
 import logging
 import sqlparse
-from past.builtins import basestring
 
 import pandas as pd
 
@@ -172,18 +171,12 @@ class SqlaTable(Model, BaseDatasource):
         'User',
         backref='tables',
         foreign_keys=[user_id])
-    database_name = Column(String(250))
     database = relationship(
         'Database',
         backref=backref('tables', cascade='all, delete-orphan'),
         foreign_keys=[database_id])
     schema = Column(String(255))
     sql = Column(Text)
-    slices = relationship(
-        'Slice',
-        primaryjoin=(
-            "SqlaTable.id == foreign(Slice.datasource_id) and "
-            "Slice.datasource_type == 'table'"))
 
     baselink = "tablemodelview"
     export_fields = (
@@ -212,11 +205,11 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def schema_perm(self):
         """Returns schema permission if present, database one otherwise."""
-        return utils.get_schema_perm(self.database_name, self.schema)
+        return utils.get_schema_perm(self.database, self.schema)
 
     def get_perm(self):
         return (
-            "[{obj.database_name}].[{obj.table_name}]"
+            "[{obj.database}].[{obj.table_name}]"
             "(id:{obj.id})").format(obj=self)
 
     @property
@@ -469,19 +462,9 @@ class SqlaTable(Model, BaseDatasource):
             col_obj = cols.get(col)
             if col_obj:
                 if op in ('in', 'not in'):
-                    values = []
-                    for v in eq:
-                        # For backwards compatibility and edge cases
-                        # where a column data type might have changed
-                        if isinstance(v, basestring):
-                            v = v.strip("'").strip('"')
-                            if col_obj.is_num:
-                                v = utils.string_to_num(v)
-
-                        # Removing empty strings and non numeric values
-                        # targeting numeric columns
-                        if v is not None:
-                            values.append(v)
+                    values = [types.strip("'").strip('"') for types in eq]
+                    if col_obj.is_num:
+                        values = [utils.js_string_to_num(s) for s in values]
                     cond = col_obj.sqla_col.in_(values)
                     if op == 'not in':
                         cond = ~cond
@@ -585,8 +568,6 @@ class SqlaTable(Model, BaseDatasource):
             raise Exception(
                 "Table doesn't seem to exist in the specified database, "
                 "couldn't fetch column information")
-
-        self.database_name = self.database.database_name
 
         TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa
