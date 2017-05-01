@@ -38,6 +38,10 @@ export default class ResultSet extends React.PureComponent {
       height: props.search ? props.height - RESULT_SET_CONTROLS_HEIGHT : props.height,
     };
   }
+  componentDidMount() {
+    // only do this the first time the component is rendered/mounted
+    this.reRunQueryIfSessionTimeoutErrorOnMount();
+  }
   componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
     if (this.props.cache && (!nextProps.query.cached)
@@ -53,7 +57,6 @@ export default class ResultSet extends React.PureComponent {
       this.fetchResults(nextProps.query);
     }
   }
-
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let csvButton;
@@ -132,7 +135,12 @@ export default class ResultSet extends React.PureComponent {
   reFetchQueryResults(query) {
     this.props.actions.reFetchQueryResults(query);
   }
-
+  reRunQueryIfSessionTimeoutErrorOnMount() {
+    const { query } = this.props;
+    if (query.errorMessage && query.errorMessage.indexOf('session timed out') > 0) {
+      this.props.actions.runQuery(query, true);
+    }
+  }
   render() {
     const query = this.props.query;
     const results = query.results;
