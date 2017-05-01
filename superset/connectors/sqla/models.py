@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 import sqlparse
+from past.builtins import basestring
 
 import pandas as pd
 
@@ -177,6 +178,11 @@ class SqlaTable(Model, BaseDatasource):
         foreign_keys=[database_id])
     schema = Column(String(255))
     sql = Column(Text)
+    slices = relationship(
+        'Slice',
+        primaryjoin=(
+            "SqlaTable.id == foreign(Slice.datasource_id) and "
+            "Slice.datasource_type == 'table'"))
 
     baselink = "tablemodelview"
     export_fields = (
@@ -462,9 +468,19 @@ class SqlaTable(Model, BaseDatasource):
             col_obj = cols.get(col)
             if col_obj:
                 if op in ('in', 'not in'):
-                    values = [types.strip("'").strip('"') for types in eq]
-                    if col_obj.is_num:
-                        values = [utils.js_string_to_num(s) for s in values]
+                    values = []
+                    for v in eq:
+                        # For backwards compatibility and edge cases
+                        # where a column data type might have changed
+                        if isinstance(v, basestring):
+                            v = v.strip("'").strip('"')
+                            if col_obj.is_num:
+                                v = utils.string_to_num(v)
+
+                        # Removing empty strings and non numeric values
+                        # targeting numeric columns
+                        if v is not None:
+                            values.append(v)
                     cond = col_obj.sqla_col.in_(values)
                     if op == 'not in':
                         cond = ~cond
