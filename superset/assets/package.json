@@ -62,7 +62,6 @@
     "lodash.throttle": "^4.1.1",
     "mapbox-gl": "^0.26.0",
     "moment": "^2.14.1",
-    "moments": "0.0.2",
     "mustache": "^2.2.1",
     "nvd3": "1.8.5",
     "prop-types": "^15.5.8",
@@ -97,7 +96,6 @@
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {
-    "babel": "^6.3.26",
     "babel-cli": "^6.14.0",
     "babel-core": "^6.10.4",
     "babel-loader": "^6.2.4",

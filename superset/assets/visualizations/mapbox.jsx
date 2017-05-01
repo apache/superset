@@ -1,6 +1,7 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
 import React from 'react';
+import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
 import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react';
@@ -256,20 +257,20 @@ class MapboxViz extends React.Component {
   }
 }
 MapboxViz.propTypes = {
-  aggregatorName: React.PropTypes.string,
-  clusterer: React.PropTypes.object,
-  globalOpacity: React.PropTypes.number,
-  mapStyle: React.PropTypes.string,
-  mapboxApiKey: React.PropTypes.string,
-  pointRadius: React.PropTypes.number,
-  pointRadiusUnit: React.PropTypes.string,
-  renderWhileDragging: React.PropTypes.bool,
-  rgb: React.PropTypes.array,
-  sliceHeight: React.PropTypes.number,
-  sliceWidth: React.PropTypes.number,
-  viewportLatitude: React.PropTypes.number,
-  viewportLongitude: React.PropTypes.number,
-  viewportZoom: React.PropTypes.number,
+  aggregatorName: PropTypes.string,
+  clusterer: PropTypes.object,
+  globalOpacity: PropTypes.number,
+  mapStyle: PropTypes.string,
+  mapboxApiKey: PropTypes.string,
+  pointRadius: PropTypes.number,
+  pointRadiusUnit: PropTypes.string,
+  renderWhileDragging: PropTypes.bool,
+  rgb: PropTypes.array,
+  sliceHeight: PropTypes.number,
+  sliceWidth: PropTypes.number,
+  viewportLatitude: PropTypes.number,
+  viewportLongitude: PropTypes.number,
+  viewportZoom: PropTypes.number,
 };
 
 function mapbox(slice, json) {

@@ -14,6 +14,7 @@ describe('ExploreActionButtons', () => {
         json_endpoint: '',
       },
     },
+    queryEndpoint: 'localhost',
   };
 
   it('renders', () => {
