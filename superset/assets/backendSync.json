@@ -1328,10 +1328,8 @@
       "type": "SelectControl",
       "freeForm": true,
       "label": "Number format",
-      "default": [
-        ".3s",
-        ".3s | 12.3k"
-      ],
+      "renderTrigger": true,
+      "default": ".3s",
       "choices": [
         [
           ".3s",

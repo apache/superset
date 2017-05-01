@@ -11,9 +11,18 @@ module.exports = function (slice, payload) {
   const container = slice.container;
   const fd = slice.formData;
   const height = container.height();
+  const number_format = fd.number_format;
 
   // payload data is a string of html with a single table element
   container.html(payload.data);
+
+  // format number
+  $('td').each(function() {
+    var tdText = $(this)[0].textContent;
+    if (!isNaN(tdText) && tdText != '') {
+      $(this)[0].textContent = d3.format(number_format)(tdText);
+    }
+  });
 
   if (fd.groupby.length === 1) {
     // When there is only 1 group by column,
@@ -38,4 +47,5 @@ module.exports = function (slice, payload) {
     container.css('overflow', 'auto');
     container.css('height', `${height + 10}px`);
   }
+
 };
