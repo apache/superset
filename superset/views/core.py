@@ -267,11 +267,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
             db_view_menu = sm.find_view_menu(db.perm)
             pvs = sm.get_session.query(sm.permissionview_model).filter_by(
                 view_menu=db_view_menu).all()
-            db_schema_menus = db.all_schema_names()
-            for schema in db_schema_menus:
-                pvs.extend(sm.get_session.query(
-                    sm.permissionview_model).filter_by(
-                    view_menu=db_schema_menus).all())
 
             if self.datamodel.delete(db):
                 self.post_delete(db)
@@ -281,9 +276,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
 
                 if db_view_menu:
                     sm.get_session.delete(db_view_menu)
-                if db_schema_menus:
-                    for schema_view_menu in db_schema_menus:
-                        sm.get_session.delete(schema_view_menu)
 
                 sm.get_session.commit()
 

@@ -151,7 +151,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
         except Exception as e:
             flash(str(e), "danger")
         else:
-            view_menu = sm.find_view_menu(cluster.get_perm())
+            view_menu = sm.find_view_menu(cluster.perm)
             pvs = sm.get_session.query(sm.permissionview_model).filter_by(
                 view_menu=view_menu).all()
 
@@ -160,7 +160,8 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
 
                 for pv in pvs:
                     sm.get_session.delete(pv)
-                sm.get_session.delete(view_menu)
+                if view_menu:
+                    sm.get_session.delete(view_menu)
                 sm.get_session.commit()
 
             flash(*self.datamodel.message)
