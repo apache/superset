@@ -3,7 +3,7 @@ import logging
 
 import sqlalchemy as sqla
 
-from flask import Markup, flash, redirect
+from flask import Markup, flash, redirect, abort
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -277,8 +277,8 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
             pvs = sm.get_session.query(sm.permissionview_model).filter_by(
                 view_menu=view_menu).all()
 
-            if self.datamodel.delete(cluster):
-                self.post_delete(cluster)
+            if self.datamodel.delete(datasource):
+                self.post_delete(datasource)
 
                 for pv in pvs:
                     sm.get_session.delete(pv)
