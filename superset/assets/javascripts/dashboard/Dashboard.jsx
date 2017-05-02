@@ -96,10 +96,11 @@ function initDashboardView(dashboard) {
   $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 }
 
-export function dashboardContainer(dashboard, datasources) {
+export function dashboardContainer(dashboard, datasources, userid) {
   return Object.assign({}, dashboard, {
     type: 'dashboard',
     filters: {},
+    curUserId: userid,
     init() {
       this.sliceObjects = [];
       dashboard.slices.forEach((data) => {
@@ -340,7 +341,7 @@ $(document).ready(() => {
   const dashboardData = $('.dashboard').data('bootstrap');
 
   const state = getInitialState(dashboardData);
-  const dashboard = dashboardContainer(state.dashboard, state.datasources);
+  const dashboard = dashboardContainer(state.dashboard, state.datasources, state.user_id);
   initDashboardView(dashboard);
   dashboard.init();
 });
