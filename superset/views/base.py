@@ -194,9 +194,7 @@ class DeleteMixin(object):
             except Exception as e:
                 flash(str(e), "danger")
             else:
-                if self.datamodel.delete(item):
-                    self.post_delete(item)
-                flash(*self.datamodel.message)
+                self._delete(item.id)
         self.update_redirect()
         return redirect(self.get_redirect())
 
