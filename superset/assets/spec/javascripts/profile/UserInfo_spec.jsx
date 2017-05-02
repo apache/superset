@@ -32,7 +32,10 @@ describe('UserInfo', () => {
   });
   it('renders roles information', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);
-    expect(wrapper.find('.roles').text()).to.equal(' Alpha, sql_lab');
+    const roleLabels = wrapper.find('.roles .label');
+    expect(roleLabels.length).to.equal(2);
+    expect(roleLabels.first().text()).to.equal('Alpha');
+    expect(roleLabels.last().text()).to.equal('sql_lab');
   });
   it('shows the right user-id', () => {
     const wrapper = mount(<UserInfo {...mockedProps} />);

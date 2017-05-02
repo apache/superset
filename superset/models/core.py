@@ -884,6 +884,7 @@ class SupersetUser(ab_models.User):
             'is_active': self.is_active(),
             'created_on': self.created_on.isoformat(),
         }
+
     @property
     def data_extended(self):
         """Superset of data property with roles and perms"""
@@ -896,7 +897,8 @@ class SupersetUser(ab_models.User):
                 perms.add(
                     (perm.permission.name, perm.view_menu.name)
                 )
-                if perm.permission.name in ('datasource_access', 'database_access'):
+                if perm.permission.name in (
+                        'datasource_access', 'database_access'):
                     permissions[perm.permission.name].add(perm.view_menu.name)
             roles[role.name] = [
                 [perm.permission.name, perm.view_menu.name]
