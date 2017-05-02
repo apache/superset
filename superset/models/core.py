@@ -911,4 +911,4 @@ class SupersetUser(ab_models.User):
         return d
 
 # hoo hoo hoo hee hee hee
-ab_models.User = SupersetUser
+#ab_models.User = SupersetUser
