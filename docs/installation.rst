@@ -211,6 +211,9 @@ Here's a list of some of the recommended packages.
 |  Vertica      | ``pip install                       |  ``vertica+vertica_python://``                  |
 |               | sqlalchemy-vertica-python``         |                                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  ClickHouse   | ``pip install                       | ``clickhouse://``                               |
+|               | sqlalchemy-clickhouse``             |                                                 |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
