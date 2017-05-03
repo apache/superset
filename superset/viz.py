@@ -1231,7 +1231,7 @@ class CountryMapViz(BaseViz):
     viz_type = "country_map"
     verbose_name = _("Country Map")
     is_timeseries = False
-    credits = 'datamaps on <a href="hhttps://bl.ocks.org/john-guerra/43c7656821069d00dcbc">bl.ocks.org</a>'
+    credits = 'From bl.ocks.org By john-guerra'
 
     def query_obj(self):
         qry = super(CountryMapViz, self).query_obj()

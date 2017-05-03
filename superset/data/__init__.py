@@ -958,7 +958,8 @@ def load_random_time_series_data():
 
 def load_country_map_data():
     """Loading data for map with country map"""
-    data = pd.read_csv(os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv'), encoding="utf-8")
+    csvPath = os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv')
+    data = pd.read_csv(csvPath, encoding="utf-8")
     data['date'] = datetime.datetime.now().date()
     data.to_sql(
         'birth_france_by_region',

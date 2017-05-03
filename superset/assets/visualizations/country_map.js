@@ -1,18 +1,56 @@
 require('./country_map.css');
+
 const d3 = require('d3');
 
+
 function countryMapChart(slice, payload) {
-  var centered, path, g, effectLayer, mapLayer, bigText, resultText;
+  // CONSTANTES
+  const color = d3.scale.linear()
+  .domain([1, 20])
+  .clamp(true)
+  .range(['#fff', '#409A99']);
   const container = slice.container;
   const data = payload.data;
+  let centered;
+  var path = d3.geo.path();
+  d3.select(slice.selector).selectAll('*').remove();
+  const div = d3.select(slice.selector)
+    .append('svg:svg')
+    .attr('width', slice.width())
+    .attr('height', slice.height())
+    .attr('preserveAspectRatio', 'xMidYMid meet');
 
+  container.css('height', slice.height());
+  container.css('width', slice.width());
+
+
+  div.append('rect')
+    .attr('class', 'background')
+    .attr('width', slice.width())
+    .attr('height', slice.height())
+    .on('click', clicked);
+
+  var g = div.append('g');
+  var effectLayer = g.append('g')
+    .classed('effect-layer', true);
+  var mapLayer = g.append('g')
+    .classed('map-layer', true);
+  var bigText = g.append('text')
+    .classed('big-text', true)
+    .attr('x', 20)
+    .attr('y', 45);
+  var resultText = g.append('text')
+    .classed('result-text', true)
+    .attr('x', 20)
+    .attr('y', 60);
+  // FUNCTIONS USED BY ACTION OF MAP
   const nameFn = function nameFn(d) {
     return d && d.properties ? d.properties.code : null;
   };
 
-  const nameLength = function nameLength(d) {
-    var n = nameFn(d);
-    return n ? n.length : 0;
+  const nameLength = function nameLength(text) {
+    const name = nameFn(text);
+    return name ? name.length : 0;
   };
 
   const fillFn = function fillFn(d) {
@@ -20,10 +58,17 @@ function countryMapChart(slice, payload) {
   };
 
   const clicked = function clicked(d) {
-    var x, y, k, bigTextX, bigTextY, bigTextSize, resultTextX, resultTextY, centroid;
+    let x;
+    let y;
+    let k;
+    let bigTextX;
+    let bigTextY;
+    let bigTextSize;
+    let resultTextX;
+    let resultTextY;
 
     if (d && centered !== d) {
-      centroid = path.centroid(d);
+      const centroid = path.centroid(d);
       x = centroid[0];
       y = centroid[1];
       bigTextX = centroid[0];
@@ -61,9 +106,9 @@ function countryMapChart(slice, payload) {
     bigText.text(text);
   };
 
-  const updateResultText = function updateResultText(pathToUpdate) {
+  const updateResultText = function updateResultText(regionRead) {
     const result = data.filter(function (region) {
-      if (region.DEP === pathToUpdate.properties.code) {
+      if (region.DEP === regionRead.properties.code) {
         return region;
       }
       return undefined;
@@ -85,57 +130,19 @@ function countryMapChart(slice, payload) {
     resultText.text('');
   };
 
-  d3.select(slice.selector).selectAll('*').remove();
-  const div = d3.select(slice.selector).append('svg:svg').attr('width', slice.width()).attr('height', slice.height())
-    .attr('preserveAspectRatio', 'xMidYMid meet');
-
-  container.css('height', slice.height());
-  container.css('width', slice.width());
-
-  centered = undefined;
-  path = d3.geo.path();
-  const color = d3.scale.linear()
-    .domain([1, 20])
-    .clamp(true)
-    .range(['#fff', '#409A99']);
-
-  div.append('rect')
-    .attr('class', 'background')
-    .attr('width', slice.width())
-    .attr('height', slice.height())
-    .on('click', clicked);
-
-  g = div.append('g');
-
-  effectLayer = g.append('g')
-    .classed('effect-layer', true);
-
-  mapLayer = g.append('g')
-    .classed('map-layer', true);
-
-  bigText = g.append('text')
-    .classed('big-text', true)
-    .attr('x', 20)
-    .attr('y', 45);
-
-  resultText = g.append('text')
-    .classed('result-text', true)
-    .attr('x', 20)
-    .attr('y', 60);
-
   d3.json('/static/assets/visualizations/countries/' + payload.form_data.select_country.toLowerCase() + '.geojson', function (error, mapData) {
-    var features, center, scale, offset, projection, bounds, hscale, vscale, scale, offset;   
-    features = mapData.features;
-    center = d3.geo.centroid(mapData);
-    scale = 150;
-    offset = [slice.width() / 2, slice.height() / 2];
-    projection = d3.geo.mercator().scale(scale).center(center).translate(offset);
+    const features = mapData.features;
+    const center = d3.geo.centroid(mapData);
+    let scale = 150;
+    let offset = [slice.width() / 2, slice.height() / 2];
+    let projection = d3.geo.mercator().scale(scale).center(center)
+      .translate(offset);
 
     path = path.projection(projection);
 
-    bounds = path.bounds(mapData);
-    hscale = scale * slice.width() / (bounds[1][0] - bounds[0][0]);
-    vscale = scale * slice.height() / (bounds[1][1] - bounds[0][1]);
+    const bounds = path.bounds(mapData);
+    const hscale = scale * slice.width() / (bounds[1][0] - bounds[0][0]);
+    const vscale = scale * slice.height() / (bounds[1][1] - bounds[0][1]);
     scale = (hscale < vscale) ? hscale : vscale;
     offset = [slice.width() - (bounds[0][0] + bounds[1][0]) / 2, slice.height() - (bounds[0][1] + bounds[1][1]) / 2];
     projection = d3.geo.mercator().center(center).scale(scale).translate(offset);
