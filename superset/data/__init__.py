@@ -965,7 +965,7 @@ def load_country_map_data():
         if_exists='replace',
         chunksize=500,
         dtype={
-            'DEP': String(),
+            'DEP': String(10),
             '2003': BigInteger,
             '2004': BigInteger,
             '2005': BigInteger,
