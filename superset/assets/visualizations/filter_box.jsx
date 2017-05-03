@@ -1,6 +1,7 @@
 // JS
 import d3 from 'd3';
 import React from 'react';
+import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
@@ -10,11 +11,11 @@ import { TIME_CHOICES } from './constants';
 import './filter_box.css';
 
 const propTypes = {
-  origSelectedValues: React.PropTypes.object,
-  instantFiltering: React.PropTypes.bool,
-  filtersChoices: React.PropTypes.object,
-  onChange: React.PropTypes.func,
-  showDateFilter: React.PropTypes.bool,
+  origSelectedValues: PropTypes.object,
+  instantFiltering: PropTypes.bool,
+  filtersChoices: PropTypes.object,
+  onChange: PropTypes.func,
+  showDateFilter: PropTypes.bool,
 };
 
 const defaultProps = {

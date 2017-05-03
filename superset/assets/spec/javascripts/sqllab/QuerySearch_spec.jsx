@@ -11,6 +11,7 @@ import QuerySearch from '../../../javascripts/SqlLab/components/QuerySearch';
 describe('QuerySearch', () => {
   const mockedProps = {
     actions: {},
+    height: 0,
   };
   it('is valid', () => {
     expect(

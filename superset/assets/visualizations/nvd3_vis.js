@@ -23,9 +23,8 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const addTotalBarValues = function (chart, data, stacked) {
-  const svg = d3.select('svg');
-  const format = d3.format('.3s');
+const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
+  const format = d3.format(axisFormat || '.3s');
   const countSeriesDisplayed = data.length;
 
   const totalStackedValues = stacked && data.length !== 0 ?
@@ -72,7 +71,7 @@ function hideTooltips() {
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
-  const labelEls = container.find(`.${axisClass} text`);
+  const labelEls = container.find(`.${axisClass} text`).not('.nv-axislabel');
   const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength());
   return Math.max(...labelDimensions);
 }
@@ -93,7 +92,7 @@ function nvd3Vis(slice, payload) {
     payloadData.data.forEach((d) => {
       const axisLabels = d.values;
       for (let i = 0; i < axisLabels.length; i++) {
-        maxLabelSize = Math.max(axisLabels[i].x.length, maxLabelSize);
+        maxLabelSize = Math.max(axisLabels[i].x.toString().length, maxLabelSize);
       }
     });
     stretchMargin = Math.ceil(pixelsPerCharX * maxLabelSize);
@@ -123,6 +122,10 @@ function nvd3Vis(slice, payload) {
   let row;
 
   const drawGraph = function () {
+    let svg = d3.select(slice.selector).select('svg');
+    if (svg.empty()) {
+      svg = d3.select(slice.selector).append('svg');
+    }
     switch (vizType) {
       case 'line':
         if (fd.show_brush) {
@@ -166,7 +169,7 @@ function nvd3Vis(slice, payload) {
 
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         break;
@@ -196,7 +199,7 @@ function nvd3Vis(slice, payload) {
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         if (!reduceXTicks) {
@@ -266,7 +269,7 @@ function nvd3Vis(slice, payload) {
         chart.style(fd.stacked_style);
         chart.xScale(d3.time.scale.utc());
         chart.xAxis
-        .showMaxMin(false)
+        .showMaxMin(fd.x_axis_showminmax)
         .staggerLabels(true);
         break;
 
@@ -360,7 +363,7 @@ function nvd3Vis(slice, payload) {
 
     if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
       let distance = 0;
-      if (fd.bottom_margin) {
+      if (fd.bottom_margin && !isNaN(fd.bottom_margin)) {
         distance = fd.bottom_margin - 50;
       }
       chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
@@ -382,10 +385,6 @@ function nvd3Vis(slice, payload) {
       chart.margin({ bottom: fd.bottom_margin });
     }
 
-    let svg = d3.select(slice.selector).select('svg');
-    if (svg.empty()) {
-      svg = d3.select(slice.selector).append('svg');
-    }
     if (vizType === 'dual_line') {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
@@ -407,29 +406,40 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    // Hack to adjust margins to accommodate long axis tick labels.
-    // - has to be done only after the chart has been rendered once
-    // - measure the width or height of the labels
-    // ---- (x axis labels are rotated 45 degrees so we use height),
-    // - adjust margins based on these measures and render again
-    if (isTimeSeries && vizType !== 'bar') {
-      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+    if (chart.yAxis !== undefined) {
+      // Hack to adjust y axis left margin to accommodate long numbers
       const marginPad = isExplore ? width * 0.01 : width * 0.03;
-      const chartMargins = {
-        bottom: maxXAxisLabelHeight + marginPad,
-        right: maxXAxisLabelHeight + marginPad,
-      };
-
-      if (vizType === 'dual_line') {
-        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
-        // use y axis width if it's wider than axis width/height
-        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-          chartMargins.right = maxYAxis2LabelWidth + marginPad;
-        }
+      const maxYAxisLabelWidth = getMaxLabelSize(slice.container, 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+      chart.margin({ left: maxYAxisLabelWidth + marginPad });
+      if (fd.y_axis_label && fd.y_axis_label !== '') {
+        chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
       }
+      // Hack to adjust margins to accommodate long axis tick labels.
+      // - has to be done only after the chart has been rendered once
+      // - measure the width or height of the labels
+      // ---- (x axis labels are rotated 45 degrees so we use height),
+      // - adjust margins based on these measures and render again
+      if (isTimeSeries && vizType !== 'bar') {
+        const chartMargins = {
+          bottom: maxXAxisLabelHeight + marginPad,
+          right: maxXAxisLabelHeight + marginPad,
+        };
 
-      // apply margins
-      chart.margin(chartMargins);
+        if (vizType === 'dual_line') {
+          const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
+          // use y axis width if it's wider than axis width/height
+          if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
+            chartMargins.right = maxYAxis2LabelWidth + marginPad;
+          }
+        }
+
+        // apply margins
+        chart.margin(chartMargins);
+      }
+      if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+        chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
+      }
 
       // render chart
       svg
