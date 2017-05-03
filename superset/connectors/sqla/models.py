@@ -446,14 +446,12 @@ class SqlaTable(Model, BaseDatasource):
                 select_exprs += [timestamp]
                 groupby_exprs += [timestamp]
 
-            # Use all dttm columns to support index with secondary dttm columns
-            dttm_col_all = False
-            if hasattr(self.database.db_engine_spec, 'time_secondary_columns'):
-                dttm_col_all = self.database.db_engine_spec.time_secondary_columns
-            if dttm_col_all:
-                for c in self.dttm_cols:
-                    if c in cols:
-                        time_filters.append(cols[c].get_time_filter(from_dttm, to_dttm))
+            # Use main dttm column to support index with secondary dttm columns
+            if self.database.db_engine_spec.time_secondary_columns and \
+                    self.main_dttm_col in self.dttm_cols and \
+                    self.main_dttm_col != dttm_col.column_name:
+                time_filters.append(cols[self.main_dttm_col].
+                                    get_time_filter(from_dttm, to_dttm))
             time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
 
         select_exprs += metrics_exprs
@@ -534,7 +532,8 @@ class SqlaTable(Model, BaseDatasource):
 
         qry = qry.limit(row_limit)
 
-        if is_timeseries and timeseries_limit and groupby and not time_groupby_inline:
+        if is_timeseries and \
+                timeseries_limit and groupby and not time_groupby_inline:
             # some sql dialects require for order by expressions
             # to also be in the select clause -- others, e.g. vertica,
             # require a unique inner alias

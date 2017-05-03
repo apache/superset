@@ -867,8 +867,8 @@ class AthenaEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
-class ClickHouseEngineSpec(BaseEngineSpec):
 
+class ClickHouseEngineSpec(BaseEngineSpec):
     """Dialect for ClickHouse analytical DB."""
 
     engine = 'clickhouse'
@@ -901,7 +901,8 @@ class ClickHouseEngineSpec(BaseEngineSpec):
         if tt == 'DATE':
             return "toDate('{}')".format(dttm.strftime('%Y-%m-%d'))
         if tt == 'DATETIME':
-            return "toDateTime('{}')".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+            return "toDateTime('{}')".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 engines = {
