@@ -265,7 +265,17 @@ export const controls = {
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
   },
-
+  select_country: {
+    type: 'SelectControl',
+    label: 'Country Name Type',
+    default: 'France',
+    choices: [
+        ['name', 'Full name'],
+        ['France', 'France'],
+        ['Spain', 'Spain']
+    ],
+    description: 'The name of country that Superset should display',
+  },
   country_fieldtype: {
     type: 'SelectControl',
     label: 'Country Field Type',
