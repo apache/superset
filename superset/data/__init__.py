@@ -955,6 +955,7 @@ def load_random_time_series_data():
     )
     merge_slice(slc)
 
+
 def load_country_map_data():
     """Loading data for map with country map"""
     data = pd.read_csv(os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv'), encoding="utf-8")
@@ -983,7 +984,6 @@ def load_country_map_data():
         index=False)
     print("Done loading table!")
     print("-" * 80)
-    
     print("Creating table reference")
     obj = db.session.query(TBL).filter_by(table_name='birth_france_by_region').first()
     if not obj:
@@ -1014,6 +1014,7 @@ def load_country_map_data():
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
+
 
 def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""

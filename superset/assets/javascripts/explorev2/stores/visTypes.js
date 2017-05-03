@@ -569,12 +569,12 @@ const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        controlSetRows: [          
+        controlSetRows: [
           ['select_country'],
           ['entity'],
           ['metric'],
         ],
-      }
+      },
     ],
     controlOverrides: {
       entity: {
@@ -584,7 +584,7 @@ const visTypes = {
       metric: {
         label: 'Metric',
         description: 'Metric to display bottom title',
-      }
+      },
     },
   },
   world_map: {

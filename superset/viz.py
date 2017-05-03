@@ -1223,6 +1223,7 @@ class DirectedForceViz(BaseViz):
         df.columns = ['source', 'target', 'value']
         return df.to_dict(orient='records')
 
+
 class CountryMapViz(BaseViz):
 
     """A country centric"""
@@ -1247,7 +1248,7 @@ class CountryMapViz(BaseViz):
         cols += [metric]
         ndf = df[cols]
         df = ndf
-        df.columns = ['DEP','metric']
+        df.columns = ['DEP', 'metric']
         d = df.to_dict(orient='records')
         return d
 
