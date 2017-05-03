@@ -8,6 +8,7 @@ import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
 import ColumnElement from './ColumnElement';
 import ModalTrigger from '../../components/ModalTrigger';
+import Loading from '../../components/Loading';
 
 const propTypes = {
   table: PropTypes.object,
@@ -62,7 +63,7 @@ class TableElement extends React.PureComponent {
     this.props.actions.removeTable(this.props.table);
   }
 
-  renderHeader() {
+  renderWell() {
     const table = this.props.table;
     let header;
     if (table.partitions) {
@@ -97,37 +98,9 @@ class TableElement extends React.PureComponent {
     }
     return header;
   }
-  renderMetadata() {
-    const table = this.props.table;
-    let cols;
-    if (table.columns) {
-      cols = table.columns.slice();
-      if (this.state.sortColumns) {
-        cols.sort((a, b) => a.name.toUpperCase() > b.name.toUpperCase());
-      }
-    }
-    const metadata = (
-      <Collapse
-        in={table.expanded}
-        timeout={this.props.timeout}
-      >
-        <div>
-          {this.renderHeader()}
-          <div className="table-columns">
-            {cols && cols.map(col => (
-              <ColumnElement column={col} key={col.name} />
-            ))}
-            <hr />
-          </div>
-        </div>
-      </Collapse>
-    );
-    return metadata;
-  }
-
-  render() {
-    const table = this.props.table;
+  renderControls() {
     let keyLink;
+    const table = this.props.table;
     if (table.indexes && table.indexes.length > 0) {
       keyLink = (
         <ModalTrigger
@@ -149,6 +122,94 @@ class TableElement extends React.PureComponent {
       );
     }
     return (
+      <ButtonGroup className="ws-el-controls pull-right">
+        {keyLink}
+        <Link
+          className={
+            `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
+            'pull-left sort-cols m-l-2'}
+          onClick={this.toggleSortColumns.bind(this)}
+          tooltip={
+            !this.state.sortColumns ?
+            'Sort columns alphabetically' :
+            'Original table column order'}
+          href="#"
+        />
+        {table.selectStar &&
+          <CopyToClipboard
+            copyNode={
+              <a className="fa fa-clipboard pull-left m-l-2" />
+            }
+            text={table.selectStar}
+            shouldShowText={false}
+            tooltipText="Copy SELECT statement to clipboard"
+          />
+        }
+        <Link
+          className="fa fa-times table-remove pull-left m-l-2"
+          onClick={this.removeTable.bind(this)}
+          tooltip="Remove table preview"
+          href="#"
+        />
+      </ButtonGroup>
+    );
+  }
+  renderHeader() {
+    const table = this.props.table;
+    return (
+      <div className="clearfix">
+        <div className="pull-left">
+          <a
+            href="#"
+            className="table-name"
+            onClick={(e) => { this.toggleTable(e); }}
+          >
+            <strong>{table.name}</strong>
+            <small className="m-l-5">
+              <i className={`fa fa-${table.expanded ? 'minus' : 'plus'}-square-o`} />
+            </small>
+          </a>
+        </div>
+        <div className="pull-right">
+          {table.isMetadataLoading || table.isExtraMetadataLoading ?
+            <Loading size={20} />
+            :
+            this.renderControls()
+          }
+        </div>
+      </div>
+    );
+  }
+  renderBody() {
+    const table = this.props.table;
+    let cols;
+    if (table.columns) {
+      cols = table.columns.slice();
+      if (this.state.sortColumns) {
+        cols.sort((a, b) => a.name.toUpperCase() > b.name.toUpperCase());
+      }
+    }
+    const metadata = (
+      <Collapse
+        in={table.expanded}
+        timeout={this.props.timeout}
+      >
+        <div>
+          {this.renderWell()}
+          <div className="table-columns">
+            {cols && cols.map(col => (
+              <ColumnElement column={col} key={col.name} />
+            ))}
+            <hr />
+          </div>
+        </div>
+      </Collapse>
+    );
+    return metadata;
+  }
+
+  render() {
+    return (
       <Collapse
         in={this.state.expanded}
         timeout={this.props.timeout}
@@ -156,54 +217,9 @@ class TableElement extends React.PureComponent {
         onExited={this.removeFromStore.bind(this)}
       >
         <div className="TableElement">
-          <div className="clearfix">
-            <div className="pull-left">
-              <a
-                href="#"
-                className="table-name"
-                onClick={(e) => { this.toggleTable(e); }}
-              >
-                <strong>{table.name}</strong>
-                <small className="m-l-5">
-                  <i className={`fa fa-${table.expanded ? 'minus' : 'plus'}-square-o`} />
-                </small>
-              </a>
-            </div>
-            <div className="pull-right">
-              <ButtonGroup className="ws-el-controls pull-right">
-                {keyLink}
-                <Link
-                  className={
-                    `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
-                    'pull-left sort-cols m-l-2'}
-                  onClick={this.toggleSortColumns.bind(this)}
-                  tooltip={
-                    !this.state.sortColumns ?
-                    'Sort columns alphabetically' :
-                    'Original table column order'}
-                  href="#"
-                />
-                {table.selectStar &&
-                  <CopyToClipboard
-                    copyNode={
-                      <a className="fa fa-clipboard pull-left m-l-2" />
-                    }
-                    text={table.selectStar}
-                    shouldShowText={false}
-                    tooltipText="Copy SELECT statement to clipboard"
-                  />
-                }
-                <Link
-                  className="fa fa-trash table-remove pull-left m-l-2"
-                  onClick={this.removeTable.bind(this)}
-                  tooltip="Remove table preview"
-                  href="#"
-                />
-              </ButtonGroup>
-            </div>
-          </div>
+          {this.renderHeader()}
           <div>
-            {this.renderMetadata()}
+            {this.renderBody()}
           </div>
         </div>
       </Collapse>
