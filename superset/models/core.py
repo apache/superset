@@ -581,7 +581,7 @@ class Database(Model, AuditMixinNullable):
         cur.execute(sql, **self.db_engine_spec.cursor_execute_kwargs)
 
         cols = [col[0] for col in cur.description]
-        df = pd.DataFrame(cur.fetchall(), columns=cols)
+        df = pd.DataFrame(list(cur.fetchall()), columns=cols)
 
         def needs_conversion(df_series):
             if df_series.empty:
