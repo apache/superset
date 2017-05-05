@@ -11,6 +11,7 @@ const propTypes = {
   value: PropTypes.number,
   valueRenderer: PropTypes.func,
   placeholder: PropTypes.string,
+  autoSelect: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -37,6 +38,10 @@ class AsyncSelect extends React.PureComponent {
     const mutator = this.props.mutator;
     $.get(this.props.dataEndpoint, (data) => {
       this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
+
+      if (this.props.autoSelect && this.state.options.length) {
+        this.onChange(this.state.options[0]);
+      }
     });
   }
   render() {
