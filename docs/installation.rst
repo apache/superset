@@ -366,27 +366,73 @@ Upgrading should be as straightforward as running::
 SQL Lab
 -------
 SQL Lab is a powerful SQL IDE that works with all SQLAlchemy compatible
-databases out there. By default, queries are run in a web request, and
+databases. By default, queries are executed in the scope of a web
+request so they
 may eventually timeout as queries exceed the maximum duration of a web
 request in your environment, whether it'd be a reverse proxy or the Superset
 server itself.
 
-In the modern analytics world, it's not uncommon to run large queries that
-run for minutes or hours.
+On large analytic databases, it's common to run queries that
+execute for minutes or hours.
 To enable support for long running queries that
 execute beyond the typical web request's timeout (30-60 seconds), it is
-necessary to deploy an asynchronous backend, which consist of one or many
-Superset worker, which is implemented as a Celery worker, and a Celery
-broker for which we recommend using Redis or RabbitMQ.
+necessary to configure an asynchronous backend for Superset which consist of:
 
-It's also preferable to setup an async result backend as a key value store
-that can hold the long-running query results for a period of time. More
-details to come as to how to set this up here soon.
+* one or many Superset worker (which is implemented as a Celery worker), and
+  can be started with the ``superset worker`` command, run
+  ``superset worker --help`` to view the related options
+* a celery broker (message queue) for which we recommend using Redis
+  or RabbitMQ
+* a results backend that defines where the worker will persist the query
+  results
 
-SQL Lab supports templating in queries, and it's possible to override
+Configuring Celery requires defining a ``CELERY_CONFIG`` in your
+``superset_config.py``. Both the worker and web server processes should
+have the same configuration.
+
+.. code-block:: python
+
+ 	class CeleryConfig(object):
+    	BROKER_URL = 'redis://localhost:6379/0'
+		CELERY_IMPORTS = ('superset.sql_lab', )
+		CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+		CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+
+  	CELERY_CONFIG = CeleryConfig
+
+To setup a result backend, you need to pass an instance of a derivative
+of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
+configuration key in your ``superset_config.py``. It's possible to use
+Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache),
+memory or the file system (in a single server-type setup or for testing),
+or to write your own caching interface. Your ``superset_config.py`` may
+look something like:
+
+.. code-block:: python
+
+	# On S3
+  	from s3cache.s3cache import S3Cache
+  	S3_CACHE_BUCKET = 'foobar-superset'
+	S3_CACHE_KEY_PREFIX = 'sql_lab_result'
+  	RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
+
+	# On Redis
+    from werkzeug.contrib.cache import RedisCache
+    RESULTS_BACKEND = RedisCache(
+        host='localhost', port=6379, key_prefix='superset_results')
+
+
+Also note that SQL Lab supports Jinja templating in queries, and that it's
+possible to overload
 the default Jinja context in your environment by defining the
 ``JINJA_CONTEXT_ADDONS`` in your superset configuration. Objects referenced
 in this dictionary are made available for users to use in their SQL.
+
+.. code-block:: python
+
+    JINJA_CONTEXT_ADDONS = {
+        'my_crazy_macro': lambda x: x*2,
+    }
 
 
 Making your own build
