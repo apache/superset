@@ -5,6 +5,12 @@ const d3 = require('d3');
 
 function countryMapChart(slice, payload) {
   // CONSTANTES
+  let path;
+  let g;
+  let mapLayer;
+  let bigText;
+  let resultText;
+
   const color = d3.scale.linear()
   .domain([1, 20])
   .clamp(true)
@@ -12,7 +18,7 @@ function countryMapChart(slice, payload) {
   const container = slice.container;
   const data = payload.data;
   let centered;
-  var path = d3.geo.path();
+  path = d3.geo.path();
   d3.select(slice.selector).selectAll('*').remove();
   const div = d3.select(slice.selector)
     .append('svg:svg')
@@ -23,26 +29,6 @@ function countryMapChart(slice, payload) {
   container.css('height', slice.height());
   container.css('width', slice.width());
 
-
-  div.append('rect')
-    .attr('class', 'background')
-    .attr('width', slice.width())
-    .attr('height', slice.height())
-    .on('click', clicked);
-
-  var g = div.append('g');
-  var effectLayer = g.append('g')
-    .classed('effect-layer', true);
-  var mapLayer = g.append('g')
-    .classed('map-layer', true);
-  var bigText = g.append('text')
-    .classed('big-text', true)
-    .attr('x', 20)
-    .attr('y', 45);
-  var resultText = g.append('text')
-    .classed('result-text', true)
-    .attr('x', 20)
-    .attr('y', 60);
   // FUNCTIONS USED BY ACTION OF MAP
   const nameFn = function nameFn(d) {
     return d && d.properties ? d.properties.code : null;
@@ -130,6 +116,24 @@ function countryMapChart(slice, payload) {
     resultText.text('');
   };
 
+  div.append('rect')
+    .attr('class', 'background')
+    .attr('width', slice.width())
+    .attr('height', slice.height())
+    .on('click', clicked);
+
+  g = div.append('g');
+  mapLayer = g.append('g')
+    .classed('map-layer', true);
+  bigText = g.append('text')
+    .classed('big-text', true)
+    .attr('x', 20)
+    .attr('y', 45);
+  resultText = g.append('text')
+    .classed('result-text', true)
+    .attr('x', 20)
+    .attr('y', 60);
+
   d3.json('/static/assets/visualizations/countries/' + payload.form_data.select_country.toLowerCase() + '.geojson', function (error, mapData) {
     const features = mapData.features;
     const center = d3.geo.centroid(mapData);
@@ -144,7 +148,9 @@ function countryMapChart(slice, payload) {
     const hscale = scale * slice.width() / (bounds[1][0] - bounds[0][0]);
     const vscale = scale * slice.height() / (bounds[1][1] - bounds[0][1]);
     scale = (hscale < vscale) ? hscale : vscale;
-    offset = [slice.width() - (bounds[0][0] + bounds[1][0]) / 2, slice.height() - (bounds[0][1] + bounds[1][1]) / 2];
+    const offsetWidth = slice.width() - (bounds[0][0] + bounds[1][0]) / 2;
+    const offsetHeigth = slice.height() - (bounds[0][1] + bounds[1][1]) / 2;
+    offset = [offsetWidth, offsetHeigth];
     projection = d3.geo.mercator().center(center).scale(scale).translate(offset);
     path = path.projection(projection);
     color.domain([0, d3.max(features, nameLength)]);
