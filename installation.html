@@ -90,6 +90,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#database-dependencies">Database dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-athena">(AWS) Athena</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#caching">Caching</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#deeper-sqlalchemy-integration">Deeper SQLAlchemy integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#schemas-postgres-redshift">Schemas (Postgres &amp; Redshift)</a></li>
@@ -100,6 +101,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#upgrading">Upgrading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sql-lab">SQL Lab</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#making-your-own-build">Making your own build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#blueprints">Blueprints</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial for Superset Administrators</a></li>
@@ -155,8 +157,9 @@
 <h1>Installation &amp; Configuration<a class="headerlink" href="#installation-configuration" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
-<p>Superset is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
-Python 2.6 won&#8217;t be supported.</p>
+<p>Superset is tested against Python <code class="docutils literal"><span class="pre">2.7</span></code> and Python <code class="docutils literal"><span class="pre">3.4</span></code>.
+Airbnb currently uses 2.7.* in production. We do not plan on supporting
+Python <code class="docutils literal"><span class="pre">2.6</span></code>.</p>
 </div>
 <div class="section" id="os-dependencies">
 <h2>OS dependencies<a class="headerlink" href="#os-dependencies" title="Permalink to this headline">¶</a></h2>
@@ -175,12 +178,12 @@ the required dependencies are installed:</p>
 <p>For <strong>Fedora</strong> and <strong>RHEL-derivatives</strong>, the following command will ensure
 that the required dependencies are installed:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">yum</span> <span class="n">upgrade</span> <span class="n">python</span><span class="o">-</span><span class="n">setuptools</span>
-<span class="n">sudo</span> <span class="n">yum</span> <span class="n">install</span> <span class="n">gcc</span> <span class="n">libffi</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span> <span class="n">python</span><span class="o">-</span><span class="n">wheel</span> <span class="n">openssl</span><span class="o">-</span><span class="n">devel</span> <span class="n">libsasl2</span><span class="o">-</span><span class="n">devel</span> <span class="n">openldap</span><span class="o">-</span><span class="n">devel</span>
+<span class="n">sudo</span> <span class="n">yum</span> <span class="n">install</span> <span class="n">gcc</span> <span class="n">gcc</span><span class="o">-</span><span class="n">c</span><span class="o">++</span> <span class="n">libffi</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span> <span class="n">python</span><span class="o">-</span><span class="n">wheel</span> <span class="n">openssl</span><span class="o">-</span><span class="n">devel</span> <span class="n">libsasl2</span><span class="o">-</span><span class="n">devel</span> <span class="n">openldap</span><span class="o">-</span><span class="n">devel</span>
 </pre></div>
 </div>
 <p><strong>OSX</strong>, system python is not recommended. brew&#8217;s python also ships with pip</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">install</span> <span class="n">pkg</span><span class="o">-</span><span class="n">config</span> <span class="n">libffi</span> <span class="n">openssl</span> <span class="n">python</span>
-<span class="n">env</span> <span class="n">LDFLAGS</span><span class="o">=</span><span class="s2">&quot;-L$(brew --prefix openssl)/lib&quot;</span> <span class="n">CFLAGS</span><span class="o">=</span><span class="s2">&quot;-I$(brew --prefix openssl)/include&quot;</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">cryptography</span>
+<span class="n">env</span> <span class="n">LDFLAGS</span><span class="o">=</span><span class="s2">&quot;-L$(brew --prefix openssl)/lib&quot;</span> <span class="n">CFLAGS</span><span class="o">=</span><span class="s2">&quot;-I$(brew --prefix openssl)/include&quot;</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">cryptography</span><span class="o">==</span><span class="mf">1.7</span><span class="o">.</span><span class="mi">2</span>
 </pre></div>
 </div>
 <p><strong>Windows</strong> isn&#8217;t officially supported at this point, but if you want to
@@ -355,7 +358,7 @@ connect to the databases you want to access through Superset.</p>
 </tr>
 <tr class="row-odd"><td>Redshift</td>
 <td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">sqlalchemy-redshift</span></code></td>
-<td><code class="docutils literal"><span class="pre">redshift+psycopg2://</span></code></td>
+<td><code class="docutils literal"><span class="pre">postgresql+psycopg2://</span></code></td>
 </tr>
 <tr class="row-even"><td>MSSQL</td>
 <td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pymssql</span></code></td>
@@ -373,12 +376,41 @@ connect to the databases you want to access through Superset.</p>
 <td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">psycopg2</span></code></td>
 <td><code class="docutils literal"><span class="pre">postgresql+psycopg2://</span></code></td>
 </tr>
+<tr class="row-even"><td>Athena</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;PyAthenaJDBC&gt;1.0.9&quot;</span></code></td>
+<td><code class="docutils literal"><span class="pre">awsathena+jdbc://</span></code></td>
+</tr>
+<tr class="row-odd"><td>Vertica</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span>
+<span class="pre">sqlalchemy-vertica-python</span></code></td>
+<td><code class="docutils literal"><span class="pre">vertica+vertica_python://</span></code></td>
+</tr>
+<tr class="row-even"><td>ClickHouse</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span>
+<span class="pre">sqlalchemy-clickhouse</span></code></td>
+<td><code class="docutils literal"><span class="pre">clickhouse://</span></code></td>
+</tr>
 </tbody>
 </table>
 <p>Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
 the keyword <code class="docutils literal"><span class="pre">sqlalchemy</span></code> in addition of a keyword that describes the
 database you want to connect to should get you to the right place.</p>
+</div>
+<div class="section" id="aws-athena">
+<h2>(AWS) Athena<a class="headerlink" href="#aws-athena" title="Permalink to this headline">¶</a></h2>
+<p>This currently relies on an unreleased future version of <a class="reference external" href="https://github.com/laughingman7743/PyAthenaJDBC">PyAthenaJDBC</a>. If you&#8217;re adventurous or simply impatient, you can install directly from git:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">git</span><span class="o">+</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">laughingman7743</span><span class="o">/</span><span class="n">PyAthenaJDBC</span><span class="nd">@support_sqlalchemy</span>
+</pre></div>
+</div>
+<p>The connection string for Athena looks like this</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>awsathena+jdbc://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&amp;...
+</pre></div>
+</div>
+<p>Where you need to escape/encode at least the s3_staging_dir, i.e.,</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">s3</span><span class="p">:</span><span class="o">//...</span> <span class="o">-&gt;</span> <span class="n">s3</span><span class="o">%</span><span class="mi">3</span><span class="n">A</span><span class="o">//...</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="caching">
 <h2>Caching<a class="headerlink" href="#caching" title="Permalink to this headline">¶</a></h2>
@@ -388,9 +420,12 @@ a <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>, c
 complies with the Flask-Cache specifications.</p>
 <p>Flask-Cache supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
-Memcached please use the pylibmc client library as python-memcached does
+Memcached please use the <cite>pylibmc</cite> client library as <cite>python-memcached</cite> does
 not handle storing binary data correctly. If you use Redis, please install
-<cite>python-redis &lt;https://pypi.python.org/pypi/redis&gt;</cite>.</p>
+the <a class="reference external" href="https://pypi.python.org/pypi/redis">redis</a> Python package:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">redis</span>
+</pre></div>
+</div>
 <p>For setting your timeouts, this is done in the Superset metadata and goes
 up the &#8220;timeout searchpath&#8221;, from your slice configuration, to your
 data source&#8217;s configuration, to your database&#8217;s and ultimately falls back
@@ -487,24 +522,66 @@ environment variable:</p>
 <div class="section" id="sql-lab">
 <h2>SQL Lab<a class="headerlink" href="#sql-lab" title="Permalink to this headline">¶</a></h2>
 <p>SQL Lab is a powerful SQL IDE that works with all SQLAlchemy compatible
-databases out there. By default, queries are run in a web request, and
+databases. By default, queries are executed in the scope of a web
+request so they
 may eventually timeout as queries exceed the maximum duration of a web
 request in your environment, whether it&#8217;d be a reverse proxy or the Superset
 server itself.</p>
-<p>In the modern analytics world, it&#8217;s not uncommon to run large queries that
-run for minutes or hours.
+<p>On large analytic databases, it&#8217;s common to run queries that
+execute for minutes or hours.
 To enable support for long running queries that
 execute beyond the typical web request&#8217;s timeout (30-60 seconds), it is
-necessary to deploy an asynchronous backend, which consist of one or many
-Superset worker, which is implemented as a Celery worker, and a Celery
-broker for which we recommend using Redis or RabbitMQ.</p>
-<p>It&#8217;s also preferable to setup an async result backend as a key value store
-that can hold the long-running query results for a period of time. More
-details to come as to how to set this up here soon.</p>
-<p>SQL Lab supports templating in queries, and it&#8217;s possible to override
+necessary to configure an asynchronous backend for Superset which consist of:</p>
+<ul class="simple">
+<li>one or many Superset worker (which is implemented as a Celery worker), and
+can be started with the <code class="docutils literal"><span class="pre">superset</span> <span class="pre">worker</span></code> command, run
+<code class="docutils literal"><span class="pre">superset</span> <span class="pre">worker</span> <span class="pre">--help</span></code> to view the related options</li>
+<li>a celery broker (message queue) for which we recommend using Redis
+or RabbitMQ</li>
+<li>a results backend that defines where the worker will persist the query
+results</li>
+</ul>
+<p>Configuring Celery requires defining a <code class="docutils literal"><span class="pre">CELERY_CONFIG</span></code> in your
+<code class="docutils literal"><span class="pre">superset_config.py</span></code>. Both the worker and web server processes should
+have the same configuration.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">CeleryConfig</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="n">BROKER_URL</span> <span class="o">=</span> <span class="s1">&#39;redis://localhost:6379/0&#39;</span>
+        <span class="n">CELERY_IMPORTS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;superset.sql_lab&#39;</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">CELERY_RESULT_BACKEND</span> <span class="o">=</span> <span class="s1">&#39;redis://localhost:6379/0&#39;</span>
+        <span class="n">CELERY_ANNOTATIONS</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;tasks.add&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;rate_limit&#39;</span><span class="p">:</span> <span class="s1">&#39;10/s&#39;</span><span class="p">}}</span>
+
+<span class="n">CELERY_CONFIG</span> <span class="o">=</span> <span class="n">CeleryConfig</span>
+</pre></div>
+</div>
+<p>To setup a result backend, you need to pass an instance of a derivative
+of <code class="docutils literal"><span class="pre">werkzeug.contrib.cache.BaseCache</span></code> to the <code class="docutils literal"><span class="pre">RESULTS_BACKEND</span></code>
+configuration key in your <code class="docutils literal"><span class="pre">superset_config.py</span></code>. It&#8217;s possible to use
+Memcached, Redis, S3 (<a class="reference external" href="https://pypi.python.org/pypi/s3werkzeugcache">https://pypi.python.org/pypi/s3werkzeugcache</a>),
+memory or the file system (in a single server-type setup or for testing),
+or to write your own caching interface. Your <code class="docutils literal"><span class="pre">superset_config.py</span></code> may
+look something like:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>    <span class="c1"># On S3</span>
+    <span class="kn">from</span> <span class="nn">s3cache.s3cache</span> <span class="kn">import</span> <span class="n">S3Cache</span>
+    <span class="n">S3_CACHE_BUCKET</span> <span class="o">=</span> <span class="s1">&#39;foobar-superset&#39;</span>
+    <span class="n">S3_CACHE_KEY_PREFIX</span> <span class="o">=</span> <span class="s1">&#39;sql_lab_result&#39;</span>
+    <span class="n">RESULTS_BACKEND</span> <span class="o">=</span> <span class="n">S3Cache</span><span class="p">(</span><span class="n">S3_CACHE_BUCKET</span><span class="p">,</span> <span class="n">S3_CACHE_KEY_PREFIX</span><span class="p">)</span>
+
+    <span class="c1"># On Redis</span>
+<span class="kn">from</span> <span class="nn">werkzeug.contrib.cache</span> <span class="kn">import</span> <span class="n">RedisCache</span>
+<span class="n">RESULTS_BACKEND</span> <span class="o">=</span> <span class="n">RedisCache</span><span class="p">(</span>
+    <span class="n">host</span><span class="o">=</span><span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">6379</span><span class="p">,</span> <span class="n">key_prefix</span><span class="o">=</span><span class="s1">&#39;superset_results&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Also note that SQL Lab supports Jinja templating in queries, and that it&#8217;s
+possible to overload
 the default Jinja context in your environment by defining the
 <code class="docutils literal"><span class="pre">JINJA_CONTEXT_ADDONS</span></code> in your superset configuration. Objects referenced
 in this dictionary are made available for users to use in their SQL.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="n">JINJA_CONTEXT_ADDONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;my_crazy_macro&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="making-your-own-build">
 <h2>Making your own build<a class="headerlink" href="#making-your-own-build" title="Permalink to this headline">¶</a></h2>
@@ -517,6 +594,29 @@ npm install
 npm run build
 cd $SUPERSET_HOME
 python setup.py install
+</pre></div>
+</div>
+</div>
+<div class="section" id="blueprints">
+<h2>Blueprints<a class="headerlink" href="#blueprints" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://flask.pocoo.org/docs/0.12/blueprints/">Blueprints are Flask&#8217;s reusable apps</a>.
+Superset allows you to specify an array of Blueprints
+an array of Blueprints in your <code class="docutils literal"><span class="pre">superset_config</span></code> module. Here&#8217;s
+an example on how this can work with a simple Blueprint. By doing
+so, you can expect Superset to serve a page that says &#8220;OK&#8221;
+at the <code class="docutils literal"><span class="pre">/simple_page</span></code> url. This can allow you to run other things such
+as custom data visualization applications alongside Superset, on the
+same server.</p>
+<p>..code</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">Blueprint</span>
+<span class="n">simple_page</span> <span class="o">=</span> <span class="n">Blueprint</span><span class="p">(</span><span class="s1">&#39;simple_page&#39;</span><span class="p">,</span> <span class="n">__name__</span><span class="p">,</span>
+                                <span class="n">template_folder</span><span class="o">=</span><span class="s1">&#39;templates&#39;</span><span class="p">)</span>
+<span class="nd">@simple_page</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">defaults</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;page&#39;</span><span class="p">:</span> <span class="s1">&#39;index&#39;</span><span class="p">})</span>
+<span class="nd">@simple_page</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/&lt;page&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">show</span><span class="p">(</span><span class="n">page</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;Ok&quot;</span>
+
+<span class="n">BLUEPRINTS</span> <span class="o">=</span> <span class="p">[</span><span class="n">simple_page</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>

@@ -89,6 +89,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#alpha">Alpha</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#gamma">Gamma</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#sql-lab">sql_lab</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#public">Public</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#managing-gamma-per-data-source-access">Managing Gamma per data source access</a></li>
@@ -193,6 +194,16 @@ they will only see the objects that they have access to.</p>
 <p>The <code class="docutils literal"><span class="pre">sql_lab</span></code> role grants access to SQL Lab. Note that while <code class="docutils literal"><span class="pre">Admin</span></code>
 users have access to all databases by default, both <code class="docutils literal"><span class="pre">Alpha</span></code> and <code class="docutils literal"><span class="pre">Gamma</span></code>
 users need to be given access on a per database basis.</p>
+</div>
+<div class="section" id="public">
+<h3>Public<a class="headerlink" href="#public" title="Permalink to this headline">¶</a></h3>
+<p>It&#8217;s possible to allow logged out users to access some Superset features.</p>
+<p>By setting <code class="docutils literal"><span class="pre">PUBLIC_ROLE_LIKE_GAMMA</span> <span class="pre">=</span> <span class="pre">True</span></code> in your <code class="docutils literal"><span class="pre">superset_config.py</span></code>,
+you grant public role the same set of permissions as for the GAMMA role.
+This is useful if one wants to enable anonymous users to view
+dashboards. Explicit grant on specific datasets is still required, meaning
+that you need to edit the <code class="docutils literal"><span class="pre">Public</span></code> role and add the Public data sources
+to the role manually.</p>
 </div>
 </div>
 <div class="section" id="managing-gamma-per-data-source-access">

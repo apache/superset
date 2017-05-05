@@ -202,62 +202,28 @@ Superset&#8217;s Jinja context:
 <p><a class="reference external" href="http://jinja.pocoo.org/docs/dev/templates/">Jinja&#8217;s builtin filters</a> can be also be applied where needed.</p>
 <dl class="class">
 <dt id="superset.jinja_context.PrestoTemplateProcessor">
-<em class="property">class </em><code class="descclassname">superset.jinja_context.</code><code class="descname">PrestoTemplateProcessor</code><span class="sig-paren">(</span><em>database=None</em>, <em>query=None</em>, <em>table=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#PrestoTemplateProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.PrestoTemplateProcessor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">superset.jinja_context.</code><code class="descname">PrestoTemplateProcessor</code><span class="sig-paren">(</span><em>database=None</em>, <em>query=None</em>, <em>table=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#PrestoTemplateProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.PrestoTemplateProcessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Presto Jinja context</p>
 <p>The methods described here are namespaced under <code class="docutils literal"><span class="pre">presto</span></code> in the
 jinja context as in <code class="docutils literal"><span class="pre">SELECT</span> <span class="pre">'{{</span> <span class="pre">presto.some_macro_call()</span> <span class="pre">}}'</span></code></p>
-<dl class="method">
-<dt id="superset.jinja_context.PrestoTemplateProcessor.latest_partition">
-<code class="descname">latest_partition</code><span class="sig-paren">(</span><em>table_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#PrestoTemplateProcessor.latest_partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.PrestoTemplateProcessor.latest_partition" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the latest (max) partition value for a table</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table_name</strong> (<em>str</em>) &#8211; the name of the table, can be just the table
-name or a fully qualified table name as <code class="docutils literal"><span class="pre">schema_name.table_name</span></code></td>
-</tr>
-</tbody>
-</table>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">latest_partition</span><span class="p">(</span><span class="s1">&#39;foo_table&#39;</span><span class="p">)</span>
-<span class="go">&#39;2018-01-01&#39;</span>
-</pre></div>
-</div>
 </dd></dl>
 
-<dl class="method">
-<dt id="superset.jinja_context.PrestoTemplateProcessor.latest_sub_partition">
-<code class="descname">latest_sub_partition</code><span class="sig-paren">(</span><em>table_name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#PrestoTemplateProcessor.latest_sub_partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.PrestoTemplateProcessor.latest_sub_partition" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the latest (max) partition value for a table</p>
-<p>A filtering criteria should be passed for all fields that are
-partitioned except for the field to be returned. For example,
-if a table is partitioned by (<code class="docutils literal"><span class="pre">ds</span></code>, <code class="docutils literal"><span class="pre">event_type</span></code> and
-<code class="docutils literal"><span class="pre">event_category</span></code>) and you want the latest <code class="docutils literal"><span class="pre">ds</span></code>, you&#8217;ll want
-to provide a filter as keyword arguments for both
-<code class="docutils literal"><span class="pre">event_type</span></code> and <code class="docutils literal"><span class="pre">event_category</span></code> as in
-<a href="#id1"><span class="problematic" id="id2">``</span></a>latest_sub_partition(&#8216;my_table&#8217;,</p>
-<blockquote>
-<div>event_category=&#8217;page&#8217;, event_type=&#8217;click&#8217;)``</div></blockquote>
+<dl class="function">
+<dt id="superset.jinja_context.url_param">
+<code class="descclassname">superset.jinja_context.</code><code class="descname">url_param</code><span class="sig-paren">(</span><em>param</em>, <em>default=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#url_param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.url_param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a url paramater</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>table_name</strong> (<em>str</em>) &#8211; the name of the table, can be just the table
-name or a fully qualified table name as <code class="docutils literal"><span class="pre">schema_name.table_name</span></code></li>
-<li><strong>kwargs</strong> (<em>str</em>) &#8211; keyword arguments define the filtering criteria
-on the partition list. There can be many of these.</li>
+<li><strong>param</strong> (<em>str</em>) &#8211; the url parameter to lookup</li>
+<li><strong>default</strong> (<em>str</em>) &#8211; the value to return in the absence of the parameter</li>
 </ul>
 </td>
 </tr>
 </tbody>
 </table>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">latest_sub_partition</span><span class="p">(</span><span class="s1">&#39;sub_partition_table&#39;</span><span class="p">,</span> <span class="n">event_type</span><span class="o">=</span><span class="s1">&#39;click&#39;</span><span class="p">)</span>
-<span class="go">&#39;2018-01-01&#39;</span>
-</pre></div>
-</div>
-</dd></dl>
-
 </dd></dl>
 
 </div>
