@@ -272,7 +272,7 @@ export const controls = {
     choices: [
         ['name', 'Full name'],
         ['France', 'France'],
-        ['Spain', 'Spain']
+        ['Spain', 'Spain'],
     ],
     description: 'The name of country that Superset should display',
   },
