@@ -416,27 +416,6 @@ class SqlaTable(Model, BaseDatasource):
             metrics_exprs = []
 
         if granularity:
-            @compiles(ColumnClause)
-            def visit_column(element, compiler, **kw):
-                """Patch for sqlalchemy bug
-
-                TODO: sqlalchemy 1.2 release should be doing this on its own.
-                Patch only if the column clause is specific for DateTime
-                set and granularity is selected.
-                """
-                text = compiler.visit_column(element, **kw)
-                try:
-                    if (
-                            element.is_literal and
-                            hasattr(element.type, 'python_type') and
-                            type(element.type) is DateTime
-                    ):
-                        text = text.replace('%%', '%')
-                except NotImplementedError:
-                    # Some elements raise NotImplementedError for python_type
-                    pass
-                return text
-
             dttm_col = cols[granularity]
             time_grain = extras.get('time_grain_sqla')
             time_filters = []
