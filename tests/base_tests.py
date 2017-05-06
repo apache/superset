@@ -13,6 +13,8 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import app, cli, db, appbuilder, security, sm
 from superset.models import core as models
+from superset.models.sql_lab import Query
+
 from superset.security import sync_role_definitions
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
@@ -132,15 +134,15 @@ class SupersetTestCase(unittest.TestCase):
 
     def get_query_by_sql(self, sql):
         session = db.create_scoped_session()
-        query = session.query(models.Query).filter_by(sql=sql).first()
+        query = session.query(Query).filter_by(sql=sql).first()
         session.close()
         return query
 
     def get_latest_query(self, sql):
         session = db.create_scoped_session()
         query = (
-            session.query(models.Query)
-                .order_by(models.Query.id.desc())
+            session.query(Query)
+                .order_by(Query.id.desc())
                 .first()
         )
         session.close()
