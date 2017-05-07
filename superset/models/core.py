@@ -602,11 +602,11 @@ class Database(Model, AuditMixinNullable):
 
     def select_star(
             self, table_name, schema=None, limit=100, show_cols=False,
-            indent=True):
+            indent=True, latest_partition=True):
         """Generates a ``select *`` statement in the proper dialect"""
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, limit=limit, show_cols=show_cols,
-            indent=indent)
+            indent=indent, latest_partition=latest_partition)
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (
