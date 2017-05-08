@@ -575,16 +575,19 @@ class Database(Model, AuditMixinNullable):
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
         eng = self.get_sqla_engine(schema=schema)
-        cur = eng.execute(sql, schema=schema)
-        cols = [col[0] for col in cur.cursor.description]
-        df = pd.DataFrame(cur.fetchall(), columns=cols)
+
+        conn = eng.raw_connection()
+        cur = conn.cursor()
+        cur.execute(sql, **self.db_engine_spec.cursor_execute_kwargs)
+
+        cols = [col[0] for col in cur.description]
+        df = pd.DataFrame(list(cur.fetchall()), columns=cols)
 
         def needs_conversion(df_series):
             if df_series.empty:
                 return False
-            for df_type in [list, dict]:
-                if isinstance(df_series[0], df_type):
-                    return True
+            if isinstance(df_series[0], (list, dict)):
+                return True
             return False
 
         for k, v in df.dtypes.iteritems():
@@ -599,11 +602,11 @@ class Database(Model, AuditMixinNullable):
 
     def select_star(
             self, table_name, schema=None, limit=100, show_cols=False,
-            indent=True):
+            indent=True, latest_partition=True):
         """Generates a ``select *`` statement in the proper dialect"""
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, limit=limit, show_cols=show_cols,
-            indent=indent)
+            indent=indent, latest_partition=latest_partition)
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (

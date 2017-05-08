@@ -130,7 +130,9 @@ class BaseViz(object):
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
         since = (
-            extra_filters.get('__from') or form_data.get("since", "1 year ago")
+            extra_filters.get('__from') or
+            form_data.get("since") or
+            config.get("SUPERSET_DEFAULT_SINCE", "1 year ago")
         )
 
         from_dttm = utils.parse_human_datetime(since)

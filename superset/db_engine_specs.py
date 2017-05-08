@@ -50,7 +50,9 @@ class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     cursor_execute_kwargs = {}
     time_grains = tuple()
+    time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
+    time_secondary_columns = False
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -160,24 +162,25 @@ class BaseEngineSpec(object):
 
     @classmethod
     def select_star(cls, my_db, table_name, schema=None, limit=100,
-                    show_cols=False, indent=True):
+                    show_cols=False, indent=True, latest_partition=True):
         fields = '*'
-        table = my_db.get_table(table_name, schema=schema)
+        cols = []
+        if show_cols or latest_partition:
+            cols = my_db.get_table(table_name, schema=schema).columns
+
         if show_cols:
-            fields = [my_db.get_quoter()(c.name) for c in table.columns]
+            fields = [my_db.get_quoter()(c.name) for c in cols]
         full_table_name = table_name
         if schema:
             full_table_name = schema + '.' + table_name
-        qry = select(fields)
+        qry = select(fields).select_from(text(full_table_name))
         if limit:
             qry = qry.limit(limit)
-        partition_query = cls.where_latest_partition(
-            table_name, schema, my_db, qry, columns=table.columns)
-        # if not partition_query condition fails.
-        if partition_query == False:  # noqa
-            qry = qry.select_from(text(full_table_name))
-        else:
-            qry = partition_query
+        if latest_partition:
+            partition_query = cls.where_latest_partition(
+                table_name, schema, my_db, qry, columns=cols)
+            if partition_query != False:  # noqa
+                qry = partition_query
         sql = my_db.compile_sqla_query(qry)
         if indent:
             sql = sqlparse.format(sql, reindent=True)
@@ -864,6 +867,44 @@ class AthenaEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
+
+
+class ClickHouseEngineSpec(BaseEngineSpec):
+    """Dialect for ClickHouse analytical DB."""
+
+    engine = 'clickhouse'
+
+    time_secondary_columns = True
+    time_groupby_inline = True
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('minute', _('minute'),
+              "toStartOfMinute(toDateTime({col}))"),
+        Grain('5 minute', _('5 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)"),
+        Grain('10 minute', _('10 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)"),
+        Grain('hour', _('hour'),
+              "toStartOfHour(toDateTime({col}))"),
+        Grain('day', _('day'),
+              "toStartOfDay(toDateTime({col}))"),
+        Grain('month', _('month'),
+              "toStartOfMonth(toDateTime({col}))"),
+        Grain('quarter', _('quarter'),
+              "toStartOfQuarter(toDateTime({col}))"),
+        Grain('year', _('year'),
+              "toStartOfYear(toDateTime({col}))"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "toDate('{}')".format(dttm.strftime('%Y-%m-%d'))
+        if tt == 'DATETIME':
+            return "toDateTime('{}')".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 engines = {
     o.engine: o for o in globals().values()
