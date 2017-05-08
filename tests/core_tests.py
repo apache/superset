@@ -17,7 +17,7 @@ from flask import escape
 from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.models import core as models
 from superset.models.sql_lab import Query
-from superset.views.core import DatabaseView
+from superset.views.database import DatabaseView
 from superset.connectors.sqla.models import SqlaTable
 
 from .base_tests import SupersetTestCase

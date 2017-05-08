@@ -1,13 +1,22 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from flask import redirect, g
 
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
 from superset import appbuilder
 from superset.models.sql_lab import Query, SavedQuery
-from .base import SupersetModelView, BaseSupersetView, DeleteMixin
+
+from superset.views.base import (
+    SupersetModelView, BaseSupersetView, DeleteMixin
+)
 
 
 class QueryView(SupersetModelView):
@@ -67,3 +76,23 @@ class SqlLab(BaseSupersetView):
 
 
 appbuilder.add_view_no_menu(SqlLab)
+
+appbuilder.add_link(
+    'SQL Editor',
+    label=_("SQL Editor"),
+    href='/superset/sqllab',
+    category_icon="fa-flask",
+    icon="fa-flask",
+    category='SQL Lab',
+    category_label=__("SQL Lab"),
+)
+
+appbuilder.add_link(
+    'Query Search',
+    label=_("Query Search"),
+    href='/superset/sqllab#search',
+    icon="fa-search",
+    category_icon="fa-flask",
+    category='SQL Lab',
+    category_label=__("SQL Lab"),
+)
