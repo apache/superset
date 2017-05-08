@@ -130,22 +130,6 @@ class SupersetTestCase(unittest.TestCase):
             data=dict(username=username, password=password))
         self.assertIn('Welcome', resp)
 
-    def get_query_by_sql(self, sql):
-        session = db.create_scoped_session()
-        query = session.query(models.Query).filter_by(sql=sql).first()
-        session.close()
-        return query
-
-    def get_latest_query(self, sql):
-        session = db.create_scoped_session()
-        query = (
-            session.query(models.Query)
-                .order_by(models.Query.id.desc())
-                .first()
-        )
-        session.close()
-        return query
-
     def get_slice(self, slice_name, session):
         slc = (
             session.query(models.Slice)
