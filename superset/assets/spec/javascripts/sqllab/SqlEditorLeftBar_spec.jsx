@@ -7,6 +7,9 @@ import { table, defaultQueryEditor } from './fixtures';
 import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
 import TableElement from '../../../javascripts/SqlLab/components/TableElement';
 
+global.notify = {
+  error: () => {},
+};
 
 describe('SqlEditorLeftBar', () => {
   const mockedProps = {
