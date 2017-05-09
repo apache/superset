@@ -164,15 +164,17 @@ export function postStopQuery(query) {
   return function (dispatch) {
     const stopQueryUrl = '/superset/stop_query/';
     const stopQueryRequestData = { client_id: query.id };
+    dispatch(stopQuery(query));
     $.ajax({
       type: 'POST',
       dataType: 'json',
       url: stopQueryUrl,
       data: stopQueryRequestData,
       success() {
-        if (!query.runAsync) {
-          dispatch(stopQuery(query));
-        }
+        notify.success('Query was stopped.');
+      },
+      error() {
+        notify.error('Failed at stopping query.');
       },
     });
   };
