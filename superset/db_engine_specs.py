@@ -162,24 +162,25 @@ class BaseEngineSpec(object):
 
     @classmethod
     def select_star(cls, my_db, table_name, schema=None, limit=100,
-                    show_cols=False, indent=True):
+                    show_cols=False, indent=True, latest_partition=True):
         fields = '*'
-        table = my_db.get_table(table_name, schema=schema)
+        cols = []
+        if show_cols or latest_partition:
+            cols = my_db.get_table(table_name, schema=schema).columns
+
         if show_cols:
-            fields = [my_db.get_quoter()(c.name) for c in table.columns]
+            fields = [my_db.get_quoter()(c.name) for c in cols]
         full_table_name = table_name
         if schema:
             full_table_name = schema + '.' + table_name
-        qry = select(fields)
+        qry = select(fields).select_from(text(full_table_name))
         if limit:
             qry = qry.limit(limit)
-        partition_query = cls.where_latest_partition(
-            table_name, schema, my_db, qry, columns=table.columns)
-        # if not partition_query condition fails.
-        if partition_query == False:  # noqa
-            qry = qry.select_from(text(full_table_name))
-        else:
-            qry = partition_query
+        if latest_partition:
+            partition_query = cls.where_latest_partition(
+                table_name, schema, my_db, qry, columns=cols)
+            if partition_query != False:  # noqa
+                qry = partition_query
         sql = my_db.compile_sqla_query(qry)
         if indent:
             sql = sqlparse.format(sql, reindent=True)
