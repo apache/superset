@@ -89,9 +89,11 @@ function tableVis(slice, payload) {
     .style('background-image', function (d) {
       if (d.isMetric) {
         const perc = Math.round((d.val / maxes[d.col]) * 100);
+        // The 0.01 to 0.001 is a workaround for what appears to be a
+        // CSS rendering bug on flat, transparent colors
         return (
-          `linear-gradient(to right, lightgrey, lightgrey ${perc}%, ` +
-          `rgba(0,0,0,0) ${perc}%)`
+          `linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
+          `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
         );
       }
       return null;
