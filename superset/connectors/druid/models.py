@@ -323,7 +323,7 @@ class DruidDatasource(Model, BaseDatasource):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
-        'User',
+        sm.user_model,
         backref=backref('datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
 

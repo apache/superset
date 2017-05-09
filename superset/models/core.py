@@ -103,7 +103,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
-    owners = relationship("User", secondary=slice_user)
+    owners = relationship(sm.user_model, secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
                      'viz_type', 'params', 'cache_timeout')
@@ -304,7 +304,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
-    owners = relationship("User", secondary=dashboard_user)
+    owners = relationship(sm.user_model, secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
@@ -728,7 +728,7 @@ class Log(Model):
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
     json = Column(Text)
-    user = relationship('User', backref='logs', foreign_keys=[user_id])
+    user = relationship(sm.user_model, backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
     dt = Column(Date, default=date.today())
     duration_ms = Column(Integer)
