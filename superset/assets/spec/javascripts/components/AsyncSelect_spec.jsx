@@ -1,10 +1,9 @@
 import React from 'react';
 import Select from 'react-select';
-import { shallow } from 'enzyme';
+import { mount, shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
-import $ from 'jquery';
 
 import AsyncSelect from '../../../javascripts/components/AsyncSelect';
 
@@ -39,30 +38,32 @@ describe('AsyncSelect', () => {
   });
 
   describe('auto select', () => {
-    let stub;
+    let server;
     beforeEach(() => {
-      stub = sinon.stub($, 'get');
-      stub.yields();
+      server = sinon.fakeServer.create();
+      server.respondWith([
+        200, { 'Content-Type': 'application/json' }, JSON.stringify({}),
+      ]);
     });
     afterEach(() => {
-      stub.restore();
+      server.restore();
     });
     it('should be off by default', () => {
-      const wrapper = shallow(
+      const wrapper = mount(
         <AsyncSelect {...mockedProps} />,
       );
       const spy = sinon.spy(wrapper.instance(), 'onChange');
-
-      wrapper.instance().fetchOptions();
       expect(spy.callCount).to.equal(0);
     });
     it('should auto select first option', () => {
-      const wrapper = shallow(
+      const wrapper = mount(
         <AsyncSelect {...mockedProps} autoSelect />,
       );
       const spy = sinon.spy(wrapper.instance(), 'onChange');
 
-      wrapper.instance().fetchOptions();
+      server.respond();
+
+      expect(spy.callCount).to.equal(1);
       expect(spy.calledWith(wrapper.instance().state.options[0])).to.equal(true);
     });
   });
