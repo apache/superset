@@ -164,15 +164,17 @@ export function postStopQuery(query) {
   return function (dispatch) {
     const stopQueryUrl = '/superset/stop_query/';
     const stopQueryRequestData = { client_id: query.id };
+    dispatch(stopQuery(query));
     $.ajax({
       type: 'POST',
       dataType: 'json',
       url: stopQueryUrl,
       data: stopQueryRequestData,
       success() {
-        if (!query.runAsync) {
-          dispatch(stopQuery(query));
-        }
+        notify.success('Query was stopped.');
+      },
+      error() {
+        notify.error('Failed at stopping query.');
       },
     });
   };
@@ -247,6 +249,17 @@ export function mergeTable(table, query) {
 
 export function addTable(query, tableName, schemaName) {
   return function (dispatch) {
+    let table = {
+      dbId: query.dbId,
+      queryEditorId: query.id,
+      schema: schemaName,
+      name: tableName,
+      isMetadataLoading: true,
+      isExtraMetadataLoading: true,
+      expanded: false,
+    };
+    dispatch(mergeTable(table));
+
     let url = `/superset/table/${query.dbId}/${tableName}/${schemaName}/`;
     $.get(url, (data) => {
       const dataPreviewQuery = {
@@ -260,35 +273,21 @@ export function addTable(query, tableName, schemaName) {
         ctas: false,
       };
       // Merge table to tables in state
-      dispatch(mergeTable(
-        Object.assign(data, {
-          dbId: query.dbId,
-          queryEditorId: query.id,
-          schema: schemaName,
-          expanded: true,
-        }), dataPreviewQuery),
-      );
+      table = Object.assign({}, table, data, {
+        expanded: true,
+        isMetadataLoading: false,
+      });
+      dispatch(mergeTable(table, dataPreviewQuery));
       // Run query to get preview data for table
       dispatch(runQuery(dataPreviewQuery));
     })
     .fail(() => {
-      dispatch(
-        addAlert({
-          msg: 'Error occurred while fetching metadata',
-          bsStyle: 'danger',
-        }),
-      );
+      notify.error('Error occurred while fetching table metadata');
     });
 
     url = `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`;
     $.get(url, (data) => {
-      const table = {
-        dbId: query.dbId,
-        queryEditorId: query.id,
-        schema: schemaName,
-        name: tableName,
-      };
-      Object.assign(table, data);
+      table = Object.assign({}, table, data, { isExtraMetadataLoading: false });
       dispatch(mergeTable(table));
     });
   };
