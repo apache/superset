@@ -74,11 +74,10 @@ class SupersetTemplateException(SupersetException):
 
 def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
-    return (
-        sm.is_item_public(permission_name, view_name) or
-        (not user.is_anonymous() and
-         sm._has_view_access(user, permission_name, view_name))
-    )
+    if user.is_anonymous():
+        return sm.is_item_public(permission_name, view_name)
+    else:
+        return sm._has_view_access(user, permission_name, view_name)
 
 
 def flasher(msg, severity=None):
