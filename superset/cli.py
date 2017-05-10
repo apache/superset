@@ -121,6 +121,9 @@ def load_examples(load_test_data):
     print("Loading [Misc Charts] dashboard")
     data.load_misc_dashboard()
 
+    print("Loading [session] data")
+    data.load_session()
+
     if load_test_data:
         print("Loading [Unicode test data]")
         data.load_unicode_test_data()
