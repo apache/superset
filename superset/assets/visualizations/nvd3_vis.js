@@ -406,10 +406,11 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    if (chart.yAxis !== undefined) {
+    if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
       const marginPad = isExplore ? width * 0.01 : width * 0.03;
-      const maxYAxisLabelWidth = getMaxLabelSize(slice.container, 'nv-y');
+      const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
+                                              : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
       if (fd.y_axis_label && fd.y_axis_label !== '') {
