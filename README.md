@@ -46,7 +46,7 @@ Screenshots & Gifs
 
 <br/>
 
-![superset-dashboard-misc](https://cloud.githubusercontent.com/assets/130878/20234704/0f40778c-a835-11e6-9556-983a62ea061b.png)
+![superset-dashboard-misc](https://cloud.githubusercontent.com/assets/4838266/24310690/28cb0386-108e-11e7-8392-c5d4307098d4.png)
 
 ![superset-edit-table](https://cloud.githubusercontent.com/assets/130878/20234705/0f415c88-a835-11e6-8b03-f7c35d56dd7d.png)
 
