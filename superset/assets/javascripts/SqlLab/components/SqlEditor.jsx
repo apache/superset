@@ -208,10 +208,10 @@ class SqlEditor extends React.PureComponent {
             </Col>
           </Collapse>
           <Col
-              xs={this.props.hideLeftBar ? 12 : 6}
-              sm={this.props.hideLeftBar ? 12 : 7}
-              md={this.props.hideLeftBar ? 12 : 8}
-              lg={this.props.hideLeftBar ? 12 : 9}
+            xs={this.props.hideLeftBar ? 12 : 6}
+            sm={this.props.hideLeftBar ? 12 : 7}
+            md={this.props.hideLeftBar ? 12 : 8}
+            lg={this.props.hideLeftBar ? 12 : 9}
           >
             <AceEditorWrapper
               actions={this.props.actions}
