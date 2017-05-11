@@ -188,7 +188,7 @@ class BaseSupersetView(BaseView):
 
 
 class SupersetModelView(ModelView):
-    page_size = 500
+    page_size = 100
 
 
 class ListWidgetWithCheckboxes(ListWidget):

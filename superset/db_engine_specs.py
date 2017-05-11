@@ -540,7 +540,9 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(cls, df):
-        return df.to_records(index=False)[0][0]
+        recs = df.to_records(index=False)
+        if recs:
+            return recs[0][0]
 
     @classmethod
     def latest_partition(cls, table_name, schema, database, show_first=False):

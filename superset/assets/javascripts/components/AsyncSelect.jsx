@@ -41,7 +41,7 @@ class AsyncSelect extends React.PureComponent {
     $.get(this.props.dataEndpoint, (data) => {
       this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
 
-      if (this.props.autoSelect && this.state.options.length) {
+      if (!this.props.value && this.props.autoSelect && this.state.options.length) {
         this.onChange(this.state.options[0]);
       }
     })

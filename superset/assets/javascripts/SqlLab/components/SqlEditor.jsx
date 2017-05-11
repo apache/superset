@@ -193,7 +193,12 @@ class SqlEditor extends React.PureComponent {
           <Collapse
             in={!this.props.hideLeftBar}
           >
-            <Col md={3}>
+            <Col
+              xs={6}
+              sm={5}
+              md={4}
+              lg={3}
+            >
               <SqlEditorLeftBar
                 height={this.sqlEditorHeight()}
                 queryEditor={this.props.queryEditor}
@@ -202,7 +207,12 @@ class SqlEditor extends React.PureComponent {
               />
             </Col>
           </Collapse>
-          <Col md={this.props.hideLeftBar ? 12 : 9}>
+          <Col
+            xs={this.props.hideLeftBar ? 12 : 6}
+            sm={this.props.hideLeftBar ? 12 : 7}
+            md={this.props.hideLeftBar ? 12 : 8}
+            lg={this.props.hideLeftBar ? 12 : 9}
+          >
             <AceEditorWrapper
               actions={this.props.actions}
               onBlur={this.setQueryEditorSql.bind(this)}
