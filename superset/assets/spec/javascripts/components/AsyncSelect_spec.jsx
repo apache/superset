@@ -66,5 +66,17 @@ describe('AsyncSelect', () => {
       expect(spy.callCount).to.equal(1);
       expect(spy.calledWith(wrapper.instance().state.options[0])).to.equal(true);
     });
+    it('should not auto select when value prop is set', () => {
+      const wrapper = mount(
+        <AsyncSelect {...mockedProps} value={2} autoSelect />,
+      );
+      const spy = sinon.spy(wrapper.instance(), 'onChange');
+
+      server.respond();
+
+      expect(spy.callCount).to.equal(0);
+      expect(wrapper.find(Select)).to.have.length(1);
+      expect(wrapper.find('.Select-value-label').children().first().text()).to.equal('another');
+    });
   });
 });
