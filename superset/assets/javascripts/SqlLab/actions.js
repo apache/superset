@@ -254,11 +254,12 @@ export function addTable(query, tableName, schemaName) {
       queryEditorId: query.id,
       schema: schemaName,
       name: tableName,
+    };
+    dispatch(mergeTable(Object.assign({}, table, {
       isMetadataLoading: true,
       isExtraMetadataLoading: true,
       expanded: false,
-    };
-    dispatch(mergeTable(table));
+    })));
 
     let url = `/superset/table/${query.dbId}/${tableName}/${schemaName}/`;
     $.get(url, (data) => {
@@ -273,15 +274,19 @@ export function addTable(query, tableName, schemaName) {
         ctas: false,
       };
       // Merge table to tables in state
-      table = Object.assign({}, table, data, {
+      const newTable = Object.assign({}, table, data, {
         expanded: true,
         isMetadataLoading: false,
       });
-      dispatch(mergeTable(table, dataPreviewQuery));
+      dispatch(mergeTable(newTable, dataPreviewQuery));
       // Run query to get preview data for table
       dispatch(runQuery(dataPreviewQuery));
     })
     .fail(() => {
+      const newTable = Object.assign({}, table, {
+        isMetadataLoading: false,
+      });
+      dispatch(mergeTable(newTable));
       notify.error('Error occurred while fetching table metadata');
     });
 
@@ -289,6 +294,13 @@ export function addTable(query, tableName, schemaName) {
     $.get(url, (data) => {
       table = Object.assign({}, table, data, { isExtraMetadataLoading: false });
       dispatch(mergeTable(table));
+    })
+    .fail(() => {
+      const newTable = Object.assign({}, table, {
+        isExtraMetadataLoading: false,
+      });
+      dispatch(mergeTable(newTable));
+      notify.error('Error occurred while fetching table metadata');
     });
   };
 }
