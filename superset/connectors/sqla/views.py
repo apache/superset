@@ -137,7 +137,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'link', 'database',
-        'changed_by_', 'changed_on_']
+        'changed_by_', 'modified']
     order_columns = [
         'link', 'database', 'changed_on_']
     add_columns = ['database', 'schema', 'table_name']
@@ -149,6 +149,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     show_columns = edit_columns + ['perm']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
+    search_columns = (
+        'database', 'schema', 'table_name', 'owner',
+    )
     description_columns = {
         'slices': _(
             "The list of slices associated with this table. By "

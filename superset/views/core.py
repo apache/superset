@@ -175,7 +175,9 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
         'allow_ctas', 'allow_dml', 'force_ctas_schema']
-    search_exclude_columns = ('password',)
+    search_exclude_columns = (
+        'password', 'tables', 'created_by', 'changed_by', 'queries',
+        'saved_queries', )
     edit_columns = add_columns
     show_columns = [
         'tables',
@@ -317,6 +319,9 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     label_columns = {
         'datasource_link': 'Datasource',
     }
+    search_columns = (
+        'slice_name', 'description', 'viz_type', 'owners',
+    )
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
     edit_columns = [
@@ -405,6 +410,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
         'json_metadata']
     show_columns = edit_columns + ['table_names']
+    search_columns = ('dashboard_title', 'slug', 'owners')
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
