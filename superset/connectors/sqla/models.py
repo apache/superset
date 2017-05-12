@@ -20,7 +20,7 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 
-from superset import db, utils, import_util
+from superset import db, utils, import_util, sm
 from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
 from superset.utils import DTTM_ALIAS, QueryStatus
 from superset.models.helpers import QueryResult
@@ -169,7 +169,7 @@ class SqlaTable(Model, BaseDatasource):
     fetch_values_predicate = Column(String(1000))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
-        'User',
+        sm.user_model,
         backref='tables',
         foreign_keys=[user_id])
     database = relationship(
