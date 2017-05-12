@@ -312,6 +312,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
+    cursor_execute_kwargs = {'args': {}}
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain("second", _('second'), "DATE_ADD(DATE({col}), "
