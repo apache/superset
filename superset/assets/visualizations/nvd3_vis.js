@@ -299,7 +299,7 @@ function nvd3Vis(slice, payload) {
       }
     }
 
-    let height = slice.height() - 15;
+    let height = slice.height();
     if (vizType === 'bullet') {
       height = Math.min(height, 50);
     }

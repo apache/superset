@@ -7,7 +7,7 @@ require('./directed_force.css');
 const directedForceVis = function (slice, json) {
   const div = d3.select(slice.selector);
   const width = slice.width();
-  const height = slice.height() - 25;
+  const height = slice.height();
   const fd = slice.formData;
   const linkLength = fd.link_length || 200;
   const charge = fd.charge || -500;
