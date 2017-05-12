@@ -119,6 +119,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
+    search_columns = ('cluster_name',)
     label_columns = {
         'cluster_name': _("Cluster"),
         'coordinator_host': _("Coordinator Host"),
@@ -150,7 +151,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
-        'datasource_link', 'cluster', 'changed_by_', 'changed_on_', 'offset']
+        'datasource_link', 'cluster', 'changed_by_', 'modified']
     order_columns = [
         'datasource_link', 'changed_on_', 'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
@@ -159,6 +160,9 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
+    search_columns = (
+        'datasource_name', 'cluster', 'description', 'owner'
+    )
     add_columns = edit_columns
     show_columns = add_columns + ['perm']
     page_size = 500
