@@ -542,14 +542,12 @@ class SqlaTable(Model, BaseDatasource):
 
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
-        engine = self.database.get_sqla_engine()
-        qry = self.get_sqla_query(**query_obj)
         sql = self.get_query_str(query_obj)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
         try:
-            df = pd.read_sql_query(qry, con=engine)
+            df = self.database.get_df(sql, self.schema)
         except Exception as e:
             status = QueryStatus.FAILED
             logging.exception(e)
