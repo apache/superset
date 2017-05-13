@@ -44,7 +44,7 @@ class ControlPanelsContainer extends React.Component {
   render() {
     return (
       <div className="scrollbar-container">
-        <Panel className="scrollbar-content">
+        <div className="scrollbar-content">
           {this.props.alert &&
             <Alert bsStyle="warning">
               {this.props.alert}
@@ -78,7 +78,7 @@ class ControlPanelsContainer extends React.Component {
               ))}
             </ControlPanelSection>
           ))}
-        </Panel>
+        </div>
       </div>
     );
   }
