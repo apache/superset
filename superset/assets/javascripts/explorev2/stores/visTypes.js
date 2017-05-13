@@ -203,6 +203,12 @@ const visTypes = {
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
+      {
+        label: 'Chart Options',
+        controlSetRows: [
+          ['x_axis_format', 'y_axis_format'],
+        ],
+      },
       sections.NVD3TimeSeries[1],
     ],
   },

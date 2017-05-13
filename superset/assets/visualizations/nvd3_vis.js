@@ -237,6 +237,7 @@ function nvd3Vis(slice, payload) {
       case 'compare':
         chart = nv.models.cumulativeLineChart();
         chart.xScale(d3.time.scale.utc());
+        chart.useInteractiveGuideline(true);
         chart.xAxis
         .showMaxMin(false)
         .staggerLabels(true);
