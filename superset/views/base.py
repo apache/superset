@@ -207,6 +207,50 @@ def validate_json(form, field):  # noqa
 
 
 class DeleteMixin(object):
+    def _delete(self, pk):
+        """
+            Delete function logic, override to implement diferent logic
+            deletes the record with primary_key = pk
+
+            :param pk:
+                record primary key to delete
+        """
+        item = self.datamodel.get(pk, self._base_filters)
+        if not item:
+            abort(404)
+        try:
+            self.pre_delete(item)
+        except Exception as e:
+            flash(str(e), "danger")
+        else:
+            view_menu = sm.find_view_menu(item.get_perm())
+            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=view_menu).all()
+
+            schema_view_menu = None
+            if item.schema_perm:
+                schema_view_menu = sm.find_view_menu(item.schema_perm)
+
+                pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
+                    view_menu=schema_view_menu).all())
+
+            if self.datamodel.delete(item):
+                self.post_delete(item)
+
+                for pv in pvs:
+                    sm.get_session.delete(pv)
+
+                if view_menu:
+                    sm.get_session.delete(view_menu)
+
+                if schema_view_menu:
+                    sm.get_session.delete(schema_view_menu)
+
+                sm.get_session.commit()
+
+            flash(*self.datamodel.message)
+            self.update_redirect()
+
     @action(
         "muldelete",
         __("Delete"),

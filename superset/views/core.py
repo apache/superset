@@ -252,38 +252,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         self.pre_add(db)
 
     def _delete(self, pk):
-        """
-            Delete function logic, override to implement diferent logic
-            deletes the record with primary_key = pk
-
-            :param pk:
-                record primary key to delete
-        """
-        db = self.datamodel.get(pk, self._base_filters)
-        if not db:
-            abort(404)
-        try:
-            self.pre_delete(db)
-        except Exception as e:
-            flash(str(e), "danger")
-        else:
-            db_view_menu = sm.find_view_menu(db.perm)
-            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-                view_menu=db_view_menu).all()
-
-            if self.datamodel.delete(db):
-                self.post_delete(db)
-
-                for pv in pvs:
-                    sm.get_session.delete(pv)
-
-                if db_view_menu:
-                    sm.get_session.delete(db_view_menu)
-
-                sm.get_session.commit()
-
-            flash(*self.datamodel.message)
-            self.update_redirect()
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_link(
     'Import Dashboards',

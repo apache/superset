@@ -243,46 +243,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         self.post_add(table, flash_message=False)
 
     def _delete(self, pk):
-        """
-            Delete function logic, override to implement diferent logic
-            deletes the record with primary_key = pk
-
-            :param pk:
-                record primary key to delete
-        """
-        table = self.datamodel.get(pk, self._base_filters)
-        if not table:
-            abort(404)
-        try:
-            self.pre_delete(table)
-        except Exception as e:
-            flash(str(e), "danger")
-        else:
-            table_view_menu = sm.find_view_menu(table.get_perm())
-            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-                view_menu=table_view_menu).all()
-
-            schema_view_menu = sm.find_view_menu(table.schema_perm)
-
-            pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
-                view_menu=schema_view_menu).all())
-
-            if self.datamodel.delete(table):
-                self.post_delete(table)
-
-                for pv in pvs:
-                    sm.get_session.delete(pv)
-
-                if table_view_menu:
-                    sm.get_session.delete(table_view_menu)
-
-                if schema_view_menu:
-                    sm.get_session.delete(schema_view_menu)
-
-                sm.get_session.commit()
-
-            flash(*self.datamodel.message)
-            self.update_redirect()
+        DeleteMixin._delete(self, pk)
 
     @expose('/edit/<pk>', methods=['GET', 'POST'])
     @has_access

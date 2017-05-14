@@ -137,36 +137,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
         self.pre_add(cluster)
 
     def _delete(self, pk):
-        """
-            Delete function logic, override to implement diferent logic
-            deletes the record with primary_key = pk
-
-            :param pk:
-                record primary key to delete
-        """
-        cluster = self.datamodel.get(pk, self._base_filters)
-        if not cluster:
-            abort(404)
-        try:
-            self.pre_delete(cluster)
-        except Exception as e:
-            flash(str(e), "danger")
-        else:
-            view_menu = sm.find_view_menu(cluster.perm)
-            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-                view_menu=view_menu).all()
-
-            if self.datamodel.delete(cluster):
-                self.post_delete(cluster)
-
-                for pv in pvs:
-                    sm.get_session.delete(pv)
-                if view_menu:
-                    sm.get_session.delete(view_menu)
-                sm.get_session.commit()
-
-            flash(*self.datamodel.message)
-            self.update_redirect()
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
     DruidClusterModelView,
@@ -263,35 +234,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         self.post_add(datasource)
 
     def _delete(self, pk):
-        """
-            Delete function logic, override to implement diferent logic
-            deletes the record with primary_key = pk
-
-            :param pk:
-                record primary key to delete
-        """
-        datasource = self.datamodel.get(pk, self._base_filters)
-        if not datasource:
-            abort(404)
-        try:
-            self.pre_delete(datasource)
-        except Exception as e:
-            flash(str(e), "danger")
-        else:
-            view_menu = sm.find_view_menu(datasource.get_perm())
-            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
-                view_menu=view_menu).all()
-
-            if self.datamodel.delete(datasource):
-                self.post_delete(datasource)
-
-                for pv in pvs:
-                    sm.get_session.delete(pv)
-                sm.get_session.delete(view_menu)
-                sm.get_session.commit()
-
-            flash(*self.datamodel.message)
-            self.update_redirect()
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
     DruidDatasourceModelView,
