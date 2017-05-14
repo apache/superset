@@ -6,7 +6,7 @@ import thunkMiddleware from 'redux-thunk';
 
 import { getInitialState, sqlLabReducer } from './reducers';
 import { initEnhancer } from '../reduxUtils';
-import { initJQueryAjaxCSRF } from '../modules/utils';
+import { initJQueryAjax } from '../modules/utils';
 import App from './components/App';
 import { appSetup } from '../common';
 
@@ -15,7 +15,7 @@ import './reactable-pagination.css';
 import '../components/FilterableTable/FilterableTableStyles.css';
 
 appSetup();
-initJQueryAjaxCSRF();
+initJQueryAjax();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));

@@ -1,5 +1,6 @@
 /* eslint camelcase: 0 */
 import { getExploreUrl } from '../exploreUtils';
+import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 
 const $ = window.$ = require('jquery');
 
@@ -150,6 +151,11 @@ export function chartUpdateStopped(queryRequest) {
   return { type: CHART_UPDATE_STOPPED };
 }
 
+export const CHART_UPDATE_TIMEOUT = 'CHART_UPDATE_TIMEOUT';
+export function chartUpdateTimeout(statusText) {
+  return { type: CHART_UPDATE_TIMEOUT, statusText };
+}
+
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
 export function chartUpdateFailed(queryResponse) {
   return { type: CHART_UPDATE_FAILED, queryResponse };
@@ -234,12 +240,20 @@ export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false) {
   return function (dispatch) {
     const url = getExploreUrl(formData, 'json', force);
-    const queryRequest = $.getJSON(url, function (queryResponse) {
-      dispatch(chartUpdateSucceeded(queryResponse));
-    }).fail(function (err) {
-      if (err.statusText !== 'abort') {
-        dispatch(chartUpdateFailed(err.responseJSON));
-      }
+    const queryRequest = $.ajax({
+      url,
+      dataType: 'json',
+      success(queryResponse) {
+        dispatch(chartUpdateSucceeded(queryResponse));
+      },
+      error(err) {
+        if (err.statusText === 'timeout') {
+          dispatch(chartUpdateTimeout(err.statusText));
+        } else if (err.statusText !== 'abort') {
+          dispatch(chartUpdateFailed(err.responseJSON));
+        }
+      },
+      timeout: QUERY_TIMEOUT_THRESHOLD,
     });
     dispatch(chartUpdateStarted(queryRequest));
   };
