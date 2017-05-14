@@ -228,10 +228,11 @@ class DeleteMixin(object):
                 view_menu=view_menu).all()
 
             schema_view_menu = None
-            if item.schema_perm:
+            if hasattr(item, 'schema_perm'):
                 schema_view_menu = sm.find_view_menu(item.schema_perm)
 
-                pvs.extend(sm.get_session.query(sm.permissionview_model).filter_by(
+                pvs.extend(sm.get_session.query(
+                    sm.permissionview_model).filter_by(
                     view_menu=schema_view_menu).all())
 
             if self.datamodel.delete(item):
