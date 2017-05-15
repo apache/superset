@@ -1,11 +1,11 @@
-import $ from 'jquery';
-const Mustache = require('mustache');
-const utils = require('./utils');
-// vis sources
 /* eslint camel-case: 0 */
-import vizMap from '../../visualizations/main.js';
+import $ from 'jquery';
+import Mustache from 'mustache';
+import vizMap from '../../visualizations/main';
 import { getExploreUrl } from '../explorev2/exploreUtils';
 import { applyDefaultFormData } from '../explorev2/stores/store';
+
+const utils = require('./utils');
 
 /* eslint wrap-iife: 0*/
 const px = function () {
@@ -55,25 +55,19 @@ const px = function () {
     })
     .tooltip();
   }
-  const Slice = function (data, controller) {
-    let timer;
+  const Slice = function (data, datasource, controller) {
     const token = $('#token_' + data.slice_id);
     const containerId = 'con_' + data.slice_id;
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
     const formData = applyDefaultFormData(data.form_data);
-    let dttm = 0;
-    const stopwatch = function () {
-      dttm += 10;
-      const num = dttm / 1000;
-      $('#timer').text(num.toFixed(2) + ' sec');
-    };
     slice = {
       data,
       formData,
       container,
       containerId,
+      datasource,
       selector,
       getWidgetHeader() {
         return this.container.parents('div.widget').find('.chart-header');
@@ -105,16 +99,14 @@ const px = function () {
       d3format(col, number) {
         // uses the utils memoized d3format function and formats based on
         // column level defined preferences
-        if (data.column_formats) {
-          const format = data.column_formats[col];
-          return utils.d3format(format, number);
+        let format = '.3s';
+        if (this.datasource.column_formats[col]) {
+          format = this.datasource.column_formats[col];
         }
-        return utils.d3format('.3s', number);
+        return utils.d3format(format, number);
       },
       /* eslint no-shadow: 0 */
       always(data) {
-        clearInterval(timer);
-        $('#timer').removeClass('btn-warning');
         if (data && data.query) {
           slice.viewSqlQuery = data.query;
         }
@@ -122,13 +114,10 @@ const px = function () {
       done(payload) {
         Object.assign(data, payload);
 
-        clearInterval(timer);
         token.find('img.loading').hide();
         container.fadeTo(0.5, 1);
         container.show();
 
-        $('#timer').addClass('label-success');
-        $('#timer').removeClass('label-warning label-danger');
         $('.query-and-save button').removeAttr('disabled');
         this.always(data);
         controller.done(this);
@@ -140,10 +129,13 @@ const px = function () {
         let msg = '';
         if (!xhr.responseText) {
           const status = xhr.status;
-          msg += 'An unknown error occurred. (Status: ' + status + ')';
           if (status === 0) {
             // This may happen when the worker in gunicorn times out
-            msg += ' Maybe the request timed out?';
+            msg += (
+              'The server could not be reached. You may want to ' +
+              'verify your connection and try again.');
+          } else {
+            msg += 'An unknown error occurred. (Status: ' + status + ')';
           }
         }
         return msg;
@@ -162,7 +154,9 @@ const px = function () {
         } catch (e) {
           // pass
         }
-        errHtml = `<div class="alert alert-danger">${errorMsg}</div>`;
+        if (errorMsg) {
+          errHtml += `<div class="alert alert-danger">${errorMsg}</div>`;
+        }
         if (xhr) {
           const extendedMsg = this.getErrorMsg(xhr);
           if (extendedMsg) {
@@ -172,7 +166,6 @@ const px = function () {
         container.html(errHtml);
         container.show();
         $('span.query').removeClass('disabled');
-        $('#timer').addClass('btn-danger');
         $('.query-and-save button').removeAttr('disabled');
         this.always(o);
         controller.error(this);
@@ -212,18 +205,14 @@ const px = function () {
         token.find('img.loading').show();
         container.fadeTo(0.5, 0.25);
         container.css('height', this.height());
-        dttm = 0;
-        timer = setInterval(stopwatch, 10);
-        $('#timer').removeClass('label-danger label-success');
-        $('#timer').addClass('label-warning');
-        $.getJSON(this.jsonEndpoint(), queryResponse => {
+        $.getJSON(this.jsonEndpoint(), (queryResponse) => {
           try {
             vizMap[formData.viz_type](this, queryResponse);
             this.done(queryResponse);
           } catch (e) {
             this.error('An error occurred while rendering the visualization: ' + e);
           }
-        }).fail(err => {
+        }).fail((err) => {
           this.error(err.responseText, err);
         });
       },

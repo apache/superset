@@ -15,6 +15,12 @@
         <title>Import the dashboards.</title>
         <h1>Import the dashboards.</h1>
         <form method=post enctype=multipart/form-data>
+          <input
+            type="hidden"
+            name="csrf_token"
+            id="csrf_token"
+            value="{{ csrf_token() if csrf_token else '' }}"
+          >
           <p><input type=file name=file>
              <input type=submit value=Upload>
           </p>

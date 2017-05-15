@@ -1,18 +1,18 @@
 import celery
+from time import sleep
 from datetime import datetime
 import json
 import logging
 import pandas as pd
 import sqlalchemy
 import uuid
-import zlib
 
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
 from superset import (
     app, db, utils, dataframe, results_backend)
-from superset.models import core as models
+from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
@@ -54,7 +54,17 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     else:
         session = db.session()
         session.commit()  # HACK
-    query = session.query(models.Query).filter_by(id=query_id).one()
+    try:
+        query = session.query(Query).filter_by(id=query_id).one()
+    except Exception as e:
+        logging.error(
+            "Query with id `{}` could not be retrieved".format(query_id))
+        logging.error("Sleeping for a sec and retrying...")
+        # Nasty hack to get around a race condition where the worker
+        # cannot find the query it's supposed to run
+        sleep(1)
+        query = session.query(Query).filter_by(id=query_id).one()
+
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
@@ -104,12 +114,17 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         handle_error(msg)
 
     query.executed_sql = executed_sql
-    logging.info("Running query: \n{}".format(executed_sql))
-    engine = database.get_sqla_engine(schema=query.schema)
-    conn = engine.raw_connection()
-    cursor = conn.cursor()
+    query.status = QueryStatus.RUNNING
+    query.start_running_time = utils.now_as_float()
+    session.merge(query)
+    session.commit()
+    logging.info("Set query to 'running'")
+
     try:
-        print(query.executed_sql)
+        engine = database.get_sqla_engine(schema=query.schema)
+        conn = engine.raw_connection()
+        cursor = conn.cursor()
+        logging.info("Running query: \n{}".format(executed_sql))
         logging.info(query.executed_sql)
         cursor.execute(
             query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
@@ -118,8 +133,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         conn.close()
         handle_error(db_engine_spec.extract_error_message(e))
 
-    query.status = QueryStatus.RUNNING
-    session.flush()
     try:
         logging.info("Handling cursor")
         db_engine_spec.handle_cursor(cursor, query, session)
@@ -153,9 +166,12 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         query.select_sql = '{}'.format(database.select_star(
             query.tmp_table_name,
             limit=query.limit,
-            schema=database.force_ctas_schema
+            schema=database.force_ctas_schema,
+            show_cols=False,
+            latest_partition=False,
         ))
     query.end_time = utils.now_as_float()
+    session.merge(query)
     session.flush()
 
     payload = {
@@ -170,10 +186,10 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info("Storing results in results backend, key: {}".format(key))
-        results_backend.set(key, zlib.compress(payload))
+        results_backend.set(key, utils.zlib_compress(payload))
         query.results_key = key
 
-    session.flush()
+    session.merge(query)
     session.commit()
 
     if return_results:

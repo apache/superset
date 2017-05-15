@@ -1,12 +1,13 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Table, Tr, Td } from 'reactable';
 import { Collapse } from 'react-bootstrap';
 import $ from 'jquery';
 
 const propTypes = {
-  dataEndpoint: React.PropTypes.string.isRequired,
-  mutator: React.PropTypes.func,
-  columns: React.PropTypes.arrayOf(React.PropTypes.string),
+  dataEndpoint: PropTypes.string.isRequired,
+  mutator: PropTypes.func,
+  columns: PropTypes.arrayOf(PropTypes.string),
 };
 
 export default class TableLoader extends React.PureComponent {
@@ -44,7 +45,7 @@ export default class TableLoader extends React.PureComponent {
           <Table {...tableProps}>
             {this.state.data.map((row, i) => (
               <Tr key={i}>
-                {columns.map(col => {
+                {columns.map((col) => {
                   if (row.hasOwnProperty('_' + col)) {
                     return (
                       <Td key={col} column={col} value={row['_' + col]}>

@@ -17,20 +17,22 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import namedtuple, defaultdict
-from superset import utils
 
 import inspect
+import logging
 import re
-import sqlparse
 import textwrap
 import time
 
-from superset import cache_util
+import sqlparse
 from sqlalchemy import select
 from sqlalchemy.sql import text
+from flask_babel import lazy_gettext as _
+
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from flask_babel import lazy_gettext as _
+from superset import utils
+from superset import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -42,10 +44,15 @@ class LimitMethod(object):
 
 
 class BaseEngineSpec(object):
+
+    """Abstract class for database engine specific configurations"""
+
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     cursor_execute_kwargs = {}
     time_grains = tuple()
+    time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
+    time_secondary_columns = False
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -112,6 +119,27 @@ class BaseEngineSpec(object):
         return utils.error_msg_from_exception(e)
 
     @classmethod
+    def adjust_database_uri(cls, uri, selected_schema):
+        """Based on a URI and selected schema, return a new URI
+
+        The URI here represents the URI as entered when saving the database,
+        ``selected_schema`` is the schema currently active presumably in
+        the SQL Lab dropdown. Based on that, for some database engine,
+        we can return a new altered URI that connects straight to the
+        active schema, meaning the users won't have to prefix the object
+        names by the schema name.
+
+        Some databases engines have 2 level of namespacing: database and
+        schema (postgres, oracle, mssql, ...)
+        For those it's probably better to not alter the database
+        component of the URI with the schema name, it won't work.
+
+        Some database drivers like presto accept "{catalog}/{schema}" in
+        the database component of the URL, that can be handled here.
+        """
+        return uri
+
+    @classmethod
     def sql_preprocessor(cls, sql):
         """If the SQL needs to be altered prior to running it
 
@@ -124,30 +152,35 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
+    def get_table_names(cls, schema, inspector):
+        return sorted(inspector.get_table_names(schema))
+
+    @classmethod
     def where_latest_partition(
             cls, table_name, schema, database, qry, columns=None):
         return False
 
     @classmethod
     def select_star(cls, my_db, table_name, schema=None, limit=100,
-                    show_cols=False, indent=True):
+                    show_cols=False, indent=True, latest_partition=True):
         fields = '*'
-        table = my_db.get_table(table_name, schema=schema)
+        cols = []
+        if show_cols or latest_partition:
+            cols = my_db.get_table(table_name, schema=schema).columns
+
         if show_cols:
-            fields = [my_db.get_quoter()(c.name) for c in table.columns]
+            fields = [my_db.get_quoter()(c.name) for c in cols]
         full_table_name = table_name
         if schema:
             full_table_name = schema + '.' + table_name
-        qry = select(fields)
+        qry = select(fields).select_from(text(full_table_name))
         if limit:
             qry = qry.limit(limit)
-        partition_query = cls.where_latest_partition(
-            table_name, schema, my_db, qry, columns=table.columns)
-        # if not partition_query condition fails.
-        if partition_query == False:  # noqa
-            qry = qry.select_from(text(full_table_name))
-        else:
-            qry = partition_query
+        if latest_partition:
+            partition_query = cls.where_latest_partition(
+                table_name, schema, my_db, qry, columns=cols)
+            if partition_query != False:  # noqa
+                qry = partition_query
         sql = my_db.compile_sqla_query(qry)
         if indent:
             sql = sqlparse.format(sql, reindent=True)
@@ -186,6 +219,50 @@ class PostgresEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
+class Db2EngineSpec(BaseEngineSpec):
+    engine = 'ibm_db_sa'
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'),
+              'CAST({col} as TIMESTAMP)'
+              ' - MICROSECOND({col}) MICROSECONDS'),
+        Grain('minute', _('minute'),
+              'CAST({col} as TIMESTAMP)'
+              ' - SECOND({col}) SECONDS'
+              ' - MICROSECOND({col}) MICROSECONDS'),
+        Grain('hour', _('hour'),
+              'CAST({col} as TIMESTAMP)'
+              ' - MINUTE({col}) MINUTES'
+              ' - SECOND({col}) SECONDS'
+              ' - MICROSECOND({col}) MICROSECONDS '),
+        Grain('day', _('day'),
+              'CAST({col} as TIMESTAMP)'
+              ' - HOUR({col}) HOURS'
+              ' - MINUTE({col}) MINUTES'
+              ' - SECOND({col}) SECONDS'
+              ' - MICROSECOND({col}) MICROSECONDS '),
+        Grain('week', _('week'),
+              '{col} - (DAYOFWEEK({col})) DAYS'),
+        Grain('month', _('month'),
+              '{col} - (DAY({col})-1) DAYS'),
+        Grain('quarter', _('quarter'),
+              '{col} - (DAY({col})-1) DAYS'
+              ' - (MONTH({col})-1) MONTHS'
+              ' + ((QUARTER({col})-1) * 3) MONTHS'),
+        Grain('year', _('year'),
+              '{col} - (DAY({col})-1) DAYS'
+              ' - (MONTH({col})-1) MONTHS'),
+    )
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "(TIMESTAMP('1970-01-01', '00:00:00') + {col} SECONDS)"
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
+
+
 class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
     time_grains = (
@@ -202,15 +279,40 @@ class SqliteEngineSpec(BaseEngineSpec):
         return "datetime({col}, 'unixepoch')"
 
     @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type, force=False):
+        schemas = db.inspector.get_schema_names()
+        result_sets = {}
+        all_result_sets = []
+        schema = schemas[0]
+        if datasource_type == 'table':
+            result_sets[schema] = sorted(db.inspector.get_table_names())
+        elif datasource_type == 'view':
+            result_sets[schema] = sorted(db.inspector.get_view_names())
+        all_result_sets += [
+            '{}.{}'.format(schema, t) for t in result_sets[schema]]
+        if all_result_sets:
+            result_sets[""] = all_result_sets
+        return result_sets
+
+    @classmethod
     def convert_dttm(cls, target_type, dttm):
         iso = dttm.isoformat().replace('T', ' ')
         if '.' not in iso:
             iso += '.000000'
         return "'{}'".format(iso)
 
+    @classmethod
+    def get_table_names(cls, schema, inspector):
+        """Need to disregard the schema for Sqlite"""
+        return sorted(inspector.get_table_names())
+
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
+    cursor_execute_kwargs = {'args': {}}
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain("second", _('second'), "DATE_ADD(DATE({col}), "
@@ -242,12 +344,19 @@ class MySQLEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
+    def adjust_database_uri(cls, uri, selected_schema=None):
+        if selected_schema:
+            uri.database = selected_schema
+        return uri
+
+    @classmethod
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
+    cursor_execute_kwargs = {'parameters': None}
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
@@ -280,8 +389,15 @@ class PrestoEngineSpec(BaseEngineSpec):
         presto.Cursor.cancel = patched_presto.cancel
 
     @classmethod
-    def sql_preprocessor(cls, sql):
-        return sql.replace('%', '%%')
+    def adjust_database_uri(cls, uri, selected_schema=None):
+        database = uri.database
+        if selected_schema:
+            if '/' in database:
+                database = database.split('/')[0] + '/' + selected_schema
+            else:
+                database += '/' + selected_schema
+            uri.database = database
+        return uri
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -341,6 +457,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
+        logging.info('Polling the cursor for progress')
         polled = cursor.poll()
         # poll returns dict -- JSON status information or ``None``
         # if the query is done
@@ -360,19 +477,24 @@ class PrestoEngineSpec(BaseEngineSpec):
                 total_splits = float(stats.get('totalSplits'))
                 if total_splits and completed_splits:
                     progress = 100 * (completed_splits / total_splits)
+                    logging.info(
+                        'Query progress: {} / {} '
+                        'splits'.format(completed_splits, total_splits))
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
             time.sleep(1)
+            logging.info('Polling the cursor for progress')
             polled = cursor.poll()
 
     @classmethod
     def extract_error_message(cls, e):
-        if hasattr(e, 'orig') \
-           and type(e.orig).__name__ == 'DatabaseError' \
-           and isinstance(e.orig[0], dict):
+        if (
+                hasattr(e, 'orig') and
+                type(e.orig).__name__ == 'DatabaseError' and
+                isinstance(e.orig[0], dict)):
             error_dict = e.orig[0]
-            e = '{} at {}: {}'.format(
+            return '{} at {}: {}'.format(
                 error_dict['errorName'],
                 error_dict['errorLocation'],
                 error_dict['message']
@@ -420,7 +542,9 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(cls, df):
-        return df.to_records(index=False)[0][0]
+        recs = df.to_records(index=False)
+        if recs:
+            return recs[0][0]
 
     @classmethod
     def latest_partition(cls, table_name, schema, database, show_first=False):
@@ -454,7 +578,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return part_field, cls._latest_partition_from_df(df)
 
     @classmethod
-    def latest_sub_partition(cls, table_name, schema, database,  **kwargs):
+    def latest_sub_partition(cls, table_name, schema, database, **kwargs):
         """Returns the latest (max) partition value for a table
 
         A filtering criteria should be passed for all fields that are
@@ -535,6 +659,12 @@ class HiveEngineSpec(PrestoEngineSpec):
             db, datasource_type, force=force)
 
     @classmethod
+    def adjust_database_uri(cls, uri, selected_schema=None):
+        if selected_schema:
+            uri.database = selected_schema
+        return uri
+
+    @classmethod
     def progress(cls, logs):
         # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
         jobs_stats_r = re.compile(
@@ -588,7 +718,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
         polled = cursor.poll()
         while polled.operationState in unfinished_states:
-            query = session.query(type(query)).filter_by(id=query.id)
+            query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
@@ -617,7 +747,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return False
 
     @classmethod
-    def latest_sub_partition(cls, table_name, **kwargs):
+    def latest_sub_partition(cls, table_name, schema, database, **kwargs):
         # TODO(bogdan): implement`
         pass
 
@@ -699,6 +829,86 @@ class OracleEngineSpec(PostgresEngineSpec):
 
 class VerticaEngineSpec(PostgresEngineSpec):
     engine = 'vertica'
+
+
+class AthenaEngineSpec(BaseEngineSpec):
+    engine = 'awsathena'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'),
+              "date_trunc('second', CAST({col} AS TIMESTAMP))"),
+        Grain('minute', _('minute'),
+              "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
+        Grain('hour', _('hour'),
+              "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
+        Grain('day', _('day'),
+              "date_trunc('day', CAST({col} AS TIMESTAMP))"),
+        Grain('week', _('week'),
+              "date_trunc('week', CAST({col} AS TIMESTAMP))"),
+        Grain('month', _('month'),
+              "date_trunc('month', CAST({col} AS TIMESTAMP))"),
+        Grain('quarter', _('quarter'),
+              "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
+        Grain("week_ending_saturday", _('week_ending_saturday'),
+              "date_add('day', 5, date_trunc('week', date_add('day', 1, "
+              "CAST({col} AS TIMESTAMP))))"),
+        Grain("week_start_sunday", _('week_start_sunday'),
+              "date_add('day', -1, date_trunc('week', "
+              "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
+        if tt == 'TIMESTAMP':
+            return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
+        return ("CAST ('{}' AS TIMESTAMP)"
+                .format(dttm.strftime('%Y-%m-%d %H:%M:%S')))
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "from_unixtime({col})"
+
+
+class ClickHouseEngineSpec(BaseEngineSpec):
+    """Dialect for ClickHouse analytical DB."""
+
+    engine = 'clickhouse'
+
+    time_secondary_columns = True
+    time_groupby_inline = True
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('minute', _('minute'),
+              "toStartOfMinute(toDateTime({col}))"),
+        Grain('5 minute', _('5 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)"),
+        Grain('10 minute', _('10 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)"),
+        Grain('hour', _('hour'),
+              "toStartOfHour(toDateTime({col}))"),
+        Grain('day', _('day'),
+              "toStartOfDay(toDateTime({col}))"),
+        Grain('month', _('month'),
+              "toStartOfMonth(toDateTime({col}))"),
+        Grain('quarter', _('quarter'),
+              "toStartOfQuarter(toDateTime({col}))"),
+        Grain('year', _('year'),
+              "toStartOfYear(toDateTime({col}))"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "toDate('{}')".format(dttm.strftime('%Y-%m-%d'))
+        if tt == 'DATETIME':
+            return "toDateTime('{}')".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 engines = {
     o.engine: o for o in globals().values()

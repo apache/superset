@@ -1,7 +1,10 @@
+from datetime import datetime
+import logging
+
 import sqlalchemy as sqla
 
-from flask import Markup
-from flask_appbuilder import CompactCRUDMixin
+from flask import Markup, flash, redirect
+from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from flask_babel import lazy_gettext as _
@@ -9,6 +12,9 @@ from flask_babel import gettext as __
 
 import superset
 from superset import db, utils, appbuilder, sm, security
+from superset.connectors.connector_registry import ConnectorRegistry
+from superset.utils import has_access
+from superset.views.base import BaseSupersetView
 from superset.views.base import (
     SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
     DatasourceFilter, get_datasource_exist_error_mgs)
@@ -20,7 +26,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
         'column_name', 'description', 'dimension_spec_json', 'datasource',
-        'groupby', 'count_distinct', 'sum', 'min', 'max']
+        'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -39,6 +45,9 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'max': _("Max"),
     }
     description_columns = {
+        'filterable': _(
+            "Whether this column is exposed in the `Filters` section "
+            "of the explore view."),
         'dimension_spec_json': utils.markdown(
             "this field can be used to specify  "
             "a `dimensionSpec` as documented [here]"
@@ -91,11 +100,12 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     }
 
     def post_add(self, metric):
-        utils.init_metrics_perm(superset, [metric])
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
     def post_update(self, metric):
-        utils.init_metrics_perm(superset, [metric])
-
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
@@ -109,6 +119,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
+    search_columns = ('cluster_name',)
     label_columns = {
         'cluster_name': _("Cluster"),
         'coordinator_host': _("Coordinator Host"),
@@ -140,31 +151,57 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
-        'datasource_link', 'cluster', 'changed_by_', 'changed_on_', 'offset']
+        'datasource_link', 'cluster', 'changed_by_', 'modified']
     order_columns = [
         'datasource_link', 'changed_on_', 'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden', 'filter_select_enabled',
+        'datasource_name', 'cluster', 'slices', 'description', 'owner',
+        'is_hidden',
+        'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
+    search_columns = (
+        'datasource_name', 'cluster', 'description', 'owner'
+    )
     add_columns = edit_columns
     show_columns = add_columns + ['perm']
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
+        'slices': _(
+            "The list of slices associated with this table. By "
+            "altering this datasource, you may change how these associated "
+            "slices behave. "
+            "Also note that slices need to point to a datasource, so "
+            "this form will fail at saving if removing slices from a "
+            "datasource. If you want to change the datasource for a slice, "
+            "overwrite the slice from the 'explore view'"),
         'offset': _("Timezone offset (in hours) for this datasource"),
         'description': Markup(
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
+        'fetch_values_from': _(
+            "Time expression to use as a predicate when retrieving "
+            "distinct values to populate the filter component. "
+            "Only applies when `Enable Filter Select` is on. If "
+            "you enter `7 days ago`, the distinct list of values in "
+            "the filter will be populated based on the distinct value over "
+            "the past week"),
+        'filter_select_enabled': _(
+            "Whether to populate the filter's dropdown in the explore "
+            "view's filter section with a list of distinct values fetched "
+            "from the backend on the fly"),
+        'default_endpoint': _(
+            "Redirects to this endpoint when clicking on the datasource "
+            "from the datasource list"),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
+        'slices': _("Associated Slices"),
         'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
         'description': _("Description"),
         'owner': _("Owner"),
-        'is_featured': _("Is Featured"),
         'is_hidden': _("Is Hidden"),
         'filter_select_enabled': _("Enable Filter Select"),
         'default_endpoint': _("Default Endpoint"),
@@ -201,3 +238,46 @@ appbuilder.add_view(
     category="Sources",
     category_label=__("Sources"),
     icon="fa-cube")
+
+
+class Druid(BaseSupersetView):
+    """The base views for Superset!"""
+
+    @has_access
+    @expose("/refresh_datasources/")
+    def refresh_datasources(self):
+        """endpoint that refreshes druid datasources metadata"""
+        session = db.session()
+        DruidCluster = ConnectorRegistry.sources['druid'].cluster_class
+        for cluster in session.query(DruidCluster).all():
+            cluster_name = cluster.cluster_name
+            try:
+                cluster.refresh_datasources()
+            except Exception as e:
+                flash(
+                    "Error while processing cluster '{}'\n{}".format(
+                        cluster_name, utils.error_msg_from_exception(e)),
+                    "danger")
+                logging.exception(e)
+                return redirect('/druidclustermodelview/list/')
+            cluster.metadata_last_refreshed = datetime.now()
+            flash(
+                "Refreshed metadata from cluster "
+                "[" + cluster.cluster_name + "]",
+                'info')
+        session.commit()
+        return redirect("/druiddatasourcemodelview/list/")
+
+appbuilder.add_view_no_menu(Druid)
+
+appbuilder.add_link(
+    "Refresh Druid Metadata",
+    label=__("Refresh Druid Metadata"),
+    href='/druid/refresh_datasources/',
+    category='Sources',
+    category_label=__("Sources"),
+    category_icon='fa-database',
+    icon="fa-cog")
+
+
+appbuilder.add_separator("Sources", )

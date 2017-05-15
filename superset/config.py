@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 import imp
 import json
 import os
+from collections import OrderedDict
 
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
@@ -53,7 +54,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
-CSRF_ENABLED = True
+WTF_CSRF_ENABLED = True
 
 # Whether to run the web server in debug mode or not
 DEBUG = False
@@ -178,10 +179,10 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
-DEFAULT_MODULE_DS_MAP = {
-    'superset.connectors.druid.models': ['DruidDatasource'],
-    'superset.connectors.sqla.models': ['SqlaTable'],
-}
+DEFAULT_MODULE_DS_MAP = OrderedDict([
+    ('superset.connectors.sqla.models', ['SqlaTable']),
+    ('superset.connectors.druid.models', ['DruidDatasource']),
+])
 ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []
 
@@ -300,7 +301,7 @@ try:
         # Explicitly import config module that is not in pythonpath; useful
         # for case where app is being executed via pex.
         print('Loaded your LOCAL configuration at [{}]'.format(
-             os.environ[CONFIG_PATH_ENV_VAR]))
+            os.environ[CONFIG_PATH_ENV_VAR]))
         imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
     else:
         from superset_config import *  # noqa

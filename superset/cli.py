@@ -46,8 +46,13 @@ def init():
 @manager.option(
     '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, no_reload, address, port, timeout, workers):
-    """Starts a Superset web server"""
+@manager.option(
+    '-s', '--socket', default=config.get("SUPERSET_WEBSERVER_SOCKET"),
+    help="Path to a UNIX socket as an alternative to address:port, e.g. "
+         "/var/run/superset.sock. "
+         "Will override the address and port values.")
+def runserver(debug, no_reload, address, port, timeout, workers, socket):
+    """Starts a Superset web server."""
     debug = debug or config.get("DEBUG")
     if debug:
         app.run(
@@ -57,11 +62,12 @@ def runserver(debug, no_reload, address, port, timeout, workers):
             debug=True,
             use_reloader=no_reload)
     else:
+        addr_str = " unix:{socket} " if socket else" {address}:{port} "
         cmd = (
             "gunicorn "
             "-w {workers} "
             "--timeout {timeout} "
-            "-b {address}:{port} "
+            "-b " + addr_str +
             "--limit-request-line 0 "
             "--limit-request-field_size 0 "
             "superset:app").format(**locals())
@@ -133,8 +139,8 @@ def load_examples(load_test_data):
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
-    from superset import models
-    for cluster in session.query(models.DruidCluster).all():
+    from superset.connectors.druid.models import DruidCluster
+    for cluster in session.query(DruidCluster).all():
         try:
             cluster.refresh_datasources(datasource_name=datasource,
                                         merge_flag=merge)
@@ -153,8 +159,8 @@ def refresh_druid(datasource, merge):
 @manager.command
 def update_datasources_cache():
     """Refresh sqllab datasources cache"""
-    from superset import models
-    for database in db.session.query(models.Database).all():
+    from superset.models.core import Database
+    for database in db.session.query(Database).all():
         print('Fetching {} datasources ...'.format(database.name))
         try:
             database.all_table_names(force=True)

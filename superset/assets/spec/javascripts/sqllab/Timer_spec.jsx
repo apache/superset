@@ -1,8 +1,9 @@
 import React from 'react';
-import Timer from '../../../javascripts/components/Timer';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
+import Timer from '../../../javascripts/components/Timer';
 import { now } from '../../../javascripts/modules/dates';
 
 
@@ -13,10 +14,7 @@ describe('Timer', () => {
     isRunning: true,
     state: 'warning',
   };
-  it('renders', () => {
-    expect(React.isValidElement(<Timer />)).to.equal(true);
-  });
-  it('renders with props', () => {
+  it('is valid', () => {
     expect(React.isValidElement(<Timer {...mockedProps} />))
     .to.equal(true);
   });

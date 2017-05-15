@@ -1,7 +1,8 @@
 import json
 
-from sqlalchemy import Column, Integer, String, Text, Boolean
-
+from sqlalchemy import (
+    Column, Integer, String, Text, Boolean,
+)
 from superset import utils
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
@@ -10,10 +11,43 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     """A common interface to objects that are queryable (tables and datasources)"""
 
+    # ---------------------------------------------------------------
+    # class attributes to define when deriving BaseDatasource
+    # ---------------------------------------------------------------
     __tablename__ = None  # {connector_name}_datasource
+    type = None  # datasoure type, str to be defined when deriving this class
+    baselink = None  # url portion pointing to ModelView endpoint
+
+    column_class = None  # link to derivative of BaseColumn
+    metric_class = None  # link to derivative of BaseMetric
 
     # Used to do code highlighting when displaying the query in the UI
     query_language = None
+
+    name = None  # can be a Column or a property pointing to one
+
+    # ---------------------------------------------------------------
+
+    # Columns
+    id = Column(Integer, primary_key=True)
+    description = Column(Text)
+    default_endpoint = Column(Text)
+    is_featured = Column(Boolean, default=False)  # TODO deprecating
+    filter_select_enabled = Column(Boolean, default=False)
+    offset = Column(Integer, default=0)
+    cache_timeout = Column(Integer)
+    params = Column(String(1000))
+    perm = Column(String(1000))
+
+    # placeholder for a relationship to a derivative of BaseColumn
+    columns = []
+    # placeholder for a relationship to a derivative of BaseMetric
+    metrics = []
+
+    @property
+    def uid(self):
+        """Unique id across datasource types"""
+        return "{self.id}__{self.type}".format(**locals())
 
     @property
     def column_names(self):
@@ -55,6 +89,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         }
 
     @property
+    def metrics_combo(self):
+        return sorted(
+            [
+                (m.metric_name, m.verbose_name or m.metric_name)
+                for m in self.metrics],
+            key=lambda x: x[1])
+
+    @property
     def data(self):
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []
@@ -76,14 +118,29 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'type': self.type,
         }
 
-        # TODO move this block to SqlaTable.data
-        if self.type == 'table':
-            grains = self.database.grains() or []
-            if grains:
-                grains = [(g.name, g.name) for g in grains]
-            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
-            d['time_grain_sqla'] = grains
         return d
+
+    def get_query_str(self, query_obj):
+        """Returns a query as a string
+
+        This is used to be displayed to the user so that she/he can
+        understand what is taking place behind the scene"""
+        raise NotImplementedError()
+
+    def query(self, query_obj):
+        """Executes the query and returns a dataframe
+
+        query_obj is a dictionary representing Superset's query interface.
+        Should return a ``superset.models.helpers.QueryResult``
+        """
+        raise NotImplementedError()
+
+    def values_for_column(self, column_name, limit=10000):
+        """Given a column, returns an iterable of distinct values
+
+        This is used to populate the dropdown showing a list of
+        values in filters in the explore view"""
+        raise NotImplementedError()
 
 
 class BaseColumn(AuditMixinNullable, ImportMixin):
@@ -111,7 +168,10 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     def __repr__(self):
         return self.column_name
 
-    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG', 'REAL', 'NUMERIC')
+    num_types = (
+        'DOUBLE', 'FLOAT', 'INT', 'BIGINT',
+        'LONG', 'REAL', 'NUMERIC', 'DECIMAL'
+    )
     date_types = ('DATE', 'TIME', 'DATETIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
 

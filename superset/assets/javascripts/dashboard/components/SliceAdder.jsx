@@ -1,7 +1,10 @@
+import React from 'react';
 import $ from 'jquery';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
+
 import ModalTrigger from '../../components/ModalTrigger';
+
 require('react-bootstrap-table/css/react-bootstrap-table.css');
 
 const propTypes = {
@@ -39,7 +42,7 @@ class SliceAdder extends React.Component {
     this.slicesRequest = $.ajax({
       url: uri,
       type: 'GET',
-      success: response => {
+      success: (response) => {
         // Prepare slice data for table
         const slices = response.result.map(slice => ({
           id: slice.id,
@@ -54,7 +57,7 @@ class SliceAdder extends React.Component {
           slicesLoaded: true,
         });
       },
-      error: error => {
+      error: (error) => {
         this.errored = true;
         this.setState({
           errorMsg: this.props.dashboard.getAjaxErrorMsg(error),

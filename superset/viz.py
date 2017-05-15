@@ -25,8 +25,6 @@ from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types, PY3
-from werkzeug.datastructures import ImmutableMultiDict, MultiDict
-from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
 from superset import app, utils, cache
@@ -44,14 +42,12 @@ class BaseViz(object):
     credits = ""
     is_timeseries = False
 
-    def __init__(self, datasource, form_data, slice_=None):
-        self.orig_form_data = form_data
+    def __init__(self, datasource, form_data):
         if not datasource:
             raise Exception("Viz is missing a datasource")
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
-        self.slice = slice_
         self.form_data = form_data
 
         self.query = ""
@@ -62,34 +58,6 @@ class BaseViz(object):
 
         self.status = None
         self.error_message = None
-
-    def get_filter_url(self):
-        """Returns the URL to retrieve column values used in the filter"""
-        data = self.orig_form_data.copy()
-        # Remove unchecked checkboxes because HTML is weird like that
-        ordered_data = MultiDict()
-        for key in sorted(data.keys()):
-            # if MultiDict is initialized with MD({key:[emptyarray]}),
-            # key is included in d.keys() but accessing it throws
-            try:
-                if data[key] is False:
-                    del data[key]
-                    continue
-            except IndexError:
-                pass
-
-            if isinstance(data, (MultiDict, ImmutableMultiDict)):
-                v = data.getlist(key)
-            else:
-                v = data.get(key)
-            if not isinstance(v, list):
-                v = [v]
-            for item in v:
-                ordered_data.add(key, item)
-        href = Href(
-            '/superset/filter/{self.datasource.type}/'
-            '{self.datasource.id}/'.format(**locals()))
-        return href(ordered_data)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -143,7 +111,7 @@ class BaseViz(object):
         """Building a query object"""
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
-        metrics = form_data.get("metrics") or ['count']
+        metrics = form_data.get("metrics") or []
 
         # extra_filters are temporary/contextual filters that are external
         # to the slice definition. We use those for dynamic interactive
@@ -162,7 +130,9 @@ class BaseViz(object):
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
         since = (
-            extra_filters.get('__from') or form_data.get("since", "1 year ago")
+            extra_filters.get('__from') or
+            form_data.get("since") or
+            config.get("SUPERSET_DEFAULT_SINCE", "1 year ago")
         )
 
         from_dttm = utils.parse_human_datetime(since)
@@ -209,14 +179,14 @@ class BaseViz(object):
             'timeseries_limit': limit,
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
+            'form_data': form_data,
         }
         return d
 
     @property
     def cache_timeout(self):
-
-        if self.slice and self.slice.cache_timeout:
-            return self.slice.cache_timeout
+        if self.form_data.get('cache_timeout'):
+            return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
         if (
@@ -277,13 +247,12 @@ class BaseViz(object):
                 'cache_timeout': cache_timeout,
                 'data': data,
                 'error': self.error_message,
-                'filter_endpoint': self.filter_endpoint,
                 'form_data': self.form_data,
                 'query': self.query,
                 'status': self.status,
                 'stacktrace': stacktrace,
             }
-            payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
+            payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
             data = self.json_dumps(payload)
@@ -312,7 +281,6 @@ class BaseViz(object):
         """This is the data object serialized to the js layer"""
         content = {
             'form_data': self.form_data,
-            'filter_endpoint': self.filter_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
             'filter_select_enabled': self.datasource.filter_select_enabled,
@@ -324,39 +292,8 @@ class BaseViz(object):
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, encoding="utf-8")
 
-    def get_values_for_column(self, column):
-        """
-        Retrieves values for a column to be used by the filter dropdown.
-
-        :param column: column name
-        :return: JSON containing the some values for a column
-        """
-        form_data = self.form_data
-
-        since = form_data.get("since", "1 year ago")
-        from_dttm = utils.parse_human_datetime(since)
-        now = datetime.now()
-        if from_dttm > now:
-            from_dttm = now - (from_dttm - now)
-        until = form_data.get("until", "now")
-        to_dttm = utils.parse_human_datetime(until)
-        if from_dttm > to_dttm:
-            raise Exception("From date cannot be larger than to date")
-
-        kwargs = dict(
-            column_name=column,
-            from_dttm=from_dttm,
-            to_dttm=to_dttm,
-        )
-        df = self.datasource.values_for_column(**kwargs)
-        return df[column].to_json()
-
     def get_data(self, df):
         return []
-
-    @property
-    def filter_endpoint(self):
-        return self.get_filter_url()
 
     @property
     def json_data(self):
@@ -1089,7 +1026,7 @@ class DistributionPieViz(NVD3Viz):
             index=self.groupby,
             values=[self.metrics[0]])
         df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
-        df = self.get_df()
+        df = df.reset_index()
         df.columns = ['x', 'y']
         return df.to_dict(orient="records")
 
@@ -1128,7 +1065,7 @@ class DistributionBarViz(DistributionPieViz):
     is_timeseries = False
 
     def query_obj(self):
-        d = super(DistributionPieViz, self).query_obj()  # noqa
+        d = super(DistributionBarViz, self).query_obj()  # noqa
         fd = self.form_data
         gb = fd.get('groupby') or []
         cols = fd.get('columns') or []
@@ -1382,6 +1319,9 @@ class IFrameViz(BaseViz):
     verbose_name = _("iFrame")
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+
+    def get_df(self):
+       return None
 
 
 class ParallelCoordinatesViz(BaseViz):

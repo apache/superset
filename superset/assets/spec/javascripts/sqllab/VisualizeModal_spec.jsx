@@ -1,11 +1,11 @@
 import React from 'react';
-import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
-import { queries } from './fixtures';
 import { Modal } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import { queries } from './fixtures';
+import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
 
 describe('VisualizeModal', () => {
   const mockedProps = {
@@ -17,7 +17,7 @@ describe('VisualizeModal', () => {
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<VisualizeModal {...mockedProps} />)
+      React.isValidElement(<VisualizeModal {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders a Modal', () => {

@@ -16,6 +16,8 @@ import smtplib
 import sqlalchemy as sa
 import signal
 import uuid
+import sys
+import zlib
 
 from builtins import object
 from datetime import date, datetime, time
@@ -41,7 +43,7 @@ from sqlalchemy.types import TypeDecorator, TEXT
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
-
+PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 
@@ -72,11 +74,10 @@ class SupersetTemplateException(SupersetException):
 
 def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
-    return (
-        sm.is_item_public(permission_name, view_name) or
-        (not user.is_anonymous() and
-         sm._has_view_access(user, permission_name, view_name))
-    )
+    if user.is_anonymous():
+        return sm.is_item_public(permission_name, view_name)
+    else:
+        return sm._has_view_access(user, permission_name, view_name)
 
 
 def flasher(msg, severity=None):
@@ -126,14 +127,32 @@ class memoized(object):  # noqa
 def js_string_to_python(item):
     return None if item in ('null', 'undefined') else item
 
-def js_string_to_num(item):
-    if item.isdigit():
-        return int(item)
-    s = item
-    try:
-        s = float(item)
-    except ValueError:
+
+def string_to_num(s):
+    """Converts a string to an int/float
+
+    Returns ``None`` if it can't be converted
+
+    >>> string_to_num('5')
+    5
+    >>> string_to_num('5.2')
+    5.2
+    >>> string_to_num(10)
+    10
+    >>> string_to_num(10.1)
+    10.1
+    >>> string_to_num('this is not a string') is None
+    True
+    """
+    if isinstance(s, (int, float)):
         return s
+    if s.isdigit():
+        return int(s)
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
 
 class DimSelector(Having):
     def __init__(self, **args):
@@ -415,14 +434,6 @@ class timeout(object):
             logging.warning("timeout can't be used in the current context")
             logging.exception(e)
 
-
-def wrap_clause_in_parens(sql):
-    """Wrap where/having clause with parenthesis if necessary"""
-    if sql.strip():
-        sql = '({})'.format(sql)
-    return sa.text(sql)
-
-
 def pessimistic_connection_handling(target):
     @event.listens_for(target, "checkout")
     def ping_connection(dbapi_connection, connection_record, connection_proxy):
@@ -580,3 +591,34 @@ def setup_cache(app, cache_config):
     """Setup the flask-cache on a flask app"""
     if cache_config and cache_config.get('CACHE_TYPE') != 'null':
         return Cache(app, config=cache_config)
+
+
+def zlib_compress(data):
+    """
+    Compress things in a py2/3 safe fashion
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    """
+    if PY3K:
+        if isinstance(data, str):
+            return zlib.compress(bytes(data, "utf-8"))
+        return zlib.compress(data)
+    return zlib.compress(data)
+
+
+def zlib_decompress_to_string(blob):
+    """
+    Decompress things to a string in a py2/3 safe fashion
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    >>> got_str = zlib_decompress_to_string(blob)
+    >>> got_str == json_str
+    True
+    """
+    if PY3K:
+        if isinstance(blob, bytes):
+            decompressed = zlib.decompress(blob)
+        else:
+            decompressed = zlib.decompress(bytes(blob, "utf-8"))
+        return decompressed.decode("utf-8")
+    return zlib.decompress(blob)

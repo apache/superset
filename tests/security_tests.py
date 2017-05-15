@@ -63,7 +63,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('can_slice', 'Superset'), perm_set)
         self.assertIn(('can_explore', 'Superset'), perm_set)
         self.assertIn(('can_explore_json', 'Superset'), perm_set)
-        self.assertIn(('can_queries', 'Superset'), perm_set)
 
     def assert_can_alpha(self, perm_set):
         self.assert_can_all('SqlMetricInlineView', perm_set)

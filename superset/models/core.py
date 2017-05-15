@@ -9,7 +9,6 @@ import json
 import logging
 import numpy
 import pickle
-import re
 import textwrap
 from future.standard_library import install_aliases
 from copy import copy
@@ -26,10 +25,10 @@ from flask_appbuilder.models.decorators import renders
 
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, Date, Table, Numeric,
+    DateTime, Date, Table,
     create_engine, MetaData, select
 )
-from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
@@ -38,19 +37,21 @@ from sqlalchemy_utils import EncryptedType
 from superset import app, db, db_engine_specs, utils, sm
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.viz import viz_types
-from superset.utils import QueryStatus
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
 install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
+metadata = Model.metadata  # pylint: disable=no-member
 
 
 def set_related_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
     id_ = target.datasource_id
-    ds = db.session.query(src_class).filter_by(id=int(id_)).first()
-    target.perm = ds.perm
+    if id_:
+        ds = db.session.query(src_class).filter_by(id=int(id_)).first()
+        if ds:
+            target.perm = ds.perm
 
 
 class Url(Model, AuditMixinNullable):
@@ -80,7 +81,7 @@ class CssTemplate(Model, AuditMixinNullable):
     css = Column(Text, default='')
 
 
-slice_user = Table('slice_user', Model.metadata,
+slice_user = Table('slice_user', metadata,
                    Column('id', Integer, primary_key=True),
                    Column('user_id', Integer, ForeignKey('ab_user.id')),
                    Column('slice_id', Integer, ForeignKey('slices.id'))
@@ -102,7 +103,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
-    owners = relationship("User", secondary=slice_user)
+    owners = relationship(sm.user_model, secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
                      'viz_type', 'params', 'cache_timeout')
@@ -121,26 +122,30 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @datasource.getter
     @utils.memoized
     def get_datasource(self):
-        ds = db.session.query(
-            self.cls_model).filter_by(
-            id=self.datasource_id).first()
-        return ds
+        return (
+            db.session.query(self.cls_model)
+            .filter_by(id=self.datasource_id)
+            .first()
+        )
 
     @renders('datasource_name')
     def datasource_link(self):
+        # pylint: disable=no-member
         datasource = self.datasource
-        if datasource:
-            return self.datasource.link
+        return datasource.link if datasource else None
 
     @property
     def datasource_edit_url(self):
-        self.datasource.url
+        # pylint: disable=no-member
+        datasource = self.datasource
+        return datasource.url if datasource else None
 
     @property
     @utils.memoized
     def viz(self):
         d = json.loads(self.params)
         viz_class = viz_types[self.viz_type]
+        # pylint: disable=no-member
         return viz_class(self.datasource, form_data=d)
 
     @property
@@ -176,10 +181,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @property
     def form_data(self):
         form_data = json.loads(self.params)
-        form_data['slice_id'] = self.id
-        form_data['viz_type'] = self.viz_type
-        form_data['datasource'] = (
-            str(self.datasource_id) + '__' + self.datasource_type)
+        form_data.update({
+            'slice_id': self.id,
+            'viz_type': self.viz_type,
+            'datasource': str(self.datasource_id) + '__' + self.datasource_type
+        })
+        if self.cache_timeout:
+            form_data['cache_timeout'] = self.cache_timeout
         return form_data
 
     @property
@@ -225,7 +233,6 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return viz_types[slice_params.get('viz_type')](
             self.datasource,
             form_data=slice_params,
-            slice_=self
         )
 
     @classmethod
@@ -269,14 +276,14 @@ sqla.event.listen(Slice, 'before_update', set_related_perm)
 
 
 dashboard_slices = Table(
-    'dashboard_slices', Model.metadata,
+    'dashboard_slices', metadata,
     Column('id', Integer, primary_key=True),
     Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
     Column('slice_id', Integer, ForeignKey('slices.id')),
 )
 
 dashboard_user = Table(
-    'dashboard_user', Model.metadata,
+    'dashboard_user', metadata,
     Column('id', Integer, primary_key=True),
     Column('user_id', Integer, ForeignKey('ab_user.id')),
     Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
@@ -297,7 +304,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
-    owners = relationship("User", secondary=dashboard_user)
+    owners = relationship(sm.user_model, secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
@@ -307,6 +314,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def table_names(self):
+        # pylint: disable=no-member
         return ", ".join(
             {"{}".format(s.datasource.full_name) for s in self.slices})
 
@@ -320,6 +328,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def sqla_metadata(self):
+        # pylint: disable=no-member
         metadata = MetaData(bind=self.get_sqla_engine())
         return metadata.reflect()
 
@@ -329,11 +338,11 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             '<a href="{self.url}">{title}</a>'.format(**locals()))
 
     @property
-    def json_data(self):
+    def data(self):
         positions = self.position_json
         if positions:
             positions = json.loads(positions)
-        d = {
+        return {
             'id': self.id,
             'metadata': self.params_dict,
             'css': self.css,
@@ -342,7 +351,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             'slices': [slc.data for slc in self.slices],
             'position_json': positions,
         }
-        return json.dumps(d)
 
     @property
     def params(self):
@@ -553,26 +561,10 @@ class Database(Model, AuditMixinNullable):
 
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
-        url = make_url(self.sqlalchemy_uri_decrypted)
+        uri = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
-        url.database = self.get_database_for_various_backend(url, schema)
-        return create_engine(url, **params)
-
-    def get_database_for_various_backend(self, uri, default_database=None):
-        database = uri.database
-        if self.backend == 'presto' and default_database:
-            if '/' in database:
-                database = database.split('/')[0] + '/' + default_database
-            else:
-                database += '/' + default_database
-        # Postgres and Redshift use the concept of schema as a logical entity
-        # on top of the database, so the database should not be changed
-        # even if passed default_database
-        elif self.backend == 'redshift' or self.backend == 'postgresql':
-            pass
-        elif default_database:
-            database = default_database
-        return database
+        uri = self.db_engine_spec.adjust_database_uri(uri, schema)
+        return create_engine(uri, **params)
 
     def get_reserved_words(self):
         return self.get_sqla_engine().dialect.preparer.reserved_words
@@ -583,16 +575,19 @@ class Database(Model, AuditMixinNullable):
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
         eng = self.get_sqla_engine(schema=schema)
-        cur = eng.execute(sql, schema=schema)
-        cols = [col[0] for col in cur.cursor.description]
-        df = pd.DataFrame(cur.fetchall(), columns=cols)
+
+        conn = eng.raw_connection()
+        cur = conn.cursor()
+        cur.execute(sql, **self.db_engine_spec.cursor_execute_kwargs)
+
+        cols = [col[0] for col in cur.description]
+        df = pd.DataFrame(list(cur.fetchall()), columns=cols)
 
         def needs_conversion(df_series):
             if df_series.empty:
                 return False
-            for df_type in [list, dict]:
-                if isinstance(df_series[0], df_type):
-                    return True
+            if isinstance(df_series[0], (list, dict)):
+                return True
             return False
 
         for k, v in df.dtypes.iteritems():
@@ -607,11 +602,11 @@ class Database(Model, AuditMixinNullable):
 
     def select_star(
             self, table_name, schema=None, limit=100, show_cols=False,
-            indent=True):
+            indent=True, latest_partition=True):
         """Generates a ``select *`` statement in the proper dialect"""
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, limit=limit, show_cols=show_cols,
-            indent=indent)
+            indent=indent, latest_partition=latest_partition)
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (
@@ -636,7 +631,8 @@ class Database(Model, AuditMixinNullable):
             tables_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'table', force=force)
             return tables_dict.get("", [])
-        return sorted(self.inspector.get_table_names(schema))
+        return sorted(
+            self.db_engine_spec.get_table_names(schema, self.inspector))
 
     def all_view_names(self, schema=None, force=False):
         if not schema:
@@ -655,9 +651,8 @@ class Database(Model, AuditMixinNullable):
 
     @property
     def db_engine_spec(self):
-        engine_name = self.get_sqla_engine().name or 'base'
         return db_engine_specs.engines.get(
-            engine_name, db_engine_specs.BaseEngineSpec)
+            self.backend, db_engine_specs.BaseEngineSpec)
 
     def grains(self):
         """Defines time granularity database-specific expressions.
@@ -733,7 +728,7 @@ class Log(Model):
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
     json = Column(Text)
-    user = relationship('User', backref='logs', foreign_keys=[user_id])
+    user = relationship(sm.user_model, backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
     dt = Column(Date, default=date.today())
     duration_ms = Column(Integer)
@@ -790,105 +785,6 @@ class FavStar(Model):
     dttm = Column(DateTime, default=datetime.utcnow)
 
 
-class Query(Model):
-
-    """ORM model for SQL query"""
-
-    __tablename__ = 'query'
-    id = Column(Integer, primary_key=True)
-    client_id = Column(String(11), unique=True, nullable=False)
-
-    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
-
-    # Store the tmp table into the DB only if the user asks for it.
-    tmp_table_name = Column(String(256))
-    user_id = Column(
-        Integer, ForeignKey('ab_user.id'), nullable=True)
-    status = Column(String(16), default=QueryStatus.PENDING)
-    tab_name = Column(String(256))
-    sql_editor_id = Column(String(256))
-    schema = Column(String(256))
-    sql = Column(Text)
-    # Query to retrieve the results,
-    # used only in case of select_as_cta_used is true.
-    select_sql = Column(Text)
-    executed_sql = Column(Text)
-    # Could be configured in the superset config.
-    limit = Column(Integer)
-    limit_used = Column(Boolean, default=False)
-    limit_reached = Column(Boolean, default=False)
-    select_as_cta = Column(Boolean)
-    select_as_cta_used = Column(Boolean, default=False)
-
-    progress = Column(Integer, default=0)  # 1..100
-    # # of rows in the result set or rows modified.
-    rows = Column(Integer)
-    error_message = Column(Text)
-    # key used to store the results in the results backend
-    results_key = Column(String(64), index=True)
-
-    # Using Numeric in place of DateTime for sub-second precision
-    # stored as seconds since epoch, allowing for milliseconds
-    start_time = Column(Numeric(precision=3))
-    end_time = Column(Numeric(precision=3))
-    changed_on = Column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
-
-    database = relationship(
-        'Database',
-        foreign_keys=[database_id],
-        backref=backref('queries', cascade='all, delete-orphan')
-    )
-    user = relationship(
-        'User',
-        backref=backref('queries', cascade='all, delete-orphan'),
-        foreign_keys=[user_id])
-
-    __table_args__ = (
-        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
-    )
-
-    @property
-    def limit_reached(self):
-        return self.rows == self.limit if self.limit_used else False
-
-    def to_dict(self):
-        return {
-            'changedOn': self.changed_on,
-            'changed_on': self.changed_on.isoformat(),
-            'dbId': self.database_id,
-            'db': self.database.database_name,
-            'endDttm': self.end_time,
-            'errorMessage': self.error_message,
-            'executedSql': self.executed_sql,
-            'id': self.client_id,
-            'limit': self.limit,
-            'progress': self.progress,
-            'rows': self.rows,
-            'schema': self.schema,
-            'ctas': self.select_as_cta,
-            'serverId': self.id,
-            'sql': self.sql,
-            'sqlEditorId': self.sql_editor_id,
-            'startDttm': self.start_time,
-            'state': self.status.lower(),
-            'tab': self.tab_name,
-            'tempTable': self.tmp_table_name,
-            'userId': self.user_id,
-            'user': self.user.username,
-            'limit_reached': self.limit_reached,
-            'resultsKey': self.results_key,
-        }
-
-    @property
-    def name(self):
-        ts = datetime.now().isoformat()
-        ts = ts.replace('-', '').replace(':', '').split('.')[0]
-        tab = self.tab_name.replace(' ', '_').lower() if self.tab_name else 'notab'
-        tab = re.sub(r'\W+', '', tab)
-        return "sqllab_{tab}_{ts}".format(**locals())
-
-
 class DatasourceAccessRequest(Model, AuditMixinNullable):
     """ORM model for the access requests for datasources and dbs."""
     __tablename__ = 'access_request'
@@ -914,19 +810,20 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @datasource.getter
     @utils.memoized
     def get_datasource(self):
+        # pylint: disable=no-member
         ds = db.session.query(self.cls_model).filter_by(
             id=self.datasource_id).first()
         return ds
 
     @property
     def datasource_link(self):
-        return self.datasource.link
+        return self.datasource.link  # pylint: disable=no-member
 
     @property
     def roles_with_datasource(self):
         action_list = ''
-        pv = sm.find_permission_view_menu(
-            'datasource_access', self.datasource.perm)
+        perm = self.datasource.perm  # pylint: disable=no-member
+        pv = sm.find_permission_view_menu('datasource_access', perm)
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
@@ -943,7 +840,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     @property
     def user_roles(self):
         action_list = ''
-        for r in self.created_by.roles:
+        for r in self.created_by.roles:  # pylint: disable=no-member
             url = (
                 '/superset/approve?datasource_type={self.datasource_type}&'
                 'datasource_id={self.datasource_id}&'

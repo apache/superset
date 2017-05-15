@@ -1,6 +1,7 @@
-import React, { PropTypes } from 'react';
-import CopyToClipboard from './../../components/CopyToClipboard';
+import React from 'react';
+import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
+import CopyToClipboard from './../../components/CopyToClipboard';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -56,14 +57,13 @@ export default class EmbedCodeButton extends React.Component {
                 rows="4"
                 readOnly
                 className="form-control input-sm"
-              >
-              </textarea>
+              />
             </div>
             <div className="col-sm-2">
               <CopyToClipboard
                 shouldShowText={false}
                 text={html}
-                copyNode={<i className="fa fa-clipboard" title="Copy to clipboard"></i>}
+                copyNode={<i className="fa fa-clipboard" title="Copy to clipboard" />}
               />
             </div>
           </div>
@@ -112,7 +112,7 @@ export default class EmbedCodeButton extends React.Component {
         overlay={this.renderPopover()}
       >
         <span className="btn btn-default btn-sm">
-          <i className="fa fa-code"></i>&nbsp;
+          <i className="fa fa-code" />&nbsp;
         </span>
       </OverlayTrigger>
     );

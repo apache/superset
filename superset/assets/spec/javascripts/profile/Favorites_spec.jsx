@@ -1,10 +1,11 @@
 import React from 'react';
-import Favorites from '../../../javascripts/profile/components/Favorites';
-import TableLoader from '../../../javascripts/profile/components/TableLoader';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { user } from './fixtures';
+import Favorites from '../../../javascripts/profile/components/Favorites';
+import TableLoader from '../../../javascripts/profile/components/TableLoader';
 
 describe('Favorites', () => {
   const mockedProps = {
@@ -12,7 +13,7 @@ describe('Favorites', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<Favorites {...mockedProps} />)
+      React.isValidElement(<Favorites {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 TableLoader', () => {

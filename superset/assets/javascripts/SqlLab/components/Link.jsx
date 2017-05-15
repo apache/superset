@@ -1,14 +1,15 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 const propTypes = {
-  children: React.PropTypes.node,
-  className: React.PropTypes.string,
-  href: React.PropTypes.string,
-  onClick: React.PropTypes.func,
-  placement: React.PropTypes.string,
-  style: React.PropTypes.object,
-  tooltip: React.PropTypes.string,
+  children: PropTypes.node,
+  className: PropTypes.string,
+  href: PropTypes.string,
+  onClick: PropTypes.func,
+  placement: PropTypes.string,
+  style: PropTypes.object,
+  tooltip: PropTypes.string,
 };
 const defaultProps = {
   className: '',
@@ -22,7 +23,7 @@ const defaultProps = {
 
 class Link extends React.PureComponent {
   render() {
-    let tooltip = (
+    const tooltip = (
       <Tooltip id="tooltip">
         {this.props.tooltip}
       </Tooltip>
@@ -34,7 +35,7 @@ class Link extends React.PureComponent {
         style={this.props.style}
         className={'Link ' + this.props.className}
       >
-          {this.props.children}
+        {this.props.children}
       </a>
     );
     if (this.props.tooltip) {

@@ -1,9 +1,10 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import Controls from './Controls';
 
 const propTypes = {
-  dashboard: React.PropTypes.object,
+  dashboard: PropTypes.object,
 };
 const defaultProps = {
 };
@@ -25,7 +26,7 @@ class Header extends React.PureComponent {
           </h1>
         </div>
         <div className="pull-right" style={{ marginTop: '35px' }}>
-        {!this.props.dashboard.context.standalone_mode &&
+          {!this.props.dashboard.standalone_mode &&
           <Controls dashboard={dashboard} />
         }
         </div>

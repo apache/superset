@@ -1,4 +1,5 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import Select, { Creatable } from 'react-select';
 
 const propTypes = {
@@ -42,35 +43,44 @@ export default class SelectControl extends React.PureComponent {
     let optionValue = opt ? opt.value : null;
     // if multi, return options values as an array
     if (this.props.multi) {
-      optionValue = opt ? opt.map((o) => o.value) : null;
+      optionValue = opt ? opt.map(o => o.value) : null;
     }
     this.props.onChange(optionValue);
   }
   getOptions(props) {
+    // Accepts different formats of input
     const options = props.choices.map((c) => {
-      const label = c.length > 1 ? c[1] : c[0];
-      const newOptions = {
-        value: c[0],
-        label,
-      };
-      if (c[2]) newOptions.imgSrc = c[2];
-      return newOptions;
+      let option;
+      if (Array.isArray(c)) {
+        const label = c.length > 1 ? c[1] : c[0];
+        option = {
+          value: c[0],
+          label,
+        };
+        if (c[2]) option.imgSrc = c[2];
+      } else if (Object.is(c)) {
+        option = c;
+      } else {
+        option = {
+          value: c,
+          label: c,
+        };
+      }
+      return option;
     });
     if (props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
-      const values = props.choices.map((c) => c[0]);
+      const values = options.map(c => c.value);
       if (props.value) {
-        if (typeof props.value === 'object') {
-          props.value.forEach((v) => {
-            if (values.indexOf(v) === -1) {
-              options.push({ value: v, label: v });
-            }
-          });
-        } else {
-          if (values.indexOf(props.value) === -1) {
-            options.push({ value: props.value, label: props.value });
-          }
+        let valuesToAdd = props.value;
+        if (!Array.isArray(valuesToAdd)) {
+          valuesToAdd = [valuesToAdd];
         }
+        valuesToAdd.forEach((v) => {
+          if (values.indexOf(v) < 0) {
+            options.push({ value: v, label: v });
+          }
+        });
       }
     }
     return options;

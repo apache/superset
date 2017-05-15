@@ -1,7 +1,9 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import { ButtonGroup, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import Button from '../../components/Button';
 import classnames from 'classnames';
+
+import Button from '../../components/Button';
 
 const propTypes = {
   canAdd: PropTypes.string.isRequired,
@@ -9,7 +11,7 @@ const propTypes = {
   onSave: PropTypes.func,
   onStop: PropTypes.func,
   loading: PropTypes.bool,
-  errorMessage: PropTypes.string,
+  errorMessage: PropTypes.node,
 };
 
 const defaultProps = {
@@ -37,6 +39,7 @@ export default function QueryAndSaveBtns(
       className="query"
       onClick={onQuery}
       bsStyle={qryButtonStyle}
+      disabled={!!errorMessage}
     >
       <i className="fa fa-bolt" /> Query
     </Button>
@@ -53,7 +56,7 @@ export default function QueryAndSaveBtns(
           disabled={saveButtonDisabled}
           onClick={onSave}
         >
-          <i className="fa fa-plus-circle"></i> Save as
+          <i className="fa fa-plus-circle" /> Save as
         </Button>
       </ButtonGroup>
       {errorMessage &&

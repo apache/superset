@@ -1,10 +1,13 @@
+/* global notify */
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Alert, Button, Col, Modal } from 'react-bootstrap';
 
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
 import $ from 'jquery';
+import { getExploreUrl } from '../../explorev2/exploreUtils';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -14,9 +17,9 @@ const CHART_TYPES = [
 ];
 
 const propTypes = {
-  onHide: React.PropTypes.func,
-  query: React.PropTypes.object,
-  show: React.PropTypes.bool,
+  onHide: PropTypes.func,
+  query: PropTypes.object,
+  show: PropTypes.bool,
 };
 const defaultProps = {
   show: false,
@@ -89,7 +92,9 @@ class VisualizeModal extends React.PureComponent {
         }
       }
       if (!hasTime) {
-        hints.push('To use this chart type you need at least one column flagged as a date');
+        hints.push(
+          'To use this chart type you need at least one column ' +
+          'flagged as a date');
       }
     }
     this.setState({ hints });
@@ -113,9 +118,10 @@ class VisualizeModal extends React.PureComponent {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
-      sql: this.props.query.executedSql,
+      sql: this.props.query.sql,
       dbId: this.props.query.dbId,
     };
+    notify.info('Creating a data source and popping a new tab');
     $.ajax({
       type: 'POST',
       url: '/superset/sqllab_viz/',
@@ -123,9 +129,28 @@ class VisualizeModal extends React.PureComponent {
       data: {
         data: JSON.stringify(vizOptions),
       },
-      success: (url) => {
-        window.open(url);
+      dataType: 'json',
+      success: (resp) => {
+        const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
+        const data = JSON.parse(resp);
+        const mainMetric = columns.filter(d => d.agg)[0];
+        const mainGroupBy = columns.filter(d => d.is_dim)[0];
+        const formData = {
+          datasource: `${data.table_id}__table`,
+          viz_type: this.state.chartType.value,
+          since: '100 years ago',
+          limit: '0',
+        };
+        if (mainMetric) {
+          formData.metrics = [mainMetric.name];
+          formData.metric = mainMetric.name;
+        }
+        if (mainGroupBy) {
+          formData.groupby = [mainGroupBy.name];
+        }
+        window.open(getExploreUrl(formData));
       },
+      error: () => notify('An error occurred while creating the data source'),
     });
   }
   changeDatasourceName(event) {
@@ -157,7 +182,7 @@ class VisualizeModal extends React.PureComponent {
         </div>
       );
     }
-    const tableData = this.props.query.results.columns.map((col) => ({
+    const tableData = this.props.query.results.columns.map(col => ({
       column: col.name,
       is_dimension: (
         <input

@@ -4,7 +4,7 @@ import visTypes, { sectionsToRender } from './visTypes';
 
 export function getFormDataFromControls(controlsState) {
   const formData = {};
-  Object.keys(controlsState).forEach(controlName => {
+  Object.keys(controlsState).forEach((controlName) => {
     formData[controlName] = controlsState[controlName].value;
   });
   return formData;
@@ -65,6 +65,7 @@ export function getControlsState(state, form_data) {
     if (typeof control.default === 'function') {
       control.default = control.default(control);
     }
+    control.validationErrors = [];
     control.value = formData[k] !== undefined ? formData[k] : control.default;
     controlsState[k] = control;
   });
@@ -78,7 +79,7 @@ export function applyDefaultFormData(form_data) {
   const controlNames = getControlNames(vizType, datasourceType);
   const controlOverrides = viz.controlOverrides || {};
   const formData = {};
-  controlNames.forEach(k => {
+  controlNames.forEach((k) => {
     const control = Object.assign({}, controls[k]);
     if (controlOverrides[k]) {
       Object.assign(control, controlOverrides[k]);

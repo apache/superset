@@ -1,3 +1,4 @@
+"""A set of constants and methods to manage permissions and security"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -40,8 +41,7 @@ ADMIN_ONLY_VIEW_MENUS = {
 
 ADMIN_ONLY_PERMISSIONS = {
     'all_database_access',
-    # TODO: move can_sql_json to sql_lab role
-    'can_sql_json',
+    'can_sql_json',  # TODO: move can_sql_json to sql_lab role
     'can_override_role_permissions',
     'can_sync_druid_source',
     'can_override_role_permissions',
@@ -94,7 +94,6 @@ def get_or_create_main_db():
     )
     if not dbobj:
         dbobj = models.Database(database_name="main")
-    logging.info(conf.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.expose_in_sqllab = True
     dbobj.allow_run_sync = True
@@ -147,6 +146,9 @@ def set_role(role_name, pvms, pvm_check):
     role = sm.add_role(role_name)
     role_pvms = [p for p in pvms if pvm_check(p)]
     role.permissions = role_pvms
+    sesh = sm.get_session()
+    sesh.merge(role)
+    sesh.commit()
 
 
 def create_custom_permissions():

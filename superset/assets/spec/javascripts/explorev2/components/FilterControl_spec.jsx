@@ -17,6 +17,7 @@ const defaultProps = {
     id: 1,
     type: 'table',
     filter_select: false,
+    filterable_cols: ['country_name'],
   },
 };
 
@@ -29,7 +30,7 @@ describe('FilterControl', () => {
 
   it('renders Filters', () => {
     expect(
-      React.isValidElement(<FilterControl {...defaultProps} />)
+      React.isValidElement(<FilterControl {...defaultProps} />),
     ).to.equal(true);
   });
 

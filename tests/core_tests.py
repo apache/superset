@@ -16,6 +16,7 @@ from flask import escape
 
 from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.models import core as models
+from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
 from superset.connectors.sqla.models import SqlaTable
 
@@ -38,11 +39,11 @@ class CoreTests(SupersetTestCase):
         )}
 
     def setUp(self):
-        db.session.query(models.Query).delete()
+        db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
 
     def tearDown(self):
-        db.session.query(models.Query).delete()
+        db.session.query(Query).delete()
 
     def test_login(self):
         resp = self.get_resp(
@@ -395,7 +396,7 @@ class CoreTests(SupersetTestCase):
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(models.Dashboard).filter_by(
             id=dash_id).first()
-        orig_json_data = json.loads(dash.json_data)
+        orig_json_data = dash.data
 
         # Verify that copy matches original
         url = '/superset/copy_dash/{}/'.format(dash_id)
@@ -608,8 +609,8 @@ class CoreTests(SupersetTestCase):
         for k in keys:
             self.assertIn(k, resp.keys())
 
-    def test_user_profile(self):
-        self.login(username='admin')
+    def test_user_profile(self, username='admin'):
+        self.login(username=username)
         slc = self.get_slice("Girls", db.session)
 
         # Setting some faves
@@ -639,6 +640,8 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp('/superset/fave_slices/{}/'.format(userid))
         self.assertNotIn('message', data)
         data = self.get_json_resp('/superset/fave_dashboards/{}/'.format(userid))
+        self.assertNotIn('message', data)
+        data = self.get_json_resp('/superset/fave_dashboards_by_username/{}/'.format(username))
         self.assertNotIn('message', data)
 
 

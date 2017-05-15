@@ -1,7 +1,9 @@
-import logging
+import functools
 import json
+import logging
+import traceback
 
-from flask import g, redirect
+from flask import g, redirect, Response
 from flask_babel import gettext as __
 
 from flask_appbuilder import BaseView
@@ -13,6 +15,43 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import appbuilder, conf, db, utils, sm, sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
+
+
+def get_error_msg():
+    if conf.get("SHOW_STACKTRACE"):
+        error_msg = traceback.format_exc()
+    else:
+        error_msg = "FATAL ERROR \n"
+        error_msg += (
+            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+            "configuration setting to enable it")
+    return error_msg
+
+
+def json_error_response(msg, status=None, stacktrace=None):
+    data = {'error': str(msg)}
+    if stacktrace:
+        data['stacktrace'] = stacktrace
+    status = status if status else 500
+    return Response(
+        json.dumps(data),
+        status=status, mimetype="application/json")
+
+
+def api(f):
+    """
+    A decorator to label an endpoint as an API. Catches uncaught exceptions and
+    return the response in the JSON format
+    """
+    def wraps(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(get_error_msg())
+
+    return functools.update_wrapper(wraps, f)
 
 
 def get_datasource_exist_error_mgs(full_name):
@@ -63,8 +102,7 @@ class BaseSupersetView(BaseView):
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(
-                sm, 'schema_access', schema_perm, g.user):
+        if schema and self.can_access('schema_access', schema_perm):
             return True
 
         datasources = ConnectorRegistry.query_datasources_by_name(
@@ -92,34 +130,65 @@ class BaseSupersetView(BaseView):
             t for t in superset_query.tables if not
             self.datasource_access_by_fullname(database, t, schema)]
 
+    def user_datasource_perms(self):
+        datasource_perms = set()
+        for r in g.user.roles:
+            for perm in r.permissions:
+                if (
+                        perm.permission and
+                        'datasource_access' == perm.permission.name):
+                    datasource_perms.add(perm.view_menu.name)
+        return datasource_perms
+
+    def schemas_accessible_by_user(self, database, schemas):
+        if self.database_access(database) or self.all_datasource_access():
+            return schemas
+
+        subset = set()
+        for schema in schemas:
+            schema_perm = utils.get_schema_perm(database, schema)
+            if self.can_access('schema_access', schema_perm):
+                subset.add(schema)
+
+        perms = self.user_datasource_perms()
+        if perms:
+            tables = (
+                db.session.query(SqlaTable)
+                .filter(
+                    SqlaTable.perm.in_(perms),
+                    SqlaTable.database_id == database.id,
+                )
+                .all()
+            )
+            for t in tables:
+                if t.schema:
+                    subset.add(t.schema)
+        return sorted(list(subset))
+
     def accessible_by_user(self, database, datasource_names, schema=None):
         if self.database_access(database) or self.all_datasource_access():
             return datasource_names
 
-        schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(
-                sm, 'schema_access', schema_perm, g.user):
-            return datasource_names
+        if schema:
+            schema_perm = utils.get_schema_perm(database, schema)
+            if self.can_access('schema_access', schema_perm):
+                return datasource_names
 
-        role_ids = set([role.id for role in g.user.roles])
-        # TODO: cache user_perms or user_datasources
-        user_pvms = (
-            db.session.query(ab_models.PermissionView)
-            .join(ab_models.Permission)
-            .filter(ab_models.Permission.name == 'datasource_access')
-            .filter(ab_models.PermissionView.role.any(
-                ab_models.Role.id.in_(role_ids)))
-            .all()
-        )
-        user_perms = set([pvm.view_menu.name for pvm in user_pvms])
+        user_perms = self.user_datasource_perms()
         user_datasources = ConnectorRegistry.query_datasources_by_permissions(
             db.session, database, user_perms)
-        full_names = set([d.full_name for d in user_datasources])
-        return [d for d in datasource_names if d in full_names]
+        if schema:
+            names = {
+                d.table_name
+                for d in user_datasources if d.schema == schema}
+            return [d for d in datasource_names if d in names]
+        else:
+            full_names = {d.full_name for d in user_datasources}
+            return [d for d in datasource_names if d in full_names]
 
 
 class SupersetModelView(ModelView):
-    page_size = 500
+    page_size = 100
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -139,7 +208,12 @@ def validate_json(form, field):  # noqa
 
 class DeleteMixin(object):
     @action(
-        "muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
+        "muldelete",
+        __("Delete"),
+        __("Delete all Really?"),
+        "fa-trash",
+        single=False
+    )
     def muldelete(self, items):
         self.datamodel.delete_all(items)
         self.update_redirect()

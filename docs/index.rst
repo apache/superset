@@ -1,8 +1,11 @@
+.. image:: _static/img/s.png
+
 Superset's documentation
 ''''''''''''''''''''''''
 
 Superset is a data exploration platform designed to be visual, intuitive
 and interactive.
+
 
 ----------------
 

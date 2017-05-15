@@ -1,4 +1,5 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import { Tooltip, OverlayTrigger, MenuItem } from 'react-bootstrap';
 
 const propTypes = {
@@ -97,7 +98,7 @@ export default class CopyToClipboard extends React.Component {
           onClick={this.onClick.bind(this)}
           onMouseOut={this.onMouseOut}
         >
-            {this.props.copyNode}
+          {this.props.copyNode}
         </OverlayTrigger>
       </span>
     );
