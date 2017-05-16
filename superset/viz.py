@@ -1250,7 +1250,7 @@ class CountryMapViz(BaseViz):
         cols += [metric]
         ndf = df[cols]
         df = ndf
-        df.columns = ['DEP', 'metric']
+        df.columns = ['country_id', 'metric']
         d = df.to_dict(orient='records')
         return d
 

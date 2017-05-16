@@ -783,16 +783,64 @@
       "default": "France",
       "choices": [
         [
-          "name",
-          "Full name"
+          "Algeria",
+          "Algeria"
+        ],
+        [
+          "Belgium",
+          "Belgium"
+        ],
+        [
+          "Brasil",
+          "Brasil"
+        ],
+        [
+          "China",
+          "China"
+        ],
+        [
+          "Germany",
+          "Germany"
+        ],
+        [
+          "Egypt",
+          "Egypt"
         ],
         [
           "France",
           "France"
         ],
         [
+          "Italy",
+          "Italy"
+        ],
+        [
+          "Morocco",
+          "Morocco"
+        ],
+        [
+          "Nederlanden",
+          "Nederlanden"
+        ],
+        [
+          "Russia",
+          "Russia"
+        ],
+        [
+          "Singapore",
+          "Singapore"
+        ],
+        [
           "Spain",
           "Spain"
+        ],
+        [
+          "Uk",
+          "Uk"
+        ],
+        [
+          "Usa",
+          "Usa"
         ]
       ],
       "description": "The name of country that Superset should display"

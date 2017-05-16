@@ -11,10 +11,7 @@ function countryMapChart(slice, payload) {
   let bigText;
   let resultText;
 
-  const color = d3.scale.linear()
-  .domain([1, 20])
-  .clamp(true)
-  .range(['#fff', '#409A99']);
+  const color = d3.scale.category20();
   const container = slice.container;
   const data = payload.data;
   let centered;
@@ -29,18 +26,17 @@ function countryMapChart(slice, payload) {
   container.css('height', slice.height());
   container.css('width', slice.width());
 
-  // FUNCTIONS USED BY ACTION OF MAP
-  const nameFn = function nameFn(d) {
-    return d && d.properties ? d.properties.code : null;
+  const getIdOfCountry = function getIdOfCountry(feature) {
+    return feature && feature.properties && feature.properties.NAME_0 ? feature.properties.ID_0 : 0;
   };
 
-  const nameLength = function nameLength(text) {
-    const name = nameFn(text);
-    return name ? name.length : 0;
+  const nameLength = function nameLength(feature) {
+    const idOfPays = getIdOfCountry(feature);
+    return idOfPays;
   };
 
   const fillFn = function fillFn(d) {
-    return color(nameLength(d));
+    return color(getIdOfCountry(d));
   };
 
   const clicked = function clicked(d) {
@@ -88,13 +84,22 @@ function countryMapChart(slice, payload) {
       .attr('transform', 'translate(0,0)translate(' + resultTextX + ',' + resultTextY + ')');
   };
 
-  const textArt = function textArt(text) {
-    bigText.text(text);
+  const selectAndDisplayNameOfRegion = function selectAndDisplayNameOfRegion(feature) {
+    let name = '';
+    if (feature && feature.properties) {
+      if (feature.properties.ID_2) {
+        name = feature.properties.NAME_2;
+      } else {
+        name = feature.properties.NAME_1;
+      }
+    }
+    bigText.text(name);
   };
 
-  const updateResultText = function updateResultText(regionRead) {
+  const updateMetrics = function updateMetrics(feature) {
     const result = data.filter(function (region) {
-      if (region.DEP === regionRead.properties.code) {
+      const featureId = feature.properties.ID_2 ? feature.properties.ID_2 : feature.properties.ID_1;
+      if (parseInt(region.country_id, 10) === featureId) {
         return region;
       }
       return undefined;
@@ -106,8 +111,8 @@ function countryMapChart(slice, payload) {
 
   const mouseover = function mouseover(d) {
     d3.select(this).style('fill', 'orange');
-    textArt(d && d.properties ? d.properties.nom : '');
-    updateResultText(d && d.properties ? d : undefined);
+    selectAndDisplayNameOfRegion(d);
+    updateMetrics(d && d.properties ? d : undefined);
   };
 
   const mouseout = function mouseout() {

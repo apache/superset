@@ -579,8 +579,8 @@ const visTypes = {
     ],
     controlOverrides: {
       entity: {
-        label: 'Select code of region',
-        description: 'Select code of region that superset display in country map',
+        label: 'ID of region/province/department',
+        description: 'It\'s id of your region/province/department in your table who should match with id of region/province/department in geojson file. (see documentation for list of id)',
       },
       metric: {
         label: 'Metric',
