@@ -198,7 +198,7 @@ def parse_human_datetime(s):
     """
     try:
         dttm = parse(s)
-    except Exception e0:
+    except Exception as e0:
         try:
             cal = parsedatetime.Calendar()
             dttm = dttm_from_timtuple(cal.parse(s)[0])
