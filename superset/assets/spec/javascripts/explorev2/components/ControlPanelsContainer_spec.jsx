@@ -2,12 +2,12 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import { Panel } from 'react-bootstrap';
 import { getFormDataFromControls, defaultControls }
   from '../../../../javascripts/explorev2/stores/store';
 import {
   ControlPanelsContainer,
 } from '../../../../javascripts/explorev2/components/ControlPanelsContainer';
+import ControlPanelSection from '../../../../javascripts/explorev2/components/ControlPanelSection';
 
 const defaultProps = {
   datasource_type: 'table',
@@ -25,7 +25,7 @@ describe('ControlPanelsContainer', () => {
     wrapper = shallow(<ControlPanelsContainer {...defaultProps} />);
   });
 
-  it('renders a Panel', () => {
-    expect(wrapper.find(Panel)).to.have.lengthOf(1);
+  it('renders ControlPanelSections', () => {
+    expect(wrapper.find(ControlPanelSection)).to.have.lengthOf(7);
   });
 });
