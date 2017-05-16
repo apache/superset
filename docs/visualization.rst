@@ -1,11 +1,12 @@
 Visualization Tools
 ===================
 
+The data is visualized via the slices. These slices are visual components made with the D3.js. Some components can be completed or required inputs.
 
 Country Map Tools
 -----------------
 
-This tools is use in slices for visualization number or string by region, province or department of your countries.
+This tool is used in slices for visualization number or string by region, province or department of your countries.
 So, if you want to use tools, you need id of region, province or departmenent.
 
 List of Countries
@@ -1690,42 +1691,48 @@ List of Countries
 +-----+------------------------------+
 
 
-Do you need add new Country ?
+You need to add a new Country ?
 -----------------------------
 
-To add new country in country map tools, we need follow next steps :
+To add a new country in country map tools, we need follow next steps :
 
 1. You need shapfiles why contains data of your map.
    You can get this file in this site : http://www.diva-gis.org/gdata
+
 2. You need to convert shapfile to geojson file.
    This action can make with ogr2ogr tools : http://www.gdal.org/ogr2ogr.html
+
 3. Put your geojson file in next folder : superset/assets/visualizations/countries with the next name : nameofyourcountries.geojson
+
 4. Go in file superset/assets/javascripts/explorev2/stores/controls.jsx
+
 5. Add your country in component 'select_country'
    Example :
 
+.. code:: python
+
     select_country: {
-    type: 'SelectControl',
-    label: 'Country Name Type',
-    default: 'France',
-    choices: [
-        ['Belgium', 'Belgium'],
-        ['Brazil', 'Brazil'],
-        ['China', 'China'],
-        ['Egypt', 'Egypt'],
-        ['France', 'France'],
-        ['Germany', 'Germany'],
-        ['Italy', 'Italy'],
-        ['Morocco', 'Morocco'],
-        ['Netherlands', 'Netherlands'],
-        ['Russian', 'Russian'],
-        ['Singapore', 'Singapore'],
-        ['Spain', 'Spain'],
-        ['Uk', 'Uk'],
-        ['Usa', 'Usa'],
-        ['Nameofyourcountries', 'Nameofyourcountries'],
-    ],
-    description: 'The name of country that Superset should display',
+        type: 'SelectControl',
+        label: 'Country Name Type',
+        default: 'France',
+        choices: [
+            ['Belgium', 'Belgium'],
+            ['Brazil', 'Brazil'],
+            ['China', 'China'],
+            ['Egypt', 'Egypt'],
+            ['France', 'France'],
+            ['Germany', 'Germany'],
+            ['Italy', 'Italy'],
+            ['Morocco', 'Morocco'],
+            ['Netherlands', 'Netherlands'],
+            ['Russian', 'Russian'],
+            ['Singapore', 'Singapore'],
+            ['Spain', 'Spain'],
+            ['Uk', 'Uk'],
+            ['Usa', 'Usa'],
+            ['Nameofyourcountries', 'Nameofyourcountries'],
+        ],
+        description: 'The name of country that Superset should display',
     },
        
 
