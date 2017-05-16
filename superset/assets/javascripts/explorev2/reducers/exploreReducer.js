@@ -2,6 +2,7 @@
 import { getControlsState, getFormDataFromControls } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { now } from '../../modules/dates';
+import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -107,6 +108,16 @@ export const exploreReducer = function (state, action) {
     [actions.TRIGGER_QUERY]() {
       return Object.assign({}, state, {
         triggerQuery: true,
+      });
+    },
+    [actions.CHART_UPDATE_TIMEOUT]() {
+      return Object.assign({}, state, {
+        chartStatus: 'failed',
+        chartAlert: '<strong>Query timeout</strong> - visualization query are set to timeout at ' +
+        `${QUERY_TIMEOUT_THRESHOLD / 1000} seconds. ` +
+        'Perhaps your data has grown, your database is under unusual load, ' +
+        'or you are simply querying a data source that is to large to be processed within the timeout range. ' +
+        'If that is the case, we recommend that you summarize your data further.',
       });
     },
     [actions.CHART_UPDATE_FAILED]() {

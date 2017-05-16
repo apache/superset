@@ -337,7 +337,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
 
 $(document).ready(() => {
   // Getting bootstrapped data from the DOM
-  utils.initJQueryAjaxCSRF();
+  utils.initJQueryAjax();
   const dashboardData = $('.dashboard').data('bootstrap');
 
   const state = getInitialState(dashboardData);

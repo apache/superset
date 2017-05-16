@@ -189,7 +189,7 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
   });
 }
 
-export function initJQueryAjaxCSRF() {
+export function initJQueryAjax() {
   // Works in conjunction with a Flask-WTF token as described here:
   // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests
   const token = $('input#csrf_token').val();
