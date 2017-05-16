@@ -472,6 +472,8 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(self, items):
+        if not isinstance(items, list):
+            items = [items]
         ids = ''.join('&id={}'.format(d.id) for d in items)
         return redirect(
             '/dashboardmodelview/export_dashboards_form?{}'.format(ids[1:]))
