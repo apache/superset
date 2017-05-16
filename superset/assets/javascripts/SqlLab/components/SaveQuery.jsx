@@ -1,4 +1,3 @@
-/* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Overlay, Popover, Row, Col } from 'react-bootstrap';

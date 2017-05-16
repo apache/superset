@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Panel, Alert } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
