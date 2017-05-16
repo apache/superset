@@ -204,14 +204,14 @@ def parse_human_datetime(s):
             dttm = dttm_from_timtuple(cal.parse(s)[0])
         except Exception as e1:
             try:
-                # When using a dashborad filter, somehow, splitted version of the string
-                # is raised to the parser. This code should handle it
+                # When using a dashborad filter, somehow, splitted version of
+                # the string is raised to the parser.
                 if (type(s) == list and len(s) == 1):
-                  s1 = ''.join(s[0])
-                  dttm = parse(s1)
+                    s1 = ''.join(s[0])
+                    dttm = parse(s1)
                 else:
-                  raise e1
-            except Exception as e2:    
+                    raise e1
+            except Exception as e2:
                 logging.exception(e0)
                 raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
