@@ -169,11 +169,13 @@ class ChartContainer extends React.PureComponent {
   renderAlert() {
     const msg = (
       <div>
-        {this.props.alert}
         <i
           className="fa fa-close pull-right"
           onClick={this.removeAlert.bind(this)}
           style={{ cursor: 'pointer' }}
+        />
+        <p
+          dangerouslySetInnerHTML={{ __html: this.props.alert }}
         />
       </div>);
     return (
