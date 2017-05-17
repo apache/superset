@@ -145,8 +145,8 @@ class SqlEditorLeftBar extends React.PureComponent {
             dataEndpoint={
               '/databaseasync/api/' +
               'read?_flt_0_expose_in_sqllab=1&' +
-              '_oc_DatabaseView=database_name&' +
-              '_od_DatabaseView=asc'
+              '_oc_DatabaseAsync=database_name&' +
+              '_od_DatabaseAsync=asc'
             }
             onChange={this.onDatabaseChange.bind(this)}
             onAsyncError={() => notify.error('Error while fetching database list')}
