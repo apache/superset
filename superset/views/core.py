@@ -1100,16 +1100,13 @@ class Superset(BaseSupersetView):
         slice_name = form_data.get('slice_name')
         action = form_data.get('action')
         goto_dash = form_data.get('goto_dash')
+        form_data.pop('goto_dash')  # don't save this param
         add_to_dash = form_data.get('add_to_dash')
 
         if action in ('saveas'):
             if 'slice_id' in form_data:
                 form_data.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
-
-        form_data.pop('goto_dash')  # don't save this param
-        form_data.pop('add_to_dash')  # don't save this param
-        form_data.pop('action')  # don't save this param
 
         slc.params = json.dumps(form_data)
         slc.datasource_name = form_data.get('datasource_name')
@@ -1151,7 +1148,7 @@ class Superset(BaseSupersetView):
             dash.slices.append(slc)
             db.session.commit()
 
-        if goto_dash:
+        if goto_dash == 'true':
             return dash.url
         else:
             return slc.slice_url
