@@ -233,11 +233,15 @@ export const sqlLabReducer = function (state, action) {
       let newQueries = Object.assign({}, state.queries);
       // Fetch the updates to the queries present in the store.
       let change = false;
+      let queriesLastUpdate = state.queriesLastUpdate;
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
         if (!state.queries.hasOwnProperty(id) ||
             (state.queries[id].changedOn !== changedQuery.changedOn &&
             state.queries[id].state !== 'stopped')) {
+          if (changedQuery.changedOn > queriesLastUpdate) {
+            queriesLastUpdate = changedQuery.changedOn;
+          }
           newQueries[id] = Object.assign({}, state.queries[id], changedQuery);
           change = true;
         }
@@ -245,7 +249,6 @@ export const sqlLabReducer = function (state, action) {
       if (!change) {
         newQueries = state.queries;
       }
-      const queriesLastUpdate = now();
       return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });
     },
   };
