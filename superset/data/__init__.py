@@ -179,6 +179,7 @@ def load_world_bank_health_n_pop():
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
     tbl.database = get_or_create_main_db()
+    tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -572,6 +573,7 @@ def load_birth_names():
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
     obj.database = get_or_create_main_db()
+    obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
