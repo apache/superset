@@ -46,6 +46,7 @@ from .base import (
 )
 
 config = app.config
+stats_logger = config.get('STATS_LOGGER')
 log_this = models.Log.log_this
 can_access = utils.can_access
 DAR = models.DatasourceAccessRequest
@@ -2091,6 +2092,7 @@ class Superset(BaseSupersetView):
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
         """Get the updated queries."""
+        stats_logger.incr('queries')
         if not g.user.get_id():
             return json_error_response(
                 "Please login to access the queries.", status=403)
