@@ -25,6 +25,8 @@ from .base_tests import SupersetTestCase
 
 class CoreTests(SupersetTestCase):
 
+    """A set of core tests for Superset"""
+
     requires_examples = True
 
     def __init__(self, *args, **kwargs):
@@ -83,7 +85,23 @@ class CoreTests(SupersetTestCase):
 
         json_endpoint = (
             '/superset/explore_json/{}/{}?form_data={}'
-            .format(slc.datasource_type, slc.datasource_id, json.dumps(slc.viz.form_data))
+            .format(
+                slc.datasource_type,
+                slc.datasource_id,
+                json.dumps(slc.viz.form_data))
+        )
+        resp = self.get_resp(json_endpoint)
+        assert '"Jennifer"' in resp
+
+    def test_json_endpoint_escaping(self):
+        self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+        fd = slc.viz.form_data
+        fd['where'] = "name NOT LIKE '%:super%'"
+
+        json_endpoint = (
+            '/superset/explore_json/{}/{}?form_data={}'
+            .format(slc.datasource_type, slc.datasource_id, json.dumps(fd))
         )
         resp = self.get_resp(json_endpoint)
         assert '"Jennifer"' in resp
@@ -141,8 +159,7 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
-            'groupby': 'target',
+            'groupby': ['source', 'target'],
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': slice_id,
@@ -163,8 +180,7 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
-            'groupby': 'target',
+            'groupby': ['source', 'target'],
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': new_slice_id,

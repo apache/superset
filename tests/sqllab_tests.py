@@ -52,6 +52,13 @@ class SqlLabTests(SupersetTestCase):
         data = self.run_sql('SELECT * FROM unexistant_table', "2")
         self.assertLess(0, len(data['error']))
 
+    def test_sql_json_escaping(self):
+        self.login('admin')
+
+        data = self.run_sql(
+            "SELECT count(1) FROM ab_user WHERE username like '%:test%'", "3")
+        self.assertEquals(0, len(data['data']))
+
     def test_sql_json_has_access(self):
         main_db = self.get_main_database(db.session)
         sm.add_permission_view_menu('database_access', main_db.perm)
