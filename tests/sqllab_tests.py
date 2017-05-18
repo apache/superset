@@ -56,7 +56,7 @@ class SqlLabTests(SupersetTestCase):
         self.login('admin')
 
         data = self.run_sql(
-            "SELECT count(1) FROM ab_user WHERE username like '%:test%'", "3")
+            "SELECT username FROM ab_user WHERE username like '%:test%'", "3")
         self.assertEquals(0, len(data['data']))
 
     def test_sql_json_has_access(self):
