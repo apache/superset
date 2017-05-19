@@ -586,7 +586,7 @@ const visTypes = {
     controlOverrides: {
       entity: {
         label: 'ID of region/province/department',
-        description: 'It\'s id of your region/province/department in your table who should match with id of region/province/department in geojson file. (see documentation for list of id)',
+        description: "It's id of your region/province/department in your table who should match with id of region/province/department in geojson file. (see documentation for list of id)",
       },
       metric: {
         label: 'Metric',
