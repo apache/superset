@@ -52,6 +52,8 @@ try:
             self.client.decr(key)
 
         def gauge(self, key):
+            # pylint: disable=no-value-for-parameter
             self.client.gauge(key)
+
 except Exception as e:
     pass
