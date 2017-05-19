@@ -497,12 +497,12 @@ msgstr "导入"
 
 #: superset/templates/superset/request_access.html:2
 msgid "No Access!"
-msgstr ""
+msgstr "无法访问"
 
 #: superset/templates/superset/request_access.html:7
 #, python-format
 msgid "You do not have permissions to access the datasource(s): %(name)s."
-msgstr ""
+msgstr "对不起，你没有权限访问数据源： %(name)s."
 
 #: superset/templates/superset/request_access.html:13
 msgid "Request Permissions"
