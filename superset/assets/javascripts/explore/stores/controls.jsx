@@ -1,6 +1,5 @@
 import React from 'react';
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
-import visTypes from './visTypes';
 import * as v from '../validators';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
@@ -48,15 +47,9 @@ export const controls = {
   },
 
   viz_type: {
-    type: 'SelectControl',
+    type: 'VizTypeControl',
     label: 'Visualization Type',
-    clearable: false,
     default: 'table',
-    choices: Object.keys(visTypes).map(vt => [
-      vt,
-      visTypes[vt].label,
-      `/static/assets/images/viz_thumbnails/${vt}.png`,
-    ]),
     description: 'The type of visualization to display',
   },
 
