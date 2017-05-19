@@ -305,7 +305,7 @@ class TableViz(BaseViz):
     """A basic html table that is sortable and searchable"""
 
     viz_type = "table"
-    verbose_name = _("Table View")
+    verbose_name = _("交叉表")
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
 
@@ -328,8 +328,7 @@ class TableViz(BaseViz):
 
         if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
             raise Exception(
-                "Choose either fields to [Group By] and [Metrics] or "
-                "[Columns], not both")
+                "只能在明细模式或者分组+指标模式中选择一种")
 
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
