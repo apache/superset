@@ -634,6 +634,11 @@ msgstr "参数"
 msgid "Slice"
 msgstr "切片"
 
+
+#: superset/views/core.py:271
+msgid "Sources"
+msgstr "数据中心"
+
 #: superset/views/core.py:351
 msgid "Name"
 msgstr "名字"
