@@ -98,13 +98,12 @@ function countryMapChart(slice, payload) {
 
   const updateMetrics = function updateMetrics(feature) {
     const result = data.filter(function (region) {
-      const featureId = feature.properties.ID_2 ? feature.properties.ID_2 : feature.properties.ID_1;
-      if (parseInt(region.country_id, 10) === featureId) {
+      if (region.country_id === feature.properties.ISO) {
         return region;
       }
       return undefined;
     });
-    if (result !== undefined) {
+    if (result.length > 0) {
       resultText.text(d3.format(',')(result[0].metric));
     }
   };
