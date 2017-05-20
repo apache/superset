@@ -42,6 +42,7 @@ install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
+stats_logger = config.get('STATS_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
 
@@ -575,13 +576,7 @@ class Database(Model, AuditMixinNullable):
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
         eng = self.get_sqla_engine(schema=schema)
-
-        conn = eng.raw_connection()
-        cur = conn.cursor()
-        cur.execute(sql, **self.db_engine_spec.cursor_execute_kwargs)
-
-        cols = [col[0] for col in cur.description]
-        df = pd.DataFrame(list(cur.fetchall()), columns=cols)
+        df = pd.read_sql(sql, eng)
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -757,6 +752,7 @@ class Log(Model):
                 params = json.dumps(d)
             except:
                 pass
+            stats_logger.incr(f.__name__)
             value = f(*args, **kwargs)
 
             sesh = db.session()

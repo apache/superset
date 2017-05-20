@@ -188,6 +188,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         logging.info("Storing results in results backend, key: {}".format(key))
         results_backend.set(key, utils.zlib_compress(payload))
         query.results_key = key
+        query.end_result_backend_time = utils.now_as_float()
 
     session.merge(query)
     session.commit()

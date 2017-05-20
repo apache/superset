@@ -31,6 +31,7 @@ from superset import app, utils, cache
 from superset.utils import DTTM_ALIAS
 
 config = app.config
+stats_logger = config.get('STATS_LOGGER')
 
 
 class BaseViz(object):
@@ -214,6 +215,7 @@ class BaseViz(object):
             payload = cache.get(cache_key)
 
         if payload:
+            stats_logger.incr('loaded_from_source')
             is_cached = True
             try:
                 cached_data = zlib.decompress(payload)
@@ -227,6 +229,7 @@ class BaseViz(object):
             logging.info("Serving from cache")
 
         if not payload:
+            stats_logger.incr('loaded_from_cache')
             data = None
             is_cached = False
             cache_timeout = self.cache_timeout

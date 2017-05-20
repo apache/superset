@@ -36,7 +36,7 @@ class QueryAutoRefresh extends React.PureComponent {
   stopwatch() {
     // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
-      const url = '/superset/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
+      const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;
       $.getJSON(url, (data) => {
         if (Object.keys(data).length > 0) {
           this.props.actions.refreshQueries(data);
