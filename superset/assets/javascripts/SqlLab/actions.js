@@ -406,7 +406,6 @@ export function createDatasource(vizOptions, context) {
     return $.ajax({
       type: 'POST',
       url: '/superset/sqllab_viz/',
-      async: false,
       data: {
         data: JSON.stringify(vizOptions),
       },
