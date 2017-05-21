@@ -2,10 +2,10 @@ import React from 'react';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+import { Table } from 'reactable';
 
 import { queries } from './fixtures';
 import QueryTable from '../../../javascripts/SqlLab/components/QueryTable';
-import { Table } from 'reactable';
 
 describe('QueryTable', () => {
   const mockedProps = {

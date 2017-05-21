@@ -83,7 +83,9 @@ describe('VisualizeModal', () => {
       dbId: wrapper.instance().props.query.dbId,
     };
 
-    let spy, server;
+    let spy;
+    let server;
+
     beforeEach(() => {
       spy = sinon.spy($, 'ajax');
       server = sinon.fakeServer.create();
