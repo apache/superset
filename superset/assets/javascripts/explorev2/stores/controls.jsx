@@ -283,6 +283,7 @@ export const controls = {
       'Singapore',
       'Spain',
       'Uk',
+      'Ukraine',
       'Usa',
     ].map(s => [s, s]),
     description: 'The name of country that Superset should display',
