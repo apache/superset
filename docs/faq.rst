@@ -78,6 +78,11 @@ The widget also has a checkbox ``Date Filter``, which enables time filtering
 capabilities to your dashboard. After checking the box and refreshing, you'll
 see a ``from`` and a ``to`` dropdown show up.
 
+By default, the filtering will be applied to all the slices that are built
+on top of a datasource that shares the column name that the filter is based
+on. It's also a requirement for that column to be checked as "filterable"
+in the column tab of the table editor.
+
 But what about if you don't want certain widgets to get filtered on your
 dashboard? You can do that by editing your dashboard, and in the form,
 edit the ``JSON Metadata`` field, more specifically the
