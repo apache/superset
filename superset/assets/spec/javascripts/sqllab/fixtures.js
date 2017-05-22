@@ -205,7 +205,17 @@ export const queries = [
     serverId: 141,
     resultsKey: null,
     results: {
-      columns: ['col1', 'col2'],
+      columns: [{
+        is_date: true,
+        is_dim: false,
+        name: 'ds',
+        type: 'STRING',
+      }, {
+        is_date: false,
+        is_dim: true,
+        name: 'gender',
+        type: 'STRING',
+      }],
       data: [
         { col1: 0, col2: 1 },
         { col1: 2, col2: 3 },
