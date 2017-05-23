@@ -11,6 +11,7 @@ const vizMap = {
   compare: require('./nvd3_vis.js'),
   directed_force: require('./directed_force.js'),
   dist_bar: require('./nvd3_vis.js'),
+  events: require('./events.js'),
   filter_box: require('./filter_box.jsx'),
   heatmap: require('./heatmap.js'),
   histogram: require('./histogram.js'),

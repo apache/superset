@@ -190,8 +190,14 @@ function nvd3Vis(slice, payload) {
           payload.data.forEach((d) => {
             d.values.sort(
               function compare(a, b) {
-                if (a.x < b.x) return -1;
-                if (a.x > b.x) return 1;
+                //consider if x is string
+                if(typeof a.x == "string" && a.x.length!=b.x.length){
+                  if (a.x.length<b.x.length) return -1;
+                  if (a.x.length>b.x.length) return 1;
+            	  }else{
+                  if (a.x < b.x) return -1;
+                  if (a.x > b.x) return 1;
+                }
                 return 0;
               },
             );
