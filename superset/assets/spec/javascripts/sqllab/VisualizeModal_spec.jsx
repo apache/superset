@@ -47,11 +47,13 @@ describe('VisualizeModal', () => {
   const mockChartTypeBarChart = {
     label: 'Distribution - Bar Chart',
     requiresTime: false,
+    requiresMatrix: true,
     value: 'dist_bar',
   };
   const mockChartTypeTB = {
     label: 'Time Series - Bar Chart',
     requiresTime: true,
+    requiresMatrix: false,
     value: 'bar',
   };
   const mockEvent = {
@@ -157,7 +159,7 @@ describe('VisualizeModal', () => {
         '&': 1,
       });
       wrapper.instance().validate();
-      expect(wrapper.state().hints).to.have.length(1);
+      expect(wrapper.state().hints).to.have.length.above(1);
       wrapper.instance().mergedColumns.restore();
     });
     it('should hint empty chartType', () => {
@@ -188,6 +190,26 @@ describe('VisualizeModal', () => {
         },
       });
       wrapper.setState({ chartType: mockChartTypeTB });
+      wrapper.instance().validate();
+      expect(wrapper.state().hints).to.have.length(1);
+    });
+    it('should check matrix', () => {
+      // no is_dim
+      columnsStub.returns({
+        ds: {
+          is_date: true,
+          is_dim: false,
+          name: 'ds',
+          type: 'STRING',
+        },
+        gender: {
+          is_date: false,
+          is_dim: false,
+          name: 'gender',
+          type: 'STRING',
+        },
+      });
+      wrapper.setState({ chartType: mockChartTypeBarChart });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(1);
     });
