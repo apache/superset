@@ -1,6 +1,6 @@
-require('./country_map.css');
-
-const d3 = require('d3');
+import d3 from 'd3';
+import './country_map.css';
+import { colorScalerFactory } from '../javascripts/modules/colors';
 
 
 function countryMapChart(slice, payload) {
@@ -13,20 +13,11 @@ function countryMapChart(slice, payload) {
   const color = d3.scale.category20();
   const container = slice.container;
   const data = payload.data;
-  const maxMetric = d3.max(data, function (value) {
+  const colorForScaler = ['#90eb9d', '#ffff8c', '#f9d057', '#f29e2e', '#e76818', '#d7191c'];
+  const colorsByMetrics = colorScalerFactory(colorForScaler, data, function (value) {
     return value.metric;
   });
-  const minMetric = d3.min(data, function (value) {
-    return value.metric;
-  });
-  const colorsByMetrics = d3.scale.linear()
-    .domain([maxMetric,
-      (maxMetric - minMetric) / 1.2,
-      (maxMetric - minMetric) / 1.5,
-      (maxMetric - minMetric) / 2,
-      (maxMetric - minMetric) / 3,
-      minMetric])
-    .range(['#d7191c', '#e76818', '#f29e2e', '#f9d057', '#ffff8c', '#90eb9d']);
+
   let centered;
   path = d3.geo.path();
   d3.select(slice.selector).selectAll('*').remove();
@@ -123,7 +114,7 @@ function countryMapChart(slice, payload) {
       }
       return undefined;
     });
-    d3.select(this).style('fill', colorsByMetrics(result[0].metric));
+    d3.select(this).style('fill', d3.rgb(colorsByMetrics(result[0].metric)));
     selectAndDisplayNameOfRegion(d);
     updateMetrics(result);
   };
