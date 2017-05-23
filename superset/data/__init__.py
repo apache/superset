@@ -249,16 +249,6 @@ def load_world_bank_health_n_pop():
                 num_period_compare="10",
                 groupby=['country_name'])),
         Slice(
-            slice_name="% Map",
-            viz_type='country_map',
-            datasource_type='table',
-            datasource_id=tbl.id,
-            params=get_slice_json(
-                defaults,
-                viz_type='country_map',
-                metric="sum__SP_POP_TOTL",
-                num_period_compare="10")),
-        Slice(
             slice_name="% Rural",
             viz_type='world_map',
             datasource_type='table',
@@ -1004,12 +994,14 @@ def load_country_map_data():
         "until": "",
         "where": "",
         "viz_type": "country_map",
+        "entity": "DEPT_ID",
+        "metric": "avg__2004",
         "row_limit": 500000,
     }
 
     print("Creating a slice")
     slc = Slice(
-        slice_name="Country Map",
+        slice_name="Birth in France by department in 2016",
         viz_type='country_map',
         datasource_type='table',
         datasource_id=tbl.id,

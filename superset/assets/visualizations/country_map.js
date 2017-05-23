@@ -10,10 +10,23 @@ function countryMapChart(slice, payload) {
   let mapLayer;
   let bigText;
   let resultText;
-
   const color = d3.scale.category20();
   const container = slice.container;
   const data = payload.data;
+  const maxMetric = d3.max(data, function (value) {
+    return value.metric;
+  });
+  const minMetric = d3.min(data, function (value) {
+    return value.metric;
+  });
+  const colorsByMetrics = d3.scale.linear()
+    .domain([maxMetric,
+      (maxMetric - minMetric) / 1.2,
+      (maxMetric - minMetric) / 1.5,
+      (maxMetric - minMetric) / 2,
+      (maxMetric - minMetric) / 3,
+      minMetric])
+    .range(['#d7191c', '#e76818', '#f29e2e', '#f9d057', '#ffff8c', '#90eb9d']);
   let centered;
   path = d3.geo.path();
   d3.select(slice.selector).selectAll('*').remove();
@@ -96,22 +109,23 @@ function countryMapChart(slice, payload) {
     bigText.text(name);
   };
 
-  const updateMetrics = function updateMetrics(feature) {
+  const updateMetrics = function updateMetrics(region) {
+    if (region.length > 0) {
+      resultText.text(d3.format(',')(region[0].metric));
+    }
+  };
+
+
+  const mouseover = function mouseover(d) {
     const result = data.filter(function (region) {
-      if (region.country_id === feature.properties.ISO) {
+      if (region.country_id === d.properties.ISO) {
         return region;
       }
       return undefined;
     });
-    if (result.length > 0) {
-      resultText.text(d3.format(',')(result[0].metric));
-    }
-  };
-
-  const mouseover = function mouseover(d) {
-    d3.select(this).style('fill', 'orange');
+    d3.select(this).style('fill', colorsByMetrics(result[0].metric));
     selectAndDisplayNameOfRegion(d);
-    updateMetrics(d && d.properties ? d : undefined);
+    updateMetrics(result);
   };
 
   const mouseout = function mouseout() {
