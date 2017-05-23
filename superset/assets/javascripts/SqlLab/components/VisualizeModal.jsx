@@ -12,10 +12,10 @@ import { getExploreUrl } from '../../explorev2/exploreUtils';
 import * as actions from '../actions';
 
 const CHART_TYPES = [
-  { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
-  { value: 'pie', label: 'Pie Chart', requiresTime: false },
-  { value: 'line', label: 'Time Series - Line Chart', requiresTime: true },
-  { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true },
+  { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false, requiresMatrix: true },
+  { value: 'pie', label: 'Pie Chart', requiresTime: false, requiresMatrix: true },
+  { value: 'line', label: 'Time Series - Line Chart', requiresTime: true, requiresMatrix: false },
+  { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true, requiresMatrix: true },
 ];
 
 const propTypes = {
@@ -100,6 +100,12 @@ class VisualizeModal extends React.PureComponent {
         hints.push(
           'To use this chart type you need at least one column ' +
           'flagged as a date');
+      }
+    } else if (this.state.chartType.requiresMatrix) {
+      const hasMatrix = Object.keys(cols).filter(key => (cols[key].is_dim)).length > 0;
+      if (!hasMatrix) {
+        hints.push(
+          'To use this chart type you need at least one matrix');
       }
     }
     this.setState({ hints });
