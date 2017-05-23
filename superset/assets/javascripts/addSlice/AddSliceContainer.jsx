@@ -24,11 +24,14 @@ class AddSliceContainer extends React.Component {
     };
   }
 
-  gotoSlice() {
+  exploreUrl() {
     const baseUrl = `/superset/explore/${this.state.datasourceType}/${this.state.datasourceId}`;
     const formData = encodeURIComponent(JSON.stringify({ viz_type: this.state.visType }));
-    const exploreUrl = `${baseUrl}?form_data=${formData}`;
-    window.location.href = exploreUrl;
+    return `${baseUrl}?form_data=${formData}`;
+  }
+
+  gotoSlice() {
+    window.location.href = this.exploreUrl();
   }
 
   changeDatasource(e) {
