@@ -196,8 +196,13 @@ export function dashboardContainer(dashboard, datasources, userid) {
       }
       if (!(col in this.filters[sliceId]) || !merge) {
         this.filters[sliceId][col] = vals;
-      } else {
+
+        // d3.merge pass in array of arrays while some value form filter components
+        // from and to filter box require string to be process and return
+      } else if (this.filters[sliceId][col] instanceof Array) {
         this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
+      } else {
+        this.filters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
       }
       if (refresh) {
         this.refreshExcept(sliceId);

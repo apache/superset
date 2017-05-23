@@ -3,7 +3,7 @@ import logging
 
 import sqlalchemy as sqla
 
-from flask import Markup, flash, redirect
+from flask import Markup, flash, redirect, abort
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -136,6 +136,8 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, cluster):
         self.pre_add(cluster)
 
+    def _delete(self, pk):
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
     DruidClusterModelView,
@@ -230,6 +232,9 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_update(self, datasource):
         self.post_add(datasource)
+
+    def _delete(self, pk):
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
     DruidDatasourceModelView,
