@@ -15,6 +15,8 @@ import { exploreReducer } from './reducers/exploreReducer';
 import { appSetup } from '../common';
 import './main.css';
 
+require('./main.css');
+
 appSetup();
 initJQueryAjax();
 
