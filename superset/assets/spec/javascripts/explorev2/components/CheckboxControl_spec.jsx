@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 
-import CheckboxControl from '../../../../javascripts/explorev2/components/controls/CheckboxControl';
+import CheckboxControl from '../../../../javascripts/explore/components/controls/CheckboxControl';
 
 const defaultProps = {
   name: 'show_legend',

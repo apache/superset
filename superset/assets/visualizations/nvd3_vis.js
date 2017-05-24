@@ -7,7 +7,7 @@ import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 import { customizeToolTip } from '../javascripts/modules/utils';
 
-import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/controls';
+import { TIME_STAMP_OPTIONS } from '../javascripts/explore/stores/controls';
 
 const nv = require('nvd3');
 

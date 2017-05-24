@@ -1059,7 +1059,7 @@ class Superset(BaseSupersetView):
             if datasource_type == 'table' \
             else datasource.datasource_name
         return self.render_template(
-            "superset/explorev2.html",
+            "superset/explore.html",
             bootstrap_data=json.dumps(bootstrap_data),
             slice=slc,
             standalone_mode=standalone,
