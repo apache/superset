@@ -108,6 +108,9 @@ class DruidCluster(Model, AuditMixinNullable):
     def perm(self):
         return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
 
+    def get_perm(self):
+        return self.perm
+
     @property
     def name(self):
         return self.verbose_name if self.verbose_name else self.cluster_name

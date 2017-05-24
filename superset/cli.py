@@ -115,6 +115,9 @@ def load_examples(load_test_data):
     print("Loading [Random long/lat data]")
     data.load_long_lat_data()
 
+    print("Loading [Country Map data]")
+    data.load_country_map_data()
+
     print("Loading [Multiformat time series]")
     data.load_multiformat_time_series_data()
 

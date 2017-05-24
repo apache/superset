@@ -142,8 +142,8 @@ export const controls = {
     ],
     default: 'heatmap',
     description: 'Color will be rendered based on a ratio ' +
-                 'of the cell against the sum of across this ' +
-                 'criteria',
+    'of the cell against the sum of across this ' +
+    'criteria',
   },
 
   horizon_color_scale: {
@@ -167,7 +167,7 @@ export const controls = {
     ],
     default: 'pixelated',
     description: 'image-rendering CSS attribute of the canvas object that ' +
-                 'defines how the browser scales up the image',
+    'defines how the browser scales up the image',
   },
 
   xscale_interval: {
@@ -176,7 +176,7 @@ export const controls = {
     choices: formatSelectOptionsForRange(1, 50),
     default: '1',
     description: 'Number of steps to take between ticks when ' +
-                 'displaying the X scale',
+    'displaying the X scale',
   },
 
   yscale_interval: {
@@ -185,7 +185,7 @@ export const controls = {
     choices: formatSelectOptionsForRange(1, 50),
     default: null,
     description: 'Number of steps to take between ticks when ' +
-                 'displaying the Y scale',
+    'displaying the Y scale',
   },
 
   include_time: {
@@ -232,8 +232,8 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: 'Whether to show extra controls or not. Extra controls ' +
-                 'include things like making mulitBar charts stacked ' +
-                 'or side by side.',
+    'include things like making mulitBar charts stacked ' +
+    'or side by side.',
   },
 
   reduce_x_ticks: {
@@ -242,10 +242,10 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: 'Reduces the number of X axis ticks to be rendered. ' +
-                 'If true, the x axis wont overflow and labels may be ' +
-                 'missing. If false, a minimum width will be applied ' +
-                 'to columns and the width may overflow into an ' +
-                 'horizontal scroll.',
+    'If true, the x axis wont overflow and labels may be ' +
+    'missing. If false, a minimum width will be applied ' +
+    'to columns and the width may overflow into an ' +
+    'horizontal scroll.',
   },
 
   include_series: {
@@ -265,19 +265,41 @@ export const controls = {
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
   },
-
+  select_country: {
+    type: 'SelectControl',
+    label: 'Country Name',
+    default: 'France',
+    choices: [
+      'Belgium',
+      'Brazil',
+      'China',
+      'Egypt',
+      'France',
+      'Germany',
+      'Italy',
+      'Morocco',
+      'Netherlands',
+      'Russia',
+      'Singapore',
+      'Spain',
+      'Uk',
+      'Ukraine',
+      'Usa',
+    ].map(s => [s, s]),
+    description: 'The name of country that Superset should display',
+  },
   country_fieldtype: {
     type: 'SelectControl',
     label: 'Country Field Type',
     default: 'cca2',
     choices: [
-        ['name', 'Full name'],
-        ['cioc', 'code International Olympic Committee (cioc)'],
-        ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
-        ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
+      ['name', 'Full name'],
+      ['cioc', 'code International Olympic Committee (cioc)'],
+      ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
+      ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
     ],
     description: 'The country code standard that Superset should expect ' +
-                 'to find in the [country] column',
+    'to find in the [country] column',
   },
 
   groupby: {
@@ -343,7 +365,7 @@ export const controls = {
     ],
     default: null,
     description: 'Defines the origin where time buckets start, ' +
-                 'accepts natural dates as in `now`, `sunday` or `1970-01-01`',
+    'accepts natural dates as in `now`, `sunday` or `1970-01-01`',
   },
 
   bottom_margin: {
@@ -376,8 +398,8 @@ export const controls = {
       'month',
     ]),
     description: 'The time granularity for the visualization. Note that you ' +
-                 'can type and use simple natural language as in `10 seconds`, ' +
-                 '`1 day` or `56 weeks`',
+    'can type and use simple natural language as in `10 seconds`, ' +
+    '`1 day` or `56 weeks`',
   },
 
   domain_granularity: {
@@ -394,7 +416,7 @@ export const controls = {
     default: 'day',
     choices: formatSelectOptions(['min', 'hour', 'day', 'week', 'month']),
     description: 'The time unit for each block. Should be a smaller unit than ' +
-                 'domain_granularity. Should be larger or equal to Time Grain',
+    'domain_granularity. Should be larger or equal to Time Grain',
   },
 
   link_length: {
@@ -432,10 +454,10 @@ export const controls = {
     default: control =>
       control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
     description: 'The time column for the visualization. Note that you ' +
-                 'can define arbitrary expression that return a DATETIME ' +
-                 'column in the table or. Also note that the ' +
-                 'filter below is applied against this column or ' +
-                 'expression',
+    'can define arbitrary expression that return a DATETIME ' +
+    'column in the table or. Also note that the ' +
+    'filter below is applied against this column or ' +
+    'expression',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.granularity_sqla : [],
     }),
@@ -446,10 +468,10 @@ export const controls = {
     label: 'Time Grain',
     default: control => control.choices && control.choices.length ? control.choices[0][0] : null,
     description: 'The time granularity for the visualization. This ' +
-                 'applies a date transformation to alter ' +
-                 'your time column and defines a new time granularity. ' +
-                 'The options here are defined on a per database ' +
-                 'engine basis in the Superset source code.',
+    'applies a date transformation to alter ' +
+    'your time column and defines a new time granularity. ' +
+    'The options here are defined on a per database ' +
+    'engine basis in the Superset source code.',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.time_grain_sqla : null,
     }),
@@ -498,7 +520,7 @@ export const controls = {
       '100 year ago',
     ]),
     description: 'Timestamp from filter. This supports free form typing and ' +
-                 'natural language as in `1 day ago`, `28 days` or `3 years`',
+    'natural language as in `1 day ago`, `28 days` or `3 years`',
   },
 
   until: {
@@ -589,7 +611,7 @@ export const controls = {
     default: 'None',
     choices: formatSelectOptions(['None', 'mean', 'sum', 'std', 'cumsum']),
     description: 'Defines a rolling window function to apply, works along ' +
-                 'with the [Periods] text box',
+    'with the [Periods] text box',
   },
 
   rolling_periods: {
@@ -597,7 +619,7 @@ export const controls = {
     label: 'Periods',
     isInt: true,
     description: 'Defines the size of the rolling window function, ' +
-                 'relative to the time granularity selected',
+    'relative to the time granularity selected',
   },
 
   series: {
@@ -605,8 +627,8 @@ export const controls = {
     label: 'Series',
     default: null,
     description: 'Defines the grouping of entities. ' +
-                 'Each series is shown as a specific color on the chart and ' +
-                 'has a legend toggle',
+    'Each series is shown as a specific color on the chart and ' +
+    'has a legend toggle',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
     }),
@@ -655,7 +677,7 @@ export const controls = {
     type: 'TextControl',
     label: 'URL',
     description: 'The URL, this control is templated, so you can integrate ' +
-                 '{{ width }} and/or {{ height }} in your URL string.',
+    '{{ width }} and/or {{ height }} in your URL string.',
     default: 'https://www.youtube.com/embed/AdSZJzb-aX8',
   },
 
@@ -678,9 +700,9 @@ export const controls = {
     label: 'Custom WHERE clause',
     default: '',
     description: 'The text in this box gets included in your query\'s WHERE ' +
-                 'clause, as an AND to other criteria. You can include ' +
-                 'complex expression, parenthesis and anything else ' +
-                 'supported by the backend it is directed towards.',
+    'clause, as an AND to other criteria. You can include ' +
+    'complex expression, parenthesis and anything else ' +
+    'supported by the backend it is directed towards.',
   },
 
   having: {
@@ -688,9 +710,9 @@ export const controls = {
     label: 'Custom HAVING clause',
     default: '',
     description: 'The text in this box gets included in your query\'s HAVING ' +
-                 'clause, as an AND to other criteria. You can include ' +
-                 'complex expression, parenthesis and anything else ' +
-                 'supported by the backend it is directed towards.',
+    'clause, as an AND to other criteria. You can include ' +
+    'complex expression, parenthesis and anything else ' +
+    'supported by the backend it is directed towards.',
   },
 
   compare_lag: {
@@ -822,7 +844,7 @@ export const controls = {
     ]),
     default: 'sum',
     description: 'Aggregate function to apply when pivoting and ' +
-                 'computing the total rows and columns',
+    'computing the total rows and columns',
   },
 
   size_from: {
@@ -919,7 +941,7 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: 'The rich tooltip shows a list of all series for that ' +
-                 'point in time',
+    'point in time',
   },
 
   y_axis_zero: {
@@ -973,7 +995,7 @@ export const controls = {
     default: '',
     isInt: true,
     description: '[integer] Number of period to compare against, ' +
-                 'this is relative to the granularity selected',
+    'this is relative to the granularity selected',
   },
 
   period_ratio_type: {
@@ -982,7 +1004,7 @@ export const controls = {
     default: 'growth',
     choices: formatSelectOptions(['factor', 'growth', 'value']),
     description: '`factor` means (new/previous), `growth` is ' +
-                 '((new/previous) - 1), `value` is (new-previous)',
+    '((new/previous) - 1), `value` is (new-previous)',
   },
 
   time_compare: {
@@ -990,9 +1012,9 @@ export const controls = {
     label: 'Time Shift',
     default: null,
     description: 'Overlay a timeseries from a ' +
-                 'relative time period. Expects relative time delta ' +
-                 'in natural language (example:  24 hours, 7 days, ' +
-                 '56 weeks, 365 days)',
+    'relative time period. Expects relative time delta ' +
+    'in natural language (example:  24 hours, 7 days, ' +
+    '56 weeks, 365 days)',
   },
 
   subheader: {
@@ -1007,9 +1029,9 @@ export const controls = {
     label: 'label',
     default: [],
     description: '`count` is COUNT(*) if a group by is used. ' +
-                 'Numerical columns will be aggregated with the aggregator. ' +
-                 'Non-numerical columns will be used to label points. ' +
-                 'Leave empty to get a count of points in each cluster.',
+    'Numerical columns will be aggregated with the aggregator. ' +
+    'Non-numerical columns will be used to label points. ' +
+    'Leave empty to get a count of points in each cluster.',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
@@ -1019,12 +1041,12 @@ export const controls = {
     type: 'SelectControl',
     label: 'Map Style',
     choices: [
-        ['mapbox://styles/mapbox/streets-v9', 'Streets'],
-        ['mapbox://styles/mapbox/dark-v9', 'Dark'],
-        ['mapbox://styles/mapbox/light-v9', 'Light'],
-        ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
-        ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
-        ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+      ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+      ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+      ['mapbox://styles/mapbox/light-v9', 'Light'],
+      ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+      ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+      ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
     ],
     default: 'mapbox://styles/mapbox/streets-v9',
     description: 'Base layer map style',
@@ -1047,8 +1069,8 @@ export const controls = {
       '1000',
     ]),
     description: 'The radius (in pixels) the algorithm uses to define a cluster. ' +
-                 'Choose 0 to turn off clustering, but beware that a large ' +
-                 'number of points (>1000) will cause lag.',
+    'Choose 0 to turn off clustering, but beware that a large ' +
+    'number of points (>1000) will cause lag.',
   },
 
   point_radius: {
@@ -1056,8 +1078,8 @@ export const controls = {
     label: 'Point Radius',
     default: 'Auto',
     description: 'The radius of individual points (ones that are not in a cluster). ' +
-                 'Either a numerical column or `Auto`, which scales the point based ' +
-                 'on the largest cluster',
+    'Either a numerical column or `Auto`, which scales the point based ' +
+    'on the largest cluster',
     mapStateToProps: state => ({
       choices: [].concat([['Auto', 'Auto']], state.datasource.all_cols),
     }),
@@ -1077,7 +1099,7 @@ export const controls = {
     default: 1,
     isFloat: true,
     description: 'Opacity of all clusters, points, and labels. ' +
-                 'Between 0 and 1.',
+    'Between 0 and 1.',
   },
 
   viewport_zoom: {
