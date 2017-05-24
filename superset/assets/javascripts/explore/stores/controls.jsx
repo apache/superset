@@ -972,6 +972,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: 'Donut',
     default: false,
+    renderTrigger: true,
     description: 'Do you want a donut or a pie?',
   },
 
@@ -979,6 +980,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: 'Put labels outside',
     default: true,
+    renderTrigger: true,
     description: 'Put the labels outside the pie?',
   },
 
