@@ -65,7 +65,9 @@ export default function ControlHeader({
               {' '}
             </span>
           }
-          <span>{leftNode}</span>
+          {leftNode &&
+            <span>{leftNode}</span>
+          }
         </ControlLabel>
       </div>
       {rightNode &&
