@@ -49,7 +49,7 @@ class VisualizeModal extends React.PureComponent {
     this.setStateFromProps(nextProps);
   }
   setStateFromProps(props) {
-    if (
+    if (!props ||
         !props.query ||
         !props.query.results ||
         !props.query.results.columns) {
@@ -118,16 +118,17 @@ class VisualizeModal extends React.PureComponent {
     }
     return columns;
   }
-  visualize() {
-    const vizOptions = {
+  buildVizOptions() {
+    return {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
     };
-
-    this.props.actions.createDatasource(vizOptions, this)
+  }
+  visualize() {
+    this.props.actions.createDatasource(this.buildVizOptions(), this)
       .done(() => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
         const mainMetric = columns.filter(d => d.agg)[0];
