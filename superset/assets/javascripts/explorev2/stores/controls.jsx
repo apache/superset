@@ -508,7 +508,8 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: 'Since',
-    default: '7 days ago',
+    default: control =>
+      control.choices && control.choices.length > 0 ? [control.choices[0][0]] : null,
     choices: formatSelectOptions([
       '1 hour ago',
       '12 hours ago',
