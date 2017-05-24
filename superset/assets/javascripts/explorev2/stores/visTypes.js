@@ -580,6 +580,7 @@ const visTypes = {
           ['select_country'],
           ['entity'],
           ['metric'],
+          ['linear_color_scheme'],
         ],
       },
     ],

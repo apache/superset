@@ -4,19 +4,21 @@ import { colorScalerFactory } from '../javascripts/modules/colors';
 
 
 function countryMapChart(slice, payload) {
-  // CONSTANTES
+  // CONSTANTS
+  const fd = payload.form_data;
   let path;
   let g;
-  let mapLayer;
   let bigText;
   let resultText;
-  const color = d3.scale.category20();
   const container = slice.container;
   const data = payload.data;
-  const colorForScaler = ['#90eb9d', '#ffff8c', '#f9d057', '#f29e2e', '#e76818', '#d7191c'];
-  const colorsByMetrics = colorScalerFactory(colorForScaler, data, function (value) {
-    return value.metric;
+
+  const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric);
+  const colorMap = {};
+  data.forEach((d) => {
+    colorMap[d.country_id] = colorScaler(d.metric);
   });
+  const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
   let centered;
   path = d3.geo.path();
@@ -30,20 +32,7 @@ function countryMapChart(slice, payload) {
   container.css('height', slice.height());
   container.css('width', slice.width());
 
-  const getIdOfCountry = function getIdOfCountry(feature) {
-    return feature && feature.properties && feature.properties.NAME_0 ? feature.properties.ID_0 : 0;
-  };
-
-  const nameLength = function nameLength(feature) {
-    const idOfPays = getIdOfCountry(feature);
-    return idOfPays;
-  };
-
-  const fillFn = function fillFn(d) {
-    return color(getIdOfCountry(d));
-  };
-
-  const clicked = function clicked(d) {
+  const clicked = function (d) {
     let x;
     let y;
     let k;
@@ -88,7 +77,7 @@ function countryMapChart(slice, payload) {
       .attr('transform', 'translate(0,0)translate(' + resultTextX + ',' + resultTextY + ')');
   };
 
-  const selectAndDisplayNameOfRegion = function selectAndDisplayNameOfRegion(feature) {
+  const selectAndDisplayNameOfRegion = function (feature) {
     let name = '';
     if (feature && feature.properties) {
       if (feature.properties.ID_2) {
@@ -100,27 +89,26 @@ function countryMapChart(slice, payload) {
     bigText.text(name);
   };
 
-  const updateMetrics = function updateMetrics(region) {
+  const updateMetrics = function (region) {
     if (region.length > 0) {
       resultText.text(d3.format(',')(region[0].metric));
     }
   };
 
-
-  const mouseover = function mouseover(d) {
-    const result = data.filter(function (region) {
-      if (region.country_id === d.properties.ISO) {
-        return region;
-      }
-      return undefined;
-    });
-    d3.select(this).style('fill', d3.rgb(colorsByMetrics(result[0].metric)));
+  const mouseenter = function (d) {
+    // Darken color
+    let c = colorFn(d);
+    if (c !== 'none') {
+      c = d3.rgb(c).darker().toString();
+    }
+    d3.select(this).style('fill', c);
     selectAndDisplayNameOfRegion(d);
+    const result = data.filter(region => region.country_id === d.properties.ISO);
     updateMetrics(result);
   };
 
-  const mouseout = function mouseout() {
-    mapLayer.selectAll('path').style('fill', function (d) { return centered && d === centered ? '#D5708B' : fillFn(d); });
+  const mouseout = function () {
+    d3.select(this).style('fill', colorFn);
     bigText.text('');
     resultText.text('');
   };
@@ -132,7 +120,7 @@ function countryMapChart(slice, payload) {
     .on('click', clicked);
 
   g = div.append('g');
-  mapLayer = g.append('g')
+  const mapLayer = g.append('g')
     .classed('map-layer', true);
   bigText = g.append('text')
     .classed('big-text', true)
@@ -143,7 +131,8 @@ function countryMapChart(slice, payload) {
     .attr('x', 20)
     .attr('y', 60);
 
-  d3.json('/static/assets/visualizations/countries/' + payload.form_data.select_country.toLowerCase() + '.geojson', function (error, mapData) {
+  const url = `/static/assets/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;
+  d3.json(url, function (error, mapData) {
     const features = mapData.features;
     const center = d3.geo.centroid(mapData);
     let scale = 150;
@@ -162,16 +151,16 @@ function countryMapChart(slice, payload) {
     offset = [offsetWidth, offsetHeigth];
     projection = d3.geo.mercator().center(center).scale(scale).translate(offset);
     path = path.projection(projection);
-    color.domain([0, d3.max(features, nameLength)]);
 
     // Draw each province as a path
     mapLayer.selectAll('path')
       .data(features)
       .enter().append('path')
       .attr('d', path)
+      .attr('class', 'region')
       .attr('vector-effect', 'non-scaling-stroke')
-      .style('fill', fillFn)
-      .on('mouseover', mouseover)
+      .style('fill', colorFn)
+      .on('mouseenter', mouseenter)
       .on('mouseout', mouseout)
       .on('click', clicked);
   });
