@@ -1,7 +1,6 @@
 /* eslint camelcase: 0 */
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
@@ -105,10 +104,8 @@ class SaveModal extends React.Component {
     const baseUrl = `/superset/explore/${this.props.datasource.type}/${this.props.datasource.id}/`;
     sliceParams.datasource_name = this.props.datasource.name;
 
-    const saveUrl = `${baseUrl}?form_data=` +
-      `${encodeURIComponent(JSON.stringify(this.props.form_data))}` +
-      `&${$.param(sliceParams, true)}`;
-    this.props.actions.saveSlice(saveUrl);
+    const dataToSave = Object.assign(this.props.form_data, sliceParams);
+    this.props.actions.saveSlice(baseUrl, dataToSave);
     this.props.onHide();
   }
   removeAlert() {
