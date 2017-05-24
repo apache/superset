@@ -34,39 +34,32 @@
 .background-transparent {
   background-color: transparent !important;
 }
-.viztype-selector-container {
-    float: left;
-    border: 1px solid #ccc;
-    cursor: pointer;
-    position:relative;
-    margin: 5px;
-    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 3px 8px 0 rgba(0, 0, 0, 0.19);
-}
-.viztype-selector-container:hover {
-  border: 1px solid black;
-}
-.viztype-label {
-  text-align: center;
-  position: absolute;
-  left: 0;
-  top: 70;
-  width: 100%;
+
+a {
+  cursor: pointer;
 }
 
-.viztype-label span {
-  background-color:rgba(0, 0, 0, 0.5);
-  color: white;
-  font-size: 12px;
-  display:inline-block;
+.viztype-label {
+  text-align: center;
 }
-.l-m-5 {
-  margin-left: 5px !important;
+
+.viztype-selector-container {
+  cursor: pointer;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 1px solid #aaa;
 }
-.l-m-2 {
-  margin-left: 1px !important;
+
+.viztype-selector-container:hover {
+  border: 1px solid #000;
+}
+
+.viztype-selector-container.selected {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 .viztype-selector-container.selected {
-  border: 1px solid #00A699;
-  cursor: not-allowed !important;
-  box-shadow: none;
+  cursor: not-allowed;
+  border: 1px solid #aaa;
 }

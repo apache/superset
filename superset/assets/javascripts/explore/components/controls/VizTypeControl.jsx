@@ -1,9 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button, Label, FormControl, Modal } from 'react-bootstrap';
+import { Label, Row, Col, FormControl, Modal } from 'react-bootstrap';
 import visTypes from '../../stores/visTypes';
-
-const IMG_SIZE = 150;
+import ControlHeader from '../ControlHeader';
 
 const propTypes = {
   description: PropTypes.string,
@@ -37,17 +36,52 @@ export default class VizTypeControl extends React.PureComponent {
   changeSearch(event) {
     this.setState({ filter: event.target.value });
   }
+  renderVizType(vizType) {
+    const vt = vizType;
+    return (
+      <div
+        className={`viztype-selector-container ${vt === this.props.value ? 'selected' : ''}`}
+        onClick={this.onChange.bind(this, vt)}
+      >
+        <img
+          alt={`viz-type-${vt}`}
+          width="100%"
+          className={`viztype-selector ${this.props.value === vt ? 'selected' : ''}`}
+          src={`/static/assets/images/viz_thumbnails/${vt}.png`}
+        />
+        <div className="viztype-label">
+          <strong>{visTypes[vt].label}</strong>
+        </div>
+      </div>);
+  }
   render() {
     const filter = this.state.filter;
+    const filteredVizTypes = Object.keys(visTypes)
+      .filter(vt => filter.length === 0 || visTypes[vt].label.toLowerCase().includes(filter));
+
+    const imgPerRow = 4;
+    const rows = [];
+    for (let i = 0; i <= filteredVizTypes.length; i += imgPerRow) {
+      rows.push(
+        <Row>
+          {filteredVizTypes.slice(i, i + imgPerRow).map(vt => (
+            <Col md={3} key={`grid-col-${vt}`}>
+              {this.renderVizType(vt)}
+            </Col>
+          ))}
+        </Row>);
+    }
     return (
       <div>
-        <Label>{visTypes[this.props.value].label}</Label>
-        <Button onClick={this.toggleModal} bsSize="sm" className="l-m-5">
-          <i className="fa fa-line-chart l-m-2" />
-          <i className="fa fa-area-chart l-m-2" />
-          <i className="fa fa-bar-chart l-m-2" />
-          <i className="fa fa-pie-chart l-m-2" />
-        </Button>
+        <ControlHeader
+          {...this.props}
+          rightNode={
+            <a onClick={this.toggleModal}>edit</a>
+          }
+        />
+        <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }}>
+          {visTypes[this.props.value].label}
+        </Label>
         <Modal show={this.state.showModal} onHide={this.toggleModal} bsSize="lg">
           <Modal.Header closeButton>
             <Modal.Title>Select a visualization type</Modal.Title>
@@ -63,28 +97,7 @@ export default class VizTypeControl extends React.PureComponent {
                 onChange={this.changeSearch}
               />
             </div>
-            <div className="clearfix">
-              {Object.keys(visTypes)
-                .filter(vt => (
-                  filter.length === 0 || visTypes[vt].label.toLowerCase().includes(filter)))
-                .map(vt => (
-                  <div
-                    className={`viztype-selector-container ${vt === this.props.value ? 'selected' : ''}`}
-                    onClick={this.onChange.bind(this, vt)}
-                    key={`viztype-img-${vt}`}
-                  >
-                    <img
-                      alt={`viz-type-${vt}`}
-                      width={IMG_SIZE}
-                      height={IMG_SIZE}
-                      className={`viztype-selector ${this.props.value === vt ? 'selected' : ''}`}
-                      src={`/static/assets/images/viz_thumbnails/${vt}.png`}
-                    />
-                    <div className="viztype-label">
-                      <Label>{visTypes[vt].label}</Label>
-                    </div>
-                  </div>))}
-            </div>
+            {rows}
           </Modal.Body>
         </Modal>
       </div>);
