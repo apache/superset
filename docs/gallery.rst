@@ -43,6 +43,9 @@ Gallery
 .. image:: _static/img/viz_thumbnails/area.png
    :scale: 25 %
 
+.. image:: _static/img/viz_thumbnails/big_string.png
+   :scale: 25 %
+
 .. image:: _static/img/viz_thumbnails/big_number.png
    :scale: 25 %
 

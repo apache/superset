@@ -732,6 +732,34 @@ class BulletViz(NVD3Viz):
             'markerLineLabels': self.marker_line_labels or None,
         }
 
+class BigStringViz(BaseViz):
+
+    """Put emphasis on a single metric with this big string viz"""
+
+    viz_type = "big_string"
+    verbose_name = _("Big String with Trendline")
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    is_timeseries = True
+
+    def query_obj(self):
+        d = super(BigStringViz, self).query_obj()
+        metric = self.form_data.get('metric')
+        if not metric:
+            raise Exception("Pick a metric!")
+        d['metrics'] = [self.form_data.get('metric')]
+        self.form_data['metric'] = metric
+        return d
+
+    def get_data(self, df):
+        form_data = self.form_data
+        df.sort_values(by=df.columns[0], inplace=True)
+        compare_lag = form_data.get("compare_lag")
+        return {
+            'data': df.values.tolist(),
+            'compare_lag': compare_lag,
+            'compare_suffix': form_data.get('compare_suffix', ''),
+        }
+        
 
 class BigNumberViz(BaseViz):
 

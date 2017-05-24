@@ -100,6 +100,11 @@
           "/static/assets/images/viz_thumbnails/bullet.png"
         ],
         [
+          "big_string",
+          "Big String with Trendline",
+          "/static/assets/images/viz_thumbnails/big_string.png"
+        ],
+        [
           "big_number",
           "Big Number with Trendline",
           "/static/assets/images/viz_thumbnails/big_number.png"
