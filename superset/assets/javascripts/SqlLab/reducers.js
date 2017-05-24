@@ -251,6 +251,25 @@ export const sqlLabReducer = function (state, action) {
       }
       return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });
     },
+    [actions.CREATE_DATASOURCE_STARTED]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: true,
+        errorMessage: null,
+      });
+    },
+    [actions.CREATE_DATASOURCE_SUCCESS]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: false,
+        errorMessage: null,
+        datasource: action.datasource,
+      });
+    },
+    [actions.CREATE_DATASOURCE_FAILED]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: false,
+        errorMessage: action.err,
+      });
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();

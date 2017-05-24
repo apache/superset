@@ -37,6 +37,10 @@ export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 export const SAVE_QUERY = 'SAVE_QUERY';
 
+export const CREATE_DATASOURCE_STARTED = 'CREATE_DATASOURCE_STARTED';
+export const CREATE_DATASOURCE_SUCCESS = 'CREATE_DATASOURCE_SUCCESS';
+export const CREATE_DATASOURCE_FAILED = 'CREATE_DATASOURCE_FAILED';
+
 export function resetState() {
   return { type: RESET_STATE };
 }
@@ -379,6 +383,40 @@ export function popSavedQuery(saveQueryId) {
         dispatch(addQueryEditor(queryEditorProps));
       },
       error: () => notify.error("The query couldn't be loaded"),
+    });
+  };
+}
+
+export function createDatasourceStarted() {
+  return { type: CREATE_DATASOURCE_STARTED };
+}
+export function createDatasourceSuccess(response) {
+  const data = JSON.parse(response);
+  const datasource = `${data.table_id}__table`;
+  return { type: CREATE_DATASOURCE_SUCCESS, datasource };
+}
+export function createDatasourceFailed(err) {
+  return { type: CREATE_DATASOURCE_FAILED, err };
+}
+
+export function createDatasource(vizOptions, context) {
+  return (dispatch) => {
+    dispatch(createDatasourceStarted());
+
+    return $.ajax({
+      type: 'POST',
+      url: '/superset/sqllab_viz/',
+      data: {
+        data: JSON.stringify(vizOptions),
+      },
+      context,
+      dataType: 'json',
+      success: (resp) => {
+        dispatch(createDatasourceSuccess(resp));
+      },
+      error: () => {
+        dispatch(createDatasourceFailed('An error occurred while creating the data source'));
+      },
     });
   };
 }

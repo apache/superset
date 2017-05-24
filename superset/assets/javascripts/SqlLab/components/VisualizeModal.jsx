@@ -1,13 +1,15 @@
 /* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 import { Alert, Button, Col, Modal } from 'react-bootstrap';
 
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
-import $ from 'jquery';
 import { getExploreUrl } from '../../explorev2/exploreUtils';
+import * as actions from '../actions';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -17,9 +19,12 @@ const CHART_TYPES = [
 ];
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   onHide: PropTypes.func,
   query: PropTypes.object,
   show: PropTypes.bool,
+  datasource: PropTypes.string,
+  errorMessage: PropTypes.string,
 };
 const defaultProps = {
   show: false,
@@ -121,22 +126,14 @@ class VisualizeModal extends React.PureComponent {
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
     };
-    notify.info('Creating a data source and popping a new tab');
-    $.ajax({
-      type: 'POST',
-      url: '/superset/sqllab_viz/',
-      async: false,
-      data: {
-        data: JSON.stringify(vizOptions),
-      },
-      dataType: 'json',
-      success: (resp) => {
+
+    this.props.actions.createDatasource(vizOptions, this)
+      .done(() => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
-        const data = JSON.parse(resp);
         const mainMetric = columns.filter(d => d.agg)[0];
         const mainGroupBy = columns.filter(d => d.is_dim)[0];
         const formData = {
-          datasource: `${data.table_id}__table`,
+          datasource: this.props.datasource,
           viz_type: this.state.chartType.value,
           since: '100 years ago',
           limit: '0',
@@ -148,14 +145,16 @@ class VisualizeModal extends React.PureComponent {
         if (mainGroupBy) {
           formData.groupby = [mainGroupBy.name];
         }
+        notify.info('Creating a data source and popping a new tab');
+
         window.open(getExploreUrl(formData));
-      },
-      error: () => notify('An error occurred while creating the data source'),
-    });
+      })
+      .fail(() => {
+        notify.error(this.props.errorMessage);
+      });
   }
   changeDatasourceName(event) {
-    this.setState({ datasourceName: event.target.value });
-    this.validate();
+    this.setState({ datasourceName: event.target.value }, this.validate);
   }
   changeCheckbox(attr, columnName, event) {
     let columns = this.mergedColumns();
@@ -271,4 +270,19 @@ class VisualizeModal extends React.PureComponent {
 VisualizeModal.propTypes = propTypes;
 VisualizeModal.defaultProps = defaultProps;
 
-export default VisualizeModal;
+function mapStateToProps(state) {
+  return {
+    datasource: state.datasource,
+    errorMessage: state.errorMessage,
+  };
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(actions, dispatch),
+  };
+}
+
+export { VisualizeModal };
+export default connect(mapStateToProps, mapDispatchToProps)(VisualizeModal);
+
