@@ -16,7 +16,7 @@ import traceback
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup, abort)
+    g, request, redirect, flash, Response, render_template, Markup, abort, url_for)
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -984,6 +984,16 @@ class Superset(BaseSupersetView):
             db.session.commit()
             return redirect('/dashboardmodelview/list/')
         return self.render_template('superset/import_dashboards.html')
+
+    @log_this
+    @has_access
+    @expose("/explorev2/<datasource_type>/<datasource_id>/")
+    def explorev2(self, datasource_type, datasource_id):
+        return redirect(url_for(
+            'Superset.explore',
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            **request.args))
 
     @log_this
     @has_access
