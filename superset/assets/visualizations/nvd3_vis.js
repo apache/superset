@@ -261,7 +261,8 @@ function nvd3Vis(slice, payload) {
           s += '</table>';
           return s;
         });
-        chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
+        chart.pointRange([5, fd.max_bubble_size ** 2]);
+        chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
         break;
 
       case 'area':
