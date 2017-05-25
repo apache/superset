@@ -5,7 +5,7 @@ import { mount } from 'enzyme';
 import { Modal } from 'react-bootstrap';
 import ModalTrigger from './../../../../javascripts/components/ModalTrigger';
 
-import DisplayQueryButton from '../../../../javascripts/explorev2/components/DisplayQueryButton';
+import DisplayQueryButton from '../../../../javascripts/explore/components/DisplayQueryButton';
 
 describe('DisplayQueryButton', () => {
   const defaultProps = {
