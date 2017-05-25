@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select, { Creatable } from 'react-select';
+import ControlHeader from '../ControlHeader';
 
 const propTypes = {
   choices: PropTypes.array,
@@ -13,6 +14,7 @@ const propTypes = {
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
+  showHeader: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -24,6 +26,7 @@ const defaultProps = {
   label: null,
   multi: false,
   onChange: () => {},
+  showHeader: true,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -115,6 +118,9 @@ export default class SelectControl extends React.PureComponent {
       (<Creatable {...selectProps} />) : (<Select {...selectProps} />);
     return (
       <div>
+        {this.props.showHeader &&
+          <ControlHeader {...this.props} />
+        }
         {selectWrap}
       </div>
     );

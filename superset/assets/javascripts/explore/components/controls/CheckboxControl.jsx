@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Checkbox } from 'react-bootstrap';
+import ControlHeader from '../ControlHeader';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -21,9 +22,14 @@ export default class CheckboxControl extends React.Component {
   }
   render() {
     return (
-      <Checkbox
-        checked={this.props.value}
-        onChange={this.onToggle.bind(this)}
+      <ControlHeader
+        {...this.props}
+        leftNode={
+          <Checkbox
+            checked={this.props.value}
+            onChange={this.onToggle.bind(this)}
+          />
+        }
       />
     );
   }
