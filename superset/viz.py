@@ -1229,6 +1229,35 @@ class DirectedForceViz(BaseViz):
         return df.to_dict(orient='records')
 
 
+class CountryMapViz(BaseViz):
+
+    """A country centric"""
+
+    viz_type = "country_map"
+    verbose_name = _("Country Map")
+    is_timeseries = False
+    credits = 'From bl.ocks.org By john-guerra'
+
+    def query_obj(self):
+        qry = super(CountryMapViz, self).query_obj()
+        qry['metrics'] = [
+            self.form_data['metric']]
+        qry['groupby'] = [self.form_data['entity']]
+        return qry
+
+    def get_data(self, df):
+        from superset.data import countries
+        fd = self.form_data
+        cols = [fd.get('entity')]
+        metric = fd.get('metric')
+        cols += [metric]
+        ndf = df[cols]
+        df = ndf
+        df.columns = ['country_id', 'metric']
+        d = df.to_dict(orient='records')
+        return d
+
+
 class WorldMapViz(BaseViz):
 
     """A country centric world map"""
@@ -1542,6 +1571,7 @@ viz_types_list = [
     SunburstViz,
     DirectedForceViz,
     SankeyViz,
+    CountryMapViz,
     WorldMapViz,
     FilterBoxViz,
     IFrameViz,

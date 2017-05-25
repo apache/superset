@@ -3,7 +3,7 @@ import logging
 
 from past.builtins import basestring
 
-from flask import Markup, flash, redirect
+from flask import Markup, flash, redirect, abort
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import sqlalchemy as sa
@@ -241,6 +241,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_update(self, table):
         self.post_add(table, flash_message=False)
+
+    def _delete(self, pk):
+        DeleteMixin._delete(self, pk)
 
     @expose('/edit/<pk>', methods=['GET', 'POST'])
     @has_access

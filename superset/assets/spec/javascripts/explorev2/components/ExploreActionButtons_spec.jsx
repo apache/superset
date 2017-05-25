@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import ExploreActionButtons from
-  '../../../../javascripts/explorev2/components/ExploreActionButtons';
+  '../../../../javascripts/explore/components/ExploreActionButtons';
 
 describe('ExploreActionButtons', () => {
   const defaultProps = {

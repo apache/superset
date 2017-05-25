@@ -16,7 +16,8 @@ import traceback
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup,
+    abort, url_for)
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -252,6 +253,8 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
+    def _delete(self, pk):
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_link(
     'Import Dashboards',
@@ -985,6 +988,16 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access
+    @expose("/explorev2/<datasource_type>/<datasource_id>/")
+    def explorev2(self, datasource_type, datasource_id):
+        return redirect(url_for(
+            'Superset.explore',
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            **request.args))
+
+    @log_this
+    @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
         form_data = self.get_form_data()
@@ -1057,7 +1070,7 @@ class Superset(BaseSupersetView):
             if datasource_type == 'table' \
             else datasource.datasource_name
         return self.render_template(
-            "superset/explorev2.html",
+            "superset/explore.html",
             bootstrap_data=json.dumps(bootstrap_data),
             slice=slc,
             standalone_mode=standalone,

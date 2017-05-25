@@ -130,6 +130,11 @@
           "/static/assets/images/viz_thumbnails/directed_force.png"
         ],
         [
+          "country_map",
+          "Country Map",
+          "/static/assets/images/viz_thumbnails/country_map.png"
+        ],
+        [
           "world_map",
           "World Map",
           "/static/assets/images/viz_thumbnails/world_map.png"
@@ -771,6 +776,74 @@
       "label": "Color Metric",
       "default": null,
       "description": "A metric to use for color"
+    },
+    "select_country": {
+      "type": "SelectControl",
+      "label": "Country Name Type",
+      "default": "France",
+      "choices": [
+        [
+          "Algeria",
+          "Algeria"
+        ],
+        [
+          "Belgium",
+          "Belgium"
+        ],
+        [
+          "Brasil",
+          "Brasil"
+        ],
+        [
+          "China",
+          "China"
+        ],
+        [
+          "Germany",
+          "Germany"
+        ],
+        [
+          "Egypt",
+          "Egypt"
+        ],
+        [
+          "France",
+          "France"
+        ],
+        [
+          "Italy",
+          "Italy"
+        ],
+        [
+          "Morocco",
+          "Morocco"
+        ],
+        [
+          "Nederlanden",
+          "Nederlanden"
+        ],
+        [
+          "Russia",
+          "Russia"
+        ],
+        [
+          "Singapore",
+          "Singapore"
+        ],
+        [
+          "Spain",
+          "Spain"
+        ],
+        [
+          "Uk",
+          "Uk"
+        ],
+        [
+          "Usa",
+          "Usa"
+        ]
+      ],
+      "description": "The name of country that Superset should display"
     },
     "country_fieldtype": {
       "type": "SelectControl",
@@ -2044,7 +2117,7 @@
       "type": "TextControl",
       "label": "Time Shift",
       "default": null,
-      "description": "Overlay a timeseries from a relative time period. Expects relative time delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days"
+      "description": "Overlay a timeseries from a relative time period. Expects relative time delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days)"
     },
     "subheader": {
       "type": "TextControl",
@@ -2284,6 +2357,12 @@
       "label": "Slice ID",
       "hidden": true,
       "description": "The id of the active slice"
+    },
+    "cache_timeout": {
+      "type": "HiddenControl",
+      "label": "Cache Timeout (seconds)",
+      "hidden": true,
+      "description": "The number of seconds before expiring the cache"
     }
   }
 }

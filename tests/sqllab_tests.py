@@ -59,7 +59,9 @@ class SqlLabTests(SupersetTestCase):
         main_db_permission_view = (
             db.session.query(ab_models.PermissionView)
             .join(ab_models.ViewMenu)
+            .join(ab_models.Permission)
             .filter(ab_models.ViewMenu.name == '[main].(id:1)')
+            .filter(ab_models.Permission.name == 'database_access')
             .first()
         )
         astronaut = sm.add_role("Astronaut")

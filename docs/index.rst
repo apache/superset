@@ -58,6 +58,7 @@ Contents
     tutorial
     security
     sqllab
+    visualization
     videos
     gallery
     druid

@@ -15,7 +15,7 @@ const config = {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     common: APP_DIR + '/javascripts/common.js',
     dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/Dashboard.jsx'],
-    explorev2: ['babel-polyfill', APP_DIR + '/javascripts/explorev2/index.jsx'],
+    explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],
     welcome: ['babel-polyfill', APP_DIR + '/javascripts/welcome.js'],
     profile: ['babel-polyfill', APP_DIR + '/javascripts/profile/index.jsx'],
