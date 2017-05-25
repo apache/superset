@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import QueryAndSaveButtons from '../../../../javascripts/explorev2/components/QueryAndSaveBtns';
+import QueryAndSaveButtons from '../../../../javascripts/explore/components/QueryAndSaveBtns';
 import Button from '../../../../javascripts/components/Button';
 
 describe('QueryAndSaveButtons', () => {

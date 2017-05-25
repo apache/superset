@@ -3,11 +3,11 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { getFormDataFromControls, defaultControls }
-  from '../../../../javascripts/explorev2/stores/store';
+  from '../../../../javascripts/explore/stores/store';
 import {
   ControlPanelsContainer,
-} from '../../../../javascripts/explorev2/components/ControlPanelsContainer';
-import ControlPanelSection from '../../../../javascripts/explorev2/components/ControlPanelSection';
+} from '../../../../javascripts/explore/components/ControlPanelsContainer';
+import ControlPanelSection from '../../../../javascripts/explore/components/ControlPanelSection';
 
 const defaultProps = {
   datasource_type: 'table',

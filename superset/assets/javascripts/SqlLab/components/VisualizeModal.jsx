@@ -8,7 +8,7 @@ import { Alert, Button, Col, Modal } from 'react-bootstrap';
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
-import { getExploreUrl } from '../../explorev2/exploreUtils';
+import { getExploreUrl } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 
 const CHART_TYPES = [
@@ -285,4 +285,3 @@ function mapDispatchToProps(dispatch) {
 
 export { VisualizeModal };
 export default connect(mapStateToProps, mapDispatchToProps)(VisualizeModal);
-

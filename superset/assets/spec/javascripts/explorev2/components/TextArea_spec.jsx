@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import TextAreaControl from '../../../../javascripts/explorev2/components/controls/TextAreaControl';
+import TextAreaControl from '../../../../javascripts/explore/components/controls/TextAreaControl';
 
 const defaultProps = {
   name: 'x_axis_label',

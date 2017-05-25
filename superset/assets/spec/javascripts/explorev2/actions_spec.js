@@ -2,10 +2,10 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
-import * as actions from '../../../javascripts/explorev2/actions/exploreActions';
-import * as exploreUtils from '../../../javascripts/explorev2/exploreUtils';
-import { defaultState } from '../../../javascripts/explorev2/stores/store';
-import { exploreReducer } from '../../../javascripts/explorev2/reducers/exploreReducer';
+import * as actions from '../../../javascripts/explore/actions/exploreActions';
+import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
+import { defaultState } from '../../../javascripts/explore/stores/store';
+import { exploreReducer } from '../../../javascripts/explore/reducers/exploreReducer';
 
 describe('reducers', () => {
   it('sets correct control value given a key and value', () => {

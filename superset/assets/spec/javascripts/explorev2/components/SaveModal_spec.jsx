@@ -5,8 +5,8 @@ import { shallow } from 'enzyme';
 import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 
-import { defaultFormData } from '../../../../javascripts/explorev2/stores/store';
-import { SaveModal } from '../../../../javascripts/explorev2/components/SaveModal';
+import { defaultFormData } from '../../../../javascripts/explore/stores/store';
+import { SaveModal } from '../../../../javascripts/explore/components/SaveModal';
 
 const defaultProps = {
   can_edit: true,

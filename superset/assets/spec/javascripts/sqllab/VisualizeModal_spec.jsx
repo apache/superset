@@ -12,7 +12,7 @@ import $ from 'jquery';
 import { queries } from './fixtures';
 import { sqlLabReducer } from '../../../javascripts/SqlLab/reducers';
 import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
-import * as exploreUtils from '../../../javascripts/explorev2/exploreUtils';
+import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
 
 global.notify = {
   info: () => {},
