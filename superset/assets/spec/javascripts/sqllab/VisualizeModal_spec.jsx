@@ -81,7 +81,7 @@ describe('VisualizeModal', () => {
     const wrapper = getVisualizeModalWrapper();
     const sampleQuery = queries[0];
 
-    it('should have valid query prop', () => {
+    it('should require valid props parameters', () => {
       const spy = sinon.spy(wrapper.instance(), 'setState');
       wrapper.instance().setStateFromProps();
       expect(spy.callCount).to.equal(0);
