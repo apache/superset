@@ -203,3 +203,16 @@ export function initJQueryAjax() {
     });
   }
 }
+
+export function tryNumify(s) {
+  // Attempts casting to float, returns string when failing
+  try {
+    const parsed = parseFloat(s);
+    if (parsed) {
+      return parsed;
+    }
+  } catch (e) {
+    // pass
+  }
+  return s;
+}
