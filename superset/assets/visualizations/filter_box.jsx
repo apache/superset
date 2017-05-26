@@ -75,15 +75,16 @@ class FilterBox extends React.Component {
     }
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
       const data = this.props.filtersChoices[filter];
+      const verboseFilterName = this.props.verboseFiltersChoices[filter];
       const maxes = {};
       maxes[filter] = d3.max(data, function (d) {
         return d.metric;
       });
       return (
         <div key={filter} className="m-b-5">
-          {filter}
+          {verboseFilterName}
           <Select.Creatable
-            placeholder={`Select [${filter}]`}
+            placeholder={`Select [${verboseFilterName}]`}
             key={filter}
             multi
             value={this.state.selectedValues[filter]}
@@ -138,9 +139,11 @@ function filterBox(slice, payload) {
   fd.groupby.forEach((f) => {
     filtersChoices[f] = payload.data[f];
   });
+  const verboseFiltersChoices = payload.verbose_filters
   ReactDOM.render(
     <FilterBox
       filtersChoices={filtersChoices}
+      verboseFiltersChoices={verboseFiltersChoices}
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
       origSelectedValues={slice.getFilters() || {}}
