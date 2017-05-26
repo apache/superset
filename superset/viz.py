@@ -49,16 +49,43 @@ class BaseViz(object):
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
+        # Use form_data for creating query objects
+        # Use verbose_form_data for visualization
         self.form_data = form_data
+        self.verbose_form_data = self.form_data_to_verbose()
 
         self.query = ""
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
-        self.metrics = self.form_data.get('metrics') or []
-        self.groupby = self.form_data.get('groupby') or []
 
         self.status = None
         self.error_message = None
+
+    def form_data_to_verbose(self):
+        fd = self.form_data.copy()
+
+        verbose_name_function = {
+            'metric': self.datasource.get_verbose_metrics_names,
+            'column': self.datasource.get_verbose_column_names
+        }
+        attributes = {
+            'metric': ['metrics', 'metric', 'secondary_metric', 'x', 'y', 'size', 'metric_2'],
+            'column': ['columns', 'groupby', 'granularity_sqla', 'series', 'all_columns_x', 'all_columns_y']
+        }
+
+        existing_attributes = {}
+        for at in ['metric', 'column']:
+            datasource_function = verbose_name_function.get(at)
+            for attribute in attributes[at]:
+                fd_attribute = self.form_data.get(attribute)
+                if fd_attribute:
+                    if not isinstance(fd_attribute, list):
+                        fd_attribute = [fd_attribute]
+                    new_name = datasource_function(fd_attribute)
+                    existing_attributes[attribute] = new_name
+
+        fd.update(existing_attributes)
+        return fd
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -102,6 +129,12 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna(0)
+
+        # Rename pandas data frame columns
+        df.rename(
+            columns=self.datasource.get_verbose_values(df.columns.values),
+            inplace=True
+        )
         return df
 
     def get_extra_filters(self):
@@ -255,6 +288,13 @@ class BaseViz(object):
                 'status': self.status,
                 'stacktrace': stacktrace,
             }
+
+            if self.viz_type == 'filter_box':
+                payload['verbose_filters'] = {
+                    key: self.datasource.get_verbose_column_names([key])[0]
+                    for key in data.keys()
+                }
+
             payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
@@ -387,15 +427,16 @@ class PivotTableViz(BaseViz):
         return d
 
     def get_data(self, df):
+        form_data = self.verbose_form_data
         if (
-                self.form_data.get("granularity") == "all" and
+                form_data.get("granularity") == "all" and
                 DTTM_ALIAS in df):
             del df[DTTM_ALIAS]
         df = df.pivot_table(
-            index=self.form_data.get('groupby'),
-            columns=self.form_data.get('columns'),
-            values=self.form_data.get('metrics'),
-            aggfunc=self.form_data.get('pandas_aggfunc'),
+            index=form_data.get('groupby'),
+            columns=form_data.get('columns'),
+            values=form_data.get('metrics'),
+            aggfunc=form_data.get('pandas_aggfunc'),
             margins=True,
         )
         return df.to_html(
@@ -417,8 +458,8 @@ class MarkupViz(BaseViz):
         return True
 
     def get_data(self, df):
-        markup_type = self.form_data.get("markup_type")
-        code = self.form_data.get("code", '')
+        markup_type = self.verbose_form_data.get("markup_type")
+        code = self.verbose_form_data.get("code", '')
         if markup_type == "markdown":
             code = markdown(code)
         return dict(html=code)
@@ -432,7 +473,7 @@ class SeparatorViz(MarkupViz):
     verbose_name = _("Separator")
 
     def get_data(self, df):
-        code = markdown(self.form_data.get("code", ''))
+        code = markdown(self.verbose_form_data.get("code", ''))
         return dict(html=code)
 
 
@@ -457,7 +498,7 @@ class WordCloudViz(BaseViz):
 
     def get_data(self, df):
         # Ordering the columns
-        df = df[[self.form_data.get('series'), self.form_data.get('metric')]]
+        df = df[[self.verbose_form_data.get('series')[0], self.verbose_form_data.get('metric')[0]]]
         # Labeling the columns for uniform json schema
         df.columns = ['text', 'size']
         return df.to_dict(orient="records")
@@ -483,7 +524,7 @@ class TreemapViz(BaseViz):
         return result
 
     def get_data(self, df):
-        df = df.set_index(self.form_data.get("groupby"))
+        df = df.set_index(self.verbose_form_data.get("groupby"))
         chart_data = [{"name": metric, "children": self._nest(metric, df)}
                       for metric in df.columns]
         return chart_data
@@ -500,7 +541,7 @@ class CalHeatmapViz(BaseViz):
     is_timeseries = True
 
     def get_data(self, df):
-        form_data = self.form_data
+        form_data = self.verbose_form_data
 
         df.columns = ["timestamp", "metric"]
         timestamps = {str(obj["timestamp"].value / 10**9):
@@ -568,7 +609,7 @@ class BoxPlotViz(NVD3Viz):
                     key = "Q2"
                 boxes[label][key] = value
             for label, box in boxes.items():
-                if len(self.form_data.get("metrics")) > 1:
+                if len(self.verbose_form_data.get("metrics")) > 1:
                     # need to render data labels with metrics
                     chart_label = label_sep.join([index_value, label])
                 else:
@@ -580,7 +621,7 @@ class BoxPlotViz(NVD3Viz):
         return chart_data
 
     def get_data(self, df):
-        form_data = self.form_data
+        form_data = self.verbose_form_data
         df = df.fillna(0)
 
         # conform to NVD3 names
@@ -667,11 +708,11 @@ class BubbleViz(NVD3Viz):
         return d
 
     def get_data(self, df):
-        df['x'] = df[[self.x_metric]]
-        df['y'] = df[[self.y_metric]]
-        df['size'] = df[[self.z_metric]]
+        df['x'] = df[self.x_metric]
+        df['y'] = df[self.y_metric]
+        df['size'] = df[self.z_metric]
         df['shape'] = 'circle'
-        df['group'] = df[[self.series]]
+        df['group'] = df[self.series]
 
         series = defaultdict(list)
         for row in df.to_dict(orient='records'):
@@ -720,7 +761,7 @@ class BulletViz(NVD3Viz):
 
     def get_data(self, df):
         df = df.fillna(0)
-        df['metric'] = df[[self.metric]]
+        df['metric'] = df[self.metric]
         values = df['metric'].values
         return {
             'measures': values.tolist(),
@@ -752,7 +793,7 @@ class BigNumberViz(BaseViz):
         return d
 
     def get_data(self, df):
-        form_data = self.form_data
+        form_data = self.verbose_form_data
         df.sort_values(by=df.columns[0], inplace=True)
         compare_lag = form_data.get("compare_lag")
         return {
@@ -819,7 +860,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 series_title = name
             else:
                 name = ["{}".format(s) for s in name]
-                if len(self.form_data.get('metrics')) > 1:
+                if len(self.verbose_form_data.get('metrics')) > 1:
                     series_title = ", ".join(name)
                 else:
                     series_title = ", ".join(name[1:])
@@ -838,7 +879,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return chart_data
 
     def get_data(self, df):
-        fd = self.form_data
+        fd = self.verbose_form_data
         df = df.fillna(0)
         if fd.get("granularity") == "all":
             raise Exception("Pick a time granularity for your time series")
@@ -952,8 +993,8 @@ class NVD3DualLineViz(NVD3Viz):
         series = df.to_dict('series')
         chart_data = []
         metrics = [
-            self.form_data.get('metric'),
-            self.form_data.get('metric_2')
+            self.verbose_form_data.get('metric')[0],
+            self.verbose_form_data.get('metric_2')[0]
         ]
         for i, m in enumerate(metrics):
             ys = series[m]
@@ -974,14 +1015,14 @@ class NVD3DualLineViz(NVD3Viz):
         return chart_data
 
     def get_data(self, df):
-        fd = self.form_data
+        fd = self.verbose_form_data
         df = df.fillna(0)
 
-        if self.form_data.get("granularity") == "all":
+        if fd.get("granularity") == "all":
             raise Exception("Pick a time granularity for your time series")
 
-        metric = fd.get('metric')
-        metric_2 = fd.get('metric_2')
+        metric = fd.get('metric')[0]
+        metric_2 = fd.get('metric_2')[0]
         df = df.pivot_table(
             index=DTTM_ALIAS,
             values=[metric, metric_2])
@@ -1025,10 +1066,11 @@ class DistributionPieViz(NVD3Viz):
     is_timeseries = False
 
     def get_data(self, df):
+        metric = self.verbose_form_data.get('metrics')[0]
         df = df.pivot_table(
-            index=self.groupby,
-            values=[self.metrics[0]])
-        df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
+            index=self.verbose_form_data.get('groupby'),
+            values=[metric])
+        df.sort_values(by=metric, ascending=False, inplace=True)
         df = df.reset_index()
         df.columns = ['x', 'y']
         return df.to_dict(orient="records")
@@ -1075,22 +1117,22 @@ class DistributionBarViz(DistributionPieViz):
         d['groupby'] = set(gb + cols)
         if len(d['groupby']) < len(gb) + len(cols):
             raise Exception("Can't have overlap between Series and Breakdowns")
-        if not self.metrics:
+        if not self.form_data.get('metrics'):
             raise Exception("Pick at least one metric")
-        if not self.groupby:
+        if not self.form_data.get('groupby'):
             raise Exception("Pick at least one field for [Series]")
         return d
 
     def get_data(self, df):
-        fd = self.form_data
+        fd = self.verbose_form_data
 
-        row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
+        row = df.groupby(fd.get('groupby')).sum()[fd.get('metrics')[0]].copy()
         row.sort_values(ascending=False, inplace=True)
         columns = fd.get('columns') or []
         pt = df.pivot_table(
-            index=self.groupby,
+            index=fd.get('groupby'),
             columns=columns,
-            values=self.metrics)
+            values=fd.get('metrics'))
         if fd.get("contribution"):
             pt = pt.fillna(0)
             pt = pt.T
@@ -1098,11 +1140,11 @@ class DistributionBarViz(DistributionPieViz):
         pt = pt.reindex(row.index)
         chart_data = []
         for name, ys in pt.iteritems():
-            if pt[name].dtype.kind not in "biufc" or name in self.groupby:
+            if pt[name].dtype.kind not in "biufc" or name in fd.get('groupby'):
                 continue
             if isinstance(name, string_types):
                 series_title = name
-            elif len(self.metrics) > 1:
+            elif len(fd.get('metrics')) > 1:
                 series_title = ", ".join(name)
             else:
                 l = [str(s) for s in name[1:]]
@@ -1138,17 +1180,17 @@ class SunburstViz(BaseViz):
         '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>')
 
     def get_data(self, df):
-
+        form_data = self.verbose_form_data
         # if m1 == m2 duplicate the metric column
-        cols = self.form_data.get('groupby')
-        metric = self.form_data.get('metric')
-        secondary_metric = self.form_data.get('secondary_metric')
+        cols = form_data.get('groupby')
+        metric = form_data.get('metric')
+        secondary_metric = form_data.get('secondary_metric')
         if metric == secondary_metric:
             ndf = df
             ndf.columns = [cols + ['m1', 'm2']]
         else:
             cols += [
-                self.form_data['metric'], self.form_data['secondary_metric']]
+                form_data['metric'][0], form_data['secondary_metric'][0]]
             ndf = df[cols]
         return json.loads(ndf.to_json(orient="values"))  # TODO fix this nonsense
 
@@ -1276,10 +1318,10 @@ class WorldMapViz(BaseViz):
 
     def get_data(self, df):
         from superset.data import countries
-        fd = self.form_data
+        fd = self.verbose_form_data
         cols = [fd.get('entity')]
-        metric = fd.get('metric')
-        secondary_metric = fd.get('secondary_metric')
+        metric = fd.get('metric')[0]
+        secondary_metric = fd.get('secondary_metric')[0]
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -1404,10 +1446,10 @@ class HeatmapViz(BaseViz):
         return d
 
     def get_data(self, df):
-        fd = self.form_data
-        x = fd.get('all_columns_x')
-        y = fd.get('all_columns_y')
-        v = fd.get('metric')
+        fd = self.verbose_form_data
+        x = fd.get('all_columns_x')[0]
+        y = fd.get('all_columns_y')[0]
+        v = fd.get('metric')[0]
         if x == y:
             df.columns = ['x', 'y', 'v']
         else:
@@ -1495,7 +1537,7 @@ class MapboxViz(BaseViz):
         return d
 
     def get_data(self, df):
-        fd = self.form_data
+        fd = self.verbose_form_data
         label_col = fd.get('mapbox_label')
         custom_metric = label_col and len(label_col) >= 1
         metric_col = [None] * len(df.index)
