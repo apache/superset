@@ -121,11 +121,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
         d = {
-            'all_cols': utils.choicify(self.column_names),
+            'all_cols': self.columns_combo,
             'column_formats': self.column_formats,
             'edit_url': self.url,
             'filter_select': self.filter_select_enabled,
-            'filterable_cols': utils.choicify(self.filterable_column_names),
+            'filterable_cols': self.columns_combo,
             'gb_cols': self.columns_combo,
             'id': self.id,
             'metrics_combo': self.metrics_combo,
