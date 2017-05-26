@@ -145,12 +145,12 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     def get_verbose_column_names(self, columns):
         if columns is None:
             return []
-        return [self.verbose_column_names[c] for c in columns]
+        return [self.verbose_column_names.get(c) for c in columns]
 
     def get_verbose_metrics_names(self, metrics):
         if metrics is None:
             return []
-        return [self.verbose_metrics_names[m] for m in metrics]
+        return [self.verbose_metrics_names.get(m) for m in metrics]
 
     def get_verbose_values(self, values):
         return {

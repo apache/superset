@@ -68,6 +68,7 @@ class BaseViz(object):
             'metric': self.datasource.get_verbose_metrics_names,
             'column': self.datasource.get_verbose_column_names
         }
+
         attributes = {
             'metric': [
                 'metrics', 'metric', 'secondary_metric',
