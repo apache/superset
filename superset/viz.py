@@ -342,7 +342,7 @@ class BaseViz(object):
         return df.to_csv(index=include_index, encoding="utf-8")
 
     def get_data(self, df):
-        return []
+        return dict()
 
     @property
     def json_data(self):
