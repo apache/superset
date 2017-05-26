@@ -69,8 +69,14 @@ class BaseViz(object):
             'column': self.datasource.get_verbose_column_names
         }
         attributes = {
-            'metric': ['metrics', 'metric', 'secondary_metric', 'x', 'y', 'size', 'metric_2'],
-            'column': ['columns', 'groupby', 'granularity_sqla', 'series', 'all_columns_x', 'all_columns_y']
+            'metric': [
+                'metrics', 'metric', 'secondary_metric',
+                'x', 'y', 'size', 'metric_2'
+            ],
+            'column': [
+                'columns', 'groupby', 'granularity_sqla',
+                'series', 'all_columns_x', 'all_columns_y'
+            ]
         }
 
         existing_attributes = {}
@@ -498,7 +504,10 @@ class WordCloudViz(BaseViz):
 
     def get_data(self, df):
         # Ordering the columns
-        df = df[[self.verbose_form_data.get('series')[0], self.verbose_form_data.get('metric')[0]]]
+        df = df[[
+            self.verbose_form_data.get('series')[0],
+            self.verbose_form_data.get('metric')[0]
+        ]]
         # Labeling the columns for uniform json schema
         df.columns = ['text', 'size']
         return df.to_dict(orient="records")

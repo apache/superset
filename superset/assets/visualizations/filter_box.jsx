@@ -14,6 +14,7 @@ const propTypes = {
   origSelectedValues: PropTypes.object,
   instantFiltering: PropTypes.bool,
   filtersChoices: PropTypes.object,
+  verboseFiltersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
 };
@@ -139,7 +140,7 @@ function filterBox(slice, payload) {
   fd.groupby.forEach((f) => {
     filtersChoices[f] = payload.data[f];
   });
-  const verboseFiltersChoices = payload.verbose_filters
+  const verboseFiltersChoices = payload.verbose_filters;
   ReactDOM.render(
     <FilterBox
       filtersChoices={filtersChoices}

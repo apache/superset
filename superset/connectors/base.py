@@ -90,11 +90,17 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def verbose_column_names(self):
-        return {c.column_name: c.verbose_name or c.column_name for c in self.columns}
+        return {
+            c.column_name: c.verbose_name or c.column_name
+            for c in self.columns
+        }
 
     @property
     def verbose_metrics_names(self):
-        return {m.metric_name: m.verbose_name or m.metric_name for m in self.metrics}
+        return {
+            m.metric_name: m.verbose_name or m.metric_name
+            for m in self.metrics
+        }
 
     @property
     def metrics_combo(self):
