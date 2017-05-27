@@ -3,6 +3,7 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 
 import { Modal } from 'react-bootstrap';
+import Select from 'react-select';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
@@ -15,6 +16,7 @@ import { sqlLabReducer } from '../../../javascripts/SqlLab/reducers';
 import * as actions from '../../../javascripts/SqlLab/actions';
 import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
 import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
+import { visTypes } from '../../../javascripts/explore/stores/visTypes';
 
 global.notify = {
   info: () => {},
@@ -44,18 +46,8 @@ describe('VisualizeModal', () => {
       type: 'STRING',
     },
   };
-  const mockChartTypeBarChart = {
-    label: 'Distribution - Bar Chart',
-    requiresTime: false,
-    requiresMatrix: true,
-    value: 'dist_bar',
-  };
-  const mockChartTypeTB = {
-    label: 'Time Series - Bar Chart',
-    requiresTime: true,
-    requiresMatrix: false,
-    value: 'bar',
-  };
+  const mockChartTypeBarChart = visTypes.bar;
+  const mockChartTypeTB = visTypes.line;
   const mockEvent = {
     target: {
       value: 'mock event value',
@@ -193,7 +185,7 @@ describe('VisualizeModal', () => {
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(1);
     });
-    it('should check matrix', () => {
+    it('should check dimension', () => {
       // no is_dim
       columnsStub.returns({
         ds: {
@@ -324,5 +316,20 @@ describe('VisualizeModal', () => {
       expect(notify.error.callCount).to.equal(1);
       datasourceSpy.restore();
     });
+  });
+
+  describe('render', () => {
+    const wrapper = getVisualizeModalWrapper();
+    expect(wrapper.find(Modal)).to.have.length(1);
+
+    const selectorOptions = wrapper.find(Modal).dive()
+      .find(Modal.Body).dive()
+      .find(Select)
+      .props().options;
+    expect(selectorOptions).to.have.length(4);
+
+    const selectorOptionsValues =
+      Object.keys(selectorOptions).map(key => selectorOptions[key].value);
+    expect(selectorOptionsValues).to.have.same.members(['bar', 'line', 'pie', 'dist_bar']);
   });
 });
