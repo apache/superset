@@ -9,14 +9,12 @@ import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
 import { getExploreUrl } from '../../explore/exploreUtils';
+import { visTypes } from '../../explore/stores/visTypes';
 import * as actions from '../actions';
 
-const CHART_TYPES = [
-  { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false, requiresMatrix: true },
-  { value: 'pie', label: 'Pie Chart', requiresTime: false, requiresMatrix: true },
-  { value: 'line', label: 'Time Series - Line Chart', requiresTime: true, requiresMatrix: false },
-  { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true, requiresMatrix: true },
-];
+const CHART_TYPES = Object.keys(visTypes)
+  .filter(key => ['bar', 'line', 'pie', 'dist_bar'].indexOf(key) > -1)
+  .map(key => Object.assign({}, visTypes[key], { value: key }));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -88,24 +86,34 @@ class VisualizeModal extends React.PureComponent {
     });
     if (this.state.chartType === null) {
       hints.push('Pick a chart type!');
-    } else if (this.state.chartType.requiresTime) {
-      let hasTime = false;
-      for (const colName in cols) {
-        const col = cols[colName];
-        if (col.hasOwnProperty('is_date') && col.is_date) {
-          hasTime = true;
+    } else {
+      if (this.state.chartType.requiresTime) {
+        let hasTime = false;
+        for (const colName in cols) {
+          const col = cols[colName];
+          if (col.hasOwnProperty('is_date') && col.is_date) {
+            hasTime = true;
+          }
+        }
+        if (!hasTime) {
+          hints.push(
+            'To use this chart type you need at least one column ' +
+            'flagged as a date');
         }
       }
-      if (!hasTime) {
-        hints.push(
-          'To use this chart type you need at least one column ' +
-          'flagged as a date');
+      if (this.state.chartType.requiresDimension) {
+        const hasMatrix = Object.keys(cols).filter(key => (cols[key].is_dim)).length > 0;
+        if (!hasMatrix) {
+          hints.push(
+            'To use this chart type you need at least one dimension');
+        }
       }
-    } else if (this.state.chartType.requiresMatrix) {
-      const hasMatrix = Object.keys(cols).filter(key => (cols[key].is_dim)).length > 0;
-      if (!hasMatrix) {
-        hints.push(
-          'To use this chart type you need at least one matrix');
+      if (this.state.chartType.requiresAggregationFn) {
+        const hasMatrix = Object.keys(cols).filter(key => (cols[key].agg)).length > 0;
+        if (!hasMatrix) {
+          hints.push(
+            'To use this chart type you need at least one aggregation function');
+        }
       }
     }
     this.setState({ hints });
