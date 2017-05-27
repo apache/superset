@@ -319,17 +319,19 @@ describe('VisualizeModal', () => {
   });
 
   describe('render', () => {
-    const wrapper = getVisualizeModalWrapper();
-    expect(wrapper.find(Modal)).to.have.length(1);
+    it('should have 4 chart types', () => {
+      const wrapper = getVisualizeModalWrapper();
+      expect(wrapper.find(Modal)).to.have.length(1);
 
-    const selectorOptions = wrapper.find(Modal).dive()
-      .find(Modal.Body).dive()
-      .find(Select)
-      .props().options;
-    expect(selectorOptions).to.have.length(4);
+      const selectorOptions = wrapper.find(Modal).dive()
+        .find(Modal.Body).dive()
+        .find(Select)
+        .props().options;
+      expect(selectorOptions).to.have.length(4);
 
-    const selectorOptionsValues =
-      Object.keys(selectorOptions).map(key => selectorOptions[key].value);
-    expect(selectorOptionsValues).to.have.same.members(['bar', 'line', 'pie', 'dist_bar']);
+      const selectorOptionsValues =
+        Object.keys(selectorOptions).map(key => selectorOptions[key].value);
+      expect(selectorOptionsValues).to.have.same.members(['bar', 'line', 'pie', 'dist_bar']);
+    });
   });
 });
