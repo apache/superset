@@ -13,6 +13,7 @@ import './filter_box.css';
 const propTypes = {
   origSelectedValues: PropTypes.object,
   instantFiltering: PropTypes.bool,
+  selectType: PropTypes.string,
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
@@ -23,6 +24,7 @@ const defaultProps = {
   onChange: () => {},
   showDateFilter: false,
   instantFiltering: true,
+  selectType: 'select',
 };
 
 class FilterBox extends React.Component {
@@ -51,6 +53,46 @@ class FilterBox extends React.Component {
     this.setState({ selectedValues, hasChanged: true });
     this.props.onChange(filter, vals, false, this.props.instantFiltering);
   }
+  renderSelectInput(filter) {
+    const data = this.props.filtersChoices[filter];
+    const maxes = {};
+    maxes[filter] = d3.max(data, function (d) {
+      return d.metric;
+    });
+    return (
+      <Select.Creatable
+        placeholder={`Select [${filter}]`}
+        key={filter}
+        multi
+        value={this.state.selectedValues[filter]}
+        options={data.map((opt) => {
+          const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
+          const backgroundImage = (
+            'linear-gradient(to right, lightgrey, ' +
+            `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
+          );
+          const style = {
+            backgroundImage,
+            padding: '2px 5px',
+          };
+          return { value: opt.id, label: opt.id, style };
+        })}
+        onChange={this.changeFilter.bind(this, filter)}
+      />
+    );
+  }
+  renderTextInput(filter) {
+    return (
+      <input
+        type='text'
+        className='form-control input-sm'
+        key={filter}
+        placeholder={`Enter [${filter}]`}
+        value={this.state.selectedValues[filter]}
+        onChange={(ev) => this.changeFilter(filter, [ev.target])}
+      />
+    );
+  }
   render() {
     let dateFilter;
     if (this.props.showDateFilter) {
@@ -73,37 +115,18 @@ class FilterBox extends React.Component {
         );
       });
     }
-    const filters = Object.keys(this.props.filtersChoices).map((filter) => {
-      const data = this.props.filtersChoices[filter];
-      const maxes = {};
-      maxes[filter] = d3.max(data, function (d) {
-        return d.metric;
-      });
-      return (
-        <div key={filter} className="m-b-5">
-          {filter}
-          <Select.Creatable
-            placeholder={`Select [${filter}]`}
-            key={filter}
-            multi
-            value={this.state.selectedValues[filter]}
-            options={data.map((opt) => {
-              const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
-              const backgroundImage = (
-                'linear-gradient(to right, lightgrey, ' +
-                `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-              );
-              const style = {
-                backgroundImage,
-                padding: '2px 5px',
-              };
-              return { value: opt.id, label: opt.id, style };
-            })}
-            onChange={this.changeFilter.bind(this, filter)}
-          />
-        </div>
-      );
-    });
+    const renderInput = Object.assign({
+      [this.props.selectType]: () => (<span>Invalid select type</span>),
+    }, {
+      select: this.renderSelectInput.bind(this),
+      text_input: this.renderTextInput.bind(this),
+    })[this.props.selectType];
+    const filters = Object.keys(this.props.filtersChoices).map(filter => (
+      <div key={filter} className="m-b-5">
+        {filter}
+        {renderInput(filter)}
+      </div>
+    ));
     return (
       <div>
         {dateFilter}
@@ -145,6 +168,7 @@ function filterBox(slice, payload) {
       showDateFilter={fd.date_filter}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
+      selectType={fd.filter_select_type}
     />,
     document.getElementById(slice.containerId),
   );
