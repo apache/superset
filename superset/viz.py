@@ -1317,6 +1317,15 @@ class FilterBoxViz(BaseViz):
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
 
+    def get_df(self, query_obj=None):
+        select_type = self.form_data.get('filter_select_type', 'select')
+        if select_type == 'text_input':
+            return pd.DataFrame()
+        elif select_type == 'select':
+            return super(FilterBoxViz, self).get_df(query_obj)
+        else:
+            raise Exception("Invalid select type")
+
     def query_obj(self):
         qry = super(FilterBoxViz, self).query_obj()
         groupby = self.form_data.get('groupby')
@@ -1332,7 +1341,7 @@ class FilterBoxViz(BaseViz):
         d = {}
         for flt in filters:
             qry['groupby'] = [flt]
-            df = super(FilterBoxViz, self).get_df(qry)
+            df = self.get_df(qry)
             d[flt] = [{
                 'id': row[0],
                 'text': row[0],
