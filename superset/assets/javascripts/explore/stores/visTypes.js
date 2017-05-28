@@ -638,6 +638,7 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['date_filter', 'instant_filtering'],
+          ['filter_select_type'],
           ['groupby'],
           ['metric'],
         ],

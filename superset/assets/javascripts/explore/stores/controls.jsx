@@ -889,6 +889,17 @@ export const controls = {
     description: 'Whether to include a time filter',
   },
 
+  filter_select_type: {
+    type: 'SelectControl',
+    label: 'Input Type',
+    default: 'select',
+    choices: [
+      ['select', 'Select'],
+      ['text_input', 'Text Input'],
+    ],
+    description: 'How to enter de filter input?',
+  },
+
   show_datatable: {
     type: 'CheckboxControl',
     label: 'Data Table',
