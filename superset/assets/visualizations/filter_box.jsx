@@ -84,12 +84,12 @@ class FilterBox extends React.Component {
   renderTextInput(filter) {
     return (
       <input
-        type='text'
-        className='form-control input-sm'
+        type="text"
+        className="form-control input-sm"
         key={filter}
         placeholder={`Enter [${filter}]`}
         value={this.state.selectedValues[filter]}
-        onChange={(ev) => this.changeFilter(filter, [ev.target])}
+        onChange={ev => this.changeFilter(filter, [ev.target])}
       />
     );
   }
