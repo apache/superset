@@ -897,7 +897,7 @@ export const controls = {
       ['select', 'Select'],
       ['text_input', 'Text Input'],
     ],
-    description: 'How to enter de filter input?',
+    description: 'The input type to specify the filter option',
   },
 
   show_datatable: {
