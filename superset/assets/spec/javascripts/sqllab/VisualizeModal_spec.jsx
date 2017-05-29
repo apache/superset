@@ -13,6 +13,7 @@ import shortid from 'shortid';
 import { queries } from './fixtures';
 import { sqlLabReducer } from '../../../javascripts/SqlLab/reducers';
 import * as actions from '../../../javascripts/SqlLab/actions';
+import { VALIDATION_ERRORS } from '../../../javascripts/SqlLab/constants';
 import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
 import * as exploreUtils from '../../../javascripts/explorev2/exploreUtils';
 
@@ -165,6 +166,7 @@ describe('VisualizeModal', () => {
       wrapper.setState({ chartType: null });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(1);
+      expect(wrapper.state().hints[0]).to.have.string(VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     });
     it('should check time series', () => {
       columnsStub.returns(mockColumns);
@@ -252,12 +254,14 @@ describe('VisualizeModal', () => {
     });
 
     let ajaxSpy;
+    let datasourceSpy;
     beforeEach(() => {
       ajaxSpy = sinon.spy($, 'ajax');
       sinon.stub(JSON, 'parse').callsFake(() => ({ table_id: 107 }));
       sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => ('mockURL'));
       sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => (mockOptions));
       sinon.spy(window, 'open');
+      datasourceSpy = sinon.stub(actions, 'createDatasource');
     });
     afterEach(() => {
       ajaxSpy.restore();
@@ -265,6 +269,7 @@ describe('VisualizeModal', () => {
       exploreUtils.getExploreUrl.restore();
       wrapper.instance().buildVizOptions.restore();
       window.open.restore();
+      datasourceSpy.restore();
     });
 
     it('should build request', () => {
@@ -277,7 +282,7 @@ describe('VisualizeModal', () => {
       expect(spyCall.args[0].data.data).to.equal(JSON.stringify(mockOptions));
     });
     it('should open new window', () => {
-      const datasourceSpy = sinon.stub(actions, 'createDatasource').callsFake(() => {
+      datasourceSpy.callsFake(() => {
         const d = $.Deferred();
         d.resolve('done');
         return d.promise();
@@ -286,10 +291,9 @@ describe('VisualizeModal', () => {
 
       wrapper.instance().visualize();
       expect(window.open.callCount).to.equal(1);
-      datasourceSpy.restore();
     });
     it('should notify error', () => {
-      const datasourceSpy = sinon.stub(actions, 'createDatasource').callsFake(() => {
+      datasourceSpy.callsFake(() => {
         const d = $.Deferred();
         d.reject('error message');
         return d.promise();
@@ -300,7 +304,6 @@ describe('VisualizeModal', () => {
       wrapper.instance().visualize();
       expect(window.open.callCount).to.equal(0);
       expect(notify.error.callCount).to.equal(1);
-      datasourceSpy.restore();
     });
   });
 });
