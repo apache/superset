@@ -10,7 +10,7 @@ import { Table } from 'reactable';
 import shortid from 'shortid';
 import { getExploreUrl } from '../../explorev2/exploreUtils';
 import * as actions from '../actions';
-import { VALIDATION_ERRORS } from '../constants';
+import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -88,7 +88,7 @@ class VisualizeModal extends React.PureComponent {
       }
     });
     if (this.state.chartType === null) {
-      hints.push(VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
+      hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     } else if (this.state.chartType.requiresTime) {
       let hasTime = false;
       for (const colName in cols) {
@@ -98,7 +98,7 @@ class VisualizeModal extends React.PureComponent {
         }
       }
       if (!hasTime) {
-        hints.push(VALIDATION_ERRORS.REQUIRE_TIME);
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
       }
     }
     this.setState({ hints });

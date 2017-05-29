@@ -23,7 +23,7 @@ export const TIME_OPTIONS = [
   '1 year ago',
 ];
 
-export const VALIDATION_ERRORS = {
+export const VISUALIZE_VALIDATION_ERRORS = {
   REQUIRE_CHART_TYPE: 'Pick a chart type!',
   REQUIRE_TIME: 'To use this chart type you need at least one column flagged as a date',
   REQUIRE_DIMENSION: 'To use this chart type you need at least one dimension',

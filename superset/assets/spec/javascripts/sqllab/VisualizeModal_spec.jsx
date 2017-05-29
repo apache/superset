@@ -13,7 +13,7 @@ import shortid from 'shortid';
 import { queries } from './fixtures';
 import { sqlLabReducer } from '../../../javascripts/SqlLab/reducers';
 import * as actions from '../../../javascripts/SqlLab/actions';
-import { VALIDATION_ERRORS } from '../../../javascripts/SqlLab/constants';
+import { VISUALIZE_VALIDATION_ERRORS } from '../../../javascripts/SqlLab/constants';
 import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
 import * as exploreUtils from '../../../javascripts/explorev2/exploreUtils';
 
@@ -166,7 +166,8 @@ describe('VisualizeModal', () => {
       wrapper.setState({ chartType: null });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(1);
-      expect(wrapper.state().hints[0]).to.have.string(VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
+      expect(wrapper.state().hints[0])
+        .to.have.string(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     });
     it('should check time series', () => {
       columnsStub.returns(mockColumns);
@@ -192,6 +193,7 @@ describe('VisualizeModal', () => {
       wrapper.setState({ chartType: mockChartTypeTB });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(1);
+      expect(wrapper.state().hints[0]).to.have.string(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
     });
     it('should validate after change checkbox', () => {
       const spy = sinon.spy(wrapper.instance(), 'validate');
