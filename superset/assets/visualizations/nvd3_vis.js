@@ -190,10 +190,22 @@ function nvd3Vis(slice, payload) {
           payload.data.forEach((d) => {
             d.values.sort(
               function compare(a, b) {
-                if (a.x < b.x) return -1;
-                if (a.x > b.x) return 1;
-                return 0;
-              },
+                            if (typeof a.x === 'string' && a.x.length !== b.x.length) {
+                                if (isNaN(Number(a.x))) {
+                                    if (a.x.length < b.x.length) return -1;
+                                    if (a.x.length > b.x.length) return 1;
+                                } else {
+                                    a_x = Number(a.x);
+                                    b_x = Number(b.x);
+                                    if (a_x < b_x) return -1;
+                                    if (a_x > b_x) return 1;
+                                }
+                            } else {
+                                if (a.x < b.x) return -1;
+                                if (a.x > b.x) return 1;
+                            }
+                            return 0;
+                        },
             );
           });
         }

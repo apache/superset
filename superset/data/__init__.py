@@ -48,6 +48,28 @@ def get_slice_json(defaults, **kwargs):
     return json.dumps(d, indent=4, sort_keys=True)
 
 
+def load_session():
+    tbl_name = "user_actions"
+    filepath = os.path.join(DATA_FOLDER, 'fake_session_data.gz')
+    df = pd.read_csv(filepath, delimiter='|', encoding='utf-8')
+    df.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=50)
+
+    print("Creating table [{}] reference".format(tbl_name))
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Fake user session data"
+    tbl.is_featured = True
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()
+
+
 def load_energy():
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = 'energy_usage'
