@@ -8,7 +8,7 @@ import { shallow } from 'enzyme';
 import SelectControl from '../../../../javascripts/explore/components/controls/SelectControl';
 
 const defaultProps = {
-  choices: [[10, 10], [20, 20]],
+  choices: [['1 year ago', '1 year ago'], ['today', 'today']],
   name: 'row_limit',
   label: 'Row Limit',
   onChange: sinon.spy(),
@@ -35,4 +35,29 @@ describe('SelectControl', () => {
     wrapper = shallow(<SelectControl {...defaultProps} freeForm />);
     expect(wrapper.find(Creatable)).to.have.lengthOf(1);
   });
+
+  describe('getOptions', () => {
+    it('returns the correct options', () => {
+      const options = [
+        {value: '1 year ago', label: '1 year ago'},
+        {value: 'today', label: 'today'},
+      ];
+      expect(wrapper.instance().getOptions(defaultProps)).to.deep.equal(options);
+    });
+
+    it('returns the correct options when freeform is set to true', () => {
+      const freeFormProps = Object.assign(defaultProps, {
+        choices: [],
+        freeForm: true,
+        value: ['one', 'two'],
+      });
+      const options = [
+        {value: 'one', label: 'one'},
+        {value: 'two', label: 'two'},
+      ];
+      expect(wrapper.instance().getOptions(freeFormProps)).to.deep.equal(options);
+    });
+  });
+
+
 });
