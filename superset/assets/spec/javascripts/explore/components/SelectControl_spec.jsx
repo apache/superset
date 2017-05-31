@@ -39,8 +39,8 @@ describe('SelectControl', () => {
   describe('getOptions', () => {
     it('returns the correct options', () => {
       const options = [
-        {value: '1 year ago', label: '1 year ago'},
-        {value: 'today', label: 'today'},
+        { value: '1 year ago', label: '1 year ago' },
+        { value: 'today', label: 'today' },
       ];
       expect(wrapper.instance().getOptions(defaultProps)).to.deep.equal(options);
     });
@@ -52,12 +52,10 @@ describe('SelectControl', () => {
         value: ['one', 'two'],
       });
       const options = [
-        {value: 'one', label: 'one'},
-        {value: 'two', label: 'two'},
+        { value: 'one', label: 'one' },
+        { value: 'two', label: 'two' },
       ];
       expect(wrapper.instance().getOptions(freeFormProps)).to.deep.equal(options);
     });
   });
-
-
 });
