@@ -23,7 +23,7 @@ describe('reducers', () => {
 describe('runQuery', () => {
   it('should handle query timeout', () => {
     const dispatch = sinon.spy();
-    const urlStub = sinon.stub(exploreUtils, 'getExploreUrl', () => ('mockURL'));
+    const urlStub = sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => ('mockURL'));
     const ajaxStub = sinon.stub($, 'ajax');
     ajaxStub.yieldsTo('error', { statusText: 'timeout' });
 

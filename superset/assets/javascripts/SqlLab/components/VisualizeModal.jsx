@@ -10,6 +10,7 @@ import { Table } from 'reactable';
 import shortid from 'shortid';
 import { getExploreUrl } from '../../explore/exploreUtils';
 import * as actions from '../actions';
+import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -49,7 +50,7 @@ class VisualizeModal extends React.PureComponent {
     this.setStateFromProps(nextProps);
   }
   setStateFromProps(props) {
-    if (
+    if (!props ||
         !props.query ||
         !props.query.results ||
         !props.query.results.columns) {
@@ -87,7 +88,7 @@ class VisualizeModal extends React.PureComponent {
       }
     });
     if (this.state.chartType === null) {
-      hints.push('Pick a chart type!');
+      hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     } else if (this.state.chartType.requiresTime) {
       let hasTime = false;
       for (const colName in cols) {
@@ -97,9 +98,7 @@ class VisualizeModal extends React.PureComponent {
         }
       }
       if (!hasTime) {
-        hints.push(
-          'To use this chart type you need at least one column ' +
-          'flagged as a date');
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
       }
     }
     this.setState({ hints });
@@ -118,16 +117,17 @@ class VisualizeModal extends React.PureComponent {
     }
     return columns;
   }
-  visualize() {
-    const vizOptions = {
+  buildVizOptions() {
+    return {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
     };
-
-    this.props.actions.createDatasource(vizOptions, this)
+  }
+  visualize() {
+    this.props.actions.createDatasource(this.buildVizOptions(), this)
       .done(() => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
         const mainMetric = columns.filter(d => d.agg)[0];
