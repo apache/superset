@@ -5,9 +5,9 @@ import d3 from 'd3';
 
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
-import { customizeToolTip } from '../javascripts/modules/utils';
+import { customizeToolTip, tryNumify } from '../javascripts/modules/utils';
 
-import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/controls';
+import { TIME_STAMP_OPTIONS } from '../javascripts/explore/stores/controls';
 
 const nv = require('nvd3');
 
@@ -188,13 +188,7 @@ function nvd3Vis(slice, payload) {
         chart.stacked(stacked);
         if (fd.order_bars) {
           payload.data.forEach((d) => {
-            d.values.sort(
-              function compare(a, b) {
-                if (a.x < b.x) return -1;
-                if (a.x > b.x) return 1;
-                return 0;
-              },
-            );
+            d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
         }
         if (fd.show_bar_value) {
@@ -261,7 +255,8 @@ function nvd3Vis(slice, payload) {
           s += '</table>';
           return s;
         });
-        chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
+        chart.pointRange([5, fd.max_bubble_size ** 2]);
+        chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
         break;
 
       case 'area':

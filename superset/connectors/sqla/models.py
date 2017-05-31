@@ -292,10 +292,9 @@ class SqlaTable(Model, BaseDatasource):
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name]
 
-        tbl = self.get_sqla_table()
         qry = (
             select([target_col.sqla_col])
-            .select_from(tbl)
+            .select_from(self.get_from_clause())
             .distinct(column_name)
         )
         if limit:
@@ -337,6 +336,15 @@ class SqlaTable(Model, BaseDatasource):
         if self.schema:
             tbl.schema = self.schema
         return tbl
+
+    def get_from_clause(self):
+        # Supporting arbitrary SQL statements in place of tables
+        if self.sql:
+            tp = self.get_template_processor()
+            from_sql = tp.process_template(self.sql)
+            return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
+
+        return self.get_sqla_table()
 
     def get_sqla_query(  # sqla
             self,
@@ -436,12 +444,7 @@ class SqlaTable(Model, BaseDatasource):
         select_exprs += metrics_exprs
         qry = sa.select(select_exprs)
 
-        # Supporting arbitrary SQL statements in place of tables
-        if self.sql:
-            from_sql = template_processor.process_template(self.sql)
-            tbl = TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
-        else:
-            tbl = self.get_sqla_table()
+        tbl = self.get_from_clause()
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)

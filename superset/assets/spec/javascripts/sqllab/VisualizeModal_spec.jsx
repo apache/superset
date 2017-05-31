@@ -15,7 +15,7 @@ import { sqlLabReducer } from '../../../javascripts/SqlLab/reducers';
 import * as actions from '../../../javascripts/SqlLab/actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../../../javascripts/SqlLab/constants';
 import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
-import * as exploreUtils from '../../../javascripts/explorev2/exploreUtils';
+import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
 
 global.notify = {
   info: () => {},

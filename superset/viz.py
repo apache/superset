@@ -656,6 +656,7 @@ class BubbleViz(NVD3Viz):
         self.z_metric = form_data.get('size')
         self.entity = form_data.get('entity')
         self.series = form_data.get('series')
+        d['row_limit'] = form_data.get('limit')
 
         d['metrics'] = [
             self.z_metric,

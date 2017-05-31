@@ -94,6 +94,7 @@ export default class Filter extends React.Component {
   renderFilterFormControl(filter) {
     const operator = operators[filter.op];
     if (operator.useSelect && !this.props.having) {
+      // TODO should use a simple Select, not a control here...
       return (
         <SelectControl
           multi={operator.multi}
@@ -103,6 +104,7 @@ export default class Filter extends React.Component {
           isLoading={this.state.valuesLoading}
           choices={this.state.valueChoices}
           onChange={this.changeSelect.bind(this)}
+          showHeader={false}
         />
       );
     }

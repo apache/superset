@@ -167,6 +167,7 @@ class ChartContainer extends React.PureComponent {
   }
 
   renderAlert() {
+    /* eslint-disable react/no-danger */
     const msg = (
       <div>
         <i

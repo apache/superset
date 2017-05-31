@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import ControlHeader from './ControlHeader';
 
 import CheckboxControl from './controls/CheckboxControl';
 import FilterControl from './controls/FilterControl';
@@ -8,6 +7,7 @@ import HiddenControl from './controls/HiddenControl';
 import SelectControl from './controls/SelectControl';
 import TextAreaControl from './controls/TextAreaControl';
 import TextControl from './controls/TextControl';
+import VizTypeControl from './controls/VizTypeControl';
 
 const controlMap = {
   CheckboxControl,
@@ -16,6 +16,7 @@ const controlMap = {
   SelectControl,
   TextAreaControl,
   TextControl,
+  VizTypeControl,
 };
 const controlTypes = Object.keys(controlMap);
 
@@ -90,13 +91,6 @@ export default class Control extends React.PureComponent {
     const divStyle = this.props.hidden ? { display: 'none' } : null;
     return (
       <div style={divStyle}>
-        <ControlHeader
-          label={this.props.label}
-          description={this.props.description}
-          renderTrigger={this.props.renderTrigger}
-          validationErrors={this.props.validationErrors}
-          rightNode={this.props.rightNode}
-        />
         <ControlType
           onChange={this.onChange}
           {...this.props}

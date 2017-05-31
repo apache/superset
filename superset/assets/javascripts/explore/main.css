@@ -34,3 +34,28 @@
 .background-transparent {
   background-color: transparent !important;
 }
+
+.viztype-label {
+  text-align: center;
+}
+
+.viztype-selector-container {
+  cursor: pointer;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding: 5px;
+  border: 1px solid #aaa;
+}
+
+.viztype-selector-container:hover {
+  border: 1px solid #000;
+}
+
+.viztype-selector-container.selected {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.viztype-selector-container.selected {
+  cursor: not-allowed;
+  border: 1px solid #aaa;
+}

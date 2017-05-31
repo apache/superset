@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import * as v from '../../validators';
+import ControlHeader from '../ControlHeader';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -58,14 +59,17 @@ export default class TextControl extends React.Component {
   }
   render() {
     return (
-      <FormGroup controlId="formInlineName" bsSize="small">
-        <FormControl
-          type="text"
-          placeholder=""
-          onChange={this.onChange}
-          value={this.state.value}
-        />
-      </FormGroup>
+      <div>
+        <ControlHeader {...this.props} />
+        <FormGroup controlId="formInlineName" bsSize="small">
+          <FormControl
+            type="text"
+            placeholder=""
+            onChange={this.onChange}
+            value={this.state.value}
+          />
+        </FormGroup>
+      </div>
     );
   }
 }

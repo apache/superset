@@ -9,6 +9,7 @@ const propTypes = {
   validationErrors: PropTypes.array,
   renderTrigger: PropTypes.bool,
   rightNode: PropTypes.node,
+  leftNode: PropTypes.node,
 };
 
 const defaultProps = {
@@ -17,7 +18,7 @@ const defaultProps = {
 };
 
 export default function ControlHeader({
-    label, description, validationErrors, renderTrigger, rightNode }) {
+    label, description, validationErrors, renderTrigger, leftNode, rightNode }) {
   const hasError = (validationErrors.length > 0);
   return (
     <div>
@@ -63,6 +64,9 @@ export default function ControlHeader({
               </OverlayTrigger>
               {' '}
             </span>
+          }
+          {leftNode &&
+            <span>{leftNode}</span>
           }
         </ControlLabel>
       </div>
