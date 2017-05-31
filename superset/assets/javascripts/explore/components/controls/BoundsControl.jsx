@@ -51,10 +51,10 @@ export default class BoundsControl extends React.Component {
     const mm = this.state.minMax;
     const errors = [];
     if (mm[0] && isNaN(mm[0])) {
-      errors.push('`From` value should be numeric or empty');
+      errors.push('`Min` value should be numeric or empty');
     }
     if (mm[1] && isNaN(mm[1])) {
-      errors.push('`To` value should be numeric or empty');
+      errors.push('`Max` value should be numeric or empty');
     }
     if (errors.length === 0) {
       this.props.onChange([parseFloat(mm[0]), parseFloat(mm[1])], errors);
@@ -66,20 +66,20 @@ export default class BoundsControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <FormGroup controlId="formInlineName" bsSize="small">
+        <FormGroup bsSize="small">
           <Row>
-            <Col xs={6} key="from">
+            <Col xs={6}>
               <FormControl
                 type="text"
-                placeholder="From"
+                placeholder="Min"
                 onChange={this.onMinChange}
                 value={this.state.minMax[0]}
               />
             </Col>
-            <Col xs={6} key="to">
+            <Col xs={6}>
               <FormControl
                 type="text"
-                placeholder="To"
+                placeholder="Max"
                 onChange={this.onMaxChange}
                 value={this.state.minMax[1]}
               />

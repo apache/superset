@@ -306,8 +306,7 @@ function nvd3Vis(slice, payload) {
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);
     }
-    if (
-        chart.forceY &&
+    if (chart.forceY &&
         fd.y_axis_bounds &&
         (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
       chart.forceY(fd.y_axis_bounds);
