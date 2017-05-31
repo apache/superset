@@ -14,6 +14,11 @@ const defaultProps = {
   onChange: sinon.spy(),
 };
 
+const options = [
+  { value: '1 year ago', label: '1 year ago' },
+  { value: 'today', label: 'today' },
+];
+
 describe('SelectControl', () => {
   let wrapper;
 
@@ -37,11 +42,13 @@ describe('SelectControl', () => {
   });
 
   describe('getOptions', () => {
+    let wrapper;
+
+    beforeEach(() => {
+      wrapper = shallow(<SelectControl {...defaultProps} />);
+    });
+
     it('returns the correct options', () => {
-      const options = [
-        { value: '1 year ago', label: '1 year ago' },
-        { value: 'today', label: 'today' },
-      ];
       expect(wrapper.instance().getOptions(defaultProps)).to.deep.equal(options);
     });
 
@@ -51,11 +58,34 @@ describe('SelectControl', () => {
         freeForm: true,
         value: ['one', 'two'],
       });
-      const options = [
+      const newOptions = [
         { value: 'one', label: 'one' },
         { value: 'two', label: 'two' },
       ];
-      expect(wrapper.instance().getOptions(freeFormProps)).to.deep.equal(options);
+      expect(wrapper.instance().getOptions(freeFormProps)).to.deep.equal(newOptions);
+    });
+  });
+
+  describe('componentWillReceiveProps', () => {
+    let wrapper;
+
+    beforeEach(() => {
+      wrapper = shallow(<SelectControl {...defaultProps} />);
+    });
+
+    it('sets state.options if props.choices has changed', () => {
+      const updatedOptions = [
+        { value: 'three', label: 'three' },
+        { value: 'four', label: 'four' },
+      ];
+      const newProps = {
+        choices: [['three', 'three'], ['four', 'four']],
+        name: 'name',
+        freeForm: false,
+        value: null,
+      };
+      wrapper.setProps(newProps);
+      expect(wrapper.state().options).to.deep.equal(updatedOptions);
     });
   });
 });
