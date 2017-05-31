@@ -34,7 +34,6 @@ export default class SelectControl extends React.PureComponent {
     super(props);
     this.state = { options: this.getOptions(props) };
     this.onChange = this.onChange.bind(this);
-    this.renderOption = this.renderOption.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     if (nextProps.choices !== this.props.choices) {
@@ -60,7 +59,6 @@ export default class SelectControl extends React.PureComponent {
           value: c[0],
           label,
         };
-        if (c[2]) option.imgSrc = c[2];
       } else if (Object.is(c)) {
         option = c;
       } else {
@@ -88,17 +86,6 @@ export default class SelectControl extends React.PureComponent {
     }
     return options;
   }
-  renderOption(opt) {
-    if (opt.imgSrc) {
-      return (
-        <div>
-          <img className="viz-thumb-option" src={opt.imgSrc} alt={opt.value} />
-          <span>{opt.label}</span>
-        </div>
-      );
-    }
-    return opt.label;
-  }
   render() {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectProps = {
@@ -111,7 +98,7 @@ export default class SelectControl extends React.PureComponent {
       clearable: this.props.clearable,
       isLoading: this.props.isLoading,
       onChange: this.onChange,
-      optionRenderer: this.renderOption,
+      optionRenderer: () => opt.label,
     };
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectWrap = this.props.freeForm ?

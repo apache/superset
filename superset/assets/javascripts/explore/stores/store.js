@@ -19,6 +19,16 @@ export function getControlNames(vizType, datasourceType) {
   return controlNames;
 }
 
+function handleDeprecatedControls(formData) {
+  // Reacffectation / handling of deprecated controls
+  /* eslint-disable no-param-reassign */
+
+  // y_axis_zero was a boolean forcing 0 to be part of the Y Axis
+  if (formData.y_axis_zero) {
+    formData.y_axis_bounds = [0, null];
+  }
+}
+
 export function getControlsState(state, form_data) {
   /*
   * Gets a new controls object to put in the state. The controls object
@@ -31,6 +41,8 @@ export function getControlsState(state, form_data) {
   // Getting a list of active control names for the current viz
   const formData = Object.assign({}, form_data);
   const vizType = formData.viz_type || 'table';
+
+  handleDeprecatedControls(formData);
 
   const controlNames = getControlNames(vizType, state.datasource.type);
 

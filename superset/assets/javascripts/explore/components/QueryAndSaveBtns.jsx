@@ -56,7 +56,7 @@ export default function QueryAndSaveBtns(
           disabled={saveButtonDisabled}
           onClick={onSave}
         >
-          <i className="fa fa-plus-circle" /> Save as
+          <i className="fa fa-plus-circle" /> Save
         </Button>
       </ButtonGroup>
       {errorMessage &&

@@ -65,7 +65,17 @@ export const controls = {
     }),
     description: 'One or many metrics to display',
   },
-
+  y_axis_bounds: {
+    type: 'BoundsControl',
+    label: 'Y Axis Bounds',
+    default: [null, null],
+    description: (
+      'Bounds for the Y axis. When left empty, the bounds are ' +
+      'dynamically defined based on the min/max of the data. Note that ' +
+      "this feature will only expand the axis range. It won't " +
+      "narrow the data's extent."
+    ),
+  },
   order_by_cols: {
     type: 'SelectControl',
     multi: true,
@@ -751,7 +761,7 @@ export const controls = {
   x_axis_format: {
     type: 'SelectControl',
     freeForm: true,
-    label: 'X axis format',
+    label: 'X Axis Format',
     renderTrigger: true,
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
@@ -761,7 +771,7 @@ export const controls = {
   y_axis_format: {
     type: 'SelectControl',
     freeForm: true,
-    label: 'Y axis format',
+    label: 'Y Axis Format',
     renderTrigger: true,
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
@@ -771,7 +781,7 @@ export const controls = {
   y_axis_2_format: {
     type: 'SelectControl',
     freeForm: true,
-    label: 'Right axis format',
+    label: 'Right Axis Format',
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
@@ -935,14 +945,6 @@ export const controls = {
     default: true,
     description: 'The rich tooltip shows a list of all series for that ' +
     'point in time',
-  },
-
-  y_axis_zero: {
-    type: 'CheckboxControl',
-    label: 'Y Axis Zero',
-    default: false,
-    renderTrigger: true,
-    description: 'Force the Y axis to start at 0 instead of the minimum value',
   },
 
   y_log_scale: {
