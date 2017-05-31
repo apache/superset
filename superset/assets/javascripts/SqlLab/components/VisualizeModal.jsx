@@ -11,6 +11,7 @@ import shortid from 'shortid';
 import { getExploreUrl } from '../../explore/exploreUtils';
 import { visTypes } from '../../explore/stores/visTypes';
 import * as actions from '../actions';
+import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 
 const CHART_TYPES = Object.keys(visTypes)
   .filter(key => ['bar', 'line', 'pie', 'dist_bar'].indexOf(key) > -1)
@@ -85,7 +86,7 @@ class VisualizeModal extends React.PureComponent {
       }
     });
     if (this.state.chartType === null) {
-      hints.push('Pick a chart type!');
+      hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     } else {
       if (this.state.chartType.requiresTime) {
         let hasTime = false;
@@ -96,23 +97,19 @@ class VisualizeModal extends React.PureComponent {
           }
         }
         if (!hasTime) {
-          hints.push(
-            'To use this chart type you need at least one column ' +
-            'flagged as a date');
+          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
         }
       }
       if (this.state.chartType.requiresDimension) {
         const hasMatrix = Object.keys(cols).filter(key => (cols[key].is_dim)).length > 0;
         if (!hasMatrix) {
-          hints.push(
-            'To use this chart type you need at least one dimension');
+          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_DIMENSION);
         }
       }
       if (this.state.chartType.requiresAggregationFn) {
         const hasMatrix = Object.keys(cols).filter(key => (cols[key].agg)).length > 0;
         if (!hasMatrix) {
-          hints.push(
-            'To use this chart type you need at least one aggregation function');
+          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_AGGREGATION_FUNCTION);
         }
       }
     }

@@ -143,7 +143,7 @@ export const visTypes = {
   },
 
   dual_line: {
-    label: 'Time Series - Dual Axis Line Chart',
+    label: 'Dual Axis Line Chart',
     requiresTime: true,
     controlPanelSections: [
       {
