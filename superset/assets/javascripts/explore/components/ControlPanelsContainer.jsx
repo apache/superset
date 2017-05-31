@@ -19,7 +19,6 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   form_data: PropTypes.object.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  y_axis_zero: PropTypes.any,
 };
 
 class ControlPanelsContainer extends React.Component {
@@ -65,14 +64,15 @@ class ControlPanelsContainer extends React.Component {
                 <ControlRow
                   key={`controlsetrow-${i}`}
                   controls={controlSets.map(controlName => (
-                    <Control
-                      name={controlName}
-                      key={`control-${controlName}`}
-                      value={this.props.form_data[controlName]}
-                      validationErrors={this.props.controls[controlName].validationErrors}
-                      actions={this.props.actions}
-                      {...this.getControlData(controlName)}
-                    />
+                    controlName &&
+                      <Control
+                        name={controlName}
+                        key={`control-${controlName}`}
+                        value={this.props.form_data[controlName]}
+                        validationErrors={this.props.controls[controlName].validationErrors}
+                        actions={this.props.actions}
+                        {...this.getControlData(controlName)}
+                      />
                   ))}
                 />
               ))}

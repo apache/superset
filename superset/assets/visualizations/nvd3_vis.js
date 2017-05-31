@@ -306,9 +306,12 @@ function nvd3Vis(slice, payload) {
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);
     }
-    if (fd.y_axis_zero) {
-      chart.forceY([0]);
-    } else if (fd.y_log_scale) {
+    if (chart.forceY &&
+        fd.y_axis_bounds &&
+        (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
+      chart.forceY(fd.y_axis_bounds);
+    }
+    if (fd.y_log_scale) {
       chart.yScale(d3.scale.log());
     }
     if (fd.x_log_scale) {
