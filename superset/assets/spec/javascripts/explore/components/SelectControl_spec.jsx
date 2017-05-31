@@ -42,12 +42,6 @@ describe('SelectControl', () => {
   });
 
   describe('getOptions', () => {
-    let wrapper;
-
-    beforeEach(() => {
-      wrapper = shallow(<SelectControl {...defaultProps} />);
-    });
-
     it('returns the correct options', () => {
       expect(wrapper.instance().getOptions(defaultProps)).to.deep.equal(options);
     });
@@ -67,12 +61,6 @@ describe('SelectControl', () => {
   });
 
   describe('componentWillReceiveProps', () => {
-    let wrapper;
-
-    beforeEach(() => {
-      wrapper = shallow(<SelectControl {...defaultProps} />);
-    });
-
     it('sets state.options if props.choices has changed', () => {
       const updatedOptions = [
         { value: 'three', label: 'three' },
