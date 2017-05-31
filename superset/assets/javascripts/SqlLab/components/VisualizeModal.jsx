@@ -1,4 +1,5 @@
 /* global notify */
+import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
@@ -11,6 +12,7 @@ import shortid from 'shortid';
 import { getExploreUrl } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
+import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -126,6 +128,22 @@ class VisualizeModal extends React.PureComponent {
       dbId: this.props.query.dbId,
     };
   }
+  buildVisualizeAdvise() {
+    let advise;
+    const queryDuration = moment.duration(this.props.query.endDttm - this.props.query.startDttm);
+    if (Math.round(queryDuration.asMilliseconds()) > QUERY_TIMEOUT_THRESHOLD) {
+      advise = (
+        <Alert bsStyle="warning">
+          This query took {Math.round(queryDuration.asSeconds())} seconds to run,
+          and the explore view times out at {QUERY_TIMEOUT_THRESHOLD / 1000} seconds,
+          following this flow will most likely lead to your query timing out.
+          We recommend your summarize your data further before following that flow.
+          If activated you can use the <strong>CREATE TABLE AS</strong> feature
+          to store a summarized data set that you can then explore.
+        </Alert>);
+    }
+    return advise;
+  }
   visualize() {
     this.props.actions.createDatasource(this.buildVizOptions(), this)
       .done(() => {
@@ -224,6 +242,7 @@ class VisualizeModal extends React.PureComponent {
           </Modal.Header>
           <Modal.Body>
             {alerts}
+            {this.buildVisualizeAdvise()}
             <div className="row">
               <Col md={6}>
                 Chart Type

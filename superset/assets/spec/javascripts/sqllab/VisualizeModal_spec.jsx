@@ -246,6 +246,26 @@ describe('VisualizeModal', () => {
     });
   });
 
+  it('should build visualize advise for long query', () => {
+    const longQuery = Object.assign({}, queries[0], { endDttm: 1476910666798 });
+    const props = {
+      show: true,
+      query: longQuery,
+    };
+    const longQueryWrapper = shallow(<VisualizeModal {...props} />, {
+      context: { store },
+    }).dive();
+    const alertWrapper = shallow(longQueryWrapper.instance().buildVisualizeAdvise());
+    expect(alertWrapper.hasClass('alert')).to.equal(true);
+    expect(alertWrapper.text()).to.contain(
+      'This query took 101 seconds to run, and the explore view times out at 45 seconds');
+  });
+
+  it('should not build visualize advise', () => {
+    const wrapper = getVisualizeModalWrapper();
+    expect(wrapper.instance().buildVisualizeAdvise()).to.be.a('undefined');
+  });
+
   describe('visualize', () => {
     const wrapper = getVisualizeModalWrapper();
     const mockOptions = { attr: 'mockOptions' };
