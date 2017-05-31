@@ -32,6 +32,11 @@ export function getControlsState(state, form_data) {
   const formData = Object.assign({}, form_data);
   const vizType = formData.viz_type || 'table';
 
+  // Control reacffectation for deprecation
+  if (formData.y_axis_zero) {
+    formData.y_axis_bounds = [0, null];
+  }
+
   const controlNames = getControlNames(vizType, state.datasource.type);
 
   const viz = visTypes[vizType];

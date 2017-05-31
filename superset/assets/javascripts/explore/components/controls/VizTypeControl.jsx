@@ -63,7 +63,7 @@ export default class VizTypeControl extends React.PureComponent {
     const rows = [];
     for (let i = 0; i <= filteredVizTypes.length; i += imgPerRow) {
       rows.push(
-        <Row>
+        <Row key={`row-${i}`}>
           {filteredVizTypes.slice(i, i + imgPerRow).map(vt => (
             <Col md={3} key={`grid-col-${vt}`}>
               {this.renderVizType(vt)}
