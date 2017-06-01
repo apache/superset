@@ -195,7 +195,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'changed_by',
         'changed_on',
     ]
-    list_widget = CsvListWidget
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
     base_order = ('changed_on', 'desc')
@@ -280,7 +279,6 @@ appbuilder.add_view(
 
 
 class DatabaseAsync(DatabaseView):
-    base_filters = [['id', DatabaseFilter, lambda: []]]
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
