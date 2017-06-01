@@ -24,7 +24,6 @@ app.db
 *.bak
 .idea
 *.sqllite
-babel/*
 
 # Node.js, webpack artifacts
 *.entry.js
