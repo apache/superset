@@ -76,8 +76,9 @@ class VisualizeModal extends React.PureComponent {
   validate() {
     const hints = [];
     const cols = this.mergedColumns();
+    const columnNames = Object.keys(cols);
     const re = /^\w+$/;
-    Object.keys(cols).forEach((colName) => {
+    columnNames.forEach((colName) => {
       if (!re.test(colName)) {
         hints.push(
           <div>
@@ -87,32 +88,20 @@ class VisualizeModal extends React.PureComponent {
           </div>);
       }
     });
+
+    const getNumColsHaveProperty = propName =>
+      columnNames.filter(key => cols[key].hasOwnProperty(propName) && cols[key][propName]).length;
     if (this.state.chartType === null) {
       hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     } else {
-      if (this.state.chartType.requiresTime) {
-        let hasTime = false;
-        for (const colName in cols) {
-          const col = cols[colName];
-          if (col.hasOwnProperty('is_date') && col.is_date) {
-            hasTime = true;
-          }
-        }
-        if (!hasTime) {
-          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
-        }
+      if (this.state.chartType.requiresTime && getNumColsHaveProperty('is_date') < 1) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
       }
-      if (this.state.chartType.requiresDimension) {
-        const hasMatrix = Object.keys(cols).filter(key => (cols[key].is_dim)).length > 0;
-        if (!hasMatrix) {
-          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_DIMENSION);
-        }
+      if (this.state.chartType.requiresDimension && getNumColsHaveProperty('is_dim') < 1) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_DIMENSION);
       }
-      if (this.state.chartType.requiresAggregationFn) {
-        const hasMatrix = Object.keys(cols).filter(key => (cols[key].agg)).length > 0;
-        if (!hasMatrix) {
-          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_AGGREGATION_FUNCTION);
-        }
+      if (this.state.chartType.requiresAggregationFn && getNumColsHaveProperty('agg') < 1) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_AGGREGATION_FUNCTION);
       }
     }
     this.setState({ hints });
