@@ -1,7 +1,5 @@
 codeclimate-test-reporter
 coveralls
-# The latest docopt (0.6.2) has a bug which prevents it from installing correctly
-docopt==0.6.1
 flake8
 flask_cors
 mock
