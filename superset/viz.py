@@ -59,6 +59,7 @@ class BaseViz(object):
 
         self.status = None
         self.error_message = None
+        self.others_category = self.form_data.get('others_category') or None
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -102,6 +103,17 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna(0)
+            if (self.others_category is not None) & \
+                    (self.others_category != 'None'):
+                top_n = int(self.others_category)
+                if (top_n > 0) & (len(df) > top_n):
+                    df_head = df.head(top_n)
+                    df_tail = df.tail(len(df) - top_n)
+                    other_metrics_sum = ['Others']
+                    for metric in query_obj['metrics']:
+                        other_metrics_sum.append(df_tail[metric].sum())
+                    df_other = pd.DataFrame([other_metrics_sum], columns=df.columns)
+                    df = df_head.append(df_other, ignore_index=True)
         return df
 
     def get_extra_filters(self):
