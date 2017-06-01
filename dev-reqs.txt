@@ -1,3 +1,6 @@
+# Install six first to avoid docopt installation issues
+six
+
 codeclimate-test-reporter
 coveralls
 flake8
