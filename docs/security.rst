@@ -50,6 +50,17 @@ The ``sql_lab`` role grants access to SQL Lab. Note that while ``Admin``
 users have access to all databases by default, both ``Alpha`` and ``Gamma``
 users need to be given access on a per database basis.
 
+Public
+""""""
+It's possible to allow logged out users to access some Superset features.
+
+By setting ``PUBLIC_ROLE_LIKE_GAMMA = True`` in your ``superset_config.py``,
+you grant public role the same set of permissions as for the GAMMA role.
+This is useful if one wants to enable anonymous users to view
+dashboards. Explicit grant on specific datasets is still required, meaning
+that you need to edit the ``Public`` role and add the Public data sources
+to the role manually.
+
 
 Managing Gamma per data source access
 -------------------------------------

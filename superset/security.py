@@ -1,3 +1,4 @@
+"""A set of constants and methods to manage permissions and security"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -6,25 +7,27 @@ from __future__ import unicode_literals
 import logging
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import conf, db, models, sm, source_registry
+from superset import conf, db, sm
+from superset.models import core as models
+from superset.connectors.connector_registry import ConnectorRegistry
 
 
-READ_ONLY_MODELVIEWS = {
+READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
     'DatabaseView',
     'DruidClusterModelView',
 }
 
-GAMMA_READ_ONLY_MODELVIEWS = {
+GAMMA_READ_ONLY_MODEL_VIEWS = {
     'SqlMetricInlineView',
     'TableColumnInlineView',
     'TableModelView',
     'DruidColumnInlineView',
     'DruidDatasourceModelView',
     'DruidMetricInlineView',
-} | READ_ONLY_MODELVIEWS
+} | READ_ONLY_MODEL_VIEWS
 
-ADMIN_ONLY_VIEW_MENUES = {
+ADMIN_ONLY_VIEW_MENUS = {
     'AccessRequestsModelView',
     'Manage',
     'SQL Lab',
@@ -38,8 +41,7 @@ ADMIN_ONLY_VIEW_MENUES = {
 
 ADMIN_ONLY_PERMISSIONS = {
     'all_database_access',
-    # TODO: move can_sql_json to sql_lab role
-    'can_sql_json',
+    'can_sql_json',  # TODO: move can_sql_json to sql_lab role
     'can_override_role_permissions',
     'can_sync_druid_source',
     'can_override_role_permissions',
@@ -66,7 +68,15 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 
 def merge_perm(sm, permission_name, view_menu_name):
-    pv = sm.find_permission_view_menu(permission_name, view_menu_name)
+    # Implementation copied from sm.find_permission_view_menu.
+    # TODO: use sm.find_permission_view_menu once issue
+    #       https://github.com/airbnb/superset/issues/1944 is resolved.
+    permission = sm.find_permission(permission_name)
+    view_menu = sm.find_view_menu(view_menu_name)
+    pv = None
+    if permission and view_menu:
+        pv = sm.get_session.query(sm.permissionview_model).filter_by(
+            permission=permission, view_menu=view_menu).first()
     if not pv and permission_name and view_menu_name:
         sm.add_permission_view_menu(permission_name, view_menu_name)
 
@@ -84,7 +94,6 @@ def get_or_create_main_db():
     )
     if not dbobj:
         dbobj = models.Database(database_name="main")
-    logging.info(conf.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.expose_in_sqllab = True
     dbobj.allow_run_sync = True
@@ -95,15 +104,15 @@ def get_or_create_main_db():
 
 def is_admin_only(pvm):
     # not readonly operations on read only model views allowed only for admins
-    if (pvm.view_menu.name in READ_ONLY_MODELVIEWS and
+    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS and
             pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
-    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUES or
+    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS or
             pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
 
 
 def is_alpha_only(pvm):
-    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODELVIEWS and
+    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
             pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
     return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
@@ -137,6 +146,9 @@ def set_role(role_name, pvms, pvm_check):
     role = sm.add_role(role_name)
     role_pvms = [p for p in pvms if pvm_check(p)]
     role.permissions = role_pvms
+    sesh = sm.get_session()
+    sesh.merge(role)
+    sesh.commit()
 
 
 def create_custom_permissions():
@@ -147,7 +159,7 @@ def create_custom_permissions():
 
 def create_missing_datasource_perms(view_menu_set):
     logging.info("Creating missing datasource permissions.")
-    datasources = source_registry.SourceRegistry.get_all_datasources(
+    datasources = ConnectorRegistry.get_all_datasources(
         db.session)
     for datasource in datasources:
         if datasource and datasource.perm not in view_menu_set:
@@ -173,13 +185,13 @@ def create_missing_metrics_perm(view_menu_set):
     """
     logging.info("Creating missing metrics permissions")
     metrics = []
-    for model in [models.SqlMetric, models.DruidMetric]:
-        metrics += list(db.session.query(model).all())
+    for datasource_class in ConnectorRegistry.sources.values():
+        metrics += list(db.session.query(datasource_class.metric_class).all())
 
     for metric in metrics:
         if (metric.is_restricted and metric.perm and
                 metric.perm not in view_menu_set):
-            merge_perm('metric_access', metric.perm)
+            merge_perm(sm, 'metric_access', metric.perm)
 
 
 def sync_role_definitions():
@@ -208,7 +220,9 @@ def sync_role_definitions():
     if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
         set_role('Public', pvms, is_gamma_pvm)
 
-    view_menu_set = db.session.query(models.SqlaTable).all()
+    view_menu_set = []
+    for datasource_class in ConnectorRegistry.sources.values():
+        view_menu_set += list(db.session.query(datasource_class).all())
     create_missing_datasource_perms(view_menu_set)
     create_missing_database_perms(view_menu_set)
     create_missing_metrics_perm(view_menu_set)

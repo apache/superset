@@ -1,4 +1,6 @@
-import React, { PropTypes } from 'react';
+/* eslint-disable react/no-danger */
+import React from 'react';
+import PropTypes from 'prop-types';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -8,7 +10,7 @@ const propTypes = {
 
 function SliceCell({ expandedSlices, removeSlice, slice }) {
   return (
-    <div className="slice-cell" id={`${slice.token}-cell`}>
+    <div className="slice-cell" id={`${slice.slice_id}-cell`}>
       <div className="chart-header">
         <div className="row">
           <div className="col-md-12 header">
@@ -62,18 +64,19 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
           expandedSlices[String(slice.slice_id)] ? {} : { display: 'none' }
         }
         dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-      >
-
-      </div>
+      />
       <div className="row chart-container">
         <input type="hidden" value="false" />
-        <div id={slice.token} className="token col-md-12">
+        <div id={'token_' + slice.slice_id} className="token col-md-12">
           <img
             src="/static/assets/images/loading.gif"
             className="loading"
             alt="loading"
           />
-          <div className="slice_container" id={slice.token + '_con'}></div>
+          <div
+            id={'con_' + slice.slice_id}
+            className={`slice_container ${slice.form_data.viz_type}`}
+          />
         </div>
       </div>
     </div>

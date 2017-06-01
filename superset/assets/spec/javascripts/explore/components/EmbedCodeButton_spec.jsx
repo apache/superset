@@ -31,13 +31,17 @@ describe('EmbedCodeButton', () => {
       width: '2000',
       srcLink: 'http://localhost/endpoint_url',
     });
-    const embedHTML = `
-      <iframe
-        src="nullendpoint_url"
-        width="2000"
-        height="1000"
-        seamless frameBorder="0" scrolling="no">
-      </iframe>`;
+    const embedHTML = (
+      '<iframe\n' +
+      '  width="2000"\n' +
+      '  height="1000"\n' +
+      '  seamless\n' +
+      '  frameBorder="0"\n' +
+      '  scrolling="no"\n' +
+      '  src="nullendpoint_url&height=1000"\n' +
+      '>\n' +
+      '</iframe>'
+    );
     expect(wrapper.instance().generateEmbedHTML()).to.equal(embedHTML);
   });
 });

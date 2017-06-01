@@ -11,8 +11,11 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, cli, db, models, appbuilder, security, sm
+from superset import app, cli, db, appbuilder, security, sm
+from superset.models import core as models
 from superset.security import sync_role_definitions
+from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.druid.models import DruidCluster, DruidDatasource
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
@@ -27,7 +30,7 @@ class SupersetTestCase(unittest.TestCase):
         if (
                         self.requires_examples and
                         not os.environ.get('SOLO_TEST') and
-                    not os.environ.get('examples_loaded')
+                        not os.environ.get('examples_loaded')
         ):
             logging.info("Loading examples")
             cli.load_examples(load_test_data=True)
@@ -65,6 +68,13 @@ class SupersetTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Gamma'),
                 password='general')
 
+        gamma2 = appbuilder.sm.find_user('gamma2')
+        if not gamma2:
+            appbuilder.sm.add_user(
+                'gamma2', 'gamma2', 'user', 'gamma2@fab.org',
+                appbuilder.sm.find_role('Gamma'),
+                password='general')
+
         gamma_sqllab_user = appbuilder.sm.find_user('gamma_sqllab')
         if not gamma_sqllab_user:
             appbuilder.sm.add_user(
@@ -78,27 +88,35 @@ class SupersetTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Alpha'),
                 password='general')
         sm.get_session.commit()
-
         # create druid cluster and druid datasources
         session = db.session
-        cluster = session.query(models.DruidCluster).filter_by(
-            cluster_name="druid_test").first()
+        cluster = (
+            session.query(DruidCluster)
+            .filter_by(cluster_name="druid_test")
+            .first()
+        )
         if not cluster:
-            cluster = models.DruidCluster(cluster_name="druid_test")
+            cluster = DruidCluster(cluster_name="druid_test")
             session.add(cluster)
             session.commit()
 
-            druid_datasource1 = models.DruidDatasource(
+            druid_datasource1 = DruidDatasource(
                 datasource_name='druid_ds_1',
                 cluster_name='druid_test'
             )
             session.add(druid_datasource1)
-            druid_datasource2 = models.DruidDatasource(
+            druid_datasource2 = DruidDatasource(
                 datasource_name='druid_ds_2',
                 cluster_name='druid_test'
             )
             session.add(druid_datasource2)
             session.commit()
+
+
+
+    def get_table(self, table_id):
+        return db.session.query(SqlaTable).filter_by(
+            id=table_id).first()
 
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()
@@ -112,22 +130,6 @@ class SupersetTestCase(unittest.TestCase):
             data=dict(username=username, password=password))
         self.assertIn('Welcome', resp)
 
-    def get_query_by_sql(self, sql):
-        session = db.create_scoped_session()
-        query = session.query(models.Query).filter_by(sql=sql).first()
-        session.close()
-        return query
-
-    def get_latest_query(self, sql):
-        session = db.create_scoped_session()
-        query = (
-            session.query(models.Query)
-                .order_by(models.Query.id.desc())
-                .first()
-        )
-        session.close()
-        return query
-
     def get_slice(self, slice_name, session):
         slc = (
             session.query(models.Slice)
@@ -138,11 +140,11 @@ class SupersetTestCase(unittest.TestCase):
         return slc
 
     def get_table_by_name(self, name):
-        return db.session.query(models.SqlaTable).filter_by(
+        return db.session.query(SqlaTable).filter_by(
             table_name=name).first()
 
     def get_druid_ds_by_name(self, name):
-        return db.session.query(models.DruidDatasource).filter_by(
+        return db.session.query(DruidDatasource).filter_by(
             datasource_name=name).first()
 
     def get_resp(
@@ -264,4 +266,3 @@ class SupersetTestCase(unittest.TestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
-

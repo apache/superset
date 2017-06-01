@@ -1,13 +1,17 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
+import PropTypes from 'prop-types';
 import Button from '../../components/Button';
 
 const propTypes = {
   allowAsync: PropTypes.bool.isRequired,
-  dbId: PropTypes.number.isRequired,
+  dbId: PropTypes.number,
   queryState: PropTypes.string.isRequired,
   runQuery: PropTypes.func.isRequired,
   selectedText: PropTypes.string,
   stopQuery: PropTypes.func.isRequired,
+};
+const defaultProps = {
+  allowAsync: false,
 };
 
 export default function RunQueryActionButton(props) {
@@ -28,7 +32,7 @@ export default function RunQueryActionButton(props) {
       onClick={() => props.runQuery(false)}
       key="run-btn"
     >
-      <i className="fa fa-table" /> {runBtnText}
+      <i className="fa fa-refresh" /> {runBtnText}
     </Button>
   );
 
@@ -69,3 +73,4 @@ export default function RunQueryActionButton(props) {
 }
 
 RunQueryActionButton.propTypes = propTypes;
+RunQueryActionButton.defaultProps = defaultProps;

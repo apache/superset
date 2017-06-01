@@ -1,15 +1,15 @@
-const $ = window.$ = require('jquery');
-
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
 import { getAjaxErrorMsg, showModal } from '../../modules/utils';
-
 import ModalTrigger from '../../components/ModalTrigger';
 
+const $ = window.$ = require('jquery');
+
 const propTypes = {
-  css: React.PropTypes.string,
-  dashboard: React.PropTypes.object.isRequired,
-  triggerNode: React.PropTypes.node.isRequired,
+  css: PropTypes.string,
+  dashboard: PropTypes.object.isRequired,
+  triggerNode: PropTypes.node.isRequired,
 };
 
 class SaveModal extends React.PureComponent {
@@ -40,6 +40,7 @@ class SaveModal extends React.PureComponent {
   saveDashboardRequest(data, url, saveType) {
     const dashboard = this.props.dashboard;
     const saveModal = this.modal;
+    Object.assign(data, { css: this.props.css });
     $.ajax({
       type: 'POST',
       url,
@@ -107,7 +108,6 @@ class SaveModal extends React.PureComponent {
       <ModalTrigger
         ref={(modal) => { this.modal = modal; }}
         triggerNode={this.props.triggerNode}
-        isButton
         modalTitle="Save Dashboard"
         modalBody={
           <FormGroup>

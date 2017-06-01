@@ -1,31 +1,27 @@
 import React from 'react';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
-import QuerySearch from '../../../javascripts/SqlLab/components/QuerySearch';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
+import QuerySearch from '../../../javascripts/SqlLab/components/QuerySearch';
+
 describe('QuerySearch', () => {
   const mockedProps = {
     actions: {},
+    height: 0,
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<QuerySearch {...mockedProps} />)
+      React.isValidElement(<QuerySearch {...mockedProps} />),
     ).to.equal(true);
   });
   const wrapper = shallow(<QuerySearch {...mockedProps} />);
 
-  it('should have four Select', () => {
-    expect(wrapper.find(Select)).to.have.length(4);
-  });
-
-  it('updates userId on user selects change', () => {
-    wrapper.find('[name="select-user"]')
-      .simulate('change', { value: 1 });
-    expect(wrapper.state().userId).to.equal(1);
+  it('should have three Select', () => {
+    expect(wrapper.find(Select)).to.have.length(3);
   });
 
   it('updates fromTime on user selects from time', () => {

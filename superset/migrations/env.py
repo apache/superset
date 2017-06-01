@@ -20,9 +20,10 @@ logger = logging.getLogger('alembic.env')
 # for 'autogenerate' support
 # from myapp import mymodel
 from flask import current_app
+
 config.set_main_option('sqlalchemy.url',
                        current_app.config.get('SQLALCHEMY_DATABASE_URI'))
-target_metadata = Base.metadata
+target_metadata = Base.metadata   # pylint: disable=no-member
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -84,7 +85,7 @@ def run_migrations_online():
 
     context.configure(connection=connection,
                       target_metadata=target_metadata,
-                      #compare_type=True,
+                      # compare_type=True,
                       process_revision_directives=process_revision_directives,
                       **kwargs)
 

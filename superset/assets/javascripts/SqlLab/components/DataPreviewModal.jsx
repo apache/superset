@@ -1,16 +1,17 @@
-import * as Actions from '../actions';
 import React from 'react';
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Modal } from 'react-bootstrap';
 
+import * as Actions from '../actions';
 import ResultSet from './ResultSet';
 
 const propTypes = {
-  queries: React.PropTypes.object,
-  actions: React.PropTypes.object,
-  showDataPreviewModal: React.PropTypes.bool,
-  dataPreviewQueryId: React.PropTypes.string,
+  queries: PropTypes.object,
+  actions: PropTypes.object,
+  showDataPreviewModal: PropTypes.bool,
+  dataPreviewQueryId: PropTypes.string,
 };
 
 class DataPreviewModal extends React.PureComponent {
@@ -32,7 +33,13 @@ class DataPreviewModal extends React.PureComponent {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <ResultSet query={query} visualize={false} csv={false} actions={this.props.actions} />
+            <ResultSet
+              query={query}
+              visualize={false}
+              csv={false}
+              actions={this.props.actions}
+              height={400}
+            />
           </Modal.Body>
         </Modal>
       );

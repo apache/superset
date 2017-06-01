@@ -1,9 +1,18 @@
+/* global notify */
+import moment from 'moment';
 import React from 'react';
+import PropTypes from 'prop-types';
+import { bindActionCreators } from 'redux';
+import { connect } from 'react-redux';
 import { Alert, Button, Col, Modal } from 'react-bootstrap';
 
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
+import { getExploreUrl } from '../../explore/exploreUtils';
+import * as actions from '../actions';
+import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
+import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -13,9 +22,12 @@ const CHART_TYPES = [
 ];
 
 const propTypes = {
-  onHide: React.PropTypes.func,
-  query: React.PropTypes.object,
-  show: React.PropTypes.bool,
+  actions: PropTypes.object.isRequired,
+  onHide: PropTypes.func,
+  query: PropTypes.object,
+  show: PropTypes.bool,
+  datasource: PropTypes.string,
+  errorMessage: PropTypes.string,
 };
 const defaultProps = {
   show: false,
@@ -26,10 +38,9 @@ const defaultProps = {
 class VisualizeModal extends React.PureComponent {
   constructor(props) {
     super(props);
-    const uniqueId = shortid.generate();
     this.state = {
       chartType: CHART_TYPES[0],
-      datasourceName: uniqueId,
+      datasourceName: this.datasourceName(),
       columns: {},
       hints: [],
     };
@@ -41,7 +52,7 @@ class VisualizeModal extends React.PureComponent {
     this.setStateFromProps(nextProps);
   }
   setStateFromProps(props) {
-    if (
+    if (!props ||
         !props.query ||
         !props.query.results ||
         !props.query.results.columns) {
@@ -52,6 +63,17 @@ class VisualizeModal extends React.PureComponent {
       columns[col.name] = col;
     });
     this.setState({ columns });
+  }
+  datasourceName() {
+    const { query } = this.props;
+    const uniqueId = shortid.generate();
+    let datasourceName = uniqueId;
+    if (query) {
+      datasourceName = query.user ? `${query.user}-` : '';
+      datasourceName += query.db ? `${query.db}-` : '';
+      datasourceName += `${query.tab}-${uniqueId}`;
+    }
+    return datasourceName;
   }
   validate() {
     const hints = [];
@@ -68,7 +90,7 @@ class VisualizeModal extends React.PureComponent {
       }
     });
     if (this.state.chartType === null) {
-      hints.push('Pick a chart type!');
+      hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     } else if (this.state.chartType.requiresTime) {
       let hasTime = false;
       for (const colName in cols) {
@@ -78,7 +100,7 @@ class VisualizeModal extends React.PureComponent {
         }
       }
       if (!hasTime) {
-        hints.push('To use this chart type you need at least one column flagged as a date');
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
       }
     }
     this.setState({ hints });
@@ -97,19 +119,60 @@ class VisualizeModal extends React.PureComponent {
     }
     return columns;
   }
-  visualize() {
-    const vizOptions = {
+  buildVizOptions() {
+    return {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
     };
-    window.open('/superset/sqllab_viz/?data=' + JSON.stringify(vizOptions));
+  }
+  buildVisualizeAdvise() {
+    let advise;
+    const queryDuration = moment.duration(this.props.query.endDttm - this.props.query.startDttm);
+    if (Math.round(queryDuration.asMilliseconds()) > QUERY_TIMEOUT_THRESHOLD) {
+      advise = (
+        <Alert bsStyle="warning">
+          This query took {Math.round(queryDuration.asSeconds())} seconds to run,
+          and the explore view times out at {QUERY_TIMEOUT_THRESHOLD / 1000} seconds,
+          following this flow will most likely lead to your query timing out.
+          We recommend your summarize your data further before following that flow.
+          If activated you can use the <strong>CREATE TABLE AS</strong> feature
+          to store a summarized data set that you can then explore.
+        </Alert>);
+    }
+    return advise;
+  }
+  visualize() {
+    this.props.actions.createDatasource(this.buildVizOptions(), this)
+      .done(() => {
+        const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
+        const mainMetric = columns.filter(d => d.agg)[0];
+        const mainGroupBy = columns.filter(d => d.is_dim)[0];
+        const formData = {
+          datasource: this.props.datasource,
+          viz_type: this.state.chartType.value,
+          since: '100 years ago',
+          limit: '0',
+        };
+        if (mainMetric) {
+          formData.metrics = [mainMetric.name];
+          formData.metric = mainMetric.name;
+        }
+        if (mainGroupBy) {
+          formData.groupby = [mainGroupBy.name];
+        }
+        notify.info('Creating a data source and popping a new tab');
+
+        window.open(getExploreUrl(formData));
+      })
+      .fail(() => {
+        notify.error(this.props.errorMessage);
+      });
   }
   changeDatasourceName(event) {
-    this.setState({ datasourceName: event.target.value });
-    this.validate();
+    this.setState({ datasourceName: event.target.value }, this.validate);
   }
   changeCheckbox(attr, columnName, event) {
     let columns = this.mergedColumns();
@@ -136,7 +199,7 @@ class VisualizeModal extends React.PureComponent {
         </div>
       );
     }
-    const tableData = this.props.query.results.columns.map((col) => ({
+    const tableData = this.props.query.results.columns.map(col => ({
       column: col.name,
       is_dimension: (
         <input
@@ -179,6 +242,7 @@ class VisualizeModal extends React.PureComponent {
           </Modal.Header>
           <Modal.Body>
             {alerts}
+            {this.buildVisualizeAdvise()}
             <div className="row">
               <Col md={6}>
                 Chart Type
@@ -225,4 +289,18 @@ class VisualizeModal extends React.PureComponent {
 VisualizeModal.propTypes = propTypes;
 VisualizeModal.defaultProps = defaultProps;
 
-export default VisualizeModal;
+function mapStateToProps(state) {
+  return {
+    datasource: state.datasource,
+    errorMessage: state.errorMessage,
+  };
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(actions, dispatch),
+  };
+}
+
+export { VisualizeModal };
+export default connect(mapStateToProps, mapDispatchToProps)(VisualizeModal);

@@ -1,0 +1,60 @@
+.ReactVirtualized__Table__headerRow {
+  font-weight: 700;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.ReactVirtualized__Table__row {
+  display: flex;
+  flex-direction: row;
+}
+.ReactVirtualized__Table__headerTruncatedText {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.ReactVirtualized__Table__headerColumn,
+.ReactVirtualized__Table__rowColumn {
+  min-width: 0px;
+  border-right: 1px solid #ccc;
+  align-self: center;
+  padding: 12px;
+  font-size: 12px;
+}
+.ReactVirtualized__Table__headerColumn:last-of-type,
+.ReactVirtualized__Table__rowColumn:last-of-type {
+  border-right: 0px;
+}
+.ReactVirtualized__Table__headerColumn:focus,
+.ReactVirtualized__Table__Grid:focus {
+  outline: none;
+}
+.ReactVirtualized__Table__rowColumn {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ReactVirtualized__Table__sortableHeaderColumn {
+  cursor: pointer;
+}
+.ReactVirtualized__Table__sortableHeaderIconContainer {
+  display: flex;
+  align-items: center;
+}
+.ReactVirtualized__Table__sortableHeaderIcon {
+  flex: 0 0 24px;
+  height: 1em;
+  width: 1em;
+  fill: currentColor;
+}
+.even-row { background: #f2f2f2; }
+.odd-row { background: #ffffff; }
+.even-row,
+.odd-row {
+  border: none;
+}
+.filterable-table-container {
+  overflow: auto;
+  border: 1px solid #ccc;
+}

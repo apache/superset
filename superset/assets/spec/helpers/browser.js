@@ -1,12 +1,14 @@
 /* eslint no-undef: 0, no-native-reassign: 0 */
+import 'babel-polyfill';
+import chai from 'chai';
+import jsdom from 'jsdom';
 
 require('babel-register')();
 
-const jsdom = require('jsdom').jsdom;
-
 const exposedProperties = ['window', 'navigator', 'document'];
 
-global.document = jsdom('');
+global.jsdom = jsdom.jsdom;
+global.document = global.jsdom('<!doctype html><html><body></body></html>');
 global.window = document.defaultView;
 Object.keys(document.defaultView).forEach((property) => {
   if (typeof global[property] === 'undefined') {
@@ -20,3 +22,19 @@ global.navigator = {
   platform: 'linux',
   appName: 'Netscape',
 };
+
+// Configuration copied from https://github.com/sinonjs/sinon/issues/657
+// allowing for sinon.fakeServer to work
+
+global.window = global.document.defaultView;
+global.XMLHttpRequest = global.window.XMLHttpRequest;
+
+global.sinon = require('sinon');
+
+global.expect = chai.expect;
+global.assert = chai.assert;
+
+global.sinon.useFakeXMLHttpRequest();
+
+global.window.XMLHttpRequest = global.XMLHttpRequest;
+global.$ = require('jquery')(global.window);

@@ -1,5 +1,5 @@
-import * as actions from '../../../javascripts/SqlLab/actions';
 import sinon from 'sinon';
+import * as actions from '../../../javascripts/SqlLab/actions';
 
 export const mockedActions = sinon.stub(Object.assign({}, actions));
 
@@ -205,7 +205,17 @@ export const queries = [
     serverId: 141,
     resultsKey: null,
     results: {
-      columns: ['col1', 'col2'],
+      columns: [{
+        is_date: true,
+        is_dim: false,
+        name: 'ds',
+        type: 'STRING',
+      }, {
+        is_date: false,
+        is_dim: true,
+        name: 'gender',
+        type: 'STRING',
+      }],
       data: [
         { col1: 0, col2: 1 },
         { col1: 2, col2: 3 },
@@ -250,7 +260,6 @@ export const queries = [
 
 export const initialState = {
   alerts: [],
-  networkOn: true,
   queries: {},
   databases: {},
   queryEditors: [defaultQueryEditor],

@@ -1,36 +1,33 @@
-const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
-const px = require('../modules/superset');
-const d3 = require('d3');
-const urlLib = require('url');
-const utils = require('../modules/utils');
-const { Alert } = require('react-bootstrap');
-
 import React from 'react';
 import { render } from 'react-dom';
+import d3 from 'd3';
+import { Alert } from 'react-bootstrap';
+import moment from 'moment';
+
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
+import { appSetup } from '../common';
 
-require('bootstrap');
-require('../../stylesheets/dashboard.css');
-require('../superset-select2.js');
+import '../../stylesheets/dashboard.css';
 
-export function getInitialState(dashboardData, context) {
-  const dashboard = Object.assign({ context }, utils.controllerInterface, dashboardData);
+const px = require('../modules/superset');
+const urlLib = require('url');
+const utils = require('../modules/utils');
+
+appSetup();
+
+export function getInitialState(boostrapData) {
+  const dashboard = Object.assign({}, utils.controllerInterface, boostrapData.dashboard_data);
   dashboard.firstLoad = true;
 
   dashboard.posDict = {};
   if (dashboard.position_json) {
-    dashboard.position_json.forEach(position => {
+    dashboard.position_json.forEach((position) => {
       dashboard.posDict[position.slice_id] = position;
     });
   }
-  dashboard.curUserId = dashboard.context.user_id;
   dashboard.refreshTimer = null;
-
-  const state = {
-    dashboard,
-  };
+  const state = Object.assign({}, boostrapData, { dashboard });
   return state;
 }
 
@@ -57,19 +54,19 @@ function renderAlert() {
         button on the top right to save your changes.
       </Alert>
     </div>,
-    document.getElementById('alert-container')
+    document.getElementById('alert-container'),
   );
 }
 
 function initDashboardView(dashboard) {
   render(
     <Header dashboard={dashboard} />,
-    document.getElementById('dashboard-header')
+    document.getElementById('dashboard-header'),
   );
   // eslint-disable-next-line no-param-reassign
   dashboard.reactGridLayout = render(
     <GridLayout dashboard={dashboard} />,
-    document.getElementById('grid-container')
+    document.getElementById('grid-container'),
   );
 
   // Displaying widget controls on hover
@@ -79,13 +76,10 @@ function initDashboardView(dashboard) {
     },
     function () {
       $(this).find('.chart-controls').fadeOut(300);
-    }
+    },
   );
   $('div.grid-container').css('visibility', 'visible');
 
-  $('.select2').select2({
-    dropdownAutoWidth: true,
-  });
   $('div.widget').click(function (e) {
     const $this = $(this);
     const $target = $(e.target);
@@ -102,19 +96,20 @@ function initDashboardView(dashboard) {
   $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 }
 
-export function dashboardContainer(dashboard) {
+export function dashboardContainer(dashboard, datasources, userid) {
   return Object.assign({}, dashboard, {
     type: 'dashboard',
     filters: {},
+    curUserId: userid,
     init() {
       this.sliceObjects = [];
       dashboard.slices.forEach((data) => {
         if (data.error) {
-          const html = '<div class="alert alert-danger">' + data.error + '</div>';
-          $('#slice_' + data.slice_id).find('.token').html(html);
+          const html = `<div class="alert alert-danger">${data.error}</div>`;
+          $(`#slice_${data.slice_id}`).find('.token').html(html);
         } else {
-          const slice = px.Slice(data, this);
-          $('#slice_' + data.slice_id).find('a.refresh').click(() => {
+          const slice = px.Slice(data, datasources[data.form_data.datasource], this);
+          $(`#slice_${data.slice_id}`).find('a.refresh').click(() => {
             slice.render(true);
           });
           this.sliceObjects.push(slice);
@@ -150,13 +145,15 @@ export function dashboardContainer(dashboard) {
     done(slice) {
       const refresh = slice.getWidgetHeader().find('.refresh');
       const data = slice.data;
+      const cachedWhen = moment.utc(data.cached_dttm).fromNow();
       if (data !== undefined && data.is_cached) {
         refresh
         .addClass('danger')
-        .attr('title',
-              'Served from data cached at ' + data.cached_dttm +
-                '. Click to force refresh')
-                .tooltip('fixTitle');
+        .attr(
+          'title',
+          `Served from data cached ${cachedWhen}. ` +
+          'Click to force refresh')
+        .tooltip('fixTitle');
       } else {
         refresh
         .removeClass('danger')
@@ -165,9 +162,7 @@ export function dashboardContainer(dashboard) {
       }
     },
     effectiveExtraFilters(sliceId) {
-      // Summarized filter, not defined by sliceId
-      // returns k=field, v=array of values
-      const f = {};
+      const f = [];
       const immuneSlices = this.metadata.filter_immune_slices || [];
       if (sliceId && immuneSlices.includes(sliceId)) {
         // The slice is immune to dashboard fiterls
@@ -185,7 +180,11 @@ export function dashboardContainer(dashboard) {
       for (const filteringSliceId in this.filters) {
         for (const field in this.filters[filteringSliceId]) {
           if (!immuneToFields.includes(field)) {
-            f[field] = this.filters[filteringSliceId][field];
+            f.push({
+              col: field,
+              op: 'in',
+              val: this.filters[filteringSliceId][field],
+            });
           }
         }
       }
@@ -197,8 +196,13 @@ export function dashboardContainer(dashboard) {
       }
       if (!(col in this.filters[sliceId]) || !merge) {
         this.filters[sliceId][col] = vals;
-      } else {
+
+        // d3.merge pass in array of arrays while some value form filter components
+        // from and to filter box require string to be process and return
+      } else if (this.filters[sliceId][col] instanceof Array) {
         this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
+      } else {
+        this.filters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
       }
       if (refresh) {
         this.refreshExcept(sliceId);
@@ -239,7 +243,7 @@ export function dashboardContainer(dashboard) {
       const dash = this;
       const maxRandomDelay = Math.max(interval * 0.2, 5000);
       const refreshAll = () => {
-        dash.sliceObjects.forEach(slice => {
+        dash.sliceObjects.forEach((slice) => {
           const force = !dash.firstLoad;
           setTimeout(() => {
             slice.render(force);
@@ -262,10 +266,10 @@ export function dashboardContainer(dashboard) {
     },
     refreshExcept(sliceId) {
       const immune = this.metadata.filter_immune_slices || [];
-      this.sliceObjects.forEach(slice => {
+      this.sliceObjects.forEach((slice) => {
         if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
-          const sliceSeletor = $(`#${slice.data.token}-cell`);
+          const sliceSeletor = $(`#${slice.data.slice_id}-cell`);
           sliceSeletor.addClass('slice-cell-highlight');
           setTimeout(function () {
             sliceSeletor.removeClass('slice-cell-highlight');
@@ -338,11 +342,11 @@ export function dashboardContainer(dashboard) {
 
 $(document).ready(() => {
   // Getting bootstrapped data from the DOM
-  const dashboardData = $('.dashboard').data('dashboard');
-  const contextData = $('.dashboard').data('context');
+  utils.initJQueryAjax();
+  const dashboardData = $('.dashboard').data('bootstrap');
 
-  const state = getInitialState(dashboardData, contextData);
-  const dashboard = dashboardContainer(state.dashboard);
+  const state = getInitialState(dashboardData);
+  const dashboard = dashboardContainer(state.dashboard, state.datasources, state.user_id);
   initDashboardView(dashboard);
   dashboard.init();
 });

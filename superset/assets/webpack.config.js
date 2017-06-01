@@ -15,10 +15,8 @@ const config = {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     common: APP_DIR + '/javascripts/common.js',
     dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/Dashboard.jsx'],
-    explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/explore.jsx'],
-    explorev2: ['babel-polyfill', APP_DIR + '/javascripts/explorev2/index.jsx'],
+    explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],
-    standalone: ['babel-polyfill', APP_DIR + '/javascripts/standalone.js'],
     welcome: ['babel-polyfill', APP_DIR + '/javascripts/welcome.js'],
     profile: ['babel-polyfill', APP_DIR + '/javascripts/profile/index.jsx'],
   },
@@ -28,7 +26,6 @@ const config = {
   },
   resolve: {
     extensions: [
-      '',
       '.js',
       '.jsx',
     ],
@@ -45,12 +42,12 @@ const config = {
     loaders: [
       {
         test: /datatables\.net.*/,
-        loader: 'imports?define=>false',
+        loader: 'imports-loader?define=>false',
       },
       {
         test: /\.jsx?$/,
         exclude: APP_DIR + '/node_modules',
-        loader: 'babel',
+        loader: 'babel-loader',
         query: {
           presets: [
             'airbnb',
@@ -63,7 +60,7 @@ const config = {
       {
         test: /\.react\.js$/,
         include: APP_DIR + '/node_modules/react-map-gl/src/overlays',
-        loader: 'babel',
+        loader: 'babel-loader',
       },
       /* for require('*.css') */
       {
@@ -87,7 +84,7 @@ const config = {
       /* for font-awesome */
       {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        loader: 'url-loader?limit=10000&minetype=application/font-woff',
+        loader: 'url-loader?limit=10000&mimetype=application/font-woff',
       },
       {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
@@ -97,7 +94,7 @@ const config = {
       {
         test: /\.less$/,
         include: APP_DIR,
-        loader: 'style!css!less',
+        loader: 'style-loader!css-loader!less-loader',
       },
       /* for mapbox */
       {
@@ -110,11 +107,6 @@ const config = {
         loader: 'transform/cacheable?brfs',
       },
     ],
-    postLoaders: [{
-      include: /node_modules\/mapbox-gl/,
-      loader: 'transform',
-      query: 'brfs',
-    }],
   },
   externals: {
     cheerio: 'window',

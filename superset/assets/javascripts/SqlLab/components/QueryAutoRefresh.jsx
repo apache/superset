@@ -1,10 +1,12 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from '../actions';
 
 const $ = require('jquery');
-const QUERY_UPDATE_FREQ = 1000;
+
+const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
 
 class QueryAutoRefresh extends React.PureComponent {
@@ -13,6 +15,14 @@ class QueryAutoRefresh extends React.PureComponent {
   }
   componentWillUnmount() {
     this.stopTimer();
+  }
+  shouldCheckForQueries() {
+    // if there are started or running queries, this method should return true
+    const { queries } = this.props;
+    const queryKeys = Object.keys(queries);
+    const queriesAsArray = queryKeys.map(key => queries[key]);
+    return queriesAsArray.some(q =>
+      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0);
   }
   startTimer() {
     if (!(this.timer)) {
@@ -24,32 +34,29 @@ class QueryAutoRefresh extends React.PureComponent {
     this.timer = null;
   }
   stopwatch() {
-    const url = '/superset/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
-    // No updates in case of failure.
-    $.getJSON(url, (data) => {
-      if (Object.keys(data).length > 0) {
-        this.props.actions.refreshQueries(data);
-      }
-      this.props.actions.setNetworkStatus(true);
-    })
-    .fail(() => {
-      this.props.actions.setNetworkStatus(false);
-    });
+    // only poll /superset/queries/ if there are started or running queries
+    if (this.shouldCheckForQueries()) {
+      const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;
+      $.getJSON(url, (data) => {
+        if (Object.keys(data).length > 0) {
+          this.props.actions.refreshQueries(data);
+        }
+      });
+    }
   }
   render() {
     return null;
   }
 }
 QueryAutoRefresh.propTypes = {
-  actions: React.PropTypes.object,
-  queriesLastUpdate: React.PropTypes.number,
-};
-QueryAutoRefresh.defaultProps = {
-  // queries: null,
+  queries: PropTypes.object.isRequired,
+  actions: PropTypes.object.isRequired,
+  queriesLastUpdate: PropTypes.number.isRequired,
 };
 
 function mapStateToProps(state) {
   return {
+    queries: state.queries,
     queriesLastUpdate: state.queriesLastUpdate,
   };
 }

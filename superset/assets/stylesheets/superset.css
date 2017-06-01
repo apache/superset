@@ -1,3 +1,9 @@
+@font-face {
+  font-family: "Roboto";
+  src: url("./fonts/Roboto-Regular.woff2") format("woff2"),
+       url("./fonts/Roboto-Regular.woff") format("woff");
+}
+
 body {
     margin: 0px !important;
 }
@@ -114,6 +120,12 @@ span.title-block {
 .nvtooltip {
     //position: relative !important;
     z-index: 888;
+    transition: opacity 0ms linear;
+    -moz-transition: opacity 0ms linear;
+    -webkit-transition: opacity 0ms linear;
+    transition-delay: 0ms;
+    -moz-transition-delay: 0ms;
+    -webkit-transition-delay: 0ms;
 }
 .nvtooltip table td{
     font-size: 11px !important;
@@ -181,7 +193,7 @@ div.widget .chart-header a {
 }
 
 div.widget .slice_container {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .navbar .alert {

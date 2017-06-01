@@ -2,7 +2,7 @@ import shortid from 'shortid';
 import * as actions from './actions';
 import { now } from '../modules/dates';
 import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
-  from '../reduxUtils.js';
+  from '../reduxUtils';
 
 export function getInitialState(defaultDbId) {
   const defaultQueryEditor = {
@@ -17,7 +17,6 @@ export function getInitialState(defaultDbId) {
 
   return {
     alerts: [],
-    networkOn: true,
     queries: {},
     databases: {},
     queryEditors: [defaultQueryEditor],
@@ -37,7 +36,7 @@ export const sqlLabReducer = function (state, action) {
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
     [actions.CLONE_QUERY_TO_NEW_TAB]() {
-      const progenitor = state.queryEditors.find((qe) =>
+      const progenitor = state.queryEditors.find(qe =>
           qe.id === state.tabHistory[state.tabHistory.length - 1]);
       const qe = {
         id: shortid.generate(),
@@ -53,7 +52,7 @@ export const sqlLabReducer = function (state, action) {
     [actions.REMOVE_QUERY_EDITOR]() {
       let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
-      const qeIds = newState.queryEditors.map((qe) => qe.id);
+      const qeIds = newState.queryEditors.map(qe => qe.id);
       const queries = {};
       Object.keys(state.queries).forEach((k) => {
         const query = state.queries[k];
@@ -62,7 +61,7 @@ export const sqlLabReducer = function (state, action) {
         }
       });
       let tabHistory = state.tabHistory.slice();
-      tabHistory = tabHistory.filter((id) => qeIds.indexOf(id) > -1);
+      tabHistory = tabHistory.filter(id => qeIds.indexOf(id) > -1);
       newState = Object.assign({}, newState, { tabHistory, queries });
       return newState;
     },
@@ -151,7 +150,7 @@ export const sqlLabReducer = function (state, action) {
       return alterInArr(newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
     },
     [actions.STOP_QUERY]() {
-      return alterInObject(state, 'queries', action.query, { state: 'stopped' });
+      return alterInObject(state, 'queries', action.query, { state: 'stopped', results: [] });
     },
     [actions.CLEAR_QUERY_RESULTS]() {
       const newResults = Object.assign({}, action.query.results);
@@ -162,6 +161,9 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
     [actions.QUERY_SUCCESS]() {
+      if (action.query.state === 'stopped') {
+        return state;
+      }
       let rows;
       if (action.results.data) {
         rows = action.results.data.length;
@@ -178,11 +180,14 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {
+      if (action.query.state === 'stopped') {
+        return state;
+      }
       const alts = { state: 'failed', errorMessage: action.msg, endDttm: now() };
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
-      const qeIds = state.queryEditors.map((qe) => qe.id);
+      const qeIds = state.queryEditors.map(qe => qe.id);
       if (qeIds.indexOf(action.queryEditor.id) > -1) {
         const tabHistory = state.tabHistory.slice();
         tabHistory.push(action.queryEditor.id);
@@ -224,21 +229,19 @@ export const sqlLabReducer = function (state, action) {
     [actions.REMOVE_ALERT]() {
       return removeFromArr(state, 'alerts', action.alert);
     },
-    [actions.SET_NETWORK_STATUS]() {
-      if (state.networkOn !== action.networkOn) {
-        return Object.assign({}, state, { networkOn: action.networkOn });
-      }
-      return state;
-    },
     [actions.REFRESH_QUERIES]() {
       let newQueries = Object.assign({}, state.queries);
       // Fetch the updates to the queries present in the store.
       let change = false;
+      let queriesLastUpdate = state.queriesLastUpdate;
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
-        if (
-            !state.queries.hasOwnProperty(id) ||
-            state.queries[id].changedOn !== changedQuery.changedOn) {
+        if (!state.queries.hasOwnProperty(id) ||
+            (state.queries[id].changedOn !== changedQuery.changedOn &&
+            state.queries[id].state !== 'stopped')) {
+          if (changedQuery.changedOn > queriesLastUpdate) {
+            queriesLastUpdate = changedQuery.changedOn;
+          }
           newQueries[id] = Object.assign({}, state.queries[id], changedQuery);
           change = true;
         }
@@ -246,8 +249,26 @@ export const sqlLabReducer = function (state, action) {
       if (!change) {
         newQueries = state.queries;
       }
-      const queriesLastUpdate = now();
       return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });
+    },
+    [actions.CREATE_DATASOURCE_STARTED]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: true,
+        errorMessage: null,
+      });
+    },
+    [actions.CREATE_DATASOURCE_SUCCESS]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: false,
+        errorMessage: null,
+        datasource: action.datasource,
+      });
+    },
+    [actions.CREATE_DATASOURCE_FAILED]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: false,
+        errorMessage: action.err,
+      });
     },
   };
   if (action.type in actionHandlers) {

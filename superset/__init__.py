@@ -5,37 +5,59 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-import os
 from logging.handlers import TimedRotatingFileHandler
+
+import json
+import os
 
 from flask import Flask, redirect
 from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
-from flask_cache import Cache
 from flask_migrate import Migrate
-from superset.source_registry import SourceRegistry
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
-from superset import utils
+
+from superset.connectors.connector_registry import ConnectorRegistry
+from superset import utils, config  # noqa
 
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
+with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
+    frontend_config = json.load(f)
+
+
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
+
+for bp in conf.get('BLUEPRINTS'):
+    try:
+        print("Registering blueprint: '{}'".format(bp.name))
+        app.register_blueprint(bp)
+    except Exception as e:
+        print("blueprint registration failed")
+        logging.exception(e)
+
+if conf.get('SILENCE_FAB'):
+    logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
 if not app.debug:
     # In production mode, add log handler to sys.stderr.
     app.logger.addHandler(logging.StreamHandler())
     app.logger.setLevel(logging.INFO)
+logging.getLogger('pyhive.presto').setLevel(logging.INFO)
 
 db = SQLA(app)
 
+if conf.get('WTF_CSRF_ENABLED'):
+    csrf = CSRFProtect(app)
 
 utils.pessimistic_connection_handling(db.engine.pool)
 
-cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
+cache = utils.setup_cache(app, conf.get('CACHE_CONFIG'))
+tables_cache = utils.setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
@@ -87,6 +109,6 @@ results_backend = app.config.get("RESULTS_BACKEND")
 # Registering sources
 module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
 module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
-SourceRegistry.register_sources(module_datasource_map)
+ConnectorRegistry.register_sources(module_datasource_map)
 
-from superset import views, config  # noqa
+from superset import views  # noqa

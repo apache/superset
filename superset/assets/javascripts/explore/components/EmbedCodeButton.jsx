@@ -1,6 +1,7 @@
-import React, { PropTypes } from 'react';
-import CopyToClipboard from './../../components/CopyToClipboard';
+import React from 'react';
+import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
+import CopyToClipboard from './../../components/CopyToClipboard';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -25,15 +26,22 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   generateEmbedHTML() {
-    const srcLink = window.location.origin + this.props.slice.data.standalone_endpoint;
-    /* eslint max-len: 0 */
-    return `
-      <iframe
-        src="${srcLink}"
-        width="${this.state.width}"
-        height="${this.state.height}"
-        seamless frameBorder="0" scrolling="no">
-      </iframe>`;
+    const srcLink = (
+      window.location.origin +
+      this.props.slice.data.standalone_endpoint +
+      `&height=${this.state.height}`
+    );
+    return (
+      '<iframe\n' +
+      `  width="${this.state.width}"\n` +
+      `  height="${this.state.height}"\n` +
+      '  seamless\n' +
+      '  frameBorder="0"\n' +
+      '  scrolling="no"\n' +
+      `  src="${srcLink}"\n` +
+      '>\n' +
+      '</iframe>'
+    );
   }
 
   renderPopover() {
@@ -43,13 +51,19 @@ export default class EmbedCodeButton extends React.Component {
         <div>
           <div className="row">
             <div className="col-sm-10">
-              <textarea name="embedCode" value={html} rows="4" readOnly className="form-control input-sm"></textarea>
+              <textarea
+                name="embedCode"
+                value={html}
+                rows="4"
+                readOnly
+                className="form-control input-sm"
+              />
             </div>
             <div className="col-sm-2">
               <CopyToClipboard
                 shouldShowText={false}
                 text={html}
-                copyNode={<i className="fa fa-clipboard" title="Copy to clipboard"></i>}
+                copyNode={<i className="fa fa-clipboard" title="Copy to clipboard" />}
               />
             </div>
           </div>
@@ -98,7 +112,7 @@ export default class EmbedCodeButton extends React.Component {
         overlay={this.renderPopover()}
       >
         <span className="btn btn-default btn-sm">
-          <i className="fa fa-code"></i>&nbsp;
+          <i className="fa fa-code" />&nbsp;
         </span>
       </OverlayTrigger>
     );
