@@ -90,32 +90,26 @@ class VisualizeModal extends React.PureComponent {
     if (this.state.chartType === null) {
       hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
     } else {
-      if (this.state.chartType.requiresTime) {
-        let hasTime = false;
-        for (const colName in cols) {
-          const col = cols[colName];
-          if (col.hasOwnProperty('is_date') && col.is_date) {
-            hasTime = true;
-          }
-        }
-        if (!hasTime) {
-          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
-        }
+      if (this.state.chartType.requiresTime && !this.hasColumnType(cols, 'is_date')) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
       }
-      if (this.state.chartType.requiresDimension) {
-        const hasMatrix = Object.keys(cols).filter(key => (cols[key].is_dim)).length > 0;
-        if (!hasMatrix) {
-          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_DIMENSION);
-        }
+      if (this.state.chartType.requiresDimension && !this.hasColumnType(cols, 'is_dim')) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_DIMENSION);
       }
-      if (this.state.chartType.requiresAggregationFn) {
-        const hasMatrix = Object.keys(cols).filter(key => (cols[key].agg)).length > 0;
-        if (!hasMatrix) {
-          hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_AGGREGATION_FUNCTION);
-        }
+      if (this.state.chartType.requiresAggregationFn && !this.hasColumnType(cols, 'agg')) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_AGGREGATION_FUNCTION);
       }
     }
     this.setState({ hints });
+  }
+  hasColumnType(cols, propName) {
+    if (!cols || !propName) {
+      return false;
+    }
+
+    return Object.keys(cols)
+        .filter(key => cols[key].hasOwnProperty(propName) && cols[key][propName])
+        .length > 0;
   }
   changeChartType(option) {
     this.setState({ chartType: option }, this.validate);

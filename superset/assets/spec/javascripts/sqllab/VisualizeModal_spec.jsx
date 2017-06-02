@@ -47,8 +47,6 @@ describe('VisualizeModal', () => {
       type: 'STRING',
     },
   };
-  const mockChartTypeBarChart = visTypes.bar;
-  const mockChartTypeTB = visTypes.line;
   const mockEvent = {
     target: {
       value: 'mock event value',
@@ -112,10 +110,6 @@ describe('VisualizeModal', () => {
 
   describe('mergedColumns', () => {
     const wrapper = getVisualizeModalWrapper();
-    const oldColumns = {
-      ds: 1,
-      gender: 2,
-    };
 
     it('should merge by column name', () => {
       wrapper.setState({ columns: {} });
@@ -123,6 +117,10 @@ describe('VisualizeModal', () => {
       expect(mc).to.deep.equal(mockColumns);
     });
     it('should not override current state', () => {
+      const oldColumns = {
+        ds: 1,
+        gender: 2,
+      };
       wrapper.setState({ columns: oldColumns });
 
       const mc = wrapper.instance().mergedColumns();
@@ -143,9 +141,9 @@ describe('VisualizeModal', () => {
 
     it('should validate column name', () => {
       columnsStub.returns(mockColumns);
+      wrapper.setState({ chartType: visTypes.dist_bar });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(0);
-      wrapper.instance().mergedColumns.restore();
     });
     it('should hint invalid column name', () => {
       columnsStub.returns({
@@ -153,7 +151,6 @@ describe('VisualizeModal', () => {
       });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length.above(1);
-      wrapper.instance().mergedColumns.restore();
     });
     it('should hint empty chartType', () => {
       columnsStub.returns(mockColumns);
@@ -165,7 +162,7 @@ describe('VisualizeModal', () => {
     });
     it('should check time series', () => {
       columnsStub.returns(mockColumns);
-      wrapper.setState({ chartType: mockChartTypeTB });
+      wrapper.setState({ chartType: visTypes.line });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(0);
 
@@ -184,7 +181,7 @@ describe('VisualizeModal', () => {
           type: 'STRING',
         },
       });
-      wrapper.setState({ chartType: mockChartTypeTB });
+      wrapper.setState({ chartType: visTypes.line });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(1);
       expect(wrapper.state().hints[0]).to.have.string(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
@@ -205,11 +202,39 @@ describe('VisualizeModal', () => {
           type: 'STRING',
         },
       });
-      wrapper.setState({ chartType: mockChartTypeBarChart });
+      wrapper.setState({ chartType: visTypes.bar });
       wrapper.instance().validate();
       expect(wrapper.state().hints).to.have.length(1);
       expect(wrapper.state().hints[0])
         .to.have.string(VISUALIZE_VALIDATION_ERRORS.REQUIRE_DIMENSION);
+    });
+    it('should check aggregation function', () => {
+      // no agg fn
+      columnsStub.returns({
+        ds: {
+          is_date: true,
+          is_dim: false,
+          name: 'ds',
+          type: 'STRING',
+        },
+        gender: {
+          is_date: false,
+          is_dim: false,
+          name: 'gender',
+          type: 'STRING',
+          agg: null,
+        },
+      });
+      const mockCharType = {
+        label: 'Aggregation Chart',
+        requiresAggregationFn: true,
+        controlPanelSections: [],
+      };
+      wrapper.setState({ chartType: mockCharType });
+      wrapper.instance().validate();
+      expect(wrapper.state().hints).to.have.length(1);
+      expect(wrapper.state().hints[0])
+        .to.have.string(VISUALIZE_VALIDATION_ERRORS.REQUIRE_AGGREGATION_FUNCTION);
     });
     it('should validate after change checkbox', () => {
       const spy = sinon.spy(wrapper.instance(), 'validate');
@@ -222,21 +247,26 @@ describe('VisualizeModal', () => {
     it('should validate after change Agg function', () => {
       const spy = sinon.spy(wrapper.instance(), 'validate');
       columnsStub.returns(mockColumns);
-
+      // set agg fn
       wrapper.instance().changeAggFunction('num', { label: 'MIN(x)', value: 'min' });
+      expect(wrapper.state().columns.num).to.deep.equal({ agg: 'min' });
       expect(spy.callCount).to.equal(1);
+      // clear agg fn
+      wrapper.instance().changeAggFunction('num');
+      expect(wrapper.state().columns.num).to.deep.equal({ agg: null });
+      expect(spy.callCount).to.equal(2);
       spy.restore();
     });
   });
 
   it('should validate after change chart type', () => {
     const wrapper = getVisualizeModalWrapper();
-    wrapper.setState({ chartType: mockChartTypeTB });
+    wrapper.setState({ chartType: visTypes.line });
     const spy = sinon.spy(wrapper.instance(), 'validate');
 
-    wrapper.instance().changeChartType(mockChartTypeBarChart);
+    wrapper.instance().changeChartType(visTypes.bar);
     expect(spy.callCount).to.equal(1);
-    expect(wrapper.state().chartType).to.equal(mockChartTypeBarChart);
+    expect(wrapper.state().chartType).to.equal(visTypes.bar);
   });
 
   it('should validate after change datasource name', () => {
@@ -250,7 +280,7 @@ describe('VisualizeModal', () => {
 
   it('should build viz options', () => {
     const wrapper = getVisualizeModalWrapper();
-    wrapper.setState({ chartType: mockChartTypeTB });
+    wrapper.setState({ chartType: visTypes.line });
     const spy = sinon.spy(wrapper.instance(), 'buildVizOptions');
     wrapper.instance().buildVizOptions();
     expect(spy.returnValues[0]).to.deep.equal({
@@ -286,7 +316,7 @@ describe('VisualizeModal', () => {
     const wrapper = getVisualizeModalWrapper();
     const mockOptions = { attr: 'mockOptions' };
     wrapper.setState({
-      chartType: mockChartTypeBarChart,
+      chartType: visTypes.bar,
       columns: mockColumns,
       datasourceName: 'mockDatasourceName',
     });
