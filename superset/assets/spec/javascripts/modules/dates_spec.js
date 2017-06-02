@@ -8,7 +8,7 @@ import {
   now,
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
-  epochTimeXYearsAgo
+  epochTimeXYearsAgo,
  } from '../../../javascripts/modules/dates';
 
 describe('tickMultiFormat', () => {
@@ -71,7 +71,7 @@ describe('epochTimeXDaysAgo', () => {
 
 describe('epochTimeXYearsAgo', () => {
   it('is a function', () => {
-    assert.isFunction(epochTimeXYearsAgo)
+    assert.isFunction(epochTimeXYearsAgo);
   });
 
   it('returns a number', () => {
