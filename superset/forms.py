@@ -1181,8 +1181,7 @@ class CsvToDatabaseForm(DynamicForm):
                                         'first line of data). '
                                         'Leave empty if there is no '
                                         'header row.'),
-                          validators=[Optional(),
-                                      NumberRange(0, 1E+20)],
+                          validators=[Optional()],
                           widget=BS3TextFieldWidget(),
                           filters=[lambda x: x or None])
     names = StringField(_('Column Names'),

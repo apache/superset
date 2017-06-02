@@ -12,12 +12,11 @@ import io
 import random
 import unittest
 import os
-import pdb
 import unicodecsv
 
 from flask import escape
 
-from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
+from superset import app, db, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
@@ -664,7 +663,8 @@ class CoreTests(SupersetTestCase):
                             'con': config['SQLALCHEMY_DATABASE_URI'],
                             'if_exists': 'append',
                             'index_label': 'test_label',
-                            'chunksize': 1}
+                            'chunksize': 1,
+                            'mangle_dupe_cols': True}
 
         url = '/databaseview/list/'
         add_datasource_page = self.get_resp(url)
