@@ -13,9 +13,8 @@ from flask_babel import gettext as __
 from superset import db, utils, appbuilder, sm, security
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils import has_access
-from superset.connectors.base.views import DatasourceModelView
+from superset.views.base import BaseSupersetView
 from superset.views.base import (
-    BaseSupersetView,
     SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
     DatasourceFilter, get_datasource_exist_error_mgs)
 
@@ -24,10 +23,10 @@ from . import models
 appbuilder.add_separator("Sources", )
 
 
-class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.DruidColumn)
+class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
+    datamodel = SQLAInterface(models.ElasticColumn)
     edit_columns = [
-        'column_name', 'description', 'dimension_spec_json', 'datasource',
+        'column_name', 'description', 'json', 'datasource',
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
@@ -50,10 +49,10 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'filterable': _(
             "Whether this column is exposed in the `Filters` section "
             "of the explore view."),
-        'dimension_spec_json': utils.markdown(
+        'json': utils.markdown(
             "this field can be used to specify  "
             "a `dimensionSpec` as documented [here]"
-            "(http://druid.io/docs/latest/querying/dimensionspecs.html). "
+            "(http://elastic.io/docs/latest/querying/dimensionspecs.html). "
             "Make sure to input valid JSON and that the "
             "`outputName` matches the `column_name` defined "
             "above.",
@@ -62,16 +61,16 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_update(self, col):
         col.generate_metrics()
-        utils.validate_json(col.dimension_spec_json)
+        utils.validate_json(col.json)
 
     def post_add(self, col):
         self.post_update(col)
 
-appbuilder.add_view_no_menu(DruidColumnInlineView)
+appbuilder.add_view_no_menu(ElasticColumnInlineView)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.DruidMetric)
+class ElasticMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
+    datamodel = SQLAInterface(models.ElasticMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
@@ -84,8 +83,8 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     description_columns = {
         'metric_type': utils.markdown(
             "use `postagg` as the metric type if you are defining a "
-            "[Druid Post Aggregation]"
-            "(http://druid.io/docs/latest/querying/post-aggregations.html)",
+            "[Elastic Post Aggregation]"
+            "(http://elastic.io/docs/latest/querying/post-aggregations.html)",
             True),
         'is_restricted': _("Whether the access to this metric is restricted "
                            "to certain roles. Only roles with the permission "
@@ -98,7 +97,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'verbose_name': _("Verbose Name"),
         'metric_type': _("Type"),
         'json': _("JSON"),
-        'datasource': _("Druid Datasource"),
+        'datasource': _("Elastic Datasource"),
     }
 
     def post_add(self, metric):
@@ -109,27 +108,26 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         if metric.is_restricted:
             security.merge_perm(sm, 'metric_access', metric.get_perm())
 
-appbuilder.add_view_no_menu(DruidMetricInlineView)
+appbuilder.add_view_no_menu(ElasticMetricInlineView)
 
 
-class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
-    datamodel = SQLAInterface(models.DruidCluster)
+class ElasticClusterModelView(SupersetModelView, DeleteMixin):  # noqa
+    datamodel = SQLAInterface(models.ElasticCluster)
     add_columns = [
-        'verbose_name', 'coordinator_host', 'coordinator_port',
-        'coordinator_endpoint', 'broker_host', 'broker_port',
-        'broker_endpoint', 'cache_timeout', 'cluster_name',
+        'cluster_name', 'hosts_json', 'cache_timeout',
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
     search_columns = ('cluster_name',)
     label_columns = {
         'cluster_name': _("Cluster"),
-        'coordinator_host': _("Coordinator Host"),
-        'coordinator_port': _("Coordinator Port"),
-        'coordinator_endpoint': _("Coordinator Endpoint"),
-        'broker_host': _("Broker Host"),
-        'broker_port': _("Broker Port"),
-        'broker_endpoint': _("Broker Endpoint"),
+        'hosts_json': _("Hosts JSON configuration")
+    }
+    description_columns = {
+        'hosts_json': _(
+            "A JSON string that represents a host, and array of host, "
+            "or anything else that ``elasticsearch.Elasticsearch()`` will "
+            "be able to interpret"),
     }
 
     def pre_add(self, cluster):
@@ -142,23 +140,23 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
         DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
-    DruidClusterModelView,
-    name="Druid Clusters",
-    label=__("Druid Clusters"),
+    ElasticClusterModelView,
+    name="Elastic Clusters",
+    label=__("Elastic Clusters"),
     icon="fa-cubes",
     category="Sources",
     category_label=__("Sources"),
     category_icon='fa-database',)
 
 
-class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
-    datamodel = SQLAInterface(models.DruidDatasource)
+class ElasticDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
+    datamodel = SQLAInterface(models.ElasticDatasource)
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
         'datasource_link', 'cluster', 'changed_by_', 'modified']
     order_columns = [
         'datasource_link', 'changed_on_', 'offset']
-    related_views = [DruidColumnInlineView, DruidMetricInlineView]
+    related_views = [ElasticColumnInlineView, ElasticMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'slices', 'description', 'owner',
         'is_hidden',
@@ -216,9 +214,9 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     def pre_add(self, datasource):
         number_of_existing_datasources = db.session.query(
             sqla.func.count('*')).filter(
-            models.DruidDatasource.datasource_name ==
+            models.ElasticDatasource.datasource_name ==
                 datasource.datasource_name,
-            models.DruidDatasource.cluster_name == datasource.cluster.id
+            models.ElasticDatasource.cluster_name == datasource.cluster.id
         ).scalar()
 
         # table object is already added to the session
@@ -239,24 +237,24 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
-    DruidDatasourceModelView,
-    "Druid Datasources",
-    label=__("Druid Datasources"),
+    ElasticDatasourceModelView,
+    "Elastic Datasources",
+    label=__("Elastic Datasources"),
     category="Sources",
     category_label=__("Sources"),
     icon="fa-cube")
 
 
-class Druid(BaseSupersetView):
+class Elastic(BaseSupersetView):
     """The base views for Superset!"""
 
     @has_access
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
-        """endpoint that refreshes druid datasources metadata"""
+        """endpoint that refreshes elastic datasources metadata"""
         session = db.session()
-        DruidCluster = ConnectorRegistry.sources['druid'].cluster_class
-        for cluster in session.query(DruidCluster).all():
+        ElasticCluster = ConnectorRegistry.sources['elastic'].cluster_class
+        for cluster in session.query(ElasticCluster).all():
             cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()
@@ -266,21 +264,21 @@ class Druid(BaseSupersetView):
                         cluster_name, utils.error_msg_from_exception(e)),
                     "danger")
                 logging.exception(e)
-                return redirect('/druidclustermodelview/list/')
+                return redirect('/elasticclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(
                 "Refreshed metadata from cluster "
                 "[" + cluster.cluster_name + "]",
                 'info')
         session.commit()
-        return redirect("/druiddatasourcemodelview/list/")
+        return redirect("/elasticdatasourcemodelview/list/")
 
-appbuilder.add_view_no_menu(Druid)
+appbuilder.add_view_no_menu(Elastic)
 
 appbuilder.add_link(
-    "Refresh Druid Metadata",
-    label=__("Refresh Druid Metadata"),
-    href='/druid/refresh_datasources/',
+    "Refresh Elastic Metadata",
+    label=__("Refresh Elastic Metadata"),
+    href='/elastic/refresh_datasources/',
     category='Sources',
     category_label=__("Sources"),
     category_icon='fa-database',
