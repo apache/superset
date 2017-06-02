@@ -70,7 +70,6 @@ class ElasticColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     def post_add(self, col):
         self.post_update(col)
 
-
 appbuilder.add_view_no_menu(ElasticColumnInlineView)
 
 
