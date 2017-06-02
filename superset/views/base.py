@@ -283,10 +283,7 @@ class SupersetFilter(BaseFilter):
     """
 
     def get_user_roles(self):
-        attr = '__get_user_roles'
-        if not hasattr(self, attr):
-            setattr(self, attr, get_user_roles())
-        return getattr(self, attr)
+        return get_user_roles()
 
     def get_all_permissions(self):
         """Returns a set of tuples with the perm name and view menu name"""
