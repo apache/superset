@@ -98,7 +98,7 @@ export default class SelectControl extends React.PureComponent {
       clearable: this.props.clearable,
       isLoading: this.props.isLoading,
       onChange: this.onChange,
-      optionRenderer: () => opt.label,
+      optionRenderer: (opt) => opt.label,
     };
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectWrap = this.props.freeForm ?
