@@ -62,6 +62,8 @@ meets these guidelines:
 4.  Code will be reviewed by re running the unittests, flake8 and syntax
     should be as rigorous as the core Python project.
 5.  Please rebase and resolve all conflicts before submitting.
+6.  If you are asked to update your pull request with some changes there's
+    no need to create a new one. Push your changes to the same branch.
 
 ## Documentation
 
