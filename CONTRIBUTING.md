@@ -47,6 +47,22 @@ If you are proposing a feature:
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
 
+## Pull Request Guidelines
+
+Before you submit a pull request from your forked repo, check that it
+meets these guidelines:
+
+1.  The pull request should include tests, either as doctests,
+    unit tests, or both.
+2.  If the pull request adds functionality, the docs should be updated
+    as part of the same PR. Doc string are often sufficient, make
+    sure to follow the sphinx compatible standards.
+3.  The pull request should work for Python 2.7, and ideally python 3.4+.
+    ``from __future__ import`` will be required in every `.py` file soon.
+4.  Code will be reviewed by re running the unittests, flake8 and syntax
+    should be as rigorous as the core Python project.
+5.  Please rebase and resolve all conflicts before submitting.
+
 ## Documentation
 
 The latest documentation and tutorial are available [here](http://airbnb.io/superset).
@@ -291,23 +307,6 @@ by modifying the Less variables or files in `assets/stylesheets/less/`.
 The `variables.less` and `bootswatch.less` files that ship with Superset are derived from
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
-
-## Pull Request Guidelines
-
-Before you submit a pull request from your forked repo, check that it
-meets these guidelines:
-
-1.  The pull request should include tests, either as doctests,
-    unit tests, or both.
-2.  If the pull request adds functionality, the docs should be updated
-    as part of the same PR. Doc string are often sufficient, make
-    sure to follow the sphinx compatible standards.
-3.  The pull request should work for Python 2.7, and ideally python 3.4+.
-    ``from __future__ import`` will be required in every `.py` file soon.
-4.  Code will be reviewed by re running the unittests, flake8 and syntax
-    should be as rigorous as the core Python project.
-5.  Please rebase and resolve all conflicts before submitting.
-
 
 ## Translations
 
