@@ -302,7 +302,7 @@ meets these guidelines:
 2.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-3.  The pull request should work for Python 2.6, 2.7, and ideally python 3.3.
+3.  The pull request should work for Python 2.7, and ideally python 3.4+.
     ``from __future__ import`` will be required in every `.py` file soon.
 4.  Code will be reviewed by re running the unittests, flake8 and syntax
     should be as rigorous as the core Python project.
