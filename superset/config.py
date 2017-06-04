@@ -141,6 +141,7 @@ BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
+    'it': {'flag': 'it', 'name': 'Italian'},
     # 'fr': {'flag': 'fr', 'name': 'French'},
     # 'zh': {'flag': 'cn', 'name': 'Chinese'},
 }

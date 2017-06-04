@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-06-03 21:36+0200\n"
-"PO-Revision-Date: 2017-06-03 21:35+0200\n"
+"POT-Creation-Date: 2017-06-04 20:38+0200\n"
+"PO-Revision-Date: 2017-06-04 20:36+0200\n"
 "Last-Translator: Maurizio Napolitano <napo@fbk.eu>\n"
 "Language: it\n"
 "Language-Team: Italiano <>\n"
@@ -109,11 +109,11 @@ msgstr "10 minuti"
 
 #: superset/viz.py:311
 msgid "Table View"
-msgstr "Vista a Tabella"
+msgstr "Vista Tabella"
 
 #: superset/viz.py:364
 msgid "Pivot Table"
-msgstr "Vista a Pivot"
+msgstr "Vista Pivot"
 
 #: superset/viz.py:413
 msgid "Markup"
@@ -169,7 +169,7 @@ msgstr "Serie Temporali - Grafico Barre"
 
 #: superset/viz.py:1008
 msgid "Time Series - Percent Change"
-msgstr "Serie Temporeali - Cambiamento Percentuale"
+msgstr "Serie Temporali - Cambiamento Percentuale"
 
 #: superset/viz.py:1016
 msgid "Time Series - Stacked"
@@ -225,7 +225,7 @@ msgstr "Mappa di Intensità"
 
 #: superset/viz.py:1445
 msgid "Horizon Charts"
-msgstr "Grafici Orizzontali"
+msgstr "Grafici d'orizzonte"
 
 #: superset/viz.py:1456
 msgid "Mapbox"
@@ -263,7 +263,7 @@ msgstr "Count Distinct"
 
 #: superset/connectors/druid/views.py:43 superset/connectors/sqla/views.py:81
 msgid "Sum"
-msgstr "Tot"
+msgstr "Sum"
 
 #: superset/connectors/druid/views.py:44 superset/connectors/sqla/views.py:82
 msgid "Min"
@@ -389,7 +389,7 @@ msgid ""
 "Redirects to this endpoint when clicking on the datasource from the "
 "datasource list"
 msgstr ""
-"Reinvia a questo endpoint al clic sulla sorgente dati dall'elenco delle "
+"Rinvia a questo endpoint al clic sulla sorgente dati dall'elenco delle "
 "sorgenti dati"
 
 #: superset/connectors/druid/views.py:202 superset/connectors/sqla/views.py:193
