@@ -26,7 +26,7 @@ open to whoever wants to implement it.
 ### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with
-"feature" is open to whoever wants to implement it.
+"feature" or "starter_task" is open to whoever wants to implement it.
 
 ### Documentation
 
