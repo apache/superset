@@ -624,7 +624,7 @@ class DruidDatasource(Model, BaseDatasource):
             # If long or double, allow sum/min/max
             if datatype == "LONG" or datatype == "DOUBLE":
                 col_obj.sum = True
-                col_obj.min= True
+                col_obj.min = True
                 col_obj.max = True
             if col_obj:
                 col_obj.type = cols[col]['type']
