@@ -174,7 +174,7 @@ const px = function () {
         $(selector + ' div.alert').remove();
       },
       width() {
-        return token.width();
+        return container.width();
       },
       height() {
         let others = 0;
