@@ -603,6 +603,9 @@ class DruidDatasource(Model, BaseDatasource):
             logging.error("Failed at fetching the latest segment")
             return
         for col in cols:
+            # Skip the time column
+            if col == "__time":
+                continue
             col_obj = (
                 session
                 .query(DruidColumn)
@@ -618,6 +621,11 @@ class DruidDatasource(Model, BaseDatasource):
                 col_obj.filterable = True
             if datatype == "hyperUnique" or datatype == "thetaSketch":
                 col_obj.count_distinct = True
+            # If long or double, allow sum/min/max
+            if datatype == "LONG" or datatype == "DOUBLE":
+                col_obj.sum = True
+                col_obj.min = True
+                col_obj.max = True
             if col_obj:
                 col_obj.type = cols[col]['type']
             session.flush()
