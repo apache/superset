@@ -246,10 +246,10 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def clean_inexistence_columns(self, table):
         """
-        To avoid garbage data, columns and related metrics need to be cleaned 
+        To avoid garbage data, columns and related metrics need to be cleaned
         when the column of datasource doesn't exist.
-        :param table: 
-        :return: 
+        :param table:
+        :return:
         """
         datasource = table.get_sqla_table_object()
         M = models.SqlMetric
@@ -264,9 +264,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
                 ]
                 metrics = (
                     db.session.query(M)
-                        .filter(M.table_id == table.id)
-                        .filter(M.metric_name.in_(delete_metrics))
-                        .all()
+                    .filter(M.table_id == table.id)
+                    .filter(M.metric_name.in_(delete_metrics))
+                    .all()
                 )
                 if metrics:
                     # delete metrics
