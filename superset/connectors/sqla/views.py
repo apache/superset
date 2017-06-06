@@ -241,6 +241,36 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_update(self, table):
         self.post_add(table, flash_message=False)
+        # clean columns and metrics when updating table
+        self.clean_inexistence_columns(table)
+
+    def clean_inexistence_columns(self, table):
+        """
+        To avoid garbage data, columns and related metrics need to be cleaned 
+        when the column of datasource doesn't exist.
+        :param table: 
+        :return: 
+        """
+        datasource = table.get_sqla_table_object()
+        M = models.SqlMetric
+        for column in table.columns:
+            if column.column_name not in datasource.columns._data:
+                # delete table column
+                TableColumnInlineView.datamodel.delete(column)
+                delete_metrics = [
+                    'sum__' + column.column_name, 'avg__' + column.column_name,
+                    'max__' + column.column_name, 'min__' + column.column_name,
+                    'count_distinct__' + column.column_name,
+                ]
+                metrics = (
+                    db.session.query(M)
+                        .filter(M.table_id == table.id)
+                        .filter(M.metric_name.in_(delete_metrics))
+                        .all()
+                )
+                if metrics:
+                    # delete metrics
+                    SqlMetricInlineView.datamodel.delete_all(metrics)
 
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
