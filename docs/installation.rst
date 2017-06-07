@@ -353,6 +353,8 @@ environment variable: ::
 
 *Adapted from http://flask.pocoo.org/snippets/69/*
 
+*Requires you to set ``X-Proxy-REMOTE-USER`` (in all caps) request header*
+
 
 Upgrading
 ---------
