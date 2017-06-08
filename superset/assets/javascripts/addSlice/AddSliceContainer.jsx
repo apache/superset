@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Button, Panel, Grid, Row, Col } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 
-import controls from '../explorev2/stores/controls';
+import controls from '../explore/stores/controls';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
