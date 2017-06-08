@@ -25,16 +25,26 @@ export default class VizTypeControl extends React.PureComponent {
     };
     this.toggleModal = this.toggleModal.bind(this);
     this.changeSearch = this.changeSearch.bind(this);
+    this.setSearchRef = this.setSearchRef.bind(this);
+    this.focusSearch = this.focusSearch.bind(this);
   }
   onChange(vizType) {
     this.props.onChange(vizType);
     this.setState({ showModal: false });
+  }
+  setSearchRef(searchRef) {
+    this.searchRef = searchRef;
   }
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
   }
   changeSearch(event) {
     this.setState({ filter: event.target.value });
+  }
+  focusSearch() {
+    if (this.searchRef) {
+      this.searchRef.focus();
+    }
   }
   renderVizType(vizType) {
     const vt = vizType;
@@ -82,7 +92,13 @@ export default class VizTypeControl extends React.PureComponent {
         <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }}>
           {visTypes[this.props.value].label}
         </Label>
-        <Modal show={this.state.showModal} onHide={this.toggleModal} bsSize="lg">
+        <Modal
+          show={this.state.showModal}
+          onHide={this.toggleModal}
+          onEnter={this.focusSearch}
+          onExit={this.setSearchRef}
+          bsSize="lg"
+        >
           <Modal.Header closeButton>
             <Modal.Title>Select a visualization type</Modal.Title>
           </Modal.Header>
@@ -90,6 +106,7 @@ export default class VizTypeControl extends React.PureComponent {
             <div>
               <FormControl
                 id="formControlsText"
+                inputRef={(ref) => { this.setSearchRef(ref); }}
                 type="text"
                 bsSize="sm"
                 value={this.state.filter}
