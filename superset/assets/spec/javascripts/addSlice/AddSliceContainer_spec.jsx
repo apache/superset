@@ -39,7 +39,7 @@ describe('AddSliceContainer', () => {
   it('renders an enabled button if datasource is selected', () => {
     const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
-      datasourceValue: datasourceValue,
+      datasourceValue,
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
     });
@@ -49,7 +49,7 @@ describe('AddSliceContainer', () => {
   it('formats explore url', () => {
     const datasourceValue = defaultProps.datasources[0].value;
     wrapper.setState({
-      datasourceValue: datasourceValue,
+      datasourceValue,
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
     });

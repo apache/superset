@@ -44,7 +44,7 @@ export default class AddSliceContainer extends React.PureComponent {
   }
 
   isBtnDisabled() {
-    return this.state.datasourceId && this.state.visType ? false : true;
+    return !(this.state.datasourceId && this.state.visType);
   }
 
   render() {
