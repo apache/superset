@@ -37,6 +37,11 @@ describe('fDuration', () => {
   it('returns a string', () => {
     expect(fDuration(new Date(), new Date())).to.be.a('string');
   });
+
+  it('returns the expected output', () => {
+    const output = fDuration('1496293608897', '1496293623406');
+    expect(output).to.equal('00:00:14.50');
+  });
 });
 
 describe('now', () => {
