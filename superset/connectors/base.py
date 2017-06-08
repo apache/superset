@@ -89,11 +89,33 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         }
 
     @property
+    def verbose_column_names(self):
+        return {
+            c.column_name: c.verbose_name or c.column_name
+            for c in self.columns
+        }
+
+    @property
+    def verbose_metrics_names(self):
+        return {
+            m.metric_name: m.verbose_name or m.metric_name
+            for m in self.metrics
+        }
+
+    @property
     def metrics_combo(self):
         return sorted(
             [
                 (m.metric_name, m.verbose_name or m.metric_name)
                 for m in self.metrics],
+            key=lambda x: x[1])
+
+    @property
+    def columns_combo(self):
+        return sorted(
+            [
+                (m.column_name, m.verbose_name or m.column_name)
+                for m in self.columns],
             key=lambda x: x[1])
 
     @property
@@ -105,12 +127,12 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
         d = {
-            'all_cols': utils.choicify(self.column_names),
+            'all_cols': self.columns_combo,
             'column_formats': self.column_formats,
             'edit_url': self.url,
             'filter_select': self.filter_select_enabled,
-            'filterable_cols': utils.choicify(self.filterable_column_names),
-            'gb_cols': utils.choicify(self.groupby_column_names),
+            'filterable_cols': self.columns_combo,
+            'gb_cols': self.columns_combo,
             'id': self.id,
             'metrics_combo': self.metrics_combo,
             'name': self.name,
@@ -119,6 +141,25 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         }
 
         return d
+
+    def get_verbose_column_names(self, columns):
+        if columns is None:
+            return []
+        return [self.verbose_column_names.get(c) for c in columns]
+
+    def get_verbose_metrics_names(self, metrics):
+        if metrics is None:
+            return []
+        return [self.verbose_metrics_names.get(m) for m in metrics]
+
+    def get_verbose_values(self, values):
+        return {
+            df_value:
+                self.verbose_column_names.get(df_value) or
+                self.verbose_metrics_names.get(df_value) or
+                df_value
+            for df_value in values
+        }
 
     def get_query_str(self, query_obj):
         """Returns a query as a string
