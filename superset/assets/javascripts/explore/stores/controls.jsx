@@ -1,7 +1,8 @@
 import React from 'react';
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import * as v from '../validators';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import MetricOption from '../../components/MetricOption';
+import ColumnOption from '../../components/ColumnOption';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -19,47 +20,6 @@ const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
-const metricRenderer = m => (
-  <span>
-    <span className="m-r-5">{m.verbose_name || m.metric_name}</span>
-    {m.description &&
-      <InfoTooltipWithTrigger
-        className="m-r-5 text-muted"
-        icon="info"
-        tooltip={m.description}
-        label={`descr-${m.metric_name}`}
-      />
-    }
-    <InfoTooltipWithTrigger
-      className="m-r-5 text-muted"
-      icon="question-circle-o"
-      tooltip={m.expression}
-      label={`expr-${m.metric_name}`}
-    />
-  </span>
-);
-
-const columnRenderer = c => (
-  <span>
-    <span className="m-r-5">{c.verbose_name || c.column_name}</span>
-    {c.description &&
-      <InfoTooltipWithTrigger
-        className="m-r-5 text-muted"
-        icon="info"
-        tooltip={c.description}
-        label={`descr-${c.column_name}`}
-      />
-    }
-    {c.expression && c.expression !== c.column_name &&
-      <InfoTooltipWithTrigger
-        className="m-r-5 text-muted"
-        icon="question-circle-o"
-        tooltip={c.expression}
-        label={`expr-${c.column_name}`}
-      />
-    }
-  </span>
-);
 
 export const TIME_STAMP_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
@@ -102,8 +62,8 @@ export const controls = {
     label: 'Metrics',
     validators: [v.nonEmpty],
     valueKey: 'metric_name',
-    optionRenderer: metricRenderer,
-    valueRenderer: metricRenderer,
+    optionRenderer: m => <MetricOption metric={m} />,
+    valueRenderer: m => <MetricOption metric={m} />,
     default: control =>
       control.choices && control.choices.length > 0 ? [control.choices[0][0]] : null,
     mapStateToProps: state => ({
@@ -139,8 +99,8 @@ export const controls = {
     clearable: false,
     description: 'Choose the metric',
     validators: [v.nonEmpty],
-    optionRenderer: metricRenderer,
-    valueRenderer: metricRenderer,
+    optionRenderer: m => <MetricOption metric={m} />,
+    valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
     default: control =>
       control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
@@ -157,8 +117,8 @@ export const controls = {
     clearable: true,
     description: 'Choose a metric for right axis',
     valueKey: 'metric_name',
-    optionRenderer: metricRenderer,
-    valueRenderer: metricRenderer,
+    optionRenderer: m => <MetricOption metric={m} />,
+    valueRenderer: m => <MetricOption metric={m} />,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
     }),
@@ -365,8 +325,8 @@ export const controls = {
     label: 'Group by',
     default: [],
     description: 'One or many controls to group by',
-    optionRenderer: columnRenderer,
-    valueRenderer: columnRenderer,
+    optionRenderer: c => <ColumnOption column={c} />,
+    valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.columns : [],
@@ -707,10 +667,14 @@ export const controls = {
   x: {
     type: 'SelectControl',
     label: 'X Axis',
-    default: null,
     description: 'Metric assigned to the [X] axis',
+    default: null,
+    validators: [v.nonEmpty],
+    optionRenderer: m => <MetricOption metric={m} />,
+    valueRenderer: m => <MetricOption metric={m} />,
+    valueKey: 'metric_name',
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      options: (state.datasource) ? state.datasource.metrics : [],
     }),
   },
 
@@ -719,8 +683,12 @@ export const controls = {
     label: 'Y Axis',
     default: null,
     description: 'Metric assigned to the [Y] axis',
+    validators: [v.nonEmpty],
+    optionRenderer: m => <MetricOption metric={m} />,
+    valueRenderer: m => <MetricOption metric={m} />,
+    valueKey: 'metric_name',
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      options: (state.datasource) ? state.datasource.metrics : [],
     }),
   },
 
@@ -728,8 +696,12 @@ export const controls = {
     type: 'SelectControl',
     label: 'Bubble Size',
     default: null,
+    validators: [v.nonEmpty],
+    optionRenderer: m => <MetricOption metric={m} />,
+    valueRenderer: m => <MetricOption metric={m} />,
+    valueKey: 'metric_name',
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      options: (state.datasource) ? state.datasource.metrics : [],
     }),
   },
 

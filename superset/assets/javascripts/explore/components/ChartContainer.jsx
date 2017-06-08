@@ -69,15 +69,15 @@ class ChartContainer extends React.PureComponent {
   getMockedSliceObject() {
     const props = this.props;
     const getHeight = () => {
-      const headerHeight = this.props.standalone ? 0 : 100;
+      const headerHeight = props.standalone ? 0 : 100;
       return parseInt(props.height, 10) - headerHeight;
     };
     return {
-      viewSqlQuery: this.props.queryResponse.query,
+      viewSqlQuery: props.queryResponse.query,
       containerId: props.containerId,
       datasource: props.datasource,
       selector: this.state.selector,
-      formData: this.props.formData,
+      formData: props.formData,
       container: {
         html: (data) => {
           // this should be a callback to clear the contents of the slice container
@@ -129,10 +129,9 @@ class ChartContainer extends React.PureComponent {
       },
 
       data: {
-        csv_endpoint: getExploreUrl(this.props.formData, 'csv'),
-        json_endpoint: getExploreUrl(this.props.formData, 'json'),
-        standalone_endpoint: getExploreUrl(
-          this.props.formData, 'standalone'),
+        csv_endpoint: getExploreUrl(props.formData, 'csv'),
+        json_endpoint: getExploreUrl(props.formData, 'json'),
+        standalone_endpoint: getExploreUrl(props.formData, 'standalone'),
       },
 
     };
