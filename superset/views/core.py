@@ -380,7 +380,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         return self.render_template(
             "superset/add_slice.html",
             bootstrap_data=json.dumps({
-                'datasources': datasources,
+                'datasources': sorted(datasources),
             }),
         )
 
