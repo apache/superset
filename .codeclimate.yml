@@ -7,6 +7,7 @@ engines:
     enabled: true
     config:
       config: superset/assets/.eslintrc
+      ignore_warnings: true
   pep8:
     enabled: true
   fixme:
