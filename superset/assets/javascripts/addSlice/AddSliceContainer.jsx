@@ -2,8 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Panel, Grid, Row, Col } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
-
-import controls from '../explore/stores/controls';
+import visTypes from '../explore/stores/visTypes';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
@@ -12,10 +11,11 @@ const propTypes = {
   })).isRequired,
 };
 
-class AddSliceContainer extends React.Component {
+export default class AddSliceContainer extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.vizTypeOptions = controls.viz_type.choices.map(vt => ({ label: vt[1], value: vt[0] }));
+    const visTypeKeys = Object.keys(visTypes);
+    this.vizTypeOptions = visTypeKeys.map(vt => ({ label: visTypes[vt].label, value: vt }));
     this.state = {
       datasourceValue: this.props.datasources[0].value,
       datasourceId: this.props.datasources[0].value.split('__')[0],
@@ -95,5 +95,3 @@ class AddSliceContainer extends React.Component {
 }
 
 AddSliceContainer.propTypes = propTypes;
-
-export default AddSliceContainer;
