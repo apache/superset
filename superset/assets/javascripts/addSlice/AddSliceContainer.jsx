@@ -39,10 +39,6 @@ export default class AddSliceContainer extends React.PureComponent {
     });
   }
 
-  changeSliceName(e) {
-    this.setState({ sliceName: e.target.value });
-  }
-
   changeVisType(e) {
     this.setState({ visType: e.value });
   }
