@@ -273,13 +273,13 @@ msgstr "Min"
 msgid "Max"
 msgstr "Max"
 
-#: superset/forms.py:263
+#: superset/forms.py:265
 msgid "Sort bars by x labels."
 msgstr ""
 "Se questa colonna è esposta nella sezione `Filtri` della vista "
 "esplorazione."
 
-#: superset/forms.py:266
+#: superset/forms.py:268
 msgid "Extra Controls"
 msgstr ""
 "Se l'accesso a questa metrica è limitato a determinati ruoli. Solo i "
@@ -432,13 +432,13 @@ msgstr ""
 msgid "Metric '{}' is not valid"
 msgstr "Metrica '{}' non valida"
 
-#: superset/forms.py:349
+#: superset/forms.py:352
 msgid "Bottom marging, in pixels, allowing for more room for axis labels"
 msgstr ""
 "Se rendere disponibile questa colonna come opzione [Time Granularity], la"
 " colonna deve essere di tipo DATETIME o simile"
 
-#: superset/forms.py:354
+#: superset/forms.py:357
 msgid "Page Length"
 msgstr ""
 "Il tipo di dato è dedotto dal database. In alcuni casi potrebbe essere "

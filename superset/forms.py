@@ -49,7 +49,8 @@ class BetterBooleanField(BooleanField):
 
     def __call__(self, **kwargs):
         html = super(BetterBooleanField, self).__call__(**kwargs)
-        html += u'<input type="hidden" name="{}" value="false">'.format(self.name)
+        html += u'<input type="hidden" name="{}" value="false">' \
+            .format(self.name)
         return widgets.HTMLString(html)
 
 
@@ -60,7 +61,8 @@ class SelectMultipleSortableField(SelectMultipleField):
     def iter_choices(self):
         d = OrderedDict()
         for value, label in self.choices:
-            selected = self.data is not None and self.coerce(value) in self.data
+            selected = self.data is not None\
+                and self.coerce(value) in self.data
             d[value] = (value, label, selected)
         if self.data:
             for value in self.data:
@@ -340,7 +342,8 @@ class FormFactory(object):
                 "default": '',
                 "description": _(
                     "Defines the origin where time buckets start, "
-                    "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")
+                    "accepts natural dates as in 'now', 'sunday' or "
+                    "'1970-01-01'")
             }),
             'bottom_margin': (FreeFormSelectField, {
                 "label": _("Bottom Margin"),
@@ -376,8 +379,10 @@ class FormFactory(object):
                     ('month', _('month')),
                 ),
                 "description": _(
-                    "The time granularity for the visualization. Note that you "
-                    "can type and use simple natural language as in '10 seconds', "
+                    "The time granularity for the visualization. "
+                    "Note that you "
+                    "can type and use simple natural language as in "
+                    "'10 seconds', "
                     "'1 day' or '56 weeks'")
             }),
             'domain_granularity': (SelectField, {
@@ -404,8 +409,10 @@ class FormFactory(object):
                     ('month', _('month')),
                 ),
                 "description": _(
-                    "The time unit for each block. Should be a smaller unit than "
-                    "domain_granularity. Should be larger or equal to Time Grain")
+                    "The time unit for each block. Should be a "
+                    "smaller unit than "
+                    "domain_granularity. Should be larger or equal "
+                    "to Time Grain")
             }),
             'link_length': (FreeFormSelectField, {
                 "label": _("Link Length"),
@@ -497,8 +504,10 @@ class FormFactory(object):
                     ('1 year ago', _('1 year ago')),
                 ),
                 "description": _(
-                    "Timestamp from filter. This supports free form typing and "
-                    "natural language as in '1 day ago', '28 days' or '3 years'")
+                    "Timestamp from filter. This supports "
+                    "free form typing and "
+                    "natural language as in '1 day ago', "
+                    "'28 days' or '3 years'")
             }),
             'until': (FreeFormSelectField, {
                 "label": _("Until"),
@@ -539,7 +548,8 @@ class FormFactory(object):
             }),
             'treemap_ratio': (DecimalField, {
                 "label": _("Ratio"),
-                "default": 0.5 * (1 + math.sqrt(5)),  # d3 default, golden ratio
+                # d3 default, golden ratio
+                "default": 0.5 * (1 + math.sqrt(5)),
                 "description": _('Target aspect ratio for treemap tiles.'),
             }),
             'number_format': (FreeFormSelectField, {
@@ -577,7 +587,8 @@ class FormFactory(object):
             'rolling_type': (SelectField, {
                 "label": _("Rolling"),
                 "default": 'None',
-                "choices": [(s, s) for s in ['None', 'mean', 'sum', 'std', 'cumsum']],
+                "choices": [(s, s) for s in ['None', 'mean',
+                                             'sum', 'std', 'cumsum']],
                 "description": _(
                     "Defines a rolling window function to apply, works along "
                     "with the [Periods] text box")
@@ -595,14 +606,16 @@ class FormFactory(object):
                 "default": default_groupby,
                 "description": _(
                     "Defines the grouping of entities. "
-                    "Each series is shown as a specific color on the chart and "
+                    "Each series is shown as a specific color "
+                    "on the chart and "
                     "has a legend toggle")
             }),
             'entity': (SelectField, {
                 "label": _("Entity"),
                 "choices": group_by_choices,
                 "default": default_groupby,
-                "description": _("This define the element to be plotted on the chart")
+                "description": _("This define the element to "
+                                 "be plotted on the chart")
             }),
             'x': (SelectField, {
                 "label": _("X Axis"),
@@ -663,7 +676,8 @@ class FormFactory(object):
             }),
             'compare_suffix': (TextField, {
                 "label": _("Comparison suffix"),
-                "description": _("Suffix to apply after the percentage display")
+                "description": _("Suffix to apply after "
+                                 "the percentage display")
             }),
             'table_timestamp_format': (FreeFormSelectField, {
                 "label": _("Table Timestamp Format"),
@@ -762,7 +776,8 @@ class FormFactory(object):
             'size_from': (TextField, {
                 "label": _("Font Size From"),
                 "default": "20",
-                "description": _("Font size for the smallest value in the list")
+                "description": _("Font size for the "
+                                 "smallest value in the list")
             }),
             'size_to': (TextField, {
                 "label": _("Font Size To"),
@@ -783,7 +798,8 @@ class FormFactory(object):
             'show_datatable': (BetterBooleanField, {
                 "label": _("Data Table"),
                 "default": False,
-                "description": _("Whether to display the interactive data table")
+                "description": _("Whether to display the "
+                                 "interactive data table")
             }),
             'include_search': (BetterBooleanField, {
                 "label": _("Search Box"),
@@ -893,7 +909,8 @@ class FormFactory(object):
                 "choices": self.choicify(["count"] + datasource.column_names),
                 "description": _(
                     "'count' is COUNT(*) if a group by is used. "
-                    "Numerical columns will be aggregated with the aggregator. "
+                    "Numerical columns will be aggregated "
+                    "with the aggregator. "
                     "Non-numerical columns will be used to label points. "
                     "Leave empty to get a count of points in each cluster."),
             }),
@@ -903,7 +920,8 @@ class FormFactory(object):
                     ("mapbox://styles/mapbox/streets-v9", "Streets"),
                     ("mapbox://styles/mapbox/dark-v9", "Dark"),
                     ("mapbox://styles/mapbox/light-v9", "Light"),
-                    ("mapbox://styles/mapbox/satellite-streets-v9", "Satellite Streets"),
+                    ("mapbox://styles/mapbox/satellite-streets-v9",
+                     "Satellite Streets"),
                     ("mapbox://styles/mapbox/satellite-v9", "Satellite"),
                     ("mapbox://styles/mapbox/outdoors-v9", "Outdoors"),
                 ],
@@ -925,7 +943,8 @@ class FormFactory(object):
                     '1000',
                 ]),
                 "description": _(
-                    "The radius (in pixels) the algorithm uses to define a cluster. "
+                    "The radius (in pixels) the algorithm "
+                    "uses to define a cluster. "
                     "Choose 0 to turn off clustering, but beware that a large "
                     "number of points (>1000) will cause lag.")
             }),
@@ -934,8 +953,10 @@ class FormFactory(object):
                 "default": "Auto",
                 "choices": self.choicify(["Auto"] + datasource.column_names),
                 "description": _(
-                    "The radius of individual points (ones that are not in a cluster). "
-                    "Either a numerical column or 'Auto', which scales the point based "
+                    "The radius of individual points (ones that are "
+                    "not in a cluster). "
+                    "Either a numerical column or 'Auto', which scales "
+                    "the point based "
                     "on the largest cluster")
             }),
             'point_radius_unit': (SelectField, {
@@ -946,7 +967,8 @@ class FormFactory(object):
                     "Miles",
                     "Kilometers",
                 ]),
-                "description": _("The unit of measure for the specified point radius")
+                "description": _("The unit of measure for the specified"
+                                 " point radius")
             }),
             'global_opacity': (DecimalField, {
                 "label": _("Opacity"),
@@ -1095,7 +1117,8 @@ class FormFactory(object):
             grains = viz.datasource.database.grains()
 
             if grains:
-                grains_choices = [(grain.name, grain.label) for grain in grains]
+                grains_choices = [(grain.name, grain.label) for
+                                  grain in grains]
                 time_fields = ('granularity_sqla', 'time_grain_sqla')
                 self.field_dict['time_grain_sqla'] = SelectField(
                     _('Time Grain'),
@@ -1108,16 +1131,20 @@ class FormFactory(object):
                         "The options here are defined on a per database "
                         "engine basis in the Superset source code"))
                 add_to_form(time_fields)
-                field_css_classes['time_grain_sqla'] = ['form-control', 'select2']
-                field_css_classes['granularity_sqla'] = ['form-control', 'select2']
+                field_css_classes['time_grain_sqla'] = ['form-control',
+                                                        'select2']
+                field_css_classes['granularity_sqla'] = ['form-control',
+                                                         'select2']
             else:
                 time_fields = 'granularity_sqla'
                 add_to_form((time_fields, ))
         elif datasource_classname == 'DruidDatasource':
             time_fields = ('granularity', 'druid_time_origin')
             add_to_form(('granularity', 'druid_time_origin'))
-            field_css_classes['granularity'] = ['form-control', 'select2_freeform']
-            field_css_classes['druid_time_origin'] = ['form-control', 'select2_freeform']
+            field_css_classes['granularity'] = ['form-control',
+                                                'select2_freeform']
+            field_css_classes['druid_time_origin'] = ['form-control',
+                                                      'select2_freeform']
             filter_choices = self.choicify(['in', 'not in', 'regex'])
             having_op_choices = self.choicify(
                 ['==', '!=', '>', '<', '>=', '<='])
