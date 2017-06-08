@@ -79,18 +79,43 @@ describe('VisualizeModal', () => {
   });
 
   describe('setStateFromProps', () => {
-    const wrapper = getVisualizeModalWrapper();
-    const sampleQuery = queries[0];
-
-    it('should require valid props parameters', () => {
-      const spy = sinon.spy(wrapper.instance(), 'setState');
-      wrapper.instance().setStateFromProps();
-      expect(spy.callCount).to.equal(0);
-      spy.restore();
+    it('should require valid query parameter in props', () => {
+      const emptyQuery = {
+        show: true,
+        query: {},
+      };
+      const wrapper = shallow(<VisualizeModal {...emptyQuery} />, {
+        context: { store },
+      }).dive();
+      expect(wrapper.state().columns).to.deep.equal({});
     });
     it('should set columns state', () => {
-      wrapper.instance().setStateFromProps({ query: sampleQuery });
+      const wrapper = getVisualizeModalWrapper();
       expect(wrapper.state().columns).to.deep.equal(mockColumns);
+    });
+    it('should not change columns state when closing Modal', () => {
+      const wrapper = getVisualizeModalWrapper();
+      expect(wrapper.state().columns).to.deep.equal(mockColumns);
+
+      // first change columns state
+      const newColumns = {
+        ds: {
+          is_date: true,
+          is_dim: false,
+          name: 'ds',
+          type: 'STRING',
+        },
+        name: {
+          is_date: false,
+          is_dim: true,
+          name: 'name',
+          type: 'STRING',
+        },
+      };
+      wrapper.instance().setState({ columns: newColumns });
+      // then close Modal
+      wrapper.setProps({ show: false });
+      expect(wrapper.state().columns).to.deep.equal(newColumns);
     });
   });
 
