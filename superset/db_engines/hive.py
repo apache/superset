@@ -30,8 +30,9 @@ def fetch_logs(self, max_rows=1024,
             )
             response = self._connection.client.FetchResults(req)
             hive._check_status(response)
-            assert not (
-                response.results.rows, 'expected data in columnar format'
+            assert (
+                (not response.results.rows or len(response.results.rows) == 0),
+                'expected data in columnar format'
             )
             assert len(response.results.columns) == 1, response.results.columns
             new_logs = hive._unwrap_column(response.results.columns[0])
