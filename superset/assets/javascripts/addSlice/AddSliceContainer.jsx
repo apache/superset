@@ -17,9 +17,6 @@ export default class AddSliceContainer extends React.PureComponent {
     const visTypeKeys = Object.keys(visTypes);
     this.vizTypeOptions = visTypeKeys.map(vt => ({ label: visTypes[vt].label, value: vt }));
     this.state = {
-      datasourceValue: this.props.datasources[0].value,
-      datasourceId: this.props.datasources[0].value.split('__')[0],
-      datasourceType: this.props.datasources[0].value.split('__')[1],
       visType: 'table',
     };
   }
