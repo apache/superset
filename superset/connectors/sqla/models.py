@@ -477,20 +477,23 @@ class SqlaTable(Model, BaseDatasource):
                     if op == 'not in':
                         cond = ~cond
                     where_clause_and.append(cond)
-                elif op == '==':
-                    where_clause_and.append(col_obj.sqla_col == eq)
-                elif op == '!=':
-                    where_clause_and.append(col_obj.sqla_col != eq)
-                elif op == '>':
-                    where_clause_and.append(col_obj.sqla_col > eq)
-                elif op == '<':
-                    where_clause_and.append(col_obj.sqla_col < eq)
-                elif op == '>=':
-                    where_clause_and.append(col_obj.sqla_col >= eq)
-                elif op == '<=':
-                    where_clause_and.append(col_obj.sqla_col <= eq)
-                elif op == 'LIKE':
-                    where_clause_and.append(col_obj.sqla_col.like(eq))
+                else:
+                    if col_obj.is_num:
+                        eq = utils.string_to_num(flt['val'])
+                    if op == '==':
+                        where_clause_and.append(col_obj.sqla_col == eq)
+                    elif op == '!=':
+                        where_clause_and.append(col_obj.sqla_col != eq)
+                    elif op == '>':
+                        where_clause_and.append(col_obj.sqla_col > eq)
+                    elif op == '<':
+                        where_clause_and.append(col_obj.sqla_col < eq)
+                    elif op == '>=':
+                        where_clause_and.append(col_obj.sqla_col >= eq)
+                    elif op == '<=':
+                        where_clause_and.append(col_obj.sqla_col <= eq)
+                    elif op == 'LIKE':
+                        where_clause_and.append(col_obj.sqla_col.like(eq))
         if extras:
             where = extras.get('where')
             if where:
@@ -512,7 +515,8 @@ class SqlaTable(Model, BaseDatasource):
                 direction = asc if ascending else desc
                 qry = qry.order_by(direction(col))
 
-        qry = qry.limit(row_limit)
+        if row_limit:
+            qry = qry.limit(row_limit)
 
         if is_timeseries and \
                 timeseries_limit and groupby and not time_groupby_inline:

@@ -14,6 +14,7 @@ const config = {
   entry: {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     common: APP_DIR + '/javascripts/common.js',
+    addSlice: ['babel-polyfill', APP_DIR + '/javascripts/addSlice/index.jsx'],
     dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/Dashboard.jsx'],
     explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],

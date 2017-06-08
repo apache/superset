@@ -1,0 +1,19 @@
+{% extends "superset/basic.html" %}
+
+{% block title %}
+  Add new slice
+{% endblock %}
+
+{% block body %}
+  <div
+    id="js-add-slice-container"
+    data-bootstrap="{{ bootstrap_data }}"
+  ></div>
+{% endblock %}
+
+{% block tail_js %}
+  {{ super() }}
+  {% with filename="addSlice" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}

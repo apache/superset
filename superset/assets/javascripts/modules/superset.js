@@ -4,6 +4,7 @@ import Mustache from 'mustache';
 import vizMap from '../../visualizations/main';
 import { getExploreUrl } from '../explore/exploreUtils';
 import { applyDefaultFormData } from '../explore/stores/store';
+import { QUERY_TIMEOUT_THRESHOLD } from '../constants';
 
 const utils = require('./utils');
 
@@ -123,9 +124,6 @@ const px = function () {
         controller.done(this);
       },
       getErrorMsg(xhr) {
-        if (xhr.statusText === 'timeout') {
-          return 'The request timed out';
-        }
         let msg = '';
         if (!xhr.responseText) {
           const status = xhr.status;
@@ -158,9 +156,14 @@ const px = function () {
           errHtml += `<div class="alert alert-danger">${errorMsg}</div>`;
         }
         if (xhr) {
-          const extendedMsg = this.getErrorMsg(xhr);
-          if (extendedMsg) {
-            errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
+          if (xhr.statusText === 'timeout') {
+            errHtml += '<div class="alert alert-warning">' +
+              `Query timeout - visualization query are set to time out at ${QUERY_TIMEOUT_THRESHOLD / 1000} seconds.</div>`;
+          } else {
+            const extendedMsg = this.getErrorMsg(xhr);
+            if (extendedMsg) {
+              errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
+            }
           }
         }
         container.html(errHtml);
@@ -205,15 +208,20 @@ const px = function () {
         token.find('img.loading').show();
         container.fadeTo(0.5, 0.25);
         container.css('height', this.height());
-        $.getJSON(this.jsonEndpoint(), (queryResponse) => {
-          try {
-            vizMap[formData.viz_type](this, queryResponse);
-            this.done(queryResponse);
-          } catch (e) {
-            this.error('An error occurred while rendering the visualization: ' + e);
-          }
-        }).fail((err) => {
-          this.error(err.responseText, err);
+        $.ajax({
+          url: this.jsonEndpoint(),
+          timeout: QUERY_TIMEOUT_THRESHOLD,
+          success: (queryResponse) => {
+            try {
+              vizMap[formData.viz_type](this, queryResponse);
+              this.done(queryResponse);
+            } catch (e) {
+              this.error('An error occurred while rendering the visualization: ' + e);
+            }
+          },
+          error: (err) => {
+            this.error(err.responseText, err);
+          },
         });
       },
       resize() {
