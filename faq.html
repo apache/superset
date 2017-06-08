@@ -84,6 +84,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial for Superset Administrators</a></li>
 <li class="toctree-l1"><a class="reference internal" href="security.html">Security</a></li>
 <li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualization.html">Visualization Tools</a></li>
 <li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
@@ -95,6 +96,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#why-is-the-map-not-visible-in-the-mapbox-visualization">Why is the map not visible in the mapbox visualization?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#how-to-add-dynamic-filters-to-a-dashboard">How to add dynamic filters to a dashboard?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#why-does-fabmanager-or-superset-freezed-hung-not-responding-when-started-my-home-directory-is-nfs-mounted">Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-add-new-columns-to-an-existing-table">How do I add new columns to an existing table</a></li>
 </ul>
 </li>
 </ul>
@@ -199,6 +201,10 @@ descending.</p>
 <p>The widget also has a checkbox <code class="docutils literal"><span class="pre">Date</span> <span class="pre">Filter</span></code>, which enables time filtering
 capabilities to your dashboard. After checking the box and refreshing, you&#8217;ll
 see a <code class="docutils literal"><span class="pre">from</span></code> and a <code class="docutils literal"><span class="pre">to</span></code> dropdown show up.</p>
+<p>By default, the filtering will be applied to all the slices that are built
+on top of a datasource that shares the column name that the filter is based
+on. It&#8217;s also a requirement for that column to be checked as &#8220;filterable&#8221;
+in the column tab of the table editor.</p>
 <p>But what about if you don&#8217;t want certain widgets to get filtered on your
 dashboard? You can do that by editing your dashboard, and in the form,
 edit the <code class="docutils literal"><span class="pre">JSON</span> <span class="pre">Metadata</span></code> field, more specifically the
@@ -231,6 +237,18 @@ be applied, it&#8217;s as simple as that.</p>
 <p>superset creates and uses an sqlite database at <code class="docutils literal"><span class="pre">~/.superset/superset.db</span></code>. Sqlite is known to <a class="reference external" href="https://www.sqlite.org/lockingv3.html">don&#8217;t work well if used on NFS</a> due to broken file locking implementation on NFS.</p>
 <p>One work around is to create a symlink from ~/.superset to a directory located on a non-NFS partition.</p>
 <p>Another work around is to change where superset stores the sqlite database by adding <code class="docutils literal"><span class="pre">SQLALCHEMY_DATABASE_URI</span> <span class="pre">=</span> <span class="pre">'sqlite:////new/localtion/superset.db'</span></code> in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. <code class="docutils literal"><span class="pre">export</span> <span class="pre">PYTHONPATH=/opt/logs/sandbox/airbnb/</span></code>).</p>
+</div>
+<div class="section" id="how-do-i-add-new-columns-to-an-existing-table">
+<h2>How do I add new columns to an existing table<a class="headerlink" href="#how-do-i-add-new-columns-to-an-existing-table" title="Permalink to this headline">¶</a></h2>
+<p>Table schemas evolve, and Superset needs to reflect that. It&#8217;s pretty common
+in the life cycle of a dashboard to want to add a new dimension or metric.
+To get Superset to discover your new columns, all you have to do is to
+go to <code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Sources</span> <span class="pre">-&gt;</span> <span class="pre">Tables</span></code>, click the <code class="docutils literal"><span class="pre">edit</span></code> icon next to the
+table who&#8217;s schema has changed, and hit <code class="docutils literal"><span class="pre">Save</span></code> from the <code class="docutils literal"><span class="pre">Detail</span></code> tab.
+Behind the scene, the new columns will get merged it. Following this,
+you may want to
+re-edit the table afterwards to configure the <code class="docutils literal"><span class="pre">Column</span></code> tab, check the
+appropriate boxes and save again.</p>
 </div>
 </div>
 

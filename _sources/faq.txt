@@ -78,6 +78,11 @@ The widget also has a checkbox ``Date Filter``, which enables time filtering
 capabilities to your dashboard. After checking the box and refreshing, you'll
 see a ``from`` and a ``to`` dropdown show up.
 
+By default, the filtering will be applied to all the slices that are built
+on top of a datasource that shares the column name that the filter is based
+on. It's also a requirement for that column to be checked as "filterable"
+in the column tab of the table editor.
+
 But what about if you don't want certain widgets to get filtered on your
 dashboard? You can do that by editing your dashboard, and in the form,
 edit the ``JSON Metadata`` field, more specifically the
@@ -119,3 +124,16 @@ __ https://www.sqlite.org/lockingv3.html
 One work around is to create a symlink from ~/.superset to a directory located on a non-NFS partition.
 
 Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/localtion/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
+
+How do I add new columns to an existing table
+---------------------------------------------
+
+Table schemas evolve, and Superset needs to reflect that. It's pretty common
+in the life cycle of a dashboard to want to add a new dimension or metric.
+To get Superset to discover your new columns, all you have to do is to
+go to ``Menu -> Sources -> Tables``, click the ``edit`` icon next to the
+table who's schema has changed, and hit ``Save`` from the ``Detail`` tab.
+Behind the scene, the new columns will get merged it. Following this,
+you may want to
+re-edit the table afterwards to configure the ``Column`` tab, check the
+appropriate boxes and save again.
