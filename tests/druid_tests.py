@@ -11,7 +11,8 @@ import unittest
 from mock import Mock, patch
 
 from superset import db, sm, security
-from superset.models import DruidCluster, DruidDatasource
+from superset.connectors.druid.models import DruidCluster, DruidDatasource
+from superset.connectors.druid.models import PyDruid
 
 from .base_tests import SupersetTestCase
 
@@ -70,7 +71,7 @@ class DruidTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)
 
-    @patch('superset.models.PyDruid')
+    @patch('superset.connectors.druid.models.PyDruid')
     def test_client(self, PyDruid):
         self.login(username='admin')
         instance = PyDruid.return_value
@@ -116,30 +117,44 @@ class DruidTests(SupersetTestCase):
 
         resp = self.get_resp('/superset/explore/druid/{}/'.format(
             datasource_id))
-        self.assertIn("[test_cluster].[test_datasource]", resp)
-
+        self.assertIn("test_datasource", resp)
+        form_data = {
+            'viz_type': 'table',
+            'granularity': 'one+day',
+            'druid_time_origin': '',
+            'since': '7+days+ago',
+            'until': 'now',
+            'row_limit': 5000,
+            'include_search': 'false',
+            'metrics': ['count'],
+            'groupby': ['dim1'],
+            'force': 'true',
+        }
         # One groupby
         url = (
-            '/superset/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
-            'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
-            'include_search=false&metrics=count&groupby=dim1&flt_col_0=dim1&'
-            'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
-            'action=&datasource_name=test_datasource&datasource_id={}&'
-            'datasource_type=druid&previous_viz_type=table&'
-            'force=true'.format(datasource_id, datasource_id))
+            '/superset/explore_json/druid/{}/?form_data={}'.format(
+                datasource_id, json.dumps(form_data))
+        )
         resp = self.get_json_resp(url)
         self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
 
+        form_data = {
+            'viz_type': 'table',
+            'granularity': 'one+day',
+            'druid_time_origin': '',
+            'since': '7+days+ago',
+            'until': 'now',
+            'row_limit': 5000,
+            'include_search': 'false',
+            'metrics': ['count'],
+            'groupby': ['dim1', 'dim2d'],
+            'force': 'true',
+        }
         # two groupby
         url = (
-            '/superset/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
-            'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
-            'include_search=false&metrics=count&groupby=dim1&'
-            'flt_col_0=dim1&groupby=dim2d&'
-            'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
-            'action=&datasource_name=test_datasource&datasource_id={}&'
-            'datasource_type=druid&previous_viz_type=table&'
-            'force=true'.format(datasource_id, datasource_id))
+            '/superset/explore_json/druid/{}/?form_data={}'.format(
+                datasource_id, json.dumps(form_data))
+        )
         resp = self.get_json_resp(url)
         self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
 
@@ -183,8 +198,12 @@ class DruidTests(SupersetTestCase):
         }
         def check():
             resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
-            druid_ds = db.session.query(DruidDatasource).filter_by(
-                datasource_name="test_click").first()
+            druid_ds = (
+                db.session
+                .query(DruidDatasource)
+                .filter_by(datasource_name="test_click")
+                .one()
+            )
             col_names = set([c.column_name for c in druid_ds.columns])
             assert {"affiliate_id", "campaign", "first_seen"} == col_names
             metric_names = {m.metric_name for m in druid_ds.metrics}
@@ -210,7 +229,7 @@ class DruidTests(SupersetTestCase):
         }
         resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
         druid_ds = db.session.query(DruidDatasource).filter_by(
-            datasource_name="test_click").first()
+            datasource_name="test_click").one()
         # columns and metrics are not deleted if config is changed as
         # user could define his own dimensions / metrics and want to keep them
         assert set([c.column_name for c in druid_ds.columns]) == set(
@@ -256,6 +275,49 @@ class DruidTests(SupersetTestCase):
         resp = self.get_resp(url)
         self.assertIn('datasource_for_gamma', resp)
         self.assertNotIn('datasource_not_for_gamma', resp)
+
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_sync_druid_perm(self, PyDruid):
+        self.login(username='admin')
+        instance = PyDruid.return_value
+        instance.time_boundary.return_value = [
+            {'result': {'maxTime': '2016-01-01'}}]
+        instance.segment_metadata.return_value = SEGMENT_METADATA
+
+        cluster = (
+            db.session
+            .query(DruidCluster)
+            .filter_by(cluster_name='test_cluster')
+            .first()
+        )
+        if cluster:
+            db.session.delete(cluster)
+        db.session.commit()
+
+        cluster = DruidCluster(
+            cluster_name='test_cluster',
+            coordinator_host='localhost',
+            coordinator_port=7979,
+            broker_host='localhost',
+            broker_port=7980,
+            metadata_last_refreshed=datetime.now())
+
+        db.session.add(cluster)
+        cluster.get_datasources = Mock(return_value=['test_datasource'])
+        cluster.get_druid_version = Mock(return_value='0.9.1')
+
+        cluster.refresh_datasources()
+        datasource_id = cluster.datasources[0].id
+        db.session.commit()
+
+        view_menu_name = cluster.datasources[0].get_perm()
+        view_menu = sm.find_view_menu(view_menu_name)
+        permission = sm.find_permission("datasource_access")
+
+        pv = sm.get_session.query(sm.permissionview_model).filter_by(
+            permission=permission, view_menu=view_menu).first()
+        assert pv is not None
+
 
 
 if __name__ == '__main__':

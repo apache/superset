@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 import moment from 'moment';
 import { Table } from 'reactable';
@@ -13,11 +14,11 @@ import { fDuration } from '../../modules/dates';
 import { storeQuery } from '../../../utils/common';
 
 const propTypes = {
-  columns: React.PropTypes.array,
-  actions: React.PropTypes.object,
-  queries: React.PropTypes.array,
-  onUserClicked: React.PropTypes.func,
-  onDbClicked: React.PropTypes.func,
+  columns: PropTypes.array,
+  actions: PropTypes.object,
+  queries: PropTypes.array,
+  onUserClicked: PropTypes.func,
+  onDbClicked: PropTypes.func,
 };
 const defaultProps = {
   columns: ['started', 'duration', 'rows'],
@@ -134,14 +135,16 @@ class QueryTable extends React.PureComponent {
             modalTitle={'Data preview'}
             beforeOpen={this.openAsyncResults.bind(this, query)}
             onExit={this.clearQueryResults.bind(this, query)}
-            modalBody={<ResultSet showSql query={query} actions={this.props.actions} />}
+            modalBody={
+              <ResultSet showSql query={query} actions={this.props.actions} height={400} />
+            }
           />
         );
       } else {
         // if query was run using ctas and force_ctas_schema was set
         // tempTable will have the schema
         const schemaUsed = q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
-        q.output = [schemaUsed, q.tempTable].filter((v) => (v)).join('.');
+        q.output = [schemaUsed, q.tempTable].filter(v => (v)).join('.');
       }
       q.progress = (
         <ProgressBar

@@ -8,7 +8,6 @@ import decimal
 import functools
 import json
 import logging
-import markdown as md
 import numpy
 import os
 import parsedatetime
@@ -17,6 +16,8 @@ import smtplib
 import sqlalchemy as sa
 import signal
 import uuid
+import sys
+import zlib
 
 from builtins import object
 from datetime import date, datetime, time
@@ -31,8 +32,10 @@ from flask_appbuilder.const import (
     FLAMSG_ERR_SEC_ACCESS_DENIED,
     PERMISSION_PREFIX
 )
+from flask_cache import Cache
 from flask_appbuilder._compat import as_unicode
 from flask_babel import gettext as __
+import markdown as md
 from past.builtins import basestring
 from pydruid.utils.having import Having
 from sqlalchemy import event, exc
@@ -40,7 +43,7 @@ from sqlalchemy.types import TypeDecorator, TEXT
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
-
+PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 
@@ -71,11 +74,10 @@ class SupersetTemplateException(SupersetException):
 
 def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
-    return (
-        sm.is_item_public(permission_name, view_name) or
-        (not user.is_anonymous() and
-         sm._has_view_access(user, permission_name, view_name))
-    )
+    if user.is_anonymous():
+        return sm.is_item_public(permission_name, view_name)
+    else:
+        return sm._has_view_access(user, permission_name, view_name)
 
 
 def flasher(msg, severity=None):
@@ -120,6 +122,36 @@ class memoized(object):  # noqa
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
+
+def js_string_to_python(item):
+    return None if item in ('null', 'undefined') else item
+
+
+def string_to_num(s):
+    """Converts a string to an int/float
+
+    Returns ``None`` if it can't be converted
+
+    >>> string_to_num('5')
+    5
+    >>> string_to_num('5.2')
+    5.2
+    >>> string_to_num(10)
+    10
+    >>> string_to_num(10.1)
+    10.1
+    >>> string_to_num('this is not a string') is None
+    True
+    """
+    if isinstance(s, (int, float)):
+        return s
+    if s.isdigit():
+        return int(s)
+    try:
+        return float(s)
+    except ValueError:
+        return None
 
 
 class DimSelector(Having):
@@ -329,8 +361,8 @@ def markdown(s, markup_wrap=False):
     return s
 
 
-def readfile(filepath):
-    with open(filepath) as f:
+def readfile(file_path):
+    with open(file_path) as f:
         content = f.read()
     return content
 
@@ -402,14 +434,6 @@ class timeout(object):
             logging.warning("timeout can't be used in the current context")
             logging.exception(e)
 
-
-def wrap_clause_in_parens(sql):
-    """Wrap where/having clause with parenthesis if necessary"""
-    if sql.strip():
-        sql = '({})'.format(sql)
-    return sa.text(sql)
-
-
 def pessimistic_connection_handling(target):
     @event.listens_for(target, "checkout")
     def ping_connection(dbapi_connection, connection_record, connection_proxy):
@@ -425,11 +449,11 @@ def pessimistic_connection_handling(target):
         cursor.close()
 
 
-class QueryStatus:
+class QueryStatus(object):
 
     """Enum-type class for query statuses"""
 
-    CANCELLED = 'cancelled'
+    STOPPED = 'stopped'
     FAILED = 'failed'
     PENDING = 'pending'
     RUNNING = 'running'
@@ -525,8 +549,6 @@ def get_email_address_list(address_string):
     return address_string
 
 
-# Forked from the flask_appbuilder.security.decorators
-# TODO(bkyryliuk): contribute it back to FAB
 def has_access(f):
     """
         Use this decorator to enable granular security permissions to your
@@ -534,6 +556,9 @@ def has_access(f):
         associated to users.
 
         By default the permission's name is the methods name.
+
+        Forked from the flask_appbuilder.security.decorators
+        TODO(bkyryliuk): contribute it back to FAB
     """
     if hasattr(f, '_permission_name'):
         permission_str = f._permission_name
@@ -555,3 +580,45 @@ def has_access(f):
             next=request.path))
     f._permission_name = permission_str
     return functools.update_wrapper(wraps, f)
+
+
+def choicify(values):
+    """Takes an iterable and makes an iterable of tuples with it"""
+    return [(v, v) for v in values]
+
+
+def setup_cache(app, cache_config):
+    """Setup the flask-cache on a flask app"""
+    if cache_config and cache_config.get('CACHE_TYPE') != 'null':
+        return Cache(app, config=cache_config)
+
+
+def zlib_compress(data):
+    """
+    Compress things in a py2/3 safe fashion
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    """
+    if PY3K:
+        if isinstance(data, str):
+            return zlib.compress(bytes(data, "utf-8"))
+        return zlib.compress(data)
+    return zlib.compress(data)
+
+
+def zlib_decompress_to_string(blob):
+    """
+    Decompress things to a string in a py2/3 safe fashion
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    >>> got_str = zlib_decompress_to_string(blob)
+    >>> got_str == json_str
+    True
+    """
+    if PY3K:
+        if isinstance(blob, bytes):
+            decompressed = zlib.decompress(blob)
+        else:
+            decompressed = zlib.decompress(bytes(blob, "utf-8"))
+        return decompressed.decode("utf-8")
+    return zlib.decompress(blob)

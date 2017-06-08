@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
 import 'brace/theme/github';
@@ -8,13 +9,29 @@ import { areArraysShallowEqual } from '../../reduxUtils';
 
 const langTools = ace.acequire('ace/ext/language_tools');
 
+const keywords = (
+  'SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|GROUP|BY|ORDER|LIMIT|OFFSET|HAVING|AS|CASE|' +
+  'WHEN|ELSE|END|TYPE|LEFT|RIGHT|JOIN|ON|OUTER|DESC|ASC|UNION|CREATE|TABLE|PRIMARY|KEY|IF|' +
+  'FOREIGN|NOT|REFERENCES|DEFAULT|NULL|INNER|CROSS|NATURAL|DATABASE|DROP|GRANT'
+);
+
+const dataTypes = (
+  'INT|NUMERIC|DECIMAL|DATE|VARCHAR|CHAR|BIGINT|FLOAT|DOUBLE|BIT|BINARY|TEXT|SET|TIMESTAMP|' +
+  'MONEY|REAL|NUMBER|INTEGER'
+);
+
+const sqlKeywords = [].concat(keywords.split('|'), dataTypes.split('|'));
+const sqlWords = sqlKeywords.map(s => ({
+  name: s, value: s, score: 60, meta: 'sql',
+}));
+
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  onBlur: React.PropTypes.func,
-  onAltEnter: React.PropTypes.func,
-  sql: React.PropTypes.string.isRequired,
-  tables: React.PropTypes.array,
-  queryEditor: React.PropTypes.object.isRequired,
+  actions: PropTypes.object.isRequired,
+  onBlur: PropTypes.func,
+  onAltEnter: PropTypes.func,
+  sql: PropTypes.string.isRequired,
+  tables: PropTypes.array,
+  queryEditor: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -43,21 +60,19 @@ class AceEditorWrapper extends React.PureComponent {
       this.setState({ sql: nextProps.sql });
     }
   }
-  textChange(text) {
-    this.setState({ sql: text });
-  }
   onBlur() {
     this.props.onBlur(this.state.sql);
   }
-  getCompletions(aceEditor, session, pos, prefix, callback) {
-    callback(null, this.state.words);
+  onAltEnter() {
+    this.props.onBlur(this.state.sql);
+    this.props.onAltEnter();
   }
   onEditorLoad(editor) {
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
       exec: () => {
-        this.props.onAltEnter();
+        this.onAltEnter();
       },
     });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
@@ -66,30 +81,36 @@ class AceEditorWrapper extends React.PureComponent {
         this.props.queryEditor, editor.getSelectedText());
     });
   }
+  getCompletions(aceEditor, session, pos, prefix, callback) {
+    callback(null, this.state.words);
+  }
   setAutoCompleter(props) {
     // Loading table and column names as auto-completable words
     let words = [];
     const columns = {};
     const tables = props.tables || [];
-    tables.forEach(t => {
+    tables.forEach((t) => {
       words.push({ name: t.name, value: t.name, score: 55, meta: 'table' });
       const cols = t.columns || [];
-      cols.forEach(col => {
+      cols.forEach((col) => {
         columns[col.name] = null;  // using an object as a unique set
       });
     });
     words = words.concat(Object.keys(columns).map(col => (
       { name: col, value: col, score: 50, meta: 'column' }
-    )));
+    )), sqlWords);
 
     this.setState({ words }, () => {
       const completer = {
         getCompletions: this.getCompletions.bind(this),
       };
       if (langTools) {
-        langTools.setCompleters([completer, langTools.keyWordCompleter]);
+        langTools.setCompleters([completer]);
       }
     });
+  }
+  textChange(text) {
+    this.setState({ sql: text });
   }
   render() {
     return (
@@ -98,10 +119,9 @@ class AceEditorWrapper extends React.PureComponent {
         theme="github"
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
-        minLines={8}
-        maxLines={30}
+        minLines={12}
+        maxLines={12}
         onChange={this.textChange.bind(this)}
-        height="200px"
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion

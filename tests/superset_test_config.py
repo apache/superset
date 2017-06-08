@@ -10,8 +10,8 @@ SUPERSET_WEBSERVER_PORT = 8081
 if 'SUPERSET__SQLALCHEMY_DATABASE_URI' in os.environ:
     SQLALCHEMY_DATABASE_URI = os.environ.get('SUPERSET__SQLALCHEMY_DATABASE_URI')
 
-SQL_CELERY_DB_FILE_PATH =  os.path.join(DATA_DIR, 'celerydb.sqlite')
-SQL_CELERY_RESULTS_DB_FILE_PATH =  os.path.join(DATA_DIR, 'celery_results.sqlite')
+SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
+SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
 
@@ -22,6 +22,7 @@ WTF_CSRF_ENABLED = False
 PUBLIC_ROLE_LIKE_GAMMA = True
 AUTH_ROLE_PUBLIC = 'Public'
 EMAIL_NOTIFICATIONS = False
+
 
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///' + SQL_CELERY_DB_FILE_PATH

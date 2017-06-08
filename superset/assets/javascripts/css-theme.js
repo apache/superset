@@ -1,2 +1,2 @@
-require('../stylesheets/less/index.less');
-require('../stylesheets/react-select/select.less');
+import '../stylesheets/less/index.less';
+import '../stylesheets/react-select/select.less';

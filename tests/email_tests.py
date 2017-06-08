@@ -59,7 +59,6 @@ class EmailSmtpTest(unittest.TestCase):
         mimeapp = MIMEApplication('attachment')
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
 
-
     @mock.patch('smtplib.SMTP_SSL')
     @mock.patch('smtplib.SMTP')
     def test_send_mime(self, mock_smtp, mock_smtp_ssl):

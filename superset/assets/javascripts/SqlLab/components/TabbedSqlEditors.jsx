@@ -1,26 +1,27 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import URI from 'urijs';
+
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
-import { getParamFromQuery } from '../../../utils/common';
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  databases: React.PropTypes.object.isRequired,
-  queries: React.PropTypes.object.isRequired,
-  queryEditors: React.PropTypes.array,
-  tabHistory: React.PropTypes.array.isRequired,
-  tables: React.PropTypes.array.isRequired,
-  networkOn: React.PropTypes.bool,
-  editorHeight: React.PropTypes.string.isRequired,
+  actions: PropTypes.object.isRequired,
+  defaultDbId: PropTypes.number,
+  databases: PropTypes.object.isRequired,
+  queries: PropTypes.object.isRequired,
+  queryEditors: PropTypes.array,
+  tabHistory: PropTypes.array.isRequired,
+  tables: PropTypes.array.isRequired,
+  editorHeight: PropTypes.string.isRequired,
 };
 const defaultProps = {
   queryEditors: [],
-  networkOn: true,
 };
 
 let queryCount = 1;
@@ -37,29 +38,38 @@ class TabbedSqlEditors extends React.PureComponent {
     };
   }
   componentDidMount() {
-    const search = window.location.search;
-    if (search) {
-      const queryString = search.substring(1);
-      const urlId = getParamFromQuery(queryString, 'id');
-      if (urlId) {
-        this.props.actions.popStoredQuery(urlId);
-      } else {
+    const query = URI(window.location).search(true);
+    if (query.id || query.sql || query.savedQueryId) {
+      if (query.id) {
+        this.props.actions.popStoredQuery(query.id);
+      } else if (query.savedQueryId) {
+        this.props.actions.popSavedQuery(query.savedQueryId);
+      } else if (query.sql) {
+        let dbId = query.dbid;
+        if (dbId) {
+          dbId = parseInt(dbId, 10);
+        } else {
+          const databases = this.props.databases;
+          const dbName = query.dbname;
+          if (dbName) {
+            Object.keys(databases).forEach((db) => {
+              if (databases[db].database_name === dbName) {
+                dbId = databases[db].id;
+              }
+            });
+          }
+        }
         const newQueryEditor = {
-          title: getParamFromQuery(queryString, 'title'),
-          dbId: getParamFromQuery(queryString, 'dbid'),
-          schema: getParamFromQuery(queryString, 'schema'),
-          autorun: getParamFromQuery(queryString, 'autorun'),
-          sql: getParamFromQuery(queryString, 'sql'),
+          title: query.title,
+          dbId,
+          schema: query.schema,
+          autorun: query.autorun,
+          sql: query.sql,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
       this.popNewTab();
     }
-  }
-  popNewTab() {
-    queryCount++;
-    // Clean the url in browser history
-    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
   componentWillReceiveProps(nextProps) {
     const nextActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
@@ -83,6 +93,11 @@ class TabbedSqlEditors extends React.PureComponent {
     if (!areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)) {
       this.setState({ dataPreviewQueries });
     }
+  }
+  popNewTab() {
+    queryCount++;
+    // Clean the url in browser history
+    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
   renameTab(qe) {
     /* eslint no-alert: 0 */
@@ -178,14 +193,13 @@ class TabbedSqlEditors extends React.PureComponent {
               {isSelected &&
                 <SqlEditor
                   height={this.props.editorHeight}
-                  tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
+                  tables={this.props.tables.filter(t => (t.queryEditorId === qe.id))}
                   queryEditor={qe}
                   editorQueries={this.state.queriesArray}
                   dataPreviewQueries={this.state.dataPreviewQueries}
                   latestQuery={latestQuery}
                   database={database}
                   actions={this.props.actions}
-                  networkOn={this.props.networkOn}
                   hideLeftBar={this.state.hideLeftBar}
                 />
               }
@@ -221,7 +235,6 @@ function mapStateToProps(state) {
     queryEditors: state.queryEditors,
     queries: state.queries,
     tabHistory: state.tabHistory,
-    networkOn: state.networkOn,
     tables: state.tables,
     defaultDbId: state.defaultDbId,
   };

@@ -1,21 +1,22 @@
 import celery
+from time import sleep
 from datetime import datetime
 import json
 import logging
 import pandas as pd
 import sqlalchemy
 import uuid
-import zlib
 
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
 from superset import (
-    app, db, models, utils, dataframe, results_backend)
+    app, db, utils, dataframe, results_backend)
+from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
-QueryStatus = models.QueryStatus
+from superset.utils import QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
@@ -53,9 +54,20 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     else:
         session = db.session()
         session.commit()  # HACK
-    query = session.query(models.Query).filter_by(id=query_id).one()
+    try:
+        query = session.query(Query).filter_by(id=query_id).one()
+    except Exception as e:
+        logging.error(
+            "Query with id `{}` could not be retrieved".format(query_id))
+        logging.error("Sleeping for a sec and retrying...")
+        # Nasty hack to get around a race condition where the worker
+        # cannot find the query it's supposed to run
+        sleep(1)
+        query = session.query(Query).filter_by(id=query_id).one()
+
     database = query.database
     db_engine_spec = database.db_engine_spec
+    db_engine_spec.patch()
 
     def handle_error(msg):
         """Local method handling error while processing the SQL"""
@@ -91,7 +103,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
-    engine = database.get_sqla_engine(schema=query.schema)
     try:
         template_processor = get_template_processor(
             database=database, query=query)
@@ -103,61 +114,83 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         handle_error(msg)
 
     query.executed_sql = executed_sql
-    logging.info("Running query: \n{}".format(executed_sql))
+    query.status = QueryStatus.RUNNING
+    query.start_running_time = utils.now_as_float()
+    session.merge(query)
+    session.commit()
+    logging.info("Set query to 'running'")
+
     try:
-        result_proxy = engine.execute(query.executed_sql, schema=query.schema)
+        engine = database.get_sqla_engine(schema=query.schema)
+        conn = engine.raw_connection()
+        cursor = conn.cursor()
+        logging.info("Running query: \n{}".format(executed_sql))
+        logging.info(query.executed_sql)
+        cursor.execute(
+            query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
     except Exception as e:
         logging.exception(e)
-        handle_error(utils.error_msg_from_exception(e))
+        conn.close()
+        handle_error(db_engine_spec.extract_error_message(e))
 
-    cursor = result_proxy.cursor
-    query.status = QueryStatus.RUNNING
-    session.flush()
-    db_engine_spec.handle_cursor(cursor, query, session)
+    try:
+        logging.info("Handling cursor")
+        db_engine_spec.handle_cursor(cursor, query, session)
+        logging.info("Fetching data: {}".format(query.to_dict()))
+        data = db_engine_spec.fetch_data(cursor, query.limit)
+    except Exception as e:
+        logging.exception(e)
+        conn.close()
+        handle_error(db_engine_spec.extract_error_message(e))
 
-    cdf = None
-    if result_proxy.cursor:
-        column_names = [col[0] for col in result_proxy.cursor.description]
-        column_names = dedup(column_names)
-        if db_engine_spec.limit_method == LimitMethod.FETCH_MANY:
-            data = result_proxy.fetchmany(query.limit)
-        else:
-            data = result_proxy.fetchall()
-        cdf = dataframe.SupersetDataFrame(
-            pd.DataFrame(data, columns=column_names))
+    conn.commit()
+    conn.close()
 
-    query.rows = result_proxy.rowcount
+    if query.status == utils.QueryStatus.STOPPED:
+        return json.dumps({
+            'query_id': query.id,
+            'status': query.status,
+            'query': query.to_dict(),
+        }, default=utils.json_iso_dttm_ser)
+
+    column_names = (
+        [col[0] for col in cursor.description] if cursor.description else [])
+    column_names = dedup(column_names)
+    cdf = dataframe.SupersetDataFrame(pd.DataFrame(
+        list(data), columns=column_names))
+
+    query.rows = cdf.size
     query.progress = 100
     query.status = QueryStatus.SUCCESS
-    if query.rows == -1 and cdf:
-        # Presto doesn't provide result_proxy.row_count
-        query.rows = cdf.size
     if query.select_as_cta:
         query.select_sql = '{}'.format(database.select_star(
             query.tmp_table_name,
             limit=query.limit,
-            schema=database.force_ctas_schema
+            schema=database.force_ctas_schema,
+            show_cols=False,
+            latest_partition=False,
         ))
     query.end_time = utils.now_as_float()
+    session.merge(query)
     session.flush()
 
     payload = {
         'query_id': query.id,
         'status': query.status,
-        'data': [],
+        'data': cdf.data if cdf.data else [],
+        'columns': cdf.columns if cdf.columns else [],
+        'query': query.to_dict(),
     }
-    payload['data'] = cdf.data if cdf else []
-    payload['columns'] = cdf.columns_dict if cdf else []
-    payload['query'] = query.to_dict()
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
 
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info("Storing results in results backend, key: {}".format(key))
-        results_backend.set(key, zlib.compress(payload))
+        results_backend.set(key, utils.zlib_compress(payload))
         query.results_key = key
+        query.end_result_backend_time = utils.now_as_float()
 
-    session.flush()
+    session.merge(query)
     session.commit()
 
     if return_results:

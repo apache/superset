@@ -38,7 +38,7 @@ def import_datasource(
         new_m.table_id = datasource.id
         logging.info('Importing metric {} from the datasource: {}'.format(
             new_m.to_json(), i_datasource.full_name))
-        imported_m = i_datasource.metric_cls.import_obj(new_m)
+        imported_m = i_datasource.metric_class.import_obj(new_m)
         if (imported_m.metric_name not in
                 [m.metric_name for m in datasource.metrics]):
             datasource.metrics.append(imported_m)
@@ -48,7 +48,7 @@ def import_datasource(
         new_c.table_id = datasource.id
         logging.info('Importing column {} from the datasource: {}'.format(
             new_c.to_json(), i_datasource.full_name))
-        imported_c = i_datasource.column_cls.import_obj(new_c)
+        imported_c = i_datasource.column_class.import_obj(new_c)
         if (imported_c.column_name not in
                 [c.column_name for c in datasource.columns]):
             datasource.columns.append(imported_c)

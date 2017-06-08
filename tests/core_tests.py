@@ -7,17 +7,20 @@ from __future__ import unicode_literals
 import csv
 import doctest
 import json
+import logging
 import io
 import random
 import unittest
 
 from flask import escape
 
-from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab
-from superset.views import DatabaseView
+from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
+from superset.models import core as models
+from superset.models.sql_lab import Query
+from superset.views.core import DatabaseView
+from superset.connectors.sqla.models import SqlaTable
 
 from .base_tests import SupersetTestCase
-import logging
 
 
 class CoreTests(SupersetTestCase):
@@ -31,16 +34,31 @@ class CoreTests(SupersetTestCase):
     def setUpClass(cls):
         cls.table_ids = {tbl.table_name: tbl.id for tbl in (
             db.session
-            .query(models.SqlaTable)
+            .query(SqlaTable)
             .all()
         )}
 
     def setUp(self):
-        db.session.query(models.Query).delete()
+        db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
 
     def tearDown(self):
-        db.session.query(models.Query).delete()
+        db.session.query(Query).delete()
+
+    def test_login(self):
+        resp = self.get_resp(
+            '/login/',
+            data=dict(username='admin', password='general'))
+        self.assertIn('Welcome', resp)
+
+        resp = self.get_resp('/logout/', follow_redirects=True)
+        self.assertIn('User confirmation needed', resp)
+
+        resp = self.get_resp(
+            '/login/',
+            data=dict(username='admin', password='wrongPassword'))
+        self.assertNotIn('Welcome', resp)
+        self.assertIn('User confirmation needed', resp)
 
     def test_login(self):
         resp = self.get_resp(
@@ -78,14 +96,22 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
 
-        resp = self.get_resp(slc.viz.json_endpoint)
+        json_endpoint = (
+            '/superset/explore_json/{}/{}?form_data={}'
+            .format(slc.datasource_type, slc.datasource_id, json.dumps(slc.viz.form_data))
+        )
+        resp = self.get_resp(json_endpoint)
         assert '"Jennifer"' in resp
 
     def test_slice_csv_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
 
-        resp = self.get_resp(slc.viz.csv_endpoint)
+        csv_endpoint = (
+            '/superset/explore_json/{}/{}?csv=true&form_data={}'
+            .format(slc.datasource_type, slc.datasource_id, json.dumps(slc.viz.form_data))
+        )
+        resp = self.get_resp(csv_endpoint)
         assert 'Jennifer,' in resp
 
     def test_admin_only_permissions(self):
@@ -122,24 +148,55 @@ class CoreTests(SupersetTestCase):
         db.session.commit()
         copy_name = "Test Sankey Save"
         tbl_id = self.table_ids.get('energy_usage')
+        new_slice_name = "Test Sankey Overwirte"
+
         url = (
-            "/superset/explore/table/{}/?viz_type=sankey&groupby=source&"
-            "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
-            "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id={}&slice_name={}&"
-            "collapsed_fieldsets=&action={}&datasource_name=energy_usage&"
-            "datasource_id=1&datasource_type=table&previous_viz_type=sankey")
+            "/superset/explore/table/{}/?slice_name={}&"
+            "action={}&datasource_name=energy_usage&form_data={}")
 
-        # Changing name
-        resp = self.get_resp(url.format(tbl_id, slice_id, copy_name, 'save'))
-        assert copy_name in resp
+        form_data = {
+            'viz_type': 'sankey',
+            'groupby': 'source',
+            'groupby': 'target',
+            'metric': 'sum__value',
+            'row_limit': 5000,
+            'slice_id': slice_id,
+        }
+        # Changing name and save as a new slice
+        resp = self.get_resp(
+            url.format(
+                tbl_id,
+                copy_name,
+                'saveas',
+                json.dumps(form_data)
+            )
+        )
+        slices = db.session.query(models.Slice) \
+            .filter_by(slice_name=copy_name).all()
+        assert len(slices) == 1
+        new_slice_id = slices[0].id
 
-        # Setting the name back to its original name
-        resp = self.get_resp(url.format(tbl_id, slice_id, slice_name, 'save'))
-        assert slice_name in resp
+        form_data = {
+            'viz_type': 'sankey',
+            'groupby': 'source',
+            'groupby': 'target',
+            'metric': 'sum__value',
+            'row_limit': 5000,
+            'slice_id': new_slice_id,
+        }
+        # Setting the name back to its original name by overwriting new slice
+        resp = self.get_resp(
+            url.format(
+                tbl_id,
+                new_slice_name,
+                'overwrite',
+                json.dumps(form_data)
+            )
+        )
+        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
+        assert slc.slice_name == new_slice_name
+        db.session.delete(slc)
 
-        # Doing a basic overwrite
-        assert 'Energy' in self.get_resp(
-            url.format(tbl_id, slice_id, copy_name, 'overwrite'))
 
     def test_filter_endpoint(self):
         self.login(username='admin')
@@ -147,7 +204,7 @@ class CoreTests(SupersetTestCase):
         slice_id = self.get_slice(slice_name, db.session).id
         db.session.commit()
         tbl_id = self.table_ids.get('energy_usage')
-        table = db.session.query(models.SqlaTable).filter(models.SqlaTable.id == tbl_id)
+        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
         table.filter_select_enabled = True
         url = (
             "/superset/filter/table/{}/target/?viz_type=sankey&groupby=source"
@@ -168,8 +225,6 @@ class CoreTests(SupersetTestCase):
         for slc in db.session.query(Slc).all():
             urls += [
                 (slc.slice_name, 'slice_url', slc.slice_url),
-                (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
-                (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
                 (slc.slice_name, 'slice_id_url', slc.slice_id_url),
             ]
         for name, method, url in urls:
@@ -183,7 +238,7 @@ class CoreTests(SupersetTestCase):
         url = '/tablemodelview/list/'
         resp = self.get_resp(url)
 
-        table = db.session.query(models.SqlaTable).first()
+        table = db.session.query(SqlaTable).first()
         assert table.name in resp
         assert '/superset/explore/table/{}'.format(table.id) in resp
 
@@ -356,7 +411,7 @@ class CoreTests(SupersetTestCase):
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(models.Dashboard).filter_by(
             id=dash_id).first()
-        orig_json_data = json.loads(dash.json_data)
+        orig_json_data = dash.data
 
         # Verify that copy matches original
         url = '/superset/copy_dash/{}/'.format(dash_id)
@@ -422,7 +477,7 @@ class CoreTests(SupersetTestCase):
     def test_public_user_dashboard_access(self):
         table = (
             db.session
-            .query(models.SqlaTable)
+            .query(SqlaTable)
             .filter_by(table_name='birth_names')
             .one()
         )
@@ -457,7 +512,7 @@ class CoreTests(SupersetTestCase):
         self.logout()
         table = (
             db.session
-            .query(models.SqlaTable)
+            .query(SqlaTable)
             .filter_by(table_name='birth_names')
             .one()
         )
@@ -514,6 +569,20 @@ class CoreTests(SupersetTestCase):
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
+    def test_get_template_kwarg(self):
+        maindb = self.get_main_database(db.session)
+        s = "{{ foo }}"
+        tp = jinja_context.get_template_processor(database=maindb, foo='bar')
+        rendered = tp.process_template(s)
+        self.assertEqual("bar", rendered)
+
+    def test_template_kwarg(self):
+        maindb = self.get_main_database(db.session)
+        s = "{{ foo }}"
+        tp = jinja_context.get_template_processor(database=maindb)
+        rendered = tp.process_template(s, foo='bar')
+        self.assertEqual("bar", rendered)
+
     def test_templated_sql_json(self):
         self.login('admin')
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
@@ -544,8 +613,7 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         url = (
             '/superset/fetch_datasource_metadata?'
-            'datasource_type=table&'
-            'datasource_id=1'
+            + 'datasourceKey=1__table'
         )
         resp = self.get_json_resp(url)
         keys = [
@@ -556,16 +624,8 @@ class CoreTests(SupersetTestCase):
         for k in keys:
             self.assertIn(k, resp.keys())
 
-    def test_fetch_all_tables(self):
-        self.login(username='admin')
-        database = self.get_main_database(db.session)
-        url = '/superset/all_tables/{}'.format(database.id)
-        resp = json.loads(self.get_resp(url))
-        self.assertIn('tables', resp)
-        self.assertIn('views', resp)
-
-    def test_user_profile(self):
-        self.login(username='admin')
+    def test_user_profile(self, username='admin'):
+        self.login(username=username)
         slc = self.get_slice("Girls", db.session)
 
         # Setting some faves
@@ -595,6 +655,8 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp('/superset/fave_slices/{}/'.format(userid))
         self.assertNotIn('message', data)
         data = self.get_json_resp('/superset/fave_dashboards/{}/'.format(userid))
+        self.assertNotIn('message', data)
+        data = self.get_json_resp('/superset/fave_dashboards_by_username/{}/'.format(username))
         self.assertNotIn('message', data)
 
 

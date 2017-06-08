@@ -1,19 +1,24 @@
-const $ = window.$ = require('jquery');
 import React from 'react';
+import PropTypes from 'prop-types';
 import Select from 'react-select';
 
+const $ = window.$ = require('jquery');
+
 const propTypes = {
-  dataEndpoint: React.PropTypes.string.isRequired,
-  onChange: React.PropTypes.func.isRequired,
-  mutator: React.PropTypes.func.isRequired,
-  value: React.PropTypes.number,
-  valueRenderer: React.PropTypes.func,
-  placeholder: React.PropTypes.string,
+  dataEndpoint: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  mutator: PropTypes.func.isRequired,
+  onAsyncError: PropTypes.func,
+  value: PropTypes.number,
+  valueRenderer: PropTypes.func,
+  placeholder: PropTypes.string,
+  autoSelect: PropTypes.bool,
 };
 
 const defaultProps = {
   placeholder: 'Select ...',
-  valueRenderer: (o) => (<div>{o.label}</div>),
+  valueRenderer: o => (<div>{o.label}</div>),
+  onAsyncError: () => {},
 };
 
 class AsyncSelect extends React.PureComponent {
@@ -27,15 +32,25 @@ class AsyncSelect extends React.PureComponent {
   componentDidMount() {
     this.fetchOptions();
   }
+  onChange(opt) {
+    this.props.onChange(opt);
+  }
   fetchOptions() {
     this.setState({ isLoading: true });
     const mutator = this.props.mutator;
     $.get(this.props.dataEndpoint, (data) => {
       this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
+
+      if (!this.props.value && this.props.autoSelect && this.state.options.length) {
+        this.onChange(this.state.options[0]);
+      }
+    })
+    .fail(() => {
+      this.props.onAsyncError();
+    })
+    .always(() => {
+      this.setState({ isLoading: false });
     });
-  }
-  onChange(opt) {
-    this.props.onChange(opt);
   }
   render() {
     return (

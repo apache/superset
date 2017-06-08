@@ -1,8 +1,8 @@
 import React from 'react';
-import App from '../../../javascripts/SqlLab/components/App';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import App from '../../../javascripts/SqlLab/components/App';
 
 describe('App', () => {
   it('is valid', () => {

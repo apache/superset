@@ -57,7 +57,7 @@ function heatmapVis(slice, payload) {
 
   slice.container.html('');
   const matrix = {};
-  const fd = payload.form_data;
+  const fd = slice.formData;
 
   adjustMargins();
 

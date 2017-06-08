@@ -13,7 +13,7 @@ from subprocess import Popen
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-from superset import app, db, data, security
+from superset import app, db, security
 
 config = app.config
 
@@ -31,6 +31,10 @@ def init():
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
+    '-n', '--no-reload', action='store_false', dest='no_reload',
+    default=config.get("FLASK_USE_RELOAD"),
+    help="Don't use the reloader in debug mode")
+@manager.option(
     '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
     help="Specify the address to which to bind the web server")
 @manager.option(
@@ -42,21 +46,28 @@ def init():
 @manager.option(
     '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, address, port, timeout, workers):
-    """Starts a Superset web server"""
+@manager.option(
+    '-s', '--socket', default=config.get("SUPERSET_WEBSERVER_SOCKET"),
+    help="Path to a UNIX socket as an alternative to address:port, e.g. "
+         "/var/run/superset.sock. "
+         "Will override the address and port values.")
+def runserver(debug, no_reload, address, port, timeout, workers, socket):
+    """Starts a Superset web server."""
     debug = debug or config.get("DEBUG")
     if debug:
         app.run(
             host='0.0.0.0',
             port=int(port),
             threaded=True,
-            debug=True)
+            debug=True,
+            use_reloader=no_reload)
     else:
+        addr_str = " unix:{socket} " if socket else" {address}:{port} "
         cmd = (
             "gunicorn "
             "-w {workers} "
             "--timeout {timeout} "
-            "-b {address}:{port} "
+            "-b " + addr_str +
             "--limit-request-line 0 "
             "--limit-request-field_size 0 "
             "superset:app").format(**locals())
@@ -84,6 +95,7 @@ def version(verbose):
     help="Load additional test data")
 def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
+    from superset import data
     print("Loading examples into {}".format(db))
 
     data.load_css_templates()
@@ -103,6 +115,9 @@ def load_examples(load_test_data):
     print("Loading [Random long/lat data]")
     data.load_long_lat_data()
 
+    print("Loading [Country Map data]")
+    data.load_country_map_data()
+
     print("Loading [Multiformat time series]")
     data.load_multiformat_time_series_data()
 
@@ -117,18 +132,18 @@ def load_examples(load_test_data):
 @manager.option(
     '-d', '--datasource',
     help=(
-        "Specify which datasource name to load, if omitted, all "
-        "datasources will be refreshed"))
+            "Specify which datasource name to load, if omitted, all "
+            "datasources will be refreshed"))
 @manager.option(
     '-m', '--merge',
     help=(
-        "Specify using 'merge' property during operation. "
-        "Default value is False "))
+            "Specify using 'merge' property during operation. "
+            "Default value is False "))
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
-    from superset import models
-    for cluster in session.query(models.DruidCluster).all():
+    from superset.connectors.druid.models import DruidCluster
+    for cluster in session.query(DruidCluster).all():
         try:
             cluster.refresh_datasources(datasource_name=datasource,
                                         merge_flag=merge)
@@ -142,6 +157,19 @@ def refresh_druid(datasource, merge):
             "Refreshed metadata from cluster "
             "[" + cluster.cluster_name + "]")
     session.commit()
+
+
+@manager.command
+def update_datasources_cache():
+    """Refresh sqllab datasources cache"""
+    from superset.models.core import Database
+    for database in db.session.query(Database).all():
+        print('Fetching {} datasources ...'.format(database.name))
+        try:
+            database.all_table_names(force=True)
+            database.all_view_names(force=True)
+        except Exception as e:
+            print('{}'.format(e.message))
 
 
 @manager.option(

@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Col, Row, Tabs, Tab, Panel } from 'react-bootstrap';
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';
@@ -7,7 +8,7 @@ import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
 
 const propTypes = {
-  user: React.PropTypes.object.isRequired,
+  user: PropTypes.object.isRequired,
 };
 
 export default function App(props) {

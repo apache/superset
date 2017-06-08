@@ -1,25 +1,14 @@
 import React from 'react';
-import TableLoader from './TableLoader';
+import PropTypes from 'prop-types';
 import moment from 'moment';
-import $ from 'jquery';
+
+import TableLoader from './TableLoader';
 
 const propTypes = {
-  user: React.PropTypes.object,
+  user: PropTypes.object,
 };
 
 export default class RecentActivity extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      recentActions: [],
-    };
-  }
-
-  componentWillMount() {
-    $.get(`/superset/recent_activity/${this.props.user.userId}/`, (data) => {
-      this.setState({ recentActions: data });
-    });
-  }
   render() {
     const mutator = function (data) {
       return data.map(row => ({

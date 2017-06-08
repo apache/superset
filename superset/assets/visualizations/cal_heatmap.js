@@ -15,7 +15,7 @@ function calHeatmap(slice, payload) {
   const cal = new CalHeatMap();
 
   const timestamps = data.timestamps;
-  const extents = d3.extent(Object.keys(timestamps), (key) => timestamps[key]);
+  const extents = d3.extent(Object.keys(timestamps), key => timestamps[key]);
   const step = (extents[1] - extents[0]) / 5;
 
   try {
@@ -28,7 +28,7 @@ function calHeatmap(slice, payload) {
       subDomain: data.subdomain,
       range: data.range,
       browsing: true,
-      legend: [extents[0], extents[0] + step, extents[0] + step * 2, extents[0] + step * 3],
+      legend: [extents[0], extents[0] + step, extents[0] + (step * 2), extents[0] + (step * 3)],
     });
   } catch (e) {
     slice.error(e);

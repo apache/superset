@@ -9,16 +9,18 @@ import os
 import subprocess
 import time
 import unittest
+from past.builtins import basestring
 
 import pandas as pd
 
-from superset import app, appbuilder, cli, db, models, dataframe
+from superset import app, appbuilder, cli, db, dataframe
+from superset.models import core as models
+from superset.models.helpers import QueryStatus
+from superset.models.sql_lab import Query
 from superset.security import sync_role_definitions
 from superset.sql_parse import SupersetQuery
 
 from .base_tests import SupersetTestCase
-
-QueryStatus = models.QueryStatus
 
 BASE_DIR = app.config.get('BASE_DIR')
 
@@ -72,13 +74,13 @@ class CeleryTestCase(SupersetTestCase):
 
     def get_query_by_name(self, sql):
         session = db.session
-        query = session.query(models.Query).filter_by(sql=sql).first()
+        query = session.query(Query).filter_by(sql=sql).first()
         session.close()
         return query
 
     def get_query_by_id(self, id):
         session = db.session
-        query = session.query(models.Query).filter_by(id=id).first()
+        query = session.query(Query).filter_by(id=id).first()
         session.close()
         return query
 
@@ -170,20 +172,18 @@ class CeleryTestCase(SupersetTestCase):
             ' '.join(updated_multi_line_query.split())
         )
 
-    def test_run_sync_query(self):
+    def test_run_sync_query_dont_exist(self):
         main_db = self.get_main_database(db.session)
-        eng = main_db.get_sqla_engine()
-        perm_name = 'can_sql_json'
-
         db_id = main_db.id
-        # Case 1.
-        # Table doesn't exist.
         sql_dont_exist = 'SELECT name FROM table_dont_exist'
         result1 = self.run_sql(db_id, sql_dont_exist, "1", cta='true')
         self.assertTrue('error' in result1)
 
-        # Case 2.
-        # Table and DB exists, CTA call to the backend.
+    def test_run_sync_query_cta(self):
+        main_db = self.get_main_database(db.session)
+        db_id = main_db.id
+        eng = main_db.get_sqla_engine()
+        perm_name = 'can_sql_json'
         sql_where = (
             "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name))
         result2 = self.run_sql(
@@ -198,11 +198,12 @@ class CeleryTestCase(SupersetTestCase):
         data2 = df2.to_dict(orient='records')
         self.assertEqual([{'name': perm_name}], data2)
 
-        # Case 3.
-        # Table and DB exists, CTA call to the backend, no data.
+    def test_run_sync_query_cta_no_data(self):
+        main_db = self.get_main_database(db.session)
+        db_id = main_db.id
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
-            db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true',)
+            db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
         self.assertEqual([], result3['columns'])
@@ -213,82 +214,91 @@ class CeleryTestCase(SupersetTestCase):
     def test_run_async_query(self):
         main_db = self.get_main_database(db.session)
         eng = main_db.get_sqla_engine()
-
-        # Schedule queries
-
-        # Case 1.
-        # Table and DB exists, async CTA call to the backend.
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
-        result1 = self.run_sql(
+        result = self.run_sql(
             main_db.id, sql_where, "4", async='true', tmp_table='tmp_async_1',
             cta='true')
-        assert result1['query']['state'] in (
+        assert result['query']['state'] in (
             QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
 
         time.sleep(1)
 
-        # Case 1.
-        query1 = self.get_query_by_id(result1['query']['serverId'])
-        df1 = pd.read_sql_query(query1.select_sql, con=eng)
-        self.assertEqual(QueryStatus.SUCCESS, query1.status)
-        self.assertEqual([{'name': 'Admin'}], df1.to_dict(orient='records'))
-        self.assertEqual(QueryStatus.SUCCESS, query1.status)
-        self.assertTrue("FROM tmp_async_1" in query1.select_sql)
-        self.assertTrue("LIMIT 666" in query1.select_sql)
+        query = self.get_query_by_id(result['query']['serverId'])
+        df = pd.read_sql_query(query.select_sql, con=eng)
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertEqual([{'name': 'Admin'}], df.to_dict(orient='records'))
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertTrue("FROM tmp_async_1" in query.select_sql)
+        self.assertTrue("LIMIT 666" in query.select_sql)
         self.assertEqual(
             "CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role "
-            "WHERE name='Admin'", query1.executed_sql)
-        self.assertEqual(sql_where, query1.sql)
-        if eng.name != 'sqlite':
-            self.assertEqual(1, query1.rows)
-        self.assertEqual(666, query1.limit)
-        self.assertEqual(False, query1.limit_used)
-        self.assertEqual(True, query1.select_as_cta)
-        self.assertEqual(True, query1.select_as_cta_used)
+            "WHERE name='Admin'", query.executed_sql)
+        self.assertEqual(sql_where, query.sql)
+        self.assertEqual(0, query.rows)
+        self.assertEqual(666, query.limit)
+        self.assertEqual(False, query.limit_used)
+        self.assertEqual(True, query.select_as_cta)
+        self.assertEqual(True, query.select_as_cta_used)
 
-    def test_get_columns_dict(self):
+    @staticmethod
+    def de_unicode_dict(d):
+        def str_if_basestring(o):
+            if isinstance(o, basestring):
+                return str(o)
+            return o
+        return {str_if_basestring(k): str_if_basestring(d[k]) for k in d}
+
+    @classmethod
+    def dictify_list_of_dicts(cls, l, k):
+        return {str(o[k]): cls.de_unicode_dict(o) for o in l}
+
+    def test_get_columns(self):
         main_db = self.get_main_database(db.session)
         df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
         cdf = dataframe.SupersetDataFrame(df)
+
+        # Making ordering non-deterministic
+        cols = self.dictify_list_of_dicts(cdf.columns, 'name')
+
         if main_db.sqlalchemy_uri.startswith('sqlite'):
-            self.assertEqual(
-                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
-                  'is_dim': False},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'ds2',
-                  'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_ms', 'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_s', 'is_dim': False},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string1', 'is_dim': True},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string3', 'is_dim': True}]
-                , cdf.columns_dict
+            self.assertEqual(self.dictify_list_of_dicts([
+                {'is_date': True, 'type': 'STRING', 'name': 'ds',
+                    'is_dim': False},
+                {'is_date': True, 'type': 'STRING', 'name': 'ds2',
+                    'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_ms', 'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_s', 'is_dim': False},
+                {'is_date': True, 'type': 'STRING', 'name': 'string0',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string1', 'is_dim': True},
+                {'is_date': True, 'type': 'STRING', 'name': 'string2',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string3', 'is_dim': True}], 'name')
+                , cols
             )
         else:
-            self.assertEqual(
-                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
-                  'is_dim': False},
-                 {'is_date': True, 'type': 'datetime64[ns]',
-                  'name': 'ds2', 'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_ms', 'is_dim': False},
-                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
-                  'name': 'epoch_s', 'is_dim': False},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string1', 'is_dim': True},
-                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
-                  'is_dim': False},
-                 {'is_date': False, 'type': 'object',
-                  'name': 'string3', 'is_dim': True}]
-                , cdf.columns_dict
+            self.assertEqual(self.dictify_list_of_dicts([
+                {'is_date': True, 'type': 'DATETIME', 'name': 'ds',
+                    'is_dim': False},
+                {'is_date': True, 'type': 'DATETIME',
+                    'name': 'ds2', 'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_ms', 'is_dim': False},
+                {'agg': 'sum', 'is_date': False, 'type': 'INT',
+                    'name': 'epoch_s', 'is_dim': False},
+                {'is_date': True, 'type': 'STRING', 'name': 'string0',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string1', 'is_dim': True},
+                {'is_date': True, 'type': 'STRING', 'name': 'string2',
+                    'is_dim': False},
+                {'is_date': False, 'type': 'STRING',
+                    'name': 'string3', 'is_dim': True}], 'name')
+                , cols
             )
 
 

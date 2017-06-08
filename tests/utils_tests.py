@@ -1,7 +1,7 @@
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from superset.utils import (
-    json_int_dttm_ser, json_iso_dttm_ser, base_json_conv, parse_human_timedelta
+    json_int_dttm_ser, json_iso_dttm_ser, base_json_conv, parse_human_timedelta, zlib_compress, zlib_decompress_to_string
 )
 import unittest
 import uuid
@@ -35,13 +35,20 @@ class UtilsTestCase(unittest.TestCase):
             json_iso_dttm_ser("this is not a date")
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(numpy.bool_(1)), bool) == True
-        assert isinstance(base_json_conv(numpy.int64(1)), int) == True
-        assert isinstance(base_json_conv(set([1])), list) == True
-        assert isinstance(base_json_conv(Decimal('1.0')), float) == True
-        assert isinstance(base_json_conv(uuid.uuid4()), str) == True
+        assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
+        assert isinstance(base_json_conv(numpy.int64(1)), int) is True
+        assert isinstance(base_json_conv(set([1])), list) is True
+        assert isinstance(base_json_conv(Decimal('1.0')), float) is True
+        assert isinstance(base_json_conv(uuid.uuid4()), str) is True
 
     @patch('superset.utils.datetime')
     def test_parse_human_timedelta(self, mock_now):
         mock_now.return_value = datetime(2016, 12, 1)
         self.assertEquals(parse_human_timedelta('now'), timedelta(0))
+
+    def test_zlib_compression(self):
+        json_str = """{"test": 1}"""
+        blob = zlib_compress(json_str)
+        got_str = zlib_decompress_to_string(blob)
+        self.assertEquals(json_str, got_str)
+

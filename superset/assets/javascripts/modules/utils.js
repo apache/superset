@@ -109,7 +109,11 @@ export function d3format(format, number) {
   if (!(format in formatters)) {
     formatters[format] = d3.format(format);
   }
-  return formatters[format](number);
+  try {
+    return formatters[format](number);
+  } catch (e) {
+    return 'ERR';
+  }
 }
 
 // Slice objects interact with their context through objects that implement
@@ -133,14 +137,14 @@ export function formatSelectOptionsForRange(start, end) {
   // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
   const options = [];
   for (let i = start; i <= end; i++) {
-    options.push([i.toString(), i.toString()]);
+    options.push([i, i.toString()]);
   }
   return options;
 }
 
 export function formatSelectOptions(options) {
-  return options.map((opt) =>
-     [opt.toString(), opt.toString()]
+  return options.map(opt =>
+     [opt, opt.toString()],
   );
 }
 
@@ -183,4 +187,32 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
 
     return tooltip;
   });
+}
+
+export function initJQueryAjax() {
+  // Works in conjunction with a Flask-WTF token as described here:
+  // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests
+  const token = $('input#csrf_token').val();
+  if (token) {
+    $.ajaxSetup({
+      beforeSend(xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+          xhr.setRequestHeader('X-CSRFToken', token);
+        }
+      },
+    });
+  }
+}
+
+export function tryNumify(s) {
+  // Attempts casting to float, returns string when failing
+  try {
+    const parsed = parseFloat(s);
+    if (parsed) {
+      return parsed;
+    }
+  } catch (e) {
+    // pass
+  }
+  return s;
 }

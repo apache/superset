@@ -2,8 +2,8 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
-
-import ExploreActionButtons from '../../../../javascripts/explore/components/ExploreActionButtons';
+import ExploreActionButtons from
+  '../../../../javascripts/explore/components/ExploreActionButtons';
 
 describe('ExploreActionButtons', () => {
   const defaultProps = {
@@ -14,11 +14,12 @@ describe('ExploreActionButtons', () => {
         json_endpoint: '',
       },
     },
+    queryEndpoint: 'localhost',
   };
 
   it('renders', () => {
     expect(
-      React.isValidElement(<ExploreActionButtons {...defaultProps} />)
+      React.isValidElement(<ExploreActionButtons {...defaultProps} />),
     ).to.equal(true);
   });
 

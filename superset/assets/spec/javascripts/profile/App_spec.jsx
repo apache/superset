@@ -1,10 +1,11 @@
 import React from 'react';
-import App from '../../../javascripts/profile/components/App';
 import { Col, Row, Tab } from 'react-bootstrap';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
+
 import { user } from './fixtures';
+import App from '../../../javascripts/profile/components/App';
 
 describe('App', () => {
   const mockedProps = {
@@ -12,7 +13,7 @@ describe('App', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<App {...mockedProps} />)
+      React.isValidElement(<App {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders 2 Col', () => {

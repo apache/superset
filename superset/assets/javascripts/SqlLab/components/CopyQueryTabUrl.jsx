@@ -1,9 +1,10 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import { storeQuery } from '../../../utils/common';
 
 const propTypes = {
-  queryEditor: React.PropTypes.object.isRequired,
+  queryEditor: PropTypes.object.isRequired,
 };
 
 export default class CopyQueryTabUrl extends React.PureComponent {

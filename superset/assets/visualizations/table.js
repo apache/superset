@@ -1,13 +1,14 @@
 import d3 from 'd3';
-import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
-import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
-
-require('./table.css');
-const $ = require('jquery');
-
-require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
+import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
 import 'datatables.net';
 import dt from 'datatables.net-bs';
+
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
+import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
+import './table.css';
+
+const $ = require('jquery');
+
 dt(window, $);
 
 function tableVis(slice, payload) {
@@ -16,25 +17,21 @@ function tableVis(slice, payload) {
   let timestampFormatter;
 
   const data = payload.data;
-  const fd = payload.form_data;
+  const fd = slice.formData;
+
   // Removing metrics (aggregates) that are strings
-  const realMetrics = [];
-  for (const k in data.records[0]) {
-    if (fd.metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
-      realMetrics.push(k);
-    }
-  }
-  const metrics = realMetrics;
+  let metrics = fd.metrics || [];
+  metrics = metrics.filter(m => !isNaN(data.records[0][m]));
 
   function col(c) {
     const arr = [];
-    for (let i = 0; i < data.records.length; i++) {
+    for (let i = 0; i < data.records.length; i += 1) {
       arr.push(data.records[i][c]);
     }
     return arr;
   }
   const maxes = {};
-  for (let i = 0; i < metrics.length; i++) {
+  for (let i = 0; i < metrics.length; i += 1) {
     maxes[metrics[i]] = d3.max(col(metrics[i]));
   }
 
@@ -67,15 +64,24 @@ function tableVis(slice, payload) {
     .enter()
     .append('tr')
     .selectAll('td')
-    .data((row) => data.columns.map((c) => {
-      let val = row[c];
+    .data(row => data.columns.map((c) => {
+      const val = row[c];
+      let html;
+      const isMetric = metrics.indexOf(c) >= 0;
       if (c === 'timestamp') {
-        val = timestampFormatter(val);
+        html = timestampFormatter(val);
+      }
+      if (typeof (val) === 'string') {
+        html = `<span class="like-pre">${val}</span>`;
+      }
+      if (isMetric) {
+        html = slice.d3format(c, val);
       }
       return {
         col: c,
         val,
-        isMetric: metrics.indexOf(c) >= 0,
+        html,
+        isMetric,
       };
     }))
     .enter()
@@ -83,9 +89,11 @@ function tableVis(slice, payload) {
     .style('background-image', function (d) {
       if (d.isMetric) {
         const perc = Math.round((d.val / maxes[d.col]) * 100);
+        // The 0.01 to 0.001 is a workaround for what appears to be a
+        // CSS rendering bug on flat, transparent colors
         return (
-          `linear-gradient(to right, lightgrey, lightgrey ${perc}%, ` +
-          `rgba(0,0,0,0) ${perc}%`
+          `linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
+          `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
         );
       }
       return null;
@@ -114,12 +122,7 @@ function tableVis(slice, payload) {
     .style('cursor', function (d) {
       return (!d.isMetric) ? 'pointer' : '';
     })
-    .html((d) => {
-      if (d.isMetric) {
-        return slice.d3format(d.col, d.val);
-      }
-      return d.val;
-    });
+    .html(d => d.html ? d.html : d.val);
   const height = slice.height();
   let paging = false;
   let pageLength;
@@ -140,8 +143,8 @@ function tableVis(slice, payload) {
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
-  if (fd.metrics.length > 0) {
-    const mainMetric = fd.metrics[0];
+  if (metrics.length > 0) {
+    const mainMetric = metrics[0];
     datatable.column(data.columns.indexOf(mainMetric)).order('desc').draw();
   }
   container.parents('.widget').find('.tooltip').remove();

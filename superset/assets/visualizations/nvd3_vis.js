@@ -1,13 +1,15 @@
 // JS
 import $ from 'jquery';
+import throttle from 'lodash.throttle';
+import d3 from 'd3';
+
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
-import { customizeToolTip } from '../javascripts/modules/utils';
-import throttle from 'lodash.throttle';
+import { customizeToolTip, tryNumify } from '../javascripts/modules/utils';
 
-const d3 = require('d3');
+import { TIME_STAMP_OPTIONS } from '../javascripts/explore/stores/controls';
+
 const nv = require('nvd3');
-import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/fields';
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');
@@ -17,9 +19,12 @@ const timeStampFormats = TIME_STAMP_OPTIONS.map(opt => opt[0]);
 const minBarWidth = 15;
 const animationTime = 1000;
 
-const addTotalBarValues = function (chart, data, stacked) {
-  const svg = d3.select('svg');
-  const format = d3.format('.3s');
+const BREAKPOINTS = {
+  small: 340,
+};
+
+const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
+  const format = d3.format(axisFormat || '.3s');
   const countSeriesDisplayed = data.length;
 
   const totalStackedValues = stacked && data.length !== 0 ?
@@ -63,9 +68,18 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
+function getMaxLabelSize(container, axisClass) {
+  // axis class = .nv-y2  // second y axis on dual line chart
+  // axis class = .nv-x  // x axis on time series line chart
+  const labelEls = container.find(`.${axisClass} text`).not('.nv-axislabel');
+  const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength());
+  return Math.max(...labelDimensions);
+}
+
 function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
+  const isExplore = $('#explore-container').length === 1;
 
   slice.container.html('');
   slice.clearError();
@@ -78,7 +92,7 @@ function nvd3Vis(slice, payload) {
     payloadData.data.forEach((d) => {
       const axisLabels = d.values;
       for (let i = 0; i < axisLabels.length; i++) {
-        maxLabelSize = Math.max(axisLabels[i].x.length, maxLabelSize);
+        maxLabelSize = Math.max(axisLabels[i].x.toString().length, maxLabelSize);
       }
     });
     stretchMargin = Math.ceil(pixelsPerCharX * maxLabelSize);
@@ -86,7 +100,7 @@ function nvd3Vis(slice, payload) {
   }
 
   let width = slice.width();
-  const fd = payload.form_data;
+  const fd = slice.formData;
 
   const barchartWidth = function () {
     let bars;
@@ -108,6 +122,10 @@ function nvd3Vis(slice, payload) {
   let row;
 
   const drawGraph = function () {
+    let svg = d3.select(slice.selector).select('svg');
+    if (svg.empty()) {
+      svg = d3.select(slice.selector).append('svg');
+    }
     switch (vizType) {
       case 'line':
         if (fd.show_brush) {
@@ -151,7 +169,7 @@ function nvd3Vis(slice, payload) {
 
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         break;
@@ -170,18 +188,12 @@ function nvd3Vis(slice, payload) {
         chart.stacked(stacked);
         if (fd.order_bars) {
           payload.data.forEach((d) => {
-            d.values.sort(
-              function compare(a, b) {
-                if (a.x < b.x) return -1;
-                if (a.x > b.x) return 1;
-                return 0;
-              }
-            );
+            d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(chart, payload.data, stacked);
+            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         if (!reduceXTicks) {
@@ -201,6 +213,13 @@ function nvd3Vis(slice, payload) {
         chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
           .labelType(fd.pie_label_type);
         chart.cornerRadius(true);
+
+        if (fd.pie_label_type === 'percent') {
+          let total = 0;
+          payload.data.forEach((d) => { total += d.y; });
+          chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
+        }
+
         break;
 
       case 'column':
@@ -212,6 +231,7 @@ function nvd3Vis(slice, payload) {
       case 'compare':
         chart = nv.models.cumulativeLineChart();
         chart.xScale(d3.time.scale.utc());
+        chart.useInteractiveGuideline(true);
         chart.xAxis
         .showMaxMin(false)
         .staggerLabels(true);
@@ -235,7 +255,8 @@ function nvd3Vis(slice, payload) {
           s += '</table>';
           return s;
         });
-        chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
+        chart.pointRange([5, fd.max_bubble_size ** 2]);
+        chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
         break;
 
       case 'area':
@@ -244,7 +265,7 @@ function nvd3Vis(slice, payload) {
         chart.style(fd.stacked_style);
         chart.xScale(d3.time.scale.utc());
         chart.xAxis
-        .showMaxMin(false)
+        .showMaxMin(fd.x_axis_showminmax)
         .staggerLabels(true);
         break;
 
@@ -267,10 +288,14 @@ function nvd3Vis(slice, payload) {
     }
 
     if ('showLegend' in chart && typeof fd.show_legend !== 'undefined') {
-      chart.showLegend(fd.show_legend);
+      if (width < BREAKPOINTS.small && vizType !== 'pie') {
+        chart.showLegend(false);
+      } else {
+        chart.showLegend(fd.show_legend);
+      }
     }
 
-    let height = slice.height() - 15;
+    let height = slice.height();
     if (vizType === 'bullet') {
       height = Math.min(height, 50);
     }
@@ -281,9 +306,12 @@ function nvd3Vis(slice, payload) {
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);
     }
-    if (fd.y_axis_zero) {
-      chart.forceY([0]);
-    } else if (fd.y_log_scale) {
+    if (chart.forceY &&
+        fd.y_axis_bounds &&
+        (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
+      chart.forceY(fd.y_axis_bounds);
+    }
+    if (fd.y_log_scale) {
       chart.yScale(d3.scale.log());
     }
     if (fd.x_log_scale) {
@@ -329,12 +357,12 @@ function nvd3Vis(slice, payload) {
       }
     }
     if (vizType !== 'bullet') {
-      chart.color((d) => category21(d[colorKey]));
+      chart.color(d => category21(d[colorKey]));
     }
 
     if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
       let distance = 0;
-      if (fd.bottom_margin) {
+      if (fd.bottom_margin && !isNaN(fd.bottom_margin)) {
         distance = fd.bottom_margin - 50;
       }
       chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
@@ -356,18 +384,13 @@ function nvd3Vis(slice, payload) {
       chart.margin({ bottom: fd.bottom_margin });
     }
 
-    let svg = d3.select(slice.selector).select('svg');
-    if (svg.empty()) {
-      svg = d3.select(slice.selector).append('svg');
-    }
     if (vizType === 'dual_line') {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
       customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
-      chart.showLegend(true);
-      chart.margin({ right: 50 });
+      chart.showLegend(width > BREAKPOINTS.small);
     }
     svg
     .datum(payload.data)
@@ -382,21 +405,41 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    // Hack to adjust margins to accomodate long x axis tick labels,
-    // has to be done only after the chart has been rendered once,
-    // then we measure the height of the labels (they are rotated 90 degrees),
-    // then we adjust the bottom margin and render again.
-    if (isTimeSeries) {
-      // get height of formatted axis labels
-      const labelEls = $('.nv-x.nv-axis .tick text');
-      const labelHeights = labelEls.map(i => labelEls[i].getBoundingClientRect().height);
-      const xAxisHeight = Math.max.apply(Math, labelHeights);
+    if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
+      // Hack to adjust y axis left margin to accommodate long numbers
+      const marginPad = isExplore ? width * 0.01 : width * 0.03;
+      const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
+                                              : getMaxLabelSize(slice.container, 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+      chart.margin({ left: maxYAxisLabelWidth + marginPad });
+      if (fd.y_axis_label && fd.y_axis_label !== '') {
+        chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
+      }
+      // Hack to adjust margins to accommodate long axis tick labels.
+      // - has to be done only after the chart has been rendered once
+      // - measure the width or height of the labels
+      // ---- (x axis labels are rotated 45 degrees so we use height),
+      // - adjust margins based on these measures and render again
+      if (isTimeSeries && vizType !== 'bar') {
+        const chartMargins = {
+          bottom: maxXAxisLabelHeight + marginPad,
+          right: maxXAxisLabelHeight + marginPad,
+        };
 
-      // set new bottom margin to accomodate labels
-      chart.margin({
-        bottom: xAxisHeight + 40,
-        right: xAxisHeight,
-      });
+        if (vizType === 'dual_line') {
+          const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
+          // use y axis width if it's wider than axis width/height
+          if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
+            chartMargins.right = maxYAxis2LabelWidth + marginPad;
+          }
+        }
+
+        // apply margins
+        chart.margin(chartMargins);
+      }
+      if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+        chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
+      }
 
       // render chart
       svg
@@ -418,8 +461,7 @@ function nvd3Vis(slice, payload) {
   // this will clear them before rendering the chart again.
   hideTooltips();
 
-  const graph = drawGraph();
-  nv.addGraph(graph);
+  nv.addGraph(drawGraph);
 }
 
 module.exports = nvd3Vis;

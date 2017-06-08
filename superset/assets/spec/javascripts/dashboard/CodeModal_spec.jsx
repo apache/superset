@@ -1,9 +1,9 @@
 import React from 'react';
-import CodeModal from '../../../javascripts/dashboard/components/CodeModal';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import CodeModal from '../../../javascripts/dashboard/components/CodeModal';
 
 describe('CodeModal', () => {
   const mockedProps = {
@@ -11,7 +11,7 @@ describe('CodeModal', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<CodeModal {...mockedProps} />)
+      React.isValidElement(<CodeModal {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders the trigger node', () => {

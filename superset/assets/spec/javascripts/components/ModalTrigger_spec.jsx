@@ -13,7 +13,7 @@ describe('ModalTrigger', () => {
 
   it('is a valid element', () => {
     expect(
-      React.isValidElement(<ModalTrigger {...defaultProps} />)
+      React.isValidElement(<ModalTrigger {...defaultProps} />),
     ).to.equal(true);
   });
 });
