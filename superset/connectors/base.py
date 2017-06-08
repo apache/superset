@@ -243,6 +243,10 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
         raise NotImplementedError()
 
     @property
+    def expression(self):
+        raise NotImplementedError()
+
+    @property
     def data(self):
         attrs = ('metric_name', 'verbose_name', 'description', 'expression')
         return {s: getattr(self, s) for s in attrs}

@@ -278,6 +278,10 @@ class DruidMetric(Model, BaseMetric):
     )
 
     @property
+    def expression(self):
+        return self.json
+
+    @property
     def json_obj(self):
         try:
             obj = json.loads(self.json)
