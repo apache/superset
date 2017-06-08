@@ -43,12 +43,11 @@ export default class AddSliceContainer extends React.PureComponent {
     this.setState({ visType: e.value });
   }
 
-  isValid() {
-    return this.state.datasourceId && this.state.visType;
+  isBtnDisabled() {
+    return this.state.datasourceId && this.state.visType ? false : true;
   }
 
   render() {
-    const btnClassNames = this.isValid() ? 'disabled' : '';
     return (
       <div className="container">
         <Panel header={<h3>Create a new slice</h3>}>
@@ -79,7 +78,11 @@ export default class AddSliceContainer extends React.PureComponent {
                   />
                 </div>
                 <br />
-                <Button bsStyle="primary ${btnClassNames}" onClick={this.gotoSlice.bind(this)}>
+                <Button
+                  bsStyle="primary"
+                  disabled={this.isBtnDisabled()}
+                  onClick={this.gotoSlice.bind(this)}
+                >
                   Create new slice
                 </Button>
                 <br /><br />
