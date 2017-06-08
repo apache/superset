@@ -515,7 +515,8 @@ class SqlaTable(Model, BaseDatasource):
                 direction = asc if ascending else desc
                 qry = qry.order_by(direction(col))
 
-        qry = qry.limit(row_limit)
+        if row_limit:
+            qry = qry.limit(row_limit)
 
         if is_timeseries and \
                 timeseries_limit and groupby and not time_groupby_inline:
