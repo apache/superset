@@ -5,7 +5,6 @@ engines:
     enabled: false
   eslint:
     enabled: true
-    channel: "eslint-1"
     config:
       config: superset/assets/.eslintrc
   pep8:
