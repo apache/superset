@@ -296,6 +296,7 @@ class DatabaseAsync(DatabaseView):
 
 appbuilder.add_view_no_menu(DatabaseAsync)
 
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(config['UPLOAD_FOLDER'],
@@ -403,9 +404,7 @@ class CsvToDatabaseView(SimpleFormView):
                   dayfirst, thousands, decimal, quotechar, escapechar, comment,
                   encoding, error_bad_lines, chunksize):
         # Use Pandas to parse csv file to a dataframe
-        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' \
-                      + str(config['SUPERSET_WEBSERVER_PORT']) \
-                      + url_for('uploaded_file', filename=filepath_or_buffer)
+        upload_path = config['UPLOAD_FOLDER'] + filepath_or_buffer
         # Expose this to api so can specify each field
         chunks = pandas.read_csv(filepath_or_buffer=upload_path,
                                  sep=sep,
@@ -460,6 +459,7 @@ class CsvToDatabaseView(SimpleFormView):
             return filename
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
+
 
 class DatabaseTablesAsync(DatabaseView):
     list_columns = ['id', 'all_table_names', 'all_schema_names']
@@ -547,11 +547,17 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        flash(__(
-            "To create a new slice, you can open a data source "
-            "through the `Sources` menu, or alter an existing slice "
-            "from the `Slices` menu"), "info")
-        return redirect('/superset/welcome')
+        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        datasources = [
+            {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
+            for d in datasources
+        ]
+        return self.render_template(
+            "superset/add_slice.html",
+            bootstrap_data=json.dumps({
+                'datasources': datasources,
+            }),
+        )
 
 appbuilder.add_view(
     SliceModelView,

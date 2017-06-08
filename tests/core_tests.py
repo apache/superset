@@ -12,8 +12,8 @@ import io
 import random
 import unittest
 import os
-import unicodecsv
-#
+import csv
+import sys
 
 from flask import escape
 
@@ -649,19 +649,25 @@ class CoreTests(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username='admin')
-        config = app.config
 
-        test_file = open('tests/testCSV.csv', 'w+')
+        os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
+        con = app.config.get('SQLALCHEMY_DATABASE_URI')
 
-        writer = unicodecsv.writer(test_file, encoding='utf-8')
-        writer.writerow((u'Column 1', u'Column 2'))
-        writer.writerow((u'Column 3', u'Column 4'))
+        if sys.version_info[0] == 2:
+            test_file = open('tests/testCSV.csv', 'w+b')
+            csv_writer = csv.writer(test_file)
+            csv_writer.writerow(['Column 1', 'Column 2'])
+            csv_writer.writerow(['Test 1', 'Test 2'])
+        elif sys.version_info[0] == 3:
+            test_file = open('tests/testCSV.csv' , 'ab+')
+            test_file.write(b'Column 1, Column 2\n')
+            test_file.write(b'Column 3, Column 4')
         test_file.seek(0)
 
         form_data = {'csv_file': test_file,
                             'sep': ',',
                             'name': 'TestName',
-                            'con': config['SQLALCHEMY_DATABASE_URI'],
+                            'con': con,
                             'if_exists': 'append',
                             'index_label': 'test_label',
                             'chunksize': 1,

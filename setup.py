@@ -45,7 +45,6 @@ setup(
         'boto3==1.4.4',
         'celery==3.1.23',
         'cryptography==1.7.2',
-        'unicodecsv>=0.14.0',
         'flask-appbuilder==1.8.1',
         'flask-cache==0.13.1',
         'flask-migrate==2.0.3',

@@ -2,12 +2,28 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { now, fDuration } from '../modules/dates';
 
-class Timer extends React.PureComponent {
+const propTypes = {
+  endTime: PropTypes.number,
+  isRunning: PropTypes.bool.isRequired,
+  startTime: PropTypes.number,
+  status: PropTypes.string,
+  style: PropTypes.object,
+};
+
+const defaultProps = {
+  endTime: null,
+  startTime: null,
+  status: 'success',
+  style: null,
+};
+
+export default class Timer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       clockStr: '',
     };
+    this.stopwatch = this.stopwatch.bind(this);
   }
   componentWillMount() {
     this.startTimer();
@@ -16,13 +32,12 @@ class Timer extends React.PureComponent {
     this.stopTimer();
   }
   startTimer() {
-    if (!(this.timer)) {
-      this.timer = setInterval(this.stopwatch.bind(this), 30);
+    if (!this.timer) {
+      this.timer = setInterval(this.stopwatch, 30);
     }
   }
   stopTimer() {
-    clearInterval(this.timer);
-    this.timer = null;
+    this.timer = clearInterval(this.timer);
   }
   stopwatch() {
     if (this.props && this.props.startTime) {
@@ -54,19 +69,6 @@ class Timer extends React.PureComponent {
     return timerSpan;
   }
 }
-Timer.propTypes = {
-  startTime: PropTypes.number,
-  endTime: PropTypes.number,
-  isRunning: PropTypes.bool.isRequired,
-  status: PropTypes.string,
-  style: PropTypes.object,
-};
 
-Timer.defaultProps = {
-  startTime: null,
-  endTime: null,
-  status: 'success',
-  style: null,
-};
-
-export default Timer;
+Timer.propTypes = propTypes;
+Timer.defaultProps = defaultProps;
