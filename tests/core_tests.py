@@ -219,13 +219,21 @@ class CoreTests(SupersetTestCase):
     def test_add_slice(self):
         self.login(username='admin')
 
-        # Click on the + to add a slice
         url = '/tablemodelview/list/'
         resp = self.get_resp(url)
 
         table = db.session.query(SqlaTable).first()
         assert table.name in resp
         assert '/superset/explore/table/{}'.format(table.id) in resp
+
+        url = '/slicemodelview/add'
+        resp = self.client.get(url)
+        assert resp.status == '200 OK'
+
+        resp = resp.data.decode('utf-8')
+        tables = db.session.query(SqlaTable).all()
+        for table in tables:
+            assert table.name in resp
 
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user

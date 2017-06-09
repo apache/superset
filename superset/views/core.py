@@ -372,7 +372,8 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        datasources = sorted(ConnectorRegistry.get_all_datasources(db.session),
+                             key=lambda x: x.name)
         datasources = [
             {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
             for d in datasources
@@ -380,7 +381,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         return self.render_template(
             "superset/add_slice.html",
             bootstrap_data=json.dumps({
-                'datasources': sorted(datasources),
+                'datasources': datasources,
             }),
         )
 
