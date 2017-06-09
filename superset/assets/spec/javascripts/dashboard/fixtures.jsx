@@ -60,7 +60,7 @@ export const dashboardData = {
   slices: [slice],
   sliceObjects: [slice],
   dashboard_title: 'Births',
-  readFilters: function(){},
+  readFilters: () => {},
 };
 
 export const contextData = {
