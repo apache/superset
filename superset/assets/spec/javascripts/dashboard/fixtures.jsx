@@ -58,7 +58,9 @@ export const dashboardData = {
   ],
   id: 2,
   slices: [slice],
+  sliceObjects: [slice],
   dashboard_title: 'Births',
+  readFilters: function(){},
 };
 
 export const contextData = {
