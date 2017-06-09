@@ -87,7 +87,7 @@ export function getShortUrl(longUrl, callback) {
   });
 }
 
-export function serialize(obj, props) {
+export function serialize(obj) {
   const parts = [];
   const addParamParts = (propName, propValue) => {
     const type = typeof propValue;
@@ -105,12 +105,14 @@ export function serialize(obj, props) {
     }
   };
 
-  props.forEach((prop) => {
-    if (Array.isArray(obj[prop])) {
-      obj[prop].forEach(value => addParamParts(prop, value));
-    } else {
-      addParamParts(prop, obj[prop]);
-    }
-  });
+  Object.keys(obj)
+    .filter(key => obj.hasOwnProperty(key))
+    .forEach((prop) => {
+      if (Array.isArray(obj[prop])) {
+        obj[prop].forEach(value => addParamParts(prop, value));
+      } else {
+        addParamParts(prop, obj[prop]);
+      }
+    });
   return parts.join('&');
 }
