@@ -533,7 +533,8 @@ class CoreTests(SupersetTestCase):
         )
         self.grant_public_access_to_table(table)
 
-        dash = db.session.query(models.Dashboard).filter_by(dashboard_title="Births").first()
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="births").first()
         dash.owners = [appbuilder.sm.find_user('admin')]
         dash.created_by = appbuilder.sm.find_user('admin')
         db.session.merge(dash)
