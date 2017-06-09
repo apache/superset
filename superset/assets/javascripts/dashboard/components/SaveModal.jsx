@@ -84,6 +84,7 @@ class SaveModal extends React.PureComponent {
       positions,
       css: this.state.css,
       expanded_slices: expandedSlices,
+      dashboard_title: dashboard.dashboard_title,
     };
     let url = null;
     if (saveType === 'overwrite') {

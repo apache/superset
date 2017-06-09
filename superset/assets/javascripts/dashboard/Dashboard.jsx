@@ -337,6 +337,10 @@ export function dashboardContainer(dashboard, datasources, userid) {
         },
       });
     },
+    updateDashboardTitle(title) {
+      this.dashboard_title = title;
+      this.onChange();
+    },
   });
 }
 
