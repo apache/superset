@@ -209,3 +209,6 @@ div.widget .slice_container {
 .table-condensed input[type="checkbox"] {
     float: left;
 }
+.m-r-5 {
+    margin-right: 5px;
+}
