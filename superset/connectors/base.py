@@ -54,6 +54,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return sorted([c.column_name for c in self.columns])
 
     @property
+    def metric_names(self):
+        return sorted([m.metric_name for m in self.metrics])
+
+    @property
     def main_dttm_col(self):
         return "timestamp"
 
@@ -89,12 +93,45 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         }
 
     @property
-    def metrics_combo(self):
+    def get_columns(self):
+        return {col.column_name: col for col in self.columns}
+
+    def columns_combo(self, column_names=None):
+        if column_names is None:
+            column_names = self.column_names
         return sorted(
             [
-                (m.metric_name, m.verbose_name or m.metric_name)
-                for m in self.metrics],
+                (name, self.get_columns[name].local_name)
+                for name in column_names],
             key=lambda x: x[1])
+
+    @property
+    def get_metrics(self):
+        return {met.metric_name: met for met in self.metrics}
+
+    def metrics_combo(self, metric_names=None):
+        if metric_names is None:
+            metric_names = self.metric_names
+        return sorted(
+            [
+                (name, self.get_metrics[name].local_name)
+                for name in metric_names],
+            key=lambda x: x[1])
+
+    def get_local_name(self, name):
+        if name in self.get_columns:
+            column = self.get_columns[name]
+            return column.local_name
+        if name in self.get_metrics:
+            metric = self.get_metrics[name]
+            return metric.local_name
+        return name
+
+    def get_local_name_list(self, names):
+        local_names = []
+        for name in names:
+            local_names.append(self.get_local_name(name))
+        return local_names
 
     @property
     def data(self):
@@ -105,14 +142,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
         d = {
-            'all_cols': utils.choicify(self.column_names),
+            'all_cols': self.columns_combo(),
             'column_formats': self.column_formats,
             'edit_url': self.url,
             'filter_select': self.filter_select_enabled,
-            'filterable_cols': utils.choicify(self.filterable_column_names),
-            'gb_cols': utils.choicify(self.groupby_column_names),
+            'filterable_cols': self.columns_combo(self.filterable_column_names),
+            'gb_cols': self.columns_combo(self.groupby_column_names),
             'id': self.id,
-            'metrics_combo': self.metrics_combo,
+            'metrics_combo': self.metrics_combo(),
             'name': self.name,
             'order_by_choices': order_by_choices,
             'type': self.type,
@@ -196,6 +233,10 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
             any([t in self.type.upper() for t in self.str_types])
         )
 
+    @property
+    def local_name(self):
+        return self.verbose_name or self.column_name
+
 
 class BaseMetric(AuditMixinNullable, ImportMixin):
 
@@ -227,3 +268,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     @property
     def perm(self):
         raise NotImplementedError()
+
+    @property
+    def local_name(self):
+        return self.verbose_name or self.metric_name

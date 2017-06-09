@@ -280,8 +280,8 @@ class SqlaTable(Model, BaseDatasource):
         if self.type == 'table':
             grains = self.database.grains() or []
             if grains:
-                grains = [(g.name, g.name) for g in grains]
-            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
+                grains = [(g.name, str(g.label)) for g in grains]
+            d['granularity_sqla'] = self.columns_combo(self.dttm_cols)
             d['time_grain_sqla'] = grains
         return d
 
@@ -608,6 +608,7 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
+                dbcol.verbose_name = col.local_name
 
             db.session.merge(self)
             self.columns.append(dbcol)
@@ -619,35 +620,35 @@ class SqlaTable(Model, BaseDatasource):
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,
-                    verbose_name='sum__' + dbcol.column_name,
+                    verbose_name=_('sum__') + (dbcol.verbose_name or dbcol.column_name),
                     metric_type='sum',
                     expression="SUM({})".format(quoted)
                 ))
             if dbcol.avg:
                 metrics.append(M(
                     metric_name='avg__' + dbcol.column_name,
-                    verbose_name='avg__' + dbcol.column_name,
+                    verbose_name=_('avg__') + (dbcol.verbose_name or dbcol.column_name),
                     metric_type='avg',
                     expression="AVG({})".format(quoted)
                 ))
             if dbcol.max:
                 metrics.append(M(
                     metric_name='max__' + dbcol.column_name,
-                    verbose_name='max__' + dbcol.column_name,
+                    verbose_name=_('max__') + (dbcol.verbose_name or dbcol.column_name),
                     metric_type='max',
                     expression="MAX({})".format(quoted)
                 ))
             if dbcol.min:
                 metrics.append(M(
                     metric_name='min__' + dbcol.column_name,
-                    verbose_name='min__' + dbcol.column_name,
+                    verbose_name=_('min__') + (dbcol.verbose_name or dbcol.column_name),
                     metric_type='min',
                     expression="MIN({})".format(quoted)
                 ))
             if dbcol.count_distinct:
                 metrics.append(M(
                     metric_name='count_distinct__' + dbcol.column_name,
-                    verbose_name='count_distinct__' + dbcol.column_name,
+                    verbose_name=_('count_distinct__') + (dbcol.verbose_name or dbcol.column_name),
                     metric_type='count_distinct',
                     expression="COUNT(DISTINCT {})".format(quoted)
                 ))
@@ -657,7 +658,7 @@ class SqlaTable(Model, BaseDatasource):
 
         metrics.append(M(
             metric_name='count',
-            verbose_name='COUNT(*)',
+            verbose_name=_('COUNT(*)'),
             metric_type='count',
             expression="COUNT(*)"
         ))
