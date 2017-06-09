@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.18.5-alpha.2",
+  "version": "0.18.5-alpha.3",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -49,7 +49,7 @@
     "d3-cloud": "^1.2.1",
     "d3-sankey": "^0.4.1",
     "d3-scale": "^1.0.3",
-    "d3-tip": "^0.7.1",
+    "d3-tip": "^0.6.7",
     "datamaps": "^0.5.8",
     "datatables-bootstrap3-plugin": "^0.5.0",
     "datatables.net": "^1.10.13",
