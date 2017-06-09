@@ -141,12 +141,13 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
+        filterable_cols = self.columns_combo(self.filterable_column_names)
         d = {
             'all_cols': self.columns_combo(),
             'column_formats': self.column_formats,
             'edit_url': self.url,
             'filter_select': self.filter_select_enabled,
-            'filterable_cols': self.columns_combo(self.filterable_column_names),
+            'filterable_cols': filterable_cols,
             'gb_cols': self.columns_combo(self.groupby_column_names),
             'id': self.id,
             'metrics_combo': self.metrics_combo(),
