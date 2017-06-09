@@ -206,6 +206,10 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         )
 
     @property
+    def expression(self):
+        raise NotImplementedError()
+
+    @property
     def data(self):
         attrs = ('column_name', 'verbose_name', 'description', 'expression')
         return {s: getattr(self, s) for s in attrs}

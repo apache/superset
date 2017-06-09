@@ -145,6 +145,10 @@ class DruidColumn(Model, BaseColumn):
         return self.column_name
 
     @property
+    def expression(self):
+        return self.dimension_spec_json
+
+    @property
     def dimension_spec(self):
         if self.dimension_spec_json:
             return json.loads(self.dimension_spec_json)
