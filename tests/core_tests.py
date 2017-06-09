@@ -227,7 +227,7 @@ class CoreTests(SupersetTestCase):
         assert table.name in resp
         assert '/superset/explore/table/{}'.format(table.id) in resp
 
-    def add_slice(self):
+    def test_add_slice(self):
         self.login(username='admin')
         # assert that /slicemodelview/add responds with 200
         url = '/slicemodelview/add'
