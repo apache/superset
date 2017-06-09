@@ -1,4 +1,4 @@
-Saleh Hindi's Superset Fork
+Superset
 =========
 
 [![Build Status](https://travis-ci.org/airbnb/superset.svg?branch=master)](https://travis-ci.org/airbnb/superset)
