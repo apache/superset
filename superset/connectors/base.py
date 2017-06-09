@@ -141,7 +141,15 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
-        d = {
+        verbose_map = {
+            o.metric_name: o.verbose_name or o.metric_name
+            for o in self.metrics
+        }
+        verbose_map.update({
+            o.column_name: o.verbose_name or o.column_name
+            for o in self.columns
+        })
+        return {
             'all_cols': self.columns_combo(),
             'column_formats': self.column_formats,
             'edit_url': self.url,
@@ -154,9 +162,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'name': self.name,
             'order_by_choices': order_by_choices,
             'type': self.type,
+            'metrics': [o.data for o in self.metrics],
+            'columns': [o.data for o in self.columns],
+            'verbose_map': verbose_map,
         }
-
-        return d
 
     def get_query_str(self, query_obj):
         """Returns a query as a string
@@ -235,6 +244,15 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
         )
 
     @property
+    def expression(self):
+        raise NotImplementedError()
+
+    @property
+    def data(self):
+        attrs = ('column_name', 'verbose_name', 'description', 'expression')
+        return {s: getattr(self, s) for s in attrs}
+
+    @property
     def local_name(self):
         return self.verbose_name or self.column_name
 
@@ -271,5 +289,15 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
         raise NotImplementedError()
 
     @property
+    def expression(self):
+        raise NotImplementedError()
+
+    @property
+    def data(self):
+        attrs = ('metric_name', 'verbose_name', 'description', 'expression')
+        return {s: getattr(self, s) for s in attrs}
+
+    @property
     def local_name(self):
         return self.verbose_name or self.metric_name
+

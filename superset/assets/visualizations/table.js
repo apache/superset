@@ -49,9 +49,11 @@ function tableVis(slice, payload) {
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
+  const cols = data.columns.map(c => slice.datasource.verbose_map[c] || c);
+
   table.append('thead').append('tr')
     .selectAll('th')
-    .data(data.columns)
+    .data(cols)
     .enter()
     .append('th')
     .text(function (d) {
