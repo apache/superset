@@ -227,6 +227,10 @@ class CoreTests(SupersetTestCase):
         assert table.name in resp
         assert '/superset/explore/table/{}'.format(table.id) in resp
 
+        url = '/slicemodelview/add'
+        resp = self.client.get(url)
+        assert resp.status == '200 OK'
+
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
