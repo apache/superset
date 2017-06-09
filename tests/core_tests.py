@@ -232,7 +232,7 @@ class CoreTests(SupersetTestCase):
         # assert that /slicemodelview/add responds with 200
         url = '/slicemodelview/add'
         resp = self.client.get(url)
-        assert resp.status == '200 OK'
+        self.assertEqual(resp.status_code, 200)
 
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
