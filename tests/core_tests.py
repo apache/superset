@@ -365,6 +365,7 @@ class CoreTests(SupersetTestCase):
             'css': '',
             'expanded_slices': {},
             'positions': positions,
+            'dashboard_title': 'new title'
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
