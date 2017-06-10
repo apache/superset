@@ -608,7 +608,7 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
-                dbcol.verbose_name = col.local_name
+                dbcol.verbose_name = col.name
 
             db.session.merge(self)
             self.columns.append(dbcol)

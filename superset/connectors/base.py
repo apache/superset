@@ -8,8 +8,8 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):
-
-    """A common interface to objects that are queryable (tables and datasources)"""
+    """A common interface to objects that are queryable (tables and 
+    datasources)"""
 
     # ---------------------------------------------------------------
     # class attributes to define when deriving BaseDatasource
