@@ -17,9 +17,6 @@ export default class AddSliceContainer extends React.PureComponent {
     const visTypeKeys = Object.keys(visTypes);
     this.vizTypeOptions = visTypeKeys.map(vt => ({ label: visTypes[vt].label, value: vt }));
     this.state = {
-      datasourceValue: this.props.datasources[0].value,
-      datasourceId: this.props.datasources[0].value.split('__')[0],
-      datasourceType: this.props.datasources[0].value.split('__')[1],
       visType: 'table',
     };
   }
@@ -42,12 +39,12 @@ export default class AddSliceContainer extends React.PureComponent {
     });
   }
 
-  changeSliceName(e) {
-    this.setState({ sliceName: e.target.value });
-  }
-
   changeVisType(e) {
     this.setState({ visType: e.value });
+  }
+
+  isBtnDisabled() {
+    return !(this.state.datasourceId && this.state.visType);
   }
 
   render() {
@@ -81,7 +78,11 @@ export default class AddSliceContainer extends React.PureComponent {
                   />
                 </div>
                 <br />
-                <Button bsStyle="primary" onClick={this.gotoSlice.bind(this)}>
+                <Button
+                  bsStyle="primary"
+                  disabled={this.isBtnDisabled()}
+                  onClick={this.gotoSlice.bind(this)}
+                >
                   Create new slice
                 </Button>
                 <br /><br />

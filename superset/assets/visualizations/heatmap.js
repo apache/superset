@@ -1,10 +1,11 @@
 import d3 from 'd3';
+import $ from 'jquery';
+import d3tip from 'd3-tip';
+
 import { colorScalerFactory } from '../javascripts/modules/colors';
+import '../stylesheets/d3tip.css';
+import './heatmap.css';
 
-const $ = require('jquery');
-d3.tip = require('d3-tip');
-
-require('./heatmap.css');
 
 // Inspired from http://bl.ocks.org/mbostock/3074470
 // https://jsfiddle.net/cyril123/h0reyumq/
@@ -105,15 +106,7 @@ function heatmapVis(slice, payload) {
     .style('top', headerHeight + 'px')
     .style('position', 'absolute');
 
-  const rect = svg.append('g')
-    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
-    .append('rect')
-    .style('fill-opacity', 0)
-    .attr('stroke', 'black')
-    .attr('width', hmWidth)
-    .attr('height', hmHeight);
-
-  const tip = d3.tip()
+  const tip = d3tip()
     .attr('class', 'd3-tip')
     .offset(function () {
       const k = d3.mouse(this);
@@ -139,6 +132,17 @@ function heatmapVis(slice, payload) {
       }
       return s;
     });
+
+  const rect = svg.append('g')
+    .attr('transform', `translate(${margin.left}, ${margin.top})`)
+    .append('rect')
+    .attr('pointer-events', 'all')
+    .on('mousemove', tip.show)
+    .on('mouseout', tip.hide)
+    .style('fill-opacity', 0)
+    .attr('stroke', 'black')
+    .attr('width', hmWidth)
+    .attr('height', hmHeight);
 
   rect.call(tip);
 
@@ -171,8 +175,6 @@ function heatmapVis(slice, payload) {
     .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
     .call(yAxis);
 
-  rect.on('mousemove', tip.show);
-  rect.on('mouseout', tip.hide);
 
   const context = canvas.node().getContext('2d');
   context.imageSmoothingEnabled = false;
