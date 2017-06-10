@@ -8,7 +8,7 @@ from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):
-    """A common interface to objects that are queryable (tables and 
+    """A common interface to objects that are queryable (tables and
     datasources)"""
 
     # ---------------------------------------------------------------
@@ -300,4 +300,3 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     @property
     def local_name(self):
         return self.verbose_name or self.metric_name
-
