@@ -620,35 +620,35 @@ class SqlaTable(Model, BaseDatasource):
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,
-                    verbose_name=_('sum__') + (dbcol.local_name),
+                    verbose_name='sum__' + (dbcol.local_name),
                     metric_type='sum',
                     expression="SUM({})".format(quoted)
                 ))
             if dbcol.avg:
                 metrics.append(M(
                     metric_name='avg__' + dbcol.column_name,
-                    verbose_name=_('avg__') + (dbcol.local_name),
+                    verbose_name='avg__' + (dbcol.local_name),
                     metric_type='avg',
                     expression="AVG({})".format(quoted)
                 ))
             if dbcol.max:
                 metrics.append(M(
                     metric_name='max__' + dbcol.column_name,
-                    verbose_name=_('max__') + (dbcol.local_name),
+                    verbose_name='max__' + (dbcol.local_name),
                     metric_type='max',
                     expression="MAX({})".format(quoted)
                 ))
             if dbcol.min:
                 metrics.append(M(
                     metric_name='min__' + dbcol.column_name,
-                    verbose_name=_('min__') + (dbcol.local_name),
+                    verbose_name='min__' + (dbcol.local_name),
                     metric_type='min',
                     expression="MIN({})".format(quoted)
                 ))
             if dbcol.count_distinct:
                 metrics.append(M(
                     metric_name='count_distinct__' + dbcol.column_name,
-                    verbose_name=_('count_distinct__') + (dbcol.local_name),
+                    verbose_name='count_distinct__' + (dbcol.local_name),
                     metric_type='count_distinct',
                     expression="COUNT(DISTINCT {})".format(quoted)
                 ))
@@ -658,7 +658,7 @@ class SqlaTable(Model, BaseDatasource):
 
         metrics.append(M(
             metric_name='count',
-            verbose_name=_('COUNT(*)'),
+            verbose_name='COUNT(*)',
             metric_type='count',
             expression="COUNT(*)"
         ))
