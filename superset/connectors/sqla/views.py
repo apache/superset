@@ -26,10 +26,10 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     can_delete = False
     list_widget = ListWidgetWithCheckboxes
     edit_columns = [
-        'column_name', 'verbose_name', 'description',
-        'type', 'groupby', 'filterable',
-        'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
-        'is_dttm', 'python_date_format', 'database_expression', 'multi_lang_name']
+        'column_name', 'verbose_name', 'description', 'type',
+        'groupby', 'filterable', 'table', 'count_distinct',
+        'sum', 'min', 'max', 'expression', 'is_dttm',
+        'python_date_format', 'database_expression', 'multi_lang_name']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -151,9 +151,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
         'table_name', 'sql', 'filter_select_enabled', 'slices',
-        'fetch_values_predicate', 'database', 'schema',
-        'description', 'owner',
-        'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout', 'multi_lang_name']
+        'fetch_values_predicate', 'database', 'schema', 'description',
+        'owner', 'main_dttm_col', 'default_endpoint', 'offset',
+        'cache_timeout', 'multi_lang_name']
     show_columns = edit_columns + ['perm']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
