@@ -94,12 +94,13 @@ function tableVis(slice, payload) {
         // The 0.01 to 0.001 is a workaround for what appears to be a
         // CSS rendering bug on flat, transparent colors
         return (
-          `linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
+          `linear-gradient(to left, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
           `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
         );
       }
       return null;
     })
+    .classed('text-right', d => d.isMetric)
     .attr('title', (d) => {
       if (!isNaN(d.val)) {
         return fC(d.val);
