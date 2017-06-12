@@ -3,6 +3,7 @@ import json
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean,
 )
+from flask import session
 from superset import utils
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
@@ -38,6 +39,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     params = Column(String(1000))
     perm = Column(String(1000))
+    multi_lang_name = Column(Text)
 
     # placeholder for a relationship to a derivative of BaseColumn
     columns = []
@@ -208,6 +210,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
     description = Column(Text)
+    multi_lang_name = Column(Text)
 
     # [optional] Set this to support import/export functionality
     export_fields = []
@@ -254,6 +257,14 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     @property
     def local_name(self):
+        if self.multi_lang_name:
+            try:
+                lang = session.get('locale')
+                lang_dict = json.loads(self.multi_lang_name)
+                if lang in lang_dict and lang_dict[lang]:
+                    return lang_dict[lang]
+            except Exception:
+                pass
         return self.verbose_name or self.column_name
 
 
@@ -270,6 +281,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
+    multi_lang_name = Column(Text)
 
     """
     The interface should also declare a datasource relationship pointing
@@ -299,4 +311,12 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
 
     @property
     def local_name(self):
+        if self.multi_lang_name:
+            try:
+                lang = session.get('locale')
+                lang_dict = json.loads(self.multi_lang_name)
+                if lang in lang_dict and lang_dict[lang]:
+                    return lang_dict[lang]
+            except Exception:
+                pass
         return self.verbose_name or self.metric_name

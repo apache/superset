@@ -29,7 +29,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'column_name', 'verbose_name', 'description',
         'type', 'groupby', 'filterable',
         'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
-        'is_dttm', 'python_date_format', 'database_expression']
+        'is_dttm', 'python_date_format', 'database_expression', 'multi_lang_name']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -69,6 +69,9 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             "`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')` for Oracle"
             "Superset uses default expression based on DB URI if this "
             "field is blank.", True),
+        'multi_lang_name': _(
+            'Multi language names for the column.\n'
+            'Such as {"en": "Product Name", "zh": "Chinese Description"}.'),
     }
     label_columns = {
         'column_name': _("Column"),
@@ -84,7 +87,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression': _("Expression"),
         'is_dttm': _("Is temporal"),
         'python_date_format': _("Datetime Format"),
-        'database_expression': _("Database Expression")
+        'database_expression': _("Database Expression"),
+        'multi_lang_name': _("Multi Language Name"),
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
@@ -94,7 +98,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table', 'd3format', 'is_restricted']
+        'expression', 'table', 'd3format', 'is_restricted', 'multi_lang_name']
     description_columns = {
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
@@ -110,6 +114,9 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             "visualization and allow for different metric to use different "
             "formats", True
         ),
+        'multi_lang_name': _(
+            'Multi language names for the column.\n'
+            'Such as {"en": "Product Attr", "zh": "Chinese Description"}.'),
     }
     add_columns = edit_columns
     page_size = 500
@@ -120,6 +127,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'metric_type': _("Type"),
         'expression': _("SQL Expression"),
         'table': _("Table"),
+        'multi_lang_name': _("Multi Language Name"),
     }
 
     def post_add(self, metric):
@@ -145,7 +153,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'table_name', 'sql', 'filter_select_enabled', 'slices',
         'fetch_values_predicate', 'database', 'schema',
         'description', 'owner',
-        'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
+        'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout', 'multi_lang_name']
     show_columns = edit_columns + ['perm']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
@@ -187,6 +195,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
             "Whether to populate the filter's dropdown in the explore "
             "view's filter section with a list of distinct values fetched "
             "from the backend on the fly"),
+        'multi_lang_name': _(
+            'Multi language names for the column.\n'
+            'Such as {"en": "Product Table", "zh": "Chinese Description"}.'),
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
@@ -202,6 +213,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
             "from the datasource list"),
         'offset': _("Offset"),
         'cache_timeout': _("Cache Timeout"),
+        'multi_lang_name': _("Multi Language Name"),
     }
 
     def pre_add(self, table):
