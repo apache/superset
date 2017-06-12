@@ -1,8 +1,10 @@
 {% block tail_js %}
-  <script type="text/javascript">
-    var scriptTag = document.createElement('script');
-    var src = '/static/assets/dist/' + window.manifestJSON['{{filename}}.js'];
-    scriptTag.setAttribute('src', src);
-    document.head.appendChild(scriptTag);
+  <script>
+    if (!window.jsManifest) {
+      window.jsManifest = JSON.parse('{{js_manifest}}'.replace(/&#34;/g, '"'));
+    }
+    var script = document.createElement('script');
+    script.src = '/static/assets/dist/' + window.jsManifest['{{ filename }}.js'];
+    document.head.appendChild(script);
   </script>
 {% endblock %}
