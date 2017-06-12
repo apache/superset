@@ -80,6 +80,20 @@ if app.config.get('ENABLE_CORS'):
 if app.config.get('ENABLE_PROXY_FIX'):
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
+if app.config.get('ENABLE_CHUNK_ENCODING'):
+    class ChunkedEncodingFix(object):
+
+        def __init__(self, app):
+            self.app = app
+
+        def __call__(self, environ, start_response):
+            # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
+            # content-length and read the stream till the end.
+            if 'chunked' == environ.get('HTTP_TRANSFER_ENCODING', '').lower():
+                environ['wsgi.input_terminated'] = True
+            return self.app(environ, start_response)
+    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)
+
 if app.config.get('UPLOAD_FOLDER'):
     try:
         os.makedirs(app.config.get('UPLOAD_FOLDER'))
