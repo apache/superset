@@ -32,11 +32,13 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+
 @app.context_processor
 def get_js_manifest():
-    with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as js_manifest_file:
-        manifest = json.load(js_manifest_file)
+    with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as f:
+        manifest = json.load(f)
     return dict(js_manifest=manifest)
+
 
 for bp in conf.get('BLUEPRINTS'):
     try:

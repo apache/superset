@@ -1,6 +1,5 @@
 const webpack = require('webpack');
 const path = require('path');
-const fs = require('fs');
 const ManifestPlugin = require('webpack-manifest-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 
@@ -9,8 +8,6 @@ const APP_DIR = path.resolve(__dirname, './');
 
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
-
-const VERSION_STRING = JSON.parse(fs.readFileSync('package.json')).version;
 
 const config = {
   entry: {
@@ -26,7 +23,7 @@ const config = {
   output: {
     path: BUILD_DIR,
     filename: '[name].[chunkhash].entry.js',
-    chunkFilename: '[name].[chunkhash].entry.js'
+    chunkFilename: '[name].[chunkhash].entry.js',
   },
   resolve: {
     extensions: [
