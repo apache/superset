@@ -35,8 +35,10 @@ conf = app.config
 
 @app.context_processor
 def get_js_manifest():
-    with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as f:
-        manifest = json.load(f)
+    manifest = {}
+    try:
+        with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as f:
+            manifest = json.load(f)
     return dict(js_manifest=manifest)
 
 
