@@ -8,6 +8,7 @@
 
   {% block head_js %}
     {{super()}}
+    <script src="/static/assets/javascripts/loadManifest.js"></script>
     {% with filename="css-theme" %}
       {% include "superset/partials/_script_tag.html" %}
     {% endwith %}

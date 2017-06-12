@@ -1,4 +1,8 @@
-{% set VERSION_STRING = appbuilder.get_app.config.get("VERSION_STRING") %}
 {% block tail_js %}
-  <script src="/static/assets/dist/{{filename}}.{{VERSION_STRING}}.entry.js"></script>
+  <script type="text/javascript">
+    var scriptTag = document.createElement('script');
+    var src = '/static/assets/dist/' + window.manifestJSON['{{filename}}.js'];
+    scriptTag.setAttribute('src', src);
+    document.head.appendChild(scriptTag);
+  </script>
 {% endblock %}

@@ -1,6 +1,8 @@
 const webpack = require('webpack');
 const path = require('path');
 const fs = require('fs');
+const ManifestPlugin = require('webpack-manifest-plugin');
+const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -23,7 +25,8 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
-    filename: `[name].${VERSION_STRING}.entry.js`,
+    filename: '[name].[chunkhash].entry.js',
+    chunkFilename: '[name].[chunkhash].entry.js'
   },
   resolve: {
     extensions: [
@@ -115,6 +118,8 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins: [
+    new ManifestPlugin(),
+    new CleanWebpackPlugin(['dist']),
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
