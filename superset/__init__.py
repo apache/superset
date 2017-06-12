@@ -36,7 +36,7 @@ conf = app.config
 def get_js_manifest():
     with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as js_manifest_file:
         manifest = json.load(js_manifest_file)
-    return dict(js_manifest=json.dumps(manifest))
+    return dict(js_manifest=manifest)
 
 for bp in conf.get('BLUEPRINTS'):
     try:

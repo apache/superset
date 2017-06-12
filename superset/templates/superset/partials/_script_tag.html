@@ -1,10 +1,3 @@
 {% block tail_js %}
-  <script>
-    if (!window.jsManifest) {
-      window.jsManifest = JSON.parse('{{js_manifest}}'.replace(/&#34;/g, '"'));
-    }
-    var script = document.createElement('script');
-    script.src = '/static/assets/dist/' + window.jsManifest['{{ filename }}.js'];
-    document.head.appendChild(script);
-  </script>
+  <script src="{{ '/static/assets/dist/' + js_manifest[filename + '.js'] }}"></script>
 {% endblock %}
