@@ -336,7 +336,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
           const errorMsg = getAjaxErrorMsg(error);
           utils.showModal({
             title: 'Error',
-            body: 'Sorry, there was an error adding slices to this dashboard: </ br>' + errorMsg,
+            body: 'Sorry, there was an error adding slices to this dashboard: ' + errorMsg,
           });
         },
       });
