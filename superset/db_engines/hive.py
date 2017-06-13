@@ -39,3 +39,6 @@ def fetch_logs(self, max_rows=1024,
             if not new_logs:
                 break
         return logs
+
+
+hive.fetch_logs = fetch_logs
