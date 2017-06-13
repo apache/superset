@@ -216,16 +216,23 @@ class CoreTests(SupersetTestCase):
             logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
 
-    def test_add_slice(self):
+    def test_tablemodelview_list(self):
         self.login(username='admin')
 
-        # Click on the + to add a slice
         url = '/tablemodelview/list/'
         resp = self.get_resp(url)
 
+        # assert that a table is listed
         table = db.session.query(SqlaTable).first()
         assert table.name in resp
         assert '/superset/explore/table/{}'.format(table.id) in resp
+
+    def test_add_slice(self):
+        self.login(username='admin')
+        # assert that /slicemodelview/add responds with 200
+        url = '/slicemodelview/add'
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
 
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
