@@ -398,11 +398,14 @@ class PivotTableViz(BaseViz):
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=True,
         )
-        return df.to_html(
-            na_rep='',
-            classes=(
-                "dataframe table table-striped table-bordered "
-                "table-condensed table-hover").split(" "))
+        return dict(
+            columns=list(df.columns),
+            html=df.to_html(
+                na_rep='',
+                classes=(
+                    "dataframe table table-striped table-bordered "
+                    "table-condensed table-hover").split(" ")),
+        )
 
 
 class MarkupViz(BaseViz):

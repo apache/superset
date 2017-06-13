@@ -4,6 +4,7 @@ import $ from 'jquery';
 import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
 import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import './pivot_table.css';
+import { d3format } from '../javascripts/modules/utils';
 
 dt(window, $);
 
@@ -11,17 +12,32 @@ module.exports = function (slice, payload) {
   const container = slice.container;
   const fd = slice.formData;
   const height = container.height();
-  const numberFormat = fd.number_format;
+  let cols = payload.data.columns;
+  if (Array.isArray(cols[0])) {
+    cols = cols.map(col => col[0]);
+  }
 
   // payload data is a string of html with a single table element
-  container.html(payload.data);
+  container.html(payload.data.html);
+
+  // jQuery hack to set verbose names in headers
+  const replaceCell = function () {
+    const s = $(this)[0].textContent;
+    $(this)[0].textContent = slice.datasource.verbose_map[s] || s;
+  }
+  slice.container.find('thead tr:first th').each(replaceCell);
+  slice.container.find('thead tr th:first-child').each(replaceCell);
 
   // format number
-  $('td').each(function () {
-    const tdText = $(this)[0].textContent;
-    if (!isNaN(tdText) && tdText !== '') {
-      $(this)[0].textContent = d3.format(numberFormat)(tdText);
-    }
+  slice.container.find('tbody tr').each(function () {
+    $(this).find('td').each(function (i) {
+      const metric = cols[i];
+      const format = slice.datasource.column_formats[metric] || fd.number_format || '.3s';
+      const tdText = $(this)[0].textContent;
+      if (!isNaN(tdText) && tdText !== '') {
+        $(this)[0].textContent = d3format(format, tdText);
+      }
+    });
   });
 
   if (fd.groupby.length === 1) {
