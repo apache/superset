@@ -40,7 +40,10 @@ def get_js_manifest():
         with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as f:
             manifest = json.load(f)
     except Exception as e:
-        print("no manifest file found")
+        print(
+            "no manifest file found at " +
+            APP_DIR + "/static/assets/dist/manifest.json"
+        )
     return dict(js_manifest=manifest)
 
 
