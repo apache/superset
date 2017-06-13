@@ -1,7 +1,8 @@
+/* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
-import { getAjaxErrorMsg, showModal } from '../../modules/utils';
+import { getAjaxErrorMsg } from '../../modules/utils';
 import ModalTrigger from '../../components/ModalTrigger';
 
 const $ = window.$ = require('jquery');
@@ -53,19 +54,13 @@ class SaveModal extends React.PureComponent {
         if (saveType === 'newDashboard') {
           window.location = '/superset/dashboard/' + resp.id + '/';
         } else {
-          showModal({
-            title: 'Success',
-            body: 'This dashboard was saved successfully.',
-          });
+          notify.success('This dashboard was saved successfully.');
         }
       },
       error(error) {
         saveModal.close();
         const errorMsg = getAjaxErrorMsg(error);
-        showModal({
-          title: 'Error',
-          body: 'Sorry, there was an error saving this dashboard: </ br>' + errorMsg,
-        });
+        notify.error('Sorry, there was an error saving this dashboard: </ br>' + errorMsg);
       },
     });
   }
