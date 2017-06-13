@@ -7,6 +7,7 @@ import moment from 'moment';
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
 import { appSetup } from '../common';
+import AlertsWrapper from '../components/AlertsWrapper';
 
 import '../../stylesheets/dashboard.css';
 
@@ -60,7 +61,10 @@ function renderAlert() {
 
 function initDashboardView(dashboard) {
   render(
-    <Header dashboard={dashboard} />,
+    <div>
+      <AlertsWrapper />
+      <Header dashboard={dashboard} />
+    </div>,
     document.getElementById('dashboard-header'),
   );
   // eslint-disable-next-line no-param-reassign
@@ -332,7 +336,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
           const errorMsg = getAjaxErrorMsg(error);
           utils.showModal({
             title: 'Error',
-            body: 'Sorry, there was an error adding slices to this dashboard: </ br>' + errorMsg,
+            body: 'Sorry, there was an error adding slices to this dashboard: ' + errorMsg,
           });
         },
       });
