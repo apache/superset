@@ -252,6 +252,10 @@ npm run dev
 Python tests can be run with:
 
     ./run_tests.sh
+    
+Make sure all dependencies are installed locally with:
+    
+    pip install -r dev-reqs.txt
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
