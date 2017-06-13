@@ -56,7 +56,7 @@ setup(
         'humanize==0.5.1',
         'gunicorn==19.7.1',
         'markdown==2.6.8',
-        'pandas==0.19.2',
+        'pandas==0.20.2',
         'parsedatetime==2.0.0',
         'pydruid==0.3.1',
         'PyHive>=0.3.0',
