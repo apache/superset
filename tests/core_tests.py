@@ -380,8 +380,11 @@ class CoreTests(SupersetTestCase):
 
     def test_save_dash_with_dashboard_title(self, username='admin'):
         self.login(username=username)
-        dash = db.session.query(models.Dashboard).filter_by(
-            slug="births").first()
+        dash = (
+            db.session.query(models.Dashboard)
+                .filter_by(slug="births")
+                .first()
+        )
         origin_title = dash.dashboard_title
         positions = []
         for i, slc in enumerate(dash.slices):
@@ -400,8 +403,11 @@ class CoreTests(SupersetTestCase):
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
-        updatedDash = db.session.query(models.Dashboard).filter_by(
-            slug="births").first()
+        updatedDash = (
+            db.session.query(models.Dashboard)
+                .filter_by(slug="births")
+                .first()
+        )
         self.assertEqual(updatedDash.dashboard_title, 'new title')
         # # bring back dashboard original title
         data['dashboard_title'] = origin_title

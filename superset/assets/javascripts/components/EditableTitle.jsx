@@ -2,6 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import TooltipWrapper from './TooltipWrapper';
 
+const propTypes = {
+  title: PropTypes.string,
+  canEdit: PropTypes.bool,
+  onSaveTitle: PropTypes.func.isRequired,
+};
+const defaultProps = {
+  title: 'Title',
+  canEdit: false,
+};
+
 class EditableTitle extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -68,14 +78,7 @@ class EditableTitle extends React.PureComponent {
     );
   }
 }
-EditableTitle.propTypes = {
-  title: PropTypes.string,
-  canEdit: PropTypes.bool,
-  onSaveTitle: PropTypes.func.isRequired,
-};
-EditableTitle.defaultProps = {
-  title: 'Title',
-  canEdit: false,
-};
+EditableTitle.propTypes = propTypes;
+EditableTitle.defaultProps = defaultProps;
 
 export default EditableTitle;

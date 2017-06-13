@@ -13,7 +13,6 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
-import { serialize } from '../../../utils/common';
 import CachedLabel from '../../components/CachedLabel';
 
 const CHART_STATUS_MAP = {
@@ -151,12 +150,11 @@ class ChartContainer extends React.PureComponent {
   }
 
   updateChartTitle(newTitle) {
-    const params = {};
-    params.slice_name = newTitle;
-    params.action = 'overwrite';
-    params.form_data = this.props.formData;
-    const saveUrl = '/superset/explore/' +
-      `${this.props.datasourceType}/${this.props.datasourceId}/?${serialize(params)}`;
+    const params = {
+      slice_name: newTitle,
+      action: 'overwrite',
+    };
+    const saveUrl = getExploreUrl(this.props.formData, 'base', false, null, params);
     this.props.actions.saveSlice(saveUrl)
       .then(() => {
         this.props.actions.updateChartTitle(newTitle);

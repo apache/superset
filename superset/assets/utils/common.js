@@ -86,33 +86,3 @@ export function getShortUrl(longUrl, callback) {
     },
   });
 }
-
-export function serialize(obj) {
-  const parts = [];
-  const addParamParts = (propName, propValue) => {
-    const type = typeof propValue;
-    switch (type) {
-      case 'object':
-        parts.push(propName + '=' + encodeURIComponent(JSON.stringify(propValue)));
-        break;
-      case 'boolean':
-      case 'number':
-      case 'string':
-        parts.push(propName + '=' + encodeURIComponent(propValue));
-        break;
-      default:
-        parts.push(propName + '=');
-    }
-  };
-
-  Object.keys(obj)
-    .filter(key => obj.hasOwnProperty(key))
-    .forEach((prop) => {
-      if (Array.isArray(obj[prop])) {
-        obj[prop].forEach(value => addParamParts(prop, value));
-      } else {
-        addParamParts(prop, obj[prop]);
-      }
-    });
-  return parts.join('&');
-}
