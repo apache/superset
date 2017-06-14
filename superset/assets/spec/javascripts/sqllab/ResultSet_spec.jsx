@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import { Alert, ProgressBar } from 'react-bootstrap';
+import { Alert, ProgressBar, Button } from 'react-bootstrap';
 import FilterableTable from '../../../javascripts/components/FilterableTable/FilterableTable';
 import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
 import ResultSet from '../../../javascripts/SqlLab/components/ResultSet';
@@ -49,10 +49,18 @@ describe('ResultSet', () => {
     expect(wrapper.find(FilterableTable)).to.have.length(1);
   });
   describe('getControls', () => {
-    const wrapper = shallow(<ResultSet {...mockedProps} />);
-    wrapper.setProps({ search: false, visualize: false, csv: false });
-    const controls = wrapper.instance().getControls();
-    expect(controls.props.className).to.equal('noControls');
+    it('should render controls', () => {
+      const wrapper = shallow(<ResultSet {...mockedProps} />);
+      wrapper.instance().getControls();
+      expect(wrapper.find(Button)).to.have.length(2);
+      expect(wrapper.find('input').props().placeholder).to.equal('Search Results');
+    });
+    it('should handle no controls', () => {
+      const wrapper = shallow(<ResultSet {...mockedProps} />);
+      wrapper.setProps({ search: false, visualize: false, csv: false });
+      const controls = wrapper.instance().getControls();
+      expect(controls.props.className).to.equal('noControls');
+    });
   });
   describe('componentWillReceiveProps', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
