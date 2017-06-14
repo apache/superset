@@ -372,10 +372,46 @@ class CoreTests(SupersetTestCase):
             'css': '',
             'expanded_slices': {},
             'positions': positions,
+            'dashboard_title': dash.dashboard_title
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
-        resp = self.client.post(url, data=dict(data=json.dumps(data)))
-        assert "SUCCESS" in resp.data.decode('utf-8')
+        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.assertIn("SUCCESS", resp)
+
+    def test_save_dash_with_dashboard_title(self, username='admin'):
+        self.login(username=username)
+        dash = (
+            db.session.query(models.Dashboard)
+                .filter_by(slug="births")
+                .first()
+        )
+        origin_title = dash.dashboard_title
+        positions = []
+        for i, slc in enumerate(dash.slices):
+            d = {
+                'col': 0,
+                'row': i * 4,
+                'size_x': 4,
+                'size_y': 4,
+                'slice_id': '{}'.format(slc.id)}
+            positions.append(d)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': 'new title'
+        }
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        updatedDash = (
+            db.session.query(models.Dashboard)
+                .filter_by(slug="births")
+                .first()
+        )
+        self.assertEqual(updatedDash.dashboard_title, 'new title')
+        # # bring back dashboard original title
+        data['dashboard_title'] = origin_title
+        self.get_resp(url, data=dict(data=json.dumps(data)))
 
     def test_copy_dash(self, username='admin'):
         self.login(username=username)
@@ -510,7 +546,8 @@ class CoreTests(SupersetTestCase):
         )
         self.grant_public_access_to_table(table)
 
-        dash = db.session.query(models.Dashboard).filter_by(dashboard_title="Births").first()
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="births").first()
         dash.owners = [appbuilder.sm.find_user('admin')]
         dash.created_by = appbuilder.sm.find_user('admin')
         db.session.merge(dash)
@@ -532,7 +569,7 @@ class CoreTests(SupersetTestCase):
 
         self.logout()
         self.assertRaises(
-            AssertionError, self.test_save_dash, 'alpha')
+            Exception, self.test_save_dash, 'alpha')
 
         alpha = appbuilder.sm.find_user('alpha')
 

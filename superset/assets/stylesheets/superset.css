@@ -199,7 +199,7 @@ div.widget .slice_container {
 .navbar .alert {
     padding: 5px 10px;
     margin-top: 8px;
-    margin-bottom: 0px
+    margin-bottom: 0;
 }
 
 .table-condensed {
@@ -209,6 +209,22 @@ div.widget .slice_container {
 .table-condensed input[type="checkbox"] {
     float: left;
 }
-.m-r-5 {
+
+.editable-title input {
+    padding: 2px 6px 3px 6px;
+}
+
+.editable-title input[type="button"] {
+    border-color: transparent;
+    background: inherit;
+}
+
+.editable-title input[type="button"]:hover {
+    cursor: text;
+}
+
+.editable-title input[type="button"]:focus {
+    outline: none;
+}.m-r-5 {
     margin-right: 5px;
 }

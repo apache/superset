@@ -212,6 +212,10 @@ export const SAVE_SLICE_FAILED = 'SAVE_SLICE_FAILED';
 export function saveSliceFailed() {
   return { type: SAVE_SLICE_FAILED };
 }
+export const SAVE_SLICE_SUCCESS = 'SAVE_SLICE_SUCCESS';
+export function saveSliceSuccess(data) {
+  return { type: SAVE_SLICE_SUCCESS, data };
+}
 
 export const REMOVE_SAVE_MODAL_ALERT = 'REMOVE_SAVE_MODAL_ALERT';
 export function removeSaveModalAlert() {
@@ -220,15 +224,19 @@ export function removeSaveModalAlert() {
 
 export function saveSlice(url) {
   return function (dispatch) {
-    $.get(url, (data, status) => {
+    return $.get(url, (data, status) => {
       if (status === 'success') {
-        // Go to new slice url or dashboard url
-        window.location = data;
+        dispatch(saveSliceSuccess(data));
       } else {
         dispatch(saveSliceFailed());
       }
     });
   };
+}
+
+export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
+export function updateChartTitle(slice_name) {
+  return { type: UPDATE_CHART_TITLE, slice_name };
 }
 
 export const UPDATE_CHART_STATUS = 'UPDATE_CHART_STATUS';
