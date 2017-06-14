@@ -2,9 +2,9 @@ import 'datatables.net';
 import dt from 'datatables.net-bs';
 import $ from 'jquery';
 import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
-import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
+
+import { d3format, fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import './pivot_table.css';
-import { d3format } from '../javascripts/modules/utils';
 
 dt(window, $);
 
@@ -24,11 +24,11 @@ module.exports = function (slice, payload) {
   const replaceCell = function () {
     const s = $(this)[0].textContent;
     $(this)[0].textContent = slice.datasource.verbose_map[s] || s;
-  }
+  };
   slice.container.find('thead tr:first th').each(replaceCell);
   slice.container.find('thead tr th:first-child').each(replaceCell);
 
-  // format number
+  // jQuery hack to format number
   slice.container.find('tbody tr').each(function () {
     $(this).find('td').each(function (i) {
       const metric = cols[i];
