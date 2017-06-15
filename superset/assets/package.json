@@ -63,6 +63,7 @@
     "prop-types": "^15.5.8",
     "react": "^15.5.1",
     "react-ace": "^5.0.1",
+    "react-addons-css-transition-group": "^15.6.0",
     "react-addons-shallow-compare": "^15.4.2",
     "react-alert": "^2.0.1",
     "react-bootstrap": "^0.31.0",
