@@ -245,7 +245,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
     startPeriodicRender(interval) {
       this.stopPeriodicRender();
       const dash = this;
-      const immune = this.metadata.refresh_immune_slices || [];
+      const immune = this.metadata.timed_refresh_immune_slices || [];
       const maxRandomDelay = Math.max(interval * 0.2, 5000);
       const refreshAll = () => {
         dash.sliceObjects.forEach((slice) => {
