@@ -194,16 +194,19 @@ export function fetchDashboardsFailed(userId) {
 export function fetchDashboards(userId) {
   return function (dispatch) {
     const url = '/dashboardmodelviewasync/api/read?_flt_0_owners=' + userId;
-    $.get(url, function (data, status) {
-      if (status === 'success') {
+    $.ajax({
+      type: 'GET',
+      url,
+      success: (data) => {
         const choices = [];
         for (let i = 0; i < data.pks.length; i++) {
           choices.push({ value: data.pks[i], label: data.result[i].dashboard_title });
         }
         dispatch(fetchDashboardsSucceeded(choices));
-      } else {
+      },
+      error: () => {
         dispatch(fetchDashboardsFailed(userId));
-      }
+      },
     });
   };
 }
