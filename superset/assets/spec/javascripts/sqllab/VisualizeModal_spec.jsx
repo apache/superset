@@ -78,7 +78,7 @@ describe('VisualizeModal', () => {
     expect(wrapper.find(Modal)).to.have.length(1);
   });
 
-  describe('setStateFromProps', () => {
+  describe('getColumnFromProps', () => {
     it('should require valid query parameter in props', () => {
       const emptyQuery = {
         show: true,
