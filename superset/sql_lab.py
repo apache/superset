@@ -16,9 +16,10 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
-from superset.utils import QueryStatus
+from superset.utils import QueryStatus, get_celery_app
 
-celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
+config = app.config
+celery_app = get_celery_app(config)
 
 
 def dedup(l, suffix='__'):

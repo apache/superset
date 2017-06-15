@@ -5,7 +5,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-import celery
 from celery.bin import worker as celery_worker
 from datetime import datetime
 from subprocess import Popen
@@ -14,18 +13,13 @@ from colorama import Fore, Style
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-from superset import app, db, security
+from superset import app, db, security, utils
 
 config = app.config
+celery_app = utils.get_celery_app(config)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
-
-
-def get_celery_app():
-    app = celery.current_app._get_current_object()
-    app.config_from_object(config.get('CELERY_CONFIG'))
-    return app
 
 
 @manager.command
@@ -194,14 +188,13 @@ def update_datasources_cache():
     help="Number of celery server workers to fire up")
 def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
-    app = get_celery_app()
     if workers:
-        app.conf.update(CELERYD_CONCURRENCY=workers)
+        celery_app.conf.update(CELERYD_CONCURRENCY=workers)
     elif config.get("SUPERSET_CELERY_WORKERS"):
-        app.conf.update(
+        celery_app.conf.update(
             worker_concurrency=config.get("SUPERSET_CELERY_WORKERS"))
 
-    worker = celery_worker.worker(app=app)
+    worker = celery_worker.worker(app=celery_app)
     worker.run()
 
 
@@ -218,8 +211,7 @@ def flower(port, address):
 
     Celery Flower is a UI to monitor the Celery operation on a given
     broker"""
-    app = get_celery_app()
-    BROKER_URL = app.conf.BROKER_URL
+    BROKER_URL = celery_app.conf.BROKER_URL
     cmd = (
         "celery flower "
         "--broker={BROKER_URL} "
