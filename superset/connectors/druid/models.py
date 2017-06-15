@@ -145,6 +145,10 @@ class DruidColumn(Model, BaseColumn):
         return self.column_name
 
     @property
+    def expression(self):
+        return self.dimension_spec_json
+
+    @property
     def dimension_spec(self):
         if self.dimension_spec_json:
             return json.loads(self.dimension_spec_json)
@@ -276,6 +280,10 @@ class DruidMetric(Model, BaseMetric):
         'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
         'json', 'description', 'is_restricted', 'd3format'
     )
+
+    @property
+    def expression(self):
+        return self.json
 
     @property
     def json_obj(self):
@@ -603,6 +611,9 @@ class DruidDatasource(Model, BaseDatasource):
             logging.error("Failed at fetching the latest segment")
             return
         for col in cols:
+            # Skip the time column
+            if col == "__time":
+                continue
             col_obj = (
                 session
                 .query(DruidColumn)
@@ -618,6 +629,11 @@ class DruidDatasource(Model, BaseDatasource):
                 col_obj.filterable = True
             if datatype == "hyperUnique" or datatype == "thetaSketch":
                 col_obj.count_distinct = True
+            # If long or double, allow sum/min/max
+            if datatype == "LONG" or datatype == "DOUBLE":
+                col_obj.sum = True
+                col_obj.min = True
+                col_obj.max = True
             if col_obj:
                 col_obj.type = cols[col]['type']
             session.flush()

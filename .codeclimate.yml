@@ -5,6 +5,11 @@ engines:
     enabled: false
   eslint:
     enabled: true
+    checks:
+      import/extensions:
+        enabled: false
+      import/no-extraneous-dependencies:
+        enabled: false
     config:
       config: superset/assets/.eslintrc
   pep8:

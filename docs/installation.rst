@@ -156,7 +156,7 @@ of the parameters you can copy / paste in that configuration module: ::
     SQLALCHEMY_DATABASE_URI = 'sqlite:////path/to/superset.db'
 
     # Flask-WTF flag for CSRF
-    CSRF_ENABLED = True
+    WTF_CSRF_ENABLED = True
 
     # Set this API key to enable Mapbox visualizations
     MAPBOX_API_KEY = ''

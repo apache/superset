@@ -49,9 +49,11 @@ function tableVis(slice, payload) {
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
+  const cols = data.columns.map(c => slice.datasource.verbose_map[c] || c);
+
   table.append('thead').append('tr')
     .selectAll('th')
-    .data(data.columns)
+    .data(cols)
     .enter()
     .append('th')
     .text(function (d) {
@@ -92,12 +94,13 @@ function tableVis(slice, payload) {
         // The 0.01 to 0.001 is a workaround for what appears to be a
         // CSS rendering bug on flat, transparent colors
         return (
-          `linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
+          `linear-gradient(to left, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
           `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
         );
       }
       return null;
     })
+    .classed('text-right', d => d.isMetric)
     .attr('title', (d) => {
       if (!isNaN(d.val)) {
         return fC(d.val);
