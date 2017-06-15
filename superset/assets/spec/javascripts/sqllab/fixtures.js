@@ -258,6 +258,32 @@ export const queries = [
   },
 ];
 
+export const stoppedQuery = {
+  dbId: 1,
+  cached: false,
+  ctas: false,
+  id: 'ryhMUZCGb',
+  progress: 0,
+  results: [],
+  runAsync: false,
+  schema: 'main',
+  sql: 'SELECT ...',
+  sqlEditorId: 'rJaf5u9WZ',
+  startDttm: 1497400851936,
+  state: 'stopped',
+  tab: 'Untitled Query 2',
+  tempTableName: '',
+};
+export const runningQuery = {
+  dbId: 1,
+  cached: false,
+  ctas: false,
+  id: 'ryhMUZCGb',
+  progress: 90,
+  state: 'running',
+};
+export const cachedQuery = Object.assign({}, queries[0], { cached: true });
+
 export const initialState = {
   alerts: [],
   queries: {},
