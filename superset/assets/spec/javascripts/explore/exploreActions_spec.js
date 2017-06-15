@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-expressions */
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
@@ -20,54 +21,120 @@ describe('reducers', () => {
   });
 });
 
-describe('fetchDatasourceMetadata', () => {
-  let datasourceKey = '1__table';
+describe('fetching actions', () => {
   let dispatch;
   let request;
-  let ajaxSpy;
-
-  let makeRequest = () => {
-    request = actions.fetchDatasourceMetadata(datasourceKey);
-    request(dispatch);
-  };
+  let ajaxStub;
 
   beforeEach(() => {
     dispatch = sinon.spy();
-    ajaxSpy = sinon.spy($, 'ajax');
+    ajaxStub = sinon.stub($, 'ajax');
   });
   afterEach(() => {
-    ajaxSpy.restore();
+    ajaxStub.restore();
   });
 
-  it('calls fetchDatasourceStarted', () => {
-    makeRequest();
-    expect(dispatch.args[0][0].type).to.equal(actions.FETCH_DATASOURCE_STARTED);
+  describe('fetchDatasourceMetadata', () => {
+    const datasourceKey = '1__table';
+
+    const makeRequest = (alsoTriggerQuery = false) => {
+      request = actions.fetchDatasourceMetadata(datasourceKey, alsoTriggerQuery);
+      request(dispatch);
+    };
+
+    it('calls fetchDatasourceStarted', () => {
+      makeRequest();
+      expect(dispatch.args[0][0].type).to.equal(actions.FETCH_DATASOURCE_STARTED);
+    });
+
+    it('makes the ajax request', () => {
+      makeRequest();
+      expect(ajaxStub.calledOnce).to.be.true;
+    });
+
+    it('calls correct url', () => {
+      const url = `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`;
+      makeRequest();
+      expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
+    });
+
+    it('calls correct actions on error', () => {
+      ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
+      makeRequest();
+      expect(dispatch.callCount).to.equal(2);
+      expect(dispatch.getCall(1).args[0].type).to.equal(actions.FETCH_DATASOURCE_FAILED);
+    });
+
+    it('calls correct actions on success', () => {
+      ajaxStub.yieldsTo('success', { data: '' });
+      makeRequest();
+      expect(dispatch.callCount).to.equal(4);
+      expect(dispatch.getCall(1).args[0].type).to.equal(actions.SET_DATASOURCE);
+      expect(dispatch.getCall(2).args[0].type).to.equal(actions.FETCH_DATASOURCE_SUCCEEDED);
+      expect(dispatch.getCall(3).args[0].type).to.equal(actions.RESET_FIELDS);
+    });
+
+    it('triggers query if flag is set', () => {
+      ajaxStub.yieldsTo('success', { data: '' });
+      makeRequest(true);
+      expect(dispatch.callCount).to.equal(5);
+      expect(dispatch.getCall(4).args[0].type).to.equal(actions.TRIGGER_QUERY);
+    });
   });
 
-  it('makes the ajax request', () => {
-    makeRequest();
-    expect(ajaxSpy.calledOnce).to.be.true;
+  describe('fetchDatasources', () => {
+    const makeRequest = () => {
+      request = actions.fetchDatasources();
+      request(dispatch);
+    };
+
+    it('calls fetchDatasourcesStarted', () => {
+      makeRequest();
+      expect(dispatch.args[0][0].type).to.equal(actions.FETCH_DATASOURCES_STARTED);
+    });
+
+    it('makes the ajax request', () => {
+      makeRequest();
+      expect(ajaxStub.calledOnce).to.be.true;
+    });
+
+    it('calls correct url', () => {
+      const url = '/superset/datasources/';
+      makeRequest();
+      expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
+    });
+
+    it('calls correct actions on error', () => {
+      ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
+      makeRequest();
+      expect(dispatch.callCount).to.equal(2);
+      expect(dispatch.getCall(1).args[0].type).to.equal(actions.FETCH_DATASOURCES_FAILED);
+    });
+
+    it('calls correct actions on success', () => {
+      ajaxStub.yieldsTo('success', { data: '' });
+      makeRequest();
+      expect(dispatch.callCount).to.equal(3);
+      expect(dispatch.getCall(1).args[0].type).to.equal(actions.SET_DATASOURCES);
+      expect(dispatch.getCall(2).args[0].type).to.equal(actions.FETCH_DATASOURCES_SUCCEEDED);
+    });
   });
-});
 
-describe('fetchDatasources', () => {
+  describe('fetchFaveStar', () => {
 
-});
+  });
 
-describe('fetchFaveStar', () => {
+  describe('saveFaveStar', () => {
 
-});
+  });
 
-describe('saveFaveStar', () => {
+  describe('fetchDashboards', () => {
 
-});
+  });
 
-describe('fetchDashboards', () => {
+  describe('fetchDashboards', () => {
 
-});
-
-describe('fetchDashboards', () => {
-
+  });
 });
 
 describe('saveSlice', () => {
