@@ -78,7 +78,7 @@ def json_success(json_msg, status=200):
 
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
-    return obj and obj.owners and user in obj.owners
+    return obj and user in obj.owners
 
 
 def check_ownership(obj, raise_if_false=True):
