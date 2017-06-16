@@ -257,6 +257,40 @@ export const queries = [
     results: null,
   },
 ];
+export const databases = {
+  result: [{
+    allow_ctas: true,
+    allow_dml: true,
+    allow_run_async: false,
+    allow_run_sync: true,
+    database_name: 'main',
+    expose_in_sqllab: true,
+    force_ctas_schema: '',
+    id: 188,
+  }, {
+    allow_ctas: true,
+    allow_dml: false,
+    allow_run_async: true,
+    allow_run_sync: true,
+    database_name: 'Presto - Gold',
+    expose_in_sqllab: true,
+    force_ctas_schema: 'tmp',
+    id: 208,
+  }],
+};
+export const tables = {
+  tableLength: 3,
+  options: [{
+    value: 'birth_names',
+    label: 'birth_names',
+  }, {
+    value: 'energy_usage',
+    label: 'energy_usage',
+  }, {
+    value: 'wb_health_population',
+    label: 'wb_health_population',
+  }],
+};
 
 export const stoppedQuery = {
   dbId: 1,
