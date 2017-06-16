@@ -43,7 +43,8 @@ setup(
     scripts=['superset/bin/superset'],
     install_requires=[
         'boto3==1.4.4',
-        'celery==3.1.23',
+        'celery==3.1.25',
+        'colorama==0.3.9',
         'cryptography==1.7.2',
         'flask-appbuilder==1.9.0',
         'flask-cache==0.13.1',
@@ -52,6 +53,7 @@ setup(
         'flask-sqlalchemy==2.1',
         'flask-testing==0.6.2',
         'flask-wtf==0.14.2',
+        'flower==0.9.1',
         'future>=0.16.0, <0.17',
         'humanize==0.5.1',
         'gunicorn==19.7.1',
