@@ -251,12 +251,12 @@ export function dashboardContainer(dashboard, datasources, userid) {
         dash.sliceObjects.forEach((slice) => {
           const force = !dash.firstLoad;
           if (immune.indexOf(slice.data.slice_id) === -1) {
-              setTimeout(() => {
-                slice.render(force);
-              },
-              // Randomize to prevent all widgets refreshing at the same time
-              maxRandomDelay * Math.random());
-              };
+            setTimeout(() => {
+              slice.render(force);
+            },
+            // Randomize to prevent all widgets refreshing at the same time
+            maxRandomDelay * Math.random());
+          }
         });
         dash.firstLoad = false;
       };

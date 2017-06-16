@@ -426,7 +426,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     old_slc_id_str in i_params_dict['filter_immune_slices']):
                 new_filter_immune_slices.append(new_slc_id_str)
             if ('timed_refresh_immune_slices' in i_params_dict and
-                    old_slc_id_str in i_params_dict['timed_refresh_immune_slices']):
+                    old_slc_id_str in
+                        i_params_dict['timed_refresh_immune_slices']):
                 new_timed_refresh_immune_slices.append(new_slc_id_str)
             if ('expanded_slices' in i_params_dict and
                     old_slc_id_str in i_params_dict['expanded_slices']):
