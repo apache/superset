@@ -19,6 +19,7 @@ from werkzeug.contrib.fixers import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset import utils, config  # noqa
+from superset.security_manager import SupersetSecurityManager
 
 
 APP_DIR = os.path.dirname(__file__)
@@ -77,25 +78,25 @@ tables_cache = utils.setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 # Logging configuration
-logging.basicConfig(format=app.config.get('LOG_FORMAT'))
-logging.getLogger().setLevel(app.config.get('LOG_LEVEL'))
+logging.basicConfig(format=conf.get('LOG_FORMAT'))
+logging.getLogger().setLevel(conf.get('LOG_LEVEL'))
 
-if app.config.get('ENABLE_TIME_ROTATE'):
-    logging.getLogger().setLevel(app.config.get('TIME_ROTATE_LOG_LEVEL'))
-    handler = TimedRotatingFileHandler(app.config.get('FILENAME'),
-                                       when=app.config.get('ROLLOVER'),
-                                       interval=app.config.get('INTERVAL'),
-                                       backupCount=app.config.get('BACKUP_COUNT'))
+if conf.get('ENABLE_TIME_ROTATE'):
+    logging.getLogger().setLevel(conf.get('TIME_ROTATE_LOG_LEVEL'))
+    handler = TimedRotatingFileHandler(conf.get('FILENAME'),
+                                       when=conf.get('ROLLOVER'),
+                                       interval=conf.get('INTERVAL'),
+                                       backupCount=conf.get('BACKUP_COUNT'))
     logging.getLogger().addHandler(handler)
 
-if app.config.get('ENABLE_CORS'):
+if conf.get('ENABLE_CORS'):
     from flask_cors import CORS
-    CORS(app, **app.config.get('CORS_OPTIONS'))
+    CORS(app, **conf.get('CORS_OPTIONS'))
 
-if app.config.get('ENABLE_PROXY_FIX'):
+if conf.get('ENABLE_PROXY_FIX'):
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
-if app.config.get('ENABLE_CHUNK_ENCODING'):
+if conf.get('ENABLE_CHUNK_ENCODING'):
     class ChunkedEncodingFix(object):
 
         def __init__(self, app):
@@ -109,13 +110,13 @@ if app.config.get('ENABLE_CHUNK_ENCODING'):
             return self.app(environ, start_response)
     app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)
 
-if app.config.get('UPLOAD_FOLDER'):
+if conf.get('UPLOAD_FOLDER'):
     try:
-        os.makedirs(app.config.get('UPLOAD_FOLDER'))
+        os.makedirs(conf.get('UPLOAD_FOLDER'))
     except OSError:
         pass
 
-for middleware in app.config.get('ADDITIONAL_MIDDLEWARE'):
+for middleware in conf.get('ADDITIONAL_MIDDLEWARE'):
     app.wsgi_app = middleware(app.wsgi_app)
 
 
@@ -124,20 +125,27 @@ class MyIndexView(IndexView):
     def index(self):
         return redirect('/superset/welcome')
 
+SecurityManager = (
+    conf.get("CUSTOM_SECURITY_MANAGER") or SupersetSecurityManager)
+if not issubclass(SecurityManager, SupersetSecurityManager):
+    raise Exception(
+        "Security manager needs to be a subclass of "
+        "superset.security.SupersetSecurityManager")
+
 appbuilder = AppBuilder(
     app, db.session,
     base_template='superset/base.html',
     indexview=MyIndexView,
-    security_manager_class=app.config.get("CUSTOM_SECURITY_MANAGER"))
+    security_manager_class=SecurityManager)
 
 sm = appbuilder.sm
 
 get_session = appbuilder.get_session
-results_backend = app.config.get("RESULTS_BACKEND")
+results_backend = conf.get("RESULTS_BACKEND")
 
 # Registering sources
-module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
-module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
+module_datasource_map = conf.get("DEFAULT_MODULE_DS_MAP")
+module_datasource_map.update(conf.get("ADDITIONAL_MODULE_DS_MAP"))
 ConnectorRegistry.register_sources(module_datasource_map)
 
 from superset import views  # noqa

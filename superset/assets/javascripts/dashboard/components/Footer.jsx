@@ -85,7 +85,10 @@ class Footer extends React.PureComponent {
                 <i className="fa fa-wrench" />
               </TooltipWrapper>
             </Navbar.Text>
-            <span className="profile-images pull-left">
+            <span
+              className="profile-images pull-left"
+              style={{ marginRight: 50 }}
+            >
               {dashboard.owners.map(user => this.renderUserIcon(user))}
             </span>
           </span>

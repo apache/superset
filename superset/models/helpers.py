@@ -166,6 +166,7 @@ def set_perm(mapper, connection, target):  # noqa
     # add to view menu if not already exists
     merge_perm(sm, 'datasource_access', target.get_perm(), connection)
 
+
 def user_data(user):
     """Returns a json-serializable representation of the user"""
     return {

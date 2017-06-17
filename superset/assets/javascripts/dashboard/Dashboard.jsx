@@ -73,10 +73,12 @@ function initDashboardView(dashboard) {
     <GridLayout dashboard={dashboard} />,
     document.getElementById('grid-container'),
   );
-  render(
-    <Footer dashboard={dashboard} />,
-    document.getElementById('dash-footer'),
-  );
+  if (dashboard.ENABLE_DASHBOARD_STATS) {
+    render(
+      <Footer dashboard={dashboard} />,
+      document.getElementById('dash-footer'),
+    );
+  }
 
   // Displaying widget controls on hover
   $('.react-grid-item').hover(

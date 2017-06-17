@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+
 from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import conf, db, sm

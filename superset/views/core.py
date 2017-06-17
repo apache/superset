@@ -22,7 +22,6 @@ from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
-from flask_appbuilder.security import views as fab_views
 from flask_appbuilder.security.sqla import models as ab_models
 
 from flask_babel import gettext as __
@@ -1672,28 +1671,29 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/dashboard/<dashboard_id>/stats/")
     def dashboard_stats(self, dashboard_id):
+        User = sm.user_model
         session = db.session()
         Log = models.Log
         stats = (
             session.query(
-                ab_models.User.username,
-                ab_models.User.email,
-                ab_models.User.first_name,
-                ab_models.User.last_name,
-                ab_models.User.slack_username,
-                ab_models.User.image_url,
+                User.username,
+                User.email,
+                User.first_name,
+                User.last_name,
+                User.slack_username,
+                User.image_url,
                 sqla.func.count())
             .filter(
                 Log.dashboard_id == str(dashboard_id),
                 Log.action == 'dashboard',
-                Log.user_id == ab_models.User.id)
+                Log.user_id == User.id)
             .group_by(
-                ab_models.User.username,
-                ab_models.User.email,
-                ab_models.User.first_name,
-                ab_models.User.last_name,
-                ab_models.User.slack_username,
-                ab_models.User.image_url)
+                User.username,
+                User.email,
+                User.first_name,
+                User.last_name,
+                User.slack_username,
+                User.image_url)
             .order_by(
                 sqla.desc(sqla.func.count())
             )
@@ -1752,6 +1752,7 @@ class Superset(BaseSupersetView):
             'standalone_mode': request.args.get("standalone") == "true",
             'dash_save_perm': dash_save_perm,
             'dash_edit_perm': dash_edit_perm,
+            'ENABLE_DASHBOARD_STATS': config.get('ENABLE_DASHBOARD_STATS'),
         })
 
         bootstrap_data = {
@@ -2277,10 +2278,15 @@ class Superset(BaseSupersetView):
     @expose("/profile/<username>/")
     def profile(self, username):
         """User profile page"""
+        print(sm.user_model)
+        print(sm.user_model)
+        print(sm.user_model)
+        print(sm.user_model)
+        print(sm.user_model)
         if not username and g.user:
             username = g.user.username
         user = (
-            db.session.query(ab_models.User)
+            db.session.query(sm.user_model)
             .filter_by(username=username)
             .one()
         )
@@ -2362,25 +2368,6 @@ appbuilder.add_link(
     category='SQL Lab',
     category_label=__("SQL Lab"),
 )
-
-
-class SupersetUserModelView(fab_views.UserDBModelView):
-    route_base = '/userext'
-    datamodel = SQLAInterface(models.SupersetUser)
-    edit_columns = fab_views.UserDBModelView.edit_columns + [
-        'image_url', 'slack_username']
-    add_columns = fab_views.UserDBModelView.add_columns + [
-        'image_url', 'slack_username']
-fab_views.UserDBModelView = SupersetUserModelView
-
-appbuilder.add_view(
-    SupersetUserModelView,
-    "UsersExtended",
-    label=__("Users - Extended"),
-    icon="fa-user",
-    category="Security",
-    category_label=__("Security"),
-    category_icon='fa-cogs',)
 
 
 @app.after_request

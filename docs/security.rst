@@ -4,6 +4,15 @@ Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
 "Simple and rapid application development framework, built on top of Flask.".
 FAB provides authentication, user management, permissions and roles.
 
+FAB supports multiple types of authentications:
+in-database, LDAP, OpenID, OAuth, REMOTE_USER, or custom.
+
+To setup/customize authentication for Superset, follow
+`FAB's documentation<https://flask-appbuilder.readthedocs.io/en/latest/security.html#security>`_, but instead of deriving ``flask_appbuilder.security.sqla.manager.SecurityManager``,
+derive Superset's ``superset.security_manager.SupersetSecurityManager``.
+
+Note that Superset extends FAB's ``SecurityManger`` to extend
+the user model as specified in the FAB documentation.
 
 Provided Roles
 --------------

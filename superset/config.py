@@ -313,6 +313,10 @@ BLUEPRINTS = []
 # into a proxied one
 TRACKING_URL_TRANSFORMER = lambda x: x
 
+# Makes it possible to disable the dashboard footer where usage stats are
+# exposed
+ENABLE_DASHBOARD_STATS = True
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
