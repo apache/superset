@@ -19,8 +19,8 @@ Superset
   width="500"
 />
 
-**Superset** is a data exploration platform designed to be visual, intuitive
-and interactive.
+**Apache Superset** (incubating) is a modern, enterprise-ready
+business intelligence web application
 
 [this project used to be named **Caravel**, and **Panoramix** in the past]
 
@@ -52,24 +52,26 @@ Screenshots & Gifs
 
 ![superset-query-search](https://cloud.githubusercontent.com/assets/130878/20234706/0f430a10-a835-11e6-8a0d-8b26cc2e6bbd.png)
 
-Superset
----------
-Superset's main goal is to make it easy to slice, dice and visualize data.
-It empowers users to perform **analytics at the speed of thought**.
+Apache Superset
+---------------
+Apache Superset is a data exploration and visualization web application.
 
 Superset provides:
-* A quick way to intuitively visualize datasets by allowing users to create
-    and share interactive dashboards
-* A rich set of visualizations to analyze your data, as well as a flexible
-    way to extend the capabilities
+* An intuitive interface to explore and visualize datasets, and
+    create interactive dashboards.
+* A wide array of beautiful visualizations to showcase your data.
+* Easy, code-free, user flows to drill down and slice and dice the data
+    underlying exposed dashboards. The dashboards and charts acts as a starting
+    point for deeper analysis.
+* A state of the art SQL editor/IDE exposing a rich metadata browser, and
+    an easy workflow to create visualizations out of any result set.
 * An extensible, high granularity security model allowing intricate rules
-    on who can access which features, and integration with major
-    authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER
-    through Flask AppBuilder)
-* A simple semantic layer, allowing to control how data sources are
-    displayed in the UI, by defining which fields should show up in
-    which dropdown and which aggregation and function (metrics) are
-    made available to the user
+    on who can access which product features and datasets.
+    Integration with major
+    authentication backends (database, OpenID, LDAP, OAuth, REMOTE_USER, ...)
+* A lightweight semantic layer, allowing to control how data sources are
+    exposed to the user by defining dimensions and metrics
+* Out of the box support for most SQL-speaking databases
 * Deep integration with Druid allows for Superset to stay blazing fast while
     slicing and dicing large, realtime datasets
 * Fast loading dashboards with configurable caching
@@ -78,15 +80,41 @@ Superset provides:
 Database Support
 ----------------
 
-Superset was originally designed on top of Druid.io, but quickly broadened
-its scope to support other databases through the use of SQLAlchemy, a Python
+Superset speaks many SQL dialects through SQLAlchemy, a Python
 ORM that is compatible with
 [most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
 
+Superset can be used to visualize data out of most databases:
+* MySQL
+* Postgres
+* Vertica
+* Oracle
+* Microsoft SQL Server
+* SQLite
+* Greenplum
+* Firebird
+* MariaDB
+* Sybase
+* IBM DB2
+* Exasol
+* MonetDB
+* Snowflake
+* Redshift
+* **more!** look for the availability of a SQLAlchemy dialect for your database
+  to find out whether it will work with Superset
 
-What is Druid?
--------------
-From their website at http://druid.io
+
+Druid!
+------
+
+On top of having the ability to query your relational databases,
+Superset has ships with deep integration with Druid (a real time distributed
+column-store). When querying Druid,
+Superset can query humongous amounts of data on top of real time dataset.
+Note that Superset does not require Druid in any way to function, it's simply
+another database backend that it can query.
+
+Here's a description of Druid from the http://druid.io website:
 
 *Druid is an open-source analytics data store designed for
 business intelligence (OLAP) queries on event data. Druid provides low
@@ -130,19 +158,33 @@ Resources
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 
 
-Tip of the Hat
---------------
-
-Superset would not be possible without these great frameworks / libs
-
-* Flask App Builder - Allowing us to focus on building the app quickly while
-getting the foundation for free
-* The Flask ecosystem - Simply amazing. So much Plug, easy play.
-* NVD3 - One of the best charting libraries out there
-* Much more, check out the `install_requires` section in the [setup.py](https://github.com/airbnb/superset/blob/master/setup.py) file!
-
-
 Contributing
 ------------
 
-Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
+Interested in contributing? Casual hacking? Check out
+[Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
+
+
+Who uses Apache Superset (incubating)?
+--------------------------------------
+
+Here's a list of organizations who have taken the time to send a PR to let
+the world know they are using Superset. Join our growing community!
+
+ - [Airbnb](https://github.com/airbnb)
+ - [Amino](https://amino.com)
+ - [Brilliant.org](https://brilliant.org/)
+ - [Clark.de](http://clark.de/)
+ - [Digit Game Studios](https://www.digitgaming.com/)
+ - [Endress+Hauser](http://www.endress.com/)
+ - [FBK - ICT center](http://ict.fbk.eu)
+ - [Faasos](http://faasos.com/)
+ - [GfK Data Lab](http://datalab.gfk.com)
+ - [Maieutical Labs](https://cloudschooling.it)
+ - [Qunar](https://www.qunar.com/)
+ - [Shopkick](https://www.shopkick.com)
+ - [Tails.com](https://tails.com)
+ - [Tobii](http://www.tobii.com/)
+ - [Tooploox](https://www.tooploox.com/)
+ - [Udemy](https://www.udemy.com/)
+ - [Yahoo!](www.yahoo.com)
