@@ -327,19 +327,19 @@ function nvd3Vis(slice, payload) {
     if (isTimeSeries && fd.x_axis_format) {
       xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
     }
-    if (chart.hasOwnProperty('x2Axis')) {
+    if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (chart.hasOwnProperty('xAxis')) {
+    if (chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
-    if (chart.hasOwnProperty('yAxis')) {
+    if (chart.yAxis && chart.yAxis.tickFormat) {
       chart.yAxis.tickFormat(yAxisFormatter);
     }
-    if (chart.hasOwnProperty('y2Axis')) {
+    if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
     }
 
