@@ -3,7 +3,7 @@ from flask import redirect, g
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
 from superset import appbuilder
 from superset.models.sql_lab import Query, SavedQuery
@@ -17,9 +17,9 @@ class QueryView(SupersetModelView):
 appbuilder.add_view(
     QueryView,
     "Queries",
-    label=__("Queries"),
+    label=_("Queries"),
     category="Manage",
-    category_label=__("Manage"),
+    category_label=_("Manage"),
     icon="fa-search")
 
 
@@ -52,7 +52,7 @@ appbuilder.add_view_no_menu(SavedQueryViewApi)
 appbuilder.add_view_no_menu(SavedQueryView)
 
 appbuilder.add_link(
-    __('Saved Queries'),
+    _('Saved Queries'),
     href='/sqllab/my_queries/',
     icon="fa-save",
     category='SQL Lab')

@@ -24,7 +24,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
 
-from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
 from sqlalchemy import create_engine
@@ -53,23 +52,23 @@ can_access = utils.can_access
 DAR = models.DatasourceAccessRequest
 
 
-ALL_DATASOURCE_ACCESS_ERR = __(
+ALL_DATASOURCE_ACCESS_ERR = _(
     "This endpoint requires the `all_datasource_access` permission")
-DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
-ACCESS_REQUEST_MISSING_ERR = __(
+DATASOURCE_MISSING_ERR = _("The datasource seems to have been deleted")
+ACCESS_REQUEST_MISSING_ERR = _(
     "The access requests seem to have been deleted")
-USER_MISSING_ERR = __("The user seems to have been deleted")
-DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
+USER_MISSING_ERR = _("The user seems to have been deleted")
+DATASOURCE_ACCESS_ERR = _("You don't have access to this datasource")
 
 
 def get_database_access_error_msg(database_name):
-    return __("This view requires the database %(name)s or "
-              "`all_datasource_access` permission", name=database_name)
+    return _("This view requires the database %(name)s or "
+             "`all_datasource_access` permission", name=database_name)
 
 
 def get_datasource_access_error_msg(datasource_name):
-    return __("This endpoint requires the datasource %(name)s, database or "
-              "`all_datasource_access` permission", name=datasource_name)
+    return _("This endpoint requires the datasource %(name)s, database or "
+             "`all_datasource_access` permission", name=datasource_name)
 
 
 def json_success(json_msg, status=200):
@@ -258,21 +257,21 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
 
 appbuilder.add_link(
     'Import Dashboards',
-    label=__("Import Dashboards"),
+    label=_("Import Dashboards"),
     href='/superset/import_dashboards',
     icon="fa-cloud-upload",
     category='Manage',
-    category_label=__("Manage"),
+    category_label=_("Manage"),
     category_icon='fa-wrench',)
 
 
 appbuilder.add_view(
     DatabaseView,
     "Databases",
-    label=__("Databases"),
+    label=_("Databases"),
     icon="fa-database",
     category="Sources",
-    category_label=__("Sources"),
+    category_label=_("Sources"),
     category_icon='fa-database',)
 
 
@@ -311,9 +310,9 @@ class AccessRequestsModelView(SupersetModelView, DeleteMixin):
 appbuilder.add_view(
     AccessRequestsModelView,
     "Access requests",
-    label=__("Access requests"),
+    label=_("Access requests"),
     category="Security",
-    category_label=__("Security"),
+    category_label=_("Security"),
     icon='fa-table',)
 
 
@@ -387,7 +386,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     SliceModelView,
     "Slices",
-    label=__("Slices"),
+    label=_("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -480,7 +479,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     def pre_delete(self, obj):
         check_ownership(obj)
 
-    @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
+    @action("mulexport", _("Export"), _("Export dashboards?"), "fa-database")
     def mulexport(self, items):
         if not isinstance(items, list):
             items = [items]
@@ -505,7 +504,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
-    label=__("Dashboards"),
+    label=_("Dashboards"),
     icon="fa-dashboard",
     category='',
     category_icon='',)
@@ -538,9 +537,9 @@ class LogModelView(SupersetModelView):
 appbuilder.add_view(
     LogModelView,
     "Action Log",
-    label=__("Action Log"),
+    label=_("Action Log"),
     category="Security",
-    category_label=__("Security"),
+    category_label=_("Security"),
     icon="fa-list-ol")
 
 
@@ -768,7 +767,7 @@ class Superset(BaseSupersetView):
                     datasource_type=datasource.type)
                 db.session.add(access_request)
                 db.session.commit()
-            flash(__("Access was requested"), "info")
+            flash(_("Access was requested"), "info")
             return redirect('/')
 
         return self.render_template(
@@ -829,7 +828,7 @@ class Superset(BaseSupersetView):
             if role_to_grant:
                 role = sm.find_role(role_to_grant)
                 requested_by.roles.append(role)
-                msg = __(
+                msg = _(
                     "%(user)s was granted the role %(role)s that gives access "
                     "to the %(datasource)s",
                     user=requested_by.username,
@@ -845,8 +844,8 @@ class Superset(BaseSupersetView):
                     'email/datasource_access', datasource.perm)
                 role = sm.find_role(role_to_extend)
                 sm.add_permission_role(role, perm_view)
-                msg = __("Role %(r)s was extended to provide the access to "
-                         "the datasource %(ds)s", r=role_to_extend,
+                msg = _("Role %(r)s was extended to provide the access to "
+                        "the datasource %(ds)s", r=role_to_extend,
                          ds=datasource.full_name)
                 utils.notify_user_about_perm_udate(
                     g.user, requested_by, role, datasource,
@@ -854,7 +853,7 @@ class Superset(BaseSupersetView):
                 flash(msg, "info")
             clean_fulfilled_requests(session)
         else:
-            flash(__("You have no permission to approve this request"),
+            flash(_("You have no permission to approve this request"),
                   "danger")
             return redirect('/accessrequestsmodelview/list/')
         for r in requests:
@@ -1030,7 +1029,7 @@ class Superset(BaseSupersetView):
 
         if not self.datasource_access(datasource):
             flash(
-                __(get_datasource_access_error_msg(datasource.name)),
+                _(get_datasource_access_error_msg(datasource.name)),
                 "danger")
             return redirect(
                 'superset/request_access/?'
@@ -1587,13 +1586,13 @@ class Superset(BaseSupersetView):
         db_name = request.args.get('db_name')
 
         if not slice_id and not (table_name and db_name):
-            return json_error_response(__(
+            return json_error_response(_(
                 "Malformed request. slice_id or table_name and db_name "
                 "arguments are expected"), status=400)
         if slice_id:
             slices = session.query(models.Slice).filter_by(id=slice_id).all()
             if not slices:
-                return json_error_response(__(
+                return json_error_response(_(
                     "Slice %(id)s not found", id=slice_id), status=404)
         elif table_name and db_name:
             SqlaTable = ConnectorRegistry.sources['table']
@@ -1605,7 +1604,7 @@ class Superset(BaseSupersetView):
                     SqlaTable.table_name == table_name)
             ).first()
             if not table:
-                return json_error_response(__(
+                return json_error_response(_(
                     "Table %(t)s wasn't found in the database %(d)s",
                     t=table_name, s=db_name), status=404)
             slices = session.query(models.Slice).filter_by(
@@ -1671,7 +1670,7 @@ class Superset(BaseSupersetView):
         for datasource in datasources:
             if datasource and not self.datasource_access(datasource):
                 flash(
-                    __(get_datasource_access_error_msg(datasource.name)),
+                    _(get_datasource_access_error_msg(datasource.name)),
                     "danger")
                 return redirect(
                     'superset/request_access/?'
@@ -1739,15 +1738,15 @@ class Superset(BaseSupersetView):
         DruidDatasource = ConnectorRegistry.sources['druid']
         DruidCluster = DruidDatasource.cluster_class
         if not user:
-            err_msg = __("Can't find User '%(name)s', please ask your admin "
-                         "to create one.", name=user_name)
+            err_msg = _("Can't find User '%(name)s', please ask your admin "
+                        "to create one.", name=user_name)
             logging.error(err_msg)
             return json_error_response(err_msg)
         cluster = db.session.query(DruidCluster).filter_by(
             cluster_name=cluster_name).first()
         if not cluster:
-            err_msg = __("Can't find DruidCluster with cluster_name = "
-                         "'%(name)s'", name=cluster_name)
+            err_msg = _("Can't find DruidCluster with cluster_name = "
+                        "'%(name)s'", name=cluster_name)
             logging.error(err_msg)
             return json_error_response(err_msg)
         try:
@@ -2274,10 +2273,10 @@ appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
     "CSS Templates",
-    label=__("CSS Templates"),
+    label=_("CSS Templates"),
     icon="fa-css3",
     category="Manage",
-    category_label=__("Manage"),
+    category_label=_("Manage"),
     category_icon='')
 
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
@@ -2289,7 +2288,7 @@ appbuilder.add_link(
     category_icon="fa-flask",
     icon="fa-flask",
     category='SQL Lab',
-    category_label=__("SQL Lab"),
+    category_label=_("SQL Lab"),
 )
 appbuilder.add_link(
     'Query Search',
@@ -2298,7 +2297,7 @@ appbuilder.add_link(
     icon="fa-search",
     category_icon="fa-flask",
     category='SQL Lab',
-    category_label=__("SQL Lab"),
+    category_label=_("SQL Lab"),
 )
 
 
