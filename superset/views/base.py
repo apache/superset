@@ -4,7 +4,7 @@ import logging
 import traceback
 
 from flask import g, redirect, Response, flash, abort
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
 from flask_appbuilder import BaseView
 from flask_appbuilder import ModelView
@@ -54,7 +54,7 @@ def api(f):
 
 
 def get_datasource_exist_error_mgs(full_name):
-    return __("Datasource %(name)s already exists", name=full_name)
+    return _("Datasource %(name)s already exists", name=full_name)
 
 
 def get_user_roles():
@@ -253,8 +253,8 @@ class DeleteMixin(object):
 
     @action(
         "muldelete",
-        __("Delete"),
-        __("Delete all Really?"),
+        _("Delete"),
+        _("Delete all Really?"),
         "fa-trash",
         single=False
     )
