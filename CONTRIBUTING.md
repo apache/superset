@@ -337,13 +337,13 @@ new language dictionary, run the following command:
 Then it's a matter of running the statement below to gather all stings that
 need translation
 
-    fabmanager babel-extract --target superset/translations/
+    pybabel extract -F ./babel/babel.cfg -k __ -k _ -o ./babel/messages.pot .
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
 to take effect, they need to be compiled using this command:
 
-    fabmanager babel-compile --target superset/translations/
+    pybabel compile -d ./superset/translations/
 
 
 ## Adding new datasources
