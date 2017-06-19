@@ -846,7 +846,7 @@ class Superset(BaseSupersetView):
                 sm.add_permission_role(role, perm_view)
                 msg = _("Role %(r)s was extended to provide the access to "
                         "the datasource %(ds)s", r=role_to_extend,
-                         ds=datasource.full_name)
+                        ds=datasource.full_name)
                 utils.notify_user_about_perm_udate(
                     g.user, requested_by, role, datasource,
                     'email/role_extended.txt', app.config)

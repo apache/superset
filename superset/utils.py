@@ -470,7 +470,7 @@ def notify_user_about_perm_udate(
                           datasource=datasource)
     logging.info(msg)
     subject = _('[Superset] Access to the datasource %(name)s was granted',
-                 name=datasource.full_name)
+                name=datasource.full_name)
     send_email_smtp(user.email, subject, msg, config, bcc=granter.email,
                     dryrun=not config.get('EMAIL_NOTIFICATIONS'))
 
