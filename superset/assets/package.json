@@ -65,7 +65,7 @@
     "react-ace": "^5.0.1",
     "react-addons-css-transition-group": "^15.6.0",
     "react-addons-shallow-compare": "^15.4.2",
-    "react-alert": "^2.0.1",
+    "react-alert": "^1.0.14",
     "react-bootstrap": "^0.31.0",
     "react-bootstrap-table": "^3.1.7",
     "react-dom": "^15.5.1",
