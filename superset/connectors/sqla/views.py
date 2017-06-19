@@ -9,7 +9,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 import sqlalchemy as sa
 
 from flask_babel import lazy_gettext as _
-from flask_babel import gettext as __
 
 from superset import appbuilder, db, utils, security, sm
 from superset.utils import has_access
@@ -257,9 +256,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     TableModelView,
     "Tables",
-    label=__("Tables"),
+    label=_("Tables"),
     category="Sources",
-    category_label=__("Sources"),
+    category_label=_("Sources"),
     icon='fa-table',)
 
 appbuilder.add_separator("Sources")

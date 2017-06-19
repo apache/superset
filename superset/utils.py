@@ -36,7 +36,7 @@ from flask_appbuilder.const import (
 )
 from flask_cache import Cache
 from flask_appbuilder._compat import as_unicode
-from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 import markdown as md
 from past.builtins import basestring
 from pydruid.utils.having import Having
@@ -469,8 +469,8 @@ def notify_user_about_perm_udate(
     msg = render_template(tpl_name, granter=granter, user=user, role=role,
                           datasource=datasource)
     logging.info(msg)
-    subject = __('[Superset] Access to the datasource %(name)s was granted',
-                 name=datasource.full_name)
+    subject = _('[Superset] Access to the datasource %(name)s was granted',
+                name=datasource.full_name)
     send_email_smtp(user.email, subject, msg, config, bcc=granter.email,
                     dryrun=not config.get('EMAIL_NOTIFICATIONS'))
 
