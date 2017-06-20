@@ -61,6 +61,7 @@ export const dashboardData = {
   sliceObjects: [slice],
   dashboard_title: 'Births',
   readFilters: () => {},
+  onChange: () => {},
 };
 
 export const contextData = {
