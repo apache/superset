@@ -1,3 +1,5 @@
+import { D3_TIME_FORMAT_OPTIONS } from './controls';
+
 export const sections = {
   druidTimeSeries: {
     label: 'Time',
@@ -143,6 +145,11 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+      },
+    },
   },
 
   dual_line: {
@@ -158,15 +165,13 @@ const visTypes = {
       {
         label: 'Y Axis 1',
         controlSetRows: [
-          ['metric'],
-          ['y_axis_format'],
+          ['metric', 'y_axis_format'],
         ],
       },
       {
         label: 'Y Axis 2',
         controlSetRows: [
-          ['metric_2'],
-          ['y_axis_2_format'],
+          ['metric_2', 'y_axis_2_format'],
         ],
       },
     ],
@@ -410,19 +415,41 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['series', 'entity'],
-          ['x', 'y'],
           ['size', 'limit'],
         ],
       },
       {
         label: 'Chart Options',
         controlSetRows: [
-          ['show_legend', 'max_bubble_size'],
-          ['x_axis_label', 'y_axis_label'],
-          ['x_log_scale', 'y_log_scale'],
+          ['show_legend', null],
+        ],
+      },
+      {
+        label: 'Bubbles',
+        controlSetRows: [
+          ['size', 'max_bubble_size'],
+        ],
+      },
+      {
+        label: 'X Axis',
+        controlSetRows: [
+          ['x', 'x_axis_format'],
+          ['x_axis_label', 'x_log_scale'],
+        ],
+      },
+      {
+        label: 'Y Axis',
+        controlSetRows: [
+          ['y', 'y_axis_format'],
+          ['y_axis_label', 'y_log_scale'],
         ],
       },
     ],
+    controlOverrides: {
+      x_axis_format: {
+        default: '.3s',
+      },
+    },
   },
 
   bullet: {
