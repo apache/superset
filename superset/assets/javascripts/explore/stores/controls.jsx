@@ -828,8 +828,10 @@ export const controls = {
   markup_type: {
     type: 'SelectControl',
     label: 'Markup Type',
+    clearable: false,
     choices: formatSelectOptions(['markdown', 'html']),
     default: 'markdown',
+    validators: [v.nonEmpty],
     description: 'Pick your favorite markup language',
   },
 
@@ -867,6 +869,9 @@ export const controls = {
     type: 'TextAreaControl',
     label: 'Code',
     description: 'Put your code here',
+    mapStateToProps: state => ({
+      language: state.controls ? state.controls.markup_type.value : null,
+    }),
     default: '',
   },
 

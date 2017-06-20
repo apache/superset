@@ -225,6 +225,13 @@ div.widget .slice_container {
 
 .editable-title input[type="button"]:focus {
     outline: none;
-}.m-r-5 {
+}
+.m-r-5 {
     margin-right: 5px;
+}
+.m-t-5 {
+    margin-top: 5px;
+}
+.Select-menu-outer {
+    z-index: 10 !important;
 }
