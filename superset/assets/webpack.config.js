@@ -125,6 +125,17 @@ const config = {
   ],
 };
 if (process.env.NODE_ENV === 'production') {
-  config.plugins.push(new webpack.optimize.UglifyJsPlugin());
+  config.plugins.push(
+    // Using settings suggested in https://github.com/webpack/webpack/issues/537
+    new webpack.optimize.UglifyJsPlugin({
+      sourceMap: false,
+      minimize: true,
+      compress: {
+        drop_debugger: true,
+        warnings: false,
+        drop_console: true,
+      },
+    }),
+  );
 }
 module.exports = config;
