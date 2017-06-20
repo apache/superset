@@ -43,7 +43,7 @@ setup(
     scripts=['superset/bin/superset'],
     install_requires=[
         'boto3==1.4.4',
-        'celery==3.1.25',
+        'celery==4.0.2',
         'colorama==0.3.9',
         'cryptography==1.7.2',
         'flask-appbuilder==1.9.0',
@@ -80,6 +80,7 @@ setup(
         'coverage',
         'mock',
         'nose',
+        'redis',
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',

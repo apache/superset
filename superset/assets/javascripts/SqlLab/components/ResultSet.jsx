@@ -6,6 +6,7 @@ import shortid from 'shortid';
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
+import QueryStateLabel from './QueryStateLabel';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -165,6 +166,7 @@ export default class ResultSet extends React.PureComponent {
       return (
         <div>
           <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
+          <QueryStateLabel query={query} />
           {progressBar}
         </div>
       );

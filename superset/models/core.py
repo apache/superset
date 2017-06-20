@@ -30,6 +30,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import make_transient
+from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
@@ -560,10 +561,12 @@ class Database(Model, AuditMixinNullable):
         conn.password = password_mask if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
-    def get_sqla_engine(self, schema=None):
+    def get_sqla_engine(self, schema=None, nullpool=False):
         extra = self.get_extra()
         uri = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
+        if nullpool:
+            params['poolclass'] = NullPool
         uri = self.db_engine_spec.adjust_database_uri(uri, schema)
         return create_engine(uri, **params)
 
