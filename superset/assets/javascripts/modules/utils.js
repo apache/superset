@@ -1,6 +1,29 @@
 /* eslint camelcase: 0 */
-const d3 = require('d3');
-const $ = require('jquery');
+import d3 from 'd3';
+import $ from 'jquery';
+
+import { formatDate, UTC } from './dates';
+
+export function d3FormatPreset(format) {
+  // like d3.format, but with support for presets like 'smart_date'
+  if (format === 'smart_date') {
+    return formatDate;
+  }
+  if (format) {
+    return d3.format(format);
+  }
+  return d3.format('.3s');
+}
+export const d3TimeFormatPreset = function (format) {
+  if (format === 'smart_date') {
+    return formatDate;
+  }
+  const f = d3.time.format(format);
+  return function (dttm) {
+    const d = UTC(new Date(dttm));
+    return f(d);
+  };
+};
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the

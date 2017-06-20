@@ -2,20 +2,19 @@
 import $ from 'jquery';
 import throttle from 'lodash.throttle';
 import d3 from 'd3';
+import nv from 'nvd3';
 
 import { category21 } from '../javascripts/modules/colors';
-import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
-import { customizeToolTip, tryNumify } from '../javascripts/modules/utils';
+import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
 
-import { TIME_STAMP_OPTIONS } from '../javascripts/explore/stores/controls';
+import { D3_TIME_FORMAT_OPTIONS } from '../javascripts/explore/stores/controls';
 
-const nv = require('nvd3');
 
 // CSS
-require('../node_modules/nvd3/build/nv.d3.min.css');
-require('./nvd3_vis.css');
+import '../node_modules/nvd3/build/nv.d3.min.css';
+import './nvd3_vis.css';
 
-const timeStampFormats = TIME_STAMP_OPTIONS.map(opt => opt[0]);
+const timeStampFormats = D3_TIME_FORMAT_OPTIONS.map(opt => opt[0]);
 const minBarWidth = 15;
 const animationTime = 1000;
 
@@ -317,16 +316,6 @@ function nvd3Vis(slice, payload) {
     if (fd.x_log_scale) {
       chart.xScale(d3.scale.log());
     }
-    let xAxisFormatter;
-    if (vizType === 'bubble') {
-      xAxisFormatter = d3.format('.3s');
-    } else if (fd.x_axis_format === 'smart_date') {
-      xAxisFormatter = formatDate;
-      chart.xAxis.tickFormat(xAxisFormatter);
-    } else if (fd.x_axis_format !== undefined) {
-      xAxisFormatter = timeFormatFactory(fd.x_axis_format);
-      chart.xAxis.tickFormat(xAxisFormatter);
-    }
 
     const isTimeSeries = timeStampFormats.indexOf(fd.x_axis_format) > -1;
     // if x axis format is a date format, rotate label 90 degrees
@@ -334,28 +323,26 @@ function nvd3Vis(slice, payload) {
       chart.xAxis.rotateLabels(45);
     }
 
-    if (chart.hasOwnProperty('x2Axis')) {
+    let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
+    if (isTimeSeries && fd.x_axis_format) {
+      xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
+    }
+    if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-
-    if (vizType === 'bubble') {
-      chart.xAxis.tickFormat(d3.format('.3s'));
-    } else if (fd.x_axis_format === 'smart_date') {
-      chart.xAxis.tickFormat(formatDate);
-    } else if (fd.x_axis_format !== undefined) {
-      chart.xAxis.tickFormat(timeFormatFactory(fd.x_axis_format));
-    }
-    if (chart.yAxis !== undefined) {
-      chart.yAxis.tickFormat(d3.format('.3s'));
+    if (chart.xAxis && chart.xAxis.tickFormat) {
+      chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    if (fd.y_axis_format && chart.yAxis) {
-      chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
-      if (chart.y2Axis !== undefined) {
-        chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
-      }
+    const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+    if (chart.yAxis && chart.yAxis.tickFormat) {
+      chart.yAxis.tickFormat(yAxisFormatter);
     }
+    if (chart.y2Axis && chart.y2Axis.tickFormat) {
+      chart.y2Axis.tickFormat(yAxisFormatter);
+    }
+
     if (vizType !== 'bullet') {
       chart.color(d => category21(d[colorKey]));
     }

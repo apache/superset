@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import {
   tickMultiFormat,
   formatDate,
-  timeFormatFactory,
   fDuration,
   now,
   epochTimeXHoursAgo,
@@ -20,12 +19,6 @@ describe('tickMultiFormat', () => {
 describe('formatDate', () => {
   it('is a function', () => {
     assert.isFunction(formatDate);
-  });
-});
-
-describe('timeFormatFactory', () => {
-  it('is a function', () => {
-    assert.isFunction(timeFormatFactory);
   });
 });
 
