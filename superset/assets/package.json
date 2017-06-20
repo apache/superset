@@ -125,6 +125,7 @@
     "sinon": "^2.1.0",
     "style-loader": "^0.18.2",
     "transform-loader": "^0.2.3",
+    "uglifyjs-webpack-plugin": "^0.4.6",
     "url-loader": "^0.5.7",
     "webpack": "^2.3.3",
     "webpack-manifest-plugin": "1.1.0",

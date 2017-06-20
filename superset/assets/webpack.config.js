@@ -125,17 +125,16 @@ const config = {
   ],
 };
 if (process.env.NODE_ENV === 'production') {
-  config.plugins.push(
-    // Using settings suggested in https://github.com/webpack/webpack/issues/537
-    new webpack.optimize.UglifyJsPlugin({
-      sourceMap: false,
-      minimize: true,
-      compress: {
-        drop_debugger: true,
-        warnings: false,
-        drop_console: true,
-      },
-    }),
-  );
+  // Using settings suggested in https://github.com/webpack/webpack/issues/537
+  const UJSplugin = new webpack.optimize.UglifyJsPlugin({
+    sourceMap: false,
+    minimize: true,
+    compress: {
+      drop_debugger: true,
+      warnings: false,
+      drop_console: true,
+    },
+  });
+  config.plugins.push(UJSplugin);
 }
 module.exports = config;
