@@ -335,9 +335,14 @@ new language dictionary, run the following command:
     pybabel init -i ./babel/messages.pot -d superset/translations -l es
 
 Then it's a matter of running the statement below to gather all stings that
-need translation
+need translation:
 
     pybabel extract -F ./babel/babel.cfg -k __ -k _ -o ./babel/messages.pot .
+
+
+And update the extracted translations to `.po` files that translated already:
+
+    pybabel update -N -i ./babel/messages.pot -d ./superset/translations -l es
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
