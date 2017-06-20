@@ -135,7 +135,7 @@ if (process.env.NODE_ENV === 'production') {
         warnings: false,
         drop_console: true,
       },
-    })
-  )
+    }),
+  );
 }
 module.exports = config;
