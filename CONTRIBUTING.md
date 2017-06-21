@@ -252,6 +252,11 @@ npm run dev
 
 ## Testing
 
+Before running python unit tests, please setup local testing environment:
+```
+pip install -r dev-reqs.txt
+```
+
 Python tests can be run with:
 
     ./run_tests.sh
