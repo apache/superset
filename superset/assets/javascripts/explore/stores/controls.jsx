@@ -655,6 +655,7 @@ export const controls = {
     type: 'SelectControl',
     label: 'Entity',
     default: null,
+    validators: [v.nonEmpty],
     description: 'This define the element to be plotted on the chart',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
@@ -761,7 +762,9 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: 'Table Timestamp Format',
-    default: 'smart_date',
+    default: '%Y-%m-%d %H:%M:%S',
+    validators: [v.nonEmpty],
+    clearable: false,
     choices: D3_TIME_FORMAT_OPTIONS,
     description: 'Timestamp Format',
   },
