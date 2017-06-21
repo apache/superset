@@ -48,13 +48,13 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'filterable': _(
             "Whether this column is exposed in the `Filters` section "
             "of the explore view."),
-        'dimension_spec_json': utils.markdown(
+        'dimension_spec_json': utils.markdown(_(
             "this field can be used to specify  "
             "a `dimensionSpec` as documented [here]"
             "(http://druid.io/docs/latest/querying/dimensionspecs.html). "
             "Make sure to input valid JSON and that the "
             "`outputName` matches the `column_name` defined "
-            "above.",
+            "above."),
             True),
     }
 
@@ -80,10 +80,10 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'json': [validate_json],
     }
     description_columns = {
-        'metric_type': utils.markdown(
+        'metric_type': utils.markdown(_(
             "use `postagg` as the metric type if you are defining a "
             "[Druid Post Aggregation]"
-            "(http://druid.io/docs/latest/querying/post-aggregations.html)",
+            "(http://druid.io/docs/latest/querying/post-aggregations.html)"),
             True),
         'is_restricted': _("Whether the access to this metric is restricted "
                            "to certain roles. Only roles with the permission "
@@ -179,9 +179,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
             "datasource. If you want to change the datasource for a slice, "
             "overwrite the slice from the 'explore view'"),
         'offset': _("Timezone offset (in hours) for this datasource"),
-        'description': Markup(
-            "Supports <a href='"
-            "https://daringfireball.net/projects/markdown/'>markdown</a>"),
+        'description': _("Supports markdown"),
         'fetch_values_from': _(
             "Time expression to use as a predicate when retrieving "
             "distinct values to populate the filter component. "
