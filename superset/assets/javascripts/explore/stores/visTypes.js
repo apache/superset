@@ -183,6 +183,9 @@ const visTypes = {
       y_axis_format: {
         label: 'Left Axis Format',
       },
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+      },
     },
   },
 
@@ -211,6 +214,13 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: control =>
+          control.choices && control.choices.length > 0 ? [control.choices[0][0]] : null,
+      },
+    },
   },
 
   compare: {
@@ -475,9 +485,8 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['metric'],
-          ['compare_lag'],
-          ['compare_suffix'],
-          ['y_axis_format'],
+          ['compare_lag', 'compare_suffix'],
+          ['y_axis_format', null],
         ],
       },
     ],

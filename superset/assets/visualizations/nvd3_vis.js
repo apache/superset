@@ -331,7 +331,7 @@ function nvd3Vis(slice, payload) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (chart.xAxis && chart.xAxis.tickFormat) {
+    if (isTimeSeries && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
