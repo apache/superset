@@ -51,15 +51,13 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression': _(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`"),
-        'python_date_format': utils.markdown(Markup(_(
-            "The pattern of timestamp format, use "
-            "<a href='https://docs.python.org/2/library/"
-            "datetime.html#strftime-strptime-behavior'>"
-            "python datetime string pattern</a> "
-            "expression. If time is stored in epoch "
-            "format, put `epoch_s` or `epoch_ms`. Leave `Database Expression` "
-            "below empty if timestamp is stored in "
-            "String or Integer(epoch) type")), True),
+        'python_date_format': _(
+            "The pattern of timestamp format, use python datetime string "
+            "pattern expression, referring from https://docs.python.org/2/"
+            "library/datetime.html#strftime-strptime-behavior. "
+            "If time is stored in epoch format, put `epoch_s` or `epoch_ms`. "
+            "Leave `Database Expression` below empty if timestamp is stored "
+            "in String or Integer(epoch) type"),
         'database_expression': _(
             "The database expression to cast internal datetime "
             "constants to database date/timestamp type according to the DBAPI. "
@@ -104,13 +102,12 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
                            "to certain roles. Only roles with the permission "
                            "'metric access on XXX (the name of this metric)' "
                            "are allowed to access this metric"),
-        'd3format': utils.markdown(_(
-            "D3 formatting string as defined [here]"
+        'd3format': _(
+            "d3 formatting string as defined"
             "(https://github.com/d3/d3-format/blob/master/README.md#format). "
             "For instance, this default formatting applies in the Table "
             "visualization and allow for different metric to use different "
-            "formats"), True
-        ),
+            "formats"),
     }
     add_columns = edit_columns
     page_size = 500
