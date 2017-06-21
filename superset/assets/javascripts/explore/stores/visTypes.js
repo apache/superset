@@ -148,6 +148,7 @@ const visTypes = {
     controlOverrides: {
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
       },
     },
   },
@@ -185,6 +186,7 @@ const visTypes = {
       },
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
       },
     },
   },
@@ -217,8 +219,7 @@ const visTypes = {
     controlOverrides: {
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
-        default: control =>
-          control.choices && control.choices.length > 0 ? [control.choices[0][0]] : null,
+        default: 'smart_date',
       },
     },
   },
@@ -236,6 +237,12 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
   },
 
   area: {
@@ -262,6 +269,12 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        default: 'smart_date',
+        choices: D3_TIME_FORMAT_OPTIONS,
+      },
+    },
   },
 
   table: {

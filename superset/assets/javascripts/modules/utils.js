@@ -15,10 +15,11 @@ export function d3FormatPreset(format) {
   return d3.format('.3s');
 }
 export const d3TimeFormatPreset = function (format) {
-  if (format === 'smart_date') {
+  const effFormat = format || 'smart_date';
+  if (effFormat === 'smart_date') {
     return formatDate;
   }
-  const f = d3.time.format(format);
+  const f = d3.time.format(effFormat);
   return function (dttm) {
     const d = UTC(new Date(dttm));
     return f(d);
