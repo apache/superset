@@ -369,3 +369,9 @@ to take effect, they need to be compiled using this command:
     `ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}`
 
     This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
+
+## Creating a new visualization type
+
+Here's an example as a Github PR with comments that describe what the
+different sections of the code do:
+https://github.com/airbnb/superset/pull/3013
