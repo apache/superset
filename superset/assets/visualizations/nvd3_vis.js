@@ -7,14 +7,10 @@ import nv from 'nvd3';
 import { category21 } from '../javascripts/modules/colors';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
 
-import { D3_TIME_FORMAT_OPTIONS } from '../javascripts/explore/stores/controls';
-
-
 // CSS
 import '../node_modules/nvd3/build/nv.d3.min.css';
 import './nvd3_vis.css';
 
-const timeStampFormats = D3_TIME_FORMAT_OPTIONS.map(opt => opt[0]);
 const minBarWidth = 15;
 const animationTime = 1000;
 
@@ -316,22 +312,22 @@ function nvd3Vis(slice, payload) {
     if (fd.x_log_scale) {
       chart.xScale(d3.scale.log());
     }
-
-    const isTimeSeries = timeStampFormats.indexOf(fd.x_axis_format) > -1;
+    const isTimeSeries = [
+      'line', 'dual_line', 'area', 'compare', 'bar'].indexOf(vizType) >= 0;
     // if x axis format is a date format, rotate label 90 degrees
     if (isTimeSeries) {
       chart.xAxis.rotateLabels(45);
     }
 
     let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
-    if (isTimeSeries && fd.x_axis_format) {
+    if (isTimeSeries) {
       xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (chart.xAxis && chart.xAxis.tickFormat) {
+    if (isTimeSeries && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
