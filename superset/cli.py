@@ -5,17 +5,18 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-import celery
 from celery.bin import worker as celery_worker
 from datetime import datetime
 from subprocess import Popen
 
+from colorama import Fore, Style
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-from superset import app, db, security
+from superset import app, db, security, utils
 
 config = app.config
+celery_app = utils.get_celery_app(config)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
@@ -41,7 +42,8 @@ def init():
     '-p', '--port', default=config.get("SUPERSET_WEBSERVER_PORT"),
     help="Specify the port on which to run the web server")
 @manager.option(
-    '-w', '--workers', default=config.get("SUPERSET_WORKERS", 2),
+    '-w', '--workers',
+    default=config.get("SUPERSET_WORKERS", 2),
     help="Number of gunicorn web server workers to fire up")
 @manager.option(
     '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
@@ -55,6 +57,13 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
     debug = debug or config.get("DEBUG")
     if debug:
+        print(Fore.BLUE + '-=' * 20)
+        print(
+            Fore.YELLOW + "Starting Superset server in " +
+            Fore.RED + "DEBUG" +
+            Fore.YELLOW + " mode")
+        print(Fore.BLUE + '-=' * 20)
+        print(Style.RESET_ALL)
         app.run(
             host='0.0.0.0',
             port=int(port),
@@ -71,7 +80,9 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
             "--limit-request-line 0 "
             "--limit-request-field_size 0 "
             "superset:app").format(**locals())
-        print("Starting server with command: " + cmd)
+        print(Fore.GREEN + "Starting server with command: ")
+        print(Fore.YELLOW + cmd)
+        print(Style.RESET_ALL)
         Popen(cmd, shell=True).wait()
 
 
@@ -80,14 +91,13 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
     help="Show extra information")
 def version(verbose):
     """Prints the current version number"""
-    s = (
-        "\n-----------------------\n"
-        "Superset {version}\n"
-        "-----------------------").format(
-        version=config.get('VERSION_STRING'))
-    print(s)
+    print(Fore.BLUE + '-=' * 15)
+    print(Fore.YELLOW + "Superset " + Fore.CYAN + "{version}".format(
+        version=config.get('VERSION_STRING')))
+    print(Fore.BLUE + '-=' * 15)
     if verbose:
         print("[DB] : " + "{}".format(db.engine))
+    print(Style.RESET_ALL)
 
 
 @manager.option(
@@ -173,22 +183,43 @@ def update_datasources_cache():
 
 
 @manager.option(
-    '-w', '--workers', default=config.get("SUPERSET_CELERY_WORKERS", 32),
+    '-w', '--workers',
+    type=int,
     help="Number of celery server workers to fire up")
 def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
-    # celery -A tasks worker --loglevel=info
-    print("Starting SQL Celery worker.")
-    if config.get('CELERY_CONFIG'):
-        print("Celery broker url: ")
-        print(config.get('CELERY_CONFIG').BROKER_URL)
+    if workers:
+        celery_app.conf.update(CELERYD_CONCURRENCY=workers)
+    elif config.get("SUPERSET_CELERY_WORKERS"):
+        celery_app.conf.update(
+            worker_concurrency=config.get("SUPERSET_CELERY_WORKERS"))
 
-    application = celery.current_app._get_current_object()
-    c_worker = celery_worker.worker(app=application)
-    options = {
-        'broker': config.get('CELERY_CONFIG').BROKER_URL,
-        'loglevel': 'INFO',
-        'traceback': True,
-        'concurrency': int(workers),
-    }
-    c_worker.run(**options)
+    worker = celery_worker.worker(app=celery_app)
+    worker.run()
+
+
+@manager.option(
+    '-p', '--port',
+    default='5555',
+    help=('Port on which to start the Flower process'))
+@manager.option(
+    '-a', '--address',
+    default='localhost',
+    help=('Address on which to run the service'))
+def flower(port, address):
+    """Runs a Celery Flower web server
+
+    Celery Flower is a UI to monitor the Celery operation on a given
+    broker"""
+    BROKER_URL = celery_app.conf.BROKER_URL
+    cmd = (
+        "celery flower "
+        "--broker={BROKER_URL} "
+        "--port={port} "
+        "--address={address} "
+    ).format(**locals())
+    print(Fore.GREEN + "Starting a Celery Flower instance")
+    print(Fore.BLUE + '-=' * 40)
+    print(Fore.YELLOW + cmd)
+    print(Fore.BLUE + '-=' * 40)
+    Popen(cmd, shell=True).wait()

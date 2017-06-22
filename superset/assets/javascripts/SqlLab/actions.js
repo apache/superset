@@ -155,7 +155,7 @@ export function runQuery(query) {
         } else if (msg === null) {
           msg = `[${textStatus}] ${errorThrown}`;
         }
-        if (msg.indexOf('The CSRF token is missing') > 0) {
+        if (msg.indexOf('CSRF token') > 0) {
           msg = 'Your session timed out, please refresh your page and try again.';
         }
         dispatch(queryFailed(query, msg));

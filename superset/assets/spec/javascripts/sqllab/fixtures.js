@@ -257,6 +257,66 @@ export const queries = [
     results: null,
   },
 ];
+export const databases = {
+  result: [{
+    allow_ctas: true,
+    allow_dml: true,
+    allow_run_async: false,
+    allow_run_sync: true,
+    database_name: 'main',
+    expose_in_sqllab: true,
+    force_ctas_schema: '',
+    id: 188,
+  }, {
+    allow_ctas: true,
+    allow_dml: false,
+    allow_run_async: true,
+    allow_run_sync: true,
+    database_name: 'Presto - Gold',
+    expose_in_sqllab: true,
+    force_ctas_schema: 'tmp',
+    id: 208,
+  }],
+};
+export const tables = {
+  tableLength: 3,
+  options: [{
+    value: 'birth_names',
+    label: 'birth_names',
+  }, {
+    value: 'energy_usage',
+    label: 'energy_usage',
+  }, {
+    value: 'wb_health_population',
+    label: 'wb_health_population',
+  }],
+};
+
+export const stoppedQuery = {
+  dbId: 1,
+  cached: false,
+  ctas: false,
+  id: 'ryhMUZCGb',
+  progress: 0,
+  results: [],
+  runAsync: false,
+  schema: 'main',
+  sql: 'SELECT ...',
+  sqlEditorId: 'rJaf5u9WZ',
+  startDttm: 1497400851936,
+  state: 'stopped',
+  tab: 'Untitled Query 2',
+  tempTableName: '',
+};
+export const runningQuery = {
+  dbId: 1,
+  cached: false,
+  ctas: false,
+  id: 'ryhMUZCGb',
+  progress: 90,
+  state: 'running',
+};
+export const cachedQuery = Object.assign({}, queries[0], { cached: true });
 
 export const initialState = {
   alerts: [],

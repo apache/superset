@@ -16,6 +16,7 @@ const propTypes = {
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
+  datasource: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -81,7 +82,7 @@ class FilterBox extends React.Component {
       });
       return (
         <div key={filter} className="m-b-5">
-          {filter}
+          {this.props.datasource.verbose_map[filter] || filter}
           <Select.Creatable
             placeholder={`Select [${filter}]`}
             key={filter}
@@ -143,6 +144,7 @@ function filterBox(slice, payload) {
       filtersChoices={filtersChoices}
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
+      datasource={slice.datasource}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
     />,

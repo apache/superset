@@ -108,7 +108,11 @@ class SaveModal extends React.Component {
     const saveUrl = `${baseUrl}?form_data=` +
       `${encodeURIComponent(JSON.stringify(this.props.form_data))}` +
       `&${$.param(sliceParams, true)}`;
-    this.props.actions.saveSlice(saveUrl);
+    this.props.actions.saveSlice(saveUrl)
+      .then((data) => {
+        // Go to new slice url or dashboard url
+        window.location = data;
+      });
     this.props.onHide();
   }
   removeAlert() {

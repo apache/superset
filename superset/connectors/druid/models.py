@@ -145,6 +145,10 @@ class DruidColumn(Model, BaseColumn):
         return self.column_name
 
     @property
+    def expression(self):
+        return self.dimension_spec_json
+
+    @property
     def dimension_spec(self):
         if self.dimension_spec_json:
             return json.loads(self.dimension_spec_json)
@@ -276,6 +280,10 @@ class DruidMetric(Model, BaseMetric):
         'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
         'json', 'description', 'is_restricted', 'd3format'
     )
+
+    @property
+    def expression(self):
+        return self.json
 
     @property
     def json_obj(self):

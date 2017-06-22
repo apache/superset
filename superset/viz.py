@@ -352,9 +352,6 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
-    def json_dumps(self, obj):
-        return json.dumps(obj, default=utils.json_iso_dttm_ser)
-
 
 class PivotTableViz(BaseViz):
 
@@ -398,11 +395,14 @@ class PivotTableViz(BaseViz):
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=True,
         )
-        return df.to_html(
-            na_rep='',
-            classes=(
-                "dataframe table table-striped table-bordered "
-                "table-condensed table-hover").split(" "))
+        return dict(
+            columns=list(df.columns),
+            html=df.to_html(
+                na_rep='',
+                classes=(
+                    "dataframe table table-striped table-bordered "
+                    "table-condensed table-hover").split(" ")),
+        )
 
 
 class MarkupViz(BaseViz):
@@ -647,15 +647,16 @@ class BubbleViz(NVD3Viz):
     def query_obj(self):
         form_data = self.form_data
         d = super(BubbleViz, self).query_obj()
-        d['groupby'] = list({
-            form_data.get('series'),
+        d['groupby'] = [
             form_data.get('entity')
-        })
+        ]
+        if form_data.get('series'):
+            d['groupby'].append(form_data.get('series'))
         self.x_metric = form_data.get('x')
         self.y_metric = form_data.get('y')
         self.z_metric = form_data.get('size')
         self.entity = form_data.get('entity')
-        self.series = form_data.get('series')
+        self.series = form_data.get('series') or self.entity
         d['row_limit'] = form_data.get('limit')
 
         d['metrics'] = [
@@ -663,7 +664,7 @@ class BubbleViz(NVD3Viz):
             self.x_metric,
             self.y_metric,
         ]
-        if not all(d['metrics'] + [self.entity, self.series]):
+        if not all(d['metrics'] + [self.entity]):
             raise Exception("Pick a metric for x, y and size")
         return d
 
