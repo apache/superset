@@ -266,7 +266,7 @@ export const databases = {
     database_name: 'main',
     expose_in_sqllab: true,
     force_ctas_schema: '',
-    id: 188,
+    id: 1,
   }, {
     allow_ctas: true,
     allow_dml: false,
