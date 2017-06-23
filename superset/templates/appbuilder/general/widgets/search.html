@@ -27,9 +27,11 @@
 </div>
 
 <script>
+(function($) {
     function checkSearchButton() {
         var hasFilter = $('.filters tr').length;
         if (hasFilter) {
+        	$('.filters a.remove-filter').off('click', checkSearchButton);
             $('.filters a.remove-filter').on('click', checkSearchButton);
             $('.filter-action').toggle(true);
         } else {
@@ -37,19 +39,18 @@
         }
     }
 
-    $('.list-search-container').on('hidden.bs.dropdown', checkSearchButton());
+    $('.list-search-container').on('hidden.bs.dropdown', checkSearchButton);
     $(document).ready(function() {
         checkSearchButton();
     });
 
-	(function($) {
-	var filter = new AdminFilters(
-                    '#filter_form',
-                    {{ label_columns | tojson | safe }},
-                    {{ form_fields | tojson | safe }},
-                    {{ search_filters | tojson | safe }},
-                    {{ active_filters | tojson | safe }}
-                );
-	})(jQuery);
+    var filter = new AdminFilters(
+        '#filter_form',
+        {{ label_columns | tojson | safe }},
+        {{ form_fields | tojson | safe }},
+        {{ search_filters | tojson | safe }},
+        {{ active_filters | tojson | safe }}
+    );
+})(jQuery);
 
 </script>
