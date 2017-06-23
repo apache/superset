@@ -289,12 +289,14 @@ div.widget .slice_container {
 
 .list-container .filter-action {
     margin: 0 15px;
-    padding: 15px 0;
-    border-bottom: 1px solid #b3b3b3;
+    padding-bottom: 15px;
 }
 
 .list-container .filters-container table tr:first-child td {
     border-top: none;
+}
+.list-container .filters-container table tr:last-child td {
+    border-bottom: 1px solid #b3b3b3;
 }
 
 .list-add-action .btn.btn-sm {
