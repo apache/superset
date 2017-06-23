@@ -197,12 +197,12 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     edit_template = "superset/models/database/edit.html"
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'sqlalchemy_uri': utils.markdown(
+        'sqlalchemy_uri': _(
             "Refer to the "
             "[SqlAlchemy docs]"
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#"
             "database-urls) "
-            "for more information on how to structure your URI.", True),
+            "for more information on how to structure your URI."),
         'expose_in_sqllab': _("Expose this DB in SQL Lab"),
         'allow_run_sync': _(
             "Allow users to run synchronous queries, this is the default "
@@ -220,7 +220,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'force_ctas_schema': _(
             "When allowing CREATE TABLE AS option in SQL Lab, "
             "this option forces the table to be created in this schema"),
-        'extra': utils.markdown(
+        'extra': _(
             "JSON string containing extra configuration elements. "
             "The ``engine_params`` object gets unpacked into the "
             "[sqlalchemy.create_engine]"
@@ -228,7 +228,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
             "sqlalchemy.create_engine) call, while the ``metadata_params`` "
             "gets unpacked into the [sqlalchemy.MetaData]"
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
-            "#sqlalchemy.schema.MetaData) call. ", True),
+            "#sqlalchemy.schema.MetaData) call. "),
     }
     label_columns = {
         'expose_in_sqllab': _("Expose in SQL Lab"),
@@ -241,6 +241,8 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'sqlalchemy_uri': _("SQLAlchemy URI"),
         'cache_timeout': _("Cache Timeout"),
         'extra': _("Extra"),
+        'allow_run_sync': _("Allow Run Sync"),
+        'allow_run_async': _("Allow Run Async"),
     }
 
     def pre_add(self, db):
@@ -321,7 +323,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     can_add = False
     label_columns = {
-        'datasource_link': 'Datasource',
+        'datasource_link': _('Datasource'),
     }
     search_columns = (
         'slice_name', 'description', 'viz_type', 'owners',
@@ -333,11 +335,9 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'params', 'cache_timeout']
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'description': Markup(
+        'description': _(
             "The content here can be displayed as widget headers in the "
-            "dashboard view. Supports "
-            "<a href='https://daringfireball.net/projects/markdown/'>"
-            "markdown</a>"),
+            "dashboard view. Supports markdown."),
         'params': _(
             "These parameters are generated dynamically when clicking "
             "the save or overwrite button in the explore view. This JSON "
@@ -2268,6 +2268,9 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
     add_columns = edit_columns
+    label_columns = {
+        'template_name': _('Template Name'),
+    }
 
 
 class CssTemplateAsyncModelView(CssTemplateModelView):
