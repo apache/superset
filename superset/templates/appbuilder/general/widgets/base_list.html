@@ -35,8 +35,8 @@
 
 <div class="pagination-container pull-right">
     <strong>{{ _('Record Count') }}:</strong> {{ count }}
-    {{ lib.render_pagination(page, 10, count, modelview_name) }}
-    {{ lib.render_set_page_size(page, 10, count, modelview_name) }}
+    {{ lib.render_pagination(page, page_size, count, modelview_name) }}
+    {{ lib.render_set_page_size(page, page_size, count, modelview_name) }}
 </div>
     <script language="javascript">
         var modelActions = new AdminActions();
