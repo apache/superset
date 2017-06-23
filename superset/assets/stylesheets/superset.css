@@ -275,6 +275,9 @@ div.widget .slice_container {
 .list-container .pagination-container .pagination {
     margin: 0 15px;
 }
+.list-container .pagination-container strong {
+    margin-right: 5px;
+}
 
 .list-container .list-add-action {
     position: absolute;
@@ -288,7 +291,7 @@ div.widget .slice_container {
 }
 
 .list-container .filter-action {
-    margin: 0 15px;
+    margin: 0 10px;
     padding-bottom: 15px;
 }
 

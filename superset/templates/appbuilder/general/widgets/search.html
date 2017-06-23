@@ -37,9 +37,7 @@
         }
     }
 
-    $('.list-search-container').on('hidden.bs.dropdown', function () {
-        checkSearchButton();
-    });
+    $('.list-search-container').on('hidden.bs.dropdown', checkSearchButton());
     $(document).ready(function() {
         checkSearchButton();
     });
