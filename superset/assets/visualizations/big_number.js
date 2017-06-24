@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import d3tip from 'd3-tip';
-import { formatDate } from '../javascripts/modules/dates';
+import { d3FormatPreset, d3TimeFormatPreset } from '../javascripts/modules/utils';
 
 import './big_number.css';
 import '../stylesheets/d3tip.css';
@@ -12,8 +12,9 @@ function bigNumberVis(slice, payload) {
   const fd = slice.formData;
   const json = payload.data;
 
-  const f = d3.format(fd.y_axis_format);
+  const f = d3FormatPreset(fd.y_axis_format);
   const fp = d3.format('+.1%');
+  const formatDate = d3TimeFormatPreset('smart_date');
   const width = slice.width();
   const height = slice.height();
   const svg = div.append('svg');
@@ -138,7 +139,7 @@ function bigNumberVis(slice, payload) {
     const yAxis = d3.svg.axis()
     .scale(scaleY)
     .orient('left')
-    .tickFormat(d3.format(fd.y_axis_format))
+    .tickFormat(f)
     .tickValues(valueExt);
 
     g.call(yAxis);

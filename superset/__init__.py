@@ -32,6 +32,21 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+
+@app.context_processor
+def get_js_manifest():
+    manifest = {}
+    try:
+        with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as f:
+            manifest = json.load(f)
+    except Exception as e:
+        print(
+            "no manifest file found at " +
+            APP_DIR + "/static/assets/dist/manifest.json"
+        )
+    return dict(js_manifest=manifest)
+
+
 for bp in conf.get('BLUEPRINTS'):
     try:
         print("Registering blueprint: '{}'".format(bp.name))

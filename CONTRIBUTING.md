@@ -18,6 +18,9 @@ If you are reporting a bug, please include:
     troubleshooting.
 -   Detailed steps to reproduce the bug.
 
+When you post python stack traces please quote them using
+[markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
+
 ### Fix Bugs
 
 Look through the GitHub issues for bugs. Anything tagged with "bug" is
@@ -249,6 +252,11 @@ npm run dev
 
 ## Testing
 
+Before running python unit tests, please setup local testing environment:
+```
+pip install -r dev-reqs.txt
+```
+
 Python tests can be run with:
 
     ./run_tests.sh
@@ -361,3 +369,9 @@ to take effect, they need to be compiled using this command:
     `ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}`
 
     This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
+
+## Creating a new visualization type
+
+Here's an example as a Github PR with comments that describe what the
+different sections of the code do:
+https://github.com/airbnb/superset/pull/3013

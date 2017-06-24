@@ -41,28 +41,26 @@ class VisualizeModal extends React.PureComponent {
     this.state = {
       chartType: CHART_TYPES[0],
       datasourceName: this.datasourceName(),
-      columns: {},
+      columns: this.getColumnFromProps(),
       hints: [],
     };
   }
   componentDidMount() {
     this.validate();
   }
-  componentWillReceiveProps(nextProps) {
-    this.setStateFromProps(nextProps);
-  }
-  setStateFromProps(props) {
+  getColumnFromProps() {
+    const props = this.props;
     if (!props ||
         !props.query ||
         !props.query.results ||
         !props.query.results.columns) {
-      return;
+      return {};
     }
     const columns = {};
     props.query.results.columns.forEach((col) => {
       columns[col.name] = col;
     });
-    this.setState({ columns });
+    return columns;
   }
   datasourceName() {
     const { query } = this.props;

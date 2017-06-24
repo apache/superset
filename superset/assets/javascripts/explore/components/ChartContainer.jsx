@@ -7,6 +7,7 @@ import { Alert, Collapse, Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from './ExploreActionButtons';
+import EditableTitle from '../../components/EditableTitle';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
@@ -23,6 +24,7 @@ const CHART_STATUS_MAP = {
 const propTypes = {
   actions: PropTypes.object.isRequired,
   alert: PropTypes.string,
+  can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   chartStatus: PropTypes.string,
   chartUpdateEndTime: PropTypes.number,
@@ -39,6 +41,8 @@ const propTypes = {
   queryResponse: PropTypes.object,
   triggerRender: PropTypes.bool,
   standalone: PropTypes.bool,
+  datasourceType: PropTypes.string,
+  datasourceId: PropTypes.number,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -145,6 +149,18 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.runQuery(this.props.formData, true);
   }
 
+  updateChartTitle(newTitle) {
+    const params = {
+      slice_name: newTitle,
+      action: 'overwrite',
+    };
+    const saveUrl = getExploreUrl(this.props.formData, 'base', false, null, params);
+    this.props.actions.saveSlice(saveUrl)
+      .then(() => {
+        this.props.actions.updateChartTitle(newTitle);
+      });
+  }
+
   renderChartTitle() {
     let title;
     if (this.props.slice) {
@@ -240,7 +256,11 @@ class ChartContainer extends React.PureComponent {
               id="slice-header"
               className="clearfix panel-title-large"
             >
-              {this.renderChartTitle()}
+              <EditableTitle
+                title={this.renderChartTitle()}
+                canEdit={this.props.can_overwrite}
+                onSaveTitle={this.updateChartTitle.bind(this)}
+              />
 
               {this.props.slice &&
                 <span>
@@ -304,6 +324,7 @@ function mapStateToProps(state) {
   const formData = getFormDataFromControls(state.controls);
   return {
     alert: state.chartAlert,
+    can_overwrite: state.can_overwrite,
     can_download: state.can_download,
     chartStatus: state.chartStatus,
     chartUpdateEndTime: state.chartUpdateEndTime,
@@ -320,7 +341,8 @@ function mapStateToProps(state) {
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
     triggerRender: state.triggerRender,
-    datasourceType: state.datasource ? state.datasource.type : null,
+    datasourceType: state.datasource_type,
+    datasourceId: state.datasource_id,
   };
 }
 

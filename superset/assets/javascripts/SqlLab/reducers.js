@@ -237,8 +237,7 @@ export const sqlLabReducer = function (state, action) {
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
         if (!state.queries.hasOwnProperty(id) ||
-            (state.queries[id].changedOn !== changedQuery.changedOn &&
-            state.queries[id].state !== 'stopped')) {
+            state.queries[id].state !== 'stopped') {
           if (changedQuery.changedOn > queriesLastUpdate) {
             queriesLastUpdate = changedQuery.changedOn;
           }

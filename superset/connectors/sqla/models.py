@@ -178,11 +178,6 @@ class SqlaTable(Model, BaseDatasource):
         foreign_keys=[database_id])
     schema = Column(String(255))
     sql = Column(Text)
-    slices = relationship(
-        'Slice',
-        primaryjoin=(
-            "SqlaTable.id == foreign(Slice.datasource_id) and "
-            "Slice.datasource_type == 'table'"))
 
     baselink = "tablemodelview"
     export_fields = (
@@ -337,13 +332,13 @@ class SqlaTable(Model, BaseDatasource):
             tbl.schema = self.schema
         return tbl
 
-    def get_from_clause(self):
+    def get_from_clause(self, template_processor=None):
         # Supporting arbitrary SQL statements in place of tables
         if self.sql:
-            tp = self.get_template_processor()
-            from_sql = tp.process_template(self.sql)
+            from_sql = self.sql
+            if template_processor:
+                from_sql = template_processor.process_template(from_sql)
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
-
         return self.get_sqla_table()
 
     def get_sqla_query(  # sqla
@@ -444,7 +439,7 @@ class SqlaTable(Model, BaseDatasource):
         select_exprs += metrics_exprs
         qry = sa.select(select_exprs)
 
-        tbl = self.get_from_clause()
+        tbl = self.get_from_clause(template_processor)
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)

@@ -59,9 +59,10 @@ describe('QuerySearch', () => {
   });
 
   it('refreshes queries when clicked', () => {
-    const spy = sinon.spy(QuerySearch.prototype, 'refreshQueries');
+    const search = sinon.spy(QuerySearch.prototype, 'refreshQueries');
     wrapper = shallow(<QuerySearch {...mockedProps} />);
     wrapper.find(Button).simulate('click');
-    expect(spy.called).to.equal(true);
+    /* eslint-disable no-unused-expressions */
+    expect(search.called).to.equal(true);
   });
 });

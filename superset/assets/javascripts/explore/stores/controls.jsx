@@ -7,7 +7,7 @@ import ColumnOption from '../../components/ColumnOption';
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
-const D3_TIME_FORMAT_OPTIONS = [
+const D3_FORMAT_OPTIONS = [
   ['.3s', '.3s | 12.3k'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
@@ -20,8 +20,7 @@ const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
-
-export const TIME_STAMP_OPTIONS = [
+export const D3_TIME_FORMAT_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
@@ -64,8 +63,7 @@ export const controls = {
     valueKey: 'metric_name',
     optionRenderer: m => <MetricOption metric={m} />,
     valueRenderer: m => <MetricOption metric={m} />,
-    default: control =>
-      control.choices && control.choices.length > 0 ? [control.choices[0][0]] : null,
+    default: c => c.options && c.options.length > 0 ? [c.options[0].metric_name] : null,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
     }),
@@ -101,9 +99,8 @@ export const controls = {
     validators: [v.nonEmpty],
     optionRenderer: m => <MetricOption metric={m} />,
     valueRenderer: m => <MetricOption metric={m} />,
+    default: c => c.options && c.options.length > 0 ? c.options[0].metric_name : null,
     valueKey: 'metric_name',
-    default: control =>
-      control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
     }),
@@ -594,7 +591,7 @@ export const controls = {
     label: 'Number format',
     renderTrigger: true,
     default: '.3s',
-    choices: D3_TIME_FORMAT_OPTIONS,
+    choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
 
@@ -658,6 +655,7 @@ export const controls = {
     type: 'SelectControl',
     label: 'Entity',
     default: null,
+    validators: [v.nonEmpty],
     description: 'This define the element to be plotted on the chart',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
@@ -682,8 +680,8 @@ export const controls = {
     type: 'SelectControl',
     label: 'Y Axis',
     default: null,
-    description: 'Metric assigned to the [Y] axis',
     validators: [v.nonEmpty],
+    description: 'Metric assigned to the [Y] axis',
     optionRenderer: m => <MetricOption metric={m} />,
     valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
@@ -764,8 +762,10 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: 'Table Timestamp Format',
-    default: 'smart_date',
-    choices: TIME_STAMP_OPTIONS,
+    default: '%Y-%m-%d %H:%M:%S',
+    validators: [v.nonEmpty],
+    clearable: false,
+    choices: D3_TIME_FORMAT_OPTIONS,
     description: 'Timestamp Format',
   },
 
@@ -792,8 +792,18 @@ export const controls = {
     freeForm: true,
     label: 'X Axis Format',
     renderTrigger: true,
+    default: '.3s',
+    choices: D3_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+  },
+
+  x_axis_time_format: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: 'X Axis Format',
+    renderTrigger: true,
     default: 'smart_date',
-    choices: TIME_STAMP_OPTIONS,
+    choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
 
@@ -803,7 +813,7 @@ export const controls = {
     label: 'Y Axis Format',
     renderTrigger: true,
     default: '.3s',
-    choices: D3_TIME_FORMAT_OPTIONS,
+    choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
 
@@ -812,15 +822,17 @@ export const controls = {
     freeForm: true,
     label: 'Right Axis Format',
     default: '.3s',
-    choices: D3_TIME_FORMAT_OPTIONS,
+    choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
 
   markup_type: {
     type: 'SelectControl',
     label: 'Markup Type',
+    clearable: false,
     choices: formatSelectOptions(['markdown', 'html']),
     default: 'markdown',
+    validators: [v.nonEmpty],
     description: 'Pick your favorite markup language',
   },
 
@@ -858,6 +870,9 @@ export const controls = {
     type: 'TextAreaControl',
     label: 'Code',
     description: 'Put your code here',
+    mapStateToProps: state => ({
+      language: state.controls ? state.controls.markup_type.value : null,
+    }),
     default: '',
   },
 

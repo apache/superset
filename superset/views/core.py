@@ -78,7 +78,7 @@ def json_success(json_msg, status=200):
 
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
-    return obj and obj.owners and user in obj.owners
+    return obj and user in obj.owners
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -380,7 +380,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         return self.render_template(
             "superset/add_slice.html",
             bootstrap_data=json.dumps({
-                'datasources': sorted(datasources),
+                'datasources': sorted(datasources, key=lambda d: d["label"]),
             }),
         )
 
@@ -1320,6 +1320,7 @@ class Superset(BaseSupersetView):
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data['css']
+        dashboard.dashboard_title = data['dashboard_title']
 
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
@@ -2019,7 +2020,7 @@ class Superset(BaseSupersetView):
             except Exception as e:
                 logging.exception(e)
                 msg = (
-                    "Failed to start remote query on worker. "
+                    "Failed to start remote query on a worker. "
                     "Tell your administrator to verify the availability of "
                     "the message queue."
                 )
@@ -2047,10 +2048,13 @@ class Superset(BaseSupersetView):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
+                payload = json.dumps(data, default=utils.json_iso_dttm_ser)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))
-        return json_success(data)
+        if data.get('status') == QueryStatus.FAILED:
+            return json_error_response(payload)
+        return json_success(payload)
 
     @has_access
     @expose("/csv/<client_id>")
