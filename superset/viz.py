@@ -353,6 +353,12 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
+    def json_dumps(self, obj):
+        if self.form_data.get('all_columns'):
+            return json.dumps(obj, default=utils.json_iso_dttm_ser)
+        else:
+            return super(TableViz, self).json_dumps(obj)
+
 
 class PivotTableViz(BaseViz):
 
