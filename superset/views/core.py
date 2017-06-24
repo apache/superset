@@ -241,6 +241,8 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'sqlalchemy_uri': _("SQLAlchemy URI"),
         'cache_timeout': _("Cache Timeout"),
         'extra': _("Extra"),
+        'allow_run_sync': _("Allow Run Sync"),
+        'allow_run_async': _("Allow Run Async"),
     }
 
     def pre_add(self, db):
@@ -321,7 +323,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     can_add = False
     label_columns = {
-        'datasource_link': 'Datasource',
+        'datasource_link': _('Datasource'),
     }
     search_columns = (
         'slice_name', 'description', 'viz_type', 'owners',
@@ -2268,6 +2270,9 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
     add_columns = edit_columns
+    label_columns = {
+        'template_name': _('Template Name'),
+    }
 
 
 class CssTemplateAsyncModelView(CssTemplateModelView):
