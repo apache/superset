@@ -3,14 +3,14 @@ import json
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean,
 )
-from flask import session
 from superset import utils
 from superset.models.helpers import AuditMixinNullable, ImportMixin
+from flask import session
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):
-    """A common interface to objects that are queryable (tables and
-    datasources)"""
+    """A common interface to objects that are queryable
+    (tables and datasources)"""
 
     # ---------------------------------------------------------------
     # class attributes to define when deriving BaseDatasource
