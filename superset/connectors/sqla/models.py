@@ -178,11 +178,6 @@ class SqlaTable(Model, BaseDatasource):
         foreign_keys=[database_id])
     schema = Column(String(255))
     sql = Column(Text)
-    slices = relationship(
-        'Slice',
-        primaryjoin=(
-            "SqlaTable.id == foreign(Slice.datasource_id) and "
-            "Slice.datasource_type == 'table'"))
 
     baselink = "tablemodelview"
     export_fields = (

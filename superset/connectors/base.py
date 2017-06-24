@@ -1,15 +1,19 @@
 import json
 
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean,
+    and_, Column, Integer, String, Text, Boolean,
 )
+from sqlalchemy.orm import foreign, relationship
+from sqlalchemy.ext.declarative import declared_attr
+
 from superset import utils
+from superset.models.core import Slice
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):
-
-    """A common interface to objects that are queryable (tables and datasources)"""
+    """A common interface to objects that are queryable
+    (tables and datasources)"""
 
     # ---------------------------------------------------------------
     # class attributes to define when deriving BaseDatasource
@@ -17,7 +21,6 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     __tablename__ = None  # {connector_name}_datasource
     type = None  # datasoure type, str to be defined when deriving this class
     baselink = None  # url portion pointing to ModelView endpoint
-
     column_class = None  # link to derivative of BaseColumn
     metric_class = None  # link to derivative of BaseMetric
 
@@ -38,6 +41,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     params = Column(String(1000))
     perm = Column(String(1000))
+
+    @declared_attr
+    def slices(self):
+        return relationship(
+            'Slice',
+            primaryjoin=lambda: and_(
+              foreign(Slice.datasource_id) == self.id,
+              foreign(Slice.datasource_type) == self.type))
 
     # placeholder for a relationship to a derivative of BaseColumn
     columns = []
