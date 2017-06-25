@@ -127,7 +127,7 @@ power analytic dashboards and applications.*
 Installation & Configuration
 ----------------------------
 
-[See in the documentation](http://airbnb.io/superset/installation.html)
+[See in the documentation](https://github.com/ApacheInfra/superset/blob/master/docs/installation.rst)
 
 
 More screenshots
