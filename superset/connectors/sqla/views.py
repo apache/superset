@@ -136,13 +136,13 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
-        'link', 'database',
+        'link', 'verbose_name', 'database',
         'changed_by_', 'modified']
     order_columns = [
         'link', 'database', 'changed_on_']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
-        'table_name', 'sql', 'filter_select_enabled', 'slices',
+        'table_name', 'verbose_name', 'sql', 'filter_select_enabled', 'slices',
         'fetch_values_predicate', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
@@ -150,7 +150,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     search_columns = (
-        'database', 'schema', 'table_name', 'owner',
+        'database', 'schema', 'table_name', 'verbose_name', 'owner',
     )
     description_columns = {
         'slices': _(
@@ -192,6 +192,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     label_columns = {
         'slices': _("Associated Slices"),
         'link': _("Table"),
+        'verbose_name': _("Verbose Name"),
         'changed_by_': _("Changed By"),
         'database': _("Database"),
         'changed_on_': _("Last Changed"),
