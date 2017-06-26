@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 import imp
 import json
 import os
+import sys
 from collections import OrderedDict
 
 from dateutil import tz
@@ -141,6 +142,7 @@ BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
+    'it': {'flag': 'it', 'name': 'Italian'},
     # 'fr': {'flag': 'fr', 'name': 'French'},
     # 'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
@@ -259,6 +261,10 @@ SQLLAB_TIMEOUT = 30
 # SQLLAB_DEFAULT_DBID
 SQLLAB_DEFAULT_DBID = None
 
+# The MAX duration (in seconds) a query can run for before being killed
+# by celery.
+SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
+
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
@@ -307,7 +313,12 @@ try:
         # for case where app is being executed via pex.
         print('Loaded your LOCAL configuration at [{}]'.format(
             os.environ[CONFIG_PATH_ENV_VAR]))
-        imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
+        module = sys.modules[__name__]
+        override_conf = imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
+        for key in dir(override_conf):
+            if key.isupper():
+                setattr(module, key, getattr(override_conf, key))
+
     else:
         from superset_config import *  # noqa
         import superset_config

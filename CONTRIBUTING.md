@@ -18,6 +18,9 @@ If you are reporting a bug, please include:
     troubleshooting.
 -   Detailed steps to reproduce the bug.
 
+When you post python stack traces please quote them using
+[markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
+
 ### Fix Bugs
 
 Look through the GitHub issues for bugs. Anything tagged with "bug" is
@@ -26,7 +29,7 @@ open to whoever wants to implement it.
 ### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with
-"feature" is open to whoever wants to implement it.
+"feature" or "starter_task" is open to whoever wants to implement it.
 
 ### Documentation
 
@@ -46,6 +49,24 @@ If you are proposing a feature:
     implement.
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
+
+## Pull Request Guidelines
+
+Before you submit a pull request from your forked repo, check that it
+meets these guidelines:
+
+1.  The pull request should include tests, either as doctests,
+    unit tests, or both.
+2.  If the pull request adds functionality, the docs should be updated
+    as part of the same PR. Doc string are often sufficient, make
+    sure to follow the sphinx compatible standards.
+3.  The pull request should work for Python 2.7, and ideally python 3.4+.
+    ``from __future__ import`` will be required in every `.py` file soon.
+4.  Code will be reviewed by re running the unittests, flake8 and syntax
+    should be as rigorous as the core Python project.
+5.  Please rebase and resolve all conflicts before submitting.
+6.  If you are asked to update your pull request with some changes there's
+    no need to create a new one. Push your changes to the same branch.
 
 ## Documentation
 
@@ -231,6 +252,11 @@ npm run dev
 
 ## Testing
 
+Before running python unit tests, please setup local testing environment:
+```
+pip install -r dev-reqs.txt
+```
+
 Python tests can be run with:
 
     ./run_tests.sh
@@ -292,23 +318,6 @@ The `variables.less` and `bootswatch.less` files that ship with Superset are der
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 
-## Pull Request Guidelines
-
-Before you submit a pull request from your forked repo, check that it
-meets these guidelines:
-
-1.  The pull request should include tests, either as doctests,
-    unit tests, or both.
-2.  If the pull request adds functionality, the docs should be updated
-    as part of the same PR. Doc string are often sufficient, make
-    sure to follow the sphinx compatible standards.
-3.  The pull request should work for Python 2.6, 2.7, and ideally python 3.3.
-    ``from __future__ import`` will be required in every `.py` file soon.
-4.  Code will be reviewed by re running the unittests, flake8 and syntax
-    should be as rigorous as the core Python project.
-5.  Please rebase and resolve all conflicts before submitting.
-
-
 ## Translations
 
 We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. The
@@ -360,3 +369,9 @@ to take effect, they need to be compiled using this command:
     `ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}`
 
     This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
+
+## Creating a new visualization type
+
+Here's an example as a Github PR with comments that describe what the
+different sections of the code do:
+https://github.com/airbnb/superset/pull/3013

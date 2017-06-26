@@ -28,12 +28,4 @@
   stroke: black;
   stroke-width: 1;
 }
-.line-tooltip {
-  position: absolute;
-  text-align: left;
-  padding: 10px;
-  background: #ffffff;
-  border: 1px solid #ccc;
-  border-radius: 2px;
-  pointer-events: none;
- }
+

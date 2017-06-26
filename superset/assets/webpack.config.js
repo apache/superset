@@ -1,6 +1,7 @@
 const webpack = require('webpack');
 const path = require('path');
-const fs = require('fs');
+const ManifestPlugin = require('webpack-manifest-plugin');
+const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -8,12 +9,11 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
-const VERSION_STRING = JSON.parse(fs.readFileSync('package.json')).version;
-
 const config = {
   entry: {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     common: APP_DIR + '/javascripts/common.js',
+    addSlice: ['babel-polyfill', APP_DIR + '/javascripts/addSlice/index.jsx'],
     dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/Dashboard.jsx'],
     explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],
@@ -22,7 +22,8 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
-    filename: `[name].${VERSION_STRING}.entry.js`,
+    filename: '[name].[chunkhash].entry.js',
+    chunkFilename: '[name].[chunkhash].entry.js',
   },
   resolve: {
     extensions: [
@@ -114,6 +115,8 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins: [
+    new ManifestPlugin(),
+    new CleanWebpackPlugin(['dist']),
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
@@ -122,6 +125,16 @@ const config = {
   ],
 };
 if (process.env.NODE_ENV === 'production') {
-  config.plugins.push(new webpack.optimize.UglifyJsPlugin());
+  // Using settings suggested in https://github.com/webpack/webpack/issues/537
+  const UJSplugin = new webpack.optimize.UglifyJsPlugin({
+    sourceMap: false,
+    minimize: true,
+    compress: {
+      drop_debugger: true,
+      warnings: false,
+      drop_console: true,
+    },
+  });
+  config.plugins.push(UJSplugin);
 }
 module.exports = config;
