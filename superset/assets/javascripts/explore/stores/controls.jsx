@@ -871,7 +871,7 @@ export const controls = {
     label: 'Code',
     description: 'Put your code here',
     mapStateToProps: state => ({
-      language: state.controls ? state.controls.markup_type.value : null,
+      language: state.controls && state.controls.markup_type ? state.controls.markup_type.value : 'markdown',
     }),
     default: '',
   },
