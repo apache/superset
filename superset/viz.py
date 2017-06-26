@@ -16,6 +16,7 @@ import uuid
 import zlib
 
 from collections import OrderedDict, defaultdict
+from itertools import product
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -1231,6 +1232,39 @@ class DirectedForceViz(BaseViz):
         return df.to_dict(orient='records')
 
 
+class ChordViz(BaseViz):
+
+    """A Chord diagram"""
+
+    viz_type = "chord"
+    verbose_name = _("Directed Force Layout")
+    credits = '<a href="https://github.com/d3/d3-chord">Bostock</a>'
+    is_timeseries = False
+
+    def query_obj(self):
+        qry = super(ChordViz, self).query_obj()
+        fd = self.form_data
+        qry['groupby'] = [fd.get('groupby'), fd.get('columns')]
+        qry['metrics'] = [fd.get('metric')]
+        return qry
+
+    def get_data(self, df):
+        df.columns = ['source', 'target', 'value']
+
+        # Preparing a symetrical matrix like d3.chords calls for
+        nodes = list(set(df['source']) | set(df['target']))
+        matrix = {}
+        for source, target in product(nodes, nodes):
+            matrix[(source, target)] = 0
+        for source, target, value in df.to_records(index=False):
+            matrix[(source, target)] = value
+        m = [[matrix[(n1, n2)] for n1 in nodes] for n2 in nodes]
+        return {
+            'nodes': list(nodes),
+            'matrix': m,
+        }
+
+
 class CountryMapViz(BaseViz):
 
     """A country centric"""
@@ -1574,6 +1608,7 @@ viz_types_list = [
     DirectedForceViz,
     SankeyViz,
     CountryMapViz,
+    ChordViz,
     WorldMapViz,
     FilterBoxViz,
     IFrameViz,
