@@ -51,7 +51,7 @@ Why are my queries timing out?
 There are many reasons may cause long query timing out.
 
 
-- For running long query from SqlLab, by default superset allows it run as long as 6 hours before it being killed by celery. If you want to increase the time for running query, you can specify the timeout in configuration. For example:
+- For running long query from Sql Lab, by default Superset allows it run as long as 6 hours before it being killed by celery. If you want to increase the time for running query, you can specify the timeout in configuration. For example:
 
   ``SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6``
 
@@ -60,7 +60,7 @@ There are many reasons may cause long query timing out.
 
   ``superset runserver -t 300``
 
-- If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response from superset server (which is processing long queries), these web servers will send 504 status code to clients directly. Superset has a client-side timeout limit to address this issue. If query didn't come back within clint-side timeout (45 seconds by default), superset will display warning message to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change client-side timeout limit from ``/superset/superset/assets/javascripts/constants.js`` file and rebuild js package:
+- If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response from Superset server (which is processing long queries), these web servers will send 504 status code to clients directly. Superset has a client-side timeout limit to address this issue. If query didn't come back within clint-side timeout (45 seconds by default), Superset will display warning message to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change client-side timeout limit settings from ``/superset/superset/assets/javascripts/constants.js`` file and rebuild js package:
 
   ``export const QUERY_TIMEOUT_THRESHOLD = 45000;``
 
