@@ -334,11 +334,14 @@ export const controls = {
     type: 'SelectControl',
     multi: true,
     label: 'Columns',
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.gb_cols : [],
-    }),
     default: [],
     description: 'One or many controls to pivot as columns',
+    optionRenderer: c => <ColumnOption column={c} />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    mapStateToProps: state => ({
+      options: (state.datasource) ? state.datasource.columns : [],
+    }),
   },
 
   all_columns: {
