@@ -78,7 +78,7 @@ def json_success(json_msg, status=200):
 
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
-    return obj and obj.owners and user in obj.owners
+    return obj and user in obj.owners
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -372,11 +372,17 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        flash(__(
-            "To create a new slice, you can open a data source "
-            "through the `Sources` menu, or alter an existing slice "
-            "from the `Slices` menu"), "info")
-        return redirect('/superset/welcome')
+        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        datasources = [
+            {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
+            for d in datasources
+        ]
+        return self.render_template(
+            "superset/add_slice.html",
+            bootstrap_data=json.dumps({
+                'datasources': sorted(datasources, key=lambda d: d["label"]),
+            }),
+        )
 
 appbuilder.add_view(
     SliceModelView,
@@ -1057,7 +1063,6 @@ class Superset(BaseSupersetView):
             "can_download": slice_download_perm,
             "can_overwrite": slice_overwrite_perm,
             "datasource": datasource.data,
-            # TODO: separate endpoint for fetching datasources
             "form_data": form_data,
             "datasource_id": datasource_id,
             "datasource_type": datasource_type,
@@ -1101,7 +1106,9 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        payload = json.dumps(datasource.values_for_column(column))
+        payload = json.dumps(
+            datasource.values_for_column(column),
+            default=utils.json_int_dttm_ser)
         return json_success(payload)
 
     def save_or_overwrite_slice(
@@ -1313,6 +1320,7 @@ class Superset(BaseSupersetView):
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data['css']
+        dashboard.dashboard_title = data['dashboard_title']
 
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
@@ -2012,7 +2020,7 @@ class Superset(BaseSupersetView):
             except Exception as e:
                 logging.exception(e)
                 msg = (
-                    "Failed to start remote query on worker. "
+                    "Failed to start remote query on a worker. "
                     "Tell your administrator to verify the availability of "
                     "the message queue."
                 )
@@ -2040,10 +2048,13 @@ class Superset(BaseSupersetView):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
+                payload = json.dumps(data, default=utils.json_iso_dttm_ser)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))
-        return json_success(data)
+        if data.get('status') == QueryStatus.FAILED:
+            return json_error_response(payload)
+        return json_success(payload)
 
     @has_access
     @expose("/csv/<client_id>")

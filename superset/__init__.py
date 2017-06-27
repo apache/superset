@@ -32,6 +32,21 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+
+@app.context_processor
+def get_js_manifest():
+    manifest = {}
+    try:
+        with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as f:
+            manifest = json.load(f)
+    except Exception as e:
+        print(
+            "no manifest file found at " +
+            APP_DIR + "/static/assets/dist/manifest.json"
+        )
+    return dict(js_manifest=manifest)
+
+
 for bp in conf.get('BLUEPRINTS'):
     try:
         print("Registering blueprint: '{}'".format(bp.name))
@@ -79,6 +94,20 @@ if app.config.get('ENABLE_CORS'):
 
 if app.config.get('ENABLE_PROXY_FIX'):
     app.wsgi_app = ProxyFix(app.wsgi_app)
+
+if app.config.get('ENABLE_CHUNK_ENCODING'):
+    class ChunkedEncodingFix(object):
+
+        def __init__(self, app):
+            self.app = app
+
+        def __call__(self, environ, start_response):
+            # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
+            # content-length and read the stream till the end.
+            if 'chunked' == environ.get('HTTP_TRANSFER_ENCODING', '').lower():
+                environ['wsgi.input_terminated'] = True
+            return self.app(environ, start_response)
+    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)
 
 if app.config.get('UPLOAD_FOLDER'):
     try:

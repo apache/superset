@@ -145,6 +145,10 @@ class DruidColumn(Model, BaseColumn):
         return self.column_name
 
     @property
+    def expression(self):
+        return self.dimension_spec_json
+
+    @property
     def dimension_spec(self):
         if self.dimension_spec_json:
             return json.loads(self.dimension_spec_json)
@@ -278,6 +282,10 @@ class DruidMetric(Model, BaseMetric):
     )
 
     @property
+    def expression(self):
+        return self.json
+
+    @property
     def json_obj(self):
         try:
             obj = json.loads(self.json)
@@ -334,11 +342,6 @@ class DruidDatasource(Model, BaseDatasource):
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params'
     )
-    slices = relationship(
-        'Slice',
-        primaryjoin=(
-            "DruidDatasource.id == foreign(Slice.datasource_id) and "
-            "Slice.datasource_type == 'druid'"))
 
     @property
     def database(self):

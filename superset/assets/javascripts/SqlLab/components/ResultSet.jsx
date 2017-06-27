@@ -6,6 +6,7 @@ import shortid from 'shortid';
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
+import QueryStateLabel from './QueryStateLabel';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -143,14 +144,6 @@ export default class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
-    const results = query.results;
-    let data;
-    if (this.props.cache && query.cached) {
-      data = this.state.data;
-    } else {
-      data = results ? results.data : [];
-    }
-
     let sql;
 
     if (query.state === 'stopped') {
@@ -173,6 +166,7 @@ export default class ResultSet extends React.PureComponent {
       return (
         <div>
           <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
+          <QueryStateLabel query={query} />
           {progressBar}
         </div>
       );
@@ -194,7 +188,14 @@ export default class ResultSet extends React.PureComponent {
           </Alert>
         </div>);
     } else if (query.state === 'success') {
-      if (results && data && data.length > 0) {
+      const results = query.results;
+      let data;
+      if (this.props.cache && query.cached) {
+        data = this.state.data;
+      } else {
+        data = results ? results.data : [];
+      }
+      if (results && data.length > 0) {
         return (
           <div>
             <VisualizeModal

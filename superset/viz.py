@@ -16,6 +16,7 @@ import uuid
 import zlib
 
 from collections import OrderedDict, defaultdict
+from itertools import product
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -352,9 +353,6 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
-    def json_dumps(self, obj):
-        return json.dumps(obj, default=utils.json_iso_dttm_ser)
-
 
 class PivotTableViz(BaseViz):
 
@@ -398,11 +396,14 @@ class PivotTableViz(BaseViz):
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=True,
         )
-        return df.to_html(
-            na_rep='',
-            classes=(
-                "dataframe table table-striped table-bordered "
-                "table-condensed table-hover").split(" "))
+        return dict(
+            columns=list(df.columns),
+            html=df.to_html(
+                na_rep='',
+                classes=(
+                    "dataframe table table-striped table-bordered "
+                    "table-condensed table-hover").split(" ")),
+        )
 
 
 class MarkupViz(BaseViz):
@@ -647,15 +648,16 @@ class BubbleViz(NVD3Viz):
     def query_obj(self):
         form_data = self.form_data
         d = super(BubbleViz, self).query_obj()
-        d['groupby'] = list({
-            form_data.get('series'),
+        d['groupby'] = [
             form_data.get('entity')
-        })
+        ]
+        if form_data.get('series'):
+            d['groupby'].append(form_data.get('series'))
         self.x_metric = form_data.get('x')
         self.y_metric = form_data.get('y')
         self.z_metric = form_data.get('size')
         self.entity = form_data.get('entity')
-        self.series = form_data.get('series')
+        self.series = form_data.get('series') or self.entity
         d['row_limit'] = form_data.get('limit')
 
         d['metrics'] = [
@@ -663,7 +665,7 @@ class BubbleViz(NVD3Viz):
             self.x_metric,
             self.y_metric,
         ]
-        if not all(d['metrics'] + [self.entity, self.series]):
+        if not all(d['metrics'] + [self.entity]):
             raise Exception("Pick a metric for x, y and size")
         return d
 
@@ -1230,6 +1232,39 @@ class DirectedForceViz(BaseViz):
         return df.to_dict(orient='records')
 
 
+class ChordViz(BaseViz):
+
+    """A Chord diagram"""
+
+    viz_type = "chord"
+    verbose_name = _("Directed Force Layout")
+    credits = '<a href="https://github.com/d3/d3-chord">Bostock</a>'
+    is_timeseries = False
+
+    def query_obj(self):
+        qry = super(ChordViz, self).query_obj()
+        fd = self.form_data
+        qry['groupby'] = [fd.get('groupby'), fd.get('columns')]
+        qry['metrics'] = [fd.get('metric')]
+        return qry
+
+    def get_data(self, df):
+        df.columns = ['source', 'target', 'value']
+
+        # Preparing a symetrical matrix like d3.chords calls for
+        nodes = list(set(df['source']) | set(df['target']))
+        matrix = {}
+        for source, target in product(nodes, nodes):
+            matrix[(source, target)] = 0
+        for source, target, value in df.to_records(index=False):
+            matrix[(source, target)] = value
+        m = [[matrix[(n1, n2)] for n1 in nodes] for n2 in nodes]
+        return {
+            'nodes': list(nodes),
+            'matrix': m,
+        }
+
+
 class CountryMapViz(BaseViz):
 
     """A country centric"""
@@ -1573,6 +1608,7 @@ viz_types_list = [
     DirectedForceViz,
     SankeyViz,
     CountryMapViz,
+    ChordViz,
     WorldMapViz,
     FilterBoxViz,
     IFrameViz,

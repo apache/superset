@@ -18,7 +18,10 @@ describe('QuerySearch', () => {
       React.isValidElement(<QuerySearch {...mockedProps} />),
     ).to.equal(true);
   });
-  const wrapper = shallow(<QuerySearch {...mockedProps} />);
+  let wrapper;
+  beforeEach(() => {
+    wrapper = shallow(<QuerySearch {...mockedProps} />);
+  });
 
   it('should have three Select', () => {
     expect(wrapper.find(Select)).to.have.length(3);
@@ -57,8 +60,9 @@ describe('QuerySearch', () => {
 
   it('refreshes queries when clicked', () => {
     const search = sinon.spy(QuerySearch.prototype, 'refreshQueries');
+    wrapper = shallow(<QuerySearch {...mockedProps} />);
     wrapper.find(Button).simulate('click');
     /* eslint-disable no-unused-expressions */
-    expect(search).to.have.been.called;
+    expect(search.called).to.equal(true);
   });
 });

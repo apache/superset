@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2017-06-04 20:38+0200\n"
+"POT-Creation-Date: 2017-06-19 11:56+0800\n"
 "PO-Revision-Date: 2017-06-04 20:36+0200\n"
 "Last-Translator: Maurizio Napolitano <napo@fbk.eu>\n"
 "Language: it\n"
@@ -17,7 +17,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.3.4\n"
+"Generated-By: Babel 2.4.0\n"
 
 #: superset/db_engine_specs.py:194 superset/db_engine_specs.py:225
 #: superset/db_engine_specs.py:269 superset/db_engine_specs.py:317
@@ -106,6 +106,11 @@ msgstr "mezz'ora"
 #: superset/db_engine_specs.py:889
 msgid "10 minute"
 msgstr "10 minuti"
+
+#: superset/utils.py:472
+#, python-format
+msgid "[Superset] Access to the datasource %(name)s was granted"
+msgstr ""
 
 #: superset/viz.py:311
 msgid "Table View"
@@ -231,49 +236,49 @@ msgstr "Grafici d'orizzonte"
 msgid "Mapbox"
 msgstr "Mapbox"
 
-#: superset/connectors/druid/models.py:934
+#: superset/connectors/druid/models.py:950
 msgid "No data was returned."
 msgstr "Nessun dato restituito."
 
-#: superset/connectors/druid/views.py:37 superset/connectors/sqla/views.py:74
+#: superset/connectors/druid/views.py:36 superset/connectors/sqla/views.py:73
 msgid "Column"
 msgstr "Colonna"
 
-#: superset/connectors/druid/views.py:38 superset/connectors/druid/views.py:97
-#: superset/connectors/sqla/views.py:120
+#: superset/connectors/druid/views.py:37 superset/connectors/druid/views.py:96
+#: superset/connectors/sqla/views.py:119
 msgid "Type"
 msgstr "Tipo"
 
-#: superset/connectors/druid/views.py:39 superset/views/core.py:306
-#: superset/views/core.py:355
+#: superset/connectors/druid/views.py:38 superset/views/core.py:305
+#: superset/views/core.py:354
 msgid "Datasource"
 msgstr "Sorgente Dati"
 
-#: superset/connectors/druid/views.py:40 superset/connectors/sqla/views.py:77
+#: superset/connectors/druid/views.py:39 superset/connectors/sqla/views.py:76
 msgid "Groupable"
 msgstr "Raggruppabile"
 
-#: superset/connectors/druid/views.py:41 superset/connectors/sqla/views.py:78
+#: superset/connectors/druid/views.py:40 superset/connectors/sqla/views.py:77
 msgid "Filterable"
 msgstr "Filtrabile"
 
-#: superset/connectors/druid/views.py:42 superset/connectors/sqla/views.py:80
+#: superset/connectors/druid/views.py:41 superset/connectors/sqla/views.py:79
 msgid "Count Distinct"
 msgstr "Count Distinct"
 
-#: superset/connectors/druid/views.py:43 superset/connectors/sqla/views.py:81
+#: superset/connectors/druid/views.py:42 superset/connectors/sqla/views.py:80
 msgid "Sum"
 msgstr "Sum"
 
-#: superset/connectors/druid/views.py:44 superset/connectors/sqla/views.py:82
+#: superset/connectors/druid/views.py:43 superset/connectors/sqla/views.py:81
 msgid "Min"
 msgstr "Min"
 
-#: superset/connectors/druid/views.py:45 superset/connectors/sqla/views.py:83
+#: superset/connectors/druid/views.py:44 superset/connectors/sqla/views.py:82
 msgid "Max"
 msgstr "Max"
 
-#: superset/connectors/druid/views.py:48 superset/connectors/sqla/views.py:43
+#: superset/connectors/druid/views.py:47 superset/connectors/sqla/views.py:42
 msgid ""
 "Whether this column is exposed in the `Filters` section of the explore "
 "view."
@@ -281,7 +286,7 @@ msgstr ""
 "Se questa colonna è esposta nella sezione `Filtri` della vista "
 "esplorazione."
 
-#: superset/connectors/druid/views.py:88 superset/connectors/sqla/views.py:102
+#: superset/connectors/druid/views.py:87 superset/connectors/sqla/views.py:101
 msgid ""
 "Whether the access to this metric is restricted to certain roles. Only "
 "roles with the permission 'metric access on XXX (the name of this "
@@ -291,59 +296,70 @@ msgstr ""
 "ruoli con l'autorizzazione 'accesso metrico su XXX (il nome di questa "
 "metrica)' possono accedervi"
 
-#: superset/connectors/druid/views.py:94 superset/connectors/sqla/views.py:117
+#: superset/connectors/druid/views.py:93 superset/connectors/sqla/views.py:116
 msgid "Metric"
 msgstr "Metrica"
 
-#: superset/connectors/druid/views.py:95 superset/connectors/druid/views.py:205
-#: superset/connectors/sqla/views.py:76 superset/connectors/sqla/views.py:118
-#: superset/views/core.py:356
+#: superset/connectors/druid/views.py:94 superset/connectors/druid/views.py:204
+#: superset/connectors/sqla/views.py:75 superset/connectors/sqla/views.py:117
+#: superset/views/core.py:355
 msgid "Description"
 msgstr "Descrizione"
 
-#: superset/connectors/druid/views.py:96 superset/connectors/sqla/views.py:75
-#: superset/connectors/sqla/views.py:119
+#: superset/connectors/druid/views.py:95 superset/connectors/sqla/views.py:74
+#: superset/connectors/sqla/views.py:118
 msgid "Verbose Name"
 msgstr "Nome Completo"
 
-#: superset/connectors/druid/views.py:98 superset/views/core.py:529
+#: superset/connectors/druid/views.py:97 superset/views/core.py:534
 msgid "JSON"
 msgstr "JSON"
 
-#: superset/connectors/druid/views.py:99
+#: superset/connectors/druid/views.py:98
 msgid "Druid Datasource"
 msgstr "Sorgente Dati Druid"
 
-#: superset/connectors/druid/views.py:124
-#: superset/connectors/druid/views.py:204
+#: superset/connectors/druid/views.py:123
+#: superset/connectors/druid/views.py:203
 msgid "Cluster"
 msgstr "Cluster"
 
-#: superset/connectors/druid/views.py:125
+#: superset/connectors/druid/views.py:124
 msgid "Coordinator Host"
 msgstr "Host Coordinatore"
 
-#: superset/connectors/druid/views.py:126
+#: superset/connectors/druid/views.py:125
 msgid "Coordinator Port"
 msgstr "Porta Coordinatore"
 
-#: superset/connectors/druid/views.py:127
+#: superset/connectors/druid/views.py:126
 msgid "Coordinator Endpoint"
 msgstr "Endpoint Coordinatore"
 
-#: superset/connectors/druid/views.py:128
+#: superset/connectors/druid/views.py:127
 msgid "Broker Host"
 msgstr "Host Broker"
 
-#: superset/connectors/druid/views.py:129
+#: superset/connectors/druid/views.py:128
 msgid "Broker Port"
 msgstr "Porta Broker"
 
-#: superset/connectors/druid/views.py:130
+#: superset/connectors/druid/views.py:129
 msgid "Broker Endpoint"
 msgstr "Endpoint Broker"
 
-#: superset/connectors/druid/views.py:173 superset/connectors/sqla/views.py:156
+#: superset/connectors/druid/views.py:144
+msgid "Druid Clusters"
+msgstr ""
+
+#: superset/connectors/druid/views.py:147
+#: superset/connectors/druid/views.py:243
+#: superset/connectors/druid/views.py:282 superset/connectors/sqla/views.py:261
+#: superset/views/core.py:274
+msgid "Sources"
+msgstr ""
+
+#: superset/connectors/druid/views.py:172 superset/connectors/sqla/views.py:155
 msgid ""
 "The list of slices associated with this table. By altering this "
 "datasource, you may change how these associated slices behave. Also note "
@@ -358,11 +374,11 @@ msgstr ""
 "qualora si modifica un'origine dati. Se vuoi modificare l'origine dati "
 "per una slide, devi sovrascriverla dal 'vista di esplorazione'"
 
-#: superset/connectors/druid/views.py:181 superset/connectors/sqla/views.py:164
+#: superset/connectors/druid/views.py:180 superset/connectors/sqla/views.py:163
 msgid "Timezone offset (in hours) for this datasource"
 msgstr "Timezone offset (in ore) per questa sorgente dati"
 
-#: superset/connectors/druid/views.py:185
+#: superset/connectors/druid/views.py:184
 msgid ""
 "Time expression to use as a predicate when retrieving distinct values to "
 "populate the filter component. Only applies when `Enable Filter Select` "
@@ -375,7 +391,7 @@ msgstr ""
 "inserisce `7 giorni fa`, l'elenco distinto di valori nel filtro verrà "
 "popolato in base al valore distinto della settimana passata"
 
-#: superset/connectors/druid/views.py:192 superset/connectors/sqla/views.py:186
+#: superset/connectors/druid/views.py:191 superset/connectors/sqla/views.py:185
 msgid ""
 "Whether to populate the filter's dropdown in the explore view's filter "
 "section with a list of distinct values fetched from the backend on the "
@@ -384,7 +400,7 @@ msgstr ""
 "Usato per popolare la finestra a cascata dei filtri dall'elenco dei "
 "valori distinti prelevati dal backend al volo"
 
-#: superset/connectors/druid/views.py:196 superset/connectors/sqla/views.py:200
+#: superset/connectors/druid/views.py:195 superset/connectors/sqla/views.py:199
 msgid ""
 "Redirects to this endpoint when clicking on the datasource from the "
 "datasource list"
@@ -392,38 +408,46 @@ msgstr ""
 "Rinvia a questo endpoint al clic sulla sorgente dati dall'elenco delle "
 "sorgenti dati"
 
-#: superset/connectors/druid/views.py:202 superset/connectors/sqla/views.py:193
+#: superset/connectors/druid/views.py:201 superset/connectors/sqla/views.py:192
 msgid "Associated Slices"
 msgstr "Slice associate"
 
-#: superset/connectors/druid/views.py:203
+#: superset/connectors/druid/views.py:202
 msgid "Data Source"
 msgstr "Sorgente Dati"
 
-#: superset/connectors/druid/views.py:206
+#: superset/connectors/druid/views.py:205
 msgid "Owner"
 msgstr "Proprietario"
 
-#: superset/connectors/druid/views.py:207
+#: superset/connectors/druid/views.py:206
 msgid "Is Hidden"
 msgstr "è nascosto"
 
-#: superset/connectors/druid/views.py:208 superset/connectors/sqla/views.py:198
+#: superset/connectors/druid/views.py:207 superset/connectors/sqla/views.py:197
 msgid "Enable Filter Select"
 msgstr "Abilita il filtro di Select"
 
-#: superset/connectors/druid/views.py:209
+#: superset/connectors/druid/views.py:208
 msgid "Default Endpoint"
 msgstr "Endpoint predefinito"
 
-#: superset/connectors/druid/views.py:210
+#: superset/connectors/druid/views.py:209
 msgid "Time Offset"
 msgstr "Offset temporale"
 
-#: superset/connectors/druid/views.py:211 superset/connectors/sqla/views.py:204
-#: superset/views/core.py:242 superset/views/core.py:352
+#: superset/connectors/druid/views.py:210 superset/connectors/sqla/views.py:203
+#: superset/views/core.py:241 superset/views/core.py:351
 msgid "Cache Timeout"
 msgstr "Cache Timeout"
+
+#: superset/connectors/druid/views.py:241
+msgid "Druid Datasources"
+msgstr ""
+
+#: superset/connectors/druid/views.py:279
+msgid "Refresh Druid Metadata"
+msgstr ""
 
 #: superset/connectors/sqla/models.py:388
 msgid ""
@@ -437,7 +461,7 @@ msgstr ""
 msgid "Metric '{}' is not valid"
 msgstr "Metrica '{}' non valida"
 
-#: superset/connectors/sqla/views.py:39
+#: superset/connectors/sqla/views.py:38
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
@@ -445,7 +469,7 @@ msgstr ""
 "Se rendere disponibile questa colonna come opzione [Time Granularity], la"
 " colonna deve essere di tipo DATETIME o simile"
 
-#: superset/connectors/sqla/views.py:46
+#: superset/connectors/sqla/views.py:45
 msgid ""
 "The data type that was inferred by the database. It may be necessary to "
 "input a type manually for expression-defined columns in some cases. In "
@@ -456,42 +480,42 @@ msgstr ""
 "dall'espressione. Nella maggior parte dei casi gli utenti non hanno "
 "bisogno di fare questa modifica."
 
-#: superset/connectors/sqla/views.py:79 superset/connectors/sqla/views.py:122
-#: superset/connectors/sqla/views.py:194 superset/views/core.py:362
+#: superset/connectors/sqla/views.py:78 superset/connectors/sqla/views.py:121
+#: superset/connectors/sqla/views.py:193 superset/views/core.py:361
 msgid "Table"
 msgstr "Tabella"
 
-#: superset/connectors/sqla/views.py:84
+#: superset/connectors/sqla/views.py:83
 msgid "Expression"
 msgstr "Espressione"
 
-#: superset/connectors/sqla/views.py:85
+#: superset/connectors/sqla/views.py:84
 msgid "Is temporal"
 msgstr "è temporale"
 
-#: superset/connectors/sqla/views.py:86
+#: superset/connectors/sqla/views.py:85
 msgid "Datetime Format"
 msgstr "Formato Datetime"
 
-#: superset/connectors/sqla/views.py:87
+#: superset/connectors/sqla/views.py:86
 msgid "Database Expression"
 msgstr "Espressione del Database"
 
-#: superset/connectors/sqla/views.py:121
+#: superset/connectors/sqla/views.py:120
 msgid "SQL Expression"
 msgstr "Espressione SQL"
 
-#: superset/connectors/sqla/views.py:165
+#: superset/connectors/sqla/views.py:164
 msgid "Name of the table that exists in the source database"
 msgstr "Nome delle tabella esistente nella sorgente del database"
 
-#: superset/connectors/sqla/views.py:167
+#: superset/connectors/sqla/views.py:166
 msgid "Schema, as used only in some databases like Postgres, Redshift and DB2"
 msgstr ""
 "Schema, va utilizzato soltanto in alcuni database come Postgres, Redshift"
 " e DB2"
 
-#: superset/connectors/sqla/views.py:173
+#: superset/connectors/sqla/views.py:172
 msgid ""
 "This fields acts a Superset view, meaning that Superset will run a query "
 "against this string as a subquery."
@@ -499,7 +523,7 @@ msgstr ""
 "Questo campo agisce come una vista Superset, il che vuol dire che "
 "Superset eseguirà una query su questa stringa come sotto-query."
 
-#: superset/connectors/sqla/views.py:177
+#: superset/connectors/sqla/views.py:176
 msgid ""
 "Predicate applied when fetching distinct value to populate the filter "
 "control component. Supports jinja template syntax. Applies only when "
@@ -510,31 +534,31 @@ msgstr ""
 "jinja. È utilizzabile solo quando è abilitata l'opzione \"Abilita "
 "selezione filtro\"."
 
-#: superset/connectors/sqla/views.py:183
+#: superset/connectors/sqla/views.py:182
 msgid "Redirects to this endpoint when clicking on the table from the table list"
 msgstr "Reinvia a questo endpoint al clic sulla tabella dall'elenco delle tabelle"
 
-#: superset/connectors/sqla/views.py:195
+#: superset/connectors/sqla/views.py:194
 msgid "Changed By"
 msgstr "Modificato da"
 
-#: superset/connectors/sqla/views.py:196 superset/views/core.py:238
+#: superset/connectors/sqla/views.py:195 superset/views/core.py:237
 msgid "Database"
 msgstr "Database"
 
-#: superset/connectors/sqla/views.py:197 superset/views/core.py:240
+#: superset/connectors/sqla/views.py:196 superset/views/core.py:239
 msgid "Last Changed"
 msgstr "Ultima Modifica"
 
-#: superset/connectors/sqla/views.py:199
+#: superset/connectors/sqla/views.py:198
 msgid "Schema"
 msgstr "Schema"
 
-#: superset/connectors/sqla/views.py:203
+#: superset/connectors/sqla/views.py:202
 msgid "Offset"
 msgstr "Offset"
 
-#: superset/connectors/sqla/views.py:236
+#: superset/connectors/sqla/views.py:235
 msgid ""
 "The table was created. As part of this two phase configuration process, "
 "you should now click the edit button by the new table to configure it."
@@ -542,6 +566,10 @@ msgstr ""
 "Tabella creata. Come parte di questo processo di configurazione in due "
 "fasi, è necessario andare sul pulsante di modifica della nuova tabella "
 "per configurarla."
+
+#: superset/connectors/sqla/views.py:259
+msgid "Tables"
+msgstr ""
 
 #: superset/templates/appbuilder/navbar_right.html:41
 msgid "Profile"
@@ -554,6 +582,10 @@ msgstr "Logout"
 #: superset/templates/appbuilder/navbar_right.html:47
 msgid "Login"
 msgstr "Login"
+
+#: superset/templates/superset/import_dashboards.html:11
+msgid "Import"
+msgstr ""
 
 #: superset/templates/superset/request_access.html:2
 msgid "No Access!"
@@ -572,15 +604,71 @@ msgstr "Richiesta di Permessi"
 msgid "Cancel"
 msgstr "Annulla"
 
+#: superset/templates/superset/welcome.html:10
+msgid "Welcome!"
+msgstr ""
+
+#: superset/templates/superset/welcome.html:20 superset/views/core.py:353
+#: superset/views/core.py:507
+msgid "Dashboards"
+msgstr "Elenco Dashboard"
+
 #: superset/templates/superset/models/database/macros.html:4
 msgid "Test Connection"
 msgstr "Testa la Connessione"
 
-#: superset/views/core.py:206
+#: superset/views/base.py:57
+#, python-format
+msgid "Datasource %(name)s already exists"
+msgstr ""
+
+#: superset/views/base.py:256
+msgid "Delete"
+msgstr ""
+
+#: superset/views/base.py:257
+msgid "Delete all Really?"
+msgstr ""
+
+#: superset/views/core.py:55
+msgid "This endpoint requires the `all_datasource_access` permission"
+msgstr ""
+
+#: superset/views/core.py:57
+msgid "The datasource seems to have been deleted"
+msgstr ""
+
+#: superset/views/core.py:58
+msgid "The access requests seem to have been deleted"
+msgstr ""
+
+#: superset/views/core.py:60
+msgid "The user seems to have been deleted"
+msgstr ""
+
+#: superset/views/core.py:61
+msgid "You don't have access to this datasource"
+msgstr ""
+
+#: superset/views/core.py:65
+#, python-format
+msgid ""
+"This view requires the database %(name)s or `all_datasource_access` "
+"permission"
+msgstr ""
+
+#: superset/views/core.py:70
+#, python-format
+msgid ""
+"This endpoint requires the datasource %(name)s, database or "
+"`all_datasource_access` permission"
+msgstr ""
+
+#: superset/views/core.py:205
 msgid "Expose this DB in SQL Lab"
 msgstr "Esponi questo DB in SQL Lab"
 
-#: superset/views/core.py:207
+#: superset/views/core.py:206
 msgid ""
 "Allow users to run synchronous queries, this is the default and should "
 "work well for queries that can be executed within a web request scope "
@@ -590,7 +678,7 @@ msgstr ""
 "predefinita e dovrebbe funzionare bene per query che possono essere "
 "eseguite con una richiesta web (<-1 minuto)"
 
-#: superset/views/core.py:211
+#: superset/views/core.py:210
 msgid ""
 "Allow users to run queries, against an async backend. This assumes that "
 "you have a Celery worker setup as well as a results backend."
@@ -599,11 +687,11 @@ msgstr ""
 "Questo presuppone che si abbia una installazione funzionante di Celery "
 "nel backend."
 
-#: superset/views/core.py:215
+#: superset/views/core.py:214
 msgid "Allow CREATE TABLE AS option in SQL Lab"
 msgstr "Permetti l'opzione CREATE TABLE AS in SQL Lab"
 
-#: superset/views/core.py:216
+#: superset/views/core.py:215
 msgid ""
 "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in"
 " SQL Lab"
@@ -611,7 +699,7 @@ msgstr ""
 "Permetti agli utenti di eseguire dichiarazioni diverse da SELECT (UPDATE,"
 " DELETE, CREATE, ...) nel SQL Lab"
 
-#: superset/views/core.py:220
+#: superset/views/core.py:219
 msgid ""
 "When allowing CREATE TABLE AS option in SQL Lab, this option forces the "
 "table to be created in this schema"
@@ -619,56 +707,77 @@ msgstr ""
 "Se si abilita l'opzione CREATE TABLE AS in SQL Lab, verrà forzata la "
 "creazione della tabella con questo schema"
 
-#: superset/views/core.py:234
+#: superset/views/core.py:233
 msgid "Expose in SQL Lab"
 msgstr "Esponi in SQL Lab"
 
-#: superset/views/core.py:235
+#: superset/views/core.py:234
 msgid "Allow CREATE TABLE AS"
 msgstr "Permetti CREATE TABLE AS"
 
-#: superset/views/core.py:236
+#: superset/views/core.py:235
 msgid "Allow DML"
 msgstr "Permetti DML"
 
-#: superset/views/core.py:237
+#: superset/views/core.py:236
 msgid "CTAS Schema"
 msgstr "Schema CTAS"
 
-#: superset/views/core.py:239 superset/views/core.py:353
-#: superset/views/core.py:449 superset/views/core.py:513
+#: superset/views/core.py:238 superset/views/core.py:352
+#: superset/views/core.py:454 superset/views/core.py:518
 msgid "Creator"
 msgstr "Creatore"
 
-#: superset/views/core.py:241
+#: superset/views/core.py:240
 msgid "SQLAlchemy URI"
 msgstr "URI SQLAlchemy"
 
-#: superset/views/core.py:243
+#: superset/views/core.py:242
 msgid "Extra"
 msgstr "Extra"
 
-#: superset/views/core.py:303 superset/views/core.py:526
+#: superset/views/core.py:260
+msgid "Import Dashboards"
+msgstr ""
+
+#: superset/views/core.py:264 superset/views/core.py:2279
+#: superset/views/sql_lab.py:22
+msgid "Manage"
+msgstr ""
+
+#: superset/views/core.py:271
+msgid "Databases"
+msgstr ""
+
+#: superset/views/core.py:302 superset/views/core.py:531
 msgid "User"
 msgstr "Utente"
 
-#: superset/views/core.py:304
+#: superset/views/core.py:303
 msgid "User Roles"
 msgstr "Ruoli Utente"
 
-#: superset/views/core.py:305
+#: superset/views/core.py:304
 msgid "Database URL"
 msgstr "URL del Database"
 
-#: superset/views/core.py:307
+#: superset/views/core.py:306
 msgid "Roles to grant"
 msgstr "Ruoli per l'accesso"
 
-#: superset/views/core.py:308
+#: superset/views/core.py:307
 msgid "Created On"
 msgstr "Creato il"
 
-#: superset/views/core.py:341
+#: superset/views/core.py:313
+msgid "Access requests"
+msgstr ""
+
+#: superset/views/core.py:315 superset/views/core.py:542
+msgid "Security"
+msgstr ""
+
+#: superset/views/core.py:340
 msgid ""
 "These parameters are generated dynamically when clicking the save or "
 "overwrite button in the explore view. This JSON object is exposed here "
@@ -680,39 +789,39 @@ msgstr ""
 "JSON è esposto qui per referenza e per utenti esperti che vogliono "
 "modificare parametri specifici."
 
-#: superset/views/core.py:346
+#: superset/views/core.py:345
 msgid "Duration (in seconds) of the caching timeout for this slice."
 msgstr "Durata (in secondi) per il timeout della cache per questa slice."
 
-#: superset/views/core.py:354
-msgid "Dashboards"
-msgstr "Elenco Dashboard"
-
-#: superset/views/core.py:357
+#: superset/views/core.py:356
 msgid "Last Modified"
 msgstr "Ultima Modifica"
 
-#: superset/views/core.py:358 superset/views/core.py:448
+#: superset/views/core.py:357 superset/views/core.py:453
 msgid "Owners"
 msgstr "Proprietari"
 
-#: superset/views/core.py:359
+#: superset/views/core.py:358
 msgid "Parameters"
 msgstr "Parametri"
 
-#: superset/views/core.py:360 superset/views/core.py:396
+#: superset/views/core.py:359 superset/views/core.py:401
 msgid "Slice"
 msgstr "Slice"
 
-#: superset/views/core.py:361
+#: superset/views/core.py:360
 msgid "Name"
 msgstr "Nome"
 
-#: superset/views/core.py:363
+#: superset/views/core.py:362
 msgid "Visualization Type"
 msgstr "Tipo di Visualizzazione"
 
-#: superset/views/core.py:421
+#: superset/views/core.py:389 superset/views/core.py:452
+msgid "Slices"
+msgstr "Slice"
+
+#: superset/views/core.py:426
 msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
@@ -723,7 +832,7 @@ msgstr ""
 "la dimensione usando la funzione di drag & drop nella vista della "
 "dashboard. "
 
-#: superset/views/core.py:426
+#: superset/views/core.py:431
 msgid ""
 "The css for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
@@ -731,11 +840,11 @@ msgstr ""
 "Il CSS di ogni singola dashboard può essere modificato qui, oppure nella "
 "vista della dashboard dove i cambiamenti sono visibili immediatamente"
 
-#: superset/views/core.py:430
+#: superset/views/core.py:435
 msgid "To get a readable URL for your dashboard"
 msgstr "ottenere una URL leggibile per la tua dashboard"
 
-#: superset/views/core.py:431
+#: superset/views/core.py:436
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
 "overwrite button in the dashboard view. It is exposed here for reference "
@@ -746,59 +855,129 @@ msgstr ""
 "qui come riferimento e per gli utenti esperti che vogliono modificare "
 "parametri specifici."
 
-#: superset/views/core.py:436
+#: superset/views/core.py:441
 msgid "Owners is a list of users who can alter the dashboard."
 msgstr "Proprietari è una lista di utenti che può alterare la dashboard."
 
-#: superset/views/core.py:444 superset/views/core.py:511
+#: superset/views/core.py:449 superset/views/core.py:516
 msgid "Dashboard"
 msgstr "Dashboard"
 
-#: superset/views/core.py:445 superset/views/core.py:512
+#: superset/views/core.py:450 superset/views/core.py:517
 msgid "Title"
 msgstr "Titolo"
 
-#: superset/views/core.py:446
+#: superset/views/core.py:451
 msgid "Slug"
 msgstr "Slug"
 
-#: superset/views/core.py:447
-msgid "Slices"
-msgstr "Slice"
-
-#: superset/views/core.py:450 superset/views/core.py:514
+#: superset/views/core.py:455 superset/views/core.py:519
 msgid "Modified"
 msgstr "Modificato"
 
-#: superset/views/core.py:451
+#: superset/views/core.py:456
 msgid "Position JSON"
 msgstr "Posizione del JSON"
 
-#: superset/views/core.py:452
+#: superset/views/core.py:457
 msgid "CSS"
 msgstr "CSS"
 
-#: superset/views/core.py:453
+#: superset/views/core.py:458
 msgid "JSON Metadata"
 msgstr "Metadati JSON"
 
-#: superset/views/core.py:454
+#: superset/views/core.py:459
 msgid "Underlying Tables"
 msgstr "Tabelle sottostanti"
 
-#: superset/views/core.py:527
+#: superset/views/core.py:482
+msgid "Export"
+msgstr ""
+
+#: superset/views/core.py:482
+msgid "Export dashboards?"
+msgstr ""
+
+#: superset/views/core.py:532
 msgid "Action"
 msgstr "Azione"
 
-#: superset/views/core.py:528
+#: superset/views/core.py:533
 msgid "dttm"
 msgstr "dttm"
 
-#: superset/views/core.py:2279
+#: superset/views/core.py:540
+msgid "Action Log"
+msgstr ""
+
+#: superset/views/core.py:770
+msgid "Access was requested"
+msgstr ""
+
+#: superset/views/core.py:831
+#, python-format
+msgid ""
+"%(user)s was granted the role %(role)s that gives access to the "
+"%(datasource)s"
+msgstr ""
+
+#: superset/views/core.py:847
+#, python-format
+msgid "Role %(r)s was extended to provide the access to the datasource %(ds)s"
+msgstr ""
+
+#: superset/views/core.py:856
+msgid "You have no permission to approve this request"
+msgstr ""
+
+#: superset/views/core.py:1589
+msgid ""
+"Malformed request. slice_id or table_name and db_name arguments are "
+"expected"
+msgstr ""
+
+#: superset/views/core.py:1595
+#, python-format
+msgid "Slice %(id)s not found"
+msgstr ""
+
+#: superset/views/core.py:1607
+#, python-format
+msgid "Table %(t)s wasn't found in the database %(d)s"
+msgstr ""
+
+#: superset/views/core.py:1741
+#, python-format
+msgid "Can't find User '%(name)s', please ask your admin to create one."
+msgstr ""
+
+#: superset/views/core.py:1748
+#, python-format
+msgid "Can't find DruidCluster with cluster_name = '%(name)s'"
+msgstr ""
+
+#: superset/views/core.py:2276
+msgid "CSS Templates"
+msgstr ""
+
+#: superset/views/core.py:2286
 msgid "SQL Editor"
 msgstr "Editor SQL"
 
-#: superset/views/core.py:2288
+#: superset/views/core.py:2291 superset/views/core.py:2300
+msgid "SQL Lab"
+msgstr ""
+
+#: superset/views/core.py:2295
 msgid "Query Search"
 msgstr "Ricerca Query"
+
+#: superset/views/sql_lab.py:20
+msgid "Queries"
+msgstr ""
+
+#: superset/views/sql_lab.py:55
+msgid "Saved Queries"
+msgstr ""
 

@@ -1,7 +1,8 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 
-export function getExploreUrl(form_data, endpointType = 'base', force = false, curUrl = null) {
+export function getExploreUrl(form_data, endpointType = 'base', force = false,
+  curUrl = null, requestParams = {}) {
   if (!form_data.datasource) {
     return null;
   }
@@ -37,6 +38,14 @@ export function getExploreUrl(form_data, endpointType = 'base', force = false, c
   }
   if (endpointType === 'query') {
     search.query = 'true';
+  }
+  const paramNames = Object.keys(requestParams);
+  if (paramNames.length) {
+    paramNames.forEach((name) => {
+      if (requestParams.hasOwnProperty(name)) {
+        search[name] = requestParams[name];
+      }
+    });
   }
   uri = uri.search(search).directory(directory);
   return uri.toString();

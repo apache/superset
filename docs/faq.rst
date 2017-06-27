@@ -137,3 +137,9 @@ Behind the scene, the new columns will get merged it. Following this,
 you may want to
 re-edit the table afterwards to configure the ``Column`` tab, check the
 appropriate boxes and save again.
+
+How do I go about developing a new visualization type?
+------------------------------------------------------
+Here's an example as a Github PR with comments that describe what the
+different sections of the code do:
+https://github.com/airbnb/superset/pull/3013
