@@ -25,6 +25,12 @@ appbuilder.add_view(
 
 class SavedQueryView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(SavedQuery)
+
+    list_title = _('List Saved Query')
+    show_title = _('Show Saved Query')
+    add_title = _('Add Saved Query')
+    edit_title = _('Edit Saved Query')
+
     list_columns = [
         'label', 'user', 'database', 'schema', 'description',
         'modified', 'pop_tab_link']
