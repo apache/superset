@@ -10,6 +10,7 @@ const vizMap = {
   cal_heatmap: require('./cal_heatmap.js'),
   compare: require('./nvd3_vis.js'),
   directed_force: require('./directed_force.js'),
+  chord: require('./chord.jsx'),
   dist_bar: require('./nvd3_vis.js'),
   filter_box: require('./filter_box.jsx'),
   heatmap: require('./heatmap.js'),
