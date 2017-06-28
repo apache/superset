@@ -31,7 +31,7 @@
     function checkSearchButton() {
         var hasFilter = $('.filters tr').length;
         if (hasFilter) {
-        	$('.filters a.remove-filter').off('click', checkSearchButton);
+            $('.filters a.remove-filter').off('click', checkSearchButton);
             $('.filters a.remove-filter').on('click', checkSearchButton);
             $('.filter-action').toggle(true);
         } else {
