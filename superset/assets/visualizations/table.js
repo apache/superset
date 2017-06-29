@@ -132,6 +132,7 @@ function tableVis(slice, payload) {
   }
   const datatable = container.find('.dataTable').DataTable({
     paging,
+    deferRender:true,
     pageLength,
     aaSorting: [],
     searching: fd.include_search,

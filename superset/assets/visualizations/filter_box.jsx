@@ -73,8 +73,11 @@ class FilterBox extends React.Component {
         );
       });
     }
+    // maps keys of filtersChoices onto the arrow function
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
+      // gets data at filtersChoices[filter] (which is also an array?)
       const data = this.props.filtersChoices[filter];
+      // finds max value of data metric
       const maxes = {};
       maxes[filter] = d3.max(data, function (d) {
         return d.metric;
@@ -97,7 +100,8 @@ class FilterBox extends React.Component {
                 backgroundImage,
                 padding: '2px 5px',
               };
-              return { value: opt.id, label: opt.id, style };
+              const label_ = opt.id.concat(" [", opt.metric, "]");
+              return { value: opt.id, label: label_, style };
             })}
             onChange={this.changeFilter.bind(this, filter)}
           />
