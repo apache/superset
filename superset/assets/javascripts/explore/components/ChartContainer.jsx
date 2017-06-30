@@ -32,6 +32,7 @@ const propTypes = {
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
+  width: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   table_name: PropTypes.string,
@@ -60,6 +61,7 @@ class ChartContainer extends React.PureComponent {
         (
           prevProps.queryResponse !== this.props.queryResponse ||
           prevProps.height !== this.props.height ||
+          prevProps.width !== this.props.width ||
           this.props.triggerRender
         ) && !this.props.queryResponse.error
         && this.props.chartStatus !== 'failed'
