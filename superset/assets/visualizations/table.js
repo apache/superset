@@ -43,7 +43,7 @@ function tableVis(slice, payload) {
 
   const div = d3.select(slice.selector);
   div.html('');
-  const table = div.append('table.table')
+  const table = div.append('table')
     .classed(
       'dataframe dataframe table table-striped table-bordered ' +
       'table-condensed table-hover dataTable no-footer', true)
@@ -60,13 +60,18 @@ function tableVis(slice, payload) {
   console.log(pageLength);
   
   let datatable;
-  
-  if (data.columns.find((c) => {
+
+  if ((!data.columns.find((c) => {
         return metrics.indexOf(c) >= 0;
-      })) {
+      }))) {
+    let columns = [];
+    data.columns.map((c) => {
+      columns.push({data: c});
+    });
+    console.log(columns);
     datatable = container.find('.dataTable').DataTable({
       data: data.records,
-      columns: data.columns,
+      columns: columns,
       paging: paging,
       deferRender: true,
       pageLength: pageLength,
