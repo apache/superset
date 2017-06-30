@@ -47,7 +47,7 @@ function tableVis(slice, payload) {
     .classed(
       'dataframe dataframe table table-striped table-bordered ' +
       'table-condensed table-hover dataTable no-footer', true)
-    .attr('width', '100%');
+    .attr('width', '80%');
 
   const height = slice.height();
   let paging = false;
@@ -58,6 +58,15 @@ function tableVis(slice, payload) {
   }
   console.log(paging);
   console.log(pageLength);
+  
+  table.append('thead').append('tr')
+    .selectAll('th')
+    .data(data.columns)
+    .enter()
+    .append('th')
+    .text(function (d) {
+      return d;
+    });
   
   let datatable;
 
@@ -75,22 +84,11 @@ function tableVis(slice, payload) {
       paging: paging,
       deferRender: true,
       pageLength: pageLength,
-      aaSorting: [],
       searching: fd.include_search,
-      bInfo: false,
       scrollY: height + 'px',
       scrollCollapse: true,
-      scrollX: true,
     });
   } else {
-   table.append('thead').append('tr')
-    .selectAll('th')
-    .data(data.columns)
-    .enter()
-    .append('th')
-    .text(function (d) {
-      return d;
-    });
     table.append('tbody')
       .selectAll('tr')
       .data(data.records)
