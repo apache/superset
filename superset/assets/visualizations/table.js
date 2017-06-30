@@ -47,7 +47,7 @@ function tableVis(slice, payload) {
     .classed(
       'dataframe dataframe table table-striped table-bordered ' +
       'table-condensed table-hover dataTable no-footer', true)
-    .attr('width', '80%');
+    .attr('width', '100%');
 
   const height = slice.height();
   let paging = false;
@@ -85,8 +85,6 @@ function tableVis(slice, payload) {
       deferRender: true,
       pageLength: pageLength,
       searching: fd.include_search,
-      scrollY: height + 'px',
-      scrollCollapse: true,
     });
   } else {
     table.append('tbody')
@@ -162,9 +160,6 @@ function tableVis(slice, payload) {
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      scrollY: height + 'px',
-      scrollCollapse: true,
-      scrollX: true,
     });
   }
   fixDataTableBodyHeight(
