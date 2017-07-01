@@ -901,6 +901,32 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
+    def handle_legacy_metric(self, conf):
+        if isinstance(conf, basestring):
+            return {
+                'metricType': 'metric',
+                'metricName': conf,
+                'label': conf,
+            }
+        return conf
+
+    def handle_legacy_metric_list(self, conf):
+        if isinstance(conf, (tuple, list)):
+            return [self.handle_legacy_metric(metric) for metric in conf]
+        return self.handle_legacy_metric(conf)
+
+    def handle_legacy_metrics(self, form_data):
+        """Metrics used to be string references to predef metrics
+
+        Convert legacy notation to new one"""
+        metric_keys = (
+            'metrics', 'x', 'y', 'metric', 'size',
+            'metric_2', 'secondary_metric')
+        for mk in metric_keys:
+            if mk in form_data:
+                form_data[mk] = self.handle_legacy_metric_list(form_data[mk])
+        return form_data
+
     def get_form_data(self):
         # get form data from url
         if request.args.get("form_data"):
@@ -912,6 +938,7 @@ class Superset(BaseSupersetView):
             form_data = '{}'
 
         d = json.loads(form_data)
+        d = self.handle_legacy_metrics(d)
 
         if request.args.get("viz_type"):
             # Converting old URLs

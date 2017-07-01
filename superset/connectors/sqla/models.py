@@ -348,6 +348,48 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
+    def get_sqla_metric(self, metric_conf):
+        metric_name = None
+        if isinstance(metric_conf, basestring):
+            metric_name = metric_conf
+            metric_type = 'string_ref'
+        else:
+            metric_type = metric_conf.get('metricType')
+        if metric_type == 'metric':
+            metric_name = metric_conf.get('metricName')
+        if metric_name:
+            metrics_dict = {m.metric_name: m for m in self.metrics}
+            if metric_name not in metrics_dict:
+                raise Exception(
+                    _("Metric '{}' is not valid".format(metric_name)))
+            return metrics_dict.get(metric_name).sqla_col
+
+        sqla_metric = None
+        expr = metric_conf.get('expr')
+        if metric_type == 'expr':
+            sqla_metric = literal_column(expr)
+        elif metric_type == 'col':
+            agg = metric_conf.get('agg')
+            col = metric_conf.get('col')
+            sqla_col = column(col)
+            if agg == 'COUNT_DISTINCT':
+                sqla_metric = sa.func.COUNT(sa.distinct(sqla_col))
+            elif agg == 'COUNT':
+                sqla_metric = sa.func.COUNT(sqla_col)
+            elif agg == 'SUM':
+                sqla_metric = sa.func.SUM(sqla_col)
+            elif agg == 'AVG':
+                sqla_metric = sa.func.AVG(sqla_col)
+            elif agg == 'MIN':
+                sqla_metric = sa.func.MIN(sqla_col)
+            elif agg == 'MAX':
+                sqla_metric = sa.func.MAX(sqla_col)
+            else:
+                sqla_metric = literal_column(expr)
+        if sqla_metric is not None:
+            sqla_metric = sqla_metric.label(metric_conf.get('label'))
+        return sqla_metric
+
     def get_sqla_query(  # sqla
             self,
             groupby, metrics,
@@ -387,7 +429,6 @@ class SqlaTable(Model, BaseDatasource):
         time_groupby_inline = db_engine_spec.time_groupby_inline
 
         cols = {col.column_name: col for col in self.columns}
-        metrics_dict = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
             raise Exception(_(
@@ -395,15 +436,20 @@ class SqlaTable(Model, BaseDatasource):
                 "and is required by this type of chart"))
         if not groupby and not metrics and not columns:
             raise Exception(_("Empty query?"))
+        metrics_exprs = []
+        for m in metrics:
+            metrics_exprs.append(self.get_sqla_metric(m))
+
+        metrics_dict = {m.metric_name: m for m in self.metrics}
         for m in metrics:
             if m not in metrics_dict:
                 raise Exception(_("Metric '{}' is not valid".format(m)))
-        metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
+
+        timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
             main_metric_expr = literal_column("COUNT(*)").label("ccount")
-
         select_exprs = []
         groupby_exprs = []
 

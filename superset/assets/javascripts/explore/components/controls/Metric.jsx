@@ -34,100 +34,160 @@ const numericAggFunctions = {
 
 const propTypes = {
   datasource: PropTypes.object,
-  column: PropTypes.string,
-  metricType: PropTypes.string,
   onChange: PropTypes.func,
-  initialMetricType: PropTypes.string,
-  initialLabel: PropTypes.string,
-  initialSql: PropTypes.string,
   onDelete: PropTypes.func,
-};
-
-const defaultProps = {
-  initialMetricType: 'free',
-  initialLabel: 'row_count',
-  initialSql: 'COUNT(*)',
+  metric: PropTypes.object.isRequired,
 };
 
 export default class Metric extends React.Component {
   constructor(props) {
     super(props);
+    const datasource = props.datasource;
+    const metric = props.metric;
+    let column = datasource.columns[0];
+    let predefMetric = datasource.metrics[0];
+    if (metric.col) {
+      column = datasource.columns.find(c => c.column_name === metric.col);
+    }
+    if (metric.metricName) {
+      predefMetric = datasource.metrics.find(m => m.metric_name === metric.metricName);
+    }
     this.state = {
-      aggregate: null,
-      label: props.initialLabel,
-      metricType: props.initialMetricType,
-      metricName: null,
-      sql: props.initialSql,
+      column,
+      predefMetric,
+      agg: metric.agg,
+      label: metric.label,
+      metricType: metric.metricType,
+      expr: metric.expr,
     };
+    this.onChange();
   }
   onChange() {
-    this.props.onChange(this.state);
+    const metric = {
+      metricType: this.state.metricType,
+      label: this.state.label,
+    };
+    if (this.state.metricType === 'metric') {
+      metric.metricName = this.state.predefMetric.metric_name;
+      metric.expr = this.state.predefMetric.expression;
+    } else if (this.state.metricType === 'col') {
+      metric.col = this.state.column.column_name;
+      metric.agg = this.state.agg;
+    } else if (this.state.metricType === 'expr') {
+      metric.expr = this.state.expr;
+    }
+    this.props.onChange(metric);
   }
   onDelete() {
     this.props.onDelete();
   }
   setMetricType(v) {
-    this.setState({ metricType: v });
+    this.setState({ metricType: v }, this.onChange);
   }
   changeLabel(e) {
     const label = e.target.value;
     this.setState({ label }, this.onChange);
   }
   changeExpression(e) {
-    const sql = e.target.value;
-    this.setState({ sql, columnName: null, aggregate: null }, this.onChange);
+    const expr = e.target.value;
+    this.setState({ expr, col: null, agg: null }, this.onChange);
   }
   optionify(arr) {
     return arr.map(s => ({ value: s, label: s }));
   }
   changeColumnSection() {
     let label;
-    if (this.state.aggregate && this.state.column) {
-      label = this.state.aggregate + '__' + this.state.column.column_name;
+    if (this.state.agg && this.state.column) {
+      label = this.state.agg + '__' + this.state.column.column_name;
     } else {
       label = '';
     }
     this.setState({ label }, this.onChange);
   }
-  changeAggregate(opt) {
-    const aggregate = opt ? opt.value : null;
-    this.setState({ aggregate }, this.changeColumnSection);
+  changeagg(opt) {
+    const agg = opt ? opt.value : null;
+    this.setState({ agg }, this.changeColumnSection);
   }
   changeRadio(e) {
-    this.setState({ metricType: e.target.value });
+    this.setState({ metricType: e.target.value }, this.onChange);
   }
-  changeMetric(metric) {
-    let label;
-    if (metric) {
-      label = metric.metric_name;
-    }
-    this.setState({ label, metric }, this.onChange);
+  changeMetric(predefMetric) {
+    const label = predefMetric.verbose_name || predefMetric.metric_name;
+    this.setState({ label, predefMetric }, this.onChange);
   }
   changeColumn(column) {
-    let aggregate = this.state.aggregate;
+    let agg = this.state.agg;
     if (column) {
-      if (!aggregate) {
+      if (!agg) {
         if (isNum(column.type)) {
-          aggregate = 'SUM';
+          agg = 'SUM';
         } else {
-          aggregate = 'COUNT_DISTINCT';
+          agg = 'COUNT_DISTINCT';
         }
       }
     } else {
-      aggregate = null;
+      agg = null;
     }
-    this.setState({ column, aggregate }, this.changeColumnSection);
+    this.setState({ column, agg }, this.changeColumnSection);
   }
-  renderOverlay() {
-    let aggregateOptions = [];
+  renderColumnSelect() {
+    return (
+      <Select
+        name="select-schema"
+        placeholder="Column"
+        clearable={false}
+        onFocus={this.setMetricType.bind(this, 'col')}
+        options={this.props.datasource.columns}
+        onChange={this.changeColumn.bind(this)}
+        value={this.state.column}
+        autosize={false}
+        optionRenderer={c => <ColumnOption column={c} />}
+        valueRenderer={c => <ColumnOption prefix="Column: " column={c} />}
+      />);
+  }
+  renderMetricSelect() {
+    return (
+      <Select
+        name="select-schema"
+        placeholder="Predefined metric"
+        options={this.props.datasource.metrics}
+        onFocus={this.setMetricType.bind(this, 'metric')}
+        value={this.state.predefMetric}
+        autosize={false}
+        onChange={this.changeMetric.bind(this)}
+        optionRenderer={m => <MetricOption metric={m} />}
+        valueRenderer={m => <MetricOption prefix="Metric: " metric={m} />}
+      />);
+  }
+  renderAggSelect() {
+    let aggOptions = [];
     const column = this.state.column;
     if (column) {
       if (isNum(column.type)) {
-        aggregateOptions = Object.keys(numericAggFunctions);
+        aggOptions = Object.keys(numericAggFunctions);
       } else {
-        aggregateOptions = Object.keys(nonNumericAggFunctions);
+        aggOptions = Object.keys(nonNumericAggFunctions);
       }
     }
+    return (
+      <Select
+        name="select-schema"
+        placeholder="agg function"
+        clearable={false}
+        onFocus={this.setMetricType.bind(this, 'col')}
+        disabled={aggOptions.length === 0}
+        options={this.optionify(aggOptions)}
+        value={this.state.agg}
+        autosize={false}
+        onChange={this.changeagg.bind(this)}
+        valueRenderer={o => (
+          <div>
+            <span className="text-muted">agg:</span> {o.label}
+          </div>
+        )}
+      />);
+  }
+  renderOverlay() {
     const metricType = this.state.metricType;
     return (
       <Popover id="popover-positioned-right" title="Metric Definition">
@@ -143,47 +203,23 @@ export default class Metric extends React.Component {
           </InputGroup>
         </FormGroup>
         <hr />
-        <div className={metricType !== 'column' ? 'dimmed' : ''}>
+        <div className={metricType !== 'col' ? 'dimmed' : ''}>
           <Row>
             <Col md={1}>
               <Radio
                 name="metricType"
                 inline
-                value="column"
+                value="col"
                 onChange={this.changeRadio.bind(this)}
-                checked={this.state.metricType === 'column'}
+                checked={this.state.metricType === 'col'}
               />
             </Col>
             <Col md={11}>
               <div className="m-b-5">
-                <Select
-                  name="select-schema"
-                  placeholder="Column"
-                  onFocus={this.setMetricType.bind(this, 'column')}
-                  options={this.props.datasource.columns}
-                  onChange={this.changeColumn.bind(this)}
-                  value={this.state.column}
-                  autosize={false}
-                  optionRenderer={c => <ColumnOption column={c} />}
-                  valueRenderer={c => <ColumnOption prefix='Column: ' column={c} />}
-                />
+                {this.renderColumnSelect()}
               </div>
               <div>
-                <Select
-                  name="select-schema"
-                  placeholder="Aggregate function"
-                  onFocus={this.setMetricType.bind(this, 'column')}
-                  disabled={aggregateOptions.length === 0}
-                  options={this.optionify(aggregateOptions)}
-                  value={this.state.aggregate}
-                  autosize={false}
-                  onChange={this.changeAggregate.bind(this)}
-                  valueRenderer={o => (
-                    <div>
-                      <span className="text-muted">Aggregate:</span> {o.label}
-                    </div>
-                  )}
-                />
+                {this.renderAggSelect()}
               </div>
             </Col>
           </Row>
@@ -201,41 +237,31 @@ export default class Metric extends React.Component {
               />
             </Col>
             <Col md={11}>
-              <Select
-                name="select-schema"
-                placeholder="Predefined metric"
-                options={this.props.datasource.metrics}
-                onFocus={this.setMetricType.bind(this, 'metric')}
-                value={this.state.metric}
-                autosize={false}
-                onChange={this.changeMetric.bind(this)}
-                optionRenderer={m => <MetricOption metric={m} />}
-                valueRenderer={m => <MetricOption prefix='Metric: ' metric={m} />}
-              />
+              {this.renderMetricSelect()}
             </Col>
           </Row>
         </div>
         <hr />
-        <div className={metricType !== 'free' ? 'dimmed' : ''}>
+        <div className={metricType !== 'expr' ? 'dimmed' : ''}>
           <Row>
             <Col md={1}>
               <Radio
                 inline
                 name="metricType"
-                value="free"
+                value="expr"
                 onChange={this.changeRadio.bind(this)}
-                checked={this.state.metricType === 'free'}
+                checked={this.state.metricType === 'expr'}
               />
             </Col>
             <Col md={11}>
-              <FormGroup bsSize="sm" controlId="sql">
+              <FormGroup bsSize="sm" controlId="expr">
                 <InputGroup bsSize="sm">
-                  <InputGroup.Addon>SQL</InputGroup.Addon>
+                  <InputGroup.Addon>expr</InputGroup.Addon>
                   <FormControl
                     type="text"
-                    value={this.state.sql}
-                    onFocus={this.setMetricType.bind(this, 'free')}
-                    placeholder="Free form SQL"
+                    value={this.state.expr}
+                    onFocus={this.setMetricType.bind(this, 'expr')}
+                    placeholder="Free form expr"
                     onChange={this.changeExpression.bind(this)}
                   />
                 </InputGroup>
@@ -253,7 +279,7 @@ export default class Metric extends React.Component {
     }
     let deleteButton;
     if (this.props.onDelete) {
-      deleteButton = <i className="fa fa-times" onClick={this.onDelete.bind(this)} />;
+      deleteButton = <i className="fa fa-times pointer" onClick={this.onDelete.bind(this)} />;
     }
     const trigger = (
       <OverlayTrigger
@@ -262,7 +288,7 @@ export default class Metric extends React.Component {
         rootClose
         overlay={this.renderOverlay()}
       >
-        <i className="fa fa-edit" role="button" />
+        <i className="fa fa-edit pointer" />
       </OverlayTrigger>
     );
     return (
@@ -277,4 +303,3 @@ export default class Metric extends React.Component {
 }
 
 Metric.propTypes = propTypes;
-Metric.defaultProps = defaultProps;

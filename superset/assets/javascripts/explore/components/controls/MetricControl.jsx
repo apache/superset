@@ -3,7 +3,9 @@ import ControlHeader from '../ControlHeader';
 import Metric from './Metric';
 
 const propTypes = {
-  onChange: PropTypes.func,
+  onChange: PropTypes.func.isRequired,
+  value: PropTypes.object.isRequired,
+  datasource: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -11,14 +13,18 @@ const defaultProps = {
 };
 
 export default class MetricControl extends React.Component {
-  onChange() {
-    this.props.onChange(this.state);
+  onChange(value) {
+    this.props.onChange(value);
   }
   render() {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Metric {...this.props} />
+        <Metric
+          metric={this.props.value}
+          datasource={this.props.datasource}
+          onChange={this.onChange.bind(this)}
+        />
       </div>
     );
   }

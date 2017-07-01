@@ -1,71 +1,83 @@
 import React, { PropTypes } from 'react';
+import shortid from 'shortid';
+
 import ControlHeader from '../ControlHeader';
 import Metric from './Metric';
 
 const propTypes = {
-  initialMetrics: PropTypes.array.isRequired,
-  datasource: PropTypes.object,
+  datasource: PropTypes.object.isRequired,
   onChange: PropTypes.func,
+  value: PropTypes.array,
 };
 
 const defaultProps = {
-  initialMetrics: [],
   onChange: () => {},
+  value: [],
 };
 
 export default class MetricListControl extends React.Component {
   constructor(props) {
     super(props);
-    const metrics = this.props.initialMetrics.slice();
-    if (props.initialMetrics.length === 0) {
-      metrics.push({
-        metricType: 'free',
-        metricLabel: 'row_count',
-        sql: 'COUNT(*)',
-      });
-    }
-    this.state = {
-      metrics,
-    };
+    let metrics = props.value || [];
+    /* eslint-disable no-param-reassign */
+    metrics = metrics.map((m) => {
+      m.uid = shortid.generate();
+      return m;
+    });
+    this.state = { metrics };
   }
   onChange() {
-    this.props.onChange(this.state.metrics);
+    this.props.onChange(this.state.metrics, this.validate());
   }
-  deleteMetric(metric) {
-    this.setState({ metrics: this.state.metrics.filter(m => m !== metric) });
+  validate() {
+    const labels = {};
+    this.state.metrics.forEach((m) => {
+      labels[m.label] = null;
+    });
+    if (Object.keys(labels).length < this.state.metrics.length) {
+      return ['Provide a unique label for each metric'];
+    }
+    return null;
   }
-  changeMetric(i, metric) {
-    const metrics = this.state.metrics.slice();
-    metrics[i] = metric;
+  deleteMetric(uid) {
+    const metrics = this.state.metrics.filter(m => m.uid !== uid);
+    this.setState({ metrics }, this.onChange);
+  }
+  changeMetric(uid, metric) {
+    const metrics = this.state.metrics.map((m) => {
+      if (uid === m.uid) {
+        metric.uid = uid;
+        return metric;
+      }
+      return m;
+    });
     this.setState({ metrics }, this.onChange);
   }
   addMetric() {
     const metrics = this.state.metrics.slice();
-    const name = 'unlabeled metric ' + this.state.metrics.length;
+    const label = 'unlabeled metric ' + this.state.metrics.length;
     metrics.push({
-      initialMetricType: 'free',
-      initialLabel: name,
-      initialSql: '',
+      label,
+      uid: shortid.generate(),
+      expr: 'COUNT(*)',
+      metricType: 'expr',
     });
     this.setState({ metrics }, this.onChange);
   }
   render() {
-    if (!this.props.datasource) {
-      return null;
-    }
-    const metrics = this.state.metrics || [];
     return (
       <div className="MetricListControl">
         <ControlHeader {...this.props} />
-        {metrics.map((metric, i) => (
+        {this.state.metrics.map(metric => (
           <Metric
-            key={i}
+            key={metric.uid}
+            metric={metric}
             datasource={this.props.datasource}
-            onChange={this.changeMetric.bind(this, i)}
-            onDelete={this.deleteMetric.bind(this, metric)}
+            onChange={this.changeMetric.bind(this, metric.uid)}
+            onDelete={this.deleteMetric.bind(this, metric.uid)}
           />
         ))}
-        <a onClick={this.addMetric.bind(this)} role="button">
+        <a onClick={this.addMetric.bind(this)} className="pointer">
           <i className="fa fa-plus-circle" />
         </a>
       </div>
