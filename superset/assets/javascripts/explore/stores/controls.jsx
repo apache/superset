@@ -240,6 +240,13 @@ export const controls = {
     description: 'Sort bars by x labels.',
   },
 
+  combine_metric: {
+    type: 'CheckboxControl',
+    label: 'Combine Metrics',
+    default: false,
+    description: 'Combine Metrics to display.',
+  },
+
   show_controls: {
     type: 'CheckboxControl',
     label: 'Extra Controls',
