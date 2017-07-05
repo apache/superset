@@ -14,12 +14,16 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import { exploreReducer } from './reducers/exploreReducer';
 import { appSetup } from '../common';
 import './main.css';
+import { zh_CN } from './stores/zh_CN.js';
+import { en_US } from './stores/en_US.js';
+import { chooseMessage } from './stores/language.js';
 
 appSetup();
 initJQueryAjax();
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
+const localeMessage = chooseMessage();
 const controls = getControlsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;
 
@@ -40,13 +44,12 @@ const bootstrappedState = Object.assign(
     triggerQuery: true,
     triggerRender: false,
     alert: null,
+    localMessage: localeMessage,
   },
 );
-
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-
 ReactDOM.render(
   <Provider store={store}>
     <div>
