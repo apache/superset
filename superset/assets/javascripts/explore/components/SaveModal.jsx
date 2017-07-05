@@ -234,14 +234,14 @@ class SaveModal extends React.Component {
 
 SaveModal.propTypes = propTypes;
 
-function mapStateToProps(state) {
+function mapStateToProps({ saveModal }) {
   return {
-    datasource: state.datasource,
-    slice: state.slice,
-    can_overwrite: state.can_overwrite,
-    user_id: state.user_id,
-    dashboards: state.dashboards,
-    alert: state.saveModalAlert,
+    datasource: saveModal.datasource,
+    slice: saveModal.slice,
+    can_overwrite: saveModal.can_overwrite,
+    user_id: saveModal.user_id,
+    dashboards: saveModal.dashboards,
+    alert: saveModal.saveModalAlert,
   };
 }
 
