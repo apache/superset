@@ -1104,9 +1104,16 @@ class DistributionBarViz(DistributionPieViz):
             if pt[name].dtype.kind not in "biufc" or name in self.groupby:
                 continue
             if isinstance(name, string_types):
-                series_title = name
+                metric = db.session.query(SqlMetric).filter_by(
+                    metric_name=name, table_id=self.datasource.id).first()
+                series_title = metric.verbose_name if metric else name
             elif len(self.metrics) > 1:
-                series_title = ", ".join(name)
+                verbose_name = []
+                for na in name:
+                    metric = db.session.query(SqlMetric).filter_by(
+                        metric_name=na, table_id=self.datasource.id).first()
+                    verbose_name.append(metric and metric.local_name or na)
+                series_title = ", ".join(verbose_name)
             else:
                 l = [str(s) for s in name[1:]]
                 series_title = ", ".join(l)
