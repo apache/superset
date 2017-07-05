@@ -5,23 +5,25 @@ import { shallow } from 'enzyme';
 import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 
-import { defaultFormData } from '../../../../javascripts/explore/stores/store';
+import * as actions from '../../../../javascripts/explore/actions/saveModalActions';
 import { SaveModal } from '../../../../javascripts/explore/components/SaveModal';
 
-const defaultProps = {
-  can_edit: true,
-  onHide: () => ({}),
-  actions: {
-    saveSlice: sinon.spy(),
-  },
-  form_data: defaultFormData,
-  user_id: '1',
-  dashboards: [],
-  slice: {},
-};
+const $ = window.$ = require('jquery');
 
 describe('SaveModal', () => {
   let wrapper;
+  const defaultProps = {
+    can_edit: true,
+    onHide: () => ({}),
+    actions: {
+      saveSlice: sinon.spy(),
+      fetchDashboards: sinon.spy(),
+    },
+    form_data: {},
+    user_id: '1',
+    dashboards: [],
+    slice: {},
+  };
 
   beforeEach(() => {
     wrapper = shallow(<SaveModal {...defaultProps} />);
@@ -72,5 +74,54 @@ describe('SaveModal', () => {
     const overwriteRadio = wrapperForOverwrite.find('#overwrite-radio');
     overwriteRadio.simulate('click');
     expect(wrapperForOverwrite.state().action).to.equal('overwrite');
+  });
+
+  describe('should fetchDashboards', () => {
+    let dispatch;
+    let request;
+    let ajaxStub;
+    const userID = 1;
+    beforeEach(() => {
+      dispatch = sinon.spy();
+      ajaxStub = sinon.stub($, 'ajax');
+    });
+    afterEach(() => {
+      ajaxStub.restore();
+    });
+    const mockDashboardData = {
+      pks: ['value'],
+      result: [
+        { dashboard_title: 'dashboard title' },
+      ],
+    };
+    const makeRequest = () => {
+      request = actions.fetchDashboards(userID);
+      request(dispatch);
+    };
+
+    it('makes the ajax request', () => {
+      makeRequest();
+      expect(ajaxStub.callCount).to.equal(1);
+    });
+
+    it('calls correct url', () => {
+      const url = '/dashboardmodelviewasync/api/read?_flt_0_owners=' + userID;
+      makeRequest();
+      expect(ajaxStub.getCall(0).args[0].url).to.be.equal(url);
+    });
+
+    it('calls correct actions on error', () => {
+      ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
+      makeRequest();
+      expect(dispatch.callCount).to.equal(1);
+      expect(dispatch.getCall(0).args[0].type).to.equal(actions.FETCH_DASHBOARDS_FAILED);
+    });
+
+    it('calls correct actions on success', () => {
+      ajaxStub.yieldsTo('success', mockDashboardData);
+      makeRequest();
+      expect(dispatch.callCount).to.equal(1);
+      expect(dispatch.getCall(0).args[0].type).to.equal(actions.FETCH_DASHBOARDS_SUCCEEDED);
+    });
   });
 });
