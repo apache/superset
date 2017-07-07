@@ -21,7 +21,6 @@ const propTypes = {
   standalone: PropTypes.bool.isRequired,
   triggerQuery: PropTypes.bool.isRequired,
   queryRequest: PropTypes.object,
-  localMessage: PropTypes.object,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -154,7 +153,6 @@ class ExploreViewContainer extends React.Component {
           onHide={this.toggleModal.bind(this)}
           actions={this.props.actions}
           form_data={this.props.form_data}
-          localMessage={this.props.localMessage}
         />
       }
         <div className="row">
@@ -196,7 +194,6 @@ function mapStateToProps(state) {
     triggerQuery: state.triggerQuery,
     forcedHeight: state.forced_height,
     queryRequest: state.queryRequest,
-    localMessage: state.localMessage,
   };
 }
 
