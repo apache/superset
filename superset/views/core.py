@@ -1958,6 +1958,22 @@ class Superset(BaseSupersetView):
         return self.json_response('OK')
 
     @has_access_api
+    @expose("/timeout_query/", methods=['POST'])
+    @log_this
+    def timeout_query(self):
+        client_id = request.form.get('client_id')
+        try:
+            query = (
+                db.session.query(Query)
+                    .filter_by(client_id=client_id).one()
+            )
+            query.status = utils.QueryStatus.TIMED_OUT
+            db.session.commit()
+        except Exception as e:
+            pass
+        return self.json_response('OK')
+
+    @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
     @log_this
     def sql_json(self):

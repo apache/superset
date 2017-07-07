@@ -5,6 +5,7 @@ import {
   formatDate,
   fDuration,
   now,
+  addXHours,
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
@@ -44,6 +45,24 @@ describe('now', () => {
 
   it('returns a number', () => {
     expect(now()).to.be.a('number');
+  });
+});
+
+describe('addXHours', () => {
+  it('is a function', () => {
+    assert.isFunction(addXHours);
+  });
+
+  it('returns a number', () => {
+    expect(addXHours(0, 0)).to.be.a('number');
+  });
+
+  it('returns the expected output', () => {
+    expect(addXHours(1496293608897, 24)).to.equal(1496380008897);
+  });
+
+  it('returns the expected output', () => {
+    expect(addXHours(1496293608897, 0)).to.equal(1496293608897);
   });
 });
 

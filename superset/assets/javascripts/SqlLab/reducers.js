@@ -179,6 +179,9 @@ export const sqlLabReducer = function (state, action) {
       };
       return alterInObject(state, 'queries', action.query, alts);
     },
+    [actions.QUERY_TIMEOUT]() {
+      return alterInObject(state, 'queries', action.query, { state: 'timed_out' });
+    },
     [actions.QUERY_FAILED]() {
       if (action.query.state === 'stopped') {
         return state;

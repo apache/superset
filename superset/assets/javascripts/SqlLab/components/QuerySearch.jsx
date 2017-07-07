@@ -4,7 +4,7 @@ import { Button } from 'react-bootstrap';
 import Select from 'react-select';
 import QueryTable from './QueryTable';
 import { now, epochTimeXHoursAgo,
-  epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
+  epochTimeXDaysAgo, epochTimeXYearsAgo, addXHours } from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
 
@@ -64,6 +64,18 @@ class QuerySearch extends React.PureComponent {
         return null;
     }
   }
+  setPotentialTimeout() {
+    const url = this.insertParams('/superset/search_queries', ['status=running']);
+    $.getJSON(url, (data, status) => {
+      if (status === 'success') {
+        data.forEach(function (query) {
+          if (addXHours(query.startDttm, 24) < now()) {
+            this.props.actions.timeOutQuery(query);
+          }
+        });
+      }
+    });
+  }
   changeFrom(user) {
     const val = (user) ? user.value : null;
     this.setState({ from: val });
@@ -108,6 +120,7 @@ class QuerySearch extends React.PureComponent {
     return options;
   }
   refreshQueries() {
+    this.setPotentialTimeout();
     this.setState({ queriesLoading: true });
     const params = [
       this.state.userId ? `user_id=${this.state.userId}` : '',

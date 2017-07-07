@@ -196,7 +196,8 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
     conn.commit()
     conn.close()
 
-    if query.status == utils.QueryStatus.STOPPED:
+    if query.status == utils.QueryStatus.STOPPED or query.status == \
+            utils.QueryStatus.TIMED_OUT:
         return json.dumps({
             'query_id': query.id,
             'status': query.status,

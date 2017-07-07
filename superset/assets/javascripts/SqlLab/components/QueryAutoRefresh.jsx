@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { now, addXHours } from '../../modules/dates';
 import * as Actions from '../actions';
 
 const $ = require('jquery');
@@ -16,11 +17,18 @@ class QueryAutoRefresh extends React.PureComponent {
   componentWillUnmount() {
     this.stopTimer();
   }
+  setPotentialTimeout(query) {
+    // if a running query is over 24 hrs ago, set the state timeout
+    if (query.state === 'running' && addXHours(query.startDttm, 24) < now()) {
+      this.props.actions.timeOutQuery(query);
+    }
+  }
   shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
     const { queries } = this.props;
     const queryKeys = Object.keys(queries);
     const queriesAsArray = queryKeys.map(key => queries[key]);
+    queriesAsArray.map(q => this.setPotentialTimeout(q));
     return queriesAsArray.some(q =>
       ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0);
   }
