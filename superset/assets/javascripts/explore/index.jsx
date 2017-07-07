@@ -42,9 +42,11 @@ const bootstrappedState = Object.assign(
     alert: null,
   },
 );
+
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
+
 ReactDOM.render(
   <Provider store={store}>
     <div>
