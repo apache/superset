@@ -5,6 +5,15 @@ import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
+import intl from 'react-intl-universal';
+import zh_CN from "../stores/zh_CN.js";
+import en_US from "../stores/en_US.js";
+import { getLanguage } from '../stores/language.js';
+
+const locales = {
+  "en_US": en_US,
+  "zh_CN": zh_CN
+};
 
 const propTypes = {
   can_overwrite: PropTypes.bool,
@@ -18,7 +27,10 @@ const propTypes = {
   datasource: PropTypes.object,
 };
 
+
+
 class SaveModal extends React.Component {
+
   constructor(props) {
     super(props);
     this.state = {
@@ -32,8 +44,20 @@ class SaveModal extends React.Component {
     };
   }
   componentDidMount() {
+    this.loadLocales();
     this.props.actions.fetchDashboards(this.props.user_id);
   }
+
+  loadLocales() {
+    intl.init({
+      currentLocale: getLanguage(),
+      locales,
+    })
+    .then(() => {
+    this.setState({initDone: true});
+    });
+  }
+
   onChange(name, event) {
     switch (name) {
       case 'newSliceName':
@@ -69,7 +93,7 @@ class SaveModal extends React.Component {
     if (sliceParams.action === 'saveas') {
       sliceName = this.state.newSliceName;
       if (sliceName === '') {
-        this.setState({ alert: 'Please enter a slice name' });
+        this.setState({ alert: intl.formatMessage({id:'enter_slice_name', defaultMessage: `Please enter a slice name`}) });
         return;
       }
       sliceParams.slice_name = sliceName;
@@ -84,7 +108,7 @@ class SaveModal extends React.Component {
       case ('existing'):
         dashboard = this.state.saveToDashboardId;
         if (!dashboard) {
-          this.setState({ alert: 'Please select a dashboard' });
+          this.setState({ alert: intl.formatMessage({id:'select_dashboard', defaultMessage: `Please select a dashboard`}) });
           return;
         }
         sliceParams.save_to_dashboard_id = dashboard;
@@ -92,7 +116,7 @@ class SaveModal extends React.Component {
       case ('new'):
         dashboard = this.state.newDashboardName;
         if (dashboard === '') {
-          this.setState({ alert: 'Please enter a dashboard name' });
+          this.setState({ alert: intl.formatMessage({id:'enter_dashboard_name', defaultMessage: `Please enter a dashboard name`}) });
           return;
         }
         sliceParams.new_dashboard_name = dashboard;
@@ -130,7 +154,7 @@ class SaveModal extends React.Component {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            Save A Slice
+            {intl.formatMessage({id:'save_a_slice', defaultMessage: `Save A Slice`})}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -151,7 +175,7 @@ class SaveModal extends React.Component {
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
             >
-              {`Overwrite slice ${this.props.slice.slice_name}`}
+              {`${intl.formatMessage({id:'overwrite_slice', defaultMessage: `Overwrite slice`})} ${this.props.slice.slice_name}`}
             </Radio>
           }
 
@@ -160,15 +184,15 @@ class SaveModal extends React.Component {
             inline
             checked={this.state.action === 'saveas'}
             onChange={this.changeAction.bind(this, 'saveas')}
-          > Save as &nbsp;
+          > 
+          {intl.formatMessage({id:'save_as', defaultMessage: `Save as`})} &nbsp;
           </Radio>
           <input
             name="new_slice_name"
-            placeholder="[slice name]"
+            placeholder={intl.formatMessage({id:'slice_name', defaultMessage: `[slice name]`})}
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
-
 
           <br />
           <hr />
@@ -177,7 +201,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'noSave'}
             onChange={this.changeDash.bind(this, 'noSave')}
           >
-          Do not add to a dashboard
+          {intl.formatMessage({id:'do_not_add_to_dash', defaultMessage: `Do not add to a dashboard`})}
           </Radio>
 
           <Radio
@@ -185,7 +209,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'existing'}
             onChange={this.changeDash.bind(this, 'existing')}
           >
-          Add slice to existing dashboard
+          {intl.formatMessage({id:'add_slice_to_existing_dash', defaultMessage: `Add slice to existing dashboard`})}
           </Radio>
           <Select
             options={this.props.dashboards}
@@ -199,12 +223,12 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'new'}
             onChange={this.changeDash.bind(this, 'new')}
           >
-          Add to new dashboard &nbsp;
+          {intl.formatMessage({id:'add_to_new_dash', defaultMessage: `Add to new dashboard`})} &nbsp;
           </Radio>
           <input
             onChange={this.onChange.bind(this, 'newDashboardName')}
             onFocus={this.changeDash.bind(this, 'new')}
-            placeholder="[dashboard name]"
+            placeholder={intl.formatMessage({id:'dash_name', defaultMessage: `Dashboard name`})}
           />
         </Modal.Body>
 
@@ -215,7 +239,7 @@ class SaveModal extends React.Component {
             className="btn pull-left"
             onClick={this.saveOrOverwrite.bind(this, false)}
           >
-            Save
+          {intl.formatMessage({id:'save', defaultMessage: `Save`})}
           </Button>
           <Button
             type="button"
@@ -224,7 +248,7 @@ class SaveModal extends React.Component {
             disabled={this.state.addToDash === 'noSave'}
             onClick={this.saveOrOverwrite.bind(this, true)}
           >
-            Save & go to dashboard
+          {intl.formatMessage({id:'save_go_dash', defaultMessage: `Save & go to dashboard`})}
           </Button>
         </Modal.Footer>
       </Modal>
