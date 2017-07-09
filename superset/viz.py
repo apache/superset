@@ -28,8 +28,9 @@ import simplejson as json
 from six import string_types, PY3
 from dateutil import relativedelta as rdelta
 
-from superset import app, utils, cache
+from superset import app, utils, cache, db
 from superset.utils import DTTM_ALIAS
+from superset.connectors.sqla.models import SqlMetric
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
