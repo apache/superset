@@ -274,6 +274,7 @@ const visTypes = {
           ['table_timestamp_format'],
           ['row_limit', 'page_length'],
           ['include_search', 'table_filter'],
+          ['csv_button'],
         ],
       },
     ],

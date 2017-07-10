@@ -921,6 +921,13 @@ export const controls = {
     description: 'Whether to include a client side search box',
   },
 
+  csv_button: {
+    type: 'CheckboxControl',
+    label: 'CSV Button',
+    default: false,
+    description: 'Whether to include a button to export filtered table to csv',
+  },
+
   table_filter: {
     type: 'CheckboxControl',
     label: 'Table Filter',
