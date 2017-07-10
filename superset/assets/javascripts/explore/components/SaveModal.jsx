@@ -6,13 +6,13 @@ import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
 import intl from 'react-intl-universal';
-import zh_CN from "../stores/zh_CN.js";
-import en_US from "../stores/en_US.js";
 import { getLanguage } from '../stores/language.js';
+import zhCN from '../stores/zh_CN.js';
+import enUS from '../stores/en_US.js';
 
 const locales = {
-  "en_US": en_US,
-  "zh_CN": zh_CN
+  "en_US": enUS,
+  "zh_CN": zhCN,
 };
 
 const propTypes = {

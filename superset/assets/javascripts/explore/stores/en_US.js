@@ -1445,4 +1445,5 @@ const en_US = {
   slice_resize_able: 'The window changes the size to refresh the slice',
   subtitle: '[Subtitle]',
 };
+
 export default en_US;
