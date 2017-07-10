@@ -394,7 +394,7 @@ class PivotTableViz(BaseViz):
             columns=self.form_data.get('columns'),
             values=self.form_data.get('metrics'),
             aggfunc=self.form_data.get('pandas_aggfunc'),
-            margins=True,
+            margins=self.form_data.get('pivot_margins'),
         )
         return dict(
             columns=list(df.columns),
