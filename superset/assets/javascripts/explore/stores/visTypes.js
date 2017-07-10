@@ -1,4 +1,5 @@
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
+import { nonEmpty } from '../validators';
 
 import * as v from '../validators';
 
@@ -887,6 +888,61 @@ const visTypes = {
       groupby: {
         description: 'One or many controls to group by. If grouping, latitude ' +
         'and longitude columns must be present.',
+      },
+    },
+  },
+
+  event_flow: {
+    label: 'Event flow',
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: 'Event definition',
+        controlSetRows: [
+          ['entity'],
+          ['all_columns_x'],
+          ['row_limit'],
+          ['generic_checkbox'],
+        ],
+      },
+      {
+        label: 'Order by',
+        controlSetRows: [
+          ['all_columns'],
+        ],
+      },
+      {
+        label: 'Additional meta data',
+        controlSetRows: [
+          ['all_columns'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      entity: {
+        label: 'Column containing entity ids',
+        description: 'e.g., a "user id" column',
+      },
+      all_columns_x: {
+        label: 'Column containing event names',
+        validators: [nonEmpty],
+        default: control => (
+          control.choices && control.choices.length > 0 ?
+            control.choices[0][0] : null
+        ),
+      },
+      row_limit: {
+        description: 'The maximum number of events to return',
+      },
+      all_columns: {
+        label: 'Meta data',
+        description: 'Select any columns for meta data inspection',
+      },
+      generic_checkbox: {
+        label: 'Order by entity id',
+        description: 'Important! Select this if the table is not already sorted by entity id ' +
+        'else there is no guarantee that all events for each entity are returned.',
+        default: true,
       },
     },
   },

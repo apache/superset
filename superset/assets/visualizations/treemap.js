@@ -34,6 +34,7 @@ function treemap(slice, payload) {
         .round(false);
 
     const svg = div.append('svg')
+        .attr('class', 'treemap')
         .attr('width', eltWidth)
         .attr('height', eltHeight);
 

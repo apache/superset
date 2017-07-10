@@ -659,7 +659,7 @@ export const controls = {
     label: 'Entity',
     default: null,
     validators: [v.nonEmpty],
-    description: 'This define the element to be plotted on the chart',
+    description: 'This defines the element to be plotted on the chart',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
     }),
@@ -1272,6 +1272,12 @@ export const controls = {
     label: 'Cache Timeout (seconds)',
     hidden: true,
     description: 'The number of seconds before expiring the cache',
+  },
+
+  generic_checkbox: {
+    type: 'CheckboxControl',
+    label: '',
+    description: '',
   },
 };
 export default controls;
