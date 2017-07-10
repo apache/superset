@@ -1,4 +1,4 @@
-const zh_CN = {
+module.exports = {
   header_style: '表头样式',
   table_style: '表样式',
   col_style: '列样式:',
@@ -1393,4 +1393,3 @@ const zh_CN = {
   subtitle: '[副标题]',
 };
 
-export default zh_CN;

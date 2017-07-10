@@ -1,4 +1,4 @@
-const en_US = {
+module.exports = {
   header_style: 'Header Style',
   table_style: 'Table Style',
   col_style: 'Column Style:',
@@ -1446,4 +1446,3 @@ const en_US = {
   subtitle: '[Subtitle]',
 };
 
-export default en_US;

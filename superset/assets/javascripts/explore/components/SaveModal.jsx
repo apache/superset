@@ -6,9 +6,9 @@ import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
 import intl from 'react-intl-universal';
-import { getLanguage } from '../stores/language.js';
-import zhCN from '../stores/zh_CN.js';
-import enUS from '../stores/en_US.js';
+import { getLanguage } from '../stores/language';
+import enUS from '../stores/en_US';
+import zhCN from '../stores/zh_CN';
 
 const locales = {
   "en_US": enUS,
