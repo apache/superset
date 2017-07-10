@@ -1390,6 +1390,6 @@ module.exports = {
     ['false', '否']
   ],
   slice_resize_able: '窗口改变大小刷新切片',
-  subtitle: '[副标题]',
+  subtitle: '[副标题]'
 };
 

@@ -27,10 +27,7 @@ const propTypes = {
   datasource: PropTypes.object,
 };
 
-
-
 class SaveModal extends React.Component {
-
   constructor(props) {
     super(props);
     this.state = {
@@ -193,6 +190,7 @@ class SaveModal extends React.Component {
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
+
 
           <br />
           <hr />

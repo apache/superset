@@ -393,6 +393,7 @@ appbuilder.add_view(
     category="",
     category_icon='',)
 
+
 class SliceAsync(SliceModelView):  # noqa
     list_columns = [
         'slice_link', 'viz_type',
@@ -2338,4 +2339,3 @@ def caravel(url):  # noqa
 
 
 # ---------------------------------------------------------------------
-
