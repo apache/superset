@@ -906,12 +906,6 @@ const visTypes = {
         ],
       },
       {
-        label: 'Order by',
-        controlSetRows: [
-          ['all_columns'],
-        ],
-      },
-      {
         label: 'Additional meta data',
         controlSetRows: [
           ['all_columns'],
@@ -932,6 +926,7 @@ const visTypes = {
         ),
       },
       row_limit: {
+        label: 'Event count limit',
         description: 'The maximum number of events to return',
       },
       all_columns: {
