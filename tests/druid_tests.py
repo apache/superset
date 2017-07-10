@@ -276,6 +276,49 @@ class DruidTests(SupersetTestCase):
         self.assertIn('datasource_for_gamma', resp)
         self.assertNotIn('datasource_not_for_gamma', resp)
 
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_sync_druid_perm(self, PyDruid):
+        self.login(username='admin')
+        instance = PyDruid.return_value
+        instance.time_boundary.return_value = [
+            {'result': {'maxTime': '2016-01-01'}}]
+        instance.segment_metadata.return_value = SEGMENT_METADATA
+
+        cluster = (
+            db.session
+            .query(DruidCluster)
+            .filter_by(cluster_name='test_cluster')
+            .first()
+        )
+        if cluster:
+            db.session.delete(cluster)
+        db.session.commit()
+
+        cluster = DruidCluster(
+            cluster_name='test_cluster',
+            coordinator_host='localhost',
+            coordinator_port=7979,
+            broker_host='localhost',
+            broker_port=7980,
+            metadata_last_refreshed=datetime.now())
+
+        db.session.add(cluster)
+        cluster.get_datasources = Mock(return_value=['test_datasource'])
+        cluster.get_druid_version = Mock(return_value='0.9.1')
+
+        cluster.refresh_datasources()
+        datasource_id = cluster.datasources[0].id
+        db.session.commit()
+
+        view_menu_name = cluster.datasources[0].get_perm()
+        view_menu = sm.find_view_menu(view_menu_name)
+        permission = sm.find_permission("datasource_access")
+
+        pv = sm.get_session.query(sm.permissionview_model).filter_by(
+            permission=permission, view_menu=view_menu).first()
+        assert pv is not None
+
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -2,20 +2,15 @@
 import $ from 'jquery';
 import throttle from 'lodash.throttle';
 import d3 from 'd3';
+import nv from 'nvd3';
 
 import { category21 } from '../javascripts/modules/colors';
-import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
-import { customizeToolTip } from '../javascripts/modules/utils';
-
-import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/controls';
-
-const nv = require('nvd3');
+import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
 
 // CSS
-require('../node_modules/nvd3/build/nv.d3.min.css');
-require('./nvd3_vis.css');
+import '../node_modules/nvd3/build/nv.d3.min.css';
+import './nvd3_vis.css';
 
-const timeStampFormats = TIME_STAMP_OPTIONS.map(opt => opt[0]);
 const minBarWidth = 15;
 const animationTime = 1000;
 
@@ -188,13 +183,7 @@ function nvd3Vis(slice, payload) {
         chart.stacked(stacked);
         if (fd.order_bars) {
           payload.data.forEach((d) => {
-            d.values.sort(
-              function compare(a, b) {
-                if (a.x < b.x) return -1;
-                if (a.x > b.x) return 1;
-                return 0;
-              },
-            );
+            d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
         }
         if (fd.show_bar_value) {
@@ -237,6 +226,7 @@ function nvd3Vis(slice, payload) {
       case 'compare':
         chart = nv.models.cumulativeLineChart();
         chart.xScale(d3.time.scale.utc());
+        chart.useInteractiveGuideline(true);
         chart.xAxis
         .showMaxMin(false)
         .staggerLabels(true);
@@ -260,7 +250,8 @@ function nvd3Vis(slice, payload) {
           s += '</table>';
           return s;
         });
-        chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
+        chart.pointRange([5, fd.max_bubble_size ** 2]);
+        chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
         break;
 
       case 'area':
@@ -299,7 +290,7 @@ function nvd3Vis(slice, payload) {
       }
     }
 
-    let height = slice.height() - 15;
+    let height = slice.height();
     if (vizType === 'bullet') {
       height = Math.min(height, 50);
     }
@@ -310,53 +301,44 @@ function nvd3Vis(slice, payload) {
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);
     }
-    if (fd.y_axis_zero) {
-      chart.forceY([0]);
-    } else if (fd.y_log_scale) {
+    if (chart.forceY &&
+        fd.y_axis_bounds &&
+        (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
+      chart.forceY(fd.y_axis_bounds);
+    }
+    if (fd.y_log_scale) {
       chart.yScale(d3.scale.log());
     }
     if (fd.x_log_scale) {
       chart.xScale(d3.scale.log());
     }
-    let xAxisFormatter;
-    if (vizType === 'bubble') {
-      xAxisFormatter = d3.format('.3s');
-    } else if (fd.x_axis_format === 'smart_date') {
-      xAxisFormatter = formatDate;
-      chart.xAxis.tickFormat(xAxisFormatter);
-    } else if (fd.x_axis_format !== undefined) {
-      xAxisFormatter = timeFormatFactory(fd.x_axis_format);
-      chart.xAxis.tickFormat(xAxisFormatter);
-    }
-
-    const isTimeSeries = timeStampFormats.indexOf(fd.x_axis_format) > -1;
+    const isTimeSeries = [
+      'line', 'dual_line', 'area', 'compare', 'bar'].indexOf(vizType) >= 0;
     // if x axis format is a date format, rotate label 90 degrees
     if (isTimeSeries) {
       chart.xAxis.rotateLabels(45);
     }
 
-    if (chart.hasOwnProperty('x2Axis')) {
+    let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
+    if (isTimeSeries) {
+      xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
+    }
+    if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-
-    if (vizType === 'bubble') {
-      chart.xAxis.tickFormat(d3.format('.3s'));
-    } else if (fd.x_axis_format === 'smart_date') {
-      chart.xAxis.tickFormat(formatDate);
-    } else if (fd.x_axis_format !== undefined) {
-      chart.xAxis.tickFormat(timeFormatFactory(fd.x_axis_format));
-    }
-    if (chart.yAxis !== undefined) {
-      chart.yAxis.tickFormat(d3.format('.3s'));
+    if (isTimeSeries && chart.xAxis && chart.xAxis.tickFormat) {
+      chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    if (fd.y_axis_format && chart.yAxis) {
-      chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
-      if (chart.y2Axis !== undefined) {
-        chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
-      }
+    const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+    if (chart.yAxis && chart.yAxis.tickFormat) {
+      chart.yAxis.tickFormat(yAxisFormatter);
     }
+    if (chart.y2Axis && chart.y2Axis.tickFormat) {
+      chart.y2Axis.tickFormat(yAxisFormatter);
+    }
+
     if (vizType !== 'bullet') {
       chart.color(d => category21(d[colorKey]));
     }
@@ -406,10 +388,11 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    if (chart.yAxis !== undefined) {
+    if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
       const marginPad = isExplore ? width * 0.01 : width * 0.03;
-      const maxYAxisLabelWidth = getMaxLabelSize(slice.container, 'nv-y');
+      const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
+                                              : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
       if (fd.y_axis_label && fd.y_axis_label !== '') {

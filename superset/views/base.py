@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 
-from flask import g, redirect, Response
+from flask import g, redirect, Response, flash, abort
 from flask_babel import gettext as __
 
 from flask_appbuilder import BaseView
@@ -11,10 +11,10 @@ from flask_appbuilder import ModelView
 from flask_appbuilder.widgets import ListWidget
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import appbuilder, conf, db, utils, sm, sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 
 
 def get_error_msg():
@@ -101,8 +101,7 @@ class BaseSupersetView(BaseView):
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(
-                sm, 'schema_access', schema_perm, g.user):
+        if schema and self.can_access('schema_access', schema_perm):
             return True
 
         datasources = ConnectorRegistry.query_datasources_by_name(
@@ -130,36 +129,65 @@ class BaseSupersetView(BaseView):
             t for t in superset_query.tables if not
             self.datasource_access_by_fullname(database, t, schema)]
 
+    def user_datasource_perms(self):
+        datasource_perms = set()
+        for r in g.user.roles:
+            for perm in r.permissions:
+                if (
+                        perm.permission and
+                        'datasource_access' == perm.permission.name):
+                    datasource_perms.add(perm.view_menu.name)
+        return datasource_perms
+
+    def schemas_accessible_by_user(self, database, schemas):
+        if self.database_access(database) or self.all_datasource_access():
+            return schemas
+
+        subset = set()
+        for schema in schemas:
+            schema_perm = utils.get_schema_perm(database, schema)
+            if self.can_access('schema_access', schema_perm):
+                subset.add(schema)
+
+        perms = self.user_datasource_perms()
+        if perms:
+            tables = (
+                db.session.query(SqlaTable)
+                .filter(
+                    SqlaTable.perm.in_(perms),
+                    SqlaTable.database_id == database.id,
+                )
+                .all()
+            )
+            for t in tables:
+                if t.schema:
+                    subset.add(t.schema)
+        return sorted(list(subset))
+
     def accessible_by_user(self, database, datasource_names, schema=None):
         if self.database_access(database) or self.all_datasource_access():
             return datasource_names
 
-        schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(
-                sm, 'schema_access', schema_perm, g.user):
-            return datasource_names
+        if schema:
+            schema_perm = utils.get_schema_perm(database, schema)
+            if self.can_access('schema_access', schema_perm):
+                return datasource_names
 
-        role_ids = set([role.id for role in g.user.roles])
-        # TODO: cache user_perms or user_datasources
-        PV = ab_models.PermissionView
-
-        pv_role = PV.role  # pylint: disable=no-member
-        user_pvms = (
-            db.session.query(PV)
-            .join(ab_models.Permission)
-            .filter(ab_models.Permission.name == 'datasource_access')
-            .filter(pv_role.any(ab_models.Role.id.in_(role_ids)))
-            .all()
-        )
-        user_perms = set([pvm.view_menu.name for pvm in user_pvms])
+        user_perms = self.user_datasource_perms()
         user_datasources = ConnectorRegistry.query_datasources_by_permissions(
             db.session, database, user_perms)
-        full_names = set([d.full_name for d in user_datasources])
-        return [d for d in datasource_names if d in full_names]
+        if schema:
+            names = {
+                d.table_name
+                for d in user_datasources if d.schema == schema}
+            return [d for d in datasource_names if d in names]
+        else:
+            full_names = {d.full_name for d in user_datasources}
+            return [d for d in datasource_names if d in full_names]
 
 
 class SupersetModelView(ModelView):
-    page_size = 500
+    page_size = 100
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -178,6 +206,51 @@ def validate_json(form, field):  # noqa
 
 
 class DeleteMixin(object):
+    def _delete(self, pk):
+        """
+            Delete function logic, override to implement diferent logic
+            deletes the record with primary_key = pk
+
+            :param pk:
+                record primary key to delete
+        """
+        item = self.datamodel.get(pk, self._base_filters)
+        if not item:
+            abort(404)
+        try:
+            self.pre_delete(item)
+        except Exception as e:
+            flash(str(e), "danger")
+        else:
+            view_menu = sm.find_view_menu(item.get_perm())
+            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+                view_menu=view_menu).all()
+
+            schema_view_menu = None
+            if hasattr(item, 'schema_perm'):
+                schema_view_menu = sm.find_view_menu(item.schema_perm)
+
+                pvs.extend(sm.get_session.query(
+                    sm.permissionview_model).filter_by(
+                    view_menu=schema_view_menu).all())
+
+            if self.datamodel.delete(item):
+                self.post_delete(item)
+
+                for pv in pvs:
+                    sm.get_session.delete(pv)
+
+                if view_menu:
+                    sm.get_session.delete(view_menu)
+
+                if schema_view_menu:
+                    sm.get_session.delete(schema_view_menu)
+
+                sm.get_session.commit()
+
+            flash(*self.datamodel.message)
+            self.update_redirect()
+
     @action(
         "muldelete",
         __("Delete"),
@@ -186,7 +259,15 @@ class DeleteMixin(object):
         single=False
     )
     def muldelete(self, items):
-        self.datamodel.delete_all(items)
+        if not items:
+            abort(404)
+        for item in items:
+            try:
+                self.pre_delete(item)
+            except Exception as e:
+                flash(str(e), "danger")
+            else:
+                self._delete(item.id)
         self.update_redirect()
         return redirect(self.get_redirect())
 

@@ -21,6 +21,8 @@ import zlib
 
 from builtins import object
 from datetime import date, datetime, time
+
+import celery
 from dateutil.parser import parse
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -74,11 +76,10 @@ class SupersetTemplateException(SupersetException):
 
 def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
-    return (
-        sm.is_item_public(permission_name, view_name) or
-        (not user.is_anonymous() and
-         sm._has_view_access(user, permission_name, view_name))
-    )
+    if user.is_anonymous():
+        return sm.is_item_public(permission_name, view_name)
+    else:
+        return sm._has_view_access(user, permission_name, view_name)
 
 
 def flasher(msg, severity=None):
@@ -623,3 +624,13 @@ def zlib_decompress_to_string(blob):
             decompressed = zlib.decompress(bytes(blob, "utf-8"))
         return decompressed.decode("utf-8")
     return zlib.decompress(blob)
+
+_celery_app = None
+
+
+def get_celery_app(config):
+    global _celery_app
+    if _celery_app:
+        return _celery_app
+    _celery_app = celery.Celery(config_source=config.get('CELERY_CONFIG'))
+    return _celery_app

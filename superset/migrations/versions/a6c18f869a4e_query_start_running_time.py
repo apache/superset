@@ -13,7 +13,6 @@ revision = 'a6c18f869a4e'
 down_revision = '979c03af3341'
 
 
-
 def upgrade():
     op.add_column(
         'query',

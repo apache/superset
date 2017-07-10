@@ -48,12 +48,21 @@ https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed
 Why are my queries timing out?
 ------------------------------
 
-If you are seeing timeouts (504 Gateway Time-out) when running queries,
-it's because the web server is timing out web requests. If you want to
-increase the default (50), you can specify the timeout when starting the
-web server with the ``-t`` flag, which is expressed in seconds.
+There are many reasons may cause long query timing out.
 
-``superset runserver -t 300``
+
+- For running long query from Sql Lab, by default Superset allows it run as long as 6 hours before it being killed by celery. If you want to increase the time for running query, you can specify the timeout in configuration. For example:
+
+  ``SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6``
+
+
+- Superset is running on gunicorn web server, which may time out web requests. If you want to increase the default (50), you can specify the timeout when starting the web server with the ``-t`` flag, which is expressed in seconds.
+
+  ``superset runserver -t 300``
+
+- If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response from Superset server (which is processing long queries), these web servers will send 504 status code to clients directly. Superset has a client-side timeout limit to address this issue. If query didn't come back within clint-side timeout (45 seconds by default), Superset will display warning message to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change client-side timeout limit settings from ``/superset/superset/assets/javascripts/constants.js`` file and rebuild js package:
+
+  ``export const QUERY_TIMEOUT_THRESHOLD = 45000;``
 
 
 Why is the map not visible in the mapbox visualization?
@@ -77,6 +86,11 @@ descending.
 The widget also has a checkbox ``Date Filter``, which enables time filtering
 capabilities to your dashboard. After checking the box and refreshing, you'll
 see a ``from`` and a ``to`` dropdown show up.
+
+By default, the filtering will be applied to all the slices that are built
+on top of a datasource that shares the column name that the filter is based
+on. It's also a requirement for that column to be checked as "filterable"
+in the column tab of the table editor.
 
 But what about if you don't want certain widgets to get filtered on your
 dashboard? You can do that by editing your dashboard, and in the form,
@@ -119,3 +133,22 @@ __ https://www.sqlite.org/lockingv3.html
 One work around is to create a symlink from ~/.superset to a directory located on a non-NFS partition.
 
 Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/localtion/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
+
+How do I add new columns to an existing table
+---------------------------------------------
+
+Table schemas evolve, and Superset needs to reflect that. It's pretty common
+in the life cycle of a dashboard to want to add a new dimension or metric.
+To get Superset to discover your new columns, all you have to do is to
+go to ``Menu -> Sources -> Tables``, click the ``edit`` icon next to the
+table who's schema has changed, and hit ``Save`` from the ``Detail`` tab.
+Behind the scene, the new columns will get merged it. Following this,
+you may want to
+re-edit the table afterwards to configure the ``Column`` tab, check the
+appropriate boxes and save again.
+
+How do I go about developing a new visualization type?
+------------------------------------------------------
+Here's an example as a Github PR with comments that describe what the
+different sections of the code do:
+https://github.com/airbnb/superset/pull/3013

@@ -3,8 +3,7 @@ import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
 import 'datatables.net';
 import dt from 'datatables.net-bs';
 
-import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
-import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
+import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../javascripts/modules/utils';
 import './table.css';
 
 const $ = require('jquery');
@@ -14,7 +13,6 @@ dt(window, $);
 function tableVis(slice, payload) {
   const container = $(slice.selector);
   const fC = d3.format('0,000');
-  let timestampFormatter;
 
   const data = payload.data;
   const fd = slice.formData;
@@ -35,11 +33,7 @@ function tableVis(slice, payload) {
     maxes[metrics[i]] = d3.max(col(metrics[i]));
   }
 
-  if (fd.table_timestamp_format === 'smart_date') {
-    timestampFormatter = formatDate;
-  } else if (fd.table_timestamp_format !== undefined) {
-    timestampFormatter = timeFormatFactory(fd.table_timestamp_format);
-  }
+  const tsFormatter = d3TimeFormatPreset(fd.table_timestamp_format);
 
   const div = d3.select(slice.selector);
   div.html('');
@@ -49,9 +43,11 @@ function tableVis(slice, payload) {
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
+  const cols = data.columns.map(c => slice.datasource.verbose_map[c] || c);
+
   table.append('thead').append('tr')
     .selectAll('th')
-    .data(data.columns)
+    .data(cols)
     .enter()
     .append('th')
     .text(function (d) {
@@ -68,8 +64,8 @@ function tableVis(slice, payload) {
       const val = row[c];
       let html;
       const isMetric = metrics.indexOf(c) >= 0;
-      if (c === 'timestamp') {
-        html = timestampFormatter(val);
+      if (c === '__timestamp') {
+        html = tsFormatter(val);
       }
       if (typeof (val) === 'string') {
         html = `<span class="like-pre">${val}</span>`;
@@ -92,12 +88,13 @@ function tableVis(slice, payload) {
         // The 0.01 to 0.001 is a workaround for what appears to be a
         // CSS rendering bug on flat, transparent colors
         return (
-          `linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
+          `linear-gradient(to left, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
           `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
         );
       }
       return null;
     })
+    .classed('text-right', d => d.isMetric)
     .attr('title', (d) => {
       if (!isNaN(d.val)) {
         return fC(d.val);

@@ -7,6 +7,7 @@ import moment from 'moment';
 import GridLayout from './components/GridLayout';
 import Header from './components/Header';
 import { appSetup } from '../common';
+import AlertsWrapper from '../components/AlertsWrapper';
 
 import '../../stylesheets/dashboard.css';
 
@@ -60,7 +61,10 @@ function renderAlert() {
 
 function initDashboardView(dashboard) {
   render(
-    <Header dashboard={dashboard} />,
+    <div>
+      <AlertsWrapper />
+      <Header dashboard={dashboard} />
+    </div>,
     document.getElementById('dashboard-header'),
   );
   // eslint-disable-next-line no-param-reassign
@@ -196,8 +200,13 @@ export function dashboardContainer(dashboard, datasources, userid) {
       }
       if (!(col in this.filters[sliceId]) || !merge) {
         this.filters[sliceId][col] = vals;
-      } else {
+
+        // d3.merge pass in array of arrays while some value form filter components
+        // from and to filter box require string to be process and return
+      } else if (this.filters[sliceId][col] instanceof Array) {
         this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
+      } else {
+        this.filters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
       }
       if (refresh) {
         this.refreshExcept(sliceId);
@@ -327,17 +336,21 @@ export function dashboardContainer(dashboard, datasources, userid) {
           const errorMsg = getAjaxErrorMsg(error);
           utils.showModal({
             title: 'Error',
-            body: 'Sorry, there was an error adding slices to this dashboard: </ br>' + errorMsg,
+            body: 'Sorry, there was an error adding slices to this dashboard: ' + errorMsg,
           });
         },
       });
+    },
+    updateDashboardTitle(title) {
+      this.dashboard_title = title;
+      this.onChange();
     },
   });
 }
 
 $(document).ready(() => {
   // Getting bootstrapped data from the DOM
-  utils.initJQueryAjaxCSRF();
+  utils.initJQueryAjax();
   const dashboardData = $('.dashboard').data('bootstrap');
 
   const state = getInitialState(dashboardData);

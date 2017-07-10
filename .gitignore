@@ -24,6 +24,8 @@ app.db
 *.bak
 .idea
 *.sqllite
+.vscode
+.python-version
 
 # Node.js, webpack artifacts
 *.entry.js
@@ -32,3 +34,4 @@ node_modules
 npm-debug.log
 yarn.lock
 superset/assets/version_info.json
+

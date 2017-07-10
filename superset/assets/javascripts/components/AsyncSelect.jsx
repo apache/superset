@@ -8,6 +8,7 @@ const propTypes = {
   dataEndpoint: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   mutator: PropTypes.func.isRequired,
+  onAsyncError: PropTypes.func,
   value: PropTypes.number,
   valueRenderer: PropTypes.func,
   placeholder: PropTypes.string,
@@ -17,6 +18,7 @@ const propTypes = {
 const defaultProps = {
   placeholder: 'Select ...',
   valueRenderer: o => (<div>{o.label}</div>),
+  onAsyncError: () => {},
 };
 
 class AsyncSelect extends React.PureComponent {
@@ -39,9 +41,15 @@ class AsyncSelect extends React.PureComponent {
     $.get(this.props.dataEndpoint, (data) => {
       this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
 
-      if (this.props.autoSelect && this.state.options.length) {
+      if (!this.props.value && this.props.autoSelect && this.state.options.length) {
         this.onChange(this.state.options[0]);
       }
+    })
+    .fail(() => {
+      this.props.onAsyncError();
+    })
+    .always(() => {
+      this.setState({ isLoading: false });
     });
   }
   render() {

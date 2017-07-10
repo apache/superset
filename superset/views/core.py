@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import defaultdict
 from datetime import datetime, timedelta
 import json
 import logging
@@ -15,7 +16,8 @@ import traceback
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup,
+    abort, url_for)
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -45,6 +47,7 @@ from .base import (
 )
 
 config = app.config
+stats_logger = config.get('STATS_LOGGER')
 log_this = models.Log.log_this
 can_access = utils.can_access
 DAR = models.DatasourceAccessRequest
@@ -75,7 +78,7 @@ def json_success(json_msg, status=200):
 
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
-    return obj and obj.owners and user in obj.owners
+    return obj and user in obj.owners
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -174,7 +177,9 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
         'allow_ctas', 'allow_dml', 'force_ctas_schema']
-    search_exclude_columns = ('password',)
+    search_exclude_columns = (
+        'password', 'tables', 'created_by', 'changed_by', 'queries',
+        'saved_queries', )
     edit_columns = add_columns
     show_columns = [
         'tables',
@@ -248,6 +253,8 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
+    def _delete(self, pk):
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_link(
     'Import Dashboards',
@@ -316,6 +323,9 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     label_columns = {
         'datasource_link': 'Datasource',
     }
+    search_columns = (
+        'slice_name', 'description', 'viz_type', 'owners',
+    )
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
     edit_columns = [
@@ -362,11 +372,17 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        flash(__(
-            "To create a new slice, you can open a data source "
-            "through the `Sources` menu, or alter an existing slice "
-            "from the `Slices` menu"), "info")
-        return redirect('/superset/welcome')
+        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        datasources = [
+            {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
+            for d in datasources
+        ]
+        return self.render_template(
+            "superset/add_slice.html",
+            bootstrap_data=json.dumps({
+                'datasources': sorted(datasources, key=lambda d: d["label"]),
+            }),
+        )
 
 appbuilder.add_view(
     SliceModelView,
@@ -404,6 +420,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
         'json_metadata']
     show_columns = edit_columns + ['table_names']
+    search_columns = ('dashboard_title', 'slug', 'owners')
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
@@ -465,6 +482,8 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
     def mulexport(self, items):
+        if not isinstance(items, list):
+            items = [items]
         ids = ''.join('&id={}'.format(d.id) for d in items)
         return redirect(
             '/dashboardmodelview/export_dashboards_form?{}'.format(ids[1:]))
@@ -975,6 +994,16 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access
+    @expose("/explorev2/<datasource_type>/<datasource_id>/")
+    def explorev2(self, datasource_type, datasource_id):
+        return redirect(url_for(
+            'Superset.explore',
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            **request.args))
+
+    @log_this
+    @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
         form_data = self.get_form_data()
@@ -1034,7 +1063,6 @@ class Superset(BaseSupersetView):
             "can_download": slice_download_perm,
             "can_overwrite": slice_overwrite_perm,
             "datasource": datasource.data,
-            # TODO: separate endpoint for fetching datasources
             "form_data": form_data,
             "datasource_id": datasource_id,
             "datasource_type": datasource_type,
@@ -1047,7 +1075,7 @@ class Superset(BaseSupersetView):
             if datasource_type == 'table' \
             else datasource.datasource_name
         return self.render_template(
-            "superset/explorev2.html",
+            "superset/explore.html",
             bootstrap_data=json.dumps(bootstrap_data),
             slice=slc,
             standalone_mode=standalone,
@@ -1078,7 +1106,9 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        payload = json.dumps(datasource.values_for_column(column))
+        payload = json.dumps(
+            datasource.values_for_column(column),
+            default=utils.json_int_dttm_ser)
         return json_success(payload)
 
     def save_or_overwrite_slice(
@@ -1198,8 +1228,10 @@ class Superset(BaseSupersetView):
             .filter_by(id=db_id)
             .one()
         )
+        schemas = database.all_schema_names()
+        schemas = self.schemas_accessible_by_user(database, schemas)
         return Response(
-            json.dumps({'schemas': database.all_schema_names()}),
+            json.dumps({'schemas': schemas}),
             mimetype="application/json")
 
     @api
@@ -1288,6 +1320,7 @@ class Superset(BaseSupersetView):
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data['css']
+        dashboard.dashboard_title = data['dashboard_title']
 
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
@@ -1987,7 +2020,7 @@ class Superset(BaseSupersetView):
             except Exception as e:
                 logging.exception(e)
                 msg = (
-                    "Failed to start remote query on worker. "
+                    "Failed to start remote query on a worker. "
                     "Tell your administrator to verify the availability of "
                     "the message queue."
                 )
@@ -2015,10 +2048,13 @@ class Superset(BaseSupersetView):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
+                payload = json.dumps(data, default=utils.json_iso_dttm_ser)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))
-        return json_success(data)
+        if data.get('status') == QueryStatus.FAILED:
+            return json_error_response(payload)
+        return json_success(payload)
 
     @has_access
     @expose("/csv/<client_id>")
@@ -2080,6 +2116,7 @@ class Superset(BaseSupersetView):
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
         """Get the updated queries."""
+        stats_logger.incr('queries')
         if not g.user.get_id():
             return json_error_response(
                 "Please login to access the queries.", status=403)
@@ -2179,7 +2216,6 @@ class Superset(BaseSupersetView):
             .one()
         )
         roles = {}
-        from collections import defaultdict
         permissions = defaultdict(set)
         for role in user.roles:
             perms = set()

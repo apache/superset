@@ -1,3 +1,4 @@
+/* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
@@ -74,7 +75,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (dbId && schema) {
       this.setState({ tableLoading: true, tableOptions: [] });
       const url = `/superset/tables/${dbId}/${schema}/${substr}/`;
-      $.get(url, (data) => {
+      $.get(url).done((data) => {
         const filterOptions = createFilterOptions({ options: data.options });
         this.setState({
           filterOptions,
@@ -82,6 +83,10 @@ class SqlEditorLeftBar extends React.PureComponent {
           tableOptions: data.options,
           tableLength: data.tableLength,
         });
+      })
+      .fail(() => {
+        this.setState({ tableLoading: false, tableOptions: [], tableLength: 0 });
+        notify.error('Error while fetching table list');
       });
     } else {
       this.setState({ tableLoading: false, tableOptions: [], filterOptions: null });
@@ -104,11 +109,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
       this.fetchTables(this.props.queryEditor.dbId, schemaName);
     }
-    this.setState({ tableLoading: true });
-    // TODO: handle setting the tableLoading state depending on success or
-    //       failure of the addTable async call in the action.
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
-    this.setState({ tableLoading: false });
   }
   changeSchema(schemaOpt) {
     const schema = (schemaOpt) ? schemaOpt.value : null;
@@ -120,10 +121,13 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (actualDbId) {
       this.setState({ schemaLoading: true });
       const url = `/superset/schemas/${actualDbId}/`;
-      $.get(url, (data) => {
+      $.get(url).done((data) => {
         const schemaOptions = data.schemas.map(s => ({ value: s, label: s }));
-        this.setState({ schemaOptions });
-        this.setState({ schemaLoading: false });
+        this.setState({ schemaOptions, schemaLoading: false });
+      })
+      .fail(() => {
+        this.setState({ schemaLoading: false, schemaOptions: [] });
+        notify.error('Error while fetching schema list');
       });
     }
   }
@@ -141,10 +145,11 @@ class SqlEditorLeftBar extends React.PureComponent {
             dataEndpoint={
               '/databaseasync/api/' +
               'read?_flt_0_expose_in_sqllab=1&' +
-              '_oc_DatabaseView=database_name&' +
-              '_od_DatabaseView=asc'
+              '_oc_DatabaseAsync=database_name&' +
+              '_od_DatabaseAsync=asc'
             }
             onChange={this.onDatabaseChange.bind(this)}
+            onAsyncError={() => notify.error('Error while fetching database list')}
             value={this.props.queryEditor.dbId}
             databaseId={this.props.queryEditor.dbId}
             actions={this.props.actions}

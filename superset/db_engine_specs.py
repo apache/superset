@@ -312,6 +312,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
+    cursor_execute_kwargs = {'args': {}}
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain("second", _('second'), "DATE_ADD(DATE({col}), "
@@ -355,6 +356,7 @@ class MySQLEngineSpec(BaseEngineSpec):
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
+    cursor_execute_kwargs = {'parameters': None}
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
@@ -540,7 +542,9 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(cls, df):
-        return df.to_records(index=False)[0][0]
+        recs = df.to_records(index=False)
+        if recs:
+            return recs[0][0]
 
     @classmethod
     def latest_partition(cls, table_name, schema, database, show_first=False):
