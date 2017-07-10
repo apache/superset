@@ -73,18 +73,15 @@ class FilterBox extends React.Component {
         );
       });
     }
-    // maps keys of filtersChoices onto the arrow function
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
-      // gets data at filtersChoices[filter] (which is also an array?)
       const data = this.props.filtersChoices[filter];
-      // finds max value of data metric
       const maxes = {};
       maxes[filter] = d3.max(data, function (d) {
         return d.metric;
       });
       return (
         <div key={filter} className="m-b-5">
-          {filter}
+          {this.props.showLabel && filter }
           <Select.Creatable
             placeholder={`Select [${filter}]`}
             key={filter}
@@ -100,7 +97,12 @@ class FilterBox extends React.Component {
                 backgroundImage,
                 padding: '2px 5px',
               };
-              const label_ = opt.id.concat(" [", opt.metric, "]");
+              let label_;
+              if (this.props.showMetricNumber) {
+                label_ = opt.id.concat(" [", opt.metric, "]");
+              } else {
+                label_ = opt.id;
+              }
               return { value: opt.id, label: label_, style };
             })}
             onChange={this.changeFilter.bind(this, filter)}
@@ -147,6 +149,8 @@ function filterBox(slice, payload) {
       filtersChoices={filtersChoices}
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
+      showLabel={fd.filter_label}
+      showMetricNumber={fd.display_metric}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
     />,

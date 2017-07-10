@@ -891,6 +891,20 @@ export const controls = {
     default: false,
     description: 'Whether to include a time filter',
   },
+  
+  filter_label: {
+    type: 'CheckboxControl',
+    label: 'Display Label',
+    default: true,
+    description: 'Whether to display a label above each filter',
+  },
+  
+  display_metric: {
+    type: 'CheckboxControl',
+    label: 'Display Metric',
+    default: false,
+    description: 'Whether to display the metric number next to the filter option',
+  },
 
   show_datatable: {
     type: 'CheckboxControl',

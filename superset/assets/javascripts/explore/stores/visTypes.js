@@ -654,7 +654,9 @@ const visTypes = {
         controlSetRows: [
           ['date_filter', 'instant_filtering'],
           ['groupby'],
+          ['filter_label'],
           ['metric'],
+          ['display_metric'],
         ],
       },
     ],
