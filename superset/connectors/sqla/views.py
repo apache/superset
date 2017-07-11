@@ -3,7 +3,7 @@ import logging
 
 from past.builtins import basestring
 
-from flask import Markup, flash, redirect, abort
+from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import sqlalchemy as sa
@@ -13,6 +13,7 @@ from flask_babel import gettext as __
 
 from superset import appbuilder, db, utils, security, sm
 from superset.utils import has_access
+from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
     SupersetModelView, ListWidgetWithCheckboxes, DeleteMixin, DatasourceFilter,
     get_datasource_exist_error_mgs,
@@ -133,7 +134,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class TableModelView(SupersetModelView, DeleteMixin):  # noqa
+class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'link', 'database',

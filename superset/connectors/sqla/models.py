@@ -11,8 +11,7 @@ from sqlalchemy import (
 )
 import sqlalchemy as sa
 from sqlalchemy import asc, and_, desc, select
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql.expression import ColumnClause, TextAsFrom
+from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import table, literal_column, text, column
 
@@ -21,7 +20,7 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 
 from superset import db, utils, import_util, sm
-from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
+from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
 from superset.utils import DTTM_ALIAS, QueryStatus
 from superset.models.helpers import QueryResult
 from superset.models.core import Database

@@ -3,19 +3,19 @@ import logging
 
 import sqlalchemy as sqla
 
-from flask import Markup, flash, redirect, abort
+from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
 
-import superset
 from superset import db, utils, appbuilder, sm, security
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils import has_access
-from superset.views.base import BaseSupersetView
+from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
+    BaseSupersetView,
     SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
     DatasourceFilter, get_datasource_exist_error_mgs)
 
@@ -149,7 +149,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
+class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_widget = ListWidgetWithCheckboxes
     list_columns = [

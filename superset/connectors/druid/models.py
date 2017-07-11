@@ -33,7 +33,7 @@ from superset import conf, db, import_util, utils, sm, get_session
 from superset.utils import (
     flasher, MetricPermException, DimSelector, DTTM_ALIAS
 )
-from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
+from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
 
 DRUID_TZ = conf.get("DRUID_TZ")
