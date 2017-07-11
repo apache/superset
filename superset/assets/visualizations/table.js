@@ -164,7 +164,7 @@ function tableVis(slice, payload) {
       buttons: buttons,
     });
   }
-  datatable.buttons().container().appendTo( '.dataTables_wrapper .col-sm-6:eq(1)' );
+  datatable.buttons().container().appendTo( '.dataTables_wrapper .col-sm-6:eq(0)' );
  
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
