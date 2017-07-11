@@ -54,6 +54,10 @@ function tableVis(slice, payload) {
     paging = true;
     pageLength = parseInt(fd.page_length, 10);
   }
+  let buttons = [];
+  if (fd.csv_button) {
+    buttons.push('csvHtml5');
+  }
  
   table.append('thead').append('tr')
     .selectAll('th')
@@ -81,7 +85,7 @@ function tableVis(slice, payload) {
       deferRender: true,
       pageLength: pageLength,
       searching: fd.include_search,
-      buttons: ['csvHtml5'],
+      buttons: buttons,
     });
   } else {
     table.append('tbody')
@@ -157,7 +161,7 @@ function tableVis(slice, payload) {
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      buttons: ['csvHtml5'],
+      buttons: buttons,
     });
   }
   datatable.buttons().container().appendTo( '.dataTables_wrapper .col-sm-6:eq(1)' );
