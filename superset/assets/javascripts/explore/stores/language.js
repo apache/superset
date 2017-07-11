@@ -17,5 +17,4 @@ export function getLanguage() {
     default:
       return 'en_US';
   }
-  
 }

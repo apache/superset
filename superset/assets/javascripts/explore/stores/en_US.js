@@ -11,5 +11,5 @@ module.exports = {
   add_slice_to_existing_dash: 'Add slice to existing dashboard',
   save_as: 'Save as',
   dash_name: 'Dashboard name',
-  save: 'Save'
+  save: 'Save',
 };

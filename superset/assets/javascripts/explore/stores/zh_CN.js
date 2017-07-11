@@ -11,5 +11,5 @@ module.exports = {
   add_slice_to_existing_dash: '将切片添加到现有仪表盘',
   save_as: '另存为',
   dash_name: '仪表盘名称',
-  save: '保存'
+  save: '保存',
 };
