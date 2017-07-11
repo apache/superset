@@ -181,8 +181,7 @@ class SaveModal extends React.Component {
             inline
             checked={this.state.action === 'saveas'}
             onChange={this.changeAction.bind(this, 'saveas')}
-          > 
-          {intl.formatMessage({id:'save_as', defaultMessage: `Save as`})} &nbsp;
+          > {intl.formatMessage({id:'save_as', defaultMessage: `Save as`})} &nbsp;
           </Radio>
           <input
             name="new_slice_name"
