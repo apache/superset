@@ -6,13 +6,13 @@ import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
 import intl from 'react-intl-universal';
-import zh_CN from "../stores/zh_CN.js";
-import en_US from "../stores/en_US.js";
-import { getLanguage } from '../stores/language.js';
+import { getLanguage } from '../stores/language';
+import enUS from '../stores/en_US';
+import zhCN from '../stores/zh_CN';
 
 const locales = {
-  "en_US": en_US,
-  "zh_CN": zh_CN
+  "en_US": enUS,
+  "zh_CN": zhCN,
 };
 
 const propTypes = {
@@ -27,10 +27,7 @@ const propTypes = {
   datasource: PropTypes.object,
 };
 
-
-
 class SaveModal extends React.Component {
-
   constructor(props) {
     super(props);
     this.state = {
@@ -46,16 +43,6 @@ class SaveModal extends React.Component {
   componentDidMount() {
     this.loadLocales();
     this.props.actions.fetchDashboards(this.props.user_id);
-  }
-
-  loadLocales() {
-    intl.init({
-      currentLocale: getLanguage(),
-      locales,
-    })
-    .then(() => {
-    this.setState({initDone: true});
-    });
   }
 
   onChange(name, event) {
@@ -74,6 +61,17 @@ class SaveModal extends React.Component {
         break;
     }
   }
+
+  loadLocales() {
+    intl.init({
+      currentLocale: getLanguage(),
+      locales,
+    })
+    .then(() => {
+    this.setState({initDone: true});
+    });
+  }
+  
   changeAction(action) {
     this.setState({ action });
   }
@@ -184,8 +182,7 @@ class SaveModal extends React.Component {
             inline
             checked={this.state.action === 'saveas'}
             onChange={this.changeAction.bind(this, 'saveas')}
-          > 
-          {intl.formatMessage({id:'save_as', defaultMessage: `Save as`})} &nbsp;
+          > {intl.formatMessage({id:'save_as', defaultMessage: `Save as`})} &nbsp;
           </Radio>
           <input
             name="new_slice_name"
@@ -193,6 +190,7 @@ class SaveModal extends React.Component {
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
+
 
           <br />
           <hr />
