@@ -1,19 +1,13 @@
+var $ = require ( 'jquery' );
+var dt = require('datatables.net-bs') (window, $);
+var buttons = require ( 'datatables.net-buttons-bs' ) (window, $);
+require ( 'datatables.net-buttons/js/buttons.html5.js') (window, $);
 import d3 from 'd3';
 import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
-import 'datatables.net';
-import dt from 'datatables.net-bs';
-import 'datatables.net-buttons';
-import 'datatables.net-buttons-bs';
-
 
 import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 import './table.css';
-
-const $ = require('jquery');
-
-dt(window, $);
-const buttons = require( 'datatables.net-buttons/js/buttons.html5.js' ) (window, $);
 
 function tableVis(slice, payload) {
   const container = $(slice.selector);
@@ -60,12 +54,7 @@ function tableVis(slice, payload) {
     paging = true;
     pageLength = parseInt(fd.page_length, 10);
   }
-  let buttons_ = [];
-  if (fd.csv_button) {
-    buttons_.push('csvHtml5');
-    console.log(buttons_);
-  }
-  
+ 
   table.append('thead').append('tr')
     .selectAll('th')
     .data(data.columns)
@@ -86,14 +75,13 @@ function tableVis(slice, payload) {
     });
     console.log(columns);
     datatable = container.find('.dataTable').DataTable({
-      dom: "Bflrtip",
       data: data.records,
       columns: columns,
       paging: paging,
       deferRender: true,
       pageLength: pageLength,
       searching: fd.include_search,
-      buttons: buttons_,
+      buttons: ['csvHtml5'],
     });
   } else {
     table.append('tbody')
@@ -163,16 +151,17 @@ function tableVis(slice, payload) {
       .html(d => d.html ? d.html : d.val);
 
     datatable = container.find('.dataTable').DataTable({
-      dom: "Blfrtip",
       paging: paging,
       deferRender: true,
       pageLength: pageLength,
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      buttons: buttons_,
+      buttons: ['csvHtml5'],
     });
   }
+  datatable.buttons().container().appendTo( '.dataTables_wrapper .col-sm-6:eq(1)' );
+ 
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
