@@ -561,6 +561,7 @@ class Database(Model, AuditMixinNullable):
     }
     """))
     perm = Column(String(1000))
+    custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name
@@ -581,7 +582,7 @@ class Database(Model, AuditMixinNullable):
     def set_sqlalchemy_uri(self, uri):
         password_mask = "X" * 10
         conn = sqla.engine.url.make_url(uri)
-        if conn.password != password_mask:
+        if conn.password != password_mask and not self.custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn.password = password_mask if conn.password else None
@@ -725,7 +726,10 @@ class Database(Model, AuditMixinNullable):
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
-        conn.password = self.password
+        if self.custom_password_store:
+            conn.password = self.custom_password_store(conn)
+        else:
+            conn.password = self.password
         return str(conn)
 
     @property
@@ -735,6 +739,7 @@ class Database(Model, AuditMixinNullable):
     def get_perm(self):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
+
 
 sqla.event.listen(Database, 'after_insert', set_perm)
 sqla.event.listen(Database, 'after_update', set_perm)
