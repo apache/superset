@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import { sectionsToRender } from '../stores/visTypes';
+import { sectionsToRender, visTypes } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -28,7 +28,15 @@ class ControlPanelsContainer extends React.Component {
     this.getControlData = this.getControlData.bind(this);
   }
   getControlData(controlName) {
-    const mapF = controls[controlName].mapStateToProps;
+    // Identifying mapStateToProps function to apply (logic can't be in store)
+    let mapF = controls[controlName].mapStateToProps;
+
+    // Looking to find mapStateToProps override for this viz type
+    const controlOverrides = visTypes[this.props.controls.viz_type.value].controlOverrides || {};
+    if (controlOverrides[controlName] && controlOverrides[controlName].mapStateToProps) {
+      mapF = controlOverrides[controlName].mapStateToProps;
+    }
+    // Applying mapStateToProps if needed
     if (mapF) {
       return Object.assign({}, this.props.controls[controlName], mapF(this.props.exploreState));
     }
