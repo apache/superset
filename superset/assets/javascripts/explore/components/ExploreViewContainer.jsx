@@ -196,7 +196,7 @@ function mapStateToProps({ explore, chart }) {
     form_data,
     standalone: explore.standalone,
     triggerQuery: explore.triggerQuery,
-    // forcedHeight: explore.forced_height,
+    forcedHeight: explore.forced_height,
     queryRequest: chart.queryRequest,
     chartStatus: chart.chartStatus,
   };
