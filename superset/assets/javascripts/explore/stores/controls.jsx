@@ -326,7 +326,7 @@ export const controls = {
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.columns : [],
+      options: (state.datasource) ? state.datasource.columns.filter(c => c.groupby) : [],
     }),
   },
 
