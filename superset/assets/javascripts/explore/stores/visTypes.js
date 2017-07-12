@@ -1,6 +1,4 @@
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
-import { nonEmpty } from '../validators';
-
 import * as v from '../validators';
 
 export const sections = {
@@ -919,7 +917,7 @@ const visTypes = {
       },
       all_columns_x: {
         label: 'Column containing event names',
-        validators: [nonEmpty],
+        validators: [v.nonEmpty],
         default: control => (
           control.choices && control.choices.length > 0 ?
             control.choices[0][0] : null
