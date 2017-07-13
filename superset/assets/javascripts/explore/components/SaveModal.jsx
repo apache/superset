@@ -91,7 +91,7 @@ class SaveModal extends React.Component {
     if (sliceParams.action === 'saveas') {
       sliceName = this.state.newSliceName;
       if (sliceName === '') {
-        this.setState({ alert: intl.formatMessage({id:'enter_slice_name', defaultMessage: `Please enter a slice name`}) });
+        this.setState({ alert: intl.get('enter_slice_name').defaultMessage('Please enter a slice name') });
         return;
       }
       sliceParams.slice_name = sliceName;
@@ -106,7 +106,7 @@ class SaveModal extends React.Component {
       case ('existing'):
         dashboard = this.state.saveToDashboardId;
         if (!dashboard) {
-          this.setState({ alert: intl.formatMessage({id:'select_dashboard', defaultMessage: `Please select a dashboard`}) });
+          this.setState({ alert: intl.get('select_dashboard').defaultMessage('Please select a dashboard') });
           return;
         }
         sliceParams.save_to_dashboard_id = dashboard;
@@ -114,7 +114,7 @@ class SaveModal extends React.Component {
       case ('new'):
         dashboard = this.state.newDashboardName;
         if (dashboard === '') {
-          this.setState({ alert: intl.formatMessage({id:'enter_dashboard_name', defaultMessage: `Please enter a dashboard name`}) });
+          this.setState({ alert: intl.get('enter_dashboard_name').defaultMessage('Please enter a dashboard name') });
           return;
         }
         sliceParams.new_dashboard_name = dashboard;
@@ -152,7 +152,7 @@ class SaveModal extends React.Component {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            {intl.formatMessage({id:'save_a_slice', defaultMessage: `Save A Slice`})}
+            {intl.get('save_a_slice').defaultMessage('Save A Slice')}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -173,7 +173,7 @@ class SaveModal extends React.Component {
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
             >
-              {`${intl.formatMessage({id:'overwrite_slice', defaultMessage: `Overwrite slice`})} ${this.props.slice.slice_name}`}
+              {`${intl.get('overwrite_slice').defaultMessage('Overwrite slice')} ${this.props.slice.slice_name}`}
             </Radio>
           }
 
@@ -182,11 +182,11 @@ class SaveModal extends React.Component {
             inline
             checked={this.state.action === 'saveas'}
             onChange={this.changeAction.bind(this, 'saveas')}
-          > {intl.formatMessage({id:'save_as', defaultMessage: `Save as`})} &nbsp;
+          > {intl.get('save_as').defaultMessage('Save as')} &nbsp;
           </Radio>
           <input
             name="new_slice_name"
-            placeholder={intl.formatMessage({id:'slice_name', defaultMessage: `[slice name]`})}
+            placeholder={intl.get('slice_name').defaultMessage('[slice name]')}
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
@@ -199,7 +199,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'noSave'}
             onChange={this.changeDash.bind(this, 'noSave')}
           >
-          {intl.formatMessage({id:'do_not_add_to_dash', defaultMessage: `Do not add to a dashboard`})}
+          {intl.get('do_not_add_to_dash').defaultMessage('Do not add to a dashboard')}
           </Radio>
 
           <Radio
@@ -207,7 +207,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'existing'}
             onChange={this.changeDash.bind(this, 'existing')}
           >
-          {intl.formatMessage({id:'add_slice_to_existing_dash', defaultMessage: `Add slice to existing dashboard`})}
+          {intl.get('add_slice_to_existing_dash').defaultMessage('Add slice to existing dashboard')}
           </Radio>
           <Select
             options={this.props.dashboards}
@@ -221,13 +221,14 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'new'}
             onChange={this.changeDash.bind(this, 'new')}
           >
-          {intl.formatMessage({id:'add_to_new_dash', defaultMessage: `Add to new dashboard`})} &nbsp;
+          {intl.get('add_to_new_dash').defaultMessage('Add to new dashboard')} &nbsp;
           </Radio>
           <input
             onChange={this.onChange.bind(this, 'newDashboardName')}
             onFocus={this.changeDash.bind(this, 'new')}
-            placeholder={intl.formatMessage({id:'dash_name', defaultMessage: `Dashboard name`})}
+            placeholder={intl.get('dash_name').defaultMessage('Dashboard name')}
           />
+
         </Modal.Body>
 
         <Modal.Footer>
@@ -237,7 +238,7 @@ class SaveModal extends React.Component {
             className="btn pull-left"
             onClick={this.saveOrOverwrite.bind(this, false)}
           >
-          {intl.formatMessage({id:'save', defaultMessage: `Save`})}
+          {intl.get('save').defaultMessage('Save')}
           </Button>
           <Button
             type="button"
@@ -246,7 +247,7 @@ class SaveModal extends React.Component {
             disabled={this.state.addToDash === 'noSave'}
             onClick={this.saveOrOverwrite.bind(this, true)}
           >
-          {intl.formatMessage({id:'save_go_dash', defaultMessage: `Save & go to dashboard`})}
+          {intl.get('save_go_dash').defaultMessage('Save & go to dashboard')}
           </Button>
         </Modal.Footer>
       </Modal>
