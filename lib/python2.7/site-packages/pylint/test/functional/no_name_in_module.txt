@@ -1,0 +1,16 @@
+no-name-in-module:5::No name 'tutu' in module 'collections'
+no-name-in-module:6::No name 'toto' in module 'collections'
+no-member:10::Module 'xml.etree.ElementTree' has no 'nonexistant_function' member:INFERENCE
+no-member:11::Module 'xml.etree.ElementTree' has no 'another' member:INFERENCE
+no-member:12::Module 'collections' has no 'yo' member:INFERENCE
+no-member:16::Module 'sys' has no 'stdoout' member; maybe 'stdout'?:INFERENCE
+no-name-in-module:23::No name 'compiile' in module 're'
+no-name-in-module:23::No name 'findiiter' in module 're'
+pointless-statement:26::Statement seems to have no effect
+no-name-in-module:34::No name 'anything' in module 'collections'
+no-name-in-module:44::No name 'indeed_missing' in module 'collections'
+no-name-in-module:49::No name 'emit' in module 'collections'
+no-name-in-module:54::No name 'emit1' in module 'collections'
+no-name-in-module:60::No name 'emit2' in module 'collections'
+no-name-in-module:65::No name 'lala' in module 'functional.no_self_use'
+no-name-in-module:66::No name 'bla' in module 'functional.no_self_use'

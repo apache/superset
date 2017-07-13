@@ -1,0 +1,181 @@
+# Arabic translations for WTForms.
+# Copyright (C) 2013 WTForms Team
+# This file is distributed under the same license as the WTForms project.
+# FIRST AUTHOR <jalal.maqdisi@gmail.com>, 2015.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: WTForms 2.0dev\n"
+"Report-Msgid-Bugs-To: wtforms+i18n@jamescrasta.com\n"
+"POT-Creation-Date: 2013-11-08 15:21-0700\n"
+"PO-Revision-Date: 2015-04-08 20:59+0100\n"
+"Last-Translator: Jalal Maqdisi <jalal.maqdisi@gmail.com>\n"
+"Language-Team: ar <LL@li.org>\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n>=3 "
+"&& n<=10 ? 3 : n>=11 && n<=99 ? 4 : 5)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.3\n"
+
+#: wtforms/validators.py:55
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "اسم الحقل '%s' غير صالح."
+
+#: wtforms/validators.py:63
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr "يجب على الحقل ان يساوي %(other_name)s ."
+
+#: wtforms/validators.py:96
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] "لا يمكن للحقل ان يحتوي على اقل من %(min)d حرف."
+msgstr[1] "لا يمكن للحقل ان يحتوي على اقل من %(min)d حروف."
+
+
+#: wtforms/validators.py:99
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] "لا يمكن للحقل ان يحتوي على اكثر من %(max)d حرف."
+msgstr[1] "لا يمكن للحقل ان يحتوي على اكثر من %(max)d حروف."
+
+
+#: wtforms/validators.py:102
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr "يجب على طول الحقل ان يكون ما بين %(min) و %(max)d حرف."
+
+#: wtforms/validators.py:138
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr "لا يجب على الرقم ان يقل عن %(min)s."
+
+#: wtforms/validators.py:140
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr "لا يجب على الرقم ان يزيد عن %(max)s. "
+
+#: wtforms/validators.py:142
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr "يجب على الرقم ان يكون ما بين %(min)s و %(max)s."
+
+#: wtforms/validators.py:198 wtforms/validators.py:233
+msgid "This field is required."
+msgstr "هذا الحقل مطلوب."
+
+#: wtforms/validators.py:264
+msgid "Invalid input."
+msgstr "الاملاء غير صالح."
+
+#: wtforms/validators.py:286
+msgid "Invalid email address."
+msgstr "البريد الالكتروني غير صالح."
+
+#: wtforms/validators.py:318
+msgid "Invalid IP address."
+msgstr "پروتوكول الانترنت IP غير صالح."
+
+#: wtforms/validators.py:367
+msgid "Invalid Mac address."
+msgstr "عنوان Mac غير صالح."
+
+#: wtforms/validators.py:393
+msgid "Invalid URL."
+msgstr "عنوان الرابط غير صالح."
+
+#: wtforms/validators.py:412
+msgid "Invalid UUID."
+msgstr "عنوان UUID غير صالح."
+
+#: wtforms/validators.py:440
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr "قيمة غير صالحة، يجب أن تكون واحدة من: %(values)s."
+
+#: wtforms/validators.py:472
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr "قيمة غير صالحة، يجب أن تكون اي من: %(values)s."
+
+#: wtforms/csrf/core.py:83 wtforms/ext/csrf/form.py:47
+msgid "Invalid CSRF Token"
+msgstr "رمز CSRF غير صالح."
+
+#: wtforms/csrf/session.py:61 wtforms/ext/csrf/session.py:58
+msgid "CSRF token missing"
+msgstr "رمز CSRF مفقود."
+
+#: wtforms/csrf/session.py:69 wtforms/ext/csrf/session.py:66
+msgid "CSRF failed"
+msgstr "CSRF قد فشل."
+
+#: wtforms/csrf/session.py:74 wtforms/ext/csrf/session.py:71
+msgid "CSRF token expired"
+msgstr "انتهت صلاحية رمز CSRF."
+
+#: wtforms/ext/appengine/fields.py:87 wtforms/ext/appengine/fields.py:164
+#: wtforms/ext/appengine/fields.py:166 wtforms/ext/django/fields.py:96
+#: wtforms/ext/sqlalchemy/fields.py:125 wtforms/ext/sqlalchemy/fields.py:127
+#: wtforms/ext/sqlalchemy/fields.py:177 wtforms/ext/sqlalchemy/fields.py:182
+#: wtforms/fields/core.py:456
+msgid "Not a valid choice"
+msgstr "اختيار غير صحيح."
+
+#: wtforms/ext/appengine/fields.py:185
+msgid "Not a valid list"
+msgstr "قائمة غير صالحة."
+
+#: wtforms/ext/appengine/fields.py:204
+msgid "Not a valid integer list"
+msgstr "قائمة الاعداد غير صالحة."
+
+#: wtforms/ext/dateutil/fields.py:63
+msgid "Please input a date/time value"
+msgstr ""
+
+#: wtforms/ext/dateutil/fields.py:75 wtforms/ext/dateutil/fields.py:83
+msgid "Invalid date/time input"
+msgstr "الرجاء املاء التاريخ و الوقت."
+
+#: wtforms/ext/sqlalchemy/validators.py:34
+msgid "Already exists."
+msgstr "موجود اصلآ."
+
+#: wtforms/fields/core.py:449
+msgid "Invalid Choice: could not coerce"
+msgstr "اختيار غير صالح: لا يمكن الاجبار."
+
+#: wtforms/fields/core.py:482
+msgid "Invalid choice(s): one or more data inputs could not be coerced"
+msgstr "اختيارات غير صالحة: واحدة او اكثر من الادخالات لا يمكن اجبارها."
+
+#: wtforms/fields/core.py:489
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field"
+msgstr "القيمة '%(value)s' ليست باختيار صحيح لهذا الحقل."
+
+#: wtforms/fields/core.py:572
+msgid "Not a valid integer value"
+msgstr "قيمة العدد الحقيقي غير صالحة."
+
+#: wtforms/fields/core.py:638
+msgid "Not a valid decimal value"
+msgstr "القيمة العشرية غير صالحة."
+
+#: wtforms/fields/core.py:665
+msgid "Not a valid float value"
+msgstr "القيمة العائمة غير صالحة."
+
+#: wtforms/fields/core.py:724
+msgid "Not a valid datetime value"
+msgstr "قيمة الوقت والتاريخ غير صالحة."
+
+#: wtforms/fields/core.py:741
+msgid "Not a valid date value"
+msgstr "قيمة التاريخ غير صالحة."
+

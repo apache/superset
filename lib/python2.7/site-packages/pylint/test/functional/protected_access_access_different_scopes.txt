@@ -1,0 +1,2 @@
+undefined-variable:9:function:"Undefined variable 'self'"
+undefined-variable:13:func:"Undefined variable 'self'"

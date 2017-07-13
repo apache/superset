@@ -1,0 +1,2 @@
+no-member:17:test:Class 'Thing' has no 'x' member:INFERENCE
+no-member:23:test:Instance of 'Fantastic' has no 'foo' member:INFERENCE

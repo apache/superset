@@ -1,0 +1,12 @@
+len-as-condition:4::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:7::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:10::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:12::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:14::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:17::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:20::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:26::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:30::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:43::Do not use `len(SEQUENCE)` as condition value
+len-as-condition:61:github_issue_1331_v2:Do not use `len(SEQUENCE)` as condition value
+len-as-condition:65:github_issue_1331_v3:Do not use `len(SEQUENCE)` as condition value

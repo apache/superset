@@ -1,0 +1,5 @@
+singleton-comparison:4::Comparison to None should be 'expr is None'
+singleton-comparison:5::Comparison to True should be just 'expr' or 'expr is True'
+singleton-comparison:6::Comparison to False should be 'not expr' or 'expr is False'
+singleton-comparison:7::Comparison to True should be just 'expr' or 'expr is True'
+singleton-comparison:11::Comparison to None should be 'expr is None'

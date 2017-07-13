@@ -1,0 +1,3 @@
+bad-str-strip-call:7::Suspicious argument in str.strip call
+bad-str-strip-call:8::Suspicious argument in str.lstrip call
+bad-str-strip-call:9::Suspicious argument in bytes.rstrip call

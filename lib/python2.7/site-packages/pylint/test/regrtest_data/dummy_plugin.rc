@@ -1,0 +1,6 @@
+[MASTER]
+load-plugins=dummy_plugin
+
+[DUMMY_PLUGIN]
+dummy_option_1="dummy value 1"
+dummy_option_2="dummy value 2"

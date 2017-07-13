@@ -1,0 +1,12 @@
+nonstandard-exception:38:bad_case0:"Exception doesn't inherit from standard ""Exception"" class"
+raising-non-exception:38:bad_case0:Raising a new style class which doesn't inherit from BaseException
+raising-non-exception:42:bad_case1:Raising a new style class which doesn't inherit from BaseException
+nonstandard-exception:48:bad_case2:"Exception doesn't inherit from standard ""Exception"" class"
+raising-non-exception:48:bad_case2:Raising a new style class which doesn't inherit from BaseException
+raising-non-exception:52:bad_case3:Raising a new style class which doesn't inherit from BaseException
+notimplemented-raised:56:bad_case4:NotImplemented raised - should raise NotImplementedError
+raising-bad-type:60:bad_case5:Raising int while only classes or instances are allowed
+raising-bad-type:64:bad_case6:Raising NoneType while only classes or instances are allowed
+raising-non-exception:68:bad_case7:Raising a new style class which doesn't inherit from BaseException
+raising-non-exception:72:bad_case8:Raising a new style class which doesn't inherit from BaseException
+raising-non-exception:76:bad_case9:Raising a new style class which doesn't inherit from BaseException

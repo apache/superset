@@ -1,0 +1,108 @@
+Metadata-Version: 2.0
+Name: flake8
+Version: 3.3.0
+Summary: the modular source code checker: pep8, pyflakes and co
+Home-page: https://gitlab.com/pycqa/flake8
+Author: Ian Cordasco
+Author-email: graffatcolmingov@gmail.com
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Framework :: Flake8
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: Quality Assurance
+Requires-Dist: enum34; python_version<"3.4"
+Requires-Dist: configparser; python_version<"3.2"
+Requires-Dist: pyflakes >= 1.5.0, < 1.6.0
+Requires-Dist: pycodestyle >= 2.0.0, < 2.4.0
+Requires-Dist: mccabe >= 0.6.0, < 0.7.0
+
+========
+ Flake8
+========
+
+Flake8 is a wrapper around these tools:
+
+- PyFlakes
+- pycodestyle
+- Ned Batchelder's McCabe script
+
+Flake8 runs all the tools by launching the single ``flake8`` command.
+It displays the warnings in a per-file, merged output.
+
+It also adds a few features:
+
+- files that contain this line are skipped::
+
+    # flake8: noqa
+
+- lines that contain a ``# noqa`` comment at the end will not issue warnings.
+- you can ignore specific errors on a line with ``# noqa: <error>``, e.g.,
+  ``# noqa: E234``
+- Git and Mercurial hooks
+- extendable through ``flake8.extension`` and ``flake8.formatting`` entry
+  points
+
+
+Quickstart
+==========
+
+See our `quickstart documentation
+<http://flake8.pycqa.org/en/latest/index.html#quickstart>`_ for how to install
+and get started with Flake8.
+
+
+Frequently Asked Questions
+==========================
+
+Flake8 maintains an `FAQ <http://flake8.pycqa.org/en/latest/faq.html>`_ in its
+documentation.
+
+
+Questions or Feedback
+=====================
+
+If you have questions you'd like to ask the developers, or feedback you'd like
+to provide, feel free to use the mailing list: code-quality@python.org
+
+We would love to hear from you. Additionally, if you have a feature you'd like
+to suggest, the mailing list would be the best place for it.
+
+
+Links
+=====
+
+* `Flake8 Documentation <http://flake8.pycqa.org/en/latest/>`_
+
+* `GitLab Project <https://gitlab.com/pycqa/flake8>`_
+
+* `All (Open and Closed) Issues
+  <https://gitlab.com/pycqa/flake8/issues?scope=all&sort=updated_desc&state=all>`_
+
+* `Code-Quality Archives
+  <https://mail.python.org/mailman/listinfo/code-quality>`_
+
+* `Code of Conduct
+  <http://flake8.pycqa.org/en/latest/internal/contributing.html#code-of-conduct>`_
+
+* `Getting Started Contributing
+  <http://flake8.pycqa.org/en/latest/internal/contributing.html>`_
+
+
+Maintenance
+===========
+
+Flake8 was created by Tarek Ziadé and is currently maintained by `Ian Cordasco
+<https://coglib.com/~icordasc/>`_
+
+

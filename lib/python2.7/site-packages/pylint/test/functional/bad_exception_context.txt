@@ -1,0 +1,3 @@
+bad-exception-context:14:test:Exception context set to something which is not an exception, nor None
+bad-exception-context:17:test:Exception context set to something which is not an exception, nor None
+bad-exception-context:23:test:Exception context set to something which is not an exception, nor None

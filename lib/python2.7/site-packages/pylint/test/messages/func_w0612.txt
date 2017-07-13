@@ -1,0 +1,6 @@
+W:  9:function: Unused variable 'aaaa'
+W: 28:test_global: Using the global statement
+W: 34:test_global: Unused variable 'platform'
+W: 35:test_global: Unused variable 'VERSION'
+W: 36:test_global: Unused variable 'this'
+W: 37:test_global: Unused variable 'RE'

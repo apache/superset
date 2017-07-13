@@ -1,0 +1,2 @@
+C:  7: Invalid constant name "value"
+W: 12:clobbering: Redefining name 'value' from outer scope (line 7)

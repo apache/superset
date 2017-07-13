@@ -1,0 +1,14 @@
+unsubscriptable-object:32::Value 'NonSubscriptable()' is unsubscriptable
+unsubscriptable-object:33::Value 'NonSubscriptable' is unsubscriptable
+unsubscriptable-object:35::Value 'Subscriptable' is unsubscriptable
+unsubscriptable-object:44::Value 'powers_of_two()' is unsubscriptable
+unsubscriptable-object:45::Value 'powers_of_two' is unsubscriptable
+unsubscriptable-object:49::Value 'True' is unsubscriptable
+unsubscriptable-object:50::Value 'None' is unsubscriptable
+unsubscriptable-object:51::Value '8.5' is unsubscriptable
+unsubscriptable-object:52::Value '10' is unsubscriptable
+unsubscriptable-object:55::Value '{(x) ** (2) for x in range(10)}' is unsubscriptable
+unsubscriptable-object:56::Value 'set(numbers)' is unsubscriptable
+unsubscriptable-object:57::Value 'frozenset(numbers)' is unsubscriptable
+unsubscriptable-object:77::Value 'SubscriptableClass()' is unsubscriptable
+unsubscriptable-object:84::Value 'test' is unsubscriptable

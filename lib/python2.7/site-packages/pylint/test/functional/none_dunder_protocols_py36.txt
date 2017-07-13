@@ -1,0 +1,6 @@
+unsupported-membership-test:29:test:Value 'NonIterableClass' doesn't support membership test
+unsupported-membership-test:30:test:Value 'OldNonIterableClass' doesn't support membership test
+unsupported-membership-test:31:test:Value 'NonContainerClass' doesn't support membership test
+unsupported-membership-test:32:test:Value 'NonIterableClass()' doesn't support membership test
+unsupported-membership-test:33:test:Value 'OldNonIterableClass()' doesn't support membership test
+unsupported-membership-test:34:test:Value 'NonContainerClass()' doesn't support membership test

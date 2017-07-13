@@ -1,0 +1,4 @@
+#!/Users/marriema/superset/bin/python
+# EASY-INSTALL-SCRIPT: 'numpy==1.13.0','f2py'
+__requires__ = 'numpy==1.13.0'
+__import__('pkg_resources').run_script('numpy==1.13.0', 'f2py')

@@ -1,0 +1,5 @@
+useless-else-on-loop:10:test_return_for:Else clause on loop without a break statement
+useless-else-on-loop:17:test_return_while:Else clause on loop without a break statement
+useless-else-on-loop:26::Else clause on loop without a break statement
+useless-else-on-loop:33::Else clause on loop without a break statement
+useless-else-on-loop:38::Else clause on loop without a break statement

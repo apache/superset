@@ -1,0 +1,1 @@
+trailing-newlines:3::Trailing newlines

@@ -1,0 +1,60 @@
+pointless-string-statement:5::String statement has no effect
+pointless-statement:6::"""Statement seems to have no effect
+""
+"
+pointless-statement:8::"""Statement seems to have no effect
+""
+"
+pointless-statement:9::Statement seems to have no effect
+pointless-statement:11::Statement seems to have no effect
+pointless-statement:12::"""Statement seems to have no effect
+""
+"
+pointless-statement:15::Statement seems to have no effect
+pointless-string-statement:15::"""String statement has no effect
+""
+"
+unnecessary-semicolon:17::"""Unnecessary semicolon
+""
+"
+pointless-string-statement:18::String statement has no effect
+unnecessary-semicolon:18::"""Unnecessary semicolon
+""
+"
+expression-not-assigned:19::"""Expression """"(list()) and (tuple())"""" is assigned to nothing
+""
+"
+expression-not-assigned:20::"""Expression """"(list()) and (tuple())"""" is assigned to nothing
+""
+"
+unnecessary-semicolon:21::Unnecessary semicolon
+expression-not-assigned:23::"Expression ""(list()) and (tuple())"" is assigned to nothing"
+expression-not-assigned:26::"""Expression """"ANSWER == to_be()"""" is assigned to nothing
+""
+"
+expression-not-assigned:27::"""Expression """"ANSWER == to_be()"""" is assigned to nothing
+""
+"
+expression-not-assigned:28::"""Expression """"(to_be()) or (not to_be())"""" is assigned to nothing
+""
+"
+expression-not-assigned:29::"""Expression """"(to_be()) or (not to_be())"""" is assigned to nothing
+""
+"
+expression-not-assigned:30::"Expression ""ANSWER == to_be()"" is assigned to nothing"
+expression-not-assigned:32::"Expression ""(to_be()) or (not to_be())"" is assigned to nothing"
+expression-not-assigned:33::"Expression ""to_be().title"" is assigned to nothing"
+pointless-string-statement:54:ClassLevelAttributeTest.__init__:"""String statement has no effect
+""
+"
+pointless-string-statement:55:ClassLevelAttributeTest.__init__:"""String statement has no effect
+""
+"
+pointless-string-statement:58:ClassLevelAttributeTest.__init__:String statement has no effect
+pointless-string-statement:61:ClassLevelAttributeTest.test:"""String statement has no effect
+""
+"
+pointless-string-statement:62:ClassLevelAttributeTest.test:"""String statement has no effect
+""
+"
+pointless-string-statement:65:ClassLevelAttributeTest.test:String statement has no effect

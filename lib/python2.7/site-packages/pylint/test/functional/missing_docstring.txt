@@ -1,0 +1,3 @@
+missing-docstring:1::Missing module docstring
+missing-docstring:21:ClassUndocumented:Missing class docstring
+missing-docstring:25:public_undocumented:Missing function docstring

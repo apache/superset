@@ -1,0 +1,5 @@
+[console_scripts]
+coverage = coverage.cmdline:main
+coverage-2.7 = coverage.cmdline:main
+coverage2 = coverage.cmdline:main
+

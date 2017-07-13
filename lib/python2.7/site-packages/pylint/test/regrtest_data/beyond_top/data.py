@@ -1,0 +1,1 @@
+Anything = 42

@@ -1,0 +1,56 @@
+Metadata-Version: 2.0
+Name: backports.functools-lru-cache
+Version: 1.4
+Summary: backports.functools_lru_cache
+Home-page: https://github.com/jaraco/backports.functools_lru_cache
+Author: Jason R. Coombs
+Author-email: jaraco@jaraco.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=2.6
+Provides-Extra: docs
+Requires-Dist: jaraco.packaging (>=3.2); extra == 'docs'
+Requires-Dist: rst.linker (>=1.9); extra == 'docs'
+Requires-Dist: sphinx; extra == 'docs'
+Provides-Extra: testing
+Requires-Dist: pytest (>=2.8); extra == 'testing'
+Requires-Dist: pytest-sugar; extra == 'testing'
+
+.. image:: https://img.shields.io/pypi/v/backports.functools_lru_cache.svg
+   :target: https://pypi.org/project/backports.functools_lru_cache
+
+.. image:: https://img.shields.io/pypi/pyversions/backports.functools_lru_cache.svg
+
+.. image:: https://img.shields.io/pypi/dm/backports.functools_lru_cache.svg
+
+.. image:: https://img.shields.io/travis/jaraco/backports.functools_lru_cache/master.svg
+   :target: http://travis-ci.org/jaraco/backports.functools_lru_cache
+
+
+License
+=======
+
+License is indicated in the project metadata (typically one or more
+of the Trove classifiers). For more details, see `this explanation
+<https://github.com/jaraco/skeleton/issues/1>`_.
+
+Backport of functools.lru_cache from Python 3.3 as published at `ActiveState
+<http://code.activestate.com/recipes/578078/>`_.
+
+Usage
+-----
+
+Consider using this technique for importing the 'lru_cache' function::
+
+    try:
+        from functools import lru_cache
+    except ImportError:
+        from backports.functools_lru_cache import lru_cache
+
+

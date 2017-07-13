@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+{% module Template("navbar.html", active_tab="tasks") %}
+{% end %}
+
+
+{% block container %}
+<input type="hidden" value="{{ time }}" id='time'>
+<input type="hidden" value="{{ columns }}" id='columns'>
+
+<div class="container-fluid">
+
+  <table id="tasks-table" class="table table-bordered table-striped">
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>UUID</th>
+      <th>State</th>
+      <th>args</th>
+      <th>kwargs</th>
+      <th>Result</th>
+      <th>Received</th>
+      <th>Started</th>
+      <th>Runtime</th>
+      <th>Worker</th>
+      <th>Exchange</th>
+      <th>Routing Key</th>
+      <th>Retries</th>
+      <th>Revoked</th>
+      <th>Exception</th>
+      <th>Expires</th>
+      <th>ETA</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for uuid, task in tasks %}
+        {% if getattr(task, 'name', None) is None %}
+            {% continue %}
+        {% end %}
+    <tr>
+      <td>{{ task.name }}</td>
+      <td>{{ task.uuid }}</td>
+      <td>{{ task.state }}</td>
+      <td>{{ task.args }}</td>
+      <td>{{ task.kwargs }}</td>
+      <td>
+        {% if task.state == "SUCCESS" %}
+            {{ task.result }}
+        {% elif task.state == "FAILURE" %}
+            {{ task.exception }}
+        {% end %}
+      </td>
+      <td>{{ humanize(task.started, type=time) }}</td>
+      <td>{{ humanize(task.received, type=time) }}</td>
+      <td>
+        {% if task.timestamp and task.started %}
+            {{ '%.2f' % humanize(task.timestamp - task.started) }} sec
+        {% end %}
+      </td>
+      <td>{{ task.worker }}</td>
+      <td>{{ task.exchange }}</td>
+      <td>{{ task.routing_key }}</td>
+      <td>{{ task.retries }}</td>
+      <td>{{ task.revoked }}</td>
+      <td>{{ task.exception }}</td>
+      <td>{{ task.expires }}</td>
+      <td>{{ task.eta }}</td>
+    </tr>
+      {% end %}
+    </tbody>
+  </table>
+</div>
+{% end %}

@@ -1,0 +1,12 @@
+C: 28:some_function: Invalid variable name "FOO"
+C: 41: Invalid constant name "exc3"
+C: 57: Invalid variable name "OOPS"
+W: 18:some_function: Redefining name 'RuntimeError' from object 'exceptions' in exception handler
+W: 20:some_function: Redefining name 'OSError' from builtins in exception handler
+W: 20:some_function: Unused variable 'OSError'
+W: 22:some_function: Redefining name 'MyError' from outer scope (line 7) in exception handler
+W: 22:some_function: Unused variable 'MyError'
+W: 45: Redefining name 'RuntimeError' from object 'exceptions' in exception handler
+W: 47: Redefining name 'args' from object 'exceptions.RuntimeError' in exception handler
+W: 49: Redefining name 'OSError' from builtins in exception handler
+W: 51: Redefining name 'MyOtherError' from outer scope (line 36) in exception handler

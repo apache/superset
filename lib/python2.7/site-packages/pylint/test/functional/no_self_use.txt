@@ -1,0 +1,1 @@
+no-self-use:16:Toto.function_method:Method could be a function

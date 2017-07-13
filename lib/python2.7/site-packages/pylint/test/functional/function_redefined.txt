@@ -1,0 +1,5 @@
+function-redefined:15:AAAA.method2:method already defined line 12
+function-redefined:18:AAAA:class already defined line 5
+function-redefined:32:func2:function already defined line 29
+redefined-outer-name:34:func2:Redefining name '__revision__' from outer scope (line 3)
+function-redefined:51:exclusive_func2:function already defined line 45

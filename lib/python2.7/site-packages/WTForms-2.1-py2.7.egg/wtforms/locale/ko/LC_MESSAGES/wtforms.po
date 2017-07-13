@@ -1,0 +1,170 @@
+# Korean (Korea) translations for WTForms.
+# Copyright (C) 2012 WTForms Team
+# This file is distributed under the same license as the WTForms project.
+# Choi GunWoo <656gun@gmail.com>, 2013.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: WTForms 1.0.3\n"
+"Report-Msgid-Bugs-To: wtforms@simplecodes.com\n"
+"POT-Creation-Date: 2012-09-02 14:13-0600\n"
+"PO-Revision-Date: 2013-02-15 00:12+0900\n"
+"Last-Translator: GunWoo Choi <6566gun@gmail.com>\n"
+"Language-Team: ko_KR <6566gun@gmail.com>\n"
+"Plural-Forms: nplurals=1; plural=0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 0.9.6\n"
+
+#: wtforms/validators.py:55
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "'%s'는 올바르지 않은 항목 이름입니다."
+
+#: wtforms/validators.py:62
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr "이 항목은 %(other_name)s 항목과 같아야 합니다."
+
+#: wtforms/validators.py:94
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] "이 항목은 최소 %(min)d자 이상이어야 합니다."
+
+#: wtforms/validators.py:97
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] "이 항목은 %(max)d자 보다 많을 수 없습니다."
+
+#: wtforms/validators.py:100
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr "이 항목은 최소 %(min)d자 이상, %(max)d자 이하이어야 합니다."
+
+#: wtforms/validators.py:135
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr "이 값은 최소 %(min)s 이상이어야 합니다."
+
+#: wtforms/validators.py:137
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr "이 값은 %(max)s보다 클 수 없습니다."
+
+#: wtforms/validators.py:139
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr "이 값은 %(min)s 이상, %(max)s 이하이어야 합니다."
+
+#: wtforms/validators.py:188 wtforms/validators.py:221
+msgid "This field is required."
+msgstr "이 항목은 필수입니다."
+
+#: wtforms/validators.py:249
+msgid "Invalid input."
+msgstr "올바르지 않은 입력값입니다."
+
+#: wtforms/validators.py:268
+msgid "Invalid email address."
+msgstr "올바르지 않은 이메일 주소입니다."
+
+#: wtforms/validators.py:297
+msgid "Invalid IP address."
+msgstr "올바르지 않은 IP 주소입니다."
+
+#: wtforms/validators.py:345
+msgid "Invalid Mac address."
+msgstr "올바르지 않은 Mac주소입니다."
+
+#: wtforms/validators.py:370
+msgid "Invalid URL."
+msgstr "올바르지 않은 URL입니다."
+
+#: wtforms/validators.py:388
+msgid "Invalid UUID."
+msgstr "올바르지 않은 UUID입니다."
+
+#: wtforms/validators.py:415
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr "올바르지 않은 값입니다, 다음 중 하나이어야 합니다: %(values)s."
+
+#: wtforms/validators.py:442
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr "올바르지 않은 값입니다, 다음 값은 사용할 수 없습니다: %(values)s."
+
+#: wtforms/ext/appengine/fields.py:90 wtforms/ext/django/fields.py:89
+#: wtforms/ext/sqlalchemy/fields.py:125 wtforms/ext/sqlalchemy/fields.py:175
+#: wtforms/ext/sqlalchemy/fields.py:180 wtforms/fields/core.py:432
+msgid "Not a valid choice"
+msgstr "올바르지 않은 선택값입니다."
+
+#: wtforms/ext/appengine/fields.py:109
+msgid "Not a valid list"
+msgstr "올바르지 않은 리스트입니다."
+
+#: wtforms/ext/csrf/form.py:47
+msgid "Invalid CSRF Token"
+msgstr "올바르지 않은 CSRF 토큰입니다."
+
+#: wtforms/ext/csrf/session.py:57
+msgid "CSRF token missing"
+msgstr "CSRF 토큰을 찾을 수 없습니다."
+
+#: wtforms/ext/csrf/session.py:65
+msgid "CSRF failed"
+msgstr "CSRF 인증에 실패하였습니다."
+
+#: wtforms/ext/csrf/session.py:70
+msgid "CSRF token expired"
+msgstr "CSRF 토큰이 만료되었습니다."
+
+#: wtforms/ext/dateutil/fields.py:50
+msgid "Please input a date/time value"
+msgstr "날짜/시간 값을 입력해주세요"
+
+#: wtforms/ext/dateutil/fields.py:62
+msgid "Invalid date/time input"
+msgstr "올바르지 않은 날짜/시간입니다."
+
+#: wtforms/ext/sqlalchemy/validators.py:33
+msgid "Already exists."
+msgstr "이미 존재하는 값입니다."
+
+#: wtforms/fields/core.py:425
+msgid "Invalid Choice: could not coerce"
+msgstr "올바르지 않은 선택값입니다: 변환할 수 없습니다."
+
+#: wtforms/fields/core.py:458
+msgid "Invalid choice(s): one or more data inputs could not be coerced"
+msgstr "올바르지 않은 선택값입니다: 한개 이상의 값을 변화할 수 없습니다."
+
+#: wtforms/fields/core.py:465
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field"
+msgstr "'%(value)s'는 이 항목에 유효하지 않은 선택 값입니다."
+
+#: wtforms/fields/core.py:520
+msgid "Not a valid integer value"
+msgstr "올바르지 않은 정수 값입니다."
+
+#: wtforms/fields/core.py:570
+msgid "Not a valid decimal value"
+msgstr "올바르지 않은 숫자 값입니다."
+
+#: wtforms/fields/core.py:597
+msgid "Not a valid float value"
+msgstr "올바르지 않은 float 값입니다."
+
+#: wtforms/fields/core.py:648
+msgid "Not a valid datetime value"
+msgstr "올바르지 않은 시간 값입니다."
+
+#: wtforms/fields/core.py:665
+msgid "Not a valid date value"
+msgstr "올바르지 않은 날짜 값입니다."
+

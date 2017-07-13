@@ -1,0 +1,48 @@
+Metadata-Version: 1.1
+Name: Flask-WTF
+Version: 0.14.2
+Summary: Simple integration of Flask and WTForms.
+Home-page: https://github.com/lepture/flask-wtf
+Author: Hsiaoming Yang
+Author-email: me@lepture.com
+License: BSD
+Description: Flask-WTF
+        =========
+        
+        .. image:: https://travis-ci.org/lepture/flask-wtf.svg?branch=master
+           :target: https://travis-ci.org/lepture/flask-wtf
+           :alt: Travis CI Status
+        .. image:: https://coveralls.io/repos/lepture/flask-wtf/badge.svg?branch=master
+           :target: https://coveralls.io/r/lepture/flask-wtf
+           :alt: Coverage Status
+        
+        Simple integration of Flask and WTForms, including CSRF, file upload,
+        and reCAPTCHA.
+        
+        Links
+        -----
+        
+        * `Documentation <https://flask-wtf.readthedocs.io>`_
+        * `PyPI <https://pypi.python.org/pypi/Flask-WTF>`_
+        * `GitHub <https://github.com/lepture/flask-wtf>`_
+        
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Framework :: Flask
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

@@ -1,0 +1,15 @@
+{% macro render_field(field) %}
+  {% if field.id != 'csrf_token' %}
+  <dt><b>{{ field.label }}<b></dt>
+  <dd>{{ field(**kwargs)|safe }}{% if field.flags.required %}*{% endif %}
+  {% endif %}
+  {% if field.errors %}
+    <ul class=errors>
+    {% for error in field.errors %}
+      <li>{{ error }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+  </dd>
+{% endmacro %}
+

@@ -1,0 +1,4 @@
+#!/Users/marriema/superset/bin/python
+# EASY-INSTALL-SCRIPT: 'superset==0.18.5','superset'
+__requires__ = 'superset==0.18.5'
+__import__('pkg_resources').run_script('superset==0.18.5', 'superset')

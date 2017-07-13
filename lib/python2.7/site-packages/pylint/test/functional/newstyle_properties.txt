@@ -1,0 +1,2 @@
+old-style-class:13:OldStyleClass:Old-style class defined.
+property-on-old-class:15:OldStyleClass:"Use of ""property"" on an old style class":INFERENCE

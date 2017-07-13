@@ -1,0 +1,3 @@
+too-many-locals:4:function:Too many local variables (16/15)
+too-many-locals:12:too_many_locals_function:Too many local variables (16/15)
+too-many-arguments:32:too_many_arguments_function:Too many arguments (6/5)

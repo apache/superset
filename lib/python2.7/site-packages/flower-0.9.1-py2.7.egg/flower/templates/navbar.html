@@ -1,0 +1,24 @@
+<div class="navbar navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container-fluid">
+      <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </a>
+      <a class="brand" href="{{ reverse_url('main') }}">Celery Flower</a>
+      <div class="nav-collapse collapse">
+        <ul class="nav">
+            <li {% if active_tab == "dashboard" %}class="active"{% end %}><a href="{{ reverse_url('dashboard') }}">Dashboard</a></li>
+            <li {% if active_tab == "tasks" %}class="active"{% end %}><a href="{{ reverse_url('tasks') }}">Tasks</a></li>
+            <li {% if active_tab == "broker" %}class="active"{% end %}><a href="{{ reverse_url('broker') }}">Broker</a></li>
+            <li {% if active_tab == "monitor" %}class="active"{% end %}><a href="{{ reverse_url('monitor') }}">Monitor</a></li>
+        </ul>
+        <ul class="nav pull-right">
+          <li><a href="http://flower.readthedocs.org" target="_blank">Docs</a></li>
+          <li><a href="https://github.com/mher/flower" target="_blank">Code</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

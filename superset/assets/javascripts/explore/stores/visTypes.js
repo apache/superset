@@ -668,6 +668,31 @@ const visTypes = {
       },
     },
   },
+
+  Lattice: {
+    label: 'Lattice Tree Diagram',
+    controlPanelSections: [
+      {
+        label: null,
+        controlSetRows: [
+          ['groupby', 'columns'],
+          ['metric'],
+          ['row_limit', 'y_axis_format'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      y_axis_format: {
+        label: 'Number format',
+        description: 'Choose a number format',
+      },
+    },
+  },
+
+
+
+
+
   country_map: {
     label: 'Country Map',
     controlPanelSections: [

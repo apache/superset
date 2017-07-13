@@ -1,0 +1,3 @@
+enum34 is the new Python stdlib enum module available in Python 3.4
+backported for previous versions of Python from 2.4 to 3.3.
+tested on 2.6, 2.7, and 3.3+

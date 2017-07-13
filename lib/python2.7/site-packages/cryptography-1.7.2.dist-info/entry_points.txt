@@ -1,0 +1,3 @@
+[cryptography.backends]
+openssl = cryptography.hazmat.backends.openssl:backend
+

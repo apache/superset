@@ -1,0 +1,2 @@
+too-many-format-args:11:issue_957_bad1:Too many arguments for format string
+too-few-format-args:16:issue_957_bad2:Not enough arguments for format string

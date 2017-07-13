@@ -1,0 +1,125 @@
+Metadata-Version: 2.0
+Name: lazy-object-proxy
+Version: 1.3.1
+Summary: A fast and thorough lazy object proxy.
+Home-page: https://github.com/ionelmc/python-lazy-object-proxy
+Author: Ionel Cristian Mărieș
+Author-email: contact@ionelmc.ro
+License: BSD
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: Unix
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Utilities
+
+========
+Overview
+========
+
+
+
+A fast and thorough lazy object proxy.
+
+* Free software: BSD license
+
+Note that this is based on `wrapt`_'s ObjectProxy with one big change: it calls a function the first time the proxy object is
+used, while `wrapt.ObjectProxy` just forwards the method calls to the target object.
+
+In other words, you use `lazy-object-proxy` when you only have the object way later and you use `wrapt.ObjectProxy` when you
+want to override few methods (by subclassing) and forward everything else to the target object.
+
+Example::
+
+    def expensive_func():
+        # create expensive object
+        return stuff
+
+    obj = lazy_object_proxy.Proxy(expensive_func)
+    # function is called only when object is actually used
+    print(obj.foobar)  # now expensive_func is called
+
+Installation
+============
+
+::
+
+    pip install lazy-object-proxy
+
+Documentation
+=============
+
+https://python-lazy-object-proxy.readthedocs.io/
+
+Development
+===========
+
+To run the all tests run::
+
+    tox
+
+Acknowledgements
+================
+
+This project is based on some code from `wrapt`_ as you can see in the git history.
+
+.. _wrapt: https://github.com/GrahamDumpleton/wrapt
+
+
+Changelog
+=========
+
+1.3.1 (2017-05-05)
+------------------
+
+* Fix broken release (``sdist`` had a broken ``MANIFEST.in``).
+
+1.3.0 (2017-05-02)
+------------------
+
+* Speed up arithmetic operations involving ``cext.Proxy`` subclasses.
+
+1.2.2 (2016-04-14)
+------------------
+
+* Added `manylinux <https://www.python.org/dev/peps/pep-0513/>`_ wheels.
+* Minor cleanup in readme.
+
+1.2.1 (2015-08-18)
+------------------
+
+* Fix a memory leak (the wrapped object would get bogus references). Contributed by Astrum Kuo in
+  `#10 <https://github.com/ionelmc/python-lazy-object-proxy/pull/10>`_.
+
+1.2.0 (2015-07-06)
+------------------
+
+* Don't instantiate the object when __repr__ is called. This aids with debugging (allows one to see exactly in
+  what state the proxy is).
+
+1.1.0 (2015-07-05)
+------------------
+
+* Added support for pickling. The pickled value is going to be the wrapped object *without* any Proxy container.
+* Fixed a memory management issue in the C extension (reference cycles weren't garbage collected due to improper
+  handling in the C extension). Contributed by Alvin Chow in
+  `#8 <https://github.com/ionelmc/python-lazy-object-proxy/pull/8>`_.
+
+1.0.2 (2015-04-11)
+-----------------------------------------
+
+* First release on PyPI.
+
+

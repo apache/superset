@@ -1,0 +1,5 @@
+fixme:5::"FIXME: beep"
+fixme:11::"FIXME: Valid test"
+fixme:14::"TODO: Do something with the variables"
+fixme:16::"XXX: Fix this later"
+fixme:18::"FIXME: no space after hash"

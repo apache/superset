@@ -1,0 +1,5 @@
+not-context-manager:23::Context manager 'NotAManager' doesn't implement __enter__ and __exit__.
+not-context-manager:37::Context manager 'dec' doesn't implement __enter__ and __exit__.
+not-context-manager:55::Context manager 'int' doesn't implement __enter__ and __exit__.
+not-context-manager:90::Context manager 'int' doesn't implement __enter__ and __exit__.
+not-context-manager:134::Context manager 'generator' doesn't implement __enter__ and __exit__.

@@ -1,0 +1,30 @@
+.heatmap .slice_container {
+  position: relative;
+  top: 0;
+  left: 0;
+  height: 100%;
+}
+
+.heatmap .axis text {
+  font: 10px sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+.heatmap .axis path,
+.heatmap .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.heatmap svg {
+}
+
+.heatmap canvas, .heatmap img {
+  image-rendering: optimizeSpeed;             /* Older versions of FF          */
+  image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+  image-rendering: -webkit-optimize-contrast; /* Safari                        */
+  image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+  image-rendering: pixelated;                 /* Awesome future-browsers       */
+  -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
+}

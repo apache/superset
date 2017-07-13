@@ -1,0 +1,10 @@
+not-an-iterable:58::Non-iterable value powers_of_two is used in an iterating context
+not-an-iterable:93::Non-iterable value A() is used in an iterating context
+not-an-iterable:95::Non-iterable value B is used in an iterating context
+not-an-iterable:96::Non-iterable value A() is used in an iterating context
+not-an-iterable:100::Non-iterable value B is used in an iterating context
+not-an-iterable:103::Non-iterable value range is used in an iterating context
+not-an-iterable:107::Non-iterable value True is used in an iterating context
+not-an-iterable:110::Non-iterable value None is used in an iterating context
+not-an-iterable:113::Non-iterable value 8.5 is used in an iterating context
+not-an-iterable:116::Non-iterable value 10 is used in an iterating context

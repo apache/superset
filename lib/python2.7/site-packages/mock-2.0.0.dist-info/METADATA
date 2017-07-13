@@ -1,0 +1,73 @@
+Metadata-Version: 2.0
+Name: mock
+Version: 2.0.0
+Summary: Rolling backport of unittest.mock for all Pythons
+Home-page: https://github.com/testing-cabal/mock
+Author: Testing Cabal
+Author-email: testing-in-python@lists.idyll.org
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: Jython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: Testing
+Requires-Dist: pbr (>=0.11)
+Requires-Dist: six (>=1.9)
+Requires-Dist: funcsigs (>=1); (python_version<"3.3")
+Provides-Extra: docs
+Requires-Dist: sphinx; (python_version<"3" or python_version>="3.3") and extra == 'docs'
+Provides-Extra: docs
+Requires-Dist: Pygments (<2); (python_version<"3.3" and python_version>="3") and extra == 'docs'
+Requires-Dist: jinja2 (<2.7); (python_version<"3.3" and python_version>="3") and extra == 'docs'
+Requires-Dist: sphinx (<1.3); (python_version<"3.3" and python_version>="3") and extra == 'docs'
+Provides-Extra: test
+Requires-Dist: unittest2 (>=1.1.0); extra == 'test'
+
+mock is a library for testing in Python. It allows you to replace parts of
+your system under test with mock objects and make assertions about how they
+have been used.
+
+mock is now part of the Python standard library, available as `unittest.mock
+<https://docs.python.org/dev/library/unittest.mock.html>`_ in Python 3.3
+onwards.
+
+This package contains a rolling backport of the standard library mock code
+compatible with Python 2.6 and up, and 3.3 and up.
+
+Please see the standard library documentation for more details.
+
+:Homepage: `Mock Homepage`_
+:Download: `Mock on PyPI`_
+:Documentation: `Python Docs`_
+:License: `BSD License`_
+:Support: `Mailing list (testing-in-python@lists.idyll.org)
+ <http://lists.idyll.org/listinfo/testing-in-python>`_
+:Issue tracker: `Github Issues
+ <https://github.com/testing-cabal/mock/issues>`_
+:Build status:
+  .. image:: https://travis-ci.org/testing-cabal/mock.svg?branch=master
+      :target: https://travis-ci.org/testing-cabal/mock
+
+.. _Mock Homepage: https://github.com/testing-cabal/mock
+.. _BSD License: http://github.com/testing-cabal/mock/blob/master/LICENSE.txt
+.. _Python Docs: https://docs.python.org/dev/library/unittest.mock.html
+.. _mock on PyPI: http://pypi.python.org/pypi/mock
+
+
+

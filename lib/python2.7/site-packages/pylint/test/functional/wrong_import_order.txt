@@ -1,0 +1,5 @@
+wrong-import-order:11::standard import "import os.path" should be placed before "import six"
+wrong-import-order:13::standard import "import sys" should be placed before "import six"
+wrong-import-order:14::standard import "import datetime" should be placed before "import six"
+wrong-import-order:17::external import "import totally_missing" should be placed before "from .package import Class"
+wrong-import-order:19::external import "import astroid" should be placed before "from .package import Class"

@@ -1,0 +1,15 @@
+too-many-format-args:9:pprint_bad:Too many arguments for format string
+bad-format-string:10:pprint_bad:Invalid format string
+bad-format-string:11:pprint_bad:Invalid format string
+format-combined-specification:12:pprint_bad:Format string contains both automatic field numbering and manual field specification
+missing-format-argument-key:14:pprint_bad:Missing keyword argument u'b' for format string
+unused-format-string-argument:14:pprint_bad:Unused format argument 'c'
+missing-format-argument-key:15:pprint_bad:Missing keyword argument u'a' for format string
+too-few-format-args:16:pprint_bad:Not enough arguments for format string
+too-many-format-args:17:pprint_bad:Too many arguments for format string
+missing-format-argument-key:19:pprint_bad:Missing keyword argument u'a' for format string
+missing-format-argument-key:19:pprint_bad:Missing keyword argument u'b' for format string
+missing-format-argument-key:19:pprint_bad:Missing keyword argument u'c' for format string
+too-few-format-args:20:pprint_bad:Not enough arguments for format string
+missing-format-argument-key:22:pprint_bad:Missing keyword argument u'a' for format string
+missing-format-argument-key:22:pprint_bad:Missing keyword argument u'b' for format string

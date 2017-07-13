@@ -1,0 +1,54 @@
+
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% set begin_sep_label = '<td class="col-lg-2">' %}
+{% set end_sep_label = '</td>' %}
+{% set begin_sep_field = '<td>' %}
+{% set end_sep_field = '</td>' %}
+
+
+{% if form_action %}
+    <form action="{{form_action}}" method="post" enctype="multipart/form-data">
+{% else %}
+    <form id="model_form" action="" method="post" enctype="multipart/form-data">
+{% endif %}
+    {{form.hidden_tag()}}
+
+    {% if fieldsets %}
+        {% for fieldset_item in fieldsets %}
+            {% if fieldset_item[1].get('expanded') == None %}
+                {% set expanded = True %}
+            {% else %}
+                {% set expanded = fieldset_item[1].get('expanded') %}
+            {% endif %}
+            {% call lib.accordion_tag(loop.index,fieldset_item[0], expanded) %}
+            <div class="table-responsive">
+                <table class="table table-responsive table-bordered">
+                    {% for item in fieldset_item[1].get('fields') %}
+                        {% if item not in exclude_cols %}
+                            <tr>
+                                {{ lib.render_field(form[item], begin_sep_label, end_sep_label, begin_sep_field, end_sep_field) }}
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </table>
+            </div>
+            {% endcall %}
+        {% endfor %}
+    {% else %}
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                {% for col in include_cols %}
+                    {% set field = form[col] %}
+                    {% if field.name not in exclude_cols %}
+                        <tr>
+                            {{ lib.render_field(field, begin_sep_label, end_sep_label, begin_sep_field, end_sep_field) }}
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+            </table>
+        </div>
+    {% endif %}
+
+    {{ lib.render_form_controls() }}
+</form>

@@ -1,0 +1,873 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "apiVersion":"2017-05-18",
+    "endpointPrefix":"athena",
+    "jsonVersion":"1.1",
+    "protocol":"json",
+    "serviceFullName":"Amazon Athena",
+    "signatureVersion":"v4",
+    "targetPrefix":"AmazonAthena",
+    "uid":"athena-2017-05-18"
+  },
+  "operations":{
+    "BatchGetNamedQuery":{
+      "name":"BatchGetNamedQuery",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"BatchGetNamedQueryInput"},
+      "output":{"shape":"BatchGetNamedQueryOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Returns the details of a single named query or a list of up to 50 queries, which you provide as an array of query ID strings. Use <a>ListNamedQueries</a> to get the list of named query IDs. If information could not be retrieved for a submitted query ID, information about the query ID submitted is listed under <a>UnprocessedNamedQueryId</a>. Named queries are different from executed queries. Use <a>BatchGetQueryExecution</a> to get details about each unique query execution, and <a>ListQueryExecutions</a> to get a list of query execution IDs.</p>"
+    },
+    "BatchGetQueryExecution":{
+      "name":"BatchGetQueryExecution",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"BatchGetQueryExecutionInput"},
+      "output":{"shape":"BatchGetQueryExecutionOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Returns the details of a single query execution or a list of up to 50 query executions, which you provide as an array of query execution ID strings. To get a list of query execution IDs, use <a>ListQueryExecutions</a>. Query executions are different from named (saved) queries. Use <a>BatchGetNamedQuery</a> to get details about named queries.</p>"
+    },
+    "CreateNamedQuery":{
+      "name":"CreateNamedQuery",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateNamedQueryInput"},
+      "output":{"shape":"CreateNamedQueryOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Creates a named query.</p> <p>For code samples using the AWS SDK for Java, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/code-samples.html\">Examples and Code Samples</a> in the <i>Amazon Athena User Guide</i>.</p>",
+      "idempotent":true
+    },
+    "DeleteNamedQuery":{
+      "name":"DeleteNamedQuery",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteNamedQueryInput"},
+      "output":{"shape":"DeleteNamedQueryOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Deletes a named query.</p> <p>For code samples using the AWS SDK for Java, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/code-samples.html\">Examples and Code Samples</a> in the <i>Amazon Athena User Guide</i>.</p>",
+      "idempotent":true
+    },
+    "GetNamedQuery":{
+      "name":"GetNamedQuery",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetNamedQueryInput"},
+      "output":{"shape":"GetNamedQueryOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Returns information about a single query.</p>"
+    },
+    "GetQueryExecution":{
+      "name":"GetQueryExecution",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetQueryExecutionInput"},
+      "output":{"shape":"GetQueryExecutionOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Returns information about a single execution of a query. Each time a query executes, information about the query execution is saved with a unique ID.</p>"
+    },
+    "GetQueryResults":{
+      "name":"GetQueryResults",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetQueryResultsInput"},
+      "output":{"shape":"GetQueryResultsOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Returns the results of a single query execution specified by <code>QueryExecutionId</code>. This request does not execute the query but returns results. Use <a>StartQueryExecution</a> to run a query.</p>"
+    },
+    "ListNamedQueries":{
+      "name":"ListNamedQueries",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListNamedQueriesInput"},
+      "output":{"shape":"ListNamedQueriesOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Provides a list of all available query IDs.</p> <p>For code samples using the AWS SDK for Java, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/code-samples.html\">Examples and Code Samples</a> in the <i>Amazon Athena User Guide</i>.</p>"
+    },
+    "ListQueryExecutions":{
+      "name":"ListQueryExecutions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListQueryExecutionsInput"},
+      "output":{"shape":"ListQueryExecutionsOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Provides a list of all available query execution IDs.</p> <p>For code samples using the AWS SDK for Java, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/code-samples.html\">Examples and Code Samples</a> in the <i>Amazon Athena User Guide</i>.</p>"
+    },
+    "StartQueryExecution":{
+      "name":"StartQueryExecution",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartQueryExecutionInput"},
+      "output":{"shape":"StartQueryExecutionOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"},
+        {"shape":"TooManyRequestsException"}
+      ],
+      "documentation":"<p>Runs (executes) the SQL query statements contained in the <code>Query</code> string.</p> <p>For code samples using the AWS SDK for Java, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/code-samples.html\">Examples and Code Samples</a> in the <i>Amazon Athena User Guide</i>.</p>",
+      "idempotent":true
+    },
+    "StopQueryExecution":{
+      "name":"StopQueryExecution",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopQueryExecutionInput"},
+      "output":{"shape":"StopQueryExecutionOutput"},
+      "errors":[
+        {"shape":"InternalServerException"},
+        {"shape":"InvalidRequestException"}
+      ],
+      "documentation":"<p>Stops a query execution.</p> <p>For code samples using the AWS SDK for Java, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/code-samples.html\">Examples and Code Samples</a> in the <i>Amazon Athena User Guide</i>.</p>",
+      "idempotent":true
+    }
+  },
+  "shapes":{
+    "BatchGetNamedQueryInput":{
+      "type":"structure",
+      "required":["NamedQueryIds"],
+      "members":{
+        "NamedQueryIds":{
+          "shape":"NamedQueryIdList",
+          "documentation":"<p>An array of query IDs.</p>"
+        }
+      }
+    },
+    "BatchGetNamedQueryOutput":{
+      "type":"structure",
+      "members":{
+        "NamedQueries":{
+          "shape":"NamedQueryList",
+          "documentation":"<p>Information about the named query IDs submitted.</p>"
+        },
+        "UnprocessedNamedQueryIds":{
+          "shape":"UnprocessedNamedQueryIdList",
+          "documentation":"<p>Information about provided query IDs.</p>"
+        }
+      }
+    },
+    "BatchGetQueryExecutionInput":{
+      "type":"structure",
+      "required":["QueryExecutionIds"],
+      "members":{
+        "QueryExecutionIds":{
+          "shape":"QueryExecutionIdList",
+          "documentation":"<p>An array of query execution IDs.</p>"
+        }
+      }
+    },
+    "BatchGetQueryExecutionOutput":{
+      "type":"structure",
+      "members":{
+        "QueryExecutions":{
+          "shape":"QueryExecutionList",
+          "documentation":"<p>Information about a query execution.</p>"
+        },
+        "UnprocessedQueryExecutionIds":{
+          "shape":"UnprocessedQueryExecutionIdList",
+          "documentation":"<p>Information about the query executions that failed to run.</p>"
+        }
+      }
+    },
+    "Boolean":{"type":"boolean"},
+    "ColumnInfo":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "Type"
+      ],
+      "members":{
+        "CatalogName":{
+          "shape":"String",
+          "documentation":"<p>The catalog to which the query results belong.</p>"
+        },
+        "SchemaName":{
+          "shape":"String",
+          "documentation":"<p>The schema name (database name) to which the query results belong.</p>"
+        },
+        "TableName":{
+          "shape":"String",
+          "documentation":"<p>The table name for the query results.</p>"
+        },
+        "Name":{
+          "shape":"String",
+          "documentation":"<p>The name of the column.</p>"
+        },
+        "Label":{
+          "shape":"String",
+          "documentation":"<p>A column label.</p>"
+        },
+        "Type":{
+          "shape":"String",
+          "documentation":"<p>The data type of the column.</p>"
+        },
+        "Precision":{
+          "shape":"Integer",
+          "documentation":"<p>For <code>DECIMAL</code> data types, specifies the total number of digits, up to 38. For performance reasons, we recommend up to 18 digits.</p>"
+        },
+        "Scale":{
+          "shape":"Integer",
+          "documentation":"<p>For <code>DECIMAL</code> data types, specifies the total number of digits in the fractional part of the value. Defaults to 0.</p>"
+        },
+        "Nullable":{
+          "shape":"ColumnNullable",
+          "documentation":"<p>Indicates the column's nullable status.</p>"
+        },
+        "CaseSensitive":{
+          "shape":"Boolean",
+          "documentation":"<p>Indicates whether values in the column are case-sensitive.</p>"
+        }
+      },
+      "documentation":"<p>Information about the columns in a query execution result.</p>"
+    },
+    "ColumnInfoList":{
+      "type":"list",
+      "member":{"shape":"ColumnInfo"}
+    },
+    "ColumnNullable":{
+      "type":"string",
+      "enum":[
+        "NOT_NULL",
+        "NULLABLE",
+        "UNKNOWN"
+      ]
+    },
+    "CreateNamedQueryInput":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "Database",
+        "QueryString"
+      ],
+      "members":{
+        "Name":{
+          "shape":"NameString",
+          "documentation":"<p>The plain language name for the query.</p>"
+        },
+        "Description":{
+          "shape":"DescriptionString",
+          "documentation":"<p>A brief explanation of the query.</p>"
+        },
+        "Database":{
+          "shape":"DatabaseString",
+          "documentation":"<p>The database to which the query belongs.</p>"
+        },
+        "QueryString":{
+          "shape":"QueryString",
+          "documentation":"<p>The text of the query itself. In other words, all query statements.</p>"
+        },
+        "ClientRequestToken":{
+          "shape":"IdempotencyToken",
+          "documentation":"<p>A unique case-sensitive string used to ensure the request to create the query is idempotent (executes only once). If another <code>CreateNamedQuery</code> request is received, the same response is returned and another query is not created. If a parameter has changed, for example, the <code>QueryString</code>, an error is returned.</p> <important> <p>This token is listed as not required because AWS SDKs (for example the AWS SDK for Java) auto-generate the token for users. If you are not using the AWS SDK or the AWS CLI, you must provide this token or the action will fail.</p> </important>",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "CreateNamedQueryOutput":{
+      "type":"structure",
+      "members":{
+        "NamedQueryId":{
+          "shape":"NamedQueryId",
+          "documentation":"<p>The unique ID of the query.</p>"
+        }
+      }
+    },
+    "DatabaseString":{
+      "type":"string",
+      "max":32,
+      "min":1
+    },
+    "Date":{"type":"timestamp"},
+    "Datum":{
+      "type":"structure",
+      "members":{
+        "VarCharValue":{
+          "shape":"datumString",
+          "documentation":"<p>The value of the datum.</p>"
+        }
+      },
+      "documentation":"<p>A piece of data (a field in the table).</p>"
+    },
+    "DeleteNamedQueryInput":{
+      "type":"structure",
+      "required":["NamedQueryId"],
+      "members":{
+        "NamedQueryId":{
+          "shape":"NamedQueryId",
+          "documentation":"<p>The unique ID of the query to delete.</p>",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "DeleteNamedQueryOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DescriptionString":{
+      "type":"string",
+      "max":1024,
+      "min":1
+    },
+    "EncryptionConfiguration":{
+      "type":"structure",
+      "required":["EncryptionOption"],
+      "members":{
+        "EncryptionOption":{
+          "shape":"EncryptionOption",
+          "documentation":"<p>Indicates whether Amazon S3 server-side encryption with Amazon S3-managed keys (<code>SSE-S3</code>), server-side encryption with KMS-managed keys (<code>SSE-KMS</code>), or client-side encryption with KMS-managed keys (CSE-KMS) is used.</p>"
+        },
+        "KmsKey":{
+          "shape":"String",
+          "documentation":"<p>For <code>SSE-KMS</code> and <code>CSE-KMS</code>, this is the KMS key ARN or ID.</p>"
+        }
+      },
+      "documentation":"<p>If query results are encrypted in Amazon S3, indicates the Amazon S3 encryption option used.</p>"
+    },
+    "EncryptionOption":{
+      "type":"string",
+      "enum":[
+        "SSE_S3",
+        "SSE_KMS",
+        "CSE_KMS"
+      ]
+    },
+    "ErrorCode":{
+      "type":"string",
+      "max":256,
+      "min":1
+    },
+    "ErrorMessage":{"type":"string"},
+    "GetNamedQueryInput":{
+      "type":"structure",
+      "required":["NamedQueryId"],
+      "members":{
+        "NamedQueryId":{
+          "shape":"NamedQueryId",
+          "documentation":"<p>The unique ID of the query. Use <a>ListNamedQueries</a> to get query IDs.</p>"
+        }
+      }
+    },
+    "GetNamedQueryOutput":{
+      "type":"structure",
+      "members":{
+        "NamedQuery":{
+          "shape":"NamedQuery",
+          "documentation":"<p>Information about the query.</p>"
+        }
+      }
+    },
+    "GetQueryExecutionInput":{
+      "type":"structure",
+      "required":["QueryExecutionId"],
+      "members":{
+        "QueryExecutionId":{
+          "shape":"QueryExecutionId",
+          "documentation":"<p>The unique ID of the query execution.</p>"
+        }
+      }
+    },
+    "GetQueryExecutionOutput":{
+      "type":"structure",
+      "members":{
+        "QueryExecution":{
+          "shape":"QueryExecution",
+          "documentation":"<p>Information about the query execution.</p>"
+        }
+      }
+    },
+    "GetQueryResultsInput":{
+      "type":"structure",
+      "required":["QueryExecutionId"],
+      "members":{
+        "QueryExecutionId":{
+          "shape":"QueryExecutionId",
+          "documentation":"<p>The unique ID of the query execution.</p>"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>The token that specifies where to start pagination if a previous request was truncated.</p>"
+        },
+        "MaxResults":{
+          "shape":"MaxQueryResults",
+          "documentation":"<p>The maximum number of results (rows) to return in this request.</p>"
+        }
+      }
+    },
+    "GetQueryResultsOutput":{
+      "type":"structure",
+      "members":{
+        "ResultSet":{
+          "shape":"ResultSet",
+          "documentation":"<p>The results of the query execution.</p>"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>A token to be used by the next request if this request is truncated.</p>"
+        }
+      }
+    },
+    "IdempotencyToken":{
+      "type":"string",
+      "max":128,
+      "min":32
+    },
+    "Integer":{"type":"integer"},
+    "InternalServerException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>Indicates a platform issue, which may be due to a transient condition or outage.</p>",
+      "exception":true,
+      "fault":true
+    },
+    "InvalidRequestException":{
+      "type":"structure",
+      "members":{
+        "AthenaErrorCode":{"shape":"ErrorCode"},
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"<p>Indicates that something is wrong with the input to the request. For example, a required parameter may be missing or out of range.</p>",
+      "exception":true
+    },
+    "ListNamedQueriesInput":{
+      "type":"structure",
+      "members":{
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>The token that specifies where to start pagination if a previous request was truncated.</p>"
+        },
+        "MaxResults":{
+          "shape":"MaxNamedQueriesCount",
+          "documentation":"<p>The maximum number of queries to return in this request.</p>"
+        }
+      }
+    },
+    "ListNamedQueriesOutput":{
+      "type":"structure",
+      "members":{
+        "NamedQueryIds":{
+          "shape":"NamedQueryIdList",
+          "documentation":"<p>The list of unique query IDs.</p>"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>A token to be used by the next request if this request is truncated.</p>"
+        }
+      }
+    },
+    "ListQueryExecutionsInput":{
+      "type":"structure",
+      "members":{
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>The token that specifies where to start pagination if a previous request was truncated.</p>"
+        },
+        "MaxResults":{
+          "shape":"MaxQueryExecutionsCount",
+          "documentation":"<p>The maximum number of query executions to return in this request.</p>"
+        }
+      }
+    },
+    "ListQueryExecutionsOutput":{
+      "type":"structure",
+      "members":{
+        "QueryExecutionIds":{
+          "shape":"QueryExecutionIdList",
+          "documentation":"<p>The unique IDs of each query execution as an array of strings.</p>"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>A token to be used by the next request if this request is truncated.</p>"
+        }
+      }
+    },
+    "Long":{"type":"long"},
+    "MaxNamedQueriesCount":{
+      "type":"integer",
+      "box":true,
+      "max":50,
+      "min":0
+    },
+    "MaxQueryExecutionsCount":{
+      "type":"integer",
+      "box":true,
+      "max":50,
+      "min":0
+    },
+    "MaxQueryResults":{
+      "type":"integer",
+      "box":true,
+      "max":1000,
+      "min":0
+    },
+    "NameString":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "NamedQuery":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "Database",
+        "QueryString"
+      ],
+      "members":{
+        "Name":{
+          "shape":"NameString",
+          "documentation":"<p>The plain-language name of the query.</p>"
+        },
+        "Description":{
+          "shape":"DescriptionString",
+          "documentation":"<p>A brief description of the query.</p>"
+        },
+        "Database":{
+          "shape":"DatabaseString",
+          "documentation":"<p>The database to which the query belongs.</p>"
+        },
+        "QueryString":{
+          "shape":"QueryString",
+          "documentation":"<p>The SQL query statements that comprise the query.</p>"
+        },
+        "NamedQueryId":{
+          "shape":"NamedQueryId",
+          "documentation":"<p>The unique identifier of the query.</p>"
+        }
+      },
+      "documentation":"<p>A query, where <code>QueryString</code> is the SQL query statements that comprise the query.</p>"
+    },
+    "NamedQueryId":{"type":"string"},
+    "NamedQueryIdList":{
+      "type":"list",
+      "member":{"shape":"NamedQueryId"},
+      "max":50,
+      "min":1
+    },
+    "NamedQueryList":{
+      "type":"list",
+      "member":{"shape":"NamedQuery"}
+    },
+    "QueryExecution":{
+      "type":"structure",
+      "members":{
+        "QueryExecutionId":{
+          "shape":"QueryExecutionId",
+          "documentation":"<p>The unique identifier for each query execution.</p>"
+        },
+        "Query":{
+          "shape":"QueryString",
+          "documentation":"<p>The SQL query statements which the query execution ran.</p>"
+        },
+        "ResultConfiguration":{
+          "shape":"ResultConfiguration",
+          "documentation":"<p>The location in Amazon S3 where query results were stored and the encryption option, if any, used for query results.</p>"
+        },
+        "QueryExecutionContext":{
+          "shape":"QueryExecutionContext",
+          "documentation":"<p>The database in which the query execution occurred.</p>"
+        },
+        "Status":{
+          "shape":"QueryExecutionStatus",
+          "documentation":"<p>The completion date, current state, submission time, and state change reason (if applicable) for the query execution.</p>"
+        },
+        "Statistics":{
+          "shape":"QueryExecutionStatistics",
+          "documentation":"<p>The amount of data scanned during the query execution and the amount of time that it took to execute.</p>"
+        }
+      },
+      "documentation":"<p>Information about a single instance of a query execution.</p>"
+    },
+    "QueryExecutionContext":{
+      "type":"structure",
+      "members":{
+        "Database":{
+          "shape":"DatabaseString",
+          "documentation":"<p>The name of the database.</p>"
+        }
+      },
+      "documentation":"<p>The database in which the query execution occurs.</p>"
+    },
+    "QueryExecutionId":{"type":"string"},
+    "QueryExecutionIdList":{
+      "type":"list",
+      "member":{"shape":"QueryExecutionId"},
+      "max":50,
+      "min":1
+    },
+    "QueryExecutionList":{
+      "type":"list",
+      "member":{"shape":"QueryExecution"}
+    },
+    "QueryExecutionState":{
+      "type":"string",
+      "enum":[
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED"
+      ]
+    },
+    "QueryExecutionStatistics":{
+      "type":"structure",
+      "members":{
+        "EngineExecutionTimeInMillis":{
+          "shape":"Long",
+          "documentation":"<p>The number of milliseconds that the query took to execute.</p>"
+        },
+        "DataScannedInBytes":{
+          "shape":"Long",
+          "documentation":"<p>The number of bytes in the data that was queried.</p>"
+        }
+      },
+      "documentation":"<p>The amount of data scanned during the query execution and the amount of time that it took to execute.</p>"
+    },
+    "QueryExecutionStatus":{
+      "type":"structure",
+      "members":{
+        "State":{
+          "shape":"QueryExecutionState",
+          "documentation":"<p>The state of query execution. <code>SUBMITTED</code> indicates that the query is queued for execution. <code>RUNNING</code> indicates that the query is scanning data and returning results. <code>SUCCEEDED</code> indicates that the query completed without error. <code>FAILED</code> indicates that the query experienced an error and did not complete processing. <code>CANCELLED</code> indicates that user input interrupted query execution.</p>"
+        },
+        "StateChangeReason":{
+          "shape":"String",
+          "documentation":"<p>Further detail about the status of the query.</p>"
+        },
+        "SubmissionDateTime":{
+          "shape":"Date",
+          "documentation":"<p>The date and time that the query was submitted.</p>"
+        },
+        "CompletionDateTime":{
+          "shape":"Date",
+          "documentation":"<p>The date and time that the query completed.</p>"
+        }
+      },
+      "documentation":"<p>The completion date, current state, submission time, and state change reason (if applicable) for the query execution.</p>"
+    },
+    "QueryString":{
+      "type":"string",
+      "max":262144,
+      "min":1
+    },
+    "ResultConfiguration":{
+      "type":"structure",
+      "required":["OutputLocation"],
+      "members":{
+        "OutputLocation":{
+          "shape":"String",
+          "documentation":"<p>The location in S3 where query results are stored.</p>"
+        },
+        "EncryptionConfiguration":{
+          "shape":"EncryptionConfiguration",
+          "documentation":"<p>If query results are encrypted in S3, indicates the S3 encryption option used (for example, <code>SSE-KMS</code> or <code>CSE-KMS</code> and key information.</p>"
+        }
+      },
+      "documentation":"<p>The location in Amazon S3 where query results are stored and the encryption option, if any, used for query results.</p>"
+    },
+    "ResultSet":{
+      "type":"structure",
+      "members":{
+        "Rows":{
+          "shape":"RowList",
+          "documentation":"<p>The rows in the table.</p>"
+        },
+        "ResultSetMetadata":{
+          "shape":"ResultSetMetadata",
+          "documentation":"<p>The metadata that describes the column structure and data types of a table of query results.</p>"
+        }
+      },
+      "documentation":"<p>The metadata and rows that comprise a query result set. The metadata describes the column structure and data types.</p>"
+    },
+    "ResultSetMetadata":{
+      "type":"structure",
+      "members":{
+        "ColumnInfo":{
+          "shape":"ColumnInfoList",
+          "documentation":"<p>Information about the columns in a query execution result.</p>"
+        }
+      },
+      "documentation":"<p>The metadata that describes the column structure and data types of a table of query results.</p>"
+    },
+    "Row":{
+      "type":"structure",
+      "members":{
+        "Data":{
+          "shape":"datumList",
+          "documentation":"<p>The data that populates a row in a query result table.</p>"
+        }
+      },
+      "documentation":"<p>The rows that comprise a query result table.</p>"
+    },
+    "RowList":{
+      "type":"list",
+      "member":{"shape":"Row"}
+    },
+    "StartQueryExecutionInput":{
+      "type":"structure",
+      "required":[
+        "QueryString",
+        "ResultConfiguration"
+      ],
+      "members":{
+        "QueryString":{
+          "shape":"QueryString",
+          "documentation":"<p>The SQL query statements to be executed.</p>"
+        },
+        "ClientRequestToken":{
+          "shape":"IdempotencyToken",
+          "documentation":"<p>A unique case-sensitive string used to ensure the request to create the query is idempotent (executes only once). If another <code>StartQueryExecution</code> request is received, the same response is returned and another query is not created. If a parameter has changed, for example, the <code>QueryString</code>, an error is returned.</p> <important> <p>This token is listed as not required because AWS SDKs (for example the AWS SDK for Java) auto-generate the token for users. If you are not using the AWS SDK or the AWS CLI, you must provide this token or the action will fail.</p> </important>",
+          "idempotencyToken":true
+        },
+        "QueryExecutionContext":{
+          "shape":"QueryExecutionContext",
+          "documentation":"<p>The database within which the query executes.</p>"
+        },
+        "ResultConfiguration":{
+          "shape":"ResultConfiguration",
+          "documentation":"<p>Specifies information about where and how to save the results of the query execution.</p>"
+        }
+      }
+    },
+    "StartQueryExecutionOutput":{
+      "type":"structure",
+      "members":{
+        "QueryExecutionId":{
+          "shape":"QueryExecutionId",
+          "documentation":"<p>The unique ID of the query that ran as a result of this request.</p>"
+        }
+      }
+    },
+    "StopQueryExecutionInput":{
+      "type":"structure",
+      "required":["QueryExecutionId"],
+      "members":{
+        "QueryExecutionId":{
+          "shape":"QueryExecutionId",
+          "documentation":"<p>The unique ID of the query execution to stop.</p>",
+          "idempotencyToken":true
+        }
+      }
+    },
+    "StopQueryExecutionOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "String":{"type":"string"},
+    "ThrottleReason":{
+      "type":"string",
+      "enum":["CONCURRENT_QUERY_LIMIT_EXCEEDED"]
+    },
+    "Token":{"type":"string"},
+    "TooManyRequestsException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"},
+        "Reason":{"shape":"ThrottleReason"}
+      },
+      "documentation":"<p>Indicates that the request was throttled.</p>",
+      "exception":true
+    },
+    "UnprocessedNamedQueryId":{
+      "type":"structure",
+      "members":{
+        "NamedQueryId":{
+          "shape":"NamedQueryId",
+          "documentation":"<p>The unique identifier of the named query.</p>"
+        },
+        "ErrorCode":{
+          "shape":"ErrorCode",
+          "documentation":"<p>The error code returned when the processing request for the named query failed, if applicable.</p>"
+        },
+        "ErrorMessage":{
+          "shape":"ErrorMessage",
+          "documentation":"<p>The error message returned when the processing request for the named query failed, if applicable.</p>"
+        }
+      },
+      "documentation":"<p>Information about a named query ID that could not be processed.</p>"
+    },
+    "UnprocessedNamedQueryIdList":{
+      "type":"list",
+      "member":{"shape":"UnprocessedNamedQueryId"}
+    },
+    "UnprocessedQueryExecutionId":{
+      "type":"structure",
+      "members":{
+        "QueryExecutionId":{
+          "shape":"QueryExecutionId",
+          "documentation":"<p>The unique identifier of the query execution.</p>"
+        },
+        "ErrorCode":{
+          "shape":"ErrorCode",
+          "documentation":"<p>The error code returned when the query execution failed to process, if applicable.</p>"
+        },
+        "ErrorMessage":{
+          "shape":"ErrorMessage",
+          "documentation":"<p>The error message returned when the query execution failed to process, if applicable.</p>"
+        }
+      },
+      "documentation":"<p>Describes a query execution that failed to process.</p>"
+    },
+    "UnprocessedQueryExecutionIdList":{
+      "type":"list",
+      "member":{"shape":"UnprocessedQueryExecutionId"}
+    },
+    "datumList":{
+      "type":"list",
+      "member":{"shape":"Datum"}
+    },
+    "datumString":{"type":"string"}
+  },
+  "documentation":"<p>Amazon Athena is an interactive query service that lets you use standard SQL to analyze data directly in Amazon S3. You can point Athena at your data in Amazon S3 and run ad-hoc queries and get results in seconds. Athena is serverless, so there is no infrastructure to set up or manage. You pay only for the queries you run. Athena scales automatically—executing queries in parallel—so results are fast, even with large datasets and complex queries. For more information, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/what-is.html\">What is Amazon Athena</a> in the <i>Amazon Athena User Guide</i>.</p> <p>For code samples using the AWS SDK for Java, see <a href=\"http://docs.aws.amazon.com/athena/latest/ug/code-samples.html\">Examples and Code Samples</a> in the <i>Amazon Athena User Guide</i>.</p>"
+}

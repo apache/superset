@@ -1,0 +1,22 @@
+Metadata-Version: 2.0
+Name: ipaddress
+Version: 1.0.18
+Summary: IPv4/IPv6 manipulation library
+Home-page: https://github.com/phihag/ipaddress
+Author: Philipp Hagemeister
+Author-email: phihag@phihag.de
+License: Python Software Foundation License
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: License :: OSI Approved :: Python Software Foundation License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3
+
+Port of the 3.3+ ipaddress module to 2.6, 2.7, 3.2
+
+

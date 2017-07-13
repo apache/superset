@@ -1,0 +1,2 @@
+old-style-class:4:Old:Old-style class defined.
+old-style-class:7:Child:Old-style class defined.

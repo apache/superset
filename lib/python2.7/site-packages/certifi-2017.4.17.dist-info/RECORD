@@ -1,0 +1,16 @@
+certifi/__init__.py,sha256=fygqpMx6KPrCIRMY4qcO5Zo60MDyQCYtNaI5BbgZyqE,63
+certifi/__main__.py,sha256=FiOYt1Fltst7wk9DRa6GCoBr8qBUxlNQu_MKJf04E6s,41
+certifi/cacert.pem,sha256=UgTuBXP5FC1mKK2skamUrJKyL8RVMmtUTKJZpTSFn_U,321422
+certifi/core.py,sha256=DqvIINYNNXsp3Srlk_NRaiizaww8po3l8t8ksz-Xt6Q,716
+certifi/old_root.pem,sha256=HT0KIfaM83q0XHFqGEesiGyfmlSWuD2RI0-AVIS2srY,25626
+certifi/weak.pem,sha256=LGe1E3ewgvNAs_yRA9ZKBN6C5KV2Cx34iJFMPi8_hyo,347048
+certifi-2017.4.17.dist-info/DESCRIPTION.rst,sha256=wVWYoH3eovdWFPZnYU2NT4itGRx3eN5C_s1IuNm4qF4,1731
+certifi-2017.4.17.dist-info/METADATA,sha256=ZzDLL1LWFj2SDbZdV_QZ-ZNWd_UDw_NXGbARLwgLYdg,2396
+certifi-2017.4.17.dist-info/RECORD,,
+certifi-2017.4.17.dist-info/WHEEL,sha256=5wvfB7GvgZAbKBSE9uX9Zbi6LCL-_KgezgHblXhCRnM,113
+certifi-2017.4.17.dist-info/metadata.json,sha256=8MYPZlDmqjogcs0bl7CuyQwwrSvqaFjpGMYsjFBQBlw,790
+certifi-2017.4.17.dist-info/top_level.txt,sha256=KMu4vUCfsjLrkPbSNdgdekS-pVJzBAJFO__nI8NF6-U,8
+certifi-2017.4.17.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+certifi/core.pyc,,
+certifi/__main__.pyc,,
+certifi/__init__.pyc,,

@@ -1,0 +1,34 @@
+no-value-for-parameter:46::No value for argument 'first_argument' in function call
+too-many-function-args:47::Too many positional arguments for function call
+no-value-for-parameter:49::No value for argument 'third_argument' in function call
+no-value-for-parameter:51::No value for argument 'first_argument' in function call
+no-value-for-parameter:51::No value for argument 'second_argument' in function call
+no-value-for-parameter:51::No value for argument 'third_argument' in function call
+too-many-function-args:53::Too many positional arguments for function call
+no-value-for-parameter:58::No value for argument 'first_argument' in function call
+unexpected-keyword-arg:58::Unexpected keyword argument 'bob' in function call
+unexpected-keyword-arg:59::Unexpected keyword argument 'coin' in function call
+redundant-keyword-arg:61::Argument 'one' passed by position and keyword in function call
+no-value-for-parameter:66::No value for argument 'arg' in lambda call
+no-value-for-parameter:71:method_tests:No value for argument 'arg' in staticmethod call
+no-value-for-parameter:72:method_tests:No value for argument 'arg' in staticmethod call
+no-value-for-parameter:74:method_tests:No value for argument 'arg' in classmethod call
+no-value-for-parameter:75:method_tests:No value for argument 'arg' in classmethod call
+no-value-for-parameter:77:method_tests:No value for argument 'arg' in method call
+no-value-for-parameter:78:method_tests:No value for argument 'arg' in unbound method call
+no-value-for-parameter:80:method_tests:No value for argument 'arg' in method call
+no-value-for-parameter:81:method_tests:No value for argument 'arg' in unbound method call
+no-value-for-parameter:110:TestStaticMethod.func:No value for argument 'first' in staticmethod call
+too-many-function-args:111:TestStaticMethod.func:Too many positional arguments for staticmethod call
+too-many-function-args:119:TypeCheckConstructor.test:Too many positional arguments for constructor call
+no-value-for-parameter:121:TypeCheckConstructor.test:No value for argument 'first' in constructor call
+no-value-for-parameter:121:TypeCheckConstructor.test:No value for argument 'second' in constructor call
+no-value-for-parameter:122:TypeCheckConstructor.test:No value for argument 'second' in constructor call
+unexpected-keyword-arg:122:TypeCheckConstructor.test:Unexpected keyword argument 'lala' in constructor call
+no-value-for-parameter:133:Test.test:No value for argument 'icon' in method call
+too-many-function-args:134:Test.test:Too many positional arguments for method call
+no-value-for-parameter:136::No value for argument 'icon' in method call
+no-value-for-parameter:163:no_context_but_redefined:No value for argument 'three' in function call
+no-value-for-parameter:163:no_context_but_redefined:No value for argument 'two' in function call
+no-value-for-parameter:166:no_context_one_elem:No value for argument 'three' in function call
+no-value-for-parameter:166:no_context_one_elem:No value for argument 'two' in function call

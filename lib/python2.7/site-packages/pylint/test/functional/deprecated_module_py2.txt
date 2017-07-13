@@ -1,0 +1,4 @@
+deprecated-module:4::Uses of a deprecated module 'Bastion'
+deprecated-module:5::Uses of a deprecated module 'rexec'
+deprecated-module:7::Uses of a deprecated module 'Bastion'
+deprecated-module:8::Uses of a deprecated module 'rexec'

@@ -1,0 +1,284 @@
+# French (France) translations for PROJECT.
+# Copyright (C) 2013 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2013.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-03-24 21:07+0400\n"
+"PO-Revision-Date: 2013-06-22 08:52+0100\n"
+"Last-Translator: Olivier Cortès <oc@1flow.io>\n"
+"Language-Team: fr_FR <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Generated-By: Babel 0.9.6\n"
+"X-Generator: Poedit 1.5.5\n"
+
+#: humanize/number.py:20
+#, fuzzy
+msgctxt "0"
+msgid "th"
+msgstr "e"
+
+#: humanize/number.py:21
+#, fuzzy
+msgctxt "1"
+msgid "st"
+msgstr "er"
+
+#: humanize/number.py:22
+#, fuzzy
+msgctxt "2"
+msgid "nd"
+msgstr "e"
+
+#: humanize/number.py:23
+#, fuzzy
+msgctxt "3"
+msgid "rd"
+msgstr "e"
+
+#: humanize/number.py:24
+#, fuzzy
+msgctxt "4"
+msgid "th"
+msgstr "e"
+
+#: humanize/number.py:25
+#, fuzzy
+msgctxt "5"
+msgid "th"
+msgstr "e"
+
+#: humanize/number.py:26
+#, fuzzy
+msgctxt "6"
+msgid "th"
+msgstr "e"
+
+#: humanize/number.py:27
+#, fuzzy
+msgctxt "7"
+msgid "th"
+msgstr "e"
+
+#: humanize/number.py:28
+#, fuzzy
+msgctxt "8"
+msgid "th"
+msgstr "e"
+
+#: humanize/number.py:29
+#, fuzzy
+msgctxt "9"
+msgid "th"
+msgstr "e"
+
+#: humanize/number.py:55
+#, fuzzy
+msgid "million"
+msgstr "%(value)s million"
+
+#: humanize/number.py:55
+msgid "billion"
+msgstr "milliard"
+
+#: humanize/number.py:55
+#, fuzzy
+msgid "trillion"
+msgstr "%(value)s billion"
+
+#: humanize/number.py:55
+#, fuzzy
+msgid "quadrillion"
+msgstr "%(value)s quadrillion"
+
+#: humanize/number.py:56
+#, fuzzy
+msgid "quintillion"
+msgstr "%(value)s quintillion"
+
+#: humanize/number.py:56
+#, fuzzy
+msgid "sextillion"
+msgstr "%(value)s sextillion"
+
+#: humanize/number.py:56
+#, fuzzy
+msgid "septillion"
+msgstr "%(value)s septillion"
+
+#: humanize/number.py:57
+#, fuzzy
+msgid "octillion"
+msgstr "%(value)s octillion"
+
+#: humanize/number.py:57
+#, fuzzy
+msgid "nonillion"
+msgstr "%(value)s nonillion"
+
+#: humanize/number.py:57
+#, fuzzy
+msgid "decillion"
+msgstr "%(value)s décillion"
+
+#: humanize/number.py:57
+#, fuzzy
+msgid "googol"
+msgstr "%(value)s gogol"
+
+#: humanize/number.py:91
+msgid "one"
+msgstr "un"
+
+#: humanize/number.py:91
+msgid "two"
+msgstr "deux"
+
+#: humanize/number.py:91
+msgid "three"
+msgstr "trois"
+
+#: humanize/number.py:91
+msgid "four"
+msgstr "quatre"
+
+#: humanize/number.py:91
+msgid "five"
+msgstr "cinq"
+
+#: humanize/number.py:91
+msgid "six"
+msgstr "six"
+
+#: humanize/number.py:92
+msgid "seven"
+msgstr "sept"
+
+#: humanize/number.py:92
+msgid "eight"
+msgstr "huit"
+
+#: humanize/number.py:92
+msgid "nine"
+msgstr "neuf"
+
+#: humanize/time.py:64 humanize/time.py:126
+msgid "a moment"
+msgstr "un moment"
+
+#: humanize/time.py:66
+msgid "a second"
+msgstr "une seconde"
+
+#: humanize/time.py:68
+#, python-format
+msgid "%d second"
+msgid_plural "%d seconds"
+msgstr[0] "%d seconde"
+msgstr[1] "%d secondes"
+
+#: humanize/time.py:70
+msgid "a minute"
+msgstr "une minute"
+
+#: humanize/time.py:73
+#, python-format
+msgid "%d minute"
+msgid_plural "%d minutes"
+msgstr[0] "%d minute"
+msgstr[1] "%d minutes"
+
+#: humanize/time.py:75
+msgid "an hour"
+msgstr "une heure"
+
+#: humanize/time.py:78
+#, python-format
+msgid "%d hour"
+msgid_plural "%d hours"
+msgstr[0] "%d heure"
+msgstr[1] "%d heures"
+
+#: humanize/time.py:81
+msgid "a day"
+msgstr "un jour"
+
+#: humanize/time.py:83 humanize/time.py:86
+#, python-format
+msgid "%d day"
+msgid_plural "%d days"
+msgstr[0] "%d jour"
+msgstr[1] "%d jours"
+
+#: humanize/time.py:88
+msgid "a month"
+msgstr "un mois"
+
+#: humanize/time.py:90
+#, python-format
+msgid "%d month"
+msgid_plural "%d months"
+msgstr[0] "%d mois"
+msgstr[1] "%d mois"
+
+#: humanize/time.py:93
+msgid "a year"
+msgstr "un an"
+
+#: humanize/time.py:95 humanize/time.py:103
+#, python-format
+msgid "1 year, %d day"
+msgid_plural "1 year, %d days"
+msgstr[0] "un an et %d jour"
+msgstr[1] "un an et %d jours"
+
+#: humanize/time.py:98
+msgid "1 year, 1 month"
+msgstr "un an et un mois"
+
+#: humanize/time.py:100
+#, python-format
+msgid "1 year, %d month"
+msgid_plural "1 year, %d months"
+msgstr[0] "un an et %d mois"
+msgstr[1] "un an et %d mois"
+
+#: humanize/time.py:105
+#, python-format
+msgid "%d year"
+msgid_plural "%d years"
+msgstr[0] "%d an"
+msgstr[1] "%d ans"
+
+#: humanize/time.py:123
+#, python-format
+msgid "%s from now"
+msgstr "dans %s"
+
+#: humanize/time.py:123
+#, python-format
+msgid "%s ago"
+msgstr "il y a %s"
+
+#: humanize/time.py:127
+msgid "now"
+msgstr "maintenant"
+
+#: humanize/time.py:145
+msgid "today"
+msgstr "aujourd'hui"
+
+#: humanize/time.py:147
+msgid "tomorrow"
+msgstr "demain"
+
+#: humanize/time.py:149
+msgid "yesterday"
+msgstr "hier"

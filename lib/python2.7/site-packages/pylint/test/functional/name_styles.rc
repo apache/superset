@@ -1,0 +1,5 @@
+[testoptions]
+min_pyver=2.6
+
+[Messages Control]
+disable=too-few-public-methods,abstract-class-not-used,global-statement

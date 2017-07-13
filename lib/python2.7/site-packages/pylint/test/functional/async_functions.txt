@@ -1,0 +1,10 @@
+redefined-builtin:5:next:"Redefining built-in 'next'"
+unused-argument:8:some_function:"Unused argument 'arg2'"
+bad-super-call:22:Class.some_method:"Bad first argument 'OtherClass' given to super()"
+too-many-arguments:26:complex_function:Too many arguments (10/5)
+too-many-branches:26:complex_function:Too many branches (13/12)
+too-many-return-statements:26:complex_function:Too many return statements (10/6)
+dangerous-default-value:57:func:Dangerous default value [] as argument
+duplicate-argument-name:57:func:Duplicate argument name a in function definition
+blacklisted-name:62:foo:Black listed name "foo"
+empty-docstring:62:foo:Empty function docstring

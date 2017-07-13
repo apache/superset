@@ -1,0 +1,6 @@
+nonexistent-operator:6::"Use of the non-existent ++ operator"
+nonexistent-operator:7::"Use of the non-existent ++ operator"
+nonexistent-operator:8::"Use of the non-existent ++ operator"
+nonexistent-operator:12::"Use of the non-existent -- operator"
+nonexistent-operator:14::"Use of the non-existent -- operator"
+nonexistent-operator:15::"Use of the non-existent -- operator"

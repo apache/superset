@@ -1,0 +1,231 @@
+.graph .content {
+    width: 1200px;
+}
+.graph .chart {
+    display: inline-block;
+}
+.graph .chart path {
+    -webkit-transition: opacity 0.2s linear;
+}
+.graph .slider {
+    margin-top: 10px;
+}
+.graph .legend {
+    display: inline-block;
+    position: relative;
+    left: 8px;
+}
+.graph .legend-container {
+    position: absolute;
+    right: 0;
+    bottom: 26px;
+    width: 0;
+}
+.graph .chart-container {
+    position: relative;
+    display: inline-block;
+}
+.graph .smoother {
+    margin: 0 0 10px 16px;
+    width: 100px;
+}
+.rickshaw_graph .detail {
+    left: -1000;
+}
+.graph .chart {
+    border: 1px solid #f0f0f0;
+}
+.graph .side-panel {
+    padding: 0 20px 20px 0;
+    display: inline-block;
+    vertical-align: top;
+}
+.graph .side-panel section {
+    color: #505050;
+    font-size: 12px;
+}
+.graph .side-panel section h6 {
+    margin: 0 0 1em 0;
+    font-size: 12px;
+    font-weight: normal;
+}
+.graph .side-panel .ui-slider-horizontal {
+    height: 1px !important;
+    border-color: #e0e0e0;
+    margin-bottom: 10px;
+}
+.graph .side-panel .ui-slider-handle {
+    border-color: #a0a0a0;
+    height: 9px !important;
+    width: 9px !important;
+    top: -5px !important;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+}
+.graph .legend {
+    background-color: white;
+    margin-left: 0;
+    padding: 0;
+    left: 0;
+}
+.graph .legend .label {
+    color: #404040;
+    background-color: white;
+}
+.graph .legend .action {
+    color: black;
+    opacity: 0.5;
+}
+.graph .legend ul {
+    padding: 0;
+}
+.graph section {
+    border: none;
+    border-top: 1px solid #eaeaea;
+    padding: 15px 0;
+}
+.graph .smoother {
+    margin: 5px 0 0 10px;
+    width: 90%;
+}
+.graph .legend .label.disabled {
+    opacity: 0.4;
+}
+#renderer_form.toggler {
+    display: block;
+    margin: 0;
+}
+#renderer_form.toggler input[type=radio]:checked {
+    outline: 2px solid steelblue;
+}
+#renderer_form.toggler input[type=radio] {
+    -moz-appearance: button;
+    background: white;
+    margin: 0 7px;
+    width: 39px;
+    height: 26px;
+    position: absolute;
+}
+#renderer_form.toggler label {
+    display: inline-block;
+    padding: 0;
+    width: 39px;
+    padding-top: 27px;
+    text-align: center;
+    font-size: 10px;
+    color: #808080;
+    background-repeat: no-repeat;
+    position: relative;
+    margin: 0 7px;
+    cursor: pointer;
+}
+.spacer {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.span6 table {
+    table-layout:fixed;
+    word-wrap: break-word;
+}
+.span6 table caption + tbody tr td:first-child {
+    width: 25%;
+}
+.btn-group-justified{
+    display: inline-block;
+    width: 100%;
+    float: left;
+}
+.btn-group-justified .btn{
+    display: table-cell !important;
+    float: none;
+    width: 1%;
+}
+.panel {
+  padding: 15px;
+  margin-top: 60px;
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 4px;
+  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+.panel-heading {
+  padding: 10px 15px;
+  margin: -15px -15px 15px;
+  font-size: 17.5px;
+  font-weight: 500;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #dddddd;
+  border-top-right-radius: 3px;
+  border-top-left-radius: 3px;
+}
+.panel-footer {
+  padding: 10px 15px;
+  margin: 15px -15px -15px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #dddddd;
+  border-bottom-right-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+.panel-primary {
+  border-color: #428bca;
+}
+.panel-primary .panel-heading {
+  color: #ffffff;
+  background-color: #428bca;
+  border-color: #428bca;
+}
+.panel-success {
+  border-color: #d6e9c6;
+}
+.panel-success .panel-heading {
+  color: #468847;
+  background-color: #dff0d8;
+  border-color: #d6e9c6;
+}
+.panel-warning {
+  border-color: #fbeed5;
+}
+.panel-warning .panel-heading {
+  color: #c09853;
+  background-color: #fcf8e3;
+  border-color: #fbeed5;
+}
+.panel-danger {
+  border-color: #eed3d7;
+}
+.panel-danger .panel-heading {
+  color: #b94a48;
+  background-color: #f2dede;
+  border-color: #eed3d7;
+}
+.panel-info {
+  border-color: #bce8f1;
+}
+.panel-info .panel-heading {
+  color: #3a87ad;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}
+.panel>.table, .panel>.table-responsive>.table {
+      margin-bottom: 0;
+}
+
+.filter-column {
+  width: 50%;
+}
+
+.filter-column.left {
+  float: left;
+}
+
+.filter-column.right{
+  float: right;
+}
+
+.filter-actions {
+  width: 100%;
+  display: inline-block;
+}

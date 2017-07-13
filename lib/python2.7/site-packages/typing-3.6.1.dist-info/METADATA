@@ -1,0 +1,34 @@
+Metadata-Version: 2.0
+Name: typing
+Version: 3.6.1
+Summary: Type Hints for Python
+Home-page: https://docs.python.org/3/library/typing.html
+Author: Guido van Rossum, Jukka Lehtosalo, Łukasz Langa
+Author-email: jukka.lehtosalo@iki.fi
+License: PSF
+Keywords: typing function annotations type hints hinting checking checker typehints typehinting typechecking backport
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: Python Software Foundation License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Topic :: Software Development
+
+Typing -- Type Hints for Python
+
+This is a backport of the standard library typing module to Python
+versions older than 3.6.
+
+Typing defines a standard notation for Python function and variable
+type annotations. The notation can be used for documenting code in a
+concise, standard format, and it has been designed to also be used by
+static and runtime type checkers, static analyzers, IDEs and other
+tools.
+
+

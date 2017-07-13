@@ -1,0 +1,1236 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "apiVersion":"2015-04-08",
+    "endpointPrefix":"workspaces",
+    "jsonVersion":"1.1",
+    "protocol":"json",
+    "serviceFullName":"Amazon WorkSpaces",
+    "signatureVersion":"v4",
+    "targetPrefix":"WorkspacesService",
+    "uid":"workspaces-2015-04-08"
+  },
+  "operations":{
+    "CreateTags":{
+      "name":"CreateTags",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateTagsRequest"},
+      "output":{"shape":"CreateTagsResult"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceLimitExceededException"}
+      ],
+      "documentation":"<p>Creates tags for a WorkSpace.</p>"
+    },
+    "CreateWorkspaces":{
+      "name":"CreateWorkspaces",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateWorkspacesRequest"},
+      "output":{"shape":"CreateWorkspacesResult"},
+      "errors":[
+        {"shape":"ResourceLimitExceededException"},
+        {"shape":"InvalidParameterValuesException"}
+      ],
+      "documentation":"<p>Creates one or more WorkSpaces.</p> <note> <p>This operation is asynchronous and returns before the WorkSpaces are created.</p> </note>"
+    },
+    "DeleteTags":{
+      "name":"DeleteTags",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteTagsRequest"},
+      "output":{"shape":"DeleteTagsResult"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidParameterValuesException"}
+      ],
+      "documentation":"<p>Deletes tags from a WorkSpace.</p>"
+    },
+    "DescribeTags":{
+      "name":"DescribeTags",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeTagsRequest"},
+      "output":{"shape":"DescribeTagsResult"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"}
+      ],
+      "documentation":"<p>Describes tags for a WorkSpace.</p>"
+    },
+    "DescribeWorkspaceBundles":{
+      "name":"DescribeWorkspaceBundles",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeWorkspaceBundlesRequest"},
+      "output":{"shape":"DescribeWorkspaceBundlesResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"}
+      ],
+      "documentation":"<p>Obtains information about the WorkSpace bundles that are available to your account in the specified region.</p> <p>You can filter the results with either the <code>BundleIds</code> parameter, or the <code>Owner</code> parameter, but not both.</p> <p>This operation supports pagination with the use of the <code>NextToken</code> request and response parameters. If more results are available, the <code>NextToken</code> response member contains a token that you pass in the next call to this operation to retrieve the next set of items.</p>"
+    },
+    "DescribeWorkspaceDirectories":{
+      "name":"DescribeWorkspaceDirectories",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeWorkspaceDirectoriesRequest"},
+      "output":{"shape":"DescribeWorkspaceDirectoriesResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"}
+      ],
+      "documentation":"<p>Retrieves information about the AWS Directory Service directories in the region that are registered with Amazon WorkSpaces and are available to your account.</p> <p>This operation supports pagination with the use of the <code>NextToken</code> request and response parameters. If more results are available, the <code>NextToken</code> response member contains a token that you pass in the next call to this operation to retrieve the next set of items.</p>"
+    },
+    "DescribeWorkspaces":{
+      "name":"DescribeWorkspaces",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeWorkspacesRequest"},
+      "output":{"shape":"DescribeWorkspacesResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"ResourceUnavailableException"}
+      ],
+      "documentation":"<p>Obtains information about the specified WorkSpaces.</p> <p>Only one of the filter parameters, such as <code>BundleId</code>, <code>DirectoryId</code>, or <code>WorkspaceIds</code>, can be specified at a time.</p> <p>This operation supports pagination with the use of the <code>NextToken</code> request and response parameters. If more results are available, the <code>NextToken</code> response member contains a token that you pass in the next call to this operation to retrieve the next set of items.</p>"
+    },
+    "DescribeWorkspacesConnectionStatus":{
+      "name":"DescribeWorkspacesConnectionStatus",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeWorkspacesConnectionStatusRequest"},
+      "output":{"shape":"DescribeWorkspacesConnectionStatusResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"}
+      ],
+      "documentation":"<p>Describes the connection status of a specified WorkSpace.</p>"
+    },
+    "ModifyWorkspaceProperties":{
+      "name":"ModifyWorkspaceProperties",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ModifyWorkspacePropertiesRequest"},
+      "output":{"shape":"ModifyWorkspacePropertiesResult"},
+      "errors":[
+        {"shape":"InvalidParameterValuesException"},
+        {"shape":"InvalidResourceStateException"},
+        {"shape":"OperationInProgressException"},
+        {"shape":"UnsupportedWorkspaceConfigurationException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"ResourceUnavailableException"}
+      ],
+      "documentation":"<p>Modifies the WorkSpace properties, including the running mode and AutoStop time.</p>"
+    },
+    "RebootWorkspaces":{
+      "name":"RebootWorkspaces",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RebootWorkspacesRequest"},
+      "output":{"shape":"RebootWorkspacesResult"},
+      "documentation":"<p>Reboots the specified WorkSpaces.</p> <p>To be able to reboot a WorkSpace, the WorkSpace must have a <b>State</b> of <code>AVAILABLE</code>, <code>IMPAIRED</code>, or <code>INOPERABLE</code>.</p> <note> <p>This operation is asynchronous and returns before the WorkSpaces have rebooted.</p> </note>"
+    },
+    "RebuildWorkspaces":{
+      "name":"RebuildWorkspaces",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RebuildWorkspacesRequest"},
+      "output":{"shape":"RebuildWorkspacesResult"},
+      "documentation":"<p>Rebuilds the specified WorkSpaces.</p> <p>Rebuilding a WorkSpace is a potentially destructive action that can result in the loss of data. Rebuilding a WorkSpace causes the following to occur:</p> <ul> <li> <p>The system is restored to the image of the bundle that the WorkSpace is created from. Any applications that have been installed, or system settings that have been made since the WorkSpace was created will be lost.</p> </li> <li> <p>The data drive (D drive) is re-created from the last automatic snapshot taken of the data drive. The current contents of the data drive are overwritten. Automatic snapshots of the data drive are taken every 12 hours, so the snapshot can be as much as 12 hours old.</p> </li> </ul> <p>To be able to rebuild a WorkSpace, the WorkSpace must have a <b>State</b> of <code>AVAILABLE</code> or <code>ERROR</code>.</p> <note> <p>This operation is asynchronous and returns before the WorkSpaces have been completely rebuilt.</p> </note>"
+    },
+    "StartWorkspaces":{
+      "name":"StartWorkspaces",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartWorkspacesRequest"},
+      "output":{"shape":"StartWorkspacesResult"},
+      "documentation":"<p>Starts the specified WorkSpaces. The WorkSpaces must have a running mode of AutoStop and a state of STOPPED.</p>"
+    },
+    "StopWorkspaces":{
+      "name":"StopWorkspaces",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopWorkspacesRequest"},
+      "output":{"shape":"StopWorkspacesResult"},
+      "documentation":"<p> Stops the specified WorkSpaces. The WorkSpaces must have a running mode of AutoStop and a state of AVAILABLE, IMPAIRED, UNHEALTHY, or ERROR.</p>"
+    },
+    "TerminateWorkspaces":{
+      "name":"TerminateWorkspaces",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TerminateWorkspacesRequest"},
+      "output":{"shape":"TerminateWorkspacesResult"},
+      "documentation":"<p>Terminates the specified WorkSpaces.</p> <p>Terminating a WorkSpace is a permanent action and cannot be undone. The user's data is not maintained and will be destroyed. If you need to archive any user data, contact Amazon Web Services before terminating the WorkSpace.</p> <p>You can terminate a WorkSpace that is in any state except <code>SUSPENDED</code>.</p> <note> <p>This operation is asynchronous and returns before the WorkSpaces have been completely terminated.</p> </note>"
+    }
+  },
+  "shapes":{
+    "ARN":{
+      "type":"string",
+      "pattern":"^arn:aws:[A-Za-z0-9][A-za-z0-9_/.-]{0,62}:[A-za-z0-9_/.-]{0,63}:[A-za-z0-9_/.-]{0,63}:[A-Za-z0-9][A-za-z0-9_/.-]{0,127}$"
+    },
+    "AccessDeniedException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"}
+      },
+      "documentation":"<p>The user is not authorized to access a resource.</p>",
+      "exception":true
+    },
+    "Alias":{"type":"string"},
+    "BooleanObject":{"type":"boolean"},
+    "BundleId":{
+      "type":"string",
+      "pattern":"^wsb-[0-9a-z]{8,63}$"
+    },
+    "BundleIdList":{
+      "type":"list",
+      "member":{"shape":"BundleId"},
+      "max":25,
+      "min":1
+    },
+    "BundleList":{
+      "type":"list",
+      "member":{"shape":"WorkspaceBundle"}
+    },
+    "BundleOwner":{"type":"string"},
+    "Compute":{
+      "type":"string",
+      "enum":[
+        "VALUE",
+        "STANDARD",
+        "PERFORMANCE"
+      ]
+    },
+    "ComputeType":{
+      "type":"structure",
+      "members":{
+        "Name":{
+          "shape":"Compute",
+          "documentation":"<p>The name of the compute type for the bundle.</p>"
+        }
+      },
+      "documentation":"<p>Contains information about the compute type of a WorkSpace bundle.</p>"
+    },
+    "ComputerName":{"type":"string"},
+    "ConnectionState":{
+      "type":"string",
+      "enum":[
+        "CONNECTED",
+        "DISCONNECTED",
+        "UNKNOWN"
+      ]
+    },
+    "CreateTagsRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "Tags"
+      ],
+      "members":{
+        "ResourceId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The resource ID of the request.</p>"
+        },
+        "Tags":{
+          "shape":"TagList",
+          "documentation":"<p>The tags of the request.</p>"
+        }
+      },
+      "documentation":"<p>The request of the <a>CreateTags</a> operation.</p>"
+    },
+    "CreateTagsResult":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The result of the <a>CreateTags</a> operation.</p>"
+    },
+    "CreateWorkspacesRequest":{
+      "type":"structure",
+      "required":["Workspaces"],
+      "members":{
+        "Workspaces":{
+          "shape":"WorkspaceRequestList",
+          "documentation":"<p>An array of structures that specify the WorkSpaces to create.</p>"
+        }
+      },
+      "documentation":"<p>Contains the inputs for the <a>CreateWorkspaces</a> operation.</p>"
+    },
+    "CreateWorkspacesResult":{
+      "type":"structure",
+      "members":{
+        "FailedRequests":{
+          "shape":"FailedCreateWorkspaceRequests",
+          "documentation":"<p>An array of structures that represent the WorkSpaces that could not be created.</p>"
+        },
+        "PendingRequests":{
+          "shape":"WorkspaceList",
+          "documentation":"<p>An array of structures that represent the WorkSpaces that were created.</p> <p>Because this operation is asynchronous, the identifier in <code>WorkspaceId</code> is not immediately available. If you immediately call <a>DescribeWorkspaces</a> with this identifier, no information will be returned.</p>"
+        }
+      },
+      "documentation":"<p>Contains the result of the <a>CreateWorkspaces</a> operation.</p>"
+    },
+    "DefaultOu":{"type":"string"},
+    "DefaultWorkspaceCreationProperties":{
+      "type":"structure",
+      "members":{
+        "EnableWorkDocs":{
+          "shape":"BooleanObject",
+          "documentation":"<p>Specifies if the directory is enabled for Amazon WorkDocs.</p>"
+        },
+        "EnableInternetAccess":{
+          "shape":"BooleanObject",
+          "documentation":"<p>A public IP address will be attached to all WorkSpaces that are created or rebuilt.</p>"
+        },
+        "DefaultOu":{
+          "shape":"DefaultOu",
+          "documentation":"<p>The organizational unit (OU) in the directory that the WorkSpace machine accounts are placed in.</p>"
+        },
+        "CustomSecurityGroupId":{
+          "shape":"SecurityGroupId",
+          "documentation":"<p>The identifier of any custom security groups that are applied to the WorkSpaces when they are created.</p>"
+        },
+        "UserEnabledAsLocalAdministrator":{
+          "shape":"BooleanObject",
+          "documentation":"<p>The WorkSpace user is an administrator on the WorkSpace.</p>"
+        }
+      },
+      "documentation":"<p>Contains default WorkSpace creation information.</p>"
+    },
+    "DeleteTagsRequest":{
+      "type":"structure",
+      "required":[
+        "ResourceId",
+        "TagKeys"
+      ],
+      "members":{
+        "ResourceId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The resource ID of the request.</p>"
+        },
+        "TagKeys":{
+          "shape":"TagKeyList",
+          "documentation":"<p>The tag keys of the request.</p>"
+        }
+      },
+      "documentation":"<p>The request of the <a>DeleteTags</a> operation.</p>"
+    },
+    "DeleteTagsResult":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The result of the <a>DeleteTags</a> operation.</p>"
+    },
+    "DescribeTagsRequest":{
+      "type":"structure",
+      "required":["ResourceId"],
+      "members":{
+        "ResourceId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The resource ID of the request.</p>"
+        }
+      },
+      "documentation":"<p>The request of the <a>DescribeTags</a> operation.</p>"
+    },
+    "DescribeTagsResult":{
+      "type":"structure",
+      "members":{
+        "TagList":{
+          "shape":"TagList",
+          "documentation":"<p>The list of tags.</p>"
+        }
+      },
+      "documentation":"<p>The result of the <a>DescribeTags</a> operation.</p>"
+    },
+    "DescribeWorkspaceBundlesRequest":{
+      "type":"structure",
+      "members":{
+        "BundleIds":{
+          "shape":"BundleIdList",
+          "documentation":"<p>An array of strings that contains the identifiers of the bundles to retrieve. This parameter cannot be combined with any other filter parameter.</p>"
+        },
+        "Owner":{
+          "shape":"BundleOwner",
+          "documentation":"<p>The owner of the bundles to retrieve. This parameter cannot be combined with any other filter parameter.</p> <p>This contains one of the following values:</p> <ul> <li> <p>null- Retrieves the bundles that belong to the account making the call.</p> </li> <li> <p> <code>AMAZON</code>- Retrieves the bundles that are provided by AWS.</p> </li> </ul>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>The <code>NextToken</code> value from a previous call to this operation. Pass null if this is the first call.</p>"
+        }
+      },
+      "documentation":"<p>Contains the inputs for the <a>DescribeWorkspaceBundles</a> operation.</p>"
+    },
+    "DescribeWorkspaceBundlesResult":{
+      "type":"structure",
+      "members":{
+        "Bundles":{
+          "shape":"BundleList",
+          "documentation":"<p>An array of structures that contain information about the bundles.</p>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>If not null, more results are available. Pass this value for the <code>NextToken</code> parameter in a subsequent call to this operation to retrieve the next set of items. This token is valid for one day and must be used within that time frame.</p>"
+        }
+      },
+      "documentation":"<p>Contains the results of the <a>DescribeWorkspaceBundles</a> operation.</p>"
+    },
+    "DescribeWorkspaceDirectoriesRequest":{
+      "type":"structure",
+      "members":{
+        "DirectoryIds":{
+          "shape":"DirectoryIdList",
+          "documentation":"<p>An array of strings that contains the directory identifiers to retrieve information for. If this member is null, all directories are retrieved.</p>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>The <code>NextToken</code> value from a previous call to this operation. Pass null if this is the first call.</p>"
+        }
+      },
+      "documentation":"<p>Contains the inputs for the <a>DescribeWorkspaceDirectories</a> operation.</p>"
+    },
+    "DescribeWorkspaceDirectoriesResult":{
+      "type":"structure",
+      "members":{
+        "Directories":{
+          "shape":"DirectoryList",
+          "documentation":"<p>An array of structures that contain information about the directories.</p>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>If not null, more results are available. Pass this value for the <code>NextToken</code> parameter in a subsequent call to this operation to retrieve the next set of items. This token is valid for one day and must be used within that time frame.</p>"
+        }
+      },
+      "documentation":"<p>Contains the results of the <a>DescribeWorkspaceDirectories</a> operation.</p>"
+    },
+    "DescribeWorkspacesConnectionStatusRequest":{
+      "type":"structure",
+      "members":{
+        "WorkspaceIds":{
+          "shape":"WorkspaceIdList",
+          "documentation":"<p>An array of strings that contain the identifiers of the WorkSpaces.</p>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>The next token of the request.</p>"
+        }
+      }
+    },
+    "DescribeWorkspacesConnectionStatusResult":{
+      "type":"structure",
+      "members":{
+        "WorkspacesConnectionStatus":{
+          "shape":"WorkspaceConnectionStatusList",
+          "documentation":"<p>The connection status of the WorkSpace.</p>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>The next token of the result.</p>"
+        }
+      }
+    },
+    "DescribeWorkspacesRequest":{
+      "type":"structure",
+      "members":{
+        "WorkspaceIds":{
+          "shape":"WorkspaceIdList",
+          "documentation":"<p>An array of strings that contain the identifiers of the WorkSpaces for which to retrieve information. This parameter cannot be combined with any other filter parameter.</p> <p>Because the <a>CreateWorkspaces</a> operation is asynchronous, the identifier it returns is not immediately available. If you immediately call <a>DescribeWorkspaces</a> with this identifier, no information is returned.</p>"
+        },
+        "DirectoryId":{
+          "shape":"DirectoryId",
+          "documentation":"<p>Specifies the directory identifier to which to limit the WorkSpaces. Optionally, you can specify a specific directory user with the <code>UserName</code> parameter. This parameter cannot be combined with any other filter parameter.</p>"
+        },
+        "UserName":{
+          "shape":"UserName",
+          "documentation":"<p>Used with the <code>DirectoryId</code> parameter to specify the directory user for whom to obtain the WorkSpace.</p>"
+        },
+        "BundleId":{
+          "shape":"BundleId",
+          "documentation":"<p>The identifier of a bundle to obtain the WorkSpaces for. All WorkSpaces that are created from this bundle will be retrieved. This parameter cannot be combined with any other filter parameter.</p>"
+        },
+        "Limit":{
+          "shape":"Limit",
+          "documentation":"<p>The maximum number of items to return.</p>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>The <code>NextToken</code> value from a previous call to this operation. Pass null if this is the first call.</p>"
+        }
+      },
+      "documentation":"<p>Contains the inputs for the <a>DescribeWorkspaces</a> operation.</p>"
+    },
+    "DescribeWorkspacesResult":{
+      "type":"structure",
+      "members":{
+        "Workspaces":{
+          "shape":"WorkspaceList",
+          "documentation":"<p>An array of structures that contain the information about the WorkSpaces.</p> <p>Because the <a>CreateWorkspaces</a> operation is asynchronous, some of this information may be incomplete for a newly-created WorkSpace.</p>"
+        },
+        "NextToken":{
+          "shape":"PaginationToken",
+          "documentation":"<p>If not null, more results are available. Pass this value for the <code>NextToken</code> parameter in a subsequent call to this operation to retrieve the next set of items. This token is valid for one day and must be used within that time frame.</p>"
+        }
+      },
+      "documentation":"<p>Contains the results for the <a>DescribeWorkspaces</a> operation.</p>"
+    },
+    "Description":{"type":"string"},
+    "DirectoryId":{
+      "type":"string",
+      "pattern":"^d-[0-9a-f]{8,63}$"
+    },
+    "DirectoryIdList":{
+      "type":"list",
+      "member":{"shape":"DirectoryId"},
+      "max":25,
+      "min":1
+    },
+    "DirectoryList":{
+      "type":"list",
+      "member":{"shape":"WorkspaceDirectory"}
+    },
+    "DirectoryName":{"type":"string"},
+    "DnsIpAddresses":{
+      "type":"list",
+      "member":{"shape":"IpAddress"}
+    },
+    "ErrorType":{"type":"string"},
+    "ExceptionMessage":{"type":"string"},
+    "FailedCreateWorkspaceRequest":{
+      "type":"structure",
+      "members":{
+        "WorkspaceRequest":{
+          "shape":"WorkspaceRequest",
+          "documentation":"<p>A <a>FailedCreateWorkspaceRequest$WorkspaceRequest</a> object that contains the information about the WorkSpace that could not be created.</p>"
+        },
+        "ErrorCode":{
+          "shape":"ErrorType",
+          "documentation":"<p>The error code.</p>"
+        },
+        "ErrorMessage":{
+          "shape":"Description",
+          "documentation":"<p>The textual error message.</p>"
+        }
+      },
+      "documentation":"<p>Contains information about a WorkSpace that could not be created.</p>"
+    },
+    "FailedCreateWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"FailedCreateWorkspaceRequest"}
+    },
+    "FailedRebootWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"FailedWorkspaceChangeRequest"}
+    },
+    "FailedRebuildWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"FailedWorkspaceChangeRequest"}
+    },
+    "FailedStartWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"FailedWorkspaceChangeRequest"}
+    },
+    "FailedStopWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"FailedWorkspaceChangeRequest"}
+    },
+    "FailedTerminateWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"FailedWorkspaceChangeRequest"}
+    },
+    "FailedWorkspaceChangeRequest":{
+      "type":"structure",
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The identifier of the WorkSpace.</p>"
+        },
+        "ErrorCode":{
+          "shape":"ErrorType",
+          "documentation":"<p>The error code.</p>"
+        },
+        "ErrorMessage":{
+          "shape":"Description",
+          "documentation":"<p>The textual error message.</p>"
+        }
+      },
+      "documentation":"<p>Contains information about a WorkSpace that could not be rebooted (<a>RebootWorkspaces</a>), rebuilt (<a>RebuildWorkspaces</a>), terminated (<a>TerminateWorkspaces</a>), started (<a>StartWorkspaces</a>), or stopped (<a>StopWorkspaces</a>).</p>"
+    },
+    "InvalidParameterValuesException":{
+      "type":"structure",
+      "members":{
+        "message":{
+          "shape":"ExceptionMessage",
+          "documentation":"<p>The exception error message.</p>"
+        }
+      },
+      "documentation":"<p>One or more parameter values are not valid.</p>",
+      "exception":true
+    },
+    "InvalidResourceStateException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"}
+      },
+      "documentation":"<p>The state of the WorkSpace is not valid for this operation.</p>",
+      "exception":true
+    },
+    "IpAddress":{"type":"string"},
+    "Limit":{
+      "type":"integer",
+      "max":25,
+      "min":1
+    },
+    "ModifyWorkspacePropertiesRequest":{
+      "type":"structure",
+      "required":[
+        "WorkspaceId",
+        "WorkspaceProperties"
+      ],
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The ID of the WorkSpace.</p>"
+        },
+        "WorkspaceProperties":{
+          "shape":"WorkspaceProperties",
+          "documentation":"<p>The WorkSpace properties of the request.</p>"
+        }
+      }
+    },
+    "ModifyWorkspacePropertiesResult":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "NonEmptyString":{
+      "type":"string",
+      "min":1
+    },
+    "OperationInProgressException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"}
+      },
+      "documentation":"<p>The properties of this WorkSpace are currently being modified. Try again in a moment.</p>",
+      "exception":true
+    },
+    "PaginationToken":{
+      "type":"string",
+      "max":63,
+      "min":1
+    },
+    "RebootRequest":{
+      "type":"structure",
+      "required":["WorkspaceId"],
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The identifier of the WorkSpace to reboot.</p>"
+        }
+      },
+      "documentation":"<p>Contains information used with the <a>RebootWorkspaces</a> operation to reboot a WorkSpace.</p>"
+    },
+    "RebootWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"RebootRequest"},
+      "max":25,
+      "min":1
+    },
+    "RebootWorkspacesRequest":{
+      "type":"structure",
+      "required":["RebootWorkspaceRequests"],
+      "members":{
+        "RebootWorkspaceRequests":{
+          "shape":"RebootWorkspaceRequests",
+          "documentation":"<p>An array of structures that specify the WorkSpaces to reboot.</p>"
+        }
+      },
+      "documentation":"<p>Contains the inputs for the <a>RebootWorkspaces</a> operation.</p>"
+    },
+    "RebootWorkspacesResult":{
+      "type":"structure",
+      "members":{
+        "FailedRequests":{
+          "shape":"FailedRebootWorkspaceRequests",
+          "documentation":"<p>An array of structures representing any WorkSpaces that could not be rebooted.</p>"
+        }
+      },
+      "documentation":"<p>Contains the results of the <a>RebootWorkspaces</a> operation.</p>"
+    },
+    "RebuildRequest":{
+      "type":"structure",
+      "required":["WorkspaceId"],
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The identifier of the WorkSpace to rebuild.</p>"
+        }
+      },
+      "documentation":"<p>Contains information used with the <a>RebuildWorkspaces</a> operation to rebuild a WorkSpace.</p>"
+    },
+    "RebuildWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"RebuildRequest"},
+      "max":1,
+      "min":1
+    },
+    "RebuildWorkspacesRequest":{
+      "type":"structure",
+      "required":["RebuildWorkspaceRequests"],
+      "members":{
+        "RebuildWorkspaceRequests":{
+          "shape":"RebuildWorkspaceRequests",
+          "documentation":"<p>An array of structures that specify the WorkSpaces to rebuild.</p>"
+        }
+      },
+      "documentation":"<p>Contains the inputs for the <a>RebuildWorkspaces</a> operation.</p>"
+    },
+    "RebuildWorkspacesResult":{
+      "type":"structure",
+      "members":{
+        "FailedRequests":{
+          "shape":"FailedRebuildWorkspaceRequests",
+          "documentation":"<p>An array of structures representing any WorkSpaces that could not be rebuilt.</p>"
+        }
+      },
+      "documentation":"<p>Contains the results of the <a>RebuildWorkspaces</a> operation.</p>"
+    },
+    "RegistrationCode":{
+      "type":"string",
+      "max":20,
+      "min":1
+    },
+    "ResourceLimitExceededException":{
+      "type":"structure",
+      "members":{
+        "message":{
+          "shape":"ExceptionMessage",
+          "documentation":"<p>The exception error message.</p>"
+        }
+      },
+      "documentation":"<p>Your resource limits have been exceeded.</p>",
+      "exception":true
+    },
+    "ResourceNotFoundException":{
+      "type":"structure",
+      "members":{
+        "message":{
+          "shape":"ExceptionMessage",
+          "documentation":"<p>The resource could not be found.</p>"
+        },
+        "ResourceId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The resource could not be found.</p>"
+        }
+      },
+      "documentation":"<p>The resource could not be found.</p>",
+      "exception":true
+    },
+    "ResourceUnavailableException":{
+      "type":"structure",
+      "members":{
+        "message":{
+          "shape":"ExceptionMessage",
+          "documentation":"<p>The exception error message.</p>"
+        },
+        "ResourceId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The identifier of the resource that is not available.</p>"
+        }
+      },
+      "documentation":"<p>The specified resource is not available.</p>",
+      "exception":true
+    },
+    "RunningMode":{
+      "type":"string",
+      "enum":[
+        "AUTO_STOP",
+        "ALWAYS_ON"
+      ]
+    },
+    "RunningModeAutoStopTimeoutInMinutes":{"type":"integer"},
+    "SecurityGroupId":{
+      "type":"string",
+      "pattern":"^(sg-[0-9a-f]{8})$"
+    },
+    "StartRequest":{
+      "type":"structure",
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The ID of the WorkSpace.</p>"
+        }
+      },
+      "documentation":"<p>Describes the start request.</p>"
+    },
+    "StartWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"StartRequest"},
+      "max":25,
+      "min":1
+    },
+    "StartWorkspacesRequest":{
+      "type":"structure",
+      "required":["StartWorkspaceRequests"],
+      "members":{
+        "StartWorkspaceRequests":{
+          "shape":"StartWorkspaceRequests",
+          "documentation":"<p>The requests.</p>"
+        }
+      }
+    },
+    "StartWorkspacesResult":{
+      "type":"structure",
+      "members":{
+        "FailedRequests":{
+          "shape":"FailedStartWorkspaceRequests",
+          "documentation":"<p>The failed requests.</p>"
+        }
+      }
+    },
+    "StopRequest":{
+      "type":"structure",
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The ID of the WorkSpace.</p>"
+        }
+      },
+      "documentation":"<p>Describes the stop request.</p>"
+    },
+    "StopWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"StopRequest"},
+      "max":25,
+      "min":1
+    },
+    "StopWorkspacesRequest":{
+      "type":"structure",
+      "required":["StopWorkspaceRequests"],
+      "members":{
+        "StopWorkspaceRequests":{
+          "shape":"StopWorkspaceRequests",
+          "documentation":"<p>The requests.</p>"
+        }
+      }
+    },
+    "StopWorkspacesResult":{
+      "type":"structure",
+      "members":{
+        "FailedRequests":{
+          "shape":"FailedStopWorkspaceRequests",
+          "documentation":"<p>The failed requests.</p>"
+        }
+      }
+    },
+    "SubnetId":{
+      "type":"string",
+      "pattern":"^(subnet-[0-9a-f]{8})$"
+    },
+    "SubnetIds":{
+      "type":"list",
+      "member":{"shape":"SubnetId"}
+    },
+    "Tag":{
+      "type":"structure",
+      "required":["Key"],
+      "members":{
+        "Key":{
+          "shape":"TagKey",
+          "documentation":"<p>The key of the tag.</p>"
+        },
+        "Value":{
+          "shape":"TagValue",
+          "documentation":"<p>The value of the tag.</p>"
+        }
+      },
+      "documentation":"<p>Describes the tag of the WorkSpace.</p>"
+    },
+    "TagKey":{
+      "type":"string",
+      "max":127,
+      "min":1
+    },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"NonEmptyString"}
+    },
+    "TagList":{
+      "type":"list",
+      "member":{"shape":"Tag"}
+    },
+    "TagValue":{
+      "type":"string",
+      "max":255
+    },
+    "TerminateRequest":{
+      "type":"structure",
+      "required":["WorkspaceId"],
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The identifier of the WorkSpace to terminate.</p>"
+        }
+      },
+      "documentation":"<p>Contains information used with the <a>TerminateWorkspaces</a> operation to terminate a WorkSpace.</p>"
+    },
+    "TerminateWorkspaceRequests":{
+      "type":"list",
+      "member":{"shape":"TerminateRequest"},
+      "max":25,
+      "min":1
+    },
+    "TerminateWorkspacesRequest":{
+      "type":"structure",
+      "required":["TerminateWorkspaceRequests"],
+      "members":{
+        "TerminateWorkspaceRequests":{
+          "shape":"TerminateWorkspaceRequests",
+          "documentation":"<p>An array of structures that specify the WorkSpaces to terminate.</p>"
+        }
+      },
+      "documentation":"<p>Contains the inputs for the <a>TerminateWorkspaces</a> operation.</p>"
+    },
+    "TerminateWorkspacesResult":{
+      "type":"structure",
+      "members":{
+        "FailedRequests":{
+          "shape":"FailedTerminateWorkspaceRequests",
+          "documentation":"<p>An array of structures representing any WorkSpaces that could not be terminated.</p>"
+        }
+      },
+      "documentation":"<p>Contains the results of the <a>TerminateWorkspaces</a> operation.</p>"
+    },
+    "Timestamp":{"type":"timestamp"},
+    "UnsupportedWorkspaceConfigurationException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ExceptionMessage"}
+      },
+      "documentation":"<p>The configuration of this WorkSpace is not supported for this operation. For more information, see the <a href=\"http://docs.aws.amazon.com/workspaces/latest/adminguide/\">Amazon WorkSpaces Administration Guide</a>. </p>",
+      "exception":true
+    },
+    "UserName":{
+      "type":"string",
+      "max":63,
+      "min":1
+    },
+    "UserStorage":{
+      "type":"structure",
+      "members":{
+        "Capacity":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The amount of user storage for the bundle.</p>"
+        }
+      },
+      "documentation":"<p>Contains information about the user storage for a WorkSpace bundle.</p>"
+    },
+    "VolumeEncryptionKey":{"type":"string"},
+    "Workspace":{
+      "type":"structure",
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The identifier of the WorkSpace.</p>"
+        },
+        "DirectoryId":{
+          "shape":"DirectoryId",
+          "documentation":"<p>The identifier of the AWS Directory Service directory that the WorkSpace belongs to.</p>"
+        },
+        "UserName":{
+          "shape":"UserName",
+          "documentation":"<p>The user that the WorkSpace is assigned to.</p>"
+        },
+        "IpAddress":{
+          "shape":"IpAddress",
+          "documentation":"<p>The IP address of the WorkSpace.</p>"
+        },
+        "State":{
+          "shape":"WorkspaceState",
+          "documentation":"<p>The operational state of the WorkSpace.</p>"
+        },
+        "BundleId":{
+          "shape":"BundleId",
+          "documentation":"<p>The identifier of the bundle that the WorkSpace was created from.</p>"
+        },
+        "SubnetId":{
+          "shape":"SubnetId",
+          "documentation":"<p>The identifier of the subnet that the WorkSpace is in.</p>"
+        },
+        "ErrorMessage":{
+          "shape":"Description",
+          "documentation":"<p>If the WorkSpace could not be created, this contains a textual error message that describes the failure.</p>"
+        },
+        "ErrorCode":{
+          "shape":"WorkspaceErrorCode",
+          "documentation":"<p>If the WorkSpace could not be created, this contains the error code.</p>"
+        },
+        "ComputerName":{
+          "shape":"ComputerName",
+          "documentation":"<p>The name of the WorkSpace as seen by the operating system.</p>"
+        },
+        "VolumeEncryptionKey":{
+          "shape":"VolumeEncryptionKey",
+          "documentation":"<p>The KMS key used to encrypt data stored on your WorkSpace.</p>"
+        },
+        "UserVolumeEncryptionEnabled":{
+          "shape":"BooleanObject",
+          "documentation":"<p>Specifies whether the data stored on the user volume, or D: drive, is encrypted.</p>"
+        },
+        "RootVolumeEncryptionEnabled":{
+          "shape":"BooleanObject",
+          "documentation":"<p>Specifies whether the data stored on the root volume, or C: drive, is encrypted.</p>"
+        },
+        "WorkspaceProperties":{"shape":"WorkspaceProperties"}
+      },
+      "documentation":"<p>Contains information about a WorkSpace.</p>"
+    },
+    "WorkspaceBundle":{
+      "type":"structure",
+      "members":{
+        "BundleId":{
+          "shape":"BundleId",
+          "documentation":"<p>The bundle identifier.</p>"
+        },
+        "Name":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The name of the bundle.</p>"
+        },
+        "Owner":{
+          "shape":"BundleOwner",
+          "documentation":"<p>The owner of the bundle. This contains the owner's account identifier, or <code>AMAZON</code> if the bundle is provided by AWS.</p>"
+        },
+        "Description":{
+          "shape":"Description",
+          "documentation":"<p>The bundle description.</p>"
+        },
+        "UserStorage":{
+          "shape":"UserStorage",
+          "documentation":"<p>A <a>UserStorage</a> object that specifies the amount of user storage that the bundle contains.</p>"
+        },
+        "ComputeType":{
+          "shape":"ComputeType",
+          "documentation":"<p>A <a>ComputeType</a> object that specifies the compute type for the bundle.</p>"
+        }
+      },
+      "documentation":"<p>Contains information about a WorkSpace bundle.</p>"
+    },
+    "WorkspaceConnectionStatus":{
+      "type":"structure",
+      "members":{
+        "WorkspaceId":{
+          "shape":"WorkspaceId",
+          "documentation":"<p>The ID of the WorkSpace.</p>"
+        },
+        "ConnectionState":{
+          "shape":"ConnectionState",
+          "documentation":"<p>The connection state of the WorkSpace. Returns UNKOWN if the WorkSpace is in a Stopped state.</p>"
+        },
+        "ConnectionStateCheckTimestamp":{
+          "shape":"Timestamp",
+          "documentation":"<p>The timestamp of the connection state check.</p>"
+        },
+        "LastKnownUserConnectionTimestamp":{
+          "shape":"Timestamp",
+          "documentation":"<p>The timestamp of the last known user connection.</p>"
+        }
+      },
+      "documentation":"<p>Describes the connection status of a WorkSpace.</p>"
+    },
+    "WorkspaceConnectionStatusList":{
+      "type":"list",
+      "member":{"shape":"WorkspaceConnectionStatus"}
+    },
+    "WorkspaceDirectory":{
+      "type":"structure",
+      "members":{
+        "DirectoryId":{
+          "shape":"DirectoryId",
+          "documentation":"<p>The directory identifier.</p>"
+        },
+        "Alias":{
+          "shape":"Alias",
+          "documentation":"<p>The directory alias.</p>"
+        },
+        "DirectoryName":{
+          "shape":"DirectoryName",
+          "documentation":"<p>The name of the directory.</p>"
+        },
+        "RegistrationCode":{
+          "shape":"RegistrationCode",
+          "documentation":"<p>The registration code for the directory. This is the code that users enter in their Amazon WorkSpaces client application to connect to the directory.</p>"
+        },
+        "SubnetIds":{
+          "shape":"SubnetIds",
+          "documentation":"<p>An array of strings that contains the identifiers of the subnets used with the directory.</p>"
+        },
+        "DnsIpAddresses":{
+          "shape":"DnsIpAddresses",
+          "documentation":"<p>An array of strings that contains the IP addresses of the DNS servers for the directory.</p>"
+        },
+        "CustomerUserName":{
+          "shape":"UserName",
+          "documentation":"<p>The user name for the service account.</p>"
+        },
+        "IamRoleId":{
+          "shape":"ARN",
+          "documentation":"<p>The identifier of the IAM role. This is the role that allows Amazon WorkSpaces to make calls to other services, such as Amazon EC2, on your behalf.</p>"
+        },
+        "DirectoryType":{
+          "shape":"WorkspaceDirectoryType",
+          "documentation":"<p>The directory type.</p>"
+        },
+        "WorkspaceSecurityGroupId":{
+          "shape":"SecurityGroupId",
+          "documentation":"<p>The identifier of the security group that is assigned to new WorkSpaces.</p>"
+        },
+        "State":{
+          "shape":"WorkspaceDirectoryState",
+          "documentation":"<p>The state of the directory's registration with Amazon WorkSpaces</p>"
+        },
+        "WorkspaceCreationProperties":{
+          "shape":"DefaultWorkspaceCreationProperties",
+          "documentation":"<p>A structure that specifies the default creation properties for all WorkSpaces in the directory.</p>"
+        }
+      },
+      "documentation":"<p>Contains information about an AWS Directory Service directory for use with Amazon WorkSpaces.</p>"
+    },
+    "WorkspaceDirectoryState":{
+      "type":"string",
+      "enum":[
+        "REGISTERING",
+        "REGISTERED",
+        "DEREGISTERING",
+        "DEREGISTERED",
+        "ERROR"
+      ]
+    },
+    "WorkspaceDirectoryType":{
+      "type":"string",
+      "enum":[
+        "SIMPLE_AD",
+        "AD_CONNECTOR"
+      ]
+    },
+    "WorkspaceErrorCode":{"type":"string"},
+    "WorkspaceId":{
+      "type":"string",
+      "pattern":"^ws-[0-9a-z]{8,63}$"
+    },
+    "WorkspaceIdList":{
+      "type":"list",
+      "member":{"shape":"WorkspaceId"},
+      "max":25,
+      "min":1
+    },
+    "WorkspaceList":{
+      "type":"list",
+      "member":{"shape":"Workspace"}
+    },
+    "WorkspaceProperties":{
+      "type":"structure",
+      "members":{
+        "RunningMode":{
+          "shape":"RunningMode",
+          "documentation":"<p>The running mode of the WorkSpace. AlwaysOn WorkSpaces are billed monthly. AutoStop WorkSpaces are billed by the hour and stopped when no longer being used in order to save on costs.</p>"
+        },
+        "RunningModeAutoStopTimeoutInMinutes":{
+          "shape":"RunningModeAutoStopTimeoutInMinutes",
+          "documentation":"<p>The time after a user logs off when WorkSpaces are automatically stopped. Configured in 60 minute intervals.</p>"
+        }
+      },
+      "documentation":"<p>Describes the properties of a WorkSpace.</p>"
+    },
+    "WorkspaceRequest":{
+      "type":"structure",
+      "required":[
+        "DirectoryId",
+        "UserName",
+        "BundleId"
+      ],
+      "members":{
+        "DirectoryId":{
+          "shape":"DirectoryId",
+          "documentation":"<p>The identifier of the AWS Directory Service directory to create the WorkSpace in. You can use the <a>DescribeWorkspaceDirectories</a> operation to obtain a list of the directories that are available.</p>"
+        },
+        "UserName":{
+          "shape":"UserName",
+          "documentation":"<p>The username that the WorkSpace is assigned to. This username must exist in the AWS Directory Service directory specified by the <code>DirectoryId</code> member.</p>"
+        },
+        "BundleId":{
+          "shape":"BundleId",
+          "documentation":"<p>The identifier of the bundle to create the WorkSpace from. You can use the <a>DescribeWorkspaceBundles</a> operation to obtain a list of the bundles that are available.</p>"
+        },
+        "VolumeEncryptionKey":{
+          "shape":"VolumeEncryptionKey",
+          "documentation":"<p>The KMS key used to encrypt data stored on your WorkSpace.</p>"
+        },
+        "UserVolumeEncryptionEnabled":{
+          "shape":"BooleanObject",
+          "documentation":"<p>Specifies whether the data stored on the user volume, or D: drive, is encrypted.</p>"
+        },
+        "RootVolumeEncryptionEnabled":{
+          "shape":"BooleanObject",
+          "documentation":"<p>Specifies whether the data stored on the root volume, or C: drive, is encrypted.</p>"
+        },
+        "WorkspaceProperties":{"shape":"WorkspaceProperties"},
+        "Tags":{
+          "shape":"TagList",
+          "documentation":"<p>The tags of the WorkSpace request.</p>"
+        }
+      },
+      "documentation":"<p>Contains information about a WorkSpace creation request.</p>"
+    },
+    "WorkspaceRequestList":{
+      "type":"list",
+      "member":{"shape":"WorkspaceRequest"},
+      "max":25,
+      "min":1
+    },
+    "WorkspaceState":{
+      "type":"string",
+      "enum":[
+        "PENDING",
+        "AVAILABLE",
+        "IMPAIRED",
+        "UNHEALTHY",
+        "REBOOTING",
+        "STARTING",
+        "REBUILDING",
+        "MAINTENANCE",
+        "TERMINATING",
+        "TERMINATED",
+        "SUSPENDED",
+        "STOPPING",
+        "STOPPED",
+        "ERROR"
+      ]
+    }
+  },
+  "documentation":"<fullname>Amazon WorkSpaces Service</fullname> <p>This reference provides detailed information about the Amazon WorkSpaces operations.</p>"
+}

@@ -1,0 +1,40 @@
+
+<script type="text/javascript" src="{{url_for('appbuilder.static',filename='js/google_charts.js')}}"></script>
+<script type="text/javascript">
+            //load the Google Visualization API and the chart
+            google.load('visualization', '1', {'packages': ['corechart']});
+
+            //set callback
+            google.setOnLoadCallback (createChart);
+            // playground http://code.google.com/apis/ajax/playground/?type=visualization#line_chart
+
+            var jsonData = {
+                "cols": [
+                    {"id":"","label":"Group","pattern":"","type":"string"},
+                    {"id":"","label":"Male","pattern":"","type":"number"},
+                    {"id":"","label":"Female","pattern":"","type":"number"}
+                    ],
+                "rows": [
+                    {"c":[{"v":"Friends"},{"v":"7"},{"v":3}]},
+                    {"c":[{"v":"Work"},{"v":"2"},{"v":3}]},
+                    {"c":[{"v":"Family"},{"v":"6"},{"v":4}]},
+                    ]
+            }
+
+            //callback function
+            function createChart() {
+
+                var dataTable = new google.visualization.DataTable(jsonData);
+
+
+                //instantiate our chart object
+                var chart = new google.visualization.{{chart_type}}(document.getElementById('chart'));
+
+                //define options for visualization
+                var options = {is3D: {{ chart_3d }}, title: '{{ chart_title }}' };
+
+                //draw our chart
+                chart.draw(dataTable, options);
+
+            }
+</script>

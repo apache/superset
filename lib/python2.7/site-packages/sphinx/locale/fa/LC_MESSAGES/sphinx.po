@@ -1,0 +1,1314 @@
+# Translations template for Sphinx.
+# Copyright (C) 2017 ORGANIZATION
+# This file is distributed under the same license as the Sphinx project.
+# 
+# Translators:
+msgid ""
+msgstr ""
+"Project-Id-Version: Sphinx\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2017-04-28 15:54+0000\n"
+"PO-Revision-Date: 2017-04-28 15:59+0000\n"
+"Last-Translator: Takayuki SHIMIZUKAWA <shimizukawa@gmail.com>\n"
+"Language-Team: Persian (http://www.transifex.com/sphinx-doc/sphinx-1/language/fa/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.3.4\n"
+"Language: fa\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: sphinx/application.py:181
+#, python-format
+msgid ""
+"This project needs at least Sphinx v%s and therefore cannot be built with "
+"this version."
+msgstr ""
+
+#: sphinx/application.py:208
+msgid ""
+"'setup' that is specified in the conf.py has not been callable. Please "
+"provide a callable `setup` function in order to behave as a sphinx extension"
+" conf.py itself."
+msgstr ""
+
+#: sphinx/application.py:222
+#, python-format
+msgid "primary_domain %r not found, ignored."
+msgstr ""
+
+#: sphinx/application.py:259 sphinx/application.py:287
+msgid "done"
+msgstr ""
+
+#: sphinx/application.py:280
+msgid "loading pickled environment... "
+msgstr ""
+
+#: sphinx/application.py:290
+msgid "not yet created"
+msgstr ""
+
+#: sphinx/application.py:292
+#, python-format
+msgid "failed: %s"
+msgstr ""
+
+#: sphinx/application.py:302
+msgid "No builder selected, using default: html"
+msgstr ""
+
+#: sphinx/application.py:341
+msgid "succeeded"
+msgstr ""
+
+#: sphinx/application.py:341
+msgid "finished with problems"
+msgstr ""
+
+#: sphinx/application.py:343
+#, python-format
+msgid "build %s, %s warning%s."
+msgstr ""
+
+#: sphinx/application.py:347
+#, python-format
+msgid "build %s."
+msgstr ""
+
+#: sphinx/application.py:506
+#, python-format
+msgid "Config value %r already present"
+msgstr ""
+
+#: sphinx/application.py:518
+#, python-format
+msgid "A Translator for the %s builder is changed."
+msgstr ""
+
+#: sphinx/application.py:526
+#, python-format
+msgid ""
+"while setting up extension %s: node class %r is already registered, its "
+"visitors will be overridden"
+msgstr ""
+
+#: sphinx/application.py:535
+#, python-format
+msgid "Value for key %r must be a (visit, depart) function tuple"
+msgstr ""
+
+#: sphinx/application.py:582
+#, python-format
+msgid ""
+"while setting up extension %s: directive %r is already registered, it will "
+"be overridden"
+msgstr ""
+
+#: sphinx/application.py:593 sphinx/application.py:605
+#, python-format
+msgid ""
+"while setting up extension %s: role %r is already registered, it will be "
+"overridden"
+msgstr ""
+
+#: sphinx/config.py:127
+#, python-format
+msgid "Section %s"
+msgstr ""
+
+#: sphinx/config.py:128
+#, python-format
+msgid "Fig. %s"
+msgstr ""
+
+#: sphinx/config.py:129
+#, python-format
+msgid "Table %s"
+msgstr ""
+
+#: sphinx/config.py:130
+#, python-format
+msgid "Listing %s"
+msgstr ""
+
+#: sphinx/config.py:236
+#, python-format
+msgid ""
+"cannot override dictionary config setting %r, ignoring (use %r to set "
+"individual elements)"
+msgstr ""
+
+#: sphinx/config.py:245
+#, python-format
+msgid "invalid number %r for config value %r, ignoring"
+msgstr ""
+
+#: sphinx/config.py:250
+#, python-format
+msgid "cannot override config setting %r with unsupported type, ignoring"
+msgstr ""
+
+#: sphinx/config.py:280
+#, python-format
+msgid "unknown config value %r in override, ignoring"
+msgstr ""
+
+#: sphinx/config.py:299
+#, python-format
+msgid "No such config value: %s"
+msgstr ""
+
+#: sphinx/events.py:56
+#, python-format
+msgid "Event %r already present"
+msgstr ""
+
+#: sphinx/events.py:62
+#, python-format
+msgid "Unknown event name: %s"
+msgstr ""
+
+#: sphinx/extension.py:53
+#, python-format
+msgid ""
+"needs_extensions config value specifies a version requirement for extension "
+"%s, but it is not loaded"
+msgstr ""
+
+#: sphinx/extension.py:59
+#, python-format
+msgid ""
+"This project needs the extension %s at least in version %s and therefore "
+"cannot be built with the loaded version (%s)."
+msgstr ""
+
+#: sphinx/registry.py:56
+#, python-format
+msgid "Builder class %s has no \"name\" attribute"
+msgstr ""
+
+#: sphinx/registry.py:58
+#, python-format
+msgid "Builder %r already exists (in module %s)"
+msgstr ""
+
+#: sphinx/registry.py:72
+#, python-format
+msgid "Builder name %s not registered or available through entry point"
+msgstr ""
+
+#: sphinx/registry.py:80
+#, python-format
+msgid "Builder name %s not registered"
+msgstr ""
+
+#: sphinx/registry.py:87
+#, python-format
+msgid "domain %s already registered"
+msgstr ""
+
+#: sphinx/registry.py:102 sphinx/registry.py:112 sphinx/registry.py:119
+#: sphinx/registry.py:125
+#, python-format
+msgid "domain %s not yet registered"
+msgstr ""
+
+#: sphinx/registry.py:104
+#, python-format
+msgid "new domain not a subclass of registered %s domain"
+msgstr ""
+
+#: sphinx/registry.py:160
+#, python-format
+msgid "source_parser for %r is already registered"
+msgstr ""
+
+#: sphinx/registry.py:187
+#, python-format
+msgid ""
+"the extension %r was already merged with Sphinx since version %s; this "
+"extension is ignored."
+msgstr ""
+
+#: sphinx/registry.py:198
+msgid "Original exception:\n"
+msgstr ""
+
+#: sphinx/registry.py:199
+#, python-format
+msgid "Could not import extension %s"
+msgstr ""
+
+#: sphinx/registry.py:202
+#, python-format
+msgid ""
+"extension %r has no setup() function; is it really a Sphinx extension "
+"module?"
+msgstr ""
+
+#: sphinx/registry.py:211
+#, python-format
+msgid ""
+"The %s extension used by this project needs at least Sphinx v%s; it "
+"therefore cannot be built with this version."
+msgstr ""
+
+#: sphinx/registry.py:221
+#, python-format
+msgid ""
+"extension %r returned an unsupported object from its setup() function; it "
+"should return None or a metadata dictionary"
+msgstr ""
+
+#: sphinx/roles.py:200
+#, python-format
+msgid "Python Enhancement Proposals; PEP %s"
+msgstr "Python Enhancement Proposals; PEP %s"
+
+#: sphinx/theming.py:83
+#, python-format
+msgid "theme %r doesn't have \"theme\" setting"
+msgstr ""
+
+#: sphinx/theming.py:85
+#, python-format
+msgid "theme %r doesn't have \"inherit\" setting"
+msgstr ""
+
+#: sphinx/theming.py:91
+#, python-format
+msgid "no theme named %r found, inherited by %r"
+msgstr ""
+
+#: sphinx/theming.py:116
+#, python-format
+msgid "setting %s.%s occurs in none of the searched theme configs"
+msgstr ""
+
+#: sphinx/theming.py:237
+#, python-format
+msgid "Theme extension %r does not response correctly."
+msgstr ""
+
+#: sphinx/theming.py:264
+#, python-format
+msgid "file %r on theme path is not a valid zipfile or contains no theme"
+msgstr ""
+
+#: sphinx/theming.py:280
+msgid ""
+"sphinx_rtd_theme is no longer a hard dependency since version 1.4.0. Please "
+"install it manually.(pip install sphinx_rtd_theme)"
+msgstr ""
+
+#: sphinx/theming.py:284
+#, python-format
+msgid "no theme named %r found (missing theme.conf?)"
+msgstr ""
+
+#: sphinx/builders/changes.py:86
+msgid "Builtins"
+msgstr "درونی سازی"
+
+#: sphinx/builders/changes.py:88
+msgid "Module level"
+msgstr "در سطح ماژول"
+
+#: sphinx/builders/html.py:357 sphinx/transforms/__init__.py:119
+#: sphinx/writers/latex.py:561 sphinx/writers/manpage.py:110
+#: sphinx/writers/texinfo.py:241
+#, python-format
+msgid "%b %d, %Y"
+msgstr ""
+
+#: sphinx/builders/html.py:377 sphinx/themes/basic/defindex.html:30
+msgid "General Index"
+msgstr "فهرست کلی"
+
+#: sphinx/builders/html.py:377
+msgid "index"
+msgstr "فهرست"
+
+#: sphinx/builders/html.py:441
+msgid "next"
+msgstr "بعدی"
+
+#: sphinx/builders/html.py:450
+msgid "previous"
+msgstr "قبلی"
+
+#: sphinx/builders/html.py:1313
+#, python-format
+msgid "%s %s documentation"
+msgstr ""
+
+#: sphinx/builders/latex.py:199 sphinx/builders/texinfo.py:217
+msgid " (in "
+msgstr ""
+
+#: sphinx/directives/code.py:66
+msgid "Over dedent has detected"
+msgstr ""
+
+#: sphinx/directives/code.py:86
+#, python-format
+msgid "Invalid caption: %s"
+msgstr ""
+
+#: sphinx/directives/code.py:201
+#, python-format
+msgid "Cannot use both \"%s\" and \"%s\" options"
+msgstr ""
+
+#: sphinx/directives/code.py:218
+#, python-format
+msgid "Include file %r not found or reading it failed"
+msgstr ""
+
+#: sphinx/directives/code.py:220
+#, python-format
+msgid ""
+"Encoding %r used for reading included file %r seems to be wrong, try giving "
+"an :encoding: option"
+msgstr ""
+
+#: sphinx/directives/code.py:257
+#, python-format
+msgid "Object named %r not found in include file %r"
+msgstr ""
+
+#: sphinx/directives/code.py:283
+msgid "Cannot use \"lineno-match\" with a disjoint set of \"lines\""
+msgstr ""
+
+#: sphinx/directives/code.py:288
+#, python-format
+msgid "Line spec %r: no lines pulled from include file %r"
+msgstr ""
+
+#: sphinx/directives/other.py:158
+msgid "Section author: "
+msgstr ":نویسنده این بخش"
+
+#: sphinx/directives/other.py:160
+msgid "Module author: "
+msgstr "نویسنده این ماژول:"
+
+#: sphinx/directives/other.py:162
+msgid "Code author: "
+msgstr ""
+
+#: sphinx/directives/other.py:164
+msgid "Author: "
+msgstr ":نویسنده"
+
+#: sphinx/domains/__init__.py:310
+#, python-format
+msgid "%s %s"
+msgstr ""
+
+#: sphinx/domains/c.py:65 sphinx/domains/cpp.py:4436
+#: sphinx/domains/python.py:177
+msgid "Parameters"
+msgstr "پارامترها"
+
+#: sphinx/domains/c.py:68 sphinx/domains/cpp.py:4445
+#: sphinx/domains/javascript.py:210 sphinx/domains/python.py:189
+msgid "Returns"
+msgstr ""
+
+#: sphinx/domains/c.py:70 sphinx/domains/javascript.py:212
+#: sphinx/domains/python.py:191
+msgid "Return type"
+msgstr "نوع برگشتی"
+
+#: sphinx/domains/c.py:188
+#, python-format
+msgid "%s (C function)"
+msgstr "%s (C تابع)"
+
+#: sphinx/domains/c.py:190
+#, python-format
+msgid "%s (C member)"
+msgstr "%s (C عضو)"
+
+#: sphinx/domains/c.py:192
+#, python-format
+msgid "%s (C macro)"
+msgstr "%s (C ماکرو)"
+
+#: sphinx/domains/c.py:194
+#, python-format
+msgid "%s (C type)"
+msgstr "%s (C نوع)"
+
+#: sphinx/domains/c.py:196
+#, python-format
+msgid "%s (C variable)"
+msgstr "%s (C متغیر)"
+
+#: sphinx/domains/c.py:257 sphinx/domains/cpp.py:4820
+#: sphinx/domains/javascript.py:299 sphinx/domains/python.py:696
+msgid "function"
+msgstr ""
+
+#: sphinx/domains/c.py:258 sphinx/domains/cpp.py:4821
+msgid "member"
+msgstr ""
+
+#: sphinx/domains/c.py:259
+msgid "macro"
+msgstr ""
+
+#: sphinx/domains/c.py:260 sphinx/domains/cpp.py:4822
+msgid "type"
+msgstr ""
+
+#: sphinx/domains/c.py:261
+msgid "variable"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4439
+msgid "Template Parameters"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4442 sphinx/domains/javascript.py:207
+msgid "Throws"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4607
+#, python-format
+msgid "%s (C++ type)"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4617
+#, python-format
+msgid "%s (C++ concept)"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4627
+#, python-format
+msgid "%s (C++ member)"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4637
+#, python-format
+msgid "%s (C++ function)"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4647
+#, python-format
+msgid "%s (C++ class)"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4657
+#, python-format
+msgid "%s (C++ enum)"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4677
+#, python-format
+msgid "%s (C++ enumerator)"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4819 sphinx/domains/javascript.py:301
+#: sphinx/domains/python.py:698
+msgid "class"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4823
+msgid "concept"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4824
+msgid "enum"
+msgstr ""
+
+#: sphinx/domains/cpp.py:4825
+msgid "enumerator"
+msgstr ""
+
+#: sphinx/domains/javascript.py:131 sphinx/domains/python.py:386
+#, python-format
+msgid "%s() (built-in function)"
+msgstr "%s() (توابع درونی)"
+
+#: sphinx/domains/javascript.py:132 sphinx/domains/python.py:451
+#, python-format
+msgid "%s() (%s method)"
+msgstr "%s() (%s متد)"
+
+#: sphinx/domains/javascript.py:134
+#, python-format
+msgid "%s() (class)"
+msgstr ""
+
+#: sphinx/domains/javascript.py:136
+#, python-format
+msgid "%s (global variable or constant)"
+msgstr ""
+
+#: sphinx/domains/javascript.py:138 sphinx/domains/python.py:489
+#, python-format
+msgid "%s (%s attribute)"
+msgstr "%s (%s مشخصه)"
+
+#: sphinx/domains/javascript.py:204
+msgid "Arguments"
+msgstr ""
+
+#: sphinx/domains/javascript.py:266 sphinx/domains/python.py:566
+#, python-format
+msgid "%s (module)"
+msgstr "%s (ماژول)"
+
+#: sphinx/domains/javascript.py:300 sphinx/domains/python.py:700
+msgid "method"
+msgstr ""
+
+#: sphinx/domains/javascript.py:302 sphinx/domains/python.py:697
+msgid "data"
+msgstr ""
+
+#: sphinx/domains/javascript.py:303 sphinx/domains/python.py:703
+msgid "attribute"
+msgstr ""
+
+#: sphinx/domains/javascript.py:304 sphinx/domains/python.py:704
+#: sphinx/locale/__init__.py:218
+msgid "module"
+msgstr "ماژول"
+
+#: sphinx/domains/python.py:182
+msgid "Variables"
+msgstr ""
+
+#: sphinx/domains/python.py:186
+msgid "Raises"
+msgstr "برانگیختن"
+
+#: sphinx/domains/python.py:387 sphinx/domains/python.py:445
+#: sphinx/domains/python.py:457 sphinx/domains/python.py:470
+#, python-format
+msgid "%s() (in module %s)"
+msgstr "%s() (در ماژول %s)"
+
+#: sphinx/domains/python.py:390
+#, python-format
+msgid "%s (built-in variable)"
+msgstr "%s (متغیر درونی)"
+
+#: sphinx/domains/python.py:391 sphinx/domains/python.py:483
+#, python-format
+msgid "%s (in module %s)"
+msgstr "%s (در ماژول %s)"
+
+#: sphinx/domains/python.py:411
+#, python-format
+msgid "%s (built-in class)"
+msgstr "%s (کلاس درونی)"
+
+#: sphinx/domains/python.py:412
+#, python-format
+msgid "%s (class in %s)"
+msgstr "%s (کلاس در %s)"
+
+#: sphinx/domains/python.py:449
+#, python-format
+msgid "%s() (%s.%s method)"
+msgstr "%s() (%s.%s متد)"
+
+#: sphinx/domains/python.py:461
+#, python-format
+msgid "%s() (%s.%s static method)"
+msgstr "%s() (%s.%s متد استاتیک)"
+
+#: sphinx/domains/python.py:464
+#, python-format
+msgid "%s() (%s static method)"
+msgstr "%s() (%s متد استاتیک)"
+
+#: sphinx/domains/python.py:474
+#, python-format
+msgid "%s() (%s.%s class method)"
+msgstr ""
+
+#: sphinx/domains/python.py:477
+#, python-format
+msgid "%s() (%s class method)"
+msgstr ""
+
+#: sphinx/domains/python.py:487
+#, python-format
+msgid "%s (%s.%s attribute)"
+msgstr "%s (%s.%s مشخصه)"
+
+#: sphinx/domains/python.py:625
+msgid "Python Module Index"
+msgstr ""
+
+#: sphinx/domains/python.py:626
+msgid "modules"
+msgstr "ماژول ها"
+
+#: sphinx/domains/python.py:674
+msgid "Deprecated"
+msgstr "منسوخ شده"
+
+#: sphinx/domains/python.py:699 sphinx/locale/__init__.py:222
+msgid "exception"
+msgstr "استثناء"
+
+#: sphinx/domains/python.py:701
+msgid "class method"
+msgstr ""
+
+#: sphinx/domains/python.py:702
+msgid "static method"
+msgstr ""
+
+#: sphinx/domains/python.py:874
+msgid " (deprecated)"
+msgstr ""
+
+#: sphinx/domains/rst.py:65
+#, python-format
+msgid "%s (directive)"
+msgstr ""
+
+#: sphinx/domains/rst.py:67
+#, python-format
+msgid "%s (role)"
+msgstr ""
+
+#: sphinx/domains/rst.py:119
+msgid "directive"
+msgstr ""
+
+#: sphinx/domains/rst.py:120
+msgid "role"
+msgstr ""
+
+#: sphinx/domains/std.py:84 sphinx/domains/std.py:101
+#, python-format
+msgid "environment variable; %s"
+msgstr "%s متغیرهای عمومی؛"
+
+#: sphinx/domains/std.py:200
+#, python-format
+msgid "%scommand line option; %s"
+msgstr "%sگزینه خط فرمان; %s"
+
+#: sphinx/domains/std.py:455
+msgid "glossary term"
+msgstr ""
+
+#: sphinx/domains/std.py:456
+msgid "grammar token"
+msgstr ""
+
+#: sphinx/domains/std.py:457
+msgid "reference label"
+msgstr ""
+
+#: sphinx/domains/std.py:459
+msgid "environment variable"
+msgstr ""
+
+#: sphinx/domains/std.py:460
+msgid "program option"
+msgstr ""
+
+#: sphinx/domains/std.py:461
+msgid "document"
+msgstr ""
+
+#: sphinx/domains/std.py:497 sphinx/themes/basic/genindex-single.html:30
+#: sphinx/themes/basic/genindex-single.html:55
+#: sphinx/themes/basic/genindex-split.html:11
+#: sphinx/themes/basic/genindex-split.html:14
+#: sphinx/themes/basic/genindex.html:30 sphinx/themes/basic/genindex.html:33
+#: sphinx/themes/basic/genindex.html:66 sphinx/themes/basic/layout.html:149
+#: sphinx/writers/latex.py:545 sphinx/writers/texinfo.py:517
+msgid "Index"
+msgstr "فهرست"
+
+#: sphinx/domains/std.py:498
+msgid "Module Index"
+msgstr "فهرست ماژول ها"
+
+#: sphinx/domains/std.py:499 sphinx/themes/basic/defindex.html:25
+msgid "Search Page"
+msgstr "صفحه جستجو"
+
+#: sphinx/environment/__init__.py:568
+#, python-format
+msgid ""
+"the %s extension does not declare if it is safe for parallel reading, "
+"assuming it isn't - please ask the extension author to check and make it "
+"explicit"
+msgstr ""
+
+#: sphinx/environment/adapters/indexentries.py:85
+#, python-format
+msgid "see %s"
+msgstr ""
+
+#: sphinx/environment/adapters/indexentries.py:89
+#, python-format
+msgid "see also %s"
+msgstr ""
+
+#: sphinx/environment/adapters/indexentries.py:159
+msgid "Symbols"
+msgstr ""
+
+#: sphinx/ext/autodoc.py:1451
+#, python-format
+msgid "Bases: %s"
+msgstr ""
+
+#: sphinx/ext/autodoc.py:1506
+#, python-format
+msgid "alias of :class:`%s`"
+msgstr ""
+
+#: sphinx/ext/doctest.py:134
+#, python-format
+msgid "missing '+' or '-' in '%s' option."
+msgstr ""
+
+#: sphinx/ext/doctest.py:139
+#, python-format
+msgid "'%s' is not a valid option."
+msgstr ""
+
+#: sphinx/ext/doctest.py:155
+#, python-format
+msgid "'%s' is not a valid pyversion option"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:96
+msgid "Graphviz directive cannot have both content and a filename argument"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:107
+#, python-format
+msgid "External Graphviz file %r not found or reading it failed"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:113
+msgid "Ignoring \"graphviz\" directive without content."
+msgstr ""
+
+#: sphinx/ext/graphviz.py:204
+#, python-format
+msgid ""
+"dot command %r cannot be run (needed for graphviz output), check the "
+"graphviz_dot setting"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:222
+#, python-format
+msgid ""
+"dot exited with error:\n"
+"[stderr]\n"
+"%s\n"
+"[stdout]\n"
+"%s"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:225
+#, python-format
+msgid ""
+"dot did not produce an output file:\n"
+"[stderr]\n"
+"%s\n"
+"[stdout]\n"
+"%s"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:236
+#, python-format
+msgid "graphviz_output_format must be one of 'png', 'svg', but is %r"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:336 sphinx/ext/graphviz.py:345
+#, python-format
+msgid "[graph: %s]"
+msgstr ""
+
+#: sphinx/ext/graphviz.py:338 sphinx/ext/graphviz.py:347
+msgid "[graph]"
+msgstr ""
+
+#: sphinx/ext/imgconverter.py:46 sphinx/ext/imgconverter.py:63
+#, python-format
+msgid "convert command %r cannot be run.check the image_converter setting"
+msgstr ""
+
+#: sphinx/ext/imgconverter.py:76
+#, python-format
+msgid ""
+"convert exited with error:\n"
+"[stderr]\n"
+"%s\n"
+"[stdout]\n"
+"%s"
+msgstr ""
+
+#: sphinx/ext/imgmath.py:274 sphinx/ext/jsmath.py:39 sphinx/ext/mathjax.py:40
+msgid "Permalink to this equation"
+msgstr ""
+
+#: sphinx/ext/intersphinx.py:319
+#, python-format
+msgid "(in %s v%s)"
+msgstr ""
+
+#: sphinx/ext/linkcode.py:75 sphinx/ext/viewcode.py:112
+msgid "[source]"
+msgstr ""
+
+#: sphinx/ext/mathbase.py:106
+#, python-format
+msgid "duplicate label of equation %s, other instance in %s"
+msgstr ""
+
+#: sphinx/ext/todo.py:66
+msgid "Todo"
+msgstr "در دست انجام"
+
+#: sphinx/ext/todo.py:148
+msgid "<<original entry>>"
+msgstr ""
+
+#: sphinx/ext/todo.py:151
+#, python-format
+msgid "(The <<original entry>> is located in %s, line %d.)"
+msgstr ""
+
+#: sphinx/ext/todo.py:160
+msgid "original entry"
+msgstr ""
+
+#: sphinx/ext/viewcode.py:179
+msgid "[docs]"
+msgstr ""
+
+#: sphinx/ext/viewcode.py:193
+msgid "Module code"
+msgstr ""
+
+#: sphinx/ext/viewcode.py:199
+#, python-format
+msgid "<h1>Source code for %s</h1>"
+msgstr ""
+
+#: sphinx/ext/viewcode.py:225
+msgid "Overview: module code"
+msgstr ""
+
+#: sphinx/ext/viewcode.py:226
+msgid "<h1>All modules for which code is available</h1>"
+msgstr ""
+
+#: sphinx/ext/napoleon/__init__.py:320
+msgid "Keyword Arguments"
+msgstr ""
+
+#: sphinx/locale/__init__.py:198
+msgid "Attention"
+msgstr "دقت"
+
+#: sphinx/locale/__init__.py:199
+msgid "Caution"
+msgstr "ملاحظه"
+
+#: sphinx/locale/__init__.py:200
+msgid "Danger"
+msgstr "خطر"
+
+#: sphinx/locale/__init__.py:201
+msgid "Error"
+msgstr "خطا"
+
+#: sphinx/locale/__init__.py:202
+msgid "Hint"
+msgstr "تذکر"
+
+#: sphinx/locale/__init__.py:203
+msgid "Important"
+msgstr "مهم"
+
+#: sphinx/locale/__init__.py:204
+msgid "Note"
+msgstr "توجه"
+
+#: sphinx/locale/__init__.py:205
+msgid "See also"
+msgstr "همچنین ملاحظه نمائید"
+
+#: sphinx/locale/__init__.py:206
+msgid "Tip"
+msgstr "نکته"
+
+#: sphinx/locale/__init__.py:207
+msgid "Warning"
+msgstr "هشدار"
+
+#: sphinx/locale/__init__.py:211
+#, python-format
+msgid "New in version %s"
+msgstr "جدید در نسخه %s"
+
+#: sphinx/locale/__init__.py:212
+#, python-format
+msgid "Changed in version %s"
+msgstr "تغییر داده شده در نسخه %s"
+
+#: sphinx/locale/__init__.py:213
+#, python-format
+msgid "Deprecated since version %s"
+msgstr "منسوخ شده از نسخه %s"
+
+#: sphinx/locale/__init__.py:219
+msgid "keyword"
+msgstr "کلمه کلیدی"
+
+#: sphinx/locale/__init__.py:220
+msgid "operator"
+msgstr "عملگر"
+
+#: sphinx/locale/__init__.py:221
+msgid "object"
+msgstr "شیء"
+
+#: sphinx/locale/__init__.py:223
+msgid "statement"
+msgstr "گذاره"
+
+#: sphinx/locale/__init__.py:224
+msgid "built-in function"
+msgstr "توابع درونی"
+
+#: sphinx/themes/agogo/layout.html:46 sphinx/themes/basic/globaltoc.html:10
+#: sphinx/themes/basic/localtoc.html:11 sphinx/themes/scrolls/layout.html:38
+msgid "Table Of Contents"
+msgstr "فهرست عناوین"
+
+#: sphinx/themes/agogo/layout.html:51 sphinx/themes/basic/layout.html:152
+#: sphinx/themes/basic/search.html:11 sphinx/themes/basic/search.html:23
+#: sphinx/themes/basic/searchresults.html:10
+msgid "Search"
+msgstr "جستجو"
+
+#: sphinx/themes/agogo/layout.html:54 sphinx/themes/basic/searchbox.html:15
+msgid "Go"
+msgstr "برو"
+
+#: sphinx/themes/agogo/layout.html:81 sphinx/themes/basic/sourcelink.html:15
+msgid "Show Source"
+msgstr "نمایش سورس"
+
+#: sphinx/themes/basic/defindex.html:11
+msgid "Overview"
+msgstr "بررسی اجمالی"
+
+#: sphinx/themes/basic/defindex.html:15
+msgid "Welcome! This is"
+msgstr ""
+
+#: sphinx/themes/basic/defindex.html:16
+msgid "the documentation for"
+msgstr ""
+
+#: sphinx/themes/basic/defindex.html:17
+msgid "last updated"
+msgstr ""
+
+#: sphinx/themes/basic/defindex.html:20
+msgid "Indices and tables:"
+msgstr "ایندکس ها و جداول:"
+
+#: sphinx/themes/basic/defindex.html:23
+msgid "Complete Table of Contents"
+msgstr "فهرست کامل مطالب"
+
+#: sphinx/themes/basic/defindex.html:24
+msgid "lists all sections and subsections"
+msgstr "فهرست تمامی بخش ها و زیر مجموعه ها"
+
+#: sphinx/themes/basic/defindex.html:26
+msgid "search this documentation"
+msgstr "جستجو در این اسناد"
+
+#: sphinx/themes/basic/defindex.html:28
+msgid "Global Module Index"
+msgstr "فهرست کلی ماژول ها"
+
+#: sphinx/themes/basic/defindex.html:29
+msgid "quick access to all modules"
+msgstr "دسترسی سریع به تمامی متدها"
+
+#: sphinx/themes/basic/defindex.html:31
+msgid "all functions, classes, terms"
+msgstr "تمامی توابع ، کلاس ها ، اصطلاحات"
+
+#: sphinx/themes/basic/genindex-single.html:33
+#, python-format
+msgid "Index &ndash; %(key)s"
+msgstr "فهرست &ndash; %(key)s"
+
+#: sphinx/themes/basic/genindex-single.html:61
+#: sphinx/themes/basic/genindex-split.html:24
+#: sphinx/themes/basic/genindex-split.html:38
+#: sphinx/themes/basic/genindex.html:72
+msgid "Full index on one page"
+msgstr "فهرست کامل در یک صفحه"
+
+#: sphinx/themes/basic/genindex-split.html:16
+msgid "Index pages by letter"
+msgstr "فهرست صفحات بر اساس حروف"
+
+#: sphinx/themes/basic/genindex-split.html:25
+msgid "can be huge"
+msgstr ""
+
+#: sphinx/themes/basic/layout.html:31
+msgid "Navigation"
+msgstr "ناوبری"
+
+#: sphinx/themes/basic/layout.html:137
+#, python-format
+msgid "Search within %(docstitle)s"
+msgstr "جستجو در %(docstitle)s"
+
+#: sphinx/themes/basic/layout.html:146
+msgid "About these documents"
+msgstr "درباره این مستندات"
+
+#: sphinx/themes/basic/layout.html:155
+msgid "Copyright"
+msgstr "کپی رایت"
+
+#: sphinx/themes/basic/layout.html:200
+#, python-format
+msgid "&#169; <a href=\"%(path)s\">Copyright</a> %(copyright)s."
+msgstr ""
+
+#: sphinx/themes/basic/layout.html:202
+#, python-format
+msgid "&#169; Copyright %(copyright)s."
+msgstr ""
+
+#: sphinx/themes/basic/layout.html:206
+#, python-format
+msgid "Last updated on %(last_updated)s."
+msgstr ". %(last_updated)s  آخرین بروز رسانی در"
+
+#: sphinx/themes/basic/layout.html:209
+#, python-format
+msgid ""
+"Created using <a href=\"http://sphinx-doc.org/\">Sphinx</a> "
+"%(sphinx_version)s."
+msgstr ". <a href=\"http://sphinx-doc.org/\">Sphinx</a> %(sphinx_version)s ایجاد شده با"
+
+#: sphinx/themes/basic/opensearch.xml:4
+#, python-format
+msgid "Search %(docstitle)s"
+msgstr "جستجو %(docstitle)s"
+
+#: sphinx/themes/basic/relations.html:11
+msgid "Previous topic"
+msgstr "موضوع قبلی"
+
+#: sphinx/themes/basic/relations.html:13
+msgid "previous chapter"
+msgstr "فصل قبلی"
+
+#: sphinx/themes/basic/relations.html:16
+msgid "Next topic"
+msgstr "موضوع  بعدی"
+
+#: sphinx/themes/basic/relations.html:18
+msgid "next chapter"
+msgstr "فصل بعدی"
+
+#: sphinx/themes/basic/search.html:27
+msgid ""
+"Please activate JavaScript to enable the search\n"
+"    functionality."
+msgstr ""
+
+#: sphinx/themes/basic/search.html:32
+msgid ""
+"From here you can search these documents. Enter your search\n"
+"    words into the box below and click \"search\". Note that the search\n"
+"    function will automatically search for all of the words. Pages\n"
+"    containing fewer words won't appear in the result list."
+msgstr ""
+
+#: sphinx/themes/basic/search.html:39
+#: sphinx/themes/basic/searchresults.html:17
+msgid "search"
+msgstr "جستجو"
+
+#: sphinx/themes/basic/search.html:43
+#: sphinx/themes/basic/searchresults.html:21
+#: sphinx/themes/basic/static/searchtools.js_t:336
+msgid "Search Results"
+msgstr "نتایج جستجو"
+
+#: sphinx/themes/basic/search.html:45
+#: sphinx/themes/basic/searchresults.html:23
+#: sphinx/themes/basic/static/searchtools.js_t:338
+msgid ""
+"Your search did not match any documents. Please make sure that all words are"
+" spelled correctly and that you've selected enough categories."
+msgstr ""
+
+#: sphinx/themes/basic/searchbox.html:12
+msgid "Quick search"
+msgstr "جستجو سریع"
+
+#: sphinx/themes/basic/sourcelink.html:12
+msgid "This Page"
+msgstr "صفحه فعلی"
+
+#: sphinx/themes/basic/changes/frameset.html:5
+#: sphinx/themes/basic/changes/versionchanges.html:12
+#, python-format
+msgid "Changes in Version %(version)s &#8212; %(docstitle)s"
+msgstr ""
+
+#: sphinx/themes/basic/changes/rstsource.html:5
+#, python-format
+msgid "%(filename)s &#8212; %(docstitle)s"
+msgstr ""
+
+#: sphinx/themes/basic/changes/versionchanges.html:17
+#, python-format
+msgid "Automatically generated list of changes in version %(version)s"
+msgstr "لیست تولید شده خودکار از تغییرات در نسخه %(version)s"
+
+#: sphinx/themes/basic/changes/versionchanges.html:18
+msgid "Library changes"
+msgstr "تغییرات کتابخانه ایی"
+
+#: sphinx/themes/basic/changes/versionchanges.html:23
+msgid "C API changes"
+msgstr "C API تغییرات"
+
+#: sphinx/themes/basic/changes/versionchanges.html:25
+msgid "Other changes"
+msgstr "دگر تغییرات"
+
+#: sphinx/themes/basic/static/doctools.js_t:171 sphinx/writers/html.py:405
+#: sphinx/writers/html.py:410 sphinx/writers/html5.py:352
+#: sphinx/writers/html5.py:357
+msgid "Permalink to this headline"
+msgstr "لینک ثابت به این سر مقاله"
+
+#: sphinx/themes/basic/static/doctools.js_t:177 sphinx/writers/html.py:126
+#: sphinx/writers/html.py:137 sphinx/writers/html5.py:96
+#: sphinx/writers/html5.py:107
+msgid "Permalink to this definition"
+msgstr "لینک ثابت به این تعریف"
+
+#: sphinx/themes/basic/static/doctools.js_t:210
+msgid "Hide Search Matches"
+msgstr "عدم نمایش نتایج یافت شده"
+
+#: sphinx/themes/basic/static/searchtools.js_t:142
+msgid "Searching"
+msgstr ""
+
+#: sphinx/themes/basic/static/searchtools.js_t:147
+msgid "Preparing search..."
+msgstr ""
+
+#: sphinx/themes/basic/static/searchtools.js_t:340
+#, python-format
+msgid "Search finished, found %s page(s) matching the search query."
+msgstr ""
+
+#: sphinx/themes/basic/static/searchtools.js_t:398
+msgid ", in "
+msgstr ""
+
+#: sphinx/themes/classic/static/sidebar.js_t:92
+msgid "Expand sidebar"
+msgstr ""
+
+#: sphinx/themes/classic/static/sidebar.js_t:105
+#: sphinx/themes/classic/static/sidebar.js_t:135
+msgid "Collapse sidebar"
+msgstr ""
+
+#: sphinx/themes/haiku/layout.html:24
+msgid "Contents"
+msgstr ""
+
+#: sphinx/transforms/post_transforms/__init__.py:105
+#, python-format
+msgid "more than one target found for 'any' cross-reference %r: could be %s"
+msgstr ""
+
+#: sphinx/transforms/post_transforms/__init__.py:135
+#, python-format
+msgid "%s:%s reference target not found: %%(target)s"
+msgstr ""
+
+#: sphinx/transforms/post_transforms/__init__.py:138
+#, python-format
+msgid "%r reference target not found: %%(target)s"
+msgstr ""
+
+#: sphinx/util/docutils.py:171
+msgid "when adding directive classes, no additional arguments may be given"
+msgstr ""
+
+#: sphinx/writers/html.py:414 sphinx/writers/html5.py:361
+msgid "Permalink to this table"
+msgstr ""
+
+#: sphinx/writers/html.py:466 sphinx/writers/html5.py:413
+msgid "Permalink to this code"
+msgstr ""
+
+#: sphinx/writers/html.py:470 sphinx/writers/html5.py:417
+msgid "Permalink to this image"
+msgstr ""
+
+#: sphinx/writers/html.py:472 sphinx/writers/html5.py:419
+msgid "Permalink to this toctree"
+msgstr ""
+
+#: sphinx/writers/latex.py:549
+msgid "Release"
+msgstr "انتشار"
+
+#: sphinx/writers/latex.py:654
+msgid "page"
+msgstr ""
+
+#: sphinx/writers/latex.py:704
+#, python-format
+msgid "Unknown configure key: latex_elements[%r] is ignored."
+msgstr ""
+
+#: sphinx/writers/latex.py:1252 sphinx/writers/manpage.py:275
+#: sphinx/writers/texinfo.py:670
+msgid "Footnotes"
+msgstr ""
+
+#: sphinx/writers/manpage.py:331 sphinx/writers/text.py:699
+#, python-format
+msgid "[image: %s]"
+msgstr ""
+
+#: sphinx/writers/manpage.py:332 sphinx/writers/text.py:700
+msgid "[image]"
+msgstr ""

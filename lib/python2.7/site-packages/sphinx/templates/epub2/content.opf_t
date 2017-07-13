@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0"
+      unique-identifier="%(uid)s">
+  <metadata xmlns:opf="http://www.idpf.org/2007/opf"
+        xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:language>{{ lang }}</dc:language>
+    <dc:title>{{ title }}</dc:title>
+    <dc:creator opf:role="aut">{{ author }}</dc:creator>
+    <dc:publisher>{{ publisher }}</dc:publisher>
+    <dc:rights>{{ copyright }}</dc:rights>
+    <dc:identifier id="{{ uid }}" opf:scheme="{{ scheme }}">{{ id }}</dc:identifier>
+    <dc:date>{{ date }}</dc:date>
+    {%- if cover %}
+    <meta name="cover" content="{{ cover }}"/>
+    {%- endif %}
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+    {%- for item in manifest_items %}
+    <item id="{{ item.id }}" href="{{ item.href }}" media-type="{{ item.media_type }}" />
+    {%- endfor %}
+  </manifest>
+  <spine toc="ncx">
+    {%- for spine in spines %}
+    {%- if spine.linear %}
+    <itemref idref="{{ spine.idref }}" />
+    {%- else %}
+    <itemref idref="{{ spine.idref }}" linear="no" />
+    {%- endif %}
+    {%- endfor %}
+  </spine>
+  <guide>
+    {%- for guide in guides %}
+    <reference type="{{ guide.type }}" title="{{ guide.title }}" href="{{ guide.uri }}" />
+    {%- endfor %}
+  </guide>
+</package>

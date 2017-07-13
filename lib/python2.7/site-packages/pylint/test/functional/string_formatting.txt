@@ -1,0 +1,41 @@
+too-many-format-args:58:pprint_bad:Too many arguments for format string
+bad-format-string:59:pprint_bad:Invalid format string
+bad-format-string:60:pprint_bad:Invalid format string
+format-combined-specification:61:pprint_bad:Format string contains both automatic field numbering and manual field specification
+missing-format-argument-key:63:pprint_bad:Missing keyword argument 'b' for format string
+unused-format-string-argument:63:pprint_bad:Unused format argument 'c'
+missing-format-argument-key:64:pprint_bad:Missing keyword argument 'a' for format string
+too-few-format-args:65:pprint_bad:Not enough arguments for format string
+too-many-format-args:66:pprint_bad:Too many arguments for format string
+missing-format-argument-key:68:pprint_bad:Missing keyword argument 'a' for format string
+missing-format-argument-key:68:pprint_bad:Missing keyword argument 'b' for format string
+missing-format-argument-key:68:pprint_bad:Missing keyword argument 'c' for format string
+too-few-format-args:69:pprint_bad:Not enough arguments for format string
+missing-format-argument-key:71:pprint_bad:Missing keyword argument 'a' for format string
+missing-format-argument-key:71:pprint_bad:Missing keyword argument 'b' for format string
+missing-format-argument-key:72:pprint_bad:Missing keyword argument 'a' for format string
+missing-format-attribute:74:pprint_bad:Missing format attribute 'length' in format specifier 'a.ids.__len__.length'
+invalid-format-index:75:pprint_bad:Using invalid lookup key 400 in format specifier 'a.ids[3][400]'
+invalid-format-index:76:pprint_bad:"Using invalid lookup key ""'string'"" in format specifier 'a.ids[3][""\'string\'""]'"
+invalid-format-index:77:pprint_bad:Using invalid lookup key 1 in format specifier '0[0][1]'
+invalid-format-index:78:pprint_bad:Using invalid lookup key 0 in format specifier '0[0][0]'
+missing-format-argument-key:80:pprint_bad:Missing keyword argument 'b' for format string
+unused-format-string-argument:80:pprint_bad:Unused format argument 'a'
+invalid-format-index:81:pprint_bad:Using invalid lookup key 0 in format specifier 'a[0]'
+too-many-format-args:82:pprint_bad:Too many arguments for format string
+missing-format-attribute:83:pprint_bad:Missing format attribute 'missing' in format specifier '0.missing'
+too-few-format-args:84:pprint_bad:Not enough arguments for format string
+too-many-format-args:85:pprint_bad:Too many arguments for format string
+too-few-format-args:86:pprint_bad:Not enough arguments for format string
+too-few-format-args:87:pprint_bad:Not enough arguments for format string
+too-many-format-args:88:pprint_bad:Too many arguments for format string
+too-few-format-args:113:nested_issue294:Not enough arguments for format string
+too-many-format-args:114:nested_issue294:Too many arguments for format string
+missing-format-argument-key:115:nested_issue294:Missing keyword argument 'a' for format string
+missing-format-attribute:116:nested_issue294:Missing format attribute 'x' in format specifier 'a.x'
+too-few-format-args:121:issue310:Not enough arguments for format string
+too-many-format-args:128:issue322:Too many arguments for format string
+too-few-format-args:129:issue322:Not enough arguments for format string
+too-few-format-args:152:issue351:Not enough arguments for format string
+too-many-format-args:154:issue351:Too many arguments for format string
+bad-format-string:188:avoid_empty_attribute:Invalid format string

@@ -1,0 +1,30 @@
+{% if slice %}
+  {% if slice.slice_name %}
+    <h2>
+      {{ slice.slice_name }}
+      <small class="star-edit-icons">
+        <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
+        <span>
+          <a
+            href="/slicemodelview/edit/{{ slice.id }}"
+            data-toggle="tooltip"
+            title="Edit Description"
+            class="edit-slice-description-icon"
+          >
+            {% if slice.description %}
+              <i
+                class="fa fa-question-circle-o"
+                data-toggle="tooltip"
+                data-placement="bottom"
+                title="{{ slice.description }}">
+              </i>
+            {% endif %}
+            <i class="fa fa-edit"></i>
+          </a>
+        </span>
+      </small>
+    </h2>
+  {% endif %}
+{% else %}
+  <h3>[{{ viz.datasource.table_name }}] - untitled</h3>
+{% endif %}

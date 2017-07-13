@@ -1,0 +1,9 @@
+inherit-non-class:21:Bad:Inheriting '1', which is not a class.
+inherit-non-class:24:Bad1:"Inheriting 'lambda abc: 42', which is not a class."
+inherit-non-class:27:Bad2:Inheriting 'object()', which is not a class.
+inherit-non-class:30:Bad3:Inheriting 'return_class', which is not a class.
+inherit-non-class:33:Bad4:Inheriting 'Empty()', which is not a class.
+inherit-non-class:68:NotInheritableBool:Inheriting 'bool', which is not a class.
+inherit-non-class:72:NotInheritableRange:Inheriting 'range', which is not a class.
+inherit-non-class:76:NotInheritableSlice:Inheriting 'slice', which is not a class.
+inherit-non-class:80:NotInheritableMemoryView:Inheriting 'memoryview', which is not a class.

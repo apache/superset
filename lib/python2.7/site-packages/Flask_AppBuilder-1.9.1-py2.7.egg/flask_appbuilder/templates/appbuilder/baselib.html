@@ -1,0 +1,128 @@
+{% macro menu_item(item) %}
+	<a tabindex="-1" href="{{item.get_url()}}">
+   	{% if item.icon %}
+        <i class="fa fa-fw {{item.icon}}"></i>&nbsp;
+    {% endif %}
+	{{_(item.label)}}</a>
+{% endmacro %}
+
+{% macro menu_debug(menu) %}
+    {% for item1 in menu.get_list() %}
+        {{ item1.label }} {{ item1.href }}
+            {% for item2 in item1.childs %}
+		        {{ item2.label }} {{ item2.href }}
+        	{% endfor %}
+	{% endfor %}
+{% endmacro %}
+
+
+{% macro menu_block(menu) %}
+{% for item1 in menu.get_list() %}
+    {% if item1 | is_menu_visible %}
+        {% if item1.childs %}
+            <li class="dropdown">
+				<a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
+            {% if item1.icon %}
+                <i class="fa {{item1.icon}}"></i>&nbsp;
+            {% endif %}
+				{{_(item1.label)}}<b class="caret"></b></a>
+		        <ul class="dropdown-menu">
+				{% set divider = False %}
+            {% for item2 in item1.childs %}
+                {% if item2.name == '-' %}
+                    {% set divider = True %}
+                {% else %}
+                    {% if item2 | is_menu_visible %}
+                        {% if divider %}
+                            <li class="divider"></li>
+                            {% set divider = False %}
+                        {% endif %}
+					        <li>{{ menu_item(item2) }}</li>
+                    {% endif %}
+					{% endif %}
+				{% endfor %}
+				</ul></li>
+			{% else %}
+				<li>
+                {{ menu_item(item1) }}
+				</li>
+    	{% endif %}
+    {% endif %}
+{% endfor %}
+
+{% endmacro %}
+
+{% macro locale_menu(languages) %}
+{% set locale = session['locale'] %}
+{% if not locale %}
+	{% set locale = 'en' %}
+{% endif %}
+<li class="dropdown">
+	<a class="dropdown-toggle" data-toggle="dropdown" href="javascript:void(0)">
+	   <div class="f16"><i class="flag {{languages[locale].get('flag')}}"></i><b class="caret"></b>
+       </div>
+	</a>
+    {% if languages.keys()|length > 1 %}
+	<ul class="dropdown-menu">
+	<li class="dropdown">
+		{% for lang in languages %}
+			{% if lang != locale %}
+        		<a tabindex="-1" href="{{appbuilder.get_url_for_locale(lang)}}">
+        		  <div class="f16"><i class="flag {{languages[lang].get('flag')}}"></i> - {{languages[lang].get('name')}}
+        		</div></a>
+        		{% endif %}
+        	{% endfor %}
+        </li>
+        </ul>
+    {% endif %}
+</li>
+{% endmacro %}
+
+{% macro navbar_block(menu, languages) %}
+
+<div class="navbar {{menu.extra_classes}}" role="navigation">
+   <div class="container">
+        <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                {% if appbuilder.app_icon %}
+                	<a class="navbar-brand" href="{{appbuilder.get_url_for_index}}">
+                	<img src="{{appbuilder.app_icon}}" >
+                	</a>
+                {% else %}
+                	<span class="navbar-brand">
+                	<a href="{{appbuilder.get_url_for_index}}">
+                	{{ appbuilder.app_name }}
+                	</a>
+                	</span>
+                {% endif %}
+        </div>
+        <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                        {{ menu_block(menu)}}
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                {{ locale_menu(languages) }}
+                {% if not current_user.is_anonymous() %}
+                <li class="dropdown">
+	               <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+	               <span class="fa fa-user"></span> {{g.user.get_full_name()}}<b class="caret"></b>
+                   </a>
+                    <ul class="dropdown-menu">
+			<li><a href="{{appbuilder.get_url_for_userinfo}}"><span class="fa fa-fw fa-user"></span>{{_("Profile")}}</a></li>
+			<li><a href="{{appbuilder.get_url_for_logout}}"><span class="fa fa-fw fa-sign-out"></span>{{_("Logout")}}</a></li>
+                    </ul>
+        		
+                </li>
+                {% else %}
+                    <li><a href="{{appbuilder.get_url_for_login}}">
+                    <i class="fa fa-fw fa-sign-in"></i>{{_("Login")}}</a></li>
+                {% endif %}
+                </ul>
+        </div>
+   </div>
+</div>
+{% endmacro %}

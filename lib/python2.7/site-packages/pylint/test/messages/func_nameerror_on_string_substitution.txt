@@ -1,0 +1,2 @@
+E:  5: Using variable 'MSG' before assignment
+E:  8: Using variable 'MSG2' before assignment

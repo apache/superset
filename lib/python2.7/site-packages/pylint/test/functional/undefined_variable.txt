@@ -1,0 +1,25 @@
+undefined-variable:7::Undefined variable 'unknown'
+undefined-variable:13:in_method:Undefined variable 'nomoreknown'
+undefined-variable:16::Undefined variable '__revision__'
+undefined-variable:18::Undefined variable '__revision__'
+undefined-variable:22:bad_default:Undefined variable 'unknown2'
+undefined-variable:25:bad_default:Undefined variable 'xxxx'
+undefined-variable:26:bad_default:Undefined variable 'augvar'
+undefined-variable:27:bad_default:Undefined variable 'vardel'
+undefined-variable:29:<lambda>:Undefined variable 'doesnotexist'
+undefined-variable:30:<lambda>:Undefined variable 'z'
+used-before-assignment:38::Using variable 'POUETT' before assignment
+used-before-assignment:51::Using variable 'PLOUF' before assignment
+used-before-assignment:60:if_branch_test:Using variable 'xxx' before assignment
+used-before-assignment:86:test_arguments:Using variable 'TestClass' before assignment
+used-before-assignment:90:TestClass:Using variable 'Ancestor' before assignment
+used-before-assignment:93:TestClass.MissingAncestor:Using variable 'Ancestor1' before assignment
+used-before-assignment:100:TestClass.test1.UsingBeforeDefinition:Using variable 'Empty' before assignment
+undefined-variable:114:Self:Undefined variable 'Self'
+undefined-variable:130::Undefined variable 'BAT'
+used-before-assignment:141:KeywordArgument.test1:Using variable 'enabled' before assignment
+undefined-variable:144:KeywordArgument.test2:Undefined variable 'disabled'
+undefined-variable:149:KeywordArgument.<lambda>:Undefined variable 'arg'
+undefined-variable:161::Undefined variable 'unicode_2'
+undefined-variable:166::Undefined variable 'unicode_3'
+undefined-variable:171::Undefined variable 'unicode_4'

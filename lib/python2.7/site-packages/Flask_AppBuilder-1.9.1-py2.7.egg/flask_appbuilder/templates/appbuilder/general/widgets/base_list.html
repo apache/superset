@@ -1,0 +1,37 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% set can_add = "can_add" | is_item_visible(modelview_name) %}
+{% set can_show = "can_show" | is_item_visible(modelview_name) %}
+{% set can_edit = "can_edit" | is_item_visible(modelview_name) %}
+{% set can_delete = "can_delete" | is_item_visible(modelview_name) %}
+{% set actions = actions | get_actions_on_list(modelview_name) %}
+
+<div class="well well-sm">
+    {% block list_header scoped %}
+        {{ lib.render_list_header(can_add, page, page_size, count, filters, actions, modelview_name) }}
+    {% endblock %}
+</div>
+
+{% if count > 0 %}
+
+    {% block begin_content scoped %}
+    {% endblock %}
+
+    {% block begin_loop_header scoped %}
+    {% endblock %}
+
+    {% block begin_loop_values %}
+    {% endblock %}
+    
+    {% block end_content scoped %}
+    {% endblock %}
+
+    {{ lib.action_form(actions,modelview_name) }}
+
+    <script language="javascript">
+        var modelActions = new AdminActions();
+    </script>
+
+{% else %}
+    <b>{{_("No records found")}}</b>
+{% endif %}

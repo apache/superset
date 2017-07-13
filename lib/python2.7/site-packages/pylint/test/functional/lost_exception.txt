@@ -1,0 +1,2 @@
+lost-exception:15:insidious_break_and_return:break statement in finally block may swallow exception
+lost-exception:17:insidious_break_and_return:return statement in finally block may swallow exception

@@ -1,0 +1,1 @@
+def toto # [syntax-error]

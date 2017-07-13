@@ -1,0 +1,37 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+
+<form id="filter_form" class="form-search" method="get">
+
+    <div class="btn-group">
+        <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+        {{_("Add Filter")}}
+      <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            {% for col in include_cols %}
+            <li><a href="javascript:void(0)" name={{col}} class="filter btn" onclick="return false;">
+                {{ label_columns[col] }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <table class="table table-responsive table-hover filters">
+       
+    </table>
+
+{{ lib.btn_search() }}
+</form>
+
+<script>
+	(function($) {
+	var filter = new AdminFilters(
+                    '#filter_form',
+                    {{ label_columns | tojson | safe }},
+                    {{ form_fields | tojson | safe }},
+                    {{ search_filters | tojson | safe }},
+                    {{ active_filters | tojson | safe }}                                        
+                );
+	})(jQuery);
+	
+</script>

@@ -1,0 +1,5 @@
+W:  7:function: Unused argument 'arg'
+W: 14:AAAA.method: Unused argument 'arg'
+W: 21:AAAA.selected: Unused argument 'args'
+W: 21:AAAA.selected: Unused argument 'kwargs'
+W: 40:BBBB.__init__: Unused argument 'arg'

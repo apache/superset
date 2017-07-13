@@ -1,0 +1,1 @@
+blacklisted-name:3:baz:Black listed name "baz"

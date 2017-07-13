@@ -1,0 +1,4 @@
+simplifiable-if-statement:8:test_simplifiable_1:The if statement can be replaced with 'return bool(test)'
+simplifiable-if-statement:16:test_simplifiable_2:The if statement can be replaced with 'return bool(test)'
+simplifiable-if-statement:24:test_simplifiable_3:The if statement can be replaced with 'var = bool(test)'
+simplifiable-if-statement:35:test_simplifiable_4:The if statement can be replaced with 'return bool(test)'

@@ -1,0 +1,2 @@
+old-style-class:10:OldStyleClass:Old-style class defined.
+slots-on-old-class:10:OldStyleClass:Use of __slots__ on an old style class:INFERENCE

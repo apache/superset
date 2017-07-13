@@ -1,0 +1,7 @@
+jmespath>=0.7.1,<1.0.0
+python-dateutil>=2.1,<3.0.0
+docutils>=0.10
+
+[:python_version=="2.6"]
+ordereddict==1.1
+simplejson==3.3.0

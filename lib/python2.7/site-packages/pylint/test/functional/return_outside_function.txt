@@ -1,0 +1,1 @@
+return-outside-function:2::Return outside function

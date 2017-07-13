@@ -1,0 +1,182 @@
+# Estonian translations for WTForms.
+# Copyright (C) 2013 WTForms Team
+# This file is distributed under the same license as the WTForms project.
+#
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2013.
+# Laur Mõtus <laur@povi.ee>, 2013.
+msgid ""
+msgstr ""
+"Project-Id-Version: WTForms 1.0.6dev\n"
+"Report-Msgid-Bugs-To: wtforms+i18n@jamescrasta.com\n"
+"POT-Creation-Date: 2013-09-15 22:33-0600\n"
+"PO-Revision-Date: 2013-09-22 12:37+0300\n"
+"Last-Translator: Laur Mõtus <laur@povi.ee>\n"
+"Language-Team: Estonian <kde-i18n-doc@kde.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 0.9.6\n"
+"Language: et\n"
+"X-Generator: Lokalize 1.5\n"
+
+#: wtforms/validators.py:55
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "Vigane välja nimi: '%s'."
+
+#: wtforms/validators.py:63
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr "Väli peab võrduma %(other_name)s -ga."
+
+#: wtforms/validators.py:96
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] "Väli peab olema vähemalt %(min)d tähemärgi pikkune."
+msgstr[1] "Väli peab olema vähemalt %(min)d tähemärgi pikkune."
+
+#: wtforms/validators.py:99
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] "Väli ei tohi olla üle %(max)d tähemärgi pikk."
+msgstr[1] "Väli ei tohi olla üle %(max)d tähemärgi pikk."
+
+#: wtforms/validators.py:102
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr "Välja pikkus peab olema vahemikus %(min)d -  %(max)d."
+
+#: wtforms/validators.py:138
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr "Number peab olema vähemalt %(min)s."
+
+#: wtforms/validators.py:140
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr "Number tohib olla maksimaalselt %(max)s."
+
+#: wtforms/validators.py:142
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr "Number peab olema vahemikus %(min)s - %(max)s."
+
+#: wtforms/validators.py:198 wtforms/validators.py:233
+msgid "This field is required."
+msgstr "Kohustuslik väli."
+
+#: wtforms/validators.py:264
+msgid "Invalid input."
+msgstr "Vigane sisend."
+
+#: wtforms/validators.py:286
+msgid "Invalid email address."
+msgstr "Vigane e-posti aadress."
+
+#: wtforms/validators.py:318
+msgid "Invalid IP address."
+msgstr "Vigane IP aadress."
+
+#: wtforms/validators.py:367
+msgid "Invalid Mac address."
+msgstr "Vigane MAC aadress."
+
+#: wtforms/validators.py:393
+msgid "Invalid URL."
+msgstr "Vigane URL."
+
+#: wtforms/validators.py:412
+msgid "Invalid UUID."
+msgstr "Vigane UUID."
+
+#: wtforms/validators.py:440
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr "Vigane väärtus, peaks hoopis olema üks järgmistest: %(values)s."
+
+#: wtforms/validators.py:472
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr "Vigane väärtus, ei tohi olla ükski järgnevatest: %(values)s."
+
+#: wtforms/ext/appengine/fields.py:91 wtforms/ext/appengine/fields.py:168
+#: wtforms/ext/appengine/fields.py:170 wtforms/ext/django/fields.py:89
+#: wtforms/ext/sqlalchemy/fields.py:126 wtforms/ext/sqlalchemy/fields.py:128
+#: wtforms/ext/sqlalchemy/fields.py:178 wtforms/ext/sqlalchemy/fields.py:183
+#: wtforms/fields/core.py:435
+msgid "Not a valid choice"
+msgstr "Pole korrektne valik"
+
+#: wtforms/ext/appengine/fields.py:189
+msgid "Not a valid list"
+msgstr "Pole korrektne nimekiri"
+
+#: wtforms/ext/appengine/fields.py:208
+msgid "Not a valid integer list"
+msgstr "Pole korrektne täisarvude nimekiri"
+
+#: wtforms/ext/csrf/form.py:47
+msgid "Invalid CSRF Token"
+msgstr "Vigane CSRF tunnus"
+
+#: wtforms/ext/csrf/session.py:57
+msgid "CSRF token missing"
+msgstr "Puudub CSRF tunnus"
+
+#: wtforms/ext/csrf/session.py:65
+msgid "CSRF failed"
+msgstr "CSRF nurjus"
+
+#: wtforms/ext/csrf/session.py:70
+msgid "CSRF token expired"
+msgstr "CSRF tunnus on aegunud"
+
+#: wtforms/ext/dateutil/fields.py:50
+msgid "Please input a date/time value"
+msgstr "Palun sisestage kuupäev/aeg"
+
+#: wtforms/ext/dateutil/fields.py:62
+msgid "Invalid date/time input"
+msgstr "Vigane kuupäeva/aja sisend"
+
+#: wtforms/ext/sqlalchemy/validators.py:34
+msgid "Already exists."
+msgstr "Juba olemas."
+
+#: wtforms/fields/core.py:428
+msgid "Invalid Choice: could not coerce"
+msgstr "Vigane valik: ei saa teisendada"
+
+#: wtforms/fields/core.py:461
+msgid "Invalid choice(s): one or more data inputs could not be coerced"
+msgstr "Vigane valik: ühte või rohkemat andmesisendit ei saa teisendada"
+
+#: wtforms/fields/core.py:468
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field"
+msgstr "'%(value)s' pole sellele väljale korrektne valik"
+
+#: wtforms/fields/core.py:523
+msgid "Not a valid integer value"
+msgstr "Pole korrektne täisarvuline väärtus"
+
+#: wtforms/fields/core.py:573
+msgid "Not a valid decimal value"
+msgstr "Pole korrektne kümnendarvuline väärtus"
+
+#: wtforms/fields/core.py:600
+msgid "Not a valid float value"
+msgstr "Pole korrektne ujukomaarvuline väärtus"
+
+#: wtforms/fields/core.py:659
+msgid "Not a valid datetime value"
+msgstr "Pole korrektne kuupäeva/kellaaja väärtus"
+
+#: wtforms/fields/core.py:676
+msgid "Not a valid date value"
+msgstr "Pole korrektne kuupäevaline väärtus"
+
+

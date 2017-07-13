@@ -1,0 +1,16 @@
+Metadata-Version: 1.1
+Name: futures
+Version: 3.1.1
+Summary: Backport of the concurrent.futures package from Python 3.2
+Home-page: https://github.com/agronholm/pythonfutures
+Author: Alex Gronholm
+Author-email: alex.gronholm+pypi@nextday.fi
+License: PSF
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: Python Software Foundation License
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 2 :: Only

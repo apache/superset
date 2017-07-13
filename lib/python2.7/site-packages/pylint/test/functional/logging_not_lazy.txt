@@ -1,0 +1,3 @@
+logging-not-lazy:8::Specify string format arguments as logging function parameters
+logging-not-lazy:9::Specify string format arguments as logging function parameters
+logging-not-lazy:10::Specify string format arguments as logging function parameters

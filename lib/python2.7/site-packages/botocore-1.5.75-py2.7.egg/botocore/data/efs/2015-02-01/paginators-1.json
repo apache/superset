@@ -1,0 +1,22 @@
+{
+  "pagination": {
+    "DescribeFileSystems": {
+      "input_token": "Marker",
+      "output_token": "NextMarker",
+      "limit_key": "MaxItems",
+      "result_key": "FileSystems"
+    },
+    "DescribeMountTargets": {
+      "input_token": "Marker",
+      "output_token": "NextMarker",
+      "limit_key": "MaxItems",
+      "result_key": "MountTargets"
+    },
+    "DescribeTags": {
+      "input_token": "Marker",
+      "output_token": "NextMarker",
+      "limit_key": "MaxItems",
+      "result_key": "Tags"
+    }
+  }
+}

@@ -1,0 +1,3139 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "apiVersion":"2016-11-28",
+    "endpointPrefix":"lightsail",
+    "jsonVersion":"1.1",
+    "protocol":"json",
+    "serviceFullName":"Amazon Lightsail",
+    "signatureVersion":"v4",
+    "targetPrefix":"Lightsail_20161128",
+    "uid":"lightsail-2016-11-28"
+  },
+  "operations":{
+    "AllocateStaticIp":{
+      "name":"AllocateStaticIp",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"AllocateStaticIpRequest"},
+      "output":{"shape":"AllocateStaticIpResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Allocates a static IP address.</p>"
+    },
+    "AttachStaticIp":{
+      "name":"AttachStaticIp",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"AttachStaticIpRequest"},
+      "output":{"shape":"AttachStaticIpResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Attaches a static IP address to a specific Amazon Lightsail instance.</p>"
+    },
+    "CloseInstancePublicPorts":{
+      "name":"CloseInstancePublicPorts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CloseInstancePublicPortsRequest"},
+      "output":{"shape":"CloseInstancePublicPortsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Closes the public ports on a specific Amazon Lightsail instance.</p>"
+    },
+    "CreateDomain":{
+      "name":"CreateDomain",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateDomainRequest"},
+      "output":{"shape":"CreateDomainResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Creates a domain resource for the specified domain (e.g., example.com).</p>"
+    },
+    "CreateDomainEntry":{
+      "name":"CreateDomainEntry",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateDomainEntryRequest"},
+      "output":{"shape":"CreateDomainEntryResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Creates one of the following entry records associated with the domain: A record, CNAME record, TXT record, or MX record.</p>"
+    },
+    "CreateInstanceSnapshot":{
+      "name":"CreateInstanceSnapshot",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateInstanceSnapshotRequest"},
+      "output":{"shape":"CreateInstanceSnapshotResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Creates a snapshot of a specific virtual private server, or <i>instance</i>. You can use a snapshot to create a new instance that is based on that snapshot.</p>"
+    },
+    "CreateInstances":{
+      "name":"CreateInstances",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateInstancesRequest"},
+      "output":{"shape":"CreateInstancesResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Creates one or more Amazon Lightsail virtual private servers, or <i>instances</i>.</p>"
+    },
+    "CreateInstancesFromSnapshot":{
+      "name":"CreateInstancesFromSnapshot",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateInstancesFromSnapshotRequest"},
+      "output":{"shape":"CreateInstancesFromSnapshotResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Uses a specific snapshot as a blueprint for creating one or more new instances that are based on that identical configuration.</p>"
+    },
+    "CreateKeyPair":{
+      "name":"CreateKeyPair",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateKeyPairRequest"},
+      "output":{"shape":"CreateKeyPairResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Creates sn SSH key pair.</p>"
+    },
+    "DeleteDomain":{
+      "name":"DeleteDomain",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteDomainRequest"},
+      "output":{"shape":"DeleteDomainResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Deletes the specified domain recordset and all of its domain records.</p>"
+    },
+    "DeleteDomainEntry":{
+      "name":"DeleteDomainEntry",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteDomainEntryRequest"},
+      "output":{"shape":"DeleteDomainEntryResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Deletes a specific domain entry.</p>"
+    },
+    "DeleteInstance":{
+      "name":"DeleteInstance",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteInstanceRequest"},
+      "output":{"shape":"DeleteInstanceResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Deletes a specific Amazon Lightsail virtual private server, or <i>instance</i>.</p>"
+    },
+    "DeleteInstanceSnapshot":{
+      "name":"DeleteInstanceSnapshot",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteInstanceSnapshotRequest"},
+      "output":{"shape":"DeleteInstanceSnapshotResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Deletes a specific snapshot of a virtual private server (or <i>instance</i>).</p>"
+    },
+    "DeleteKeyPair":{
+      "name":"DeleteKeyPair",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteKeyPairRequest"},
+      "output":{"shape":"DeleteKeyPairResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Deletes a specific SSH key pair.</p>"
+    },
+    "DetachStaticIp":{
+      "name":"DetachStaticIp",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DetachStaticIpRequest"},
+      "output":{"shape":"DetachStaticIpResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Detaches a static IP from the Amazon Lightsail instance to which it is attached.</p>"
+    },
+    "DownloadDefaultKeyPair":{
+      "name":"DownloadDefaultKeyPair",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DownloadDefaultKeyPairRequest"},
+      "output":{"shape":"DownloadDefaultKeyPairResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Downloads the default SSH key pair from the user's account.</p>"
+    },
+    "GetActiveNames":{
+      "name":"GetActiveNames",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetActiveNamesRequest"},
+      "output":{"shape":"GetActiveNamesResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns the names of all active (not deleted) resources.</p>"
+    },
+    "GetBlueprints":{
+      "name":"GetBlueprints",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetBlueprintsRequest"},
+      "output":{"shape":"GetBlueprintsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns the list of available instance images, or <i>blueprints</i>. You can use a blueprint to create a new virtual private server already running a specific operating system, as well as a preinstalled app or development stack. The software each instance is running depends on the blueprint image you choose.</p>"
+    },
+    "GetBundles":{
+      "name":"GetBundles",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetBundlesRequest"},
+      "output":{"shape":"GetBundlesResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns the list of bundles that are available for purchase. A bundle describes the specs for your virtual private server (or <i>instance</i>).</p>"
+    },
+    "GetDomain":{
+      "name":"GetDomain",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetDomainRequest"},
+      "output":{"shape":"GetDomainResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about a specific domain recordset.</p>"
+    },
+    "GetDomains":{
+      "name":"GetDomains",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetDomainsRequest"},
+      "output":{"shape":"GetDomainsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns a list of all domains in the user's account.</p>"
+    },
+    "GetInstance":{
+      "name":"GetInstance",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstanceRequest"},
+      "output":{"shape":"GetInstanceResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about a specific Amazon Lightsail instance, which is a virtual private server.</p>"
+    },
+    "GetInstanceAccessDetails":{
+      "name":"GetInstanceAccessDetails",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstanceAccessDetailsRequest"},
+      "output":{"shape":"GetInstanceAccessDetailsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns temporary SSH keys you can use to connect to a specific virtual private server, or <i>instance</i>.</p>"
+    },
+    "GetInstanceMetricData":{
+      "name":"GetInstanceMetricData",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstanceMetricDataRequest"},
+      "output":{"shape":"GetInstanceMetricDataResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns the data points for the specified Amazon Lightsail instance metric, given an instance name.</p>"
+    },
+    "GetInstancePortStates":{
+      "name":"GetInstancePortStates",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstancePortStatesRequest"},
+      "output":{"shape":"GetInstancePortStatesResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns the port states for a specific virtual private server, or <i>instance</i>.</p>"
+    },
+    "GetInstanceSnapshot":{
+      "name":"GetInstanceSnapshot",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstanceSnapshotRequest"},
+      "output":{"shape":"GetInstanceSnapshotResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about a specific instance snapshot.</p>"
+    },
+    "GetInstanceSnapshots":{
+      "name":"GetInstanceSnapshots",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstanceSnapshotsRequest"},
+      "output":{"shape":"GetInstanceSnapshotsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns all instance snapshots for the user's account.</p>"
+    },
+    "GetInstanceState":{
+      "name":"GetInstanceState",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstanceStateRequest"},
+      "output":{"shape":"GetInstanceStateResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns the state of a specific instance. Works on one instance at a time.</p>"
+    },
+    "GetInstances":{
+      "name":"GetInstances",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetInstancesRequest"},
+      "output":{"shape":"GetInstancesResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about all Amazon Lightsail virtual private servers, or <i>instances</i>.</p>"
+    },
+    "GetKeyPair":{
+      "name":"GetKeyPair",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetKeyPairRequest"},
+      "output":{"shape":"GetKeyPairResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about a specific key pair.</p>"
+    },
+    "GetKeyPairs":{
+      "name":"GetKeyPairs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetKeyPairsRequest"},
+      "output":{"shape":"GetKeyPairsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about all key pairs in the user's account.</p>"
+    },
+    "GetOperation":{
+      "name":"GetOperation",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetOperationRequest"},
+      "output":{"shape":"GetOperationResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about a specific operation. Operations include events such as when you create an instance, allocate a static IP, attach a static IP, and so on.</p>"
+    },
+    "GetOperations":{
+      "name":"GetOperations",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetOperationsRequest"},
+      "output":{"shape":"GetOperationsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about all operations.</p> <p>Results are returned from oldest to newest, up to a maximum of 200. Results can be paged by making each subsequent call to <code>GetOperations</code> use the maximum (last) <code>statusChangedAt</code> value from the previous request.</p>"
+    },
+    "GetOperationsForResource":{
+      "name":"GetOperationsForResource",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetOperationsForResourceRequest"},
+      "output":{"shape":"GetOperationsForResourceResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Gets operations for a specific resource (e.g., an instance or a static IP).</p>"
+    },
+    "GetRegions":{
+      "name":"GetRegions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetRegionsRequest"},
+      "output":{"shape":"GetRegionsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns a list of all valid regions for Amazon Lightsail. Use the <code>include availability zones</code> parameter to also return the availability zones in a region.</p>"
+    },
+    "GetStaticIp":{
+      "name":"GetStaticIp",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetStaticIpRequest"},
+      "output":{"shape":"GetStaticIpResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about a specific static IP.</p>"
+    },
+    "GetStaticIps":{
+      "name":"GetStaticIps",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetStaticIpsRequest"},
+      "output":{"shape":"GetStaticIpsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns information about all static IPs in the user's account.</p>"
+    },
+    "ImportKeyPair":{
+      "name":"ImportKeyPair",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ImportKeyPairRequest"},
+      "output":{"shape":"ImportKeyPairResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Imports a public SSH key from a specific key pair.</p>"
+    },
+    "IsVpcPeered":{
+      "name":"IsVpcPeered",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"IsVpcPeeredRequest"},
+      "output":{"shape":"IsVpcPeeredResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Returns a Boolean value indicating whether your Lightsail VPC is peered.</p>"
+    },
+    "OpenInstancePublicPorts":{
+      "name":"OpenInstancePublicPorts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"OpenInstancePublicPortsRequest"},
+      "output":{"shape":"OpenInstancePublicPortsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Adds public ports to an Amazon Lightsail instance.</p>"
+    },
+    "PeerVpc":{
+      "name":"PeerVpc",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PeerVpcRequest"},
+      "output":{"shape":"PeerVpcResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Tries to peer the Lightsail VPC with the user's default VPC.</p>"
+    },
+    "PutInstancePublicPorts":{
+      "name":"PutInstancePublicPorts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutInstancePublicPortsRequest"},
+      "output":{"shape":"PutInstancePublicPortsResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Sets the specified open ports for an Amazon Lightsail instance, and closes all ports for every protocol not included in the current request.</p>"
+    },
+    "RebootInstance":{
+      "name":"RebootInstance",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"RebootInstanceRequest"},
+      "output":{"shape":"RebootInstanceResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Restarts a specific instance. When your Amazon Lightsail instance is finished rebooting, Lightsail assigns a new public IP address. To use the same IP address after restarting, create a static IP address and attach it to the instance.</p>"
+    },
+    "ReleaseStaticIp":{
+      "name":"ReleaseStaticIp",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ReleaseStaticIpRequest"},
+      "output":{"shape":"ReleaseStaticIpResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Deletes a specific static IP from your account.</p>"
+    },
+    "StartInstance":{
+      "name":"StartInstance",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StartInstanceRequest"},
+      "output":{"shape":"StartInstanceResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Starts a specific Amazon Lightsail instance from a stopped state. To restart an instance, use the reboot instance operation.</p>"
+    },
+    "StopInstance":{
+      "name":"StopInstance",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopInstanceRequest"},
+      "output":{"shape":"StopInstanceResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Stops a specific Amazon Lightsail instance that is currently running.</p>"
+    },
+    "UnpeerVpc":{
+      "name":"UnpeerVpc",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UnpeerVpcRequest"},
+      "output":{"shape":"UnpeerVpcResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Attempts to unpeer the Lightsail VPC from the user's default VPC.</p>"
+    },
+    "UpdateDomainEntry":{
+      "name":"UpdateDomainEntry",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateDomainEntryRequest"},
+      "output":{"shape":"UpdateDomainEntryResult"},
+      "errors":[
+        {"shape":"ServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"NotFoundException"},
+        {"shape":"OperationFailureException"},
+        {"shape":"AccessDeniedException"},
+        {"shape":"AccountSetupInProgressException"},
+        {"shape":"UnauthenticatedException"}
+      ],
+      "documentation":"<p>Updates a domain recordset after it is created.</p>"
+    }
+  },
+  "shapes":{
+    "AccessDeniedException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"string"},
+        "docs":{"shape":"string"},
+        "message":{"shape":"string"},
+        "tip":{"shape":"string"}
+      },
+      "documentation":"<p>Lightsail throws this exception when the user cannot be authenticated or uses invalid credentials to access a resource.</p>",
+      "exception":true
+    },
+    "AccessDirection":{
+      "type":"string",
+      "enum":[
+        "inbound",
+        "outbound"
+      ]
+    },
+    "AccountSetupInProgressException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"string"},
+        "docs":{"shape":"string"},
+        "message":{"shape":"string"},
+        "tip":{"shape":"string"}
+      },
+      "documentation":"<p>Lightsail throws this exception when an account is still in the setup in progress state.</p>",
+      "exception":true
+    },
+    "AllocateStaticIpRequest":{
+      "type":"structure",
+      "required":["staticIpName"],
+      "members":{
+        "staticIpName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the static IP address.</p>"
+        }
+      }
+    },
+    "AllocateStaticIpResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the static IP address you allocated.</p>"
+        }
+      }
+    },
+    "AttachStaticIpRequest":{
+      "type":"structure",
+      "required":[
+        "staticIpName",
+        "instanceName"
+      ],
+      "members":{
+        "staticIpName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the static IP.</p>"
+        },
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The instance name to which you want to attach the static IP address.</p>"
+        }
+      }
+    },
+    "AttachStaticIpResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about your API operations.</p>"
+        }
+      }
+    },
+    "AvailabilityZone":{
+      "type":"structure",
+      "members":{
+        "zoneName":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The name of the Availability Zone. The format is <code>us-east-1a</code> (case-sensitive).</p>"
+        },
+        "state":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The state of the Availability Zone.</p>"
+        }
+      },
+      "documentation":"<p>Describes an Availability Zone.</p>"
+    },
+    "AvailabilityZoneList":{
+      "type":"list",
+      "member":{"shape":"AvailabilityZone"}
+    },
+    "Base64":{"type":"string"},
+    "Blueprint":{
+      "type":"structure",
+      "members":{
+        "blueprintId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The ID for the virtual private server image (e.g., <code>app_wordpress_4_4</code> or <code>app_lamp_7_0</code>).</p>"
+        },
+        "name":{
+          "shape":"ResourceName",
+          "documentation":"<p>The friendly name of the blueprint (e.g., <code>Amazon Linux</code>).</p>"
+        },
+        "group":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The group name of the blueprint (e.g., <code>amazon-linux</code>).</p>"
+        },
+        "type":{
+          "shape":"BlueprintType",
+          "documentation":"<p>The type of the blueprint (e.g., <code>os</code> or <code>app</code>).</p>"
+        },
+        "description":{
+          "shape":"string",
+          "documentation":"<p>The description of the blueprint.</p>"
+        },
+        "isActive":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether the blueprint is active. When you update your blueprints, you will inactivate old blueprints and keep the most recent versions active.</p>"
+        },
+        "minPower":{
+          "shape":"integer",
+          "documentation":"<p>The minimum machine size required to run this blueprint. <code>0</code> indicates that the blueprint runs on all instances.</p>"
+        },
+        "version":{
+          "shape":"string",
+          "documentation":"<p>The version number of the operating system, application, or stack (e.g., <code>2016.03.0</code>).</p>"
+        },
+        "versionCode":{
+          "shape":"string",
+          "documentation":"<p>The version code.</p>"
+        },
+        "productUrl":{
+          "shape":"string",
+          "documentation":"<p>The product URL to learn more about the image or blueprint.</p>"
+        },
+        "licenseUrl":{
+          "shape":"string",
+          "documentation":"<p>The end-user license agreement URL for the image or blueprint.</p>"
+        }
+      },
+      "documentation":"<p>Describes a blueprint (a virtual private server image).</p>"
+    },
+    "BlueprintList":{
+      "type":"list",
+      "member":{"shape":"Blueprint"}
+    },
+    "BlueprintType":{
+      "type":"string",
+      "enum":[
+        "os",
+        "app"
+      ]
+    },
+    "Bundle":{
+      "type":"structure",
+      "members":{
+        "price":{
+          "shape":"float",
+          "documentation":"<p>The price in US dollars (e.g., <code>5.0</code>).</p>"
+        },
+        "cpuCount":{
+          "shape":"integer",
+          "documentation":"<p>The number of vCPUs included in the bundle (e.g., <code>2</code>).</p>"
+        },
+        "diskSizeInGb":{
+          "shape":"integer",
+          "documentation":"<p>The size of the SSD (e.g., <code>30</code>).</p>"
+        },
+        "bundleId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The bundle ID (e.g., <code>micro_1_0</code>).</p>"
+        },
+        "instanceType":{
+          "shape":"string",
+          "documentation":"<p>The Amazon EC2 instance type (e.g., <code>t2.micro</code>).</p>"
+        },
+        "isActive":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether the bundle is active.</p>"
+        },
+        "name":{
+          "shape":"string",
+          "documentation":"<p>A friendly name for the bundle (e.g., <code>Micro</code>).</p>"
+        },
+        "power":{
+          "shape":"integer",
+          "documentation":"<p>The power of the bundle (e.g., <code>500</code>).</p>"
+        },
+        "ramSizeInGb":{
+          "shape":"float",
+          "documentation":"<p>The amount of RAM in GB (e.g., <code>2.0</code>).</p>"
+        },
+        "transferPerMonthInGb":{
+          "shape":"integer",
+          "documentation":"<p>The data transfer rate per month in GB (e.g., <code>2000</code>).</p>"
+        }
+      },
+      "documentation":"<p>Describes a bundle, which is a set of specs describing your virtual private server (or <i>instance</i>).</p>"
+    },
+    "BundleList":{
+      "type":"list",
+      "member":{"shape":"Bundle"}
+    },
+    "CloseInstancePublicPortsRequest":{
+      "type":"structure",
+      "required":[
+        "portInfo",
+        "instanceName"
+      ],
+      "members":{
+        "portInfo":{
+          "shape":"PortInfo",
+          "documentation":"<p>Information about the public port you are trying to close.</p>"
+        },
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance on which you're attempting to close the public ports.</p>"
+        }
+      }
+    },
+    "CloseInstancePublicPortsResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs that contains information about the operation.</p>"
+        }
+      }
+    },
+    "CreateDomainEntryRequest":{
+      "type":"structure",
+      "required":[
+        "domainName",
+        "domainEntry"
+      ],
+      "members":{
+        "domainName":{
+          "shape":"DomainName",
+          "documentation":"<p>The domain name (e.g., <code>example.com</code>) for which you want to create the domain entry.</p>"
+        },
+        "domainEntry":{
+          "shape":"DomainEntry",
+          "documentation":"<p>An array of key-value pairs containing information about the domain entry request.</p>"
+        }
+      }
+    },
+    "CreateDomainEntryResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the operation.</p>"
+        }
+      }
+    },
+    "CreateDomainRequest":{
+      "type":"structure",
+      "required":["domainName"],
+      "members":{
+        "domainName":{
+          "shape":"DomainName",
+          "documentation":"<p>The domain name to manage (e.g., <code>example.com</code>).</p> <note> <p>You cannot register a new domain name using Lightsail. You must register a domain name using Amazon Route 53 or another domain name registrar. If you have already registered your domain, you can enter its name in this parameter to manage the DNS records for that domain.</p> </note>"
+        }
+      }
+    },
+    "CreateDomainResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the domain resource you created.</p>"
+        }
+      }
+    },
+    "CreateInstanceSnapshotRequest":{
+      "type":"structure",
+      "required":[
+        "instanceSnapshotName",
+        "instanceName"
+      ],
+      "members":{
+        "instanceSnapshotName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name for your new snapshot.</p>"
+        },
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The Lightsail instance on which to base your snapshot.</p>"
+        }
+      }
+    },
+    "CreateInstanceSnapshotResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your create instances snapshot request.</p>"
+        }
+      }
+    },
+    "CreateInstancesFromSnapshotRequest":{
+      "type":"structure",
+      "required":[
+        "instanceNames",
+        "availabilityZone",
+        "instanceSnapshotName",
+        "bundleId"
+      ],
+      "members":{
+        "instanceNames":{
+          "shape":"StringList",
+          "documentation":"<p>The names for your new instances.</p>"
+        },
+        "availabilityZone":{
+          "shape":"string",
+          "documentation":"<p>The Availability Zone where you want to create your instances. Use the following formatting: <code>us-east-1a</code> (case sensitive). You can get a list of availability zones by using the <a href=\"http://docs.aws.amazon.com/lightsail/2016-11-28/api-reference/API_GetRegions.html\">get regions</a> operation. Be sure to add the <code>include availability zones</code> parameter to your request.</p>"
+        },
+        "instanceSnapshotName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance snapshot on which you are basing your new instances. Use the get instance snapshots operation to return information about your existing snapshots.</p>"
+        },
+        "bundleId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The bundle of specification information for your virtual private server (or <i>instance</i>), including the pricing plan (e.g., <code>micro_1_0</code>).</p>"
+        },
+        "userData":{
+          "shape":"string",
+          "documentation":"<p>You can create a launch script that configures a server with additional user data. For example, <code>apt-get –y update</code>.</p> <note> <p>Depending on the machine image you choose, the command to get software on your instance varies. Amazon Linux and CentOS use <code>yum</code>, Debian and Ubuntu use <code>apt-get</code>, and FreeBSD uses <code>pkg</code>. For a complete list, see the <a href=\"http://lightsail.aws.amazon.com/ls/docs/getting-started/articles/pre-installed-apps\">Dev Guide</a>.</p> </note>"
+        },
+        "keyPairName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name for your key pair.</p>"
+        }
+      }
+    },
+    "CreateInstancesFromSnapshotResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your create instances from snapshot request.</p>"
+        }
+      }
+    },
+    "CreateInstancesRequest":{
+      "type":"structure",
+      "required":[
+        "instanceNames",
+        "availabilityZone",
+        "blueprintId",
+        "bundleId"
+      ],
+      "members":{
+        "instanceNames":{
+          "shape":"StringList",
+          "documentation":"<p>The names to use for your new Lightsail instances. Separate multiple values using quotation marks and commas, for example: <code>[\"MyFirstInstance\",\"MySecondInstance\"]</code> </p>"
+        },
+        "availabilityZone":{
+          "shape":"string",
+          "documentation":"<p>The Availability Zone in which to create your instance. Use the following format: <code>us-east-1a</code> (case sensitive). You can get a list of availability zones by using the <a href=\"http://docs.aws.amazon.com/lightsail/2016-11-28/api-reference/API_GetRegions.html\">get regions</a> operation. Be sure to add the <code>include availability zones</code> parameter to your request.</p>"
+        },
+        "customImageName":{
+          "shape":"ResourceName",
+          "documentation":"<p>(Deprecated) The name for your custom image.</p> <note> <p>In releases prior to June 12, 2017, this parameter was ignored by the API. It is now deprecated.</p> </note>",
+          "deprecated":true
+        },
+        "blueprintId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The ID for a virtual private server image (e.g., <code>app_wordpress_4_4</code> or <code>app_lamp_7_0</code>). Use the get blueprints operation to return a list of available images (or <i>blueprints</i>).</p>"
+        },
+        "bundleId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The bundle of specification information for your virtual private server (or <i>instance</i>), including the pricing plan (e.g., <code>micro_1_0</code>).</p>"
+        },
+        "userData":{
+          "shape":"string",
+          "documentation":"<p>A launch script you can create that configures a server with additional user data. For example, you might want to run <code>apt-get –y update</code>.</p> <note> <p>Depending on the machine image you choose, the command to get software on your instance varies. Amazon Linux and CentOS use <code>yum</code>, Debian and Ubuntu use <code>apt-get</code>, and FreeBSD uses <code>pkg</code>. For a complete list, see the <a href=\"http://lightsail.aws.amazon.com/ls/docs/getting-started/articles/pre-installed-apps\">Dev Guide</a>.</p> </note>"
+        },
+        "keyPairName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of your key pair.</p>"
+        }
+      }
+    },
+    "CreateInstancesResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your create instances request.</p>"
+        }
+      }
+    },
+    "CreateKeyPairRequest":{
+      "type":"structure",
+      "required":["keyPairName"],
+      "members":{
+        "keyPairName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name for your new key pair.</p>"
+        }
+      }
+    },
+    "CreateKeyPairResult":{
+      "type":"structure",
+      "members":{
+        "keyPair":{
+          "shape":"KeyPair",
+          "documentation":"<p>An array of key-value pairs containing information about the new key pair you just created.</p>"
+        },
+        "publicKeyBase64":{
+          "shape":"Base64",
+          "documentation":"<p>A base64-encoded public key of the <code>ssh-rsa</code> type.</p>"
+        },
+        "privateKeyBase64":{
+          "shape":"Base64",
+          "documentation":"<p>A base64-encoded RSA private key.</p>"
+        },
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your create key pair request.</p>"
+        }
+      }
+    },
+    "DeleteDomainEntryRequest":{
+      "type":"structure",
+      "required":[
+        "domainName",
+        "domainEntry"
+      ],
+      "members":{
+        "domainName":{
+          "shape":"DomainName",
+          "documentation":"<p>The name of the domain entry to delete.</p>"
+        },
+        "domainEntry":{
+          "shape":"DomainEntry",
+          "documentation":"<p>An array of key-value pairs containing information about your domain entries.</p>"
+        }
+      }
+    },
+    "DeleteDomainEntryResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your delete domain entry request.</p>"
+        }
+      }
+    },
+    "DeleteDomainRequest":{
+      "type":"structure",
+      "required":["domainName"],
+      "members":{
+        "domainName":{
+          "shape":"DomainName",
+          "documentation":"<p>The specific domain name to delete.</p>"
+        }
+      }
+    },
+    "DeleteDomainResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your delete domain request.</p>"
+        }
+      }
+    },
+    "DeleteInstanceRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance to delete.</p>"
+        }
+      }
+    },
+    "DeleteInstanceResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your delete instance request.</p>"
+        }
+      }
+    },
+    "DeleteInstanceSnapshotRequest":{
+      "type":"structure",
+      "required":["instanceSnapshotName"],
+      "members":{
+        "instanceSnapshotName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the snapshot to delete.</p>"
+        }
+      }
+    },
+    "DeleteInstanceSnapshotResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your delete instance snapshot request.</p>"
+        }
+      }
+    },
+    "DeleteKeyPairRequest":{
+      "type":"structure",
+      "required":["keyPairName"],
+      "members":{
+        "keyPairName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the key pair to delete.</p>"
+        }
+      }
+    },
+    "DeleteKeyPairResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your delete key pair request.</p>"
+        }
+      }
+    },
+    "DetachStaticIpRequest":{
+      "type":"structure",
+      "required":["staticIpName"],
+      "members":{
+        "staticIpName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the static IP to detach from the instance.</p>"
+        }
+      }
+    },
+    "DetachStaticIpResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your detach static IP request.</p>"
+        }
+      }
+    },
+    "Disk":{
+      "type":"structure",
+      "members":{
+        "name":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the disk.</p>"
+        },
+        "arn":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the disk.</p>"
+        },
+        "supportCode":{
+          "shape":"string",
+          "documentation":"<p>The support code. Include this code in your email to support when you have questions about an instance or another resource in Lightsail. This code enables our support team to look up your Lightsail information more easily.</p>"
+        },
+        "createdAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The date when the disk was created.</p>"
+        },
+        "location":{
+          "shape":"ResourceLocation",
+          "documentation":"<p>The region and Availability Zone where the disk is located.</p>"
+        },
+        "resourceType":{
+          "shape":"ResourceType",
+          "documentation":"<p>The resource type of the disk. </p>"
+        },
+        "sizeInGb":{
+          "shape":"integer",
+          "documentation":"<p>The size of the disk in GB.</p>"
+        },
+        "gbInUse":{
+          "shape":"integer",
+          "documentation":"<p>The number of GB in use by the disk.</p>"
+        },
+        "isSystemDisk":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether this disk is a system disk (has an operating system loaded on it).</p>"
+        },
+        "iops":{
+          "shape":"integer",
+          "documentation":"<p>The input/output operations per second (IOPS) of the disk.</p>"
+        },
+        "path":{
+          "shape":"string",
+          "documentation":"<p>The disk path.</p>"
+        },
+        "attachedTo":{
+          "shape":"string",
+          "documentation":"<p>The resources to which the disk is attached.</p>"
+        },
+        "isAttached":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether the disk is attached.</p>"
+        },
+        "attachmentState":{
+          "shape":"string",
+          "documentation":"<p>The attachment state of the disk.</p>"
+        }
+      },
+      "documentation":"<p>Describes the hard disk (an SSD).</p>"
+    },
+    "DiskList":{
+      "type":"list",
+      "member":{"shape":"Disk"}
+    },
+    "Domain":{
+      "type":"structure",
+      "members":{
+        "name":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the domain.</p>"
+        },
+        "arn":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the domain recordset (e.g., <code>arn:aws:lightsail:global:123456789101:Domain/824cede0-abc7-4f84-8dbc-12345EXAMPLE</code>).</p>"
+        },
+        "supportCode":{
+          "shape":"string",
+          "documentation":"<p>The support code. Include this code in your email to support when you have questions about an instance or another resource in Lightsail. This code enables our support team to look up your Lightsail information more easily.</p>"
+        },
+        "createdAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The date when the domain recordset was created.</p>"
+        },
+        "location":{
+          "shape":"ResourceLocation",
+          "documentation":"<p>The AWS Region and Availability Zones where the domain recordset was created.</p>"
+        },
+        "resourceType":{
+          "shape":"ResourceType",
+          "documentation":"<p>The resource type. </p>"
+        },
+        "domainEntries":{
+          "shape":"DomainEntryList",
+          "documentation":"<p>An array of key-value pairs containing information about the domain entries.</p>"
+        }
+      },
+      "documentation":"<p>Describes a domain where you are storing recordsets in Lightsail.</p>"
+    },
+    "DomainEntry":{
+      "type":"structure",
+      "members":{
+        "id":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The ID of the domain recordset entry.</p>"
+        },
+        "name":{
+          "shape":"DomainName",
+          "documentation":"<p>The name of the domain.</p>"
+        },
+        "target":{
+          "shape":"string",
+          "documentation":"<p>The target AWS name server (e.g., <code>ns-111.awsdns-22.com.</code>).</p>"
+        },
+        "type":{
+          "shape":"DomainEntryType",
+          "documentation":"<p>The type of domain entry (e.g., <code>SOA</code> or <code>NS</code>).</p>"
+        },
+        "options":{
+          "shape":"DomainEntryOptions",
+          "documentation":"<p>The options for the domain entry.</p>"
+        }
+      },
+      "documentation":"<p>Describes a domain recordset entry.</p>"
+    },
+    "DomainEntryList":{
+      "type":"list",
+      "member":{"shape":"DomainEntry"}
+    },
+    "DomainEntryOptions":{
+      "type":"map",
+      "key":{"shape":"DomainEntryOptionsKeys"},
+      "value":{"shape":"string"}
+    },
+    "DomainEntryOptionsKeys":{"type":"string"},
+    "DomainEntryType":{"type":"string"},
+    "DomainList":{
+      "type":"list",
+      "member":{"shape":"Domain"}
+    },
+    "DomainName":{"type":"string"},
+    "DownloadDefaultKeyPairRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DownloadDefaultKeyPairResult":{
+      "type":"structure",
+      "members":{
+        "publicKeyBase64":{
+          "shape":"Base64",
+          "documentation":"<p>A base64-encoded public key of the <code>ssh-rsa</code> type.</p>"
+        },
+        "privateKeyBase64":{
+          "shape":"Base64",
+          "documentation":"<p>A base64-encoded RSA private key.</p>"
+        }
+      }
+    },
+    "GetActiveNamesRequest":{
+      "type":"structure",
+      "members":{
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for paginating results from your get active names request.</p>"
+        }
+      }
+    },
+    "GetActiveNamesResult":{
+      "type":"structure",
+      "members":{
+        "activeNames":{
+          "shape":"StringList",
+          "documentation":"<p>The list of active names returned by the get active names request.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get active names request.</p>"
+        }
+      }
+    },
+    "GetBlueprintsRequest":{
+      "type":"structure",
+      "members":{
+        "includeInactive":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether to include inactive results in your request.</p>"
+        },
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get blueprints request.</p>"
+        }
+      }
+    },
+    "GetBlueprintsResult":{
+      "type":"structure",
+      "members":{
+        "blueprints":{
+          "shape":"BlueprintList",
+          "documentation":"<p>An array of key-value pairs that contains information about the available blueprints.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get blueprints request.</p>"
+        }
+      }
+    },
+    "GetBundlesRequest":{
+      "type":"structure",
+      "members":{
+        "includeInactive":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value that indicates whether to include inactive bundle results in your request.</p>"
+        },
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get bundles request.</p>"
+        }
+      }
+    },
+    "GetBundlesResult":{
+      "type":"structure",
+      "members":{
+        "bundles":{
+          "shape":"BundleList",
+          "documentation":"<p>An array of key-value pairs that contains information about the available bundles.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get active names request.</p>"
+        }
+      }
+    },
+    "GetDomainRequest":{
+      "type":"structure",
+      "required":["domainName"],
+      "members":{
+        "domainName":{
+          "shape":"DomainName",
+          "documentation":"<p>The domain name for which your want to return information about.</p>"
+        }
+      }
+    },
+    "GetDomainResult":{
+      "type":"structure",
+      "members":{
+        "domain":{
+          "shape":"Domain",
+          "documentation":"<p>An array of key-value pairs containing information about your get domain request.</p>"
+        }
+      }
+    },
+    "GetDomainsRequest":{
+      "type":"structure",
+      "members":{
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get domains request.</p>"
+        }
+      }
+    },
+    "GetDomainsResult":{
+      "type":"structure",
+      "members":{
+        "domains":{
+          "shape":"DomainList",
+          "documentation":"<p>An array of key-value pairs containing information about each of the domain entries in the user's account.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get active names request.</p>"
+        }
+      }
+    },
+    "GetInstanceAccessDetailsRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance to access.</p>"
+        },
+        "protocol":{
+          "shape":"InstanceAccessProtocol",
+          "documentation":"<p>The protocol to use to connect to your instance. Defaults to <code>ssh</code>.</p>"
+        }
+      }
+    },
+    "GetInstanceAccessDetailsResult":{
+      "type":"structure",
+      "members":{
+        "accessDetails":{
+          "shape":"InstanceAccessDetails",
+          "documentation":"<p>An array of key-value pairs containing information about a get instance access request.</p>"
+        }
+      }
+    },
+    "GetInstanceMetricDataRequest":{
+      "type":"structure",
+      "required":[
+        "instanceName",
+        "metricName",
+        "period",
+        "startTime",
+        "endTime",
+        "unit",
+        "statistics"
+      ],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance for which you want to get metrics data.</p>"
+        },
+        "metricName":{
+          "shape":"InstanceMetricName",
+          "documentation":"<p>The metric name to get data about. </p>"
+        },
+        "period":{
+          "shape":"MetricPeriod",
+          "documentation":"<p>The time period for which you are requesting data.</p>"
+        },
+        "startTime":{
+          "shape":"timestamp",
+          "documentation":"<p>The start time of the time period.</p>"
+        },
+        "endTime":{
+          "shape":"timestamp",
+          "documentation":"<p>The end time of the time period.</p>"
+        },
+        "unit":{
+          "shape":"MetricUnit",
+          "documentation":"<p>The unit. The list of valid values is below.</p>"
+        },
+        "statistics":{
+          "shape":"MetricStatisticList",
+          "documentation":"<p>The instance statistics. </p>"
+        }
+      }
+    },
+    "GetInstanceMetricDataResult":{
+      "type":"structure",
+      "members":{
+        "metricName":{
+          "shape":"InstanceMetricName",
+          "documentation":"<p>The metric name to return data for. </p>"
+        },
+        "metricData":{
+          "shape":"MetricDatapointList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your get instance metric data request.</p>"
+        }
+      }
+    },
+    "GetInstancePortStatesRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance.</p>"
+        }
+      }
+    },
+    "GetInstancePortStatesResult":{
+      "type":"structure",
+      "members":{
+        "portStates":{
+          "shape":"InstancePortStateList",
+          "documentation":"<p>Information about the port states resulting from your request.</p>"
+        }
+      }
+    },
+    "GetInstanceRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance.</p>"
+        }
+      }
+    },
+    "GetInstanceResult":{
+      "type":"structure",
+      "members":{
+        "instance":{
+          "shape":"Instance",
+          "documentation":"<p>An array of key-value pairs containing information about the specified instance.</p>"
+        }
+      }
+    },
+    "GetInstanceSnapshotRequest":{
+      "type":"structure",
+      "required":["instanceSnapshotName"],
+      "members":{
+        "instanceSnapshotName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the snapshot for which you are requesting information.</p>"
+        }
+      }
+    },
+    "GetInstanceSnapshotResult":{
+      "type":"structure",
+      "members":{
+        "instanceSnapshot":{
+          "shape":"InstanceSnapshot",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your get instance snapshot request.</p>"
+        }
+      }
+    },
+    "GetInstanceSnapshotsRequest":{
+      "type":"structure",
+      "members":{
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get instance snapshots request.</p>"
+        }
+      }
+    },
+    "GetInstanceSnapshotsResult":{
+      "type":"structure",
+      "members":{
+        "instanceSnapshots":{
+          "shape":"InstanceSnapshotList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your get instance snapshots request.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get instance snapshots request.</p>"
+        }
+      }
+    },
+    "GetInstanceStateRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance to get state information about.</p>"
+        }
+      }
+    },
+    "GetInstanceStateResult":{
+      "type":"structure",
+      "members":{
+        "state":{
+          "shape":"InstanceState",
+          "documentation":"<p>The state of the instance.</p>"
+        }
+      }
+    },
+    "GetInstancesRequest":{
+      "type":"structure",
+      "members":{
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get instances request.</p>"
+        }
+      }
+    },
+    "GetInstancesResult":{
+      "type":"structure",
+      "members":{
+        "instances":{
+          "shape":"InstanceList",
+          "documentation":"<p>An array of key-value pairs containing information about your instances.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get instances request.</p>"
+        }
+      }
+    },
+    "GetKeyPairRequest":{
+      "type":"structure",
+      "required":["keyPairName"],
+      "members":{
+        "keyPairName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the key pair for which you are requesting information.</p>"
+        }
+      }
+    },
+    "GetKeyPairResult":{
+      "type":"structure",
+      "members":{
+        "keyPair":{
+          "shape":"KeyPair",
+          "documentation":"<p>An array of key-value pairs containing information about the key pair.</p>"
+        }
+      }
+    },
+    "GetKeyPairsRequest":{
+      "type":"structure",
+      "members":{
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get key pairs request.</p>"
+        }
+      }
+    },
+    "GetKeyPairsResult":{
+      "type":"structure",
+      "members":{
+        "keyPairs":{
+          "shape":"KeyPairList",
+          "documentation":"<p>An array of key-value pairs containing information about the key pairs.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get key pairs request.</p>"
+        }
+      }
+    },
+    "GetOperationRequest":{
+      "type":"structure",
+      "required":["operationId"],
+      "members":{
+        "operationId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>A GUID used to identify the operation.</p>"
+        }
+      }
+    },
+    "GetOperationResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your get operation request.</p>"
+        }
+      }
+    },
+    "GetOperationsForResourceRequest":{
+      "type":"structure",
+      "required":["resourceName"],
+      "members":{
+        "resourceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the resource for which you are requesting information.</p>"
+        },
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get operations for resource request.</p>"
+        }
+      }
+    },
+    "GetOperationsForResourceResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your get operations for resource request.</p>"
+        },
+        "nextPageCount":{
+          "shape":"string",
+          "documentation":"<p>(Deprecated) Returns the number of pages of results that remain.</p> <note> <p>In releases prior to June 12, 2017, this parameter returned <code>null</code> by the API. It is now deprecated, and the API returns the <code>nextPageToken</code> parameter instead.</p> </note>",
+          "deprecated":true
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>An identifier that was returned from the previous call to this operation, which can be used to return the next set of items in the list.</p>"
+        }
+      }
+    },
+    "GetOperationsRequest":{
+      "type":"structure",
+      "members":{
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get operations request.</p>"
+        }
+      }
+    },
+    "GetOperationsResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the results of your get operations request.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get operations request.</p>"
+        }
+      }
+    },
+    "GetRegionsRequest":{
+      "type":"structure",
+      "members":{
+        "includeAvailabilityZones":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether to also include Availability Zones in your get regions request. Availability Zones are indicated with a letter: e.g., <code>us-east-1a</code>.</p>"
+        }
+      }
+    },
+    "GetRegionsResult":{
+      "type":"structure",
+      "members":{
+        "regions":{
+          "shape":"RegionList",
+          "documentation":"<p>An array of key-value pairs containing information about your get regions request.</p>"
+        }
+      }
+    },
+    "GetStaticIpRequest":{
+      "type":"structure",
+      "required":["staticIpName"],
+      "members":{
+        "staticIpName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the static IP in Lightsail.</p>"
+        }
+      }
+    },
+    "GetStaticIpResult":{
+      "type":"structure",
+      "members":{
+        "staticIp":{
+          "shape":"StaticIp",
+          "documentation":"<p>An array of key-value pairs containing information about the requested static IP.</p>"
+        }
+      }
+    },
+    "GetStaticIpsRequest":{
+      "type":"structure",
+      "members":{
+        "pageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get static IPs request.</p>"
+        }
+      }
+    },
+    "GetStaticIpsResult":{
+      "type":"structure",
+      "members":{
+        "staticIps":{
+          "shape":"StaticIpList",
+          "documentation":"<p>An array of key-value pairs containing information about your get static IPs request.</p>"
+        },
+        "nextPageToken":{
+          "shape":"string",
+          "documentation":"<p>A token used for advancing to the next page of results from your get static IPs request.</p>"
+        }
+      }
+    },
+    "ImportKeyPairRequest":{
+      "type":"structure",
+      "required":[
+        "keyPairName",
+        "publicKeyBase64"
+      ],
+      "members":{
+        "keyPairName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the key pair for which you want to import the public key.</p>"
+        },
+        "publicKeyBase64":{
+          "shape":"Base64",
+          "documentation":"<p>A base64-encoded public key of the <code>ssh-rsa</code> type.</p>"
+        }
+      }
+    },
+    "ImportKeyPairResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "Instance":{
+      "type":"structure",
+      "members":{
+        "name":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name the user gave the instance (e.g., <code>Amazon_Linux-1GB-Virginia-1</code>).</p>"
+        },
+        "arn":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the instance (e.g., <code>arn:aws:lightsail:us-east-1:123456789101:Instance/244ad76f-8aad-4741-809f-12345EXAMPLE</code>).</p>"
+        },
+        "supportCode":{
+          "shape":"string",
+          "documentation":"<p>The support code. Include this code in your email to support when you have questions about an instance or another resource in Lightsail. This code enables our support team to look up your Lightsail information more easily.</p>"
+        },
+        "createdAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The timestamp when the instance was created (e.g., <code>1479734909.17</code>).</p>"
+        },
+        "location":{
+          "shape":"ResourceLocation",
+          "documentation":"<p>The region name and availability zone where the instance is located.</p>"
+        },
+        "resourceType":{
+          "shape":"ResourceType",
+          "documentation":"<p>The type of resource (usually <code>Instance</code>).</p>"
+        },
+        "blueprintId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The blueprint ID (e.g., <code>os_amlinux_2016_03</code>).</p>"
+        },
+        "blueprintName":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The friendly name of the blueprint (e.g., <code>Amazon Linux</code>).</p>"
+        },
+        "bundleId":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The bundle for the instance (e.g., <code>micro_1_0</code>).</p>"
+        },
+        "isStaticIp":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether this instance has a static IP assigned to it.</p>"
+        },
+        "privateIpAddress":{
+          "shape":"IpAddress",
+          "documentation":"<p>The private IP address of the instance.</p>"
+        },
+        "publicIpAddress":{
+          "shape":"IpAddress",
+          "documentation":"<p>The public IP address of the instance.</p>"
+        },
+        "ipv6Address":{
+          "shape":"IpV6Address",
+          "documentation":"<p>The IPv6 address of the instance.</p>"
+        },
+        "hardware":{
+          "shape":"InstanceHardware",
+          "documentation":"<p>The size of the vCPU and the amount of RAM for the instance.</p>"
+        },
+        "networking":{
+          "shape":"InstanceNetworking",
+          "documentation":"<p>Information about the public ports and monthly data transfer rates for the instance.</p>"
+        },
+        "state":{
+          "shape":"InstanceState",
+          "documentation":"<p>The status code and the state (e.g., <code>running</code>) for the instance.</p>"
+        },
+        "username":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The user name for connecting to the instance (e.g., <code>ec2-user</code>).</p>"
+        },
+        "sshKeyName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the SSH key being used to connect to the instance (e.g., <code>LightsailDefaultKeyPair</code>).</p>"
+        }
+      },
+      "documentation":"<p>Describes an instance (a virtual private server).</p>"
+    },
+    "InstanceAccessDetails":{
+      "type":"structure",
+      "members":{
+        "certKey":{
+          "shape":"string",
+          "documentation":"<p>For SSH access, the public key to use when accessing your instance For OpenSSH clients (e.g., command line SSH), you should save this value to <code>tempkey-cert.pub</code>.</p>"
+        },
+        "expiresAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>For SSH access, the date on which the temporary keys expire.</p>"
+        },
+        "ipAddress":{
+          "shape":"IpAddress",
+          "documentation":"<p>The public IP address of the Amazon Lightsail instance.</p>"
+        },
+        "password":{
+          "shape":"string",
+          "documentation":"<p>For RDP access, the temporary password of the Amazon EC2 instance.</p>"
+        },
+        "privateKey":{
+          "shape":"string",
+          "documentation":"<p>For SSH access, the temporary private key. For OpenSSH clients (e.g., command line SSH), you should save this value to <code>tempkey</code>).</p>"
+        },
+        "protocol":{
+          "shape":"InstanceAccessProtocol",
+          "documentation":"<p>The protocol for these Amazon Lightsail instance access details.</p>"
+        },
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of this Amazon Lightsail instance.</p>"
+        },
+        "username":{
+          "shape":"string",
+          "documentation":"<p>The user name to use when logging in to the Amazon Lightsail instance.</p>"
+        }
+      },
+      "documentation":"<p>The parameters for gaining temporary access to one of your Amazon Lightsail instances.</p>"
+    },
+    "InstanceAccessProtocol":{
+      "type":"string",
+      "enum":[
+        "ssh",
+        "rdp"
+      ]
+    },
+    "InstanceHardware":{
+      "type":"structure",
+      "members":{
+        "cpuCount":{
+          "shape":"integer",
+          "documentation":"<p>The number of vCPUs the instance has.</p>"
+        },
+        "disks":{
+          "shape":"DiskList",
+          "documentation":"<p>The disks attached to the instance.</p>"
+        },
+        "ramSizeInGb":{
+          "shape":"float",
+          "documentation":"<p>The amount of RAM in GB on the instance (e.g., <code>1.0</code>).</p>"
+        }
+      },
+      "documentation":"<p>Describes the hardware for the instance.</p>"
+    },
+    "InstanceList":{
+      "type":"list",
+      "member":{"shape":"Instance"}
+    },
+    "InstanceMetricName":{
+      "type":"string",
+      "enum":[
+        "CPUUtilization",
+        "NetworkIn",
+        "NetworkOut",
+        "StatusCheckFailed",
+        "StatusCheckFailed_Instance",
+        "StatusCheckFailed_System"
+      ]
+    },
+    "InstanceNetworking":{
+      "type":"structure",
+      "members":{
+        "monthlyTransfer":{
+          "shape":"MonthlyTransfer",
+          "documentation":"<p>The amount of data in GB allocated for monthly data transfers.</p>"
+        },
+        "ports":{
+          "shape":"InstancePortInfoList",
+          "documentation":"<p>An array of key-value pairs containing information about the ports on the instance.</p>"
+        }
+      },
+      "documentation":"<p>Describes monthly data transfer rates and port information for an instance.</p>"
+    },
+    "InstancePortInfo":{
+      "type":"structure",
+      "members":{
+        "fromPort":{
+          "shape":"Port",
+          "documentation":"<p>The first port in the range.</p>"
+        },
+        "toPort":{
+          "shape":"Port",
+          "documentation":"<p>The last port in the range.</p>"
+        },
+        "protocol":{
+          "shape":"NetworkProtocol",
+          "documentation":"<p>The protocol being used. Can be one of the following.</p> <ul> <li> <p> <code>tcp</code> - Transmission Control Protocol (TCP) provides reliable, ordered, and error-checked delivery of streamed data between applications running on hosts communicating by an IP network. If you have an application that doesn't require reliable data stream service, use UDP instead.</p> </li> <li> <p> <code>all</code> - All transport layer protocol types. For more general information, see <a href=\"https://en.wikipedia.org/wiki/Transport_layer\">Transport layer</a> on Wikipedia.</p> </li> <li> <p> <code>udp</code> - With User Datagram Protocol (UDP), computer applications can send messages (or datagrams) to other hosts on an Internet Protocol (IP) network. Prior communications are not required to set up transmission channels or data paths. Applications that don't require reliable data stream service can use UDP, which provides a connectionless datagram service that emphasizes reduced latency over reliability. If you do require reliable data stream service, use TCP instead.</p> </li> </ul>"
+        },
+        "accessFrom":{
+          "shape":"string",
+          "documentation":"<p>The location from which access is allowed (e.g., <code>Anywhere (0.0.0.0/0)</code>).</p>"
+        },
+        "accessType":{
+          "shape":"PortAccessType",
+          "documentation":"<p>The type of access (<code>Public</code> or <code>Private</code>).</p>"
+        },
+        "commonName":{
+          "shape":"string",
+          "documentation":"<p>The common name.</p>"
+        },
+        "accessDirection":{
+          "shape":"AccessDirection",
+          "documentation":"<p>The access direction (<code>inbound</code> or <code>outbound</code>).</p>"
+        }
+      },
+      "documentation":"<p>Describes information about the instance ports.</p>"
+    },
+    "InstancePortInfoList":{
+      "type":"list",
+      "member":{"shape":"InstancePortInfo"}
+    },
+    "InstancePortState":{
+      "type":"structure",
+      "members":{
+        "fromPort":{
+          "shape":"Port",
+          "documentation":"<p>The first port in the range.</p>"
+        },
+        "toPort":{
+          "shape":"Port",
+          "documentation":"<p>The last port in the range.</p>"
+        },
+        "protocol":{
+          "shape":"NetworkProtocol",
+          "documentation":"<p>The protocol being used. Can be one of the following.</p> <ul> <li> <p> <code>tcp</code> - Transmission Control Protocol (TCP) provides reliable, ordered, and error-checked delivery of streamed data between applications running on hosts communicating by an IP network. If you have an application that doesn't require reliable data stream service, use UDP instead.</p> </li> <li> <p> <code>all</code> - All transport layer protocol types. For more general information, see <a href=\"https://en.wikipedia.org/wiki/Transport_layer\">Transport layer</a> on Wikipedia.</p> </li> <li> <p> <code>udp</code> - With User Datagram Protocol (UDP), computer applications can send messages (or datagrams) to other hosts on an Internet Protocol (IP) network. Prior communications are not required to set up transmission channels or data paths. Applications that don't require reliable data stream service can use UDP, which provides a connectionless datagram service that emphasizes reduced latency over reliability. If you do require reliable data stream service, use TCP instead.</p> </li> </ul>"
+        },
+        "state":{
+          "shape":"PortState",
+          "documentation":"<p>Specifies whether the instance port is <code>open</code> or <code>closed</code>.</p>"
+        }
+      },
+      "documentation":"<p>Describes the port state.</p>"
+    },
+    "InstancePortStateList":{
+      "type":"list",
+      "member":{"shape":"InstancePortState"}
+    },
+    "InstanceSnapshot":{
+      "type":"structure",
+      "members":{
+        "name":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the snapshot.</p>"
+        },
+        "arn":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the snapshot (e.g., <code>arn:aws:lightsail:us-east-1:123456789101:InstanceSnapshot/d23b5706-3322-4d83-81e5-12345EXAMPLE</code>).</p>"
+        },
+        "supportCode":{
+          "shape":"string",
+          "documentation":"<p>The support code. Include this code in your email to support when you have questions about an instance or another resource in Lightsail. This code enables our support team to look up your Lightsail information more easily.</p>"
+        },
+        "createdAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The timestamp when the snapshot was created (e.g., <code>1479907467.024</code>).</p>"
+        },
+        "location":{
+          "shape":"ResourceLocation",
+          "documentation":"<p>The region name and availability zone where you created the snapshot.</p>"
+        },
+        "resourceType":{
+          "shape":"ResourceType",
+          "documentation":"<p>The type of resource (usually <code>InstanceSnapshot</code>).</p>"
+        },
+        "state":{
+          "shape":"InstanceSnapshotState",
+          "documentation":"<p>The state the snapshot is in.</p>"
+        },
+        "progress":{
+          "shape":"string",
+          "documentation":"<p>The progress of the snapshot.</p>"
+        },
+        "fromInstanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The instance from which the snapshot was created.</p>"
+        },
+        "fromInstanceArn":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the instance from which the snapshot was created (e.g., <code>arn:aws:lightsail:us-east-1:123456789101:Instance/64b8404c-ccb1-430b-8daf-12345EXAMPLE</code>).</p>"
+        },
+        "fromBlueprintId":{
+          "shape":"string",
+          "documentation":"<p>The blueprint ID from which you created the snapshot (e.g., <code>os_debian_8_3</code>). A blueprint is a virtual private server (or <i>instance</i>) image used to create instances quickly.</p>"
+        },
+        "fromBundleId":{
+          "shape":"string",
+          "documentation":"<p>The bundle ID from which you created the snapshot (e.g., <code>micro_1_0</code>).</p>"
+        },
+        "sizeInGb":{
+          "shape":"integer",
+          "documentation":"<p>The size in GB of the SSD.</p>"
+        }
+      },
+      "documentation":"<p>Describes the snapshot of the virtual private server, or <i>instance</i>.</p>"
+    },
+    "InstanceSnapshotList":{
+      "type":"list",
+      "member":{"shape":"InstanceSnapshot"}
+    },
+    "InstanceSnapshotState":{
+      "type":"string",
+      "enum":[
+        "pending",
+        "error",
+        "available"
+      ]
+    },
+    "InstanceState":{
+      "type":"structure",
+      "members":{
+        "code":{
+          "shape":"integer",
+          "documentation":"<p>The status code for the instance.</p>"
+        },
+        "name":{
+          "shape":"string",
+          "documentation":"<p>The state of the instance (e.g., <code>running</code> or <code>pending</code>).</p>"
+        }
+      },
+      "documentation":"<p>Describes the virtual private server (or <i>instance</i>) status.</p>"
+    },
+    "InvalidInputException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"string"},
+        "docs":{"shape":"string"},
+        "message":{"shape":"string"},
+        "tip":{"shape":"string"}
+      },
+      "documentation":"<p>Lightsail throws this exception when user input does not conform to the validation rules of an input field.</p> <note> <p>Domain-related APIs are only available in the N. Virginia (us-east-1) Region. Please set your Region configuration to us-east-1 to create, view, or edit these resources.</p> </note>",
+      "exception":true
+    },
+    "IpAddress":{
+      "type":"string",
+      "pattern":"([0-9]{1,3}\\.){3}[0-9]{1,3}"
+    },
+    "IpV6Address":{
+      "type":"string",
+      "pattern":"([A-F0-9]{1,4}:){7}[A-F0-9]{1,4}"
+    },
+    "IsVpcPeeredRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "IsVpcPeeredResult":{
+      "type":"structure",
+      "members":{
+        "isPeered":{
+          "shape":"boolean",
+          "documentation":"<p>Returns <code>true</code> if the Lightsail VPC is peered; otherwise, <code>false</code>.</p>"
+        }
+      }
+    },
+    "IsoDate":{"type":"timestamp"},
+    "KeyPair":{
+      "type":"structure",
+      "members":{
+        "name":{
+          "shape":"ResourceName",
+          "documentation":"<p>The friendly name of the SSH key pair.</p>"
+        },
+        "arn":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the key pair (e.g., <code>arn:aws:lightsail:us-east-1:123456789101:KeyPair/05859e3d-331d-48ba-9034-12345EXAMPLE</code>).</p>"
+        },
+        "supportCode":{
+          "shape":"string",
+          "documentation":"<p>The support code. Include this code in your email to support when you have questions about an instance or another resource in Lightsail. This code enables our support team to look up your Lightsail information more easily.</p>"
+        },
+        "createdAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The timestamp when the key pair was created (e.g., <code>1479816991.349</code>).</p>"
+        },
+        "location":{
+          "shape":"ResourceLocation",
+          "documentation":"<p>The region name and Availability Zone where the key pair was created.</p>"
+        },
+        "resourceType":{
+          "shape":"ResourceType",
+          "documentation":"<p>The resource type (usually <code>KeyPair</code>).</p>"
+        },
+        "fingerprint":{
+          "shape":"Base64",
+          "documentation":"<p>The RSA fingerprint of the key pair.</p>"
+        }
+      },
+      "documentation":"<p>Describes the SSH key pair.</p>"
+    },
+    "KeyPairList":{
+      "type":"list",
+      "member":{"shape":"KeyPair"}
+    },
+    "MetricDatapoint":{
+      "type":"structure",
+      "members":{
+        "average":{
+          "shape":"double",
+          "documentation":"<p>The average.</p>"
+        },
+        "maximum":{
+          "shape":"double",
+          "documentation":"<p>The maximum.</p>"
+        },
+        "minimum":{
+          "shape":"double",
+          "documentation":"<p>The minimum.</p>"
+        },
+        "sampleCount":{
+          "shape":"double",
+          "documentation":"<p>The sample count.</p>"
+        },
+        "sum":{
+          "shape":"double",
+          "documentation":"<p>The sum.</p>"
+        },
+        "timestamp":{
+          "shape":"timestamp",
+          "documentation":"<p>The timestamp (e.g., <code>1479816991.349</code>).</p>"
+        },
+        "unit":{
+          "shape":"MetricUnit",
+          "documentation":"<p>The unit. </p>"
+        }
+      },
+      "documentation":"<p>Describes the metric data point.</p>"
+    },
+    "MetricDatapointList":{
+      "type":"list",
+      "member":{"shape":"MetricDatapoint"}
+    },
+    "MetricPeriod":{
+      "type":"integer",
+      "max":86400,
+      "min":60
+    },
+    "MetricStatistic":{
+      "type":"string",
+      "enum":[
+        "Minimum",
+        "Maximum",
+        "Sum",
+        "Average",
+        "SampleCount"
+      ]
+    },
+    "MetricStatisticList":{
+      "type":"list",
+      "member":{"shape":"MetricStatistic"}
+    },
+    "MetricUnit":{
+      "type":"string",
+      "enum":[
+        "Seconds",
+        "Microseconds",
+        "Milliseconds",
+        "Bytes",
+        "Kilobytes",
+        "Megabytes",
+        "Gigabytes",
+        "Terabytes",
+        "Bits",
+        "Kilobits",
+        "Megabits",
+        "Gigabits",
+        "Terabits",
+        "Percent",
+        "Count",
+        "Bytes/Second",
+        "Kilobytes/Second",
+        "Megabytes/Second",
+        "Gigabytes/Second",
+        "Terabytes/Second",
+        "Bits/Second",
+        "Kilobits/Second",
+        "Megabits/Second",
+        "Gigabits/Second",
+        "Terabits/Second",
+        "Count/Second",
+        "None"
+      ]
+    },
+    "MonthlyTransfer":{
+      "type":"structure",
+      "members":{
+        "gbPerMonthAllocated":{
+          "shape":"integer",
+          "documentation":"<p>The amount allocated per month (in GB).</p>"
+        }
+      },
+      "documentation":"<p>Describes the monthly data transfer in and out of your virtual private server (or <i>instance</i>).</p>"
+    },
+    "NetworkProtocol":{
+      "type":"string",
+      "enum":[
+        "tcp",
+        "all",
+        "udp"
+      ]
+    },
+    "NonEmptyString":{
+      "type":"string",
+      "pattern":".*\\S.*"
+    },
+    "NotFoundException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"string"},
+        "docs":{"shape":"string"},
+        "message":{"shape":"string"},
+        "tip":{"shape":"string"}
+      },
+      "documentation":"<p>Lightsail throws this exception when it cannot find a resource.</p>",
+      "exception":true
+    },
+    "OpenInstancePublicPortsRequest":{
+      "type":"structure",
+      "required":[
+        "portInfo",
+        "instanceName"
+      ],
+      "members":{
+        "portInfo":{
+          "shape":"PortInfo",
+          "documentation":"<p>An array of key-value pairs containing information about the port mappings.</p>"
+        },
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance for which you want to open the public ports.</p>"
+        }
+      }
+    },
+    "OpenInstancePublicPortsResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "Operation":{
+      "type":"structure",
+      "members":{
+        "id":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The ID of the operation.</p>"
+        },
+        "resourceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The resource name.</p>"
+        },
+        "resourceType":{
+          "shape":"ResourceType",
+          "documentation":"<p>The resource type. </p>"
+        },
+        "createdAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The timestamp when the operation was initialized (e.g., <code>1479816991.349</code>).</p>"
+        },
+        "location":{
+          "shape":"ResourceLocation",
+          "documentation":"<p>The region and Availability Zone.</p>"
+        },
+        "isTerminal":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether the operation is terminal.</p>"
+        },
+        "operationDetails":{
+          "shape":"string",
+          "documentation":"<p>Details about the operation (e.g., <code>Debian-1GB-Virginia-1</code>).</p>"
+        },
+        "operationType":{
+          "shape":"OperationType",
+          "documentation":"<p>The type of operation. </p>"
+        },
+        "status":{
+          "shape":"OperationStatus",
+          "documentation":"<p>The status of the operation. </p>"
+        },
+        "statusChangedAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The timestamp when the status was changed (e.g., <code>1479816991.349</code>).</p>"
+        },
+        "errorCode":{
+          "shape":"string",
+          "documentation":"<p>The error code.</p>"
+        },
+        "errorDetails":{
+          "shape":"string",
+          "documentation":"<p>The error details.</p>"
+        }
+      },
+      "documentation":"<p>Describes the API operation.</p>"
+    },
+    "OperationFailureException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"string"},
+        "docs":{"shape":"string"},
+        "message":{"shape":"string"},
+        "tip":{"shape":"string"}
+      },
+      "documentation":"<p>Lightsail throws this exception when an operation fails to execute.</p>",
+      "exception":true
+    },
+    "OperationList":{
+      "type":"list",
+      "member":{"shape":"Operation"}
+    },
+    "OperationStatus":{
+      "type":"string",
+      "enum":[
+        "NotStarted",
+        "Started",
+        "Failed",
+        "Completed"
+      ]
+    },
+    "OperationType":{
+      "type":"string",
+      "enum":[
+        "DeleteInstance",
+        "CreateInstance",
+        "StopInstance",
+        "StartInstance",
+        "RebootInstance",
+        "OpenInstancePublicPorts",
+        "PutInstancePublicPorts",
+        "CloseInstancePublicPorts",
+        "AllocateStaticIp",
+        "ReleaseStaticIp",
+        "AttachStaticIp",
+        "DetachStaticIp",
+        "UpdateDomainEntry",
+        "DeleteDomainEntry",
+        "CreateDomain",
+        "DeleteDomain",
+        "CreateInstanceSnapshot",
+        "DeleteInstanceSnapshot",
+        "CreateInstancesFromSnapshot"
+      ]
+    },
+    "PeerVpcRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "PeerVpcResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "Port":{
+      "type":"integer",
+      "max":65535,
+      "min":0
+    },
+    "PortAccessType":{
+      "type":"string",
+      "enum":[
+        "Public",
+        "Private"
+      ]
+    },
+    "PortInfo":{
+      "type":"structure",
+      "members":{
+        "fromPort":{
+          "shape":"Port",
+          "documentation":"<p>The first port in the range.</p>"
+        },
+        "toPort":{
+          "shape":"Port",
+          "documentation":"<p>The last port in the range.</p>"
+        },
+        "protocol":{
+          "shape":"NetworkProtocol",
+          "documentation":"<p>The protocol. </p>"
+        }
+      },
+      "documentation":"<p>Describes information about the ports on your virtual private server (or <i>instance</i>).</p>"
+    },
+    "PortInfoList":{
+      "type":"list",
+      "member":{"shape":"PortInfo"}
+    },
+    "PortState":{
+      "type":"string",
+      "enum":[
+        "open",
+        "closed"
+      ]
+    },
+    "PutInstancePublicPortsRequest":{
+      "type":"structure",
+      "required":[
+        "portInfos",
+        "instanceName"
+      ],
+      "members":{
+        "portInfos":{
+          "shape":"PortInfoList",
+          "documentation":"<p>Specifies information about the public port(s).</p>"
+        },
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The Lightsail instance name of the public port(s) you are setting.</p>"
+        }
+      }
+    },
+    "PutInstancePublicPortsResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>Describes metadata about the operation you just executed.</p>"
+        }
+      }
+    },
+    "RebootInstanceRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance to reboot.</p>"
+        }
+      }
+    },
+    "RebootInstanceResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "Region":{
+      "type":"structure",
+      "members":{
+        "continentCode":{
+          "shape":"string",
+          "documentation":"<p>The continent code (e.g., <code>NA</code>, meaning North America).</p>"
+        },
+        "description":{
+          "shape":"string",
+          "documentation":"<p>The description of the AWS Region (e.g., <code>This region is recommended to serve users in the eastern United States and eastern Canada</code>).</p>"
+        },
+        "displayName":{
+          "shape":"string",
+          "documentation":"<p>The display name (e.g., <code>Virginia</code>).</p>"
+        },
+        "name":{
+          "shape":"RegionName",
+          "documentation":"<p>The region name (e.g., <code>us-east-1</code>).</p>"
+        },
+        "availabilityZones":{
+          "shape":"AvailabilityZoneList",
+          "documentation":"<p>The Availability Zones. Follows the format <code>us-east-1a</code> (case-sensitive).</p>"
+        }
+      },
+      "documentation":"<p>Describes the AWS Region.</p>"
+    },
+    "RegionList":{
+      "type":"list",
+      "member":{"shape":"Region"}
+    },
+    "RegionName":{
+      "type":"string",
+      "enum":[
+        "us-east-1",
+        "us-east-2",
+        "us-west-1",
+        "us-west-2",
+        "eu-west-1",
+        "eu-central-1",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ap-northeast-1",
+        "ap-northeast-2"
+      ]
+    },
+    "ReleaseStaticIpRequest":{
+      "type":"structure",
+      "required":["staticIpName"],
+      "members":{
+        "staticIpName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the static IP to delete.</p>"
+        }
+      }
+    },
+    "ReleaseStaticIpResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "ResourceLocation":{
+      "type":"structure",
+      "members":{
+        "availabilityZone":{
+          "shape":"string",
+          "documentation":"<p>The Availability Zone. Follows the format <code>us-east-1a</code> (case-sensitive).</p>"
+        },
+        "regionName":{
+          "shape":"RegionName",
+          "documentation":"<p>The AWS Region name.</p>"
+        }
+      },
+      "documentation":"<p>Describes the resource location.</p>"
+    },
+    "ResourceName":{
+      "type":"string",
+      "pattern":"\\w[\\w\\-]*\\w"
+    },
+    "ResourceType":{
+      "type":"string",
+      "enum":[
+        "Instance",
+        "StaticIp",
+        "KeyPair",
+        "InstanceSnapshot",
+        "Domain",
+        "PeeredVpc"
+      ]
+    },
+    "ServiceException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"string"},
+        "docs":{"shape":"string"},
+        "message":{"shape":"string"},
+        "tip":{"shape":"string"}
+      },
+      "documentation":"<p>A general service exception.</p>",
+      "exception":true,
+      "fault":true
+    },
+    "StartInstanceRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance (a virtual private server) to start.</p>"
+        }
+      }
+    },
+    "StartInstanceResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "StaticIp":{
+      "type":"structure",
+      "members":{
+        "name":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the static IP (e.g., <code>StaticIP-Virginia-EXAMPLE</code>).</p>"
+        },
+        "arn":{
+          "shape":"NonEmptyString",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the static IP (e.g., <code>arn:aws:lightsail:us-east-1:123456789101:StaticIp/9cbb4a9e-f8e3-4dfe-b57e-12345EXAMPLE</code>).</p>"
+        },
+        "supportCode":{
+          "shape":"string",
+          "documentation":"<p>The support code. Include this code in your email to support when you have questions about an instance or another resource in Lightsail. This code enables our support team to look up your Lightsail information more easily.</p>"
+        },
+        "createdAt":{
+          "shape":"IsoDate",
+          "documentation":"<p>The timestamp when the static IP was created (e.g., <code>1479735304.222</code>).</p>"
+        },
+        "location":{
+          "shape":"ResourceLocation",
+          "documentation":"<p>The region and Availability Zone where the static IP was created.</p>"
+        },
+        "resourceType":{
+          "shape":"ResourceType",
+          "documentation":"<p>The resource type (usually <code>StaticIp</code>).</p>"
+        },
+        "ipAddress":{
+          "shape":"IpAddress",
+          "documentation":"<p>The static IP address.</p>"
+        },
+        "attachedTo":{
+          "shape":"ResourceName",
+          "documentation":"<p>The instance where the static IP is attached (e.g., <code>Amazon_Linux-1GB-Virginia-1</code>).</p>"
+        },
+        "isAttached":{
+          "shape":"boolean",
+          "documentation":"<p>A Boolean value indicating whether the static IP is attached.</p>"
+        }
+      },
+      "documentation":"<p>Describes the static IP.</p>"
+    },
+    "StaticIpList":{
+      "type":"list",
+      "member":{"shape":"StaticIp"}
+    },
+    "StopInstanceRequest":{
+      "type":"structure",
+      "required":["instanceName"],
+      "members":{
+        "instanceName":{
+          "shape":"ResourceName",
+          "documentation":"<p>The name of the instance (a virtual private server) to stop.</p>"
+        }
+      }
+    },
+    "StopInstanceResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "StringList":{
+      "type":"list",
+      "member":{"shape":"string"}
+    },
+    "UnauthenticatedException":{
+      "type":"structure",
+      "members":{
+        "code":{"shape":"string"},
+        "docs":{"shape":"string"},
+        "message":{"shape":"string"},
+        "tip":{"shape":"string"}
+      },
+      "documentation":"<p>Lightsail throws this exception when the user has not been authenticated.</p>",
+      "exception":true
+    },
+    "UnpeerVpcRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "UnpeerVpcResult":{
+      "type":"structure",
+      "members":{
+        "operation":{
+          "shape":"Operation",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "UpdateDomainEntryRequest":{
+      "type":"structure",
+      "required":[
+        "domainName",
+        "domainEntry"
+      ],
+      "members":{
+        "domainName":{
+          "shape":"DomainName",
+          "documentation":"<p>The name of the domain recordset to update.</p>"
+        },
+        "domainEntry":{
+          "shape":"DomainEntry",
+          "documentation":"<p>An array of key-value pairs containing information about the domain entry.</p>"
+        }
+      }
+    },
+    "UpdateDomainEntryResult":{
+      "type":"structure",
+      "members":{
+        "operations":{
+          "shape":"OperationList",
+          "documentation":"<p>An array of key-value pairs containing information about the request operation.</p>"
+        }
+      }
+    },
+    "boolean":{"type":"boolean"},
+    "double":{"type":"double"},
+    "float":{"type":"float"},
+    "integer":{"type":"integer"},
+    "string":{"type":"string"},
+    "timestamp":{"type":"timestamp"}
+  },
+  "documentation":"<p>Amazon Lightsail is the easiest way to get started with AWS for developers who just need virtual private servers. Lightsail includes everything you need to launch your project quickly - a virtual machine, SSD-based storage, data transfer, DNS management, and a static IP - for a low, predictable price. You manage those Lightsail servers through the Lightsail console or by using the API or command-line interface (CLI).</p> <p>For more information about Lightsail concepts and tasks, see the <a href=\"https://lightsail.aws.amazon.com/ls/docs/all\">Lightsail Dev Guide</a>.</p> <p>To use the Lightsail API or the CLI, you will need to use AWS Identity and Access Management (IAM) to generate access keys. For details about how to set this up, see the <a href=\"http://lightsail.aws.amazon.com/ls/docs/how-to/article/lightsail-how-to-set-up-access-keys-to-use-sdk-api-cli\">Lightsail Dev Guide</a>.</p>"
+}

@@ -1,0 +1,2 @@
+[testoptions]
+except_implementations=CPython, PyPy

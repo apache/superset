@@ -1,0 +1,9 @@
+E: 25:Client.__init__: Class 'Provider' has no 'cattribute' member
+E: 35:Client.use_method: Instance of 'Provider' has no 'hophophop' member
+E: 40:Client.use_attr: Instance of 'Provider' has no 'attribute' member
+E: 52:Client.test_bt_types: Instance of 'list' has no 'apppend' member
+E: 54:Client.test_bt_types: Instance of 'dict' has no 'set' member
+E: 56:Client.test_bt_types: Instance of 'tuple' has no 'append' member
+E: 58:Client.test_bt_types: Instance of 'str' has no 'loower' member
+E: 62:Client.test_bt_types: Instance of 'int' has no 'whatever' member
+E: 66: Instance of 'int' has no 'lower' member (but some types could not be inferred)

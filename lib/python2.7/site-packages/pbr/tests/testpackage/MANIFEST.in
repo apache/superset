@@ -1,0 +1,2 @@
+include data_files/*
+exclude pbr_testpackage/extra.py

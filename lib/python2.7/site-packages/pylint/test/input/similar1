@@ -1,0 +1,22 @@
+import one
+from two import two
+three
+four
+five
+six # comments optionally ignored
+seven
+eight
+nine
+''' ten
+eleven
+twelve '''
+thirteen
+fourteen
+fifteen
+
+
+
+
+sixteen
+seventeen
+eighteen

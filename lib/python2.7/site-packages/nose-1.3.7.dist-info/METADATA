@@ -1,0 +1,40 @@
+Metadata-Version: 2.0
+Name: nose
+Version: 1.3.7
+Summary: nose extends unittest to make testing easier
+Home-page: http://readthedocs.org/docs/nose/
+Author: Jason Pellerin
+Author-email: jpellerin+nose@gmail.com
+License: GNU LGPL
+Keywords: test unittest doctest automatic discovery
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)
+Classifier: Natural Language :: English
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Testing
+
+nose extends the test loading and running features of unittest, making
+it easier to write, find and run tests.
+
+By default, nose will run tests in files or directories under the current
+working directory whose names include "test" or "Test" at a word boundary
+(like "test_this" or "functional_test" or "TestClass" but not
+"libtest"). Test output is similar to that of unittest, but also includes
+captured stdout output from failing tests, for easy print-style debugging.
+
+These features, and many more, are customizable through the use of
+plugins. Plugins included with nose provide support for doctest, code
+coverage and profiling, flexible attribute-based test selection,
+output capture and more. More information about writing plugins may be
+found on in the nose API documentation, here:
+http://readthedocs.org/docs/nose/
+
+If you have recently reported a bug marked as fixed, or have a craving for
+the very latest, you may want the development version instead:
+https://github.com/nose-devs/nose/tarball/master#egg=nose-dev
+
+

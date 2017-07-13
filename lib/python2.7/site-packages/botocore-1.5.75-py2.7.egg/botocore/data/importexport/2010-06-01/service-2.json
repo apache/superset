@@ -1,0 +1,897 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "uid":"importexport-2010-06-01",
+    "apiVersion":"2010-06-01",
+    "endpointPrefix":"importexport",
+    "globalEndpoint":"importexport.amazonaws.com",
+    "serviceFullName":"AWS Import/Export",
+    "signatureVersion":"v2",
+    "xmlNamespace":"http://importexport.amazonaws.com/doc/2010-06-01/",
+    "protocol":"query"
+  },
+  "documentation":"<fullname>AWS Import/Export Service</fullname> AWS Import/Export accelerates transferring large amounts of data between the AWS cloud and portable storage devices that you mail to us. AWS Import/Export transfers data directly onto and off of your storage devices using Amazon's high-speed internal network and bypassing the Internet. For large data sets, AWS Import/Export is often faster than Internet transfer and more cost effective than upgrading your connectivity.",
+  "operations":{
+    "CancelJob":{
+      "name":"CancelJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/?Operation=CancelJob"
+      },
+      "input":{
+        "shape":"CancelJobInput",
+        "documentation":"Input structure for the CancelJob operation."
+      },
+      "output":{
+        "shape":"CancelJobOutput",
+        "documentation":"Output structure for the CancelJob operation.",
+        "resultWrapper":"CancelJobResult"
+      },
+      "errors":[
+        {
+          "shape":"InvalidJobIdException",
+          "exception":true,
+          "documentation":"The JOBID was missing, not found, or not associated with the AWS account."
+        },
+        {
+          "shape":"ExpiredJobIdException",
+          "exception":true,
+          "documentation":"Indicates that the specified job has expired out of the system."
+        },
+        {
+          "shape":"CanceledJobIdException",
+          "exception":true,
+          "documentation":"The specified job ID has been canceled and is no longer valid."
+        },
+        {
+          "shape":"UnableToCancelJobIdException",
+          "exception":true,
+          "documentation":"AWS Import/Export cannot cancel the job"
+        },
+        {
+          "shape":"InvalidAccessKeyIdException",
+          "exception":true,
+          "documentation":"The AWS Access Key ID specified in the request did not match the manifest's accessKeyId value. The manifest and the request authentication must use the same AWS Access Key ID."
+        },
+        {
+          "shape":"InvalidVersionException",
+          "exception":true,
+          "documentation":"The client tool version is invalid."
+        }
+      ],
+      "documentation":"This operation cancels a specified job. Only the job owner can cancel it. The operation fails if the job has already started or is complete."
+    },
+    "CreateJob":{
+      "name":"CreateJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/?Operation=CreateJob"
+      },
+      "input":{
+        "shape":"CreateJobInput",
+        "documentation":"Input structure for the CreateJob operation."
+      },
+      "output":{
+        "shape":"CreateJobOutput",
+        "documentation":"Output structure for the CreateJob operation.",
+        "resultWrapper":"CreateJobResult"
+      },
+      "errors":[
+        {
+          "shape":"MissingParameterException",
+          "exception":true,
+          "documentation":"One or more required parameters was missing from the request."
+        },
+        {
+          "shape":"InvalidParameterException",
+          "exception":true,
+          "documentation":"One or more parameters had an invalid value."
+        },
+        {
+          "shape":"InvalidAccessKeyIdException",
+          "exception":true,
+          "documentation":"The AWS Access Key ID specified in the request did not match the manifest's accessKeyId value. The manifest and the request authentication must use the same AWS Access Key ID."
+        },
+        {
+          "shape":"InvalidAddressException",
+          "exception":true,
+          "documentation":"The address specified in the manifest is invalid."
+        },
+        {
+          "shape":"InvalidManifestFieldException",
+          "exception":true,
+          "documentation":"One or more manifest fields was invalid. Please correct and resubmit."
+        },
+        {
+          "shape":"MissingManifestFieldException",
+          "exception":true,
+          "documentation":"One or more required fields were missing from the manifest file. Please correct and resubmit."
+        },
+        {
+          "shape":"NoSuchBucketException",
+          "exception":true,
+          "documentation":"The specified bucket does not exist. Create the specified bucket or change the manifest's bucket, exportBucket, or logBucket field to a bucket that the account, as specified by the manifest's Access Key ID, has write permissions to."
+        },
+        {
+          "shape":"MissingCustomsException",
+          "exception":true,
+          "documentation":"One or more required customs parameters was missing from the manifest."
+        },
+        {
+          "shape":"InvalidCustomsException",
+          "exception":true,
+          "documentation":"One or more customs parameters was invalid. Please correct and resubmit."
+        },
+        {
+          "shape":"InvalidFileSystemException",
+          "exception":true,
+          "documentation":"File system specified in export manifest is invalid."
+        },
+        {
+          "shape":"MultipleRegionsException",
+          "exception":true,
+          "documentation":"Your manifest file contained buckets from multiple regions. A job is restricted to buckets from one region. Please correct and resubmit."
+        },
+        {
+          "shape":"BucketPermissionException",
+          "exception":true,
+          "documentation":"The account specified does not have the appropriate bucket permissions."
+        },
+        {
+          "shape":"MalformedManifestException",
+          "exception":true,
+          "documentation":"Your manifest is not well-formed."
+        },
+        {
+          "shape":"CreateJobQuotaExceededException",
+          "exception":true,
+          "documentation":"Each account can create only a certain number of jobs per day. If you need to create more than this, please contact awsimportexport@amazon.com to explain your particular use case."
+        },
+        {
+          "shape":"InvalidJobIdException",
+          "exception":true,
+          "documentation":"The JOBID was missing, not found, or not associated with the AWS account."
+        },
+        {
+          "shape":"InvalidVersionException",
+          "exception":true,
+          "documentation":"The client tool version is invalid."
+        }
+      ],
+      "documentation":"This operation initiates the process of scheduling an upload or download of your data. You include in the request a manifest that describes the data transfer specifics. The response to the request includes a job ID, which you can use in other operations, a signature that you use to identify your storage device, and the address where you should ship your storage device."
+    },
+    "GetShippingLabel":{
+      "name":"GetShippingLabel",
+      "http":{
+        "method":"POST",
+        "requestUri":"/?Operation=GetShippingLabel"
+      },
+      "input":{"shape":"GetShippingLabelInput"},
+      "output":{
+        "shape":"GetShippingLabelOutput",
+        "resultWrapper":"GetShippingLabelResult"
+      },
+      "errors":[
+        {
+          "shape":"InvalidJobIdException",
+          "exception":true,
+          "documentation":"The JOBID was missing, not found, or not associated with the AWS account."
+        },
+        {
+          "shape":"ExpiredJobIdException",
+          "exception":true,
+          "documentation":"Indicates that the specified job has expired out of the system."
+        },
+        {
+          "shape":"CanceledJobIdException",
+          "exception":true,
+          "documentation":"The specified job ID has been canceled and is no longer valid."
+        },
+        {
+          "shape":"InvalidAccessKeyIdException",
+          "exception":true,
+          "documentation":"The AWS Access Key ID specified in the request did not match the manifest's accessKeyId value. The manifest and the request authentication must use the same AWS Access Key ID."
+        },
+        {
+          "shape":"InvalidAddressException",
+          "exception":true,
+          "documentation":"The address specified in the manifest is invalid."
+        },
+        {
+          "shape":"InvalidVersionException",
+          "exception":true,
+          "documentation":"The client tool version is invalid."
+        },
+        {
+          "shape":"InvalidParameterException",
+          "exception":true,
+          "documentation":"One or more parameters had an invalid value."
+        }
+      ],
+      "documentation":"This operation generates a pre-paid UPS shipping label that you will use to ship your device to AWS for processing."
+    },
+    "GetStatus":{
+      "name":"GetStatus",
+      "http":{
+        "method":"POST",
+        "requestUri":"/?Operation=GetStatus"
+      },
+      "input":{
+        "shape":"GetStatusInput",
+        "documentation":"Input structure for the GetStatus operation."
+      },
+      "output":{
+        "shape":"GetStatusOutput",
+        "documentation":"Output structure for the GetStatus operation.",
+        "resultWrapper":"GetStatusResult"
+      },
+      "errors":[
+        {
+          "shape":"InvalidJobIdException",
+          "exception":true,
+          "documentation":"The JOBID was missing, not found, or not associated with the AWS account."
+        },
+        {
+          "shape":"ExpiredJobIdException",
+          "exception":true,
+          "documentation":"Indicates that the specified job has expired out of the system."
+        },
+        {
+          "shape":"CanceledJobIdException",
+          "exception":true,
+          "documentation":"The specified job ID has been canceled and is no longer valid."
+        },
+        {
+          "shape":"InvalidAccessKeyIdException",
+          "exception":true,
+          "documentation":"The AWS Access Key ID specified in the request did not match the manifest's accessKeyId value. The manifest and the request authentication must use the same AWS Access Key ID."
+        },
+        {
+          "shape":"InvalidVersionException",
+          "exception":true,
+          "documentation":"The client tool version is invalid."
+        }
+      ],
+      "documentation":"This operation returns information about a job, including where the job is in the processing pipeline, the status of the results, and the signature value associated with the job. You can only return information about jobs you own."
+    },
+    "ListJobs":{
+      "name":"ListJobs",
+      "http":{
+        "method":"POST",
+        "requestUri":"/?Operation=ListJobs"
+      },
+      "input":{
+        "shape":"ListJobsInput",
+        "documentation":"Input structure for the ListJobs operation."
+      },
+      "output":{
+        "shape":"ListJobsOutput",
+        "documentation":"Output structure for the ListJobs operation.",
+        "resultWrapper":"ListJobsResult"
+      },
+      "errors":[
+        {
+          "shape":"InvalidParameterException",
+          "exception":true,
+          "documentation":"One or more parameters had an invalid value."
+        },
+        {
+          "shape":"InvalidAccessKeyIdException",
+          "exception":true,
+          "documentation":"The AWS Access Key ID specified in the request did not match the manifest's accessKeyId value. The manifest and the request authentication must use the same AWS Access Key ID."
+        },
+        {
+          "shape":"InvalidVersionException",
+          "exception":true,
+          "documentation":"The client tool version is invalid."
+        }
+      ],
+      "documentation":"This operation returns the jobs associated with the requester. AWS Import/Export lists the jobs in reverse chronological order based on the date of creation. For example if Job Test1 was created 2009Dec30 and Test2 was created 2010Feb05, the ListJobs operation would return Test2 followed by Test1."
+    },
+    "UpdateJob":{
+      "name":"UpdateJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/?Operation=UpdateJob"
+      },
+      "input":{
+        "shape":"UpdateJobInput",
+        "documentation":"Input structure for the UpateJob operation."
+      },
+      "output":{
+        "shape":"UpdateJobOutput",
+        "documentation":"Output structure for the UpateJob operation.",
+        "resultWrapper":"UpdateJobResult"
+      },
+      "errors":[
+        {
+          "shape":"MissingParameterException",
+          "exception":true,
+          "documentation":"One or more required parameters was missing from the request."
+        },
+        {
+          "shape":"InvalidParameterException",
+          "exception":true,
+          "documentation":"One or more parameters had an invalid value."
+        },
+        {
+          "shape":"InvalidAccessKeyIdException",
+          "exception":true,
+          "documentation":"The AWS Access Key ID specified in the request did not match the manifest's accessKeyId value. The manifest and the request authentication must use the same AWS Access Key ID."
+        },
+        {
+          "shape":"InvalidAddressException",
+          "exception":true,
+          "documentation":"The address specified in the manifest is invalid."
+        },
+        {
+          "shape":"InvalidManifestFieldException",
+          "exception":true,
+          "documentation":"One or more manifest fields was invalid. Please correct and resubmit."
+        },
+        {
+          "shape":"InvalidJobIdException",
+          "exception":true,
+          "documentation":"The JOBID was missing, not found, or not associated with the AWS account."
+        },
+        {
+          "shape":"MissingManifestFieldException",
+          "exception":true,
+          "documentation":"One or more required fields were missing from the manifest file. Please correct and resubmit."
+        },
+        {
+          "shape":"NoSuchBucketException",
+          "exception":true,
+          "documentation":"The specified bucket does not exist. Create the specified bucket or change the manifest's bucket, exportBucket, or logBucket field to a bucket that the account, as specified by the manifest's Access Key ID, has write permissions to."
+        },
+        {
+          "shape":"ExpiredJobIdException",
+          "exception":true,
+          "documentation":"Indicates that the specified job has expired out of the system."
+        },
+        {
+          "shape":"CanceledJobIdException",
+          "exception":true,
+          "documentation":"The specified job ID has been canceled and is no longer valid."
+        },
+        {
+          "shape":"MissingCustomsException",
+          "exception":true,
+          "documentation":"One or more required customs parameters was missing from the manifest."
+        },
+        {
+          "shape":"InvalidCustomsException",
+          "exception":true,
+          "documentation":"One or more customs parameters was invalid. Please correct and resubmit."
+        },
+        {
+          "shape":"InvalidFileSystemException",
+          "exception":true,
+          "documentation":"File system specified in export manifest is invalid."
+        },
+        {
+          "shape":"MultipleRegionsException",
+          "exception":true,
+          "documentation":"Your manifest file contained buckets from multiple regions. A job is restricted to buckets from one region. Please correct and resubmit."
+        },
+        {
+          "shape":"BucketPermissionException",
+          "exception":true,
+          "documentation":"The account specified does not have the appropriate bucket permissions."
+        },
+        {
+          "shape":"MalformedManifestException",
+          "exception":true,
+          "documentation":"Your manifest is not well-formed."
+        },
+        {
+          "shape":"UnableToUpdateJobIdException",
+          "exception":true,
+          "documentation":"AWS Import/Export cannot update the job"
+        },
+        {
+          "shape":"InvalidVersionException",
+          "exception":true,
+          "documentation":"The client tool version is invalid."
+        }
+      ],
+      "documentation":"You use this operation to change the parameters specified in the original manifest file by supplying a new manifest file. The manifest file attached to this request replaces the original manifest file. You can only use the operation after a CreateJob request but before the data transfer starts and you can only use it on jobs you own."
+    }
+  },
+  "shapes":{
+    "APIVersion":{
+      "type":"string",
+      "documentation":"Specifies the version of the client tool."
+    },
+    "Artifact":{
+      "type":"structure",
+      "members":{
+        "Description":{"shape":"Description"},
+        "URL":{"shape":"URL"}
+      },
+      "documentation":"A discrete item that contains the description and URL of an artifact (such as a PDF)."
+    },
+    "ArtifactList":{
+      "type":"list",
+      "member":{"shape":"Artifact"},
+      "documentation":"A collection of artifacts."
+    },
+    "BucketPermissionException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"The account specified does not have the appropriate bucket permissions."
+    },
+    "CancelJobInput":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "APIVersion":{"shape":"APIVersion"}
+      },
+      "documentation":"Input structure for the CancelJob operation."
+    },
+    "CancelJobOutput":{
+      "type":"structure",
+      "members":{
+        "Success":{"shape":"Success"}
+      },
+      "documentation":"Output structure for the CancelJob operation."
+    },
+    "CanceledJobIdException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"The specified job ID has been canceled and is no longer valid."
+    },
+    "Carrier":{
+      "type":"string",
+      "documentation":"Name of the shipping company. This value is included when the LocationCode is \"Returned\"."
+    },
+    "CreateJobInput":{
+      "type":"structure",
+      "required":[
+        "JobType",
+        "Manifest",
+        "ValidateOnly"
+      ],
+      "members":{
+        "JobType":{"shape":"JobType"},
+        "Manifest":{"shape":"Manifest"},
+        "ManifestAddendum":{"shape":"ManifestAddendum"},
+        "ValidateOnly":{"shape":"ValidateOnly"},
+        "APIVersion":{"shape":"APIVersion"}
+      },
+      "documentation":"Input structure for the CreateJob operation."
+    },
+    "CreateJobOutput":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobType":{"shape":"JobType"},
+        "Signature":{"shape":"Signature"},
+        "SignatureFileContents":{"shape":"SignatureFileContents"},
+        "WarningMessage":{"shape":"WarningMessage"},
+        "ArtifactList":{"shape":"ArtifactList"}
+      },
+      "documentation":"Output structure for the CreateJob operation."
+    },
+    "CreateJobQuotaExceededException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"Each account can create only a certain number of jobs per day. If you need to create more than this, please contact awsimportexport@amazon.com to explain your particular use case."
+    },
+    "CreationDate":{
+      "type":"timestamp",
+      "documentation":"Timestamp of the CreateJob request in ISO8601 date format. For example \"2010-03-28T20:27:35Z\"."
+    },
+    "CurrentManifest":{
+      "type":"string",
+      "documentation":"The last manifest submitted, which will be used to process the job."
+    },
+    "Description":{
+      "type":"string",
+      "documentation":"The associated description for this object."
+    },
+    "ErrorCount":{
+      "type":"integer",
+      "documentation":"Number of errors. We return this value when the ProgressCode is Success or SuccessWithErrors."
+    },
+    "ErrorMessage":{
+      "type":"string",
+      "documentation":"The human-readable description of a particular error."
+    },
+    "ExpiredJobIdException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"Indicates that the specified job has expired out of the system."
+    },
+    "GenericString":{"type":"string"},
+    "GetShippingLabelInput":{
+      "type":"structure",
+      "required":["jobIds"],
+      "members":{
+        "jobIds":{"shape":"JobIdList"},
+        "name":{"shape":"name"},
+        "company":{"shape":"company"},
+        "phoneNumber":{"shape":"phoneNumber"},
+        "country":{"shape":"country"},
+        "stateOrProvince":{"shape":"stateOrProvince"},
+        "city":{"shape":"city"},
+        "postalCode":{"shape":"postalCode"},
+        "street1":{"shape":"street1"},
+        "street2":{"shape":"street2"},
+        "street3":{"shape":"street3"},
+        "APIVersion":{"shape":"APIVersion"}
+      }
+    },
+    "GetShippingLabelOutput":{
+      "type":"structure",
+      "members":{
+        "ShippingLabelURL":{"shape":"GenericString"},
+        "Warning":{"shape":"GenericString"}
+      }
+    },
+    "GetStatusInput":{
+      "type":"structure",
+      "required":["JobId"],
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "APIVersion":{"shape":"APIVersion"}
+      },
+      "documentation":"Input structure for the GetStatus operation."
+    },
+    "GetStatusOutput":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "JobType":{"shape":"JobType"},
+        "LocationCode":{"shape":"LocationCode"},
+        "LocationMessage":{"shape":"LocationMessage"},
+        "ProgressCode":{"shape":"ProgressCode"},
+        "ProgressMessage":{"shape":"ProgressMessage"},
+        "Carrier":{"shape":"Carrier"},
+        "TrackingNumber":{"shape":"TrackingNumber"},
+        "LogBucket":{"shape":"LogBucket"},
+        "LogKey":{"shape":"LogKey"},
+        "ErrorCount":{"shape":"ErrorCount"},
+        "Signature":{"shape":"Signature"},
+        "SignatureFileContents":{"shape":"Signature"},
+        "CurrentManifest":{"shape":"CurrentManifest"},
+        "CreationDate":{"shape":"CreationDate"},
+        "ArtifactList":{"shape":"ArtifactList"}
+      },
+      "documentation":"Output structure for the GetStatus operation."
+    },
+    "InvalidAccessKeyIdException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"The AWS Access Key ID specified in the request did not match the manifest's accessKeyId value. The manifest and the request authentication must use the same AWS Access Key ID."
+    },
+    "InvalidAddressException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"The address specified in the manifest is invalid."
+    },
+    "InvalidCustomsException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"One or more customs parameters was invalid. Please correct and resubmit."
+    },
+    "InvalidFileSystemException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"File system specified in export manifest is invalid."
+    },
+    "InvalidJobIdException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"The JOBID was missing, not found, or not associated with the AWS account."
+    },
+    "InvalidManifestFieldException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"One or more manifest fields was invalid. Please correct and resubmit."
+    },
+    "InvalidParameterException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"One or more parameters had an invalid value."
+    },
+    "InvalidVersionException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"The client tool version is invalid."
+    },
+    "IsCanceled":{
+      "type":"boolean",
+      "documentation":"Indicates whether the job was canceled."
+    },
+    "IsTruncated":{
+      "type":"boolean",
+      "documentation":"Indicates whether the list of jobs was truncated. If true, then call ListJobs again using the last JobId element as the marker."
+    },
+    "Job":{
+      "type":"structure",
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "CreationDate":{"shape":"CreationDate"},
+        "IsCanceled":{"shape":"IsCanceled"},
+        "JobType":{"shape":"JobType"}
+      },
+      "documentation":"Representation of a job returned by the ListJobs operation."
+    },
+    "JobId":{
+      "type":"string",
+      "documentation":"A unique identifier which refers to a particular job."
+    },
+    "JobIdList":{
+      "type":"list",
+      "member":{"shape":"GenericString"}
+    },
+    "JobType":{
+      "type":"string",
+      "enum":[
+        "Import",
+        "Export"
+      ],
+      "documentation":"Specifies whether the job to initiate is an import or export job."
+    },
+    "JobsList":{
+      "type":"list",
+      "member":{"shape":"Job"},
+      "documentation":"A list container for Jobs returned by the ListJobs operation."
+    },
+    "ListJobsInput":{
+      "type":"structure",
+      "members":{
+        "MaxJobs":{"shape":"MaxJobs"},
+        "Marker":{"shape":"Marker"},
+        "APIVersion":{"shape":"APIVersion"}
+      },
+      "documentation":"Input structure for the ListJobs operation."
+    },
+    "ListJobsOutput":{
+      "type":"structure",
+      "members":{
+        "Jobs":{"shape":"JobsList"},
+        "IsTruncated":{"shape":"IsTruncated"}
+      },
+      "documentation":"Output structure for the ListJobs operation."
+    },
+    "LocationCode":{
+      "type":"string",
+      "documentation":"A token representing the location of the storage device, such as \"AtAWS\"."
+    },
+    "LocationMessage":{
+      "type":"string",
+      "documentation":"A more human readable form of the physical location of the storage device."
+    },
+    "LogBucket":{
+      "type":"string",
+      "documentation":"Amazon S3 bucket for user logs."
+    },
+    "LogKey":{
+      "type":"string",
+      "documentation":"The key where the user logs were stored."
+    },
+    "MalformedManifestException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"Your manifest is not well-formed."
+    },
+    "Manifest":{
+      "type":"string",
+      "documentation":"The UTF-8 encoded text of the manifest file."
+    },
+    "ManifestAddendum":{
+      "type":"string",
+      "documentation":"For internal use only."
+    },
+    "Marker":{
+      "type":"string",
+      "documentation":"Specifies the JOBID to start after when listing the jobs created with your account. AWS Import/Export lists your jobs in reverse chronological order. See MaxJobs."
+    },
+    "MaxJobs":{
+      "type":"integer",
+      "documentation":"Sets the maximum number of jobs returned in the response. If there are additional jobs that were not returned because MaxJobs was exceeded, the response contains &lt;IsTruncated&gt;true&lt;/IsTruncated&gt;. To return the additional jobs, see Marker."
+    },
+    "MissingCustomsException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"One or more required customs parameters was missing from the manifest."
+    },
+    "MissingManifestFieldException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"One or more required fields were missing from the manifest file. Please correct and resubmit."
+    },
+    "MissingParameterException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"One or more required parameters was missing from the request."
+    },
+    "MultipleRegionsException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"Your manifest file contained buckets from multiple regions. A job is restricted to buckets from one region. Please correct and resubmit."
+    },
+    "NoSuchBucketException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"The specified bucket does not exist. Create the specified bucket or change the manifest's bucket, exportBucket, or logBucket field to a bucket that the account, as specified by the manifest's Access Key ID, has write permissions to."
+    },
+    "ProgressCode":{
+      "type":"string",
+      "documentation":"A token representing the state of the job, such as \"Started\"."
+    },
+    "ProgressMessage":{
+      "type":"string",
+      "documentation":"A more human readable form of the job status."
+    },
+    "Signature":{
+      "type":"string",
+      "documentation":"An encrypted code used to authenticate the request and response, for example, \"DV+TpDfx1/TdSE9ktyK9k/bDTVI=\". Only use this value is you want to create the signature file yourself. Generally you should use the SignatureFileContents value."
+    },
+    "SignatureFileContents":{
+      "type":"string",
+      "documentation":"The actual text of the SIGNATURE file to be written to disk."
+    },
+    "Success":{
+      "type":"boolean",
+      "documentation":"Specifies whether (true) or not (false) AWS Import/Export updated your job."
+    },
+    "TrackingNumber":{
+      "type":"string",
+      "documentation":"The shipping tracking number assigned by AWS Import/Export to the storage device when it's returned to you. We return this value when the LocationCode is \"Returned\"."
+    },
+    "URL":{
+      "type":"string",
+      "documentation":"The URL for a given Artifact."
+    },
+    "UnableToCancelJobIdException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"AWS Import/Export cannot cancel the job"
+    },
+    "UnableToUpdateJobIdException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"ErrorMessage"}
+      },
+      "exception":true,
+      "documentation":"AWS Import/Export cannot update the job"
+    },
+    "UpdateJobInput":{
+      "type":"structure",
+      "required":[
+        "JobId",
+        "Manifest",
+        "JobType",
+        "ValidateOnly"
+      ],
+      "members":{
+        "JobId":{"shape":"JobId"},
+        "Manifest":{"shape":"Manifest"},
+        "JobType":{"shape":"JobType"},
+        "ValidateOnly":{"shape":"ValidateOnly"},
+        "APIVersion":{"shape":"APIVersion"}
+      },
+      "documentation":"Input structure for the UpateJob operation."
+    },
+    "UpdateJobOutput":{
+      "type":"structure",
+      "members":{
+        "Success":{"shape":"Success"},
+        "WarningMessage":{"shape":"WarningMessage"},
+        "ArtifactList":{"shape":"ArtifactList"}
+      },
+      "documentation":"Output structure for the UpateJob operation."
+    },
+    "ValidateOnly":{
+      "type":"boolean",
+      "documentation":"Validate the manifest and parameter values in the request but do not actually create a job."
+    },
+    "WarningMessage":{
+      "type":"string",
+      "documentation":"An optional message notifying you of non-fatal issues with the job, such as use of an incompatible Amazon S3 bucket name."
+    },
+    "city":{
+      "type":"string",
+      "documentation":"Specifies the name of your city for the return address."
+    },
+    "company":{
+      "type":"string",
+      "documentation":"Specifies the name of the company that will ship this package."
+    },
+    "country":{
+      "type":"string",
+      "documentation":"Specifies the name of your country for the return address."
+    },
+    "name":{
+      "type":"string",
+      "documentation":"Specifies the name of the person responsible for shipping this package."
+    },
+    "phoneNumber":{
+      "type":"string",
+      "documentation":"Specifies the phone number of the person responsible for shipping this package."
+    },
+    "postalCode":{
+      "type":"string",
+      "documentation":"Specifies the postal code for the return address."
+    },
+    "stateOrProvince":{
+      "type":"string",
+      "documentation":"Specifies the name of your state or your province for the return address."
+    },
+    "street1":{
+      "type":"string",
+      "documentation":"Specifies the first part of the street address for the return address, for example 1234 Main Street."
+    },
+    "street2":{
+      "type":"string",
+      "documentation":"Specifies the optional second part of the street address for the return address, for example Suite 100."
+    },
+    "street3":{
+      "type":"string",
+      "documentation":"Specifies the optional third part of the street address for the return address, for example c/o Jane Doe."
+    }
+  },
+  "examples":{
+  }
+}

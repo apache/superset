@@ -1,0 +1,8 @@
+invalid-slots:36:Bad:Invalid __slots__ object
+invalid-slots:39:SecondBad:Invalid __slots__ object
+invalid-slots-object:43:ThirdBad:Invalid object '2' in __slots__, must contain only non empty strings
+invalid-slots:45:FourthBad:Invalid __slots__ object
+invalid-slots-object:49:FifthBad:"Invalid object ""''"" in __slots__, must contain only non empty strings"
+single-string-used-for-slots:51:SixthBad:Class __slots__ should be a non-string iterable
+single-string-used-for-slots:54:SeventhBad:Class __slots__ should be a non-string iterable
+single-string-used-for-slots:57:EighthBad:Class __slots__ should be a non-string iterable

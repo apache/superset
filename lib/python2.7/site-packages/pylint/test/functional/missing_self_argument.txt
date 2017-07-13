@@ -1,0 +1,6 @@
+no-method-argument:11:MyClass.method:Method has no argument
+no-method-argument:13:MyClass.met:"""Method has no argument
+""
+"
+no-method-argument:14:MyClass.setup:Method has no argument
+undefined-variable:16:MyClass.setup:Undefined variable 'self'

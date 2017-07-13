@@ -1,0 +1,7 @@
+unnecessary-lambda:9:<lambda>:Lambda may not be necessary
+unnecessary-lambda:11:<lambda>:Lambda may not be necessary
+unnecessary-lambda:13:<lambda>:Lambda may not be necessary
+unnecessary-lambda:20:<lambda>:Lambda may not be necessary
+unnecessary-lambda:22:<lambda>:Lambda may not be necessary
+unnecessary-lambda:24:<lambda>:Lambda may not be necessary
+unnecessary-lambda:26:<lambda>:Lambda may not be necessary

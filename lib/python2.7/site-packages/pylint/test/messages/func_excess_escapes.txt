@@ -1,0 +1,9 @@
+W:  7: Anomalous backslash in string: '\['. String constant might be missing an r prefix.
+W:  7: Anomalous backslash in string: '\]'. String constant might be missing an r prefix.
+W:  8: Anomalous backslash in string: '\/'. String constant might be missing an r prefix.
+W:  9: Anomalous backslash in string: '\`'. String constant might be missing an r prefix.
+W: 15: Anomalous backslash in string: '\o'. String constant might be missing an r prefix.
+W: 15: Anomalous backslash in string: '\o'. String constant might be missing an r prefix.
+W: 17: Anomalous backslash in string: '\8'. String constant might be missing an r prefix.
+W: 17: Anomalous backslash in string: '\9'. String constant might be missing an r prefix.
+W: 27: Anomalous backslash in string: '\P'. String constant might be missing an r prefix.

@@ -1,0 +1,5 @@
+{% block tail_js %}
+  <script
+    src="{{ '/static/assets/dist/' + js_manifest.get(filename + '.js', '') }}">
+  </script>
+{% endblock %}

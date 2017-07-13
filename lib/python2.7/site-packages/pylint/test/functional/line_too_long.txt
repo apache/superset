@@ -1,0 +1,4 @@
+line-too-long:3::Line too long (101/100)
+line-too-long:5::Line too long (104/100)
+line-too-long:15::Line too long (102/100)
+line-too-long:24::Line too long (105/100)

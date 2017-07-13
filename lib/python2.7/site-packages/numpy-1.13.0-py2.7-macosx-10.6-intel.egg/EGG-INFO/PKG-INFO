@@ -1,0 +1,53 @@
+Metadata-Version: 1.2
+Name: numpy
+Version: 1.13.0
+Summary: NumPy: array processing for numbers, strings, records, and objects.
+Home-page: http://www.numpy.org
+Author: NumPy Developers
+Author-email: numpy-discussion@python.org
+License: BSD
+Download-URL: http://sourceforge.net/projects/numpy/files/NumPy/
+Description: NumPy is a general-purpose array-processing package designed to
+        efficiently manipulate large multi-dimensional arrays of arbitrary
+        records without sacrificing too much speed for small multi-dimensional
+        arrays.  NumPy is built on the Numeric code base and adds features
+        introduced by numarray as well as an extended C-API and the ability to
+        create arrays of arbitrary type which also makes NumPy suitable for
+        interfacing with general-purpose data-base applications.
+        
+        There are also basic facilities for discrete fourier transform,
+        basic linear algebra and random number generation.
+        
+        All numpy wheels distributed from pypi are BSD licensed.
+        
+        Windows wheels are linked against the ATLAS BLAS / LAPACK library, restricted
+        to SSE2 instructions, so may not give optimal linear algebra performance for
+        your machine. See http://docs.scipy.org/doc/numpy/user/install.html for
+        alternatives.
+        
+        
+Platform: Windows
+Platform: Linux
+Platform: Solaris
+Platform: Mac OS-X
+Platform: Unix
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved
+Classifier: Programming Language :: C
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Software Development
+Classifier: Topic :: Scientific/Engineering
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS
+Requires-Python: >=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*

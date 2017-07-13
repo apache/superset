@@ -1,0 +1,46 @@
+{
+  "pagination": {
+    "ListByteMatchSets": {
+      "input_token": "NextMarker",
+      "output_token": "NextMarker",
+      "limit_key": "Limit",
+      "result_key": "ByteMatchSets"
+    },
+    "ListIPSets": {
+      "input_token": "NextMarker",
+      "output_token": "NextMarker",
+      "limit_key": "Limit",
+      "result_key": "IPSets"
+    },
+    "ListRules": {
+      "input_token": "NextMarker",
+      "output_token": "NextMarker",
+      "limit_key": "Limit",
+      "result_key": "Rules"
+    },
+    "ListSizeConstraintSets": {
+      "input_token": "NextMarker",
+      "output_token": "NextMarker",
+      "limit_key": "Limit",
+      "result_key": "SizeConstraintSets"
+    },
+    "ListSqlInjectionMatchSets": {
+      "input_token": "NextMarker",
+      "output_token": "NextMarker",
+      "limit_key": "Limit",
+      "result_key": "SqlInjectionMatchSets"
+    },
+    "ListWebACLs": {
+      "input_token": "NextMarker",
+      "output_token": "NextMarker",
+      "limit_key": "Limit",
+      "result_key": "WebACLs"
+    },
+    "ListXssMatchSets": {
+      "input_token": "NextMarker",
+      "output_token": "NextMarker",
+      "limit_key": "Limit",
+      "result_key": "XssMatchSets"
+    }
+  }
+}

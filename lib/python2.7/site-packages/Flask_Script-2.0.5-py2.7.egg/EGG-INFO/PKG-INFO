@@ -1,0 +1,35 @@
+Metadata-Version: 1.1
+Name: Flask-Script
+Version: 2.0.5
+Summary: Scripting support for Flask
+Home-page: http://github.com/smurfix/flask-script
+Author: Matthias Urlichs
+Author-email: matthias@urlichs.de
+License: BSD
+Download-URL: https://github.com/smurfix/flask-script/tarball/v2.0.3
+Description: 
+        Flask-Script
+        --------------
+        
+        Flask support for writing external scripts.
+        
+        Links
+        `````
+        
+        * `documentation <http://flask-script.readthedocs.org>`_
+        
+        
+        
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

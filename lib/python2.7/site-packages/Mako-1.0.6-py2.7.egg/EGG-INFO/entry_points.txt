@@ -1,0 +1,20 @@
+
+      [python.templating.engines]
+      mako = mako.ext.turbogears:TGPlugin
+
+      [pygments.lexers]
+      mako = mako.ext.pygmentplugin:MakoLexer
+      html+mako = mako.ext.pygmentplugin:MakoHtmlLexer
+      xml+mako = mako.ext.pygmentplugin:MakoXmlLexer
+      js+mako = mako.ext.pygmentplugin:MakoJavascriptLexer
+      css+mako = mako.ext.pygmentplugin:MakoCssLexer
+
+      [babel.extractors]
+      mako = mako.ext.babelplugin:extract
+
+      [lingua.extractors]
+      mako = mako.ext.linguaplugin:LinguaMakoExtractor
+
+      [console_scripts]
+      mako-render = mako.cmd:cmdline
+      

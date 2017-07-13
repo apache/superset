@@ -1,0 +1,11 @@
+backports/__init__.py,sha256=jv2YF__bseklT3OWEzlqJ5qE24c4aWd5F4r0TTjOrWQ,65
+backports/functools_lru_cache.py,sha256=Rz9eeee4g7nSELRnqQCYwf7_i19lGXCZlLzfqa_Zjsk,7317
+backports.functools_lru_cache-1.4.dist-info/DESCRIPTION.rst,sha256=SU0ILS_4YMeQjLzSaKY3jVK2xjiHka7PiXdYxyVbbxM,1015
+backports.functools_lru_cache-1.4.dist-info/METADATA,sha256=-aIkDzQi-C-xGnPAOImmLHh3_dkZ4WAuYdK72V95Q1g,1896
+backports.functools_lru_cache-1.4.dist-info/RECORD,,
+backports.functools_lru_cache-1.4.dist-info/WHEEL,sha256=o2k-Qa-RMNIJmUdIc7KU6VWR_ErNRbWNlxDIpl7lm34,110
+backports.functools_lru_cache-1.4.dist-info/metadata.json,sha256=ZTChCPJSeDBHcY3mfOYO1BzztRwfTi9rGgTGYx02Twc,935
+backports.functools_lru_cache-1.4.dist-info/top_level.txt,sha256=cGjaLMOoBR1FK0ApojtzWVmViTtJ7JGIK_HwXiEsvtU,10
+backports.functools_lru_cache-1.4.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+backports/__init__.pyc,,
+backports/functools_lru_cache.pyc,,

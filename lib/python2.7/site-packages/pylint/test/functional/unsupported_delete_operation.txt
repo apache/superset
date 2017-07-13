@@ -1,0 +1,17 @@
+unsupported-delete-operation:16::'(1, 2, 3)' does not support item deletion
+unsupported-delete-operation:31::'NonSubscriptable()' does not support item deletion
+unsupported-delete-operation:32::'NonSubscriptable' does not support item deletion
+unsupported-delete-operation:34::'Subscriptable' does not support item deletion
+unsupported-delete-operation:43::'powers_of_two()' does not support item deletion
+unsupported-delete-operation:44::'powers_of_two' does not support item deletion
+unsupported-delete-operation:48::'True' does not support item deletion
+unsupported-delete-operation:49::'None' does not support item deletion
+unsupported-delete-operation:50::'8.5' does not support item deletion
+unsupported-delete-operation:51::'10' does not support item deletion
+unsupported-delete-operation:54::'{(x) ** (2) for x in range(10)}' does not support item deletion
+unsupported-delete-operation:55::'set(numbers)' does not support item deletion
+unsupported-delete-operation:56::'frozenset(numbers)' does not support item deletion
+unsupported-delete-operation:76::'SubscriptableClass()' does not support item deletion
+unsupported-delete-operation:82::'test()' does not support item deletion
+unsupported-delete-operation:83::'test' does not support item deletion
+unsupported-delete-operation:94::'SubscriptableClass()' does not support item deletion

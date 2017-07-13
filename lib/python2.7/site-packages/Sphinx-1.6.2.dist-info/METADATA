@@ -1,0 +1,78 @@
+Metadata-Version: 2.0
+Name: Sphinx
+Version: 1.6.2
+Summary: Python documentation generator
+Home-page: http://sphinx-doc.org/
+Author: Georg Brandl
+Author-email: georg@python.org
+License: BSD
+Download-URL: https://pypi.python.org/pypi/Sphinx
+Platform: any
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+Classifier: Framework :: Sphinx
+Classifier: Framework :: Sphinx :: Extension
+Classifier: Framework :: Sphinx :: Theme
+Classifier: Topic :: Documentation
+Classifier: Topic :: Documentation :: Sphinx
+Classifier: Topic :: Text Processing
+Classifier: Topic :: Utilities
+Requires-Dist: Jinja2 (>=2.3)
+Requires-Dist: Pygments (>=2.0)
+Requires-Dist: alabaster (<0.8,>=0.7)
+Requires-Dist: babel (!=2.0,>=1.3)
+Requires-Dist: docutils (>=0.11)
+Requires-Dist: imagesize
+Requires-Dist: requests (>=2.0.0)
+Requires-Dist: setuptools
+Requires-Dist: six (>=1.5)
+Requires-Dist: snowballstemmer (>=1.1)
+Requires-Dist: sphinxcontrib-websupport
+Requires-Dist: typing; python_version<"3.5"
+Requires-Dist: colorama (>=0.3.5); sys_platform=="win32"
+Provides-Extra: test
+Requires-Dist: html5lib; extra == 'test'
+Requires-Dist: mock; extra == 'test'
+Requires-Dist: pytest; extra == 'test'
+Requires-Dist: simplejson; extra == 'test'
+Provides-Extra: websupport
+Requires-Dist: sqlalchemy (>=0.9); extra == 'websupport'
+Requires-Dist: whoosh (>=2.0); extra == 'websupport'
+
+
+Sphinx is a tool that makes it easy to create intelligent and beautiful
+documentation for Python projects (or other documents consisting of multiple
+reStructuredText sources), written by Georg Brandl.  It was originally created
+for the new Python documentation, and has excellent facilities for Python
+project documentation, but C/C++ is supported as well, and more languages are
+planned.
+
+Sphinx uses reStructuredText as its markup language, and many of its strengths
+come from the power and straightforwardness of reStructuredText and its parsing
+and translating suite, the Docutils.
+
+Among its features are the following:
+
+* Output formats: HTML (including derivative formats such as HTML Help, Epub
+  and Qt Help), plain text, manual pages and LaTeX or direct PDF output
+  using rst2pdf
+* Extensive cross-references: semantic markup and automatic links
+  for functions, classes, glossary terms and similar pieces of information
+* Hierarchical structure: easy definition of a document tree, with automatic
+  links to siblings, parents and children
+* Automatic indices: general index as well as a module index
+* Code handling: automatic highlighting using the Pygments highlighter
+* Flexible HTML output using the Jinja 2 templating engine
+* Various extensions are available, e.g. for automatic testing of snippets
+  and inclusion of appropriately formatted docstrings
+* Setuptools integration
+
+

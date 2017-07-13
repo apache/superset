@@ -1,0 +1,7 @@
+bad-whitespace:3::"Exactly one space required after comma
+    x, y, z = (1,2,3,) # [bad-whitespace, bad-whitespace, missing-final-newline]
+                  ^"
+bad-whitespace:3::"Exactly one space required after comma
+    x, y, z = (1,2,3,) # [bad-whitespace, bad-whitespace, missing-final-newline]
+                ^"
+missing-final-newline:3::"Final newline missing"

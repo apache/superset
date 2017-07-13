@@ -1,0 +1,51 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+
+        {% set can_add = "can_add" | is_item_visible(modelview_name) %}
+        {% set can_show = "can_show" | is_item_visible(modelview_name) %}
+        {% set can_edit = "can_edit" | is_item_visible(modelview_name) %}
+        {% set can_delete = "can_delete" | is_item_visible(modelview_name) %}
+
+        {{ lib.render_list_header(can_add, page, page_size, count, filters, actions, modelview_name) }}
+
+        {% if count > 0 %}
+        <div id="carousel-example-generic" class="carousel slide" data-ride="carousel">
+        <!-- Indicators -->
+        <ol class="carousel-indicators">
+        {% for item in value_columns %}
+            {% if loop.index == 1 %}
+                <li data-target="#carousel-example-generic" data-slide-to="{{loop.index}}" class="active"></li>
+            {% else %}
+                <li data-target="#carousel-example-generic" data-slide-to="{{loop.index}}"></li>
+            {% endif %}
+        {% endfor %}
+        </ol>
+        <!-- Wrapper for slides -->
+        <div class="carousel-inner">
+        {% for item in value_columns %}
+            {% if loop.index == 1 %}
+                <div class="item active">
+            {% else %}
+                <div class="item">
+            {% endif %}
+                <img src="{{item[include_columns[0]]}}" alt="">
+                <div class="carousel-caption">
+                    {% for value in include_columns[1:] %}
+                        {{ item[value]|safe }} 
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+
+  <!-- Controls -->
+  <a class="left carousel-control" href="#carousel-example-generic" data-slide="prev">
+    <span class="glyphicon glyphicon-chevron-left"></span>
+  </a>
+  <a class="right carousel-control" href="#carousel-example-generic" data-slide="next">
+    <span class="glyphicon glyphicon-chevron-right"></span>
+  </a>
+</div>
+                
+        {% else %}
+        <b> {{_("No records found")}}</b>
+        {% endif %}

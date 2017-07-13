@@ -1,0 +1,20 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+{{ lib.panel_begin(title) }}
+
+    {% block list_search scoped %}
+        {% call lib.accordion_tag("accordion1",_("Search"), False) %}
+            {{ widgets.get('search')()|safe }}
+        {% endcall %}
+    {% endblock %}
+
+    {% block list_list scoped %}
+        <div>
+        {{ widgets.get('list')()|safe }}
+        </div>
+    {% endblock %}
+{{ lib.panel_end() }}
+
+{% endblock %}

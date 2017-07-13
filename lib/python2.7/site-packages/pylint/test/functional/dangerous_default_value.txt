@@ -1,0 +1,14 @@
+dangerous-default-value:6:function1:Dangerous default value [] as argument
+dangerous-default-value:10:function2:Dangerous default value HEHE (__builtin__.dict) as argument
+dangerous-default-value:18:function4:Dangerous default value set() (__builtin__.set) as argument
+dangerous-default-value:28:function6:Dangerous default value GLOBAL_SET (__builtin__.set) as argument
+dangerous-default-value:32:function7:Dangerous default value dict() (__builtin__.dict) as argument
+dangerous-default-value:36:function8:Dangerous default value list() (__builtin__.list) as argument
+dangerous-default-value:40:function9:Dangerous default value [] as argument
+dangerous-default-value:44:function10:Dangerous default value {} as argument
+dangerous-default-value:48:function11:Dangerous default value list() (__builtin__.list) as argument
+dangerous-default-value:52:function12:Dangerous default value dict() (__builtin__.dict) as argument
+dangerous-default-value:61:function13:Dangerous default value OINK (__builtin__.dict) as argument
+dangerous-default-value:65:function14:Dangerous default value dict() (__builtin__.dict) as argument
+dangerous-default-value:73:function15:Dangerous default value INVALID_DICT (__builtin__.dict) as argument
+dangerous-default-value:77:function16:Dangerous default value set() as argument

@@ -1,0 +1,1 @@
+wrong-import-position:4::Import "from sys import x" should be placed at the top of the module

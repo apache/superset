@@ -1,0 +1,115 @@
+nose collects tests automatically from python source files,
+directories and packages found in its working directory (which
+defaults to the current working directory). Any python source file,
+directory or package that matches the testMatch regular expression
+(by default: `(?:^|[\b_\.-])[Tt]est)` will be collected as a test (or
+source for collection of tests). In addition, all other packages
+found in the working directory will be examined for python source files
+or directories that match testMatch. Package discovery descends all
+the way down the tree, so package.tests and package.sub.tests and
+package.sub.sub2.tests will all be collected.
+
+Within a test directory or package, any python source file matching
+testMatch will be examined for test cases. Within a test module,
+functions and classes whose names match testMatch and TestCase
+subclasses with any name will be loaded and executed as tests. Tests
+may use the assert keyword or raise AssertionErrors to indicate test
+failure. TestCase subclasses may do the same or use the various
+TestCase methods available.
+
+**It is important to note that the default behavior of nose is to
+not include tests from files which are executable.**  To include
+tests from such files, remove their executable bit or use
+the --exe flag (see 'Options' section below).
+
+Selecting Tests
+---------------
+
+To specify which tests to run, pass test names on the command line:
+
+  %prog only_test_this.py
+  
+Test names specified may be file or module names, and may optionally
+indicate the test case to run by separating the module or file name
+from the test case name with a colon. Filenames may be relative or
+absolute. Examples:
+
+  %prog test.module
+  %prog another.test:TestCase.test_method
+  %prog a.test:TestCase
+  %prog /path/to/test/file.py:test_function
+  
+You may also change the working directory where nose looks for tests
+by using the -w switch:
+
+  %prog -w /path/to/tests
+
+Note, however, that support for multiple -w arguments is now deprecated
+and will be removed in a future release. As of nose 0.10, you can get
+the same behavior by specifying the target directories *without*
+the -w switch:
+
+  %prog /path/to/tests /another/path/to/tests
+
+Further customization of test selection and loading is possible
+through the use of plugins.
+
+Test result output is identical to that of unittest, except for
+the additional features (error classes, and plugin-supplied
+features such as output capture and assert introspection) detailed
+in the options below.
+
+Configuration
+-------------
+
+In addition to passing command-line options, you may also put
+configuration options in your project's *setup.cfg* file, or a .noserc
+or nose.cfg file in your home directory. In any of these standard
+ini-style config files, you put your nosetests configuration in a
+``[nosetests]`` section. Options are the same as on the command line,
+with the -- prefix removed. For options that are simple switches, you
+must supply a value:
+
+  [nosetests]
+  verbosity=3
+  with-doctest=1
+
+All configuration files that are found will be loaded and their
+options combined. You can override the standard config file loading
+with the ``-c`` option.
+
+Using Plugins
+-------------
+
+There are numerous nose plugins available via easy_install and
+elsewhere. To use a plugin, just install it. The plugin will add
+command line options to nosetests. To verify that the plugin is installed,
+run:
+
+  nosetests --plugins
+
+You can add -v or -vv to that command to show more information
+about each plugin.
+
+If you are running nose.main() or nose.run() from a script, you
+can specify a list of plugins to use by passing a list of plugins
+with the plugins keyword argument.
+
+0.9 plugins
+-----------
+
+nose 1.0 can use SOME plugins that were written for nose 0.9. The
+default plugin manager inserts a compatibility wrapper around 0.9
+plugins that adapts the changed plugin api calls. However, plugins
+that access nose internals are likely to fail, especially if they
+attempt to access test case or test suite classes. For example,
+plugins that try to determine if a test passed to startTest is an
+individual test or a suite will fail, partly because suites are no
+longer passed to startTest and partly because it's likely that the
+plugin is trying to find out if the test is an instance of a class
+that no longer exists.
+
+0.10 and 0.11 plugins
+---------------------
+
+All plugins written for nose 0.10 and 0.11 should work with nose 1.0.

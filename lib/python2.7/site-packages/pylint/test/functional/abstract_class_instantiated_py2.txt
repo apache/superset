@@ -1,0 +1,4 @@
+abstract-class-instantiated:79:main:Abstract class 'BadClass' with abstract methods instantiated
+abstract-class-instantiated:80:main:Abstract class 'SecondBadClass' with abstract methods instantiated
+abstract-class-instantiated:81:main:Abstract class 'ThirdBadClass' with abstract methods instantiated
+abstract-class-instantiated:82:main:Abstract class 'FourthBadClass' with abstract methods instantiated

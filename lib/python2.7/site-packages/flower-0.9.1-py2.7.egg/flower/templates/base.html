@@ -1,0 +1,94 @@
+{% import pprint %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Celery Flower</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- bootstap overwritable styles -->
+    <style type="text/css">
+      body { padding-top: 60px; }
+    </style>
+
+    <link href="{{ static_url('css/bootstrap.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/bootstrap-responsive.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/rickshaw.min.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/jquery-ui.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/bootstrap-datetimepicker.min.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/flower.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/jquery.dataTables.select.min.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/jquery.dataTables.buttons.min.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/jquery.dataTables.colReorder.min.css') }}" rel="stylesheet">
+    <link href="{{ static_url('css/jquery.dataTables.css') }}" rel="stylesheet">
+
+    {% block extra_styles %}
+    {% end %}
+
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="{{ static_url('favicon.ico') }}">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="{{ static_url('img/apple-touch-icon-144-precomposed.png') }}">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="{{ static_url('img/apple-touch-icon-114-precomposed.png') }}">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="{{ static_url('img/apple-touch-icon-72-precomposed.png') }}">
+    <link rel="apple-touch-icon-precomposed" href="{{ static_url('img/apple-touch-icon-57-precomposed.png') }}">
+  </head>
+
+  <body>
+    {% block navbar %}
+        {% module Template("navbar.html", active_tab="") %}
+    {% end %}
+
+    <div class="container-fluid">
+      <div id="alert" class="alert alert-success hide">
+        <a class="close" onclick="flower.on_alert_close(event)">×</a>
+        <p id="alert-message"></p>
+      </div>
+      <input type="hidden" value="{{ url_prefix or '' }}" id='url_prefix'>
+    </div>
+
+    {% block container %}
+    {% end %}
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="{{ static_url('js/jquery-1.7.2.min.js') }}"></script>
+    <script src="{{ static_url('js/jquery-ui-1-8-15.min.js') }}"></script>
+    <script src="{{ static_url('js/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ static_url('js/jquery.dataTables.select.min.js') }}"></script>
+    <script src="{{ static_url('js/jquery.dataTables.buttons.min.js') }}"></script>
+    <script src="{{ static_url('js/jquery.dataTables.colReorder.min.js') }}"></script>
+
+    <script src="{{ static_url('js/bootstrap-transition.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-alert.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-modal.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-dropdown.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-scrollspy.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-tab.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-tooltip.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-popover.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-button.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-collapse.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-carousel.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-typeahead.js') }}"></script>
+
+    <script src="{{ static_url('js/d3.min.js') }}"></script>
+    <script src="{{ static_url('js/d3.layout.min.js') }}"></script>
+    <script src="{{ static_url('js/rickshaw.min.js') }}"></script>
+    <script src="{{ static_url('js/bootstrap-datetimepicker.min.js') }}"></script>
+    <script src="{{ static_url('js/moment.min.js') }}"></script>
+    <script src="{{ static_url('js/moment-timezone-with-data.min.js') }}"></script>
+
+    <script src="{{ static_url('js/flower.js') }}"></script>
+
+    {% block extra_scripts %}
+    {% end %}
+
+  </body>
+</html>

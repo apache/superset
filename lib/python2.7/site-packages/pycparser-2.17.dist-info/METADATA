@@ -1,0 +1,18 @@
+Metadata-Version: 2.0
+Name: pycparser
+Version: 2.17
+Summary: C parser in Python
+Home-page: https://github.com/eliben/pycparser
+Author: Eli Bendersky
+Author-email: eliben@gmail.com
+License: BSD
+Platform: Cross Platform
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 3
+
+pycparser is a complete parser of the C language, written in
+pure Python using the PLY parsing library.
+It parses C code into an AST and can serve as a front-end for
+C compilers or analysis tools.
+
+

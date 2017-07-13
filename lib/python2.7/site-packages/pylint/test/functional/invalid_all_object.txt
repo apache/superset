@@ -1,0 +1,3 @@
+invalid-all-object:3::Invalid object '1' in __all__, must contain only strings
+invalid-all-object:4:<lambda>:"Invalid object 'lambda : None' in __all__, must contain only strings"
+invalid-all-object:5::Invalid object 'None' in __all__, must contain only strings

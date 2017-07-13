@@ -1,0 +1,6 @@
+[celery.commands]
+flower = flower.command:FlowerCommand
+
+[console_scripts]
+flower = flower.__main__:main
+

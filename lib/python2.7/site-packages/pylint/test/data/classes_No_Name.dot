@@ -1,0 +1,12 @@
+digraph "classes_No_Name" {
+charset="utf-8"
+rankdir=BT
+"0" [label="{Ancestor|attr : str\lcls_member\l|get_value()\lset_value()\l}", shape="record"];
+"1" [label="{DoNothing|\l|}", shape="record"];
+"2" [label="{Interface|\l|get_value()\lset_value()\l}", shape="record"];
+"3" [label="{Specialization|TYPE : str\lrelation\ltop : str\l|}", shape="record"];
+"3" -> "0" [arrowhead="empty", arrowtail="none"];
+"0" -> "2" [arrowhead="empty", arrowtail="node", style="dashed"];
+"1" -> "0" [arrowhead="diamond", arrowtail="none", fontcolor="green", label="cls_member", style="solid"];
+"1" -> "3" [arrowhead="diamond", arrowtail="none", fontcolor="green", label="relation", style="solid"];
+}

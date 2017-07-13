@@ -1,0 +1,4 @@
+W:  3: Unused import NonRegr from wildcard import
+W:  3: Unused import os from wildcard import
+W:  3: Unused import sys from wildcard import
+W:  3: Wildcard import input.func_w0611

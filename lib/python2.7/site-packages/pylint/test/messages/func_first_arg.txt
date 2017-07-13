@@ -1,0 +1,9 @@
+C: 10:Obj.__new__: Class method __new__ should have 'cls' as first argument
+C: 18:Obj.class2: Class method class2 should have 'cls' as first argument
+C: 25:Meta.__new__: Metaclass class method __new__ should have 'mcs' as first argument
+C: 32:Meta.method2: Metaclass method method2 should have 'cls' as first argument
+C: 40:Meta.class2: Metaclass class method class2 should have 'mcs' as first argument
+R: 16:Obj: Consider using a decorator instead of calling classmethod
+R: 20:Obj: Consider using a decorator instead of calling classmethod
+R: 38:Meta: Consider using a decorator instead of calling classmethod
+R: 42:Meta: Consider using a decorator instead of calling classmethod

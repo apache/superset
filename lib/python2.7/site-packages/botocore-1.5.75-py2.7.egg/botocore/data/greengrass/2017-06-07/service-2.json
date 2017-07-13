@@ -1,0 +1,4058 @@
+{
+  "metadata" : {
+    "apiVersion" : "2017-06-07",
+    "endpointPrefix" : "greengrass",
+    "signingName" : "greengrass",
+    "serviceFullName" : "AWS Greengrass",
+    "protocol" : "rest-json",
+    "jsonVersion" : "1.1",
+    "uid" : "greengrass-2017-06-07",
+    "signatureVersion" : "v4"
+  },
+  "operations" : {
+    "AssociateRoleToGroup" : {
+      "name" : "AssociateRoleToGroup",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/groups/{GroupId}/role",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "AssociateRoleToGroupRequest"
+      },
+      "output" : {
+        "shape" : "AssociateRoleToGroupResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "User Error"
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "Server Error"
+      } ],
+      "documentation" : "Associates a role with a group. The role will be used by the AWS Greengrass core in order to access AWS cloud services. The role's permissions will allow Greengrass core Lambda functions to perform actions against the cloud."
+    },
+    "AssociateServiceRoleToAccount" : {
+      "name" : "AssociateServiceRoleToAccount",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/servicerole",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "AssociateServiceRoleToAccountRequest"
+      },
+      "output" : {
+        "shape" : "AssociateServiceRoleToAccountResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "User Error"
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "Server Error"
+      } ],
+      "documentation" : "Associates a role which is used by AWS Greengrass. AWS Greengrass uses the role to access your Lambda functions and AWS IoT resources. This is necessary for deployments to succeed. It needs to have minimum permissions in policy ``AWSGreengrassResourceAccessRolePolicy``"
+    },
+    "CreateCoreDefinition" : {
+      "name" : "CreateCoreDefinition",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/cores",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateCoreDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "CreateCoreDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a core definition. You may optionally provide the initial version of the core definition or use ''CreateCoreDefinitionVersion'' at a later time. AWS Greengrass Groups must each contain exactly 1 AWS Greengrass Core."
+    },
+    "CreateCoreDefinitionVersion" : {
+      "name" : "CreateCoreDefinitionVersion",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/cores/{CoreDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateCoreDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "CreateCoreDefinitionVersionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a version of a core definition that has already been defined. AWS Greengrass Groups must each contain exactly 1 AWS Greengrass Core."
+    },
+    "CreateDeployment" : {
+      "name" : "CreateDeployment",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/groups/{GroupId}/deployments",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateDeploymentRequest"
+      },
+      "output" : {
+        "shape" : "CreateDeploymentResponse",
+        "documentation" : "Successfully deployed the given group"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      } ],
+      "documentation" : "Creates a deployment."
+    },
+    "CreateDeviceDefinition" : {
+      "name" : "CreateDeviceDefinition",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/devices",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateDeviceDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "CreateDeviceDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a device definition. You may optinally provide the initial version of the device definition or use ``CreateDeviceDefinitionVersion`` at a later time."
+    },
+    "CreateDeviceDefinitionVersion" : {
+      "name" : "CreateDeviceDefinitionVersion",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/devices/{DeviceDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateDeviceDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "CreateDeviceDefinitionVersionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a version of a device definition that has already been defined."
+    },
+    "CreateFunctionDefinition" : {
+      "name" : "CreateFunctionDefinition",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/functions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateFunctionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "CreateFunctionDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a Lambda function definition which contains a list of Lambda functions and their configurations to be used in a group. You can create an initial version of the definition by providing a list of Lambda functions and their configurations now, or use ``CreateFunctionDefinitionVersion`` later."
+    },
+    "CreateFunctionDefinitionVersion" : {
+      "name" : "CreateFunctionDefinitionVersion",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/functions/{FunctionDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateFunctionDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "CreateFunctionDefinitionVersionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Create a version of a Lambda function definition that has already been defined."
+    },
+    "CreateGroup" : {
+      "name" : "CreateGroup",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/groups",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateGroupRequest"
+      },
+      "output" : {
+        "shape" : "CreateGroupResponse",
+        "documentation" : "Group created successfully"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a group. You may optionally provide the initial version of the group or use ''CreateGroupVersion'' at a later time."
+    },
+    "CreateGroupCertificateAuthority" : {
+      "name" : "CreateGroupCertificateAuthority",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/groups/{GroupId}/certificateauthorities",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateGroupCertificateAuthorityRequest"
+      },
+      "output" : {
+        "shape" : "CreateGroupCertificateAuthorityResponse",
+        "documentation" : "The response body contains the new active CA ARN"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "The server encountered an unexpected error."
+      } ],
+      "documentation" : "Creates a CA for the group. If a CA already exists, it will rotate the existing CA."
+    },
+    "CreateGroupVersion" : {
+      "name" : "CreateGroupVersion",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/groups/{GroupId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateGroupVersionRequest"
+      },
+      "output" : {
+        "shape" : "CreateGroupVersionResponse",
+        "documentation" : "the requested version of the Group"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a version of a group which has already been defined."
+    },
+    "CreateLoggerDefinition" : {
+      "name" : "CreateLoggerDefinition",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/loggers",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateLoggerDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "CreateLoggerDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a logger definition. You may optionally provide the initial version of the logger definition or use ``CreateLoggerDefinitionVersion`` at a later time."
+    },
+    "CreateLoggerDefinitionVersion" : {
+      "name" : "CreateLoggerDefinitionVersion",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/loggers/{LoggerDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateLoggerDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "CreateLoggerDefinitionVersionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a version of a logger definition that has already been defined."
+    },
+    "CreateSubscriptionDefinition" : {
+      "name" : "CreateSubscriptionDefinition",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/subscriptions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateSubscriptionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "CreateSubscriptionDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a subscription definition. You may optionally provide the initial version of the subscription definition or use ``CreateSubscriptionDefinitionVersion`` at a later time."
+    },
+    "CreateSubscriptionDefinitionVersion" : {
+      "name" : "CreateSubscriptionDefinitionVersion",
+      "http" : {
+        "method" : "POST",
+        "requestUri" : "/greengrass/definition/subscriptions/{SubscriptionDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "CreateSubscriptionDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "CreateSubscriptionDefinitionVersionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Creates a version of a subscription definition which has already been defined."
+    },
+    "DeleteCoreDefinition" : {
+      "name" : "DeleteCoreDefinition",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/definition/cores/{CoreDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DeleteCoreDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "DeleteCoreDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Deletes a core definition. The core definition must not have been used in a deployment."
+    },
+    "DeleteDeviceDefinition" : {
+      "name" : "DeleteDeviceDefinition",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/definition/devices/{DeviceDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DeleteDeviceDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "DeleteDeviceDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Deletes a device definition. The device definition must not have been used in a deployment."
+    },
+    "DeleteFunctionDefinition" : {
+      "name" : "DeleteFunctionDefinition",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/definition/functions/{FunctionDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DeleteFunctionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "DeleteFunctionDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Deletes a Lambda function definition. The Lambda function definition must not have been used in a deployment."
+    },
+    "DeleteGroup" : {
+      "name" : "DeleteGroup",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/groups/{GroupId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DeleteGroupRequest"
+      },
+      "output" : {
+        "shape" : "DeleteGroupResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Deletes a group. The group must not have been used in deployment."
+    },
+    "DeleteLoggerDefinition" : {
+      "name" : "DeleteLoggerDefinition",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/definition/loggers/{LoggerDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DeleteLoggerDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "DeleteLoggerDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Deletes a logger definition. The logger definition must not have been used in a deployment."
+    },
+    "DeleteSubscriptionDefinition" : {
+      "name" : "DeleteSubscriptionDefinition",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/definition/subscriptions/{SubscriptionDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DeleteSubscriptionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "DeleteSubscriptionDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Deletes a subscription definition. The subscription definition must not have been used in a deployment."
+    },
+    "DisassociateRoleFromGroup" : {
+      "name" : "DisassociateRoleFromGroup",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/groups/{GroupId}/role",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DisassociateRoleFromGroupRequest"
+      },
+      "output" : {
+        "shape" : "DisassociateRoleFromGroupResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "User Error"
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "Server Error"
+      } ],
+      "documentation" : "Disassociates the role from a group."
+    },
+    "DisassociateServiceRoleFromAccount" : {
+      "name" : "DisassociateServiceRoleFromAccount",
+      "http" : {
+        "method" : "DELETE",
+        "requestUri" : "/greengrass/servicerole",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "DisassociateServiceRoleFromAccountRequest"
+      },
+      "output" : {
+        "shape" : "DisassociateServiceRoleFromAccountResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "Server Error"
+      } ],
+      "documentation" : "Disassociates the service role from the account. Without a service role, deployments will not work."
+    },
+    "GetAssociatedRole" : {
+      "name" : "GetAssociatedRole",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/role",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetAssociatedRoleRequest"
+      },
+      "output" : {
+        "shape" : "GetAssociatedRoleResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "User Error"
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "Server Error"
+      } ],
+      "documentation" : "Retrieves the role associated with a particular group."
+    },
+    "GetConnectivityInfo" : {
+      "name" : "GetConnectivityInfo",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/things/{ThingName}/connectivityInfo",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetConnectivityInfoRequest"
+      },
+      "output" : {
+        "shape" : "GetConnectivityInfoResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "400 response"
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "500 response"
+      } ],
+      "documentation" : "Retrieves the connectivity information for a core."
+    },
+    "GetCoreDefinition" : {
+      "name" : "GetCoreDefinition",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/cores/{CoreDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetCoreDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "GetCoreDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a core definition version."
+    },
+    "GetCoreDefinitionVersion" : {
+      "name" : "GetCoreDefinitionVersion",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/cores/{CoreDefinitionId}/versions/{CoreDefinitionVersionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetCoreDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "GetCoreDefinitionVersionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a core definition version."
+    },
+    "GetDeploymentStatus" : {
+      "name" : "GetDeploymentStatus",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/deployments/{DeploymentId}/status",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetDeploymentStatusRequest"
+      },
+      "output" : {
+        "shape" : "GetDeploymentStatusResponse",
+        "documentation" : "The response body contains the status of a deployment for a group."
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      } ],
+      "documentation" : "Returns the status of a deployment."
+    },
+    "GetDeviceDefinition" : {
+      "name" : "GetDeviceDefinition",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/devices/{DeviceDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetDeviceDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "GetDeviceDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a device definition."
+    },
+    "GetDeviceDefinitionVersion" : {
+      "name" : "GetDeviceDefinitionVersion",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/devices/{DeviceDefinitionId}/versions/{DeviceDefinitionVersionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetDeviceDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "GetDeviceDefinitionVersionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a device definition version."
+    },
+    "GetFunctionDefinition" : {
+      "name" : "GetFunctionDefinition",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/functions/{FunctionDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetFunctionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "GetFunctionDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a Lambda function definition, such as its creation time and latest version."
+    },
+    "GetFunctionDefinitionVersion" : {
+      "name" : "GetFunctionDefinitionVersion",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/functions/{FunctionDefinitionId}/versions/{FunctionDefinitionVersionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetFunctionDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "GetFunctionDefinitionVersionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a Lambda function definition version, such as which Lambda functions are included in the version and their configurations."
+    },
+    "GetGroup" : {
+      "name" : "GetGroup",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetGroupRequest"
+      },
+      "output" : {
+        "shape" : "GetGroupResponse",
+        "documentation" : "the requested Group"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a group."
+    },
+    "GetGroupCertificateAuthority" : {
+      "name" : "GetGroupCertificateAuthority",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/certificateauthorities/{CertificateAuthorityId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetGroupCertificateAuthorityRequest"
+      },
+      "output" : {
+        "shape" : "GetGroupCertificateAuthorityResponse",
+        "documentation" : "The response body contains the PKI Configuration"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "This request was invalid."
+      } ],
+      "documentation" : "Retreives the CA associated with a group. Returns the public key of the CA."
+    },
+    "GetGroupCertificateConfiguration" : {
+      "name" : "GetGroupCertificateConfiguration",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/certificateauthorities/configuration/expiry",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetGroupCertificateConfigurationRequest"
+      },
+      "output" : {
+        "shape" : "GetGroupCertificateConfigurationResponse",
+        "documentation" : "The response body contains the PKI Configuration"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "This request was invalid."
+      } ],
+      "documentation" : "Retrieves the current configuration for the CA used by the group."
+    },
+    "GetGroupVersion" : {
+      "name" : "GetGroupVersion",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/versions/{GroupVersionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetGroupVersionRequest"
+      },
+      "output" : {
+        "shape" : "GetGroupVersionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a group version."
+    },
+    "GetLoggerDefinition" : {
+      "name" : "GetLoggerDefinition",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/loggers/{LoggerDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetLoggerDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "GetLoggerDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a logger definition."
+    },
+    "GetLoggerDefinitionVersion" : {
+      "name" : "GetLoggerDefinitionVersion",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/loggers/{LoggerDefinitionId}/versions/{LoggerDefinitionVersionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetLoggerDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "GetLoggerDefinitionVersionResponse",
+        "documentation" : "test"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a logger definition version."
+    },
+    "GetServiceRoleForAccount" : {
+      "name" : "GetServiceRoleForAccount",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/servicerole",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetServiceRoleForAccountRequest"
+      },
+      "output" : {
+        "shape" : "GetServiceRoleForAccountResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "Server Error"
+      } ],
+      "documentation" : "Retrieves the service role that is attached to the account."
+    },
+    "GetSubscriptionDefinition" : {
+      "name" : "GetSubscriptionDefinition",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/subscriptions/{SubscriptionDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetSubscriptionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "GetSubscriptionDefinitionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a subscription definition."
+    },
+    "GetSubscriptionDefinitionVersion" : {
+      "name" : "GetSubscriptionDefinitionVersion",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/subscriptions/{SubscriptionDefinitionId}/versions/{SubscriptionDefinitionVersionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "GetSubscriptionDefinitionVersionRequest"
+      },
+      "output" : {
+        "shape" : "GetSubscriptionDefinitionVersionResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Retrieves information about a subscription definition version."
+    },
+    "ListCoreDefinitionVersions" : {
+      "name" : "ListCoreDefinitionVersions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/cores/{CoreDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListCoreDefinitionVersionsRequest"
+      },
+      "output" : {
+        "shape" : "ListCoreDefinitionVersionsResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Lists versions of a core definition."
+    },
+    "ListCoreDefinitions" : {
+      "name" : "ListCoreDefinitions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/cores",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListCoreDefinitionsRequest"
+      },
+      "output" : {
+        "shape" : "ListCoreDefinitionsResponse"
+      },
+      "errors" : [ ],
+      "documentation" : "Retrieves a list of core definitions."
+    },
+    "ListDeployments" : {
+      "name" : "ListDeployments",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/deployments",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListDeploymentsRequest"
+      },
+      "output" : {
+        "shape" : "ListDeploymentsResponse",
+        "documentation" : "The response body contains the list of deployments for the given group Id"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      } ],
+      "documentation" : "Returns a history of deployments for the group."
+    },
+    "ListDeviceDefinitionVersions" : {
+      "name" : "ListDeviceDefinitionVersions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/devices/{DeviceDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListDeviceDefinitionVersionsRequest"
+      },
+      "output" : {
+        "shape" : "ListDeviceDefinitionVersionsResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Lists the versions of a device definition."
+    },
+    "ListDeviceDefinitions" : {
+      "name" : "ListDeviceDefinitions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/devices",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListDeviceDefinitionsRequest"
+      },
+      "output" : {
+        "shape" : "ListDeviceDefinitionsResponse"
+      },
+      "errors" : [ ],
+      "documentation" : "Retrieves a list of device definitions."
+    },
+    "ListFunctionDefinitionVersions" : {
+      "name" : "ListFunctionDefinitionVersions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/functions/{FunctionDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListFunctionDefinitionVersionsRequest"
+      },
+      "output" : {
+        "shape" : "ListFunctionDefinitionVersionsResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Lists the versions of a Lambda function definition."
+    },
+    "ListFunctionDefinitions" : {
+      "name" : "ListFunctionDefinitions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/functions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListFunctionDefinitionsRequest"
+      },
+      "output" : {
+        "shape" : "ListFunctionDefinitionsResponse",
+        "documentation" : "The Ids of all the Greengrass Function Definitions in this account."
+      },
+      "errors" : [ ],
+      "documentation" : "Retrieves a list of Lambda function definitions."
+    },
+    "ListGroupCertificateAuthorities" : {
+      "name" : "ListGroupCertificateAuthorities",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/certificateauthorities",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListGroupCertificateAuthoritiesRequest"
+      },
+      "output" : {
+        "shape" : "ListGroupCertificateAuthoritiesResponse",
+        "documentation" : "The response body contains the PKI Configuration"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "This request was invalid."
+      } ],
+      "documentation" : "Retrieves the current CAs for a group."
+    },
+    "ListGroupVersions" : {
+      "name" : "ListGroupVersions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups/{GroupId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListGroupVersionsRequest"
+      },
+      "output" : {
+        "shape" : "ListGroupVersionsResponse",
+        "documentation" : "the list of versions and metadata for the given group Id"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "List the versions of a group."
+    },
+    "ListGroups" : {
+      "name" : "ListGroups",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/groups",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListGroupsRequest"
+      },
+      "output" : {
+        "shape" : "ListGroupsResponse"
+      },
+      "errors" : [ ],
+      "documentation" : "Retrieves a list of groups."
+    },
+    "ListLoggerDefinitionVersions" : {
+      "name" : "ListLoggerDefinitionVersions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/loggers/{LoggerDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListLoggerDefinitionVersionsRequest"
+      },
+      "output" : {
+        "shape" : "ListLoggerDefinitionVersionsResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Lists the versions of a logger definition."
+    },
+    "ListLoggerDefinitions" : {
+      "name" : "ListLoggerDefinitions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/loggers",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListLoggerDefinitionsRequest"
+      },
+      "output" : {
+        "shape" : "ListLoggerDefinitionsResponse"
+      },
+      "errors" : [ ],
+      "documentation" : "Retrieves a list of logger definitions."
+    },
+    "ListSubscriptionDefinitionVersions" : {
+      "name" : "ListSubscriptionDefinitionVersions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/subscriptions/{SubscriptionDefinitionId}/versions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListSubscriptionDefinitionVersionsRequest"
+      },
+      "output" : {
+        "shape" : "ListSubscriptionDefinitionVersionsResponse"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Lists the versions of a subscription definition."
+    },
+    "ListSubscriptionDefinitions" : {
+      "name" : "ListSubscriptionDefinitions",
+      "http" : {
+        "method" : "GET",
+        "requestUri" : "/greengrass/definition/subscriptions",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "ListSubscriptionDefinitionsRequest"
+      },
+      "output" : {
+        "shape" : "ListSubscriptionDefinitionsResponse"
+      },
+      "errors" : [ ],
+      "documentation" : "Retrieves a list of subscription definitions."
+    },
+    "UpdateConnectivityInfo" : {
+      "name" : "UpdateConnectivityInfo",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/things/{ThingName}/connectivityInfo",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateConnectivityInfoRequest"
+      },
+      "output" : {
+        "shape" : "UpdateConnectivityInfoResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "400 response"
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "500 response"
+      } ],
+      "documentation" : "Updates the connectivity information for the core. Any devices that belong to the group which has this core will receive this information in order to find the location of the core and connect to it."
+    },
+    "UpdateCoreDefinition" : {
+      "name" : "UpdateCoreDefinition",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/definition/cores/{CoreDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateCoreDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "UpdateCoreDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Updates a core definition."
+    },
+    "UpdateDeviceDefinition" : {
+      "name" : "UpdateDeviceDefinition",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/definition/devices/{DeviceDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateDeviceDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "UpdateDeviceDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Updates a device definition."
+    },
+    "UpdateFunctionDefinition" : {
+      "name" : "UpdateFunctionDefinition",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/definition/functions/{FunctionDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateFunctionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "UpdateFunctionDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Updates a Lambda function definition."
+    },
+    "UpdateGroup" : {
+      "name" : "UpdateGroup",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/groups/{GroupId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateGroupRequest"
+      },
+      "output" : {
+        "shape" : "UpdateGroupResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Updates a group."
+    },
+    "UpdateGroupCertificateConfiguration" : {
+      "name" : "UpdateGroupCertificateConfiguration",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/groups/{GroupId}/certificateauthorities/configuration/expiry",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateGroupCertificateConfigurationRequest"
+      },
+      "output" : {
+        "shape" : "UpdateGroupCertificateConfigurationResponse",
+        "documentation" : "The response body contains the PKI Configuration"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "This request was invalid."
+      }, {
+        "shape" : "InternalServerErrorException",
+        "documentation" : "This request was invalid."
+      } ],
+      "documentation" : "Updates the Cert expiry time for a group."
+    },
+    "UpdateLoggerDefinition" : {
+      "name" : "UpdateLoggerDefinition",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/definition/loggers/{LoggerDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateLoggerDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "UpdateLoggerDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Updates a logger definition."
+    },
+    "UpdateSubscriptionDefinition" : {
+      "name" : "UpdateSubscriptionDefinition",
+      "http" : {
+        "method" : "PUT",
+        "requestUri" : "/greengrass/definition/subscriptions/{SubscriptionDefinitionId}",
+        "responseCode" : 200
+      },
+      "input" : {
+        "shape" : "UpdateSubscriptionDefinitionRequest"
+      },
+      "output" : {
+        "shape" : "UpdateSubscriptionDefinitionResponse",
+        "documentation" : "200 response"
+      },
+      "errors" : [ {
+        "shape" : "BadRequestException",
+        "documentation" : "user error"
+      } ],
+      "documentation" : "Updates a subscription definition."
+    }
+  },
+  "shapes" : {
+    "AssociateRoleToGroupRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        },
+        "RoleArn" : {
+          "shape" : "__string",
+          "documentation" : "Role arn you wish to associate with this group."
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "AssociateRoleToGroupResponse" : {
+      "type" : "structure",
+      "members" : {
+        "AssociatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Time the role arn was associated to your group."
+        }
+      }
+    },
+    "AssociateServiceRoleToAccountRequest" : {
+      "type" : "structure",
+      "members" : {
+        "RoleArn" : {
+          "shape" : "__string",
+          "documentation" : "Role arn you wish to associate with this account."
+        }
+      }
+    },
+    "AssociateServiceRoleToAccountResponse" : {
+      "type" : "structure",
+      "members" : {
+        "AssociatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Time when the service role was associated to the account."
+        }
+      }
+    },
+    "BadRequestException" : {
+      "type" : "structure",
+      "members" : {
+        "ErrorDetails" : {
+          "shape" : "ErrorDetails",
+          "documentation" : "Error Details"
+        },
+        "Message" : {
+          "shape" : "__string",
+          "documentation" : "Message"
+        }
+      },
+      "documentation" : "General Error",
+      "exception" : true,
+      "error" : {
+        "httpStatusCode" : 400
+      }
+    },
+    "ConnectivityInfo" : {
+      "type" : "structure",
+      "members" : {
+        "HostAddress" : {
+          "shape" : "__string",
+          "documentation" : "Endpoint for the GGC. Can be an IP address or DNS."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Element Id for this entry in the list."
+        },
+        "Metadata" : {
+          "shape" : "__string",
+          "documentation" : "Metadata for this endpoint."
+        },
+        "PortNumber" : {
+          "shape" : "__integer",
+          "documentation" : "Port of the GGC. Usually 8883."
+        }
+      },
+      "documentation" : "Connectivity Info"
+    },
+    "Core" : {
+      "type" : "structure",
+      "members" : {
+        "CertificateArn" : {
+          "shape" : "__string",
+          "documentation" : "Certificate arn of the core."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Element Id for this entry in the list."
+        },
+        "SyncShadow" : {
+          "shape" : "__boolean",
+          "documentation" : "If true, the local shadow value automatically syncs with the cloud's shadow state."
+        },
+        "ThingArn" : {
+          "shape" : "__string",
+          "documentation" : "Thing arn of the core."
+        }
+      },
+      "documentation" : "Information on the core"
+    },
+    "CoreDefinitionVersion" : {
+      "type" : "structure",
+      "members" : {
+        "Cores" : {
+          "shape" : "ListOfCore",
+          "documentation" : "Cores in the definition version."
+        }
+      },
+      "documentation" : "Information on core definition version"
+    },
+    "CreateCoreDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "InitialVersion" : {
+          "shape" : "CoreDefinitionVersion",
+          "documentation" : "Information on the initial version"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the core definition"
+        }
+      },
+      "documentation" : "Information on the core definition request"
+    },
+    "CreateCoreDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "CreateCoreDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "CoreDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CoreDefinitionId",
+          "documentation" : "core definition Id"
+        },
+        "Cores" : {
+          "shape" : "ListOfCore",
+          "documentation" : "Cores in the definition version."
+        }
+      },
+      "required" : [ "CoreDefinitionId" ]
+    },
+    "CreateCoreDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the version was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the resource container."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id of a version."
+        }
+      }
+    },
+    "CreateDeploymentRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "DeploymentId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the deployment if you wish to redeploy a previous deployment."
+        },
+        "DeploymentType" : {
+          "shape" : "DeploymentType",
+          "documentation" : "Type of deployment"
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        },
+        "GroupVersionId" : {
+          "shape" : "__string",
+          "documentation" : "Group Version you wish to deploy."
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "CreateDeploymentResponse" : {
+      "type" : "structure",
+      "members" : {
+        "DeploymentArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the deployment."
+        },
+        "DeploymentId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the deployment."
+        }
+      }
+    },
+    "CreateDeviceDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "InitialVersion" : {
+          "shape" : "DeviceDefinitionVersion",
+          "documentation" : "Information on the initial version"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the device definition"
+        }
+      }
+    },
+    "CreateDeviceDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "CreateDeviceDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "DeviceDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeviceDefinitionId",
+          "documentation" : "device definition Id"
+        },
+        "Devices" : {
+          "shape" : "ListOfDevice",
+          "documentation" : "Devices in the definition version."
+        }
+      },
+      "required" : [ "DeviceDefinitionId" ]
+    },
+    "CreateDeviceDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the version was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the resource container."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id of a version."
+        }
+      }
+    },
+    "CreateFunctionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "InitialVersion" : {
+          "shape" : "FunctionDefinitionVersion",
+          "documentation" : "Information on the initial version"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the function definition"
+        }
+      }
+    },
+    "CreateFunctionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "CreateFunctionDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "FunctionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "FunctionDefinitionId",
+          "documentation" : "the unique Id of the lambda definition"
+        },
+        "Functions" : {
+          "shape" : "ListOfFunction",
+          "documentation" : "Lambda functions in this function definition version."
+        }
+      },
+      "documentation" : "Function definition version",
+      "required" : [ "FunctionDefinitionId" ]
+    },
+    "CreateFunctionDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the version was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the resource container."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id of a version."
+        }
+      }
+    },
+    "CreateGroupCertificateAuthorityRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "CreateGroupCertificateAuthorityResponse" : {
+      "type" : "structure",
+      "members" : {
+        "GroupCertificateAuthorityArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the group certificate authority."
+        }
+      }
+    },
+    "CreateGroupRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "InitialVersion" : {
+          "shape" : "GroupVersion",
+          "documentation" : "Information on the initial version"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the group"
+        }
+      }
+    },
+    "CreateGroupResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "CreateGroupVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "CoreDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Core definition version arn for this group."
+        },
+        "DeviceDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Device definition version arn for this group."
+        },
+        "FunctionDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Function definition version arn for this group."
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        },
+        "LoggerDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Logger definitionv ersion arn for this group."
+        },
+        "SubscriptionDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Subscription definition version arn for this group."
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "CreateGroupVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the version was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the resource container."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id of a version."
+        }
+      }
+    },
+    "CreateLoggerDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "InitialVersion" : {
+          "shape" : "LoggerDefinitionVersion",
+          "documentation" : "Information on the initial version"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the logger definition"
+        }
+      }
+    },
+    "CreateLoggerDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "CreateLoggerDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "LoggerDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "LoggerDefinitionId",
+          "documentation" : "logger definition Id"
+        },
+        "Loggers" : {
+          "shape" : "ListOfLogger",
+          "documentation" : "List of loggers."
+        }
+      },
+      "required" : [ "LoggerDefinitionId" ]
+    },
+    "CreateLoggerDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the version was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the resource container."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id of a version."
+        }
+      }
+    },
+    "CreateSubscriptionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "InitialVersion" : {
+          "shape" : "SubscriptionDefinitionVersion",
+          "documentation" : "Information on the initial version"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the subscription definition"
+        }
+      }
+    },
+    "CreateSubscriptionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "CreateSubscriptionDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "AmznClientToken" : {
+          "shape" : "__string",
+          "location" : "header",
+          "locationName" : "X-Amzn-Client-Token",
+          "documentation" : "The client token used to request idempotent operations."
+        },
+        "SubscriptionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "SubscriptionDefinitionId",
+          "documentation" : "subscription definition Id"
+        },
+        "Subscriptions" : {
+          "shape" : "ListOfSubscription",
+          "documentation" : "Subscriptions in the version."
+        }
+      },
+      "required" : [ "SubscriptionDefinitionId" ]
+    },
+    "CreateSubscriptionDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the version was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the resource container."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id of a version."
+        }
+      }
+    },
+    "DefinitionInformation" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      },
+      "documentation" : "Information on the Definition"
+    },
+    "DeleteCoreDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "CoreDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CoreDefinitionId",
+          "documentation" : "core definition Id"
+        }
+      },
+      "required" : [ "CoreDefinitionId" ]
+    },
+    "DeleteCoreDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "DeleteDeviceDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "DeviceDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeviceDefinitionId",
+          "documentation" : "device definition Id"
+        }
+      },
+      "required" : [ "DeviceDefinitionId" ]
+    },
+    "DeleteDeviceDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "DeleteFunctionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "FunctionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "FunctionDefinitionId",
+          "documentation" : "the unique Id of the lambda definition"
+        }
+      },
+      "required" : [ "FunctionDefinitionId" ]
+    },
+    "DeleteFunctionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "DeleteGroupRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "DeleteGroupResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "DeleteLoggerDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "LoggerDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "LoggerDefinitionId",
+          "documentation" : "logger definition Id"
+        }
+      },
+      "required" : [ "LoggerDefinitionId" ]
+    },
+    "DeleteLoggerDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "DeleteSubscriptionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "SubscriptionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "SubscriptionDefinitionId",
+          "documentation" : "subscription definition Id"
+        }
+      },
+      "required" : [ "SubscriptionDefinitionId" ]
+    },
+    "DeleteSubscriptionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "Deployment" : {
+      "type" : "structure",
+      "members" : {
+        "CreatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp when the deployment was created."
+        },
+        "DeploymentArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the deployment."
+        },
+        "DeploymentId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the deployment."
+        },
+        "GroupArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the group for this deployment."
+        }
+      },
+      "documentation" : "Information on the deployment"
+    },
+    "DeploymentType" : {
+      "type" : "string",
+      "enum" : [ "NewDeployment", "Redeployment" ]
+    },
+    "Deployments" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "Deployment"
+      }
+    },
+    "Device" : {
+      "type" : "structure",
+      "members" : {
+        "CertificateArn" : {
+          "shape" : "__string",
+          "documentation" : "Certificate arn of the device."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Element Id for this entry in the list."
+        },
+        "SyncShadow" : {
+          "shape" : "__boolean",
+          "documentation" : "If true, the local shadow value automatically syncs with the cloud's shadow state."
+        },
+        "ThingArn" : {
+          "shape" : "__string",
+          "documentation" : "Thing arn of the device."
+        }
+      },
+      "documentation" : "Information on a Device"
+    },
+    "DeviceDefinitionVersion" : {
+      "type" : "structure",
+      "members" : {
+        "Devices" : {
+          "shape" : "ListOfDevice",
+          "documentation" : "Devices in the definition version."
+        }
+      },
+      "documentation" : "Information on device definition version"
+    },
+    "DisassociateRoleFromGroupRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "DisassociateRoleFromGroupResponse" : {
+      "type" : "structure",
+      "members" : {
+        "DisassociatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Time when the role was disassociated from the group."
+        }
+      }
+    },
+    "DisassociateServiceRoleFromAccountRequest" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "DisassociateServiceRoleFromAccountResponse" : {
+      "type" : "structure",
+      "members" : {
+        "DisassociatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Time when the service role was disassociated from the account."
+        }
+      }
+    },
+    "Empty" : {
+      "type" : "structure",
+      "members" : { },
+      "documentation" : "Empty"
+    },
+    "ErrorDetail" : {
+      "type" : "structure",
+      "members" : {
+        "DetailedErrorCode" : {
+          "shape" : "__string",
+          "documentation" : "Detailed Error Code"
+        },
+        "DetailedErrorMessage" : {
+          "shape" : "__string",
+          "documentation" : "Detailed Error Message"
+        }
+      },
+      "documentation" : "ErrorDetail"
+    },
+    "ErrorDetails" : {
+      "type" : "list",
+      "documentation" : "Error Details",
+      "member" : {
+        "shape" : "ErrorDetail"
+      }
+    },
+    "Function" : {
+      "type" : "structure",
+      "members" : {
+        "FunctionArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the Lambda function."
+        },
+        "FunctionConfiguration" : {
+          "shape" : "FunctionConfiguration",
+          "documentation" : "Configuration of the function"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the function in this version."
+        }
+      },
+      "documentation" : "Information on function"
+    },
+    "FunctionConfiguration" : {
+      "type" : "structure",
+      "members" : {
+        "Environment" : {
+          "shape" : "FunctionConfigurationEnvironment",
+          "documentation" : "Environment of the function configuration"
+        },
+        "ExecArgs" : {
+          "shape" : "__string",
+          "documentation" : "Execution Arguments"
+        },
+        "Executable" : {
+          "shape" : "__string",
+          "documentation" : "Executable"
+        },
+        "MemorySize" : {
+          "shape" : "__integer",
+          "documentation" : "The memory size, in KB, you configured for the function."
+        },
+        "Pinned" : {
+          "shape" : "__boolean",
+          "documentation" : "Whether the function is pinned or not. Pinned means the function is long-lived and starts when the core starts."
+        },
+        "Timeout" : {
+          "shape" : "__integer",
+          "documentation" : "The function execution time at which Lambda should terminate the function. This timeout still applies to pinned lambdas for each request."
+        }
+      },
+      "documentation" : "Configuration of the function"
+    },
+    "FunctionConfigurationEnvironment" : {
+      "type" : "structure",
+      "members" : {
+        "Variables" : {
+          "shape" : "MapOf__string",
+          "documentation" : "Environment variables for the lambda function."
+        }
+      },
+      "documentation" : "Environment of the function configuration"
+    },
+    "FunctionDefinitionVersion" : {
+      "type" : "structure",
+      "members" : {
+        "Functions" : {
+          "shape" : "ListOfFunction",
+          "documentation" : "Lambda functions in this function definition version."
+        }
+      },
+      "documentation" : "Information on the function definition version"
+    },
+    "GeneralError" : {
+      "type" : "structure",
+      "members" : {
+        "ErrorDetails" : {
+          "shape" : "ErrorDetails",
+          "documentation" : "Error Details"
+        },
+        "Message" : {
+          "shape" : "__string",
+          "documentation" : "Message"
+        }
+      },
+      "documentation" : "General Error"
+    },
+    "GetAssociatedRoleRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "GetAssociatedRoleResponse" : {
+      "type" : "structure",
+      "members" : {
+        "AssociatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Time when the role was associated for the group."
+        },
+        "RoleArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the role that is associated with the group."
+        }
+      }
+    },
+    "GetConnectivityInfoRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ThingName" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "ThingName",
+          "documentation" : "Thing Name"
+        }
+      },
+      "required" : [ "ThingName" ]
+    },
+    "GetConnectivityInfoResponse" : {
+      "type" : "structure",
+      "members" : {
+        "ConnectivityInfo" : {
+          "shape" : "ListOfConnectivityInfo",
+          "documentation" : "Connectivity info array"
+        },
+        "Message" : {
+          "shape" : "__string",
+          "locationName" : "message",
+          "documentation" : "Response Text"
+        }
+      }
+    },
+    "GetCoreDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "CoreDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CoreDefinitionId",
+          "documentation" : "core definition Id"
+        }
+      },
+      "required" : [ "CoreDefinitionId" ]
+    },
+    "GetCoreDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "GetCoreDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "CoreDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CoreDefinitionId",
+          "documentation" : "core definition Id"
+        },
+        "CoreDefinitionVersionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CoreDefinitionVersionId",
+          "documentation" : "core definition version Id"
+        }
+      },
+      "required" : [ "CoreDefinitionId", "CoreDefinitionVersionId" ]
+    },
+    "GetCoreDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the core definition version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the core definition version was created."
+        },
+        "Definition" : {
+          "shape" : "CoreDefinitionVersion",
+          "documentation" : "Information on definition"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the core definition the version belongs to."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Version of the core definition version."
+        }
+      }
+    },
+    "GetDeploymentStatusRequest" : {
+      "type" : "structure",
+      "members" : {
+        "DeploymentId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeploymentId",
+          "documentation" : "the deployment Id"
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId", "DeploymentId" ]
+    },
+    "GetDeploymentStatusResponse" : {
+      "type" : "structure",
+      "members" : {
+        "DeploymentStatus" : {
+          "shape" : "__string",
+          "documentation" : "Status of the deployment."
+        },
+        "ErrorMessage" : {
+          "shape" : "__string",
+          "documentation" : "Error Message"
+        },
+        "UpdatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Last time the deployment status was updated."
+        }
+      }
+    },
+    "GetDeviceDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "DeviceDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeviceDefinitionId",
+          "documentation" : "device definition Id"
+        }
+      },
+      "required" : [ "DeviceDefinitionId" ]
+    },
+    "GetDeviceDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "GetDeviceDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "DeviceDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeviceDefinitionId",
+          "documentation" : "device definition Id"
+        },
+        "DeviceDefinitionVersionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeviceDefinitionVersionId",
+          "documentation" : "device definition version Id"
+        }
+      },
+      "required" : [ "DeviceDefinitionVersionId", "DeviceDefinitionId" ]
+    },
+    "GetDeviceDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the device definition version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the device definition version was created."
+        },
+        "Definition" : {
+          "shape" : "DeviceDefinitionVersion",
+          "documentation" : "Device definition version"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the device definition the version belongs to."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Version of the device definition version."
+        }
+      }
+    },
+    "GetFunctionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "FunctionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "FunctionDefinitionId",
+          "documentation" : "the unique Id of the lambda definition"
+        }
+      },
+      "required" : [ "FunctionDefinitionId" ]
+    },
+    "GetFunctionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "GetFunctionDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "FunctionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "FunctionDefinitionId",
+          "documentation" : "the unique Id of the lambda definition"
+        },
+        "FunctionDefinitionVersionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "FunctionDefinitionVersionId",
+          "documentation" : "Function definition version Id"
+        }
+      },
+      "required" : [ "FunctionDefinitionId", "FunctionDefinitionVersionId" ]
+    },
+    "GetFunctionDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the function definition version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp when the funtion definition version was created."
+        },
+        "Definition" : {
+          "shape" : "FunctionDefinitionVersion"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the function definition the version belongs to."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Version of the function definition version."
+        }
+      }
+    },
+    "GetGroupCertificateAuthorityRequest" : {
+      "type" : "structure",
+      "members" : {
+        "CertificateAuthorityId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CertificateAuthorityId",
+          "documentation" : "certificate authority Id"
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "CertificateAuthorityId", "GroupId" ]
+    },
+    "GetGroupCertificateAuthorityResponse" : {
+      "type" : "structure",
+      "members" : {
+        "GroupCertificateAuthorityArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the certificate authority for the group."
+        },
+        "GroupCertificateAuthorityId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the certificate authority for the group."
+        },
+        "PemEncodedCertificate" : {
+          "shape" : "__string",
+          "documentation" : "PEM encoded certificate for the group."
+        }
+      }
+    },
+    "GetGroupCertificateConfigurationRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "GetGroupCertificateConfigurationResponse" : {
+      "type" : "structure",
+      "members" : {
+        "CertificateAuthorityExpiryInMilliseconds" : {
+          "shape" : "__string",
+          "documentation" : "Amount of time when the certificate authority expires in milliseconds."
+        },
+        "CertificateExpiryInMilliseconds" : {
+          "shape" : "__string",
+          "documentation" : "Amount of time when the certificate expires in milliseconds."
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the group the certificate configuration belongs to."
+        }
+      }
+    },
+    "GetGroupRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "GetGroupResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "GetGroupVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        },
+        "GroupVersionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupVersionId",
+          "documentation" : "Group version Id"
+        }
+      },
+      "required" : [ "GroupVersionId", "GroupId" ]
+    },
+    "GetGroupVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the group version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp when the group version was created."
+        },
+        "Definition" : {
+          "shape" : "GroupVersion",
+          "documentation" : "Information on the definition"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the group version."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id for a version of the Group."
+        }
+      }
+    },
+    "GetLoggerDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "LoggerDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "LoggerDefinitionId",
+          "documentation" : "logger definition Id"
+        }
+      },
+      "required" : [ "LoggerDefinitionId" ]
+    },
+    "GetLoggerDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "GetLoggerDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "LoggerDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "LoggerDefinitionId",
+          "documentation" : "logger definition Id"
+        },
+        "LoggerDefinitionVersionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "LoggerDefinitionVersionId",
+          "documentation" : "logger definition version Id"
+        }
+      },
+      "required" : [ "LoggerDefinitionVersionId", "LoggerDefinitionId" ]
+    },
+    "GetLoggerDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the logger definition version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the logger definition version was created."
+        },
+        "Definition" : {
+          "shape" : "LoggerDefinitionVersion",
+          "documentation" : "Information on definition"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the logger definition the version belongs to."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Version of the logger definition version."
+        }
+      }
+    },
+    "GetServiceRoleForAccountRequest" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "GetServiceRoleForAccountResponse" : {
+      "type" : "structure",
+      "members" : {
+        "AssociatedAt" : {
+          "shape" : "__string",
+          "documentation" : "Time when the service role was associated to the account."
+        },
+        "RoleArn" : {
+          "shape" : "__string",
+          "documentation" : "Role arn which is associated to the account."
+        }
+      }
+    },
+    "GetSubscriptionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "SubscriptionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "SubscriptionDefinitionId",
+          "documentation" : "subscription definition Id"
+        }
+      },
+      "required" : [ "SubscriptionDefinitionId" ]
+    },
+    "GetSubscriptionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the definition."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the definition was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the definition."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the definition."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the definition."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the definition."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of the definition."
+        }
+      }
+    },
+    "GetSubscriptionDefinitionVersionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "SubscriptionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "SubscriptionDefinitionId",
+          "documentation" : "subscription definition Id"
+        },
+        "SubscriptionDefinitionVersionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "SubscriptionDefinitionVersionId",
+          "documentation" : "subscription definition version Id"
+        }
+      },
+      "required" : [ "SubscriptionDefinitionId", "SubscriptionDefinitionVersionId" ]
+    },
+    "GetSubscriptionDefinitionVersionResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the subscription definition version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the subscription definition version was created."
+        },
+        "Definition" : {
+          "shape" : "SubscriptionDefinitionVersion",
+          "documentation" : "Information on the definition"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the subscription definition the version belongs to."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Version of the subscription definition version."
+        }
+      }
+    },
+    "GroupCertificateAuthorityProperties" : {
+      "type" : "structure",
+      "members" : {
+        "GroupCertificateAuthorityArn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the certificate authority for the group."
+        },
+        "GroupCertificateAuthorityId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the certificate authority for the group."
+        }
+      },
+      "documentation" : "Information on group certificate authority properties"
+    },
+    "GroupCertificateConfiguration" : {
+      "type" : "structure",
+      "members" : {
+        "CertificateAuthorityExpiryInMilliseconds" : {
+          "shape" : "__string",
+          "documentation" : "Amount of time when the certificate authority expires in milliseconds."
+        },
+        "CertificateExpiryInMilliseconds" : {
+          "shape" : "__string",
+          "documentation" : "Amount of time when the certificate expires in milliseconds."
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the group the certificate configuration belongs to."
+        }
+      },
+      "documentation" : "Information on the group certificate configuration"
+    },
+    "GroupInformation" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of a group."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the group was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of a group."
+        },
+        "LastUpdatedTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Last updated timestamp of the group."
+        },
+        "LatestVersion" : {
+          "shape" : "__string",
+          "documentation" : "Last version of the group."
+        },
+        "LatestVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Latest version arn of the group."
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "Name of a group."
+        }
+      },
+      "documentation" : "Information of a group"
+    },
+    "GroupVersion" : {
+      "type" : "structure",
+      "members" : {
+        "CoreDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Core definition version arn for this group."
+        },
+        "DeviceDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Device definition version arn for this group."
+        },
+        "FunctionDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Function definition version arn for this group."
+        },
+        "LoggerDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Logger definitionv ersion arn for this group."
+        },
+        "SubscriptionDefinitionVersionArn" : {
+          "shape" : "__string",
+          "documentation" : "Subscription definition version arn for this group."
+        }
+      },
+      "documentation" : "Information on group version"
+    },
+    "InternalServerErrorException" : {
+      "type" : "structure",
+      "members" : {
+        "ErrorDetails" : {
+          "shape" : "ErrorDetails",
+          "documentation" : "Error Details"
+        },
+        "Message" : {
+          "shape" : "__string",
+          "documentation" : "Message"
+        }
+      },
+      "documentation" : "General Error",
+      "exception" : true,
+      "error" : {
+        "httpStatusCode" : 500
+      }
+    },
+    "ListCoreDefinitionVersionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "CoreDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CoreDefinitionId",
+          "documentation" : "core definition Id"
+        },
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      },
+      "required" : [ "CoreDefinitionId" ]
+    },
+    "ListCoreDefinitionVersionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        },
+        "Versions" : {
+          "shape" : "ListOfVersionInformation",
+          "documentation" : "Versions"
+        }
+      }
+    },
+    "ListCoreDefinitionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      }
+    },
+    "ListCoreDefinitionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Definitions" : {
+          "shape" : "ListOfDefinitionInformation",
+          "documentation" : "Definitions"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      }
+    },
+    "ListDefinitionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Definitions" : {
+          "shape" : "ListOfDefinitionInformation",
+          "documentation" : "Definitions"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      },
+      "documentation" : "List of definition response"
+    },
+    "ListDeploymentsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        },
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "ListDeploymentsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Deployments" : {
+          "shape" : "Deployments",
+          "documentation" : "Information on deployments"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      }
+    },
+    "ListDeviceDefinitionVersionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "DeviceDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeviceDefinitionId",
+          "documentation" : "device definition Id"
+        },
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      },
+      "required" : [ "DeviceDefinitionId" ]
+    },
+    "ListDeviceDefinitionVersionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        },
+        "Versions" : {
+          "shape" : "ListOfVersionInformation",
+          "documentation" : "Versions"
+        }
+      }
+    },
+    "ListDeviceDefinitionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      }
+    },
+    "ListDeviceDefinitionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Definitions" : {
+          "shape" : "ListOfDefinitionInformation",
+          "documentation" : "Definitions"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      }
+    },
+    "ListFunctionDefinitionVersionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "FunctionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "FunctionDefinitionId",
+          "documentation" : "the unique Id of the lambda definition"
+        },
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      },
+      "required" : [ "FunctionDefinitionId" ]
+    },
+    "ListFunctionDefinitionVersionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        },
+        "Versions" : {
+          "shape" : "ListOfVersionInformation",
+          "documentation" : "Versions"
+        }
+      }
+    },
+    "ListFunctionDefinitionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      }
+    },
+    "ListFunctionDefinitionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Definitions" : {
+          "shape" : "ListOfDefinitionInformation",
+          "documentation" : "Definitions"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      }
+    },
+    "ListGroupCertificateAuthoritiesRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "ListGroupCertificateAuthoritiesResponse" : {
+      "type" : "structure",
+      "members" : {
+        "GroupCertificateAuthorities" : {
+          "shape" : "ListOfGroupCertificateAuthorityProperties",
+          "documentation" : "List of certificate authorities associated with the group."
+        }
+      }
+    },
+    "ListGroupVersionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        },
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "ListGroupVersionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        },
+        "Versions" : {
+          "shape" : "ListOfVersionInformation",
+          "documentation" : "Versions"
+        }
+      }
+    },
+    "ListGroupsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      }
+    },
+    "ListGroupsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Groups" : {
+          "shape" : "ListOfGroupInformation",
+          "documentation" : "Groups"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      }
+    },
+    "ListLoggerDefinitionVersionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "LoggerDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "LoggerDefinitionId",
+          "documentation" : "logger definition Id"
+        },
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      },
+      "required" : [ "LoggerDefinitionId" ]
+    },
+    "ListLoggerDefinitionVersionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        },
+        "Versions" : {
+          "shape" : "ListOfVersionInformation",
+          "documentation" : "Versions"
+        }
+      }
+    },
+    "ListLoggerDefinitionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      }
+    },
+    "ListLoggerDefinitionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Definitions" : {
+          "shape" : "ListOfDefinitionInformation",
+          "documentation" : "Definitions"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      }
+    },
+    "ListOfConnectivityInfo" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "ConnectivityInfo"
+      }
+    },
+    "ListOfCore" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "Core"
+      }
+    },
+    "ListOfDefinitionInformation" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "DefinitionInformation"
+      }
+    },
+    "ListOfDevice" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "Device"
+      }
+    },
+    "ListOfFunction" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "Function"
+      }
+    },
+    "ListOfGroupCertificateAuthorityProperties" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "GroupCertificateAuthorityProperties"
+      }
+    },
+    "ListOfGroupInformation" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "GroupInformation"
+      }
+    },
+    "ListOfLogger" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "Logger"
+      }
+    },
+    "ListOfSubscription" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "Subscription"
+      }
+    },
+    "ListOfVersionInformation" : {
+      "type" : "list",
+      "member" : {
+        "shape" : "VersionInformation"
+      }
+    },
+    "ListSubscriptionDefinitionVersionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        },
+        "SubscriptionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "SubscriptionDefinitionId",
+          "documentation" : "subscription definition Id"
+        }
+      },
+      "required" : [ "SubscriptionDefinitionId" ]
+    },
+    "ListSubscriptionDefinitionVersionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        },
+        "Versions" : {
+          "shape" : "ListOfVersionInformation",
+          "documentation" : "Versions"
+        }
+      }
+    },
+    "ListSubscriptionDefinitionsRequest" : {
+      "type" : "structure",
+      "members" : {
+        "MaxResults" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "MaxResults",
+          "documentation" : "Specifies the maximum number of list results to be returned in this page"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "location" : "querystring",
+          "locationName" : "NextToken",
+          "documentation" : "Specifies the pagination token used when iterating through a paginated request"
+        }
+      }
+    },
+    "ListSubscriptionDefinitionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Definitions" : {
+          "shape" : "ListOfDefinitionInformation",
+          "documentation" : "Definitions"
+        },
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        }
+      }
+    },
+    "ListVersionsResponse" : {
+      "type" : "structure",
+      "members" : {
+        "NextToken" : {
+          "shape" : "__string",
+          "documentation" : "The token for the next set of results, or ''null'' if there are no additional results."
+        },
+        "Versions" : {
+          "shape" : "ListOfVersionInformation",
+          "documentation" : "Versions"
+        }
+      },
+      "documentation" : "List of versions response"
+    },
+    "Logger" : {
+      "type" : "structure",
+      "members" : {
+        "Component" : {
+          "shape" : "LoggerComponent",
+          "documentation" : "The component that will be subject to logs"
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Element Id for this entry in the list."
+        },
+        "Level" : {
+          "shape" : "LoggerLevel",
+          "documentation" : "The level of the logs"
+        },
+        "Space" : {
+          "shape" : "__integer",
+          "documentation" : "Amount of hardware space, in KB, to use if file system is used for logging purposes."
+        },
+        "Type" : {
+          "shape" : "LoggerType",
+          "documentation" : "The type which will be use for log output"
+        }
+      },
+      "documentation" : "Information on the Logger"
+    },
+    "LoggerComponent" : {
+      "type" : "string",
+      "enum" : [ "GreengrassSystem", "Lambda" ]
+    },
+    "LoggerDefinitionVersion" : {
+      "type" : "structure",
+      "members" : {
+        "Loggers" : {
+          "shape" : "ListOfLogger",
+          "documentation" : "List of loggers."
+        }
+      },
+      "documentation" : "Information on logger definition version"
+    },
+    "LoggerLevel" : {
+      "type" : "string",
+      "enum" : [ "DEBUG", "INFO", "WARN", "ERROR", "FATAL" ]
+    },
+    "LoggerType" : {
+      "type" : "string",
+      "enum" : [ "FileSystem", "AWSCloudWatch" ]
+    },
+    "MapOf__string" : {
+      "type" : "map",
+      "key" : {
+        "shape" : "__string"
+      },
+      "value" : {
+        "shape" : "__string"
+      }
+    },
+    "Subscription" : {
+      "type" : "structure",
+      "members" : {
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Element Id for this entry in the list."
+        },
+        "Source" : {
+          "shape" : "__string",
+          "documentation" : "Source of the subscription. Can be a thing arn, lambda arn or word 'cloud'"
+        },
+        "Subject" : {
+          "shape" : "__string",
+          "documentation" : "Subject of the message."
+        },
+        "Target" : {
+          "shape" : "__string",
+          "documentation" : "Where the message is sent to. Can be a thing arn, lambda arn or word 'cloud'."
+        }
+      },
+      "documentation" : "Information on subscription"
+    },
+    "SubscriptionDefinitionVersion" : {
+      "type" : "structure",
+      "members" : {
+        "Subscriptions" : {
+          "shape" : "ListOfSubscription",
+          "documentation" : "Subscriptions in the version."
+        }
+      },
+      "documentation" : "Information on subscription definition version"
+    },
+    "UpdateConnectivityInfoRequest" : {
+      "type" : "structure",
+      "members" : {
+        "ConnectivityInfo" : {
+          "shape" : "ListOfConnectivityInfo",
+          "documentation" : "Connectivity info array"
+        },
+        "ThingName" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "ThingName",
+          "documentation" : "Thing Name"
+        }
+      },
+      "documentation" : "connectivity info request",
+      "required" : [ "ThingName" ]
+    },
+    "UpdateConnectivityInfoResponse" : {
+      "type" : "structure",
+      "members" : {
+        "Message" : {
+          "shape" : "__string",
+          "locationName" : "message",
+          "documentation" : "Response Text"
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "New Version"
+        }
+      }
+    },
+    "UpdateCoreDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "CoreDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "CoreDefinitionId",
+          "documentation" : "core definition Id"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the definition"
+        }
+      },
+      "required" : [ "CoreDefinitionId" ]
+    },
+    "UpdateCoreDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "UpdateDeviceDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "DeviceDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "DeviceDefinitionId",
+          "documentation" : "device definition Id"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the definition"
+        }
+      },
+      "required" : [ "DeviceDefinitionId" ]
+    },
+    "UpdateDeviceDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "UpdateFunctionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "FunctionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "FunctionDefinitionId",
+          "documentation" : "the unique Id of the lambda definition"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the definition"
+        }
+      },
+      "required" : [ "FunctionDefinitionId" ]
+    },
+    "UpdateFunctionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "UpdateGroupCertificateConfigurationRequest" : {
+      "type" : "structure",
+      "members" : {
+        "CertificateExpiryInMilliseconds" : {
+          "shape" : "__string",
+          "documentation" : "Amount of time when the certificate expires in milliseconds."
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "UpdateGroupCertificateConfigurationResponse" : {
+      "type" : "structure",
+      "members" : {
+        "CertificateAuthorityExpiryInMilliseconds" : {
+          "shape" : "__string",
+          "documentation" : "Amount of time when the certificate authority expires in milliseconds."
+        },
+        "CertificateExpiryInMilliseconds" : {
+          "shape" : "__string",
+          "documentation" : "Amount of time when the certificate expires in milliseconds."
+        },
+        "GroupId" : {
+          "shape" : "__string",
+          "documentation" : "Id of the group the certificate configuration belongs to."
+        }
+      }
+    },
+    "UpdateGroupRequest" : {
+      "type" : "structure",
+      "members" : {
+        "GroupId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "GroupId",
+          "documentation" : "The unique Id of the AWS Greengrass Group"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the definition"
+        }
+      },
+      "required" : [ "GroupId" ]
+    },
+    "UpdateGroupResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "UpdateLoggerDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "LoggerDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "LoggerDefinitionId",
+          "documentation" : "logger definition Id"
+        },
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the definition"
+        }
+      },
+      "required" : [ "LoggerDefinitionId" ]
+    },
+    "UpdateLoggerDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "UpdateSubscriptionDefinitionRequest" : {
+      "type" : "structure",
+      "members" : {
+        "Name" : {
+          "shape" : "__string",
+          "documentation" : "name of the definition"
+        },
+        "SubscriptionDefinitionId" : {
+          "shape" : "__string",
+          "location" : "uri",
+          "locationName" : "SubscriptionDefinitionId",
+          "documentation" : "subscription definition Id"
+        }
+      },
+      "required" : [ "SubscriptionDefinitionId" ]
+    },
+    "UpdateSubscriptionDefinitionResponse" : {
+      "type" : "structure",
+      "members" : { }
+    },
+    "VersionInformation" : {
+      "type" : "structure",
+      "members" : {
+        "Arn" : {
+          "shape" : "__string",
+          "documentation" : "Arn of the version."
+        },
+        "CreationTimestamp" : {
+          "shape" : "__string",
+          "documentation" : "Timestamp of when the version was created."
+        },
+        "Id" : {
+          "shape" : "__string",
+          "documentation" : "Id of the resource container."
+        },
+        "Version" : {
+          "shape" : "__string",
+          "documentation" : "Unique Id of a version."
+        }
+      },
+      "documentation" : "Information on the version"
+    },
+    "__boolean" : {
+      "type" : "boolean"
+    },
+    "__double" : {
+      "type" : "double"
+    },
+    "__integer" : {
+      "type" : "integer"
+    },
+    "__string" : {
+      "type" : "string"
+    },
+    "__timestamp" : {
+      "type" : "timestamp"
+    }
+  },
+  "documentation" : "AWS Greengrass seamlessly extends AWS onto physical devices so they can act locally on the data they generate, while still using the cloud for management, analytics, and durable storage. AWS Greengrass ensures your devices can respond quickly to local events and operate with intermittent connectivity. AWS Greengrass minimizes the cost of transmitting data to the cloud by allowing you to author AWS Lambda functions that execute locally."
+}

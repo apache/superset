@@ -1,0 +1,1 @@
+used-prior-global-declaration:8:test:Name 'CONST' is used prior to global declaration
