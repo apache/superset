@@ -6,6 +6,7 @@ import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
+import { dashboardData } from '../spec/javascripts/dashboard/fixtures.jsx'
 import '../stylesheets/react-select/select.less';
 import { TIME_CHOICES } from './constants';
 import './filter_box.css';
@@ -39,6 +40,11 @@ class FilterBox extends React.Component {
   }
   changeFilter(filter, options) {
     let vals = null;
+    if (dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId]) {
+      dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId].push(filter);
+    } else {
+      dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId] = [filter];
+    }
     if (options) {
       if (Array.isArray(options)) {
         vals = options.map(opt => opt.value);
@@ -138,6 +144,7 @@ function filterBox(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
   const fd = slice.formData;
+  const sliceId = slice.sliceId;
   const filtersChoices = {};
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json
@@ -153,6 +160,7 @@ function filterBox(slice, payload) {
       showMetricNumber={fd.display_metric}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
+      sliceId={sliceId}
     />,
     document.getElementById(slice.containerId),
   );
