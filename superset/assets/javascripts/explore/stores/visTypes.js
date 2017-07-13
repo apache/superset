@@ -798,6 +798,14 @@ const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      all_columns_x: {
+        validators: [v.nonEmpty],
+      },
+      all_columns_y: {
+        validators: [v.nonEmpty],
+      },
+    },
   },
 
   horizon: {
