@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block container %}
+    <div class="span12">
+        <p>It looks like you have found a bug! You can help to improve
+        Celery Flower by opening an issue in <a href="https://github.com/mher/flower/issues">https://github.com/mher/flower/issues</a>
+        </p>
+        <pre>
+{{ bugreport }}
+
+{{ error_trace }}
+        </pre>
+    </div>
+{% end %}

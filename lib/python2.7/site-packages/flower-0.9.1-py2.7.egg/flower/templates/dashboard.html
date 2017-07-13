@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+  {% module Template("navbar.html", active_tab="dashboard") %}
+{% end %}
+
+{% block container %}
+  <div class="container-fluid">
+    <div class="btn-group btn-group-justified">
+        <a id="btn-active" class="btn btn-default btn-large" href="{{ reverse_url('tasks') }}?state=STARTED">Active: {{ sum(map(lambda x:x.get('active') or 0, workers.values() )) }}</a>
+        <a id="btn-processed" class="btn btn-default btn-large" href="{{ reverse_url('tasks') }}">Processed: {{ sum(map(lambda x:x.get('task-received') or 0, workers.values() )) }}</a>
+        <a id="btn-failed" class="btn btn-default btn-large" href="{{ reverse_url('tasks') }}?state=FAILURE">Failed: {{ sum(map(lambda x:x.get('task-failed') or 0, workers.values() )) }}</a>
+        <a id="btn-succeeded" class="btn btn-default btn-large" href="{{ reverse_url('tasks') }}?state=SUCCESS">Succeeded: {{ sum(map(lambda x:x.get('task-succeeded') or 0, workers.values() )) }}</a>
+        <a id="btn-retried" class="btn btn-default btn-large" href="{{ reverse_url('tasks') }}?state=RETRY">Retried: {{ sum(map(lambda x:x.get('task-retried') or 0, workers.values() )) }}</a>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+
+      <div class="btn-group">
+        <button class="btn" onclick="flower.shutdown_selected(event);">Shut Down</button>
+        <button class="btn dropdown-toggle" data-toggle="dropdown"><span
+          class="caret"></span></button>
+        <ul class="dropdown-menu">
+          <li><a href="#" onclick="flower.shutdown_selected(event);">Shut Down</a></li>
+          <li><a href="#" onclick="flower.restart_selected(event);">Restart Pool</a></li>
+          <li><a href="#" onclick="flower.refresh_selected(event);">Refresh</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <table id="workers-table" class="table table-bordered table-striped">
+      <thead>
+        <tr>
+            <th>Worker Name</th>
+            <th>Status</th>
+            <th>Active</th>
+            <th>Processed</th>
+            <th>Failed</th>
+            <th>Succeeded</th>
+            <th>Retried</th>
+            <th>Load Average</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for name, info in workers.items() %}
+        <tr id="{{ url_escape(name) }}">
+            <td>{{ name }}</td>
+            <td>{{ info.get('status', None) }}</td>
+            <td>{{ info.get('active', 0) or 0 }}</td>
+            <td>{{ info.get('task-received', 0) }}</td>
+            <td>{{ info.get('task-failed', 0) }}</td>
+            <td>{{ info.get('task-succeeded', 0) }}</td>
+            <td>{{ info.get('task-retried', 0) }}</td>
+            <td>{{ humanize(info.get('loadavg', 'N/A')) }}</td>
+        </tr>
+        {% end %}
+      </tbody>
+    </table>
+
+        </div>
+    </div>
+
+{% end %}

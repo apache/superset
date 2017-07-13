@@ -1,0 +1,45 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+{% extends 'appbuilder/general/widgets/base_list.html' %}
+
+   {% block list_header %}
+       {{ super() }}
+       {{ lib.render_dropdown_orderby(order_columns, label_columns, modelview_name) }}
+   {% endblock %}
+
+   {% block begin_content scoped %}
+    <div class="container-fluid">
+        <div class="row">
+   {% endblock %}
+
+  {% block begin_loop_values %}
+  {% for item in value_columns %}
+      <div class="col-md-4">
+      <div class="thumbnail">
+        <div class="list-group">
+        {% set pk = pks[loop.index-1] %}
+        {% if actions %}
+            <input id="{{pk}}" class="action_check" name="rowid" value="{{pk}}" type="checkbox">
+        {% endif %}
+        {% if can_show or can_edit or can_delete %}
+            {{ lib.btn_crud(can_show, can_edit, can_delete, pk, modelview_name, filters) }}
+        {% endif %}
+        </div>
+
+        {% for value in include_columns %}
+            {% if loop.index == 1 %}
+                <h4 class="list-group-item-heading">{{ item[value]|safe }}</h4>
+            {% else %}
+                <p class="list-group-item-text">{{ item[value]|safe }}</p>
+            {% endif %}
+        {% endfor %}
+      </div>
+      </div>
+  {% endfor %}
+  {% endblock %}
+
+      {% block end_content scoped %}
+    </div>
+    </div>
+    {% endblock %}
+
+

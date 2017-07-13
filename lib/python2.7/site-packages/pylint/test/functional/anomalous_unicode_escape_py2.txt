@@ -1,0 +1,3 @@
+anomalous-unicode-escape-in-string:5::"Anomalous Unicode escape in byte string: '\u'. String constant might be missing an r or u prefix."
+anomalous-unicode-escape-in-string:6::"Anomalous Unicode escape in byte string: '\U'. String constant might be missing an r or u prefix."
+anomalous-unicode-escape-in-string:8::"Anomalous Unicode escape in byte string: '\N'. String constant might be missing an r or u prefix."

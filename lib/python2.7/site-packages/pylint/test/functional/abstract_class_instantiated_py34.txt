@@ -1,0 +1,1 @@
+abstract-class-instantiated:19:main:Abstract class 'BadClass' with abstract methods instantiated

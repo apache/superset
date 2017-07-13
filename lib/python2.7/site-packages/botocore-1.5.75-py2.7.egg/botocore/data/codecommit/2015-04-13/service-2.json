@@ -1,0 +1,1489 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "apiVersion":"2015-04-13",
+    "endpointPrefix":"codecommit",
+    "jsonVersion":"1.1",
+    "protocol":"json",
+    "serviceAbbreviation":"CodeCommit",
+    "serviceFullName":"AWS CodeCommit",
+    "signatureVersion":"v4",
+    "targetPrefix":"CodeCommit_20150413",
+    "uid":"codecommit-2015-04-13"
+  },
+  "operations":{
+    "BatchGetRepositories":{
+      "name":"BatchGetRepositories",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"BatchGetRepositoriesInput"},
+      "output":{"shape":"BatchGetRepositoriesOutput"},
+      "errors":[
+        {"shape":"RepositoryNamesRequiredException"},
+        {"shape":"MaximumRepositoryNamesExceededException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Returns information about one or more repositories.</p> <note> <p>The description field for a repository accepts all HTML characters and all valid Unicode characters. Applications that do not HTML-encode the description and display it in a web page could expose users to potentially malicious code. Make sure that you HTML-encode the description field in any application that uses this API to display the repository description on a web page.</p> </note>"
+    },
+    "CreateBranch":{
+      "name":"CreateBranch",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateBranchInput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"BranchNameRequiredException"},
+        {"shape":"BranchNameExistsException"},
+        {"shape":"InvalidBranchNameException"},
+        {"shape":"CommitIdRequiredException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidCommitIdException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Creates a new branch in a repository and points the branch to a commit.</p> <note> <p>Calling the create branch operation does not set a repository's default branch. To do this, call the update default branch operation.</p> </note>"
+    },
+    "CreateRepository":{
+      "name":"CreateRepository",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateRepositoryInput"},
+      "output":{"shape":"CreateRepositoryOutput"},
+      "errors":[
+        {"shape":"RepositoryNameExistsException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"InvalidRepositoryDescriptionException"},
+        {"shape":"RepositoryLimitExceededException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Creates a new, empty repository.</p>"
+    },
+    "DeleteRepository":{
+      "name":"DeleteRepository",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteRepositoryInput"},
+      "output":{"shape":"DeleteRepositoryOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Deletes a repository. If a specified repository was already deleted, a null repository ID will be returned.</p> <important><p>Deleting a repository also deletes all associated objects and metadata. After a repository is deleted, all future push calls to the deleted repository will fail.</p> </important>"
+    },
+    "GetBlob":{
+      "name":"GetBlob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetBlobInput"},
+      "output":{"shape":"GetBlobOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"BlobIdRequiredException"},
+        {"shape":"InvalidBlobIdException"},
+        {"shape":"BlobIdDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"},
+        {"shape":"FileTooLargeException"}
+      ],
+      "documentation":"<p>Returns the base-64 encoded content of an individual blob within a repository.</p>"
+    },
+    "GetBranch":{
+      "name":"GetBranch",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetBranchInput"},
+      "output":{"shape":"GetBranchOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"BranchNameRequiredException"},
+        {"shape":"InvalidBranchNameException"},
+        {"shape":"BranchDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Returns information about a repository branch, including its name and the last commit ID.</p>"
+    },
+    "GetCommit":{
+      "name":"GetCommit",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetCommitInput"},
+      "output":{"shape":"GetCommitOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"CommitIdRequiredException"},
+        {"shape":"InvalidCommitIdException"},
+        {"shape":"CommitIdDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Returns information about a commit, including commit message and committer information.</p>"
+    },
+    "GetDifferences":{
+      "name":"GetDifferences",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetDifferencesInput"},
+      "output":{"shape":"GetDifferencesOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"InvalidContinuationTokenException"},
+        {"shape":"InvalidMaxResultsException"},
+        {"shape":"InvalidCommitIdException"},
+        {"shape":"CommitRequiredException"},
+        {"shape":"InvalidCommitException"},
+        {"shape":"CommitDoesNotExistException"},
+        {"shape":"InvalidPathException"},
+        {"shape":"PathDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Returns information about the differences in a valid commit specifier (such as a branch, tag, HEAD, commit ID or other fully qualified reference). Results can be limited to a specified path.</p>"
+    },
+    "GetRepository":{
+      "name":"GetRepository",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetRepositoryInput"},
+      "output":{"shape":"GetRepositoryOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Returns information about a repository.</p> <note> <p>The description field for a repository accepts all HTML characters and all valid Unicode characters. Applications that do not HTML-encode the description and display it in a web page could expose users to potentially malicious code. Make sure that you HTML-encode the description field in any application that uses this API to display the repository description on a web page.</p> </note>"
+    },
+    "GetRepositoryTriggers":{
+      "name":"GetRepositoryTriggers",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetRepositoryTriggersInput"},
+      "output":{"shape":"GetRepositoryTriggersOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Gets information about triggers configured for a repository.</p>"
+    },
+    "ListBranches":{
+      "name":"ListBranches",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListBranchesInput"},
+      "output":{"shape":"ListBranchesOutput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"},
+        {"shape":"InvalidContinuationTokenException"}
+      ],
+      "documentation":"<p>Gets information about one or more branches in a repository.</p>"
+    },
+    "ListRepositories":{
+      "name":"ListRepositories",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListRepositoriesInput"},
+      "output":{"shape":"ListRepositoriesOutput"},
+      "errors":[
+        {"shape":"InvalidSortByException"},
+        {"shape":"InvalidOrderException"},
+        {"shape":"InvalidContinuationTokenException"}
+      ],
+      "documentation":"<p>Gets information about one or more repositories.</p>"
+    },
+    "PutRepositoryTriggers":{
+      "name":"PutRepositoryTriggers",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutRepositoryTriggersInput"},
+      "output":{"shape":"PutRepositoryTriggersOutput"},
+      "errors":[
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryTriggersListRequiredException"},
+        {"shape":"MaximumRepositoryTriggersExceededException"},
+        {"shape":"InvalidRepositoryTriggerNameException"},
+        {"shape":"InvalidRepositoryTriggerDestinationArnException"},
+        {"shape":"InvalidRepositoryTriggerRegionException"},
+        {"shape":"InvalidRepositoryTriggerCustomDataException"},
+        {"shape":"MaximumBranchesExceededException"},
+        {"shape":"InvalidRepositoryTriggerBranchNameException"},
+        {"shape":"InvalidRepositoryTriggerEventsException"},
+        {"shape":"RepositoryTriggerNameRequiredException"},
+        {"shape":"RepositoryTriggerDestinationArnRequiredException"},
+        {"shape":"RepositoryTriggerBranchNameListRequiredException"},
+        {"shape":"RepositoryTriggerEventsListRequiredException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Replaces all triggers for a repository. This can be used to create or delete triggers.</p>"
+    },
+    "TestRepositoryTriggers":{
+      "name":"TestRepositoryTriggers",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TestRepositoryTriggersInput"},
+      "output":{"shape":"TestRepositoryTriggersOutput"},
+      "errors":[
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"RepositoryTriggersListRequiredException"},
+        {"shape":"MaximumRepositoryTriggersExceededException"},
+        {"shape":"InvalidRepositoryTriggerNameException"},
+        {"shape":"InvalidRepositoryTriggerDestinationArnException"},
+        {"shape":"InvalidRepositoryTriggerRegionException"},
+        {"shape":"InvalidRepositoryTriggerCustomDataException"},
+        {"shape":"MaximumBranchesExceededException"},
+        {"shape":"InvalidRepositoryTriggerBranchNameException"},
+        {"shape":"InvalidRepositoryTriggerEventsException"},
+        {"shape":"RepositoryTriggerNameRequiredException"},
+        {"shape":"RepositoryTriggerDestinationArnRequiredException"},
+        {"shape":"RepositoryTriggerBranchNameListRequiredException"},
+        {"shape":"RepositoryTriggerEventsListRequiredException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Tests the functionality of repository triggers by sending information to the trigger target. If real data is available in the repository, the test will send data from the last commit. If no data is available, sample data will be generated.</p>"
+    },
+    "UpdateDefaultBranch":{
+      "name":"UpdateDefaultBranch",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateDefaultBranchInput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"BranchNameRequiredException"},
+        {"shape":"InvalidBranchNameException"},
+        {"shape":"BranchDoesNotExistException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Sets or changes the default branch name for the specified repository.</p> <note> <p>If you use this operation to change the default branch name to the current default branch name, a success message is returned even though the default branch did not change.</p> </note>"
+    },
+    "UpdateRepositoryDescription":{
+      "name":"UpdateRepositoryDescription",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateRepositoryDescriptionInput"},
+      "errors":[
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"InvalidRepositoryNameException"},
+        {"shape":"InvalidRepositoryDescriptionException"},
+        {"shape":"EncryptionIntegrityChecksFailedException"},
+        {"shape":"EncryptionKeyAccessDeniedException"},
+        {"shape":"EncryptionKeyDisabledException"},
+        {"shape":"EncryptionKeyNotFoundException"},
+        {"shape":"EncryptionKeyUnavailableException"}
+      ],
+      "documentation":"<p>Sets or changes the comment or description for a repository.</p> <note> <p>The description field for a repository accepts all HTML characters and all valid Unicode characters. Applications that do not HTML-encode the description and display it in a web page could expose users to potentially malicious code. Make sure that you HTML-encode the description field in any application that uses this API to display the repository description on a web page.</p> </note>"
+    },
+    "UpdateRepositoryName":{
+      "name":"UpdateRepositoryName",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateRepositoryNameInput"},
+      "errors":[
+        {"shape":"RepositoryDoesNotExistException"},
+        {"shape":"RepositoryNameExistsException"},
+        {"shape":"RepositoryNameRequiredException"},
+        {"shape":"InvalidRepositoryNameException"}
+      ],
+      "documentation":"<p>Renames a repository. The repository name must be unique across the calling AWS account. In addition, repository names are limited to 100 alphanumeric, dash, and underscore characters, and cannot include certain characters. The suffix \".git\" is prohibited. For a full description of the limits on repository names, see <a href=\"http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html\">Limits</a> in the AWS CodeCommit User Guide.</p>"
+    }
+  },
+  "shapes":{
+    "AccountId":{"type":"string"},
+    "AdditionalData":{"type":"string"},
+    "Arn":{"type":"string"},
+    "BatchGetRepositoriesInput":{
+      "type":"structure",
+      "required":["repositoryNames"],
+      "members":{
+        "repositoryNames":{
+          "shape":"RepositoryNameList",
+          "documentation":"<p>The names of the repositories to get information about.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a batch get repositories operation.</p>"
+    },
+    "BatchGetRepositoriesOutput":{
+      "type":"structure",
+      "members":{
+        "repositories":{
+          "shape":"RepositoryMetadataList",
+          "documentation":"<p>A list of repositories returned by the batch get repositories operation.</p>"
+        },
+        "repositoriesNotFound":{
+          "shape":"RepositoryNotFoundList",
+          "documentation":"<p>Returns a list of repository names for which information could not be found.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a batch get repositories operation.</p>"
+    },
+    "BlobIdDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified blob does not exist.</p>",
+      "exception":true
+    },
+    "BlobIdRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A blob ID is required but was not specified.</p>",
+      "exception":true
+    },
+    "BlobMetadata":{
+      "type":"structure",
+      "members":{
+        "blobId":{
+          "shape":"ObjectId",
+          "documentation":"<p>The full ID of the blob.</p>"
+        },
+        "path":{
+          "shape":"Path",
+          "documentation":"<p>The path to the blob and any associated file name, if any.</p>"
+        },
+        "mode":{
+          "shape":"Mode",
+          "documentation":"<p>The file mode permissions of the blob. File mode permission codes include:</p> <ul> <li> <p> <code>100644</code> indicates read/write</p> </li> <li> <p> <code>100755</code> indicates read/write/execute</p> </li> <li> <p> <code>160000</code> indicates a submodule</p> </li> <li> <p> <code>120000</code> indicates a symlink</p> </li> </ul>"
+        }
+      },
+      "documentation":"<p>Returns information about a specific Git blob object.</p>"
+    },
+    "BranchDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified branch does not exist.</p>",
+      "exception":true
+    },
+    "BranchInfo":{
+      "type":"structure",
+      "members":{
+        "branchName":{
+          "shape":"BranchName",
+          "documentation":"<p>The name of the branch.</p>"
+        },
+        "commitId":{
+          "shape":"CommitId",
+          "documentation":"<p>The ID of the last commit made to the branch.</p>"
+        }
+      },
+      "documentation":"<p>Returns information about a branch.</p>"
+    },
+    "BranchName":{
+      "type":"string",
+      "max":100,
+      "min":1
+    },
+    "BranchNameExistsException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified branch name already exists.</p>",
+      "exception":true
+    },
+    "BranchNameList":{
+      "type":"list",
+      "member":{"shape":"BranchName"}
+    },
+    "BranchNameRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A branch name is required but was not specified.</p>",
+      "exception":true
+    },
+    "ChangeTypeEnum":{
+      "type":"string",
+      "enum":[
+        "A",
+        "M",
+        "D"
+      ]
+    },
+    "CloneUrlHttp":{"type":"string"},
+    "CloneUrlSsh":{"type":"string"},
+    "Commit":{
+      "type":"structure",
+      "members":{
+        "treeId":{
+          "shape":"ObjectId",
+          "documentation":"<p>Tree information for the specified commit.</p>"
+        },
+        "parents":{
+          "shape":"ParentList",
+          "documentation":"<p>The parent list for the specified commit.</p>"
+        },
+        "message":{
+          "shape":"Message",
+          "documentation":"<p>The commit message associated with the specified commit.</p>"
+        },
+        "author":{
+          "shape":"UserInfo",
+          "documentation":"<p>Information about the author of the specified commit. Information includes the date in timestamp format with GMT offset, the name of the author, and the email address for the author, as configured in Git.</p>"
+        },
+        "committer":{
+          "shape":"UserInfo",
+          "documentation":"<p>Information about the person who committed the specified commit, also known as the committer. Information includes the date in timestamp format with GMT offset, the name of the committer, and the email address for the committer, as configured in Git.</p> <p>For more information about the difference between an author and a committer in Git, see <a href=\"http://git-scm.com/book/ch2-3.html\">Viewing the Commit History</a> in Pro Git by Scott Chacon and Ben Straub.</p>"
+        },
+        "additionalData":{
+          "shape":"AdditionalData",
+          "documentation":"<p>Any additional data associated with the specified commit.</p>"
+        }
+      },
+      "documentation":"<p>Returns information about a specific commit.</p>"
+    },
+    "CommitDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified commit does not exist or no commit was specified, and the specified repository has no default branch.</p>",
+      "exception":true
+    },
+    "CommitId":{"type":"string"},
+    "CommitIdDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified commit ID does not exist.</p>",
+      "exception":true
+    },
+    "CommitIdRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A commit ID was not specified.</p>",
+      "exception":true
+    },
+    "CommitName":{"type":"string"},
+    "CommitRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A commit was not specified.</p>",
+      "exception":true
+    },
+    "CreateBranchInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "branchName",
+        "commitId"
+      ],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository in which you want to create the new branch.</p>"
+        },
+        "branchName":{
+          "shape":"BranchName",
+          "documentation":"<p>The name of the new branch to create.</p>"
+        },
+        "commitId":{
+          "shape":"CommitId",
+          "documentation":"<p>The ID of the commit to point the new branch to.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a create branch operation.</p>"
+    },
+    "CreateRepositoryInput":{
+      "type":"structure",
+      "required":["repositoryName"],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the new repository to be created.</p> <note> <p>The repository name must be unique across the calling AWS account. In addition, repository names are limited to 100 alphanumeric, dash, and underscore characters, and cannot include certain characters. For a full description of the limits on repository names, see <a href=\"http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html\">Limits</a> in the AWS CodeCommit User Guide. The suffix \".git\" is prohibited.</p> </note>"
+        },
+        "repositoryDescription":{
+          "shape":"RepositoryDescription",
+          "documentation":"<p>A comment or description about the new repository.</p> <note> <p>The description field for a repository accepts all HTML characters and all valid Unicode characters. Applications that do not HTML-encode the description and display it in a web page could expose users to potentially malicious code. Make sure that you HTML-encode the description field in any application that uses this API to display the repository description on a web page.</p> </note>"
+        }
+      },
+      "documentation":"<p>Represents the input of a create repository operation.</p>"
+    },
+    "CreateRepositoryOutput":{
+      "type":"structure",
+      "members":{
+        "repositoryMetadata":{
+          "shape":"RepositoryMetadata",
+          "documentation":"<p>Information about the newly created repository.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a create repository operation.</p>"
+    },
+    "CreationDate":{"type":"timestamp"},
+    "Date":{"type":"string"},
+    "DeleteRepositoryInput":{
+      "type":"structure",
+      "required":["repositoryName"],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository to delete.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a delete repository operation.</p>"
+    },
+    "DeleteRepositoryOutput":{
+      "type":"structure",
+      "members":{
+        "repositoryId":{
+          "shape":"RepositoryId",
+          "documentation":"<p>The ID of the repository that was deleted.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a delete repository operation.</p>"
+    },
+    "Difference":{
+      "type":"structure",
+      "members":{
+        "beforeBlob":{
+          "shape":"BlobMetadata",
+          "documentation":"<p>Information about a <code>beforeBlob</code> data type object, including the ID, the file mode permission code, and the path.</p>"
+        },
+        "afterBlob":{
+          "shape":"BlobMetadata",
+          "documentation":"<p>Information about an <code>afterBlob</code> data type object, including the ID, the file mode permission code, and the path.</p>"
+        },
+        "changeType":{
+          "shape":"ChangeTypeEnum",
+          "documentation":"<p>Whether the change type of the difference is an addition (A), deletion (D), or modification (M).</p>"
+        }
+      },
+      "documentation":"<p>Returns information about a set of differences for a commit specifier.</p>"
+    },
+    "DifferenceList":{
+      "type":"list",
+      "member":{"shape":"Difference"}
+    },
+    "Email":{"type":"string"},
+    "EncryptionIntegrityChecksFailedException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>An encryption integrity check failed.</p>",
+      "exception":true,
+      "fault":true
+    },
+    "EncryptionKeyAccessDeniedException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>An encryption key could not be accessed.</p>",
+      "exception":true
+    },
+    "EncryptionKeyDisabledException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The encryption key is disabled.</p>",
+      "exception":true
+    },
+    "EncryptionKeyNotFoundException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>No encryption key was found.</p>",
+      "exception":true
+    },
+    "EncryptionKeyUnavailableException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The encryption key is not available.</p>",
+      "exception":true
+    },
+    "FileTooLargeException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified file exceeds the file size limit for AWS CodeCommit. For more information about limits in AWS CodeCommit, see <a href=\"http://docs.aws.amazon.com/codecommit/latest/userguide/limits.html\">AWS CodeCommit User Guide</a>.</p>",
+      "exception":true
+    },
+    "GetBlobInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "blobId"
+      ],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository that contains the blob.</p>"
+        },
+        "blobId":{
+          "shape":"ObjectId",
+          "documentation":"<p>The ID of the blob, which is its SHA-1 pointer.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a get blob operation.</p>"
+    },
+    "GetBlobOutput":{
+      "type":"structure",
+      "required":["content"],
+      "members":{
+        "content":{
+          "shape":"blob",
+          "documentation":"<p>The content of the blob, usually a file.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a get blob operation.</p>"
+    },
+    "GetBranchInput":{
+      "type":"structure",
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository that contains the branch for which you want to retrieve information.</p>"
+        },
+        "branchName":{
+          "shape":"BranchName",
+          "documentation":"<p>The name of the branch for which you want to retrieve information.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a get branch operation.</p>"
+    },
+    "GetBranchOutput":{
+      "type":"structure",
+      "members":{
+        "branch":{
+          "shape":"BranchInfo",
+          "documentation":"<p>The name of the branch.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a get branch operation.</p>"
+    },
+    "GetCommitInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "commitId"
+      ],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository to which the commit was made.</p>"
+        },
+        "commitId":{
+          "shape":"ObjectId",
+          "documentation":"<p>The commit ID.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a get commit operation.</p>"
+    },
+    "GetCommitOutput":{
+      "type":"structure",
+      "required":["commit"],
+      "members":{
+        "commit":{
+          "shape":"Commit",
+          "documentation":"<p>A commit data type object that contains information about the specified commit.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a get commit operation.</p>"
+    },
+    "GetDifferencesInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "afterCommitSpecifier"
+      ],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository where you want to get differences.</p>"
+        },
+        "beforeCommitSpecifier":{
+          "shape":"CommitName",
+          "documentation":"<p>The branch, tag, HEAD, or other fully qualified reference used to identify a commit. For example, the full commit ID. Optional. If not specified, all changes prior to the <code>afterCommitSpecifier</code> value will be shown. If you do not use <code>beforeCommitSpecifier</code> in your request, consider limiting the results with <code>maxResults</code>.</p>"
+        },
+        "afterCommitSpecifier":{
+          "shape":"CommitName",
+          "documentation":"<p>The branch, tag, HEAD, or other fully qualified reference used to identify a commit.</p>"
+        },
+        "beforePath":{
+          "shape":"Path",
+          "documentation":"<p>The file path in which to check for differences. Limits the results to this path. Can also be used to specify the previous name of a directory or folder. If <code>beforePath</code> and <code>afterPath</code> are not specified, differences will be shown for all paths.</p>"
+        },
+        "afterPath":{
+          "shape":"Path",
+          "documentation":"<p>The file path in which to check differences. Limits the results to this path. Can also be used to specify the changed name of a directory or folder, if it has changed. If not specified, differences will be shown for all paths.</p>"
+        },
+        "MaxResults":{
+          "shape":"Limit",
+          "documentation":"<p>A non-negative integer used to limit the number of returned results.</p>"
+        },
+        "NextToken":{
+          "shape":"NextToken",
+          "documentation":"<p>An enumeration token that when provided in a request, returns the next batch of the results.</p>"
+        }
+      }
+    },
+    "GetDifferencesOutput":{
+      "type":"structure",
+      "members":{
+        "differences":{
+          "shape":"DifferenceList",
+          "documentation":"<p>A differences data type object that contains information about the differences, including whether the difference is added, modified, or deleted (A, D, M).</p>"
+        },
+        "NextToken":{
+          "shape":"NextToken",
+          "documentation":"<p>An enumeration token that can be used in a request to return the next batch of the results.</p>"
+        }
+      }
+    },
+    "GetRepositoryInput":{
+      "type":"structure",
+      "required":["repositoryName"],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository to get information about.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a get repository operation.</p>"
+    },
+    "GetRepositoryOutput":{
+      "type":"structure",
+      "members":{
+        "repositoryMetadata":{
+          "shape":"RepositoryMetadata",
+          "documentation":"<p>Information about the repository.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a get repository operation.</p>"
+    },
+    "GetRepositoryTriggersInput":{
+      "type":"structure",
+      "required":["repositoryName"],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository for which the trigger is configured.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a get repository triggers operation.</p>"
+    },
+    "GetRepositoryTriggersOutput":{
+      "type":"structure",
+      "members":{
+        "configurationId":{
+          "shape":"RepositoryTriggersConfigurationId",
+          "documentation":"<p>The system-generated unique ID for the trigger.</p>"
+        },
+        "triggers":{
+          "shape":"RepositoryTriggersList",
+          "documentation":"<p>The JSON block of configuration information for each trigger.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a get repository triggers operation.</p>"
+    },
+    "InvalidBlobIdException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified blob is not valid.</p>",
+      "exception":true
+    },
+    "InvalidBranchNameException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified branch name is not valid.</p>",
+      "exception":true
+    },
+    "InvalidCommitException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified commit is not valid.</p>",
+      "exception":true
+    },
+    "InvalidCommitIdException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified commit ID is not valid.</p>",
+      "exception":true
+    },
+    "InvalidContinuationTokenException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified continuation token is not valid.</p>",
+      "exception":true
+    },
+    "InvalidMaxResultsException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified number of maximum results is not valid.</p>",
+      "exception":true
+    },
+    "InvalidOrderException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified sort order is not valid.</p>",
+      "exception":true
+    },
+    "InvalidPathException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified path is not valid.</p>",
+      "exception":true
+    },
+    "InvalidRepositoryDescriptionException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified repository description is not valid.</p>",
+      "exception":true
+    },
+    "InvalidRepositoryNameException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>At least one specified repository name is not valid.</p> <note> <p>This exception only occurs when a specified repository name is not valid. Other exceptions occur when a required repository parameter is missing, or when a specified repository does not exist.</p> </note>",
+      "exception":true
+    },
+    "InvalidRepositoryTriggerBranchNameException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>One or more branch names specified for the trigger is not valid.</p>",
+      "exception":true
+    },
+    "InvalidRepositoryTriggerCustomDataException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The custom data provided for the trigger is not valid.</p>",
+      "exception":true
+    },
+    "InvalidRepositoryTriggerDestinationArnException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The Amazon Resource Name (ARN) for the trigger is not valid for the specified destination. The most common reason for this error is that the ARN does not meet the requirements for the service type.</p>",
+      "exception":true
+    },
+    "InvalidRepositoryTriggerEventsException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>One or more events specified for the trigger is not valid. Check to make sure that all events specified match the requirements for allowed events.</p>",
+      "exception":true
+    },
+    "InvalidRepositoryTriggerNameException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The name of the trigger is not valid.</p>",
+      "exception":true
+    },
+    "InvalidRepositoryTriggerRegionException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The region for the trigger target does not match the region for the repository. Triggers must be created in the same region as the target for the trigger.</p>",
+      "exception":true
+    },
+    "InvalidSortByException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified sort by value is not valid.</p>",
+      "exception":true
+    },
+    "LastModifiedDate":{"type":"timestamp"},
+    "Limit":{
+      "type":"integer",
+      "box":true
+    },
+    "ListBranchesInput":{
+      "type":"structure",
+      "required":["repositoryName"],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository that contains the branches.</p>"
+        },
+        "nextToken":{
+          "shape":"NextToken",
+          "documentation":"<p>An enumeration token that allows the operation to batch the results.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a list branches operation.</p>"
+    },
+    "ListBranchesOutput":{
+      "type":"structure",
+      "members":{
+        "branches":{
+          "shape":"BranchNameList",
+          "documentation":"<p>The list of branch names.</p>"
+        },
+        "nextToken":{
+          "shape":"NextToken",
+          "documentation":"<p>An enumeration token that returns the batch of the results.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a list branches operation.</p>"
+    },
+    "ListRepositoriesInput":{
+      "type":"structure",
+      "members":{
+        "nextToken":{
+          "shape":"NextToken",
+          "documentation":"<p>An enumeration token that allows the operation to batch the results of the operation. Batch sizes are 1,000 for list repository operations. When the client sends the token back to AWS CodeCommit, another page of 1,000 records is retrieved.</p>"
+        },
+        "sortBy":{
+          "shape":"SortByEnum",
+          "documentation":"<p>The criteria used to sort the results of a list repositories operation.</p>"
+        },
+        "order":{
+          "shape":"OrderEnum",
+          "documentation":"<p>The order in which to sort the results of a list repositories operation.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a list repositories operation.</p>"
+    },
+    "ListRepositoriesOutput":{
+      "type":"structure",
+      "members":{
+        "repositories":{
+          "shape":"RepositoryNameIdPairList",
+          "documentation":"<p>Lists the repositories called by the list repositories operation.</p>"
+        },
+        "nextToken":{
+          "shape":"NextToken",
+          "documentation":"<p>An enumeration token that allows the operation to batch the results of the operation. Batch sizes are 1,000 for list repository operations. When the client sends the token back to AWS CodeCommit, another page of 1,000 records is retrieved.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a list repositories operation.</p>"
+    },
+    "MaximumBranchesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The number of branches for the trigger was exceeded.</p>",
+      "exception":true
+    },
+    "MaximumRepositoryNamesExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The maximum number of allowed repository names was exceeded. Currently, this number is 25.</p>",
+      "exception":true
+    },
+    "MaximumRepositoryTriggersExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The number of triggers allowed for the repository was exceeded.</p>",
+      "exception":true
+    },
+    "Message":{"type":"string"},
+    "Mode":{"type":"string"},
+    "Name":{"type":"string"},
+    "NextToken":{"type":"string"},
+    "ObjectId":{"type":"string"},
+    "OrderEnum":{
+      "type":"string",
+      "enum":[
+        "ascending",
+        "descending"
+      ]
+    },
+    "ParentList":{
+      "type":"list",
+      "member":{"shape":"ObjectId"}
+    },
+    "Path":{"type":"string"},
+    "PathDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified path does not exist.</p>",
+      "exception":true
+    },
+    "PutRepositoryTriggersInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "triggers"
+      ],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository where you want to create or update the trigger.</p>"
+        },
+        "triggers":{
+          "shape":"RepositoryTriggersList",
+          "documentation":"<p>The JSON block of configuration information for each trigger.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input ofa put repository triggers operation.</p>"
+    },
+    "PutRepositoryTriggersOutput":{
+      "type":"structure",
+      "members":{
+        "configurationId":{
+          "shape":"RepositoryTriggersConfigurationId",
+          "documentation":"<p>The system-generated unique ID for the create or update operation.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a put repository triggers operation.</p>"
+    },
+    "RepositoryDescription":{
+      "type":"string",
+      "max":1000
+    },
+    "RepositoryDoesNotExistException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified repository does not exist.</p>",
+      "exception":true
+    },
+    "RepositoryId":{"type":"string"},
+    "RepositoryLimitExceededException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A repository resource limit was exceeded.</p>",
+      "exception":true
+    },
+    "RepositoryMetadata":{
+      "type":"structure",
+      "members":{
+        "accountId":{
+          "shape":"AccountId",
+          "documentation":"<p>The ID of the AWS account associated with the repository.</p>"
+        },
+        "repositoryId":{
+          "shape":"RepositoryId",
+          "documentation":"<p>The ID of the repository.</p>"
+        },
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The repository's name.</p>"
+        },
+        "repositoryDescription":{
+          "shape":"RepositoryDescription",
+          "documentation":"<p>A comment or description about the repository.</p>"
+        },
+        "defaultBranch":{
+          "shape":"BranchName",
+          "documentation":"<p>The repository's default branch name.</p>"
+        },
+        "lastModifiedDate":{
+          "shape":"LastModifiedDate",
+          "documentation":"<p>The date and time the repository was last modified, in timestamp format.</p>"
+        },
+        "creationDate":{
+          "shape":"CreationDate",
+          "documentation":"<p>The date and time the repository was created, in timestamp format.</p>"
+        },
+        "cloneUrlHttp":{
+          "shape":"CloneUrlHttp",
+          "documentation":"<p>The URL to use for cloning the repository over HTTPS.</p>"
+        },
+        "cloneUrlSsh":{
+          "shape":"CloneUrlSsh",
+          "documentation":"<p>The URL to use for cloning the repository over SSH.</p>"
+        },
+        "Arn":{
+          "shape":"Arn",
+          "documentation":"<p>The Amazon Resource Name (ARN) of the repository.</p>"
+        }
+      },
+      "documentation":"<p>Information about a repository.</p>"
+    },
+    "RepositoryMetadataList":{
+      "type":"list",
+      "member":{"shape":"RepositoryMetadata"}
+    },
+    "RepositoryName":{
+      "type":"string",
+      "max":100,
+      "min":1,
+      "pattern":"[\\w\\.-]+"
+    },
+    "RepositoryNameExistsException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The specified repository name already exists.</p>",
+      "exception":true
+    },
+    "RepositoryNameIdPair":{
+      "type":"structure",
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name associated with the repository.</p>"
+        },
+        "repositoryId":{
+          "shape":"RepositoryId",
+          "documentation":"<p>The ID associated with the repository.</p>"
+        }
+      },
+      "documentation":"<p>Information about a repository name and ID.</p>"
+    },
+    "RepositoryNameIdPairList":{
+      "type":"list",
+      "member":{"shape":"RepositoryNameIdPair"}
+    },
+    "RepositoryNameList":{
+      "type":"list",
+      "member":{"shape":"RepositoryName"}
+    },
+    "RepositoryNameRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A repository name is required but was not specified.</p>",
+      "exception":true
+    },
+    "RepositoryNamesRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A repository names object is required but was not specified.</p>",
+      "exception":true
+    },
+    "RepositoryNotFoundList":{
+      "type":"list",
+      "member":{"shape":"RepositoryName"}
+    },
+    "RepositoryTrigger":{
+      "type":"structure",
+      "required":[
+        "name",
+        "destinationArn",
+        "events"
+      ],
+      "members":{
+        "name":{
+          "shape":"RepositoryTriggerName",
+          "documentation":"<p>The name of the trigger.</p>"
+        },
+        "destinationArn":{
+          "shape":"Arn",
+          "documentation":"<p>The ARN of the resource that is the target for a trigger. For example, the ARN of a topic in Amazon Simple Notification Service (SNS).</p>"
+        },
+        "customData":{
+          "shape":"RepositoryTriggerCustomData",
+          "documentation":"<p>Any custom data associated with the trigger that will be included in the information sent to the target of the trigger.</p>"
+        },
+        "branches":{
+          "shape":"BranchNameList",
+          "documentation":"<p>The branches that will be included in the trigger configuration. If no branches are specified, the trigger will apply to all branches.</p>"
+        },
+        "events":{
+          "shape":"RepositoryTriggerEventList",
+          "documentation":"<p>The repository events that will cause the trigger to run actions in another service, such as sending a notification through Amazon Simple Notification Service (SNS). </p> <note> <p>The valid value \"all\" cannot be used with any other values.</p> </note>"
+        }
+      },
+      "documentation":"<p>Information about a trigger for a repository.</p>"
+    },
+    "RepositoryTriggerBranchNameListRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>At least one branch name is required but was not specified in the trigger configuration.</p>",
+      "exception":true
+    },
+    "RepositoryTriggerCustomData":{"type":"string"},
+    "RepositoryTriggerDestinationArnRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A destination ARN for the target service for the trigger is required but was not specified.</p>",
+      "exception":true
+    },
+    "RepositoryTriggerEventEnum":{
+      "type":"string",
+      "enum":[
+        "all",
+        "updateReference",
+        "createReference",
+        "deleteReference"
+      ]
+    },
+    "RepositoryTriggerEventList":{
+      "type":"list",
+      "member":{"shape":"RepositoryTriggerEventEnum"}
+    },
+    "RepositoryTriggerEventsListRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>At least one event for the trigger is required but was not specified.</p>",
+      "exception":true
+    },
+    "RepositoryTriggerExecutionFailure":{
+      "type":"structure",
+      "members":{
+        "trigger":{
+          "shape":"RepositoryTriggerName",
+          "documentation":"<p>The name of the trigger that did not run.</p>"
+        },
+        "failureMessage":{
+          "shape":"RepositoryTriggerExecutionFailureMessage",
+          "documentation":"<p>Additional message information about the trigger that did not run.</p>"
+        }
+      },
+      "documentation":"<p>A trigger failed to run.</p>"
+    },
+    "RepositoryTriggerExecutionFailureList":{
+      "type":"list",
+      "member":{"shape":"RepositoryTriggerExecutionFailure"}
+    },
+    "RepositoryTriggerExecutionFailureMessage":{"type":"string"},
+    "RepositoryTriggerName":{"type":"string"},
+    "RepositoryTriggerNameList":{
+      "type":"list",
+      "member":{"shape":"RepositoryTriggerName"}
+    },
+    "RepositoryTriggerNameRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>A name for the trigger is required but was not specified.</p>",
+      "exception":true
+    },
+    "RepositoryTriggersConfigurationId":{"type":"string"},
+    "RepositoryTriggersList":{
+      "type":"list",
+      "member":{"shape":"RepositoryTrigger"}
+    },
+    "RepositoryTriggersListRequiredException":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"<p>The list of triggers for the repository is required but was not specified.</p>",
+      "exception":true
+    },
+    "SortByEnum":{
+      "type":"string",
+      "enum":[
+        "repositoryName",
+        "lastModifiedDate"
+      ]
+    },
+    "TestRepositoryTriggersInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "triggers"
+      ],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository in which to test the triggers.</p>"
+        },
+        "triggers":{
+          "shape":"RepositoryTriggersList",
+          "documentation":"<p>The list of triggers to test.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of a test repository triggers operation.</p>"
+    },
+    "TestRepositoryTriggersOutput":{
+      "type":"structure",
+      "members":{
+        "successfulExecutions":{
+          "shape":"RepositoryTriggerNameList",
+          "documentation":"<p>The list of triggers that were successfully tested. This list provides the names of the triggers that were successfully tested, separated by commas.</p>"
+        },
+        "failedExecutions":{
+          "shape":"RepositoryTriggerExecutionFailureList",
+          "documentation":"<p>The list of triggers that were not able to be tested. This list provides the names of the triggers that could not be tested, separated by commas.</p>"
+        }
+      },
+      "documentation":"<p>Represents the output of a test repository triggers operation.</p>"
+    },
+    "UpdateDefaultBranchInput":{
+      "type":"structure",
+      "required":[
+        "repositoryName",
+        "defaultBranchName"
+      ],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository to set or change the default branch for.</p>"
+        },
+        "defaultBranchName":{
+          "shape":"BranchName",
+          "documentation":"<p>The name of the branch to set as the default.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of an update default branch operation.</p>"
+    },
+    "UpdateRepositoryDescriptionInput":{
+      "type":"structure",
+      "required":["repositoryName"],
+      "members":{
+        "repositoryName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The name of the repository to set or change the comment or description for.</p>"
+        },
+        "repositoryDescription":{
+          "shape":"RepositoryDescription",
+          "documentation":"<p>The new comment or description for the specified repository. Repository descriptions are limited to 1,000 characters.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of an update repository description operation.</p>"
+    },
+    "UpdateRepositoryNameInput":{
+      "type":"structure",
+      "required":[
+        "oldName",
+        "newName"
+      ],
+      "members":{
+        "oldName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The existing name of the repository.</p>"
+        },
+        "newName":{
+          "shape":"RepositoryName",
+          "documentation":"<p>The new name for the repository.</p>"
+        }
+      },
+      "documentation":"<p>Represents the input of an update repository description operation.</p>"
+    },
+    "UserInfo":{
+      "type":"structure",
+      "members":{
+        "name":{
+          "shape":"Name",
+          "documentation":"<p>The name of the user who made the specified commit.</p>"
+        },
+        "email":{
+          "shape":"Email",
+          "documentation":"<p>The email address associated with the user who made the commit, if any.</p>"
+        },
+        "date":{
+          "shape":"Date",
+          "documentation":"<p>The date when the specified commit was pushed to the repository.</p>"
+        }
+      },
+      "documentation":"<p>Information about the user who made a specified commit.</p>"
+    },
+    "blob":{"type":"blob"}
+  },
+  "documentation":"<fullname>AWS CodeCommit</fullname> <p>This is the <i>AWS CodeCommit API Reference</i>. This reference provides descriptions of the operations and data types for AWS CodeCommit API along with usage examples.</p> <p>You can use the AWS CodeCommit API to work with the following objects:</p> <p>Repositories, by calling the following:</p> <ul> <li> <p> <a>BatchGetRepositories</a>, which returns information about one or more repositories associated with your AWS account</p> </li> <li> <p> <a>CreateRepository</a>, which creates an AWS CodeCommit repository</p> </li> <li> <p> <a>DeleteRepository</a>, which deletes an AWS CodeCommit repository</p> </li> <li> <p> <a>GetRepository</a>, which returns information about a specified repository</p> </li> <li> <p> <a>ListRepositories</a>, which lists all AWS CodeCommit repositories associated with your AWS account</p> </li> <li> <p> <a>UpdateRepositoryDescription</a>, which sets or updates the description of the repository</p> </li> <li> <p> <a>UpdateRepositoryName</a>, which changes the name of the repository. If you change the name of a repository, no other users of that repository will be able to access it until you send them the new HTTPS or SSH URL to use.</p> </li> </ul> <p>Branches, by calling the following:</p> <ul> <li> <p> <a>CreateBranch</a>, which creates a new branch in a specified repository</p> </li> <li> <p> <a>GetBranch</a>, which returns information about a specified branch</p> </li> <li> <p> <a>ListBranches</a>, which lists all branches for a specified repository</p> </li> <li> <p> <a>UpdateDefaultBranch</a>, which changes the default branch for a repository</p> </li> </ul> <p>Information about committed code in a repository, by calling the following:</p> <ul> <li> <p> <a>GetBlob</a>, which returns the base-64 encoded content of an individual Git blob object within a repository</p> </li> <li> <p> <a>GetCommit</a>, which returns information about a commit, including commit messages and author and committer information</p> </li> <li> <p> <a>GetDifferences</a>, which returns information about the differences in a valid commit specifier (such as a branch, tag, HEAD, commit ID or other fully qualified reference)</p> </li> </ul> <p>Triggers, by calling the following:</p> <ul> <li> <p> <a>GetRepositoryTriggers</a>, which returns information about triggers configured for a repository</p> </li> <li> <p> <a>PutRepositoryTriggers</a>, which replaces all triggers for a repository and can be used to create or delete triggers</p> </li> <li> <p> <a>TestRepositoryTriggers</a>, which tests the functionality of a repository trigger by sending data to the trigger target</p> </li> </ul> <p>For information about how to use AWS CodeCommit, see the <a href=\"http://docs.aws.amazon.com/codecommit/latest/userguide/welcome.html\">AWS CodeCommit User Guide</a>.</p>"
+}

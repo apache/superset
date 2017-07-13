@@ -1,0 +1,27 @@
+<!-- extend base layout -->
+{% extends "appbuilder/base.html" %}
+
+{% block content %}
+
+
+<div class="container">
+        <div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+            <div class="panel panel-primary" >
+                    <div class="panel-heading">
+                        <div class="panel-title">{{ title }}</div>
+                    </div>
+                    <div style="padding-top:30px" class="panel-body" >
+
+        <div class="help-block">{{_("Sign in using:")}}:</div>
+            <div class="center-block btn-group btn-group-lg" role="group">
+                <center>
+                {% for pr in providers %}
+                    <a href="{{url_for('AuthOAuthView.login', provider=pr.name)}}">
+                        <i class="fa {{pr.icon}} fa-3x" class="img-rounded img-unselect"></i>
+                    </a>
+                {% endfor %}
+                </center>
+            </div>
+        </div>
+</div></div></div>
+{% endblock %}

@@ -1,0 +1,2 @@
+deprecated-module:3::Uses of a deprecated module 'deprecated'
+deprecated-module:4::Uses of a deprecated module 'deprecated'

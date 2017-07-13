@@ -1,0 +1,1 @@
+inconsistent-mro:8:Inconsistent:Inconsistent method resolution order for class 'Inconsistent'

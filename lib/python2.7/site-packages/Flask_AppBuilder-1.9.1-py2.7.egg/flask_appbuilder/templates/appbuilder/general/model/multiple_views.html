@@ -1,0 +1,18 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+
+{{ lib.panel_begin(title) }}
+    {% block list_list scoped %}
+        {% for view_widget in views_widgets %}
+            <div>
+            {% call lib.accordion_tag(views[loop.index - 1].__class__.__name__,views[loop.index - 1].title, True) %}
+                {{ view_widget()|safe }}
+            {% endcall %}
+            </div>
+        {% endfor %}
+    {% endblock %}
+{{ lib.panel_end() }}
+
+{% endblock %}

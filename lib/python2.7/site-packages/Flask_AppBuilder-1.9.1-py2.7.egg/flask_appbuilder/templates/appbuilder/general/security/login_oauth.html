@@ -1,0 +1,70 @@
+<!-- extend base layout -->
+{% extends "appbuilder/base.html" %}
+
+{% block content %}
+
+<script type="text/javascript">
+
+var baseLoginUrl = {{url_for('AuthOAuthView.login')}};
+var baseRegisterUrl = {{url_for('AuthOAuthView.login')}};
+
+var currentSelection = "";
+
+function set_openid(url, pr)
+{
+    $('.provider-select').removeClass('fa-black');
+    $('#' + pr).addClass('fa-black');
+    currentSelection = pr;
+}
+
+
+function signin() {
+    if (currentSelection != "") {
+        window.location.href = baseLoginUrl + currentSelection;
+    }
+}
+
+function register() {
+    if (currentSelection != "") {
+        window.location.href = baseRegisterUrl + currentSelection + '/register';
+    }
+}
+
+
+</script>
+
+<div class="container">
+        <div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+            <div class="panel panel-primary" >
+                <div class="panel-heading">
+                    <div class="panel-title">{{ title }}</div>
+                </div>
+                <div style="padding-top:30px" class="panel-body" >
+
+                    <div class="help-block">{{_("Please choose one of the following providers:")}}</div>
+                    <div class="center-block btn-group btn-group-lg" role="group">
+                        <center>
+                        {% for pr in providers %}
+                            <a class="btn btn-primary" href="javascript:set_openid('{{url_for('AuthOAuthView.login', provider=pr.name)}}', '{{pr.name}}');">
+                                <i id="{{pr.name}}" class="provider-select fa {{pr.icon}} fa-3x"></i>
+                            </a>
+                        {% endfor %}
+                        </center>
+                     </div>
+                     <div>
+                         <br></br>
+                        <a onclick="signin();" class="btn btn-primary btn-block" type="submit">{{_('Sign In')}}</a>
+                        {% if appbuilder.sm.auth_user_registration %}
+                            <a onclick="register();" class="btn btn-block btn-primary" data-toggle="tooltip" rel="tooltip"
+                                title="{{_('If your not already a user, please register')}}">
+                                {{_('Register')}}
+                            </a>
+                        {% endif %}
+                     </div>
+                </div>
+            </div>
+        </div>
+</div>
+
+
+{% endblock %}

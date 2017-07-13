@@ -1,0 +1,21 @@
+I:  5: Locally disabling invalid-name (C0103)
+I:  5: Suppressed 'invalid-name' (from line 5)
+I:  6: Locally disabling invalid-name (C0103)
+I:  6: Pragma "disable-msg" is deprecated, use "disable" instead
+I:  6: Suppressed 'invalid-name' (from line 6)
+I:  8: Locally disabling invalid-name (C0103)
+I:  9: Suppressed 'invalid-name' (from line 8)
+I: 10: Locally enabling invalid-name (C0103)
+I: 12: Locally disabling invalid-name (C0103)
+I: 12: Pragma "disable-msg" is deprecated, use "disable" instead
+I: 13: Suppressed 'invalid-name' (from line 12)
+I: 14: Locally enabling invalid-name (C0103)
+I: 14: Pragma "enable-msg" is deprecated, use "enable" instead
+I: 16: Locally disabling invalid-name (C0103)
+I: 16: Pragma "disable-msg" is deprecated, use "disable" instead
+I: 17: Suppressed 'invalid-name' (from line 16)
+I: 18: Locally enabling invalid-name (C0103)
+I: 18: Pragma "enable-msg" is deprecated, use "enable" instead
+I: 20: Locally disabling invalid-name (C0103)
+I: 21: Suppressed 'invalid-name' (from line 20)
+I: 22: Locally enabling invalid-name (C0103)

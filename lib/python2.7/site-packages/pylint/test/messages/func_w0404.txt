@@ -1,0 +1,5 @@
+W:  7: Reimport 'ElementTree' (imported line 6)
+W: 10: Reimport 'email.encoders' (imported line 9)
+W: 12: Reimport 'sys' (imported line 4)
+W: 23:reimport: Redefining name 'sys' from outer scope (line 4)
+W: 23:reimport: Reimport 'sys' (imported line 4)

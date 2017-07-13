@@ -1,0 +1,7 @@
+redefine-in-handler:19:some_function:Redefining name 'RuntimeError' from object 'exceptions' in exception handler
+redefine-in-handler:21:some_function:Redefining name 'OSError' from builtins in exception handler
+redefine-in-handler:23:some_function:Redefining name 'MyError' from outer scope (line 8) in exception handler
+redefine-in-handler:46::Redefining name 'RuntimeError' from object 'exceptions' in exception handler
+redefine-in-handler:48::Redefining name 'args' from object 'exceptions.RuntimeError' in exception handler
+redefine-in-handler:50::Redefining name 'OSError' from builtins in exception handler
+redefine-in-handler:52::Redefining name 'MyOtherError' from outer scope (line 37) in exception handler

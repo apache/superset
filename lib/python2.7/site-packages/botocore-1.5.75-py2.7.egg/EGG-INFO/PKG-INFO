@@ -1,0 +1,57 @@
+Metadata-Version: 1.1
+Name: botocore
+Version: 1.5.75
+Summary: Low-level, data-driven core of boto 3.
+Home-page: https://github.com/boto/botocore
+Author: Amazon Web Services
+Author-email: UNKNOWN
+License: Apache License 2.0
+Description: botocore
+        ========
+        
+        .. image:: https://secure.travis-ci.org/boto/botocore.png?branch=develop
+           :target: http://travis-ci.org/boto/botocore
+        
+        .. image:: https://codecov.io/github/boto/botocore/coverage.svg?branch=develop
+            :target: https://codecov.io/github/boto/botocore?branch=develop
+        
+        
+        A low-level interface to a growing number of Amazon Web Services. The
+        botocore package is the foundation for the
+        `AWS CLI <https://github.com/aws/aws-cli>`__ as well as
+        `boto3 <https://github.com/boto/boto3>`__.
+        
+        
+        Documentation
+        -------------
+        Documentation for ``botocore`` can be found on `Read the Docs <https://botocore.readthedocs.io/en/latest/>`__.
+        
+        
+        Getting Help
+        ------------
+        
+        We use GitHub issues for tracking bugs and feature requests and have limited
+        bandwidth to address them. Please use these community resources for getting
+        help. Please note many of the same resources available for ``boto3`` are
+        applicable for ``botocore``:
+        
+        * Ask a question on `Stack Overflow <https://stackoverflow.com/>`__ and tag it with `boto3 <https://stackoverflow.com/questions/tagged/boto3>`__
+        * Come join the AWS Python community chat on `gitter <https://gitter.im/boto/boto3>`__
+        * Open a support ticket with `AWS Support <https://console.aws.amazon.com/support/home#/>`__
+        * If it turns out that you may have found a bug, please `open an issue <https://github.com/boto/botocore/issues/new>`__
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: Natural Language :: English
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6

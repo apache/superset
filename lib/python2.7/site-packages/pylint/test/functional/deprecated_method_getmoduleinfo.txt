@@ -1,0 +1,1 @@
+deprecated-method:4::Using deprecated method getmoduleinfo()

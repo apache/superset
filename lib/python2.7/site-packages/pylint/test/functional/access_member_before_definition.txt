@@ -1,0 +1,2 @@
+access-member-before-definition:8:Aaaa.__init__:Access to member '_var2' before its definition line 9
+access-member-before-definition:28:Bbbb.catchme:Access to member '_repo' before its definition line 30

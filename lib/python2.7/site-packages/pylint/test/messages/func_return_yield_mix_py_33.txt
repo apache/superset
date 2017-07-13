@@ -1,0 +1,2 @@
+E:  6:somegen: Return with argument inside generator
+E: 15:moregen: Return with argument inside generator

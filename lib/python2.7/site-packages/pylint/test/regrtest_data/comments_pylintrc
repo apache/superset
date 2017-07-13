@@ -1,0 +1,7 @@
+[MESSAGES CONTROL]
+disable=all
+enable=
+  trailing-whitespace, # Caring about it
+  bad-indentation, # And about this
+  # And about this
+  missing-docstring

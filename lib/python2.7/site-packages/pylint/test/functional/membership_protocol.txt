@@ -1,0 +1,7 @@
+unsupported-membership-test:113::Value '42' doesn't support membership test
+unsupported-membership-test:114::Value 'None' doesn't support membership test
+unsupported-membership-test:115::Value '8.5' doesn't support membership test
+unsupported-membership-test:120::Value 'EmptyClass()' doesn't support membership test
+unsupported-membership-test:121::Value 'EmptyClass' doesn't support membership test
+unsupported-membership-test:122::Value 'count' doesn't support membership test
+unsupported-membership-test:123::Value 'range' doesn't support membership test

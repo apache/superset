@@ -1,0 +1,4 @@
+binary-op-exception:5::"Exception to catch is the result of a binary ""or"" operation"
+binary-op-exception:7::"Exception to catch is the result of a binary ""and"" operation"
+binary-op-exception:9::"Exception to catch is the result of a binary ""or"" operation"
+binary-op-exception:11::"Exception to catch is the result of a binary ""or"" operation"

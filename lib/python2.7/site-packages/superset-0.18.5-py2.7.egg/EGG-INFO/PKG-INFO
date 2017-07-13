@@ -1,0 +1,14 @@
+Metadata-Version: 1.1
+Name: superset
+Version: 0.18.5
+Summary: A interactive data visualization platform build on SqlAlchemy and druid.io
+Home-page: https://github.com/airbnb/superset
+Author: Maxime Beauchemin
+Author-email: maximebeauchemin@gmail.com
+License: Apache License, Version 2.0
+Download-URL: https://github.com/airbnb/superset/tarball/0.18.5
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5

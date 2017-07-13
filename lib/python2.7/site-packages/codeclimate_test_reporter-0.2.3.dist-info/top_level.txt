@@ -1,0 +1,1 @@
+codeclimate_test_reporter

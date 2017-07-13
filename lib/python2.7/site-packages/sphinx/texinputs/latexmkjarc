@@ -1,0 +1,7 @@
+$latex = 'platex ' . $ENV{'LATEXOPTS'} . ' -kanji=utf8 %O %S';
+$dvipdf = 'dvipdfmx %O -o %D %S';
+$makeindex = 'rm -f %D; mendex -U -f -d %B.dic -s python.ist %S || echo "mendex exited with error code $? (ignoring)" && : >> %D';
+add_cus_dep( "glo", "gls", 0, "makeglo" );
+sub makeglo {
+ return system( "mendex -J -f -s gglo.ist -o '$_[0].gls' '$_[0].glo'" );
+}

@@ -1,0 +1,13 @@
+E: 11:pprint: Not enough arguments for format string
+E: 12:pprint: Too many arguments for format string
+E: 13:pprint: Mixing named and unnamed conversion specifiers in format string
+E: 14:pprint: Missing key 'PARG_2' in format string dictionary
+E: 16:pprint: Missing key 'PARG_2' in format string dictionary
+E: 17:pprint: Expected mapping for format string, not Tuple
+E: 18:pprint: Expected mapping for format string, not List
+E: 19:pprint: Unsupported format character 'z' (0x7a) at index 2
+E: 20:pprint: Format string ends in middle of conversion specifier
+E: 21:pprint: Unsupported format character 'a' (0x61) at index 12
+W: 15:pprint: Unused key 'PARG_3' in format string dictionary
+W: 16:pprint: Format string dictionary key should be a string, not 2
+

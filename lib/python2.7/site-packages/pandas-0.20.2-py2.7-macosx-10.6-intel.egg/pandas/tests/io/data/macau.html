@@ -1,0 +1,3691 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!-- saved from url=(0037)http://www.camacau.com/statistic_list -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+<link rel="stylesheet" type="text/css" href="./macau_files/style.css" media="screen">
+<script type="text/javascript" src="./macau_files/jquery.js"></script>
+
+
+
+
+
+<script type="text/javascript">
+
+function slideSwitch() {
+    
+    var $active = $('#banner1 a.active');
+    
+    var totalTmp=document.getElementById("bannerTotal").innerHTML;
+    
+    var randomTmp=Math.floor(Math.random()*totalTmp+1);
+
+    var $next = $('#image'+randomTmp).length?$('#image'+randomTmp):$('#banner1 a:first');
+    
+    if($next.attr("id")==$active.attr("id")){
+
+      $next =  $active.next().length ? $active.next():$('#banner1 a:first');
+    }
+    
+    $active.removeClass("active");
+	
+	$next.addClass("active").show();
+
+    $active.hide();
+
+}
+
+jQuery(function() {
+    
+    var totalTmp=document.getElementById("bannerTotal").innerHTML;
+    if(totalTmp>1){
+       setInterval( "slideSwitch()", 5000 );
+    }
+    
+});
+
+</script>
+<script type="text/javascript">
+function close_notice(){
+jQuery("#tbNotice").hide();
+}
+</script>
+
+<title>Traffic Statistics - Passengers</title>
+
+<!--  GOOGLE STATISTICS
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-24989877-2']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+-->
+<style type="text/css"></style><style type="text/css"></style><script id="fireplug-jssdk" src="./macau_files/all.js"></script><style type="text/css">.fireplug-credit-widget-overlay{z-index:9999999999999999999;background-color:rgba(91,91,91,0.6)}.fireplug-credit-widget-overlay div,.fireplug-credit-widget-overlay span,.fireplug-credit-widget-overlay applet,.fireplug-credit-widget-overlay object,.fireplug-credit-widget-overlay iframe,.fireplug-credit-widget-overlay h1,.fireplug-credit-widget-overlay h2,.fireplug-credit-widget-overlay h3,.fireplug-credit-widget-overlay h4,.fireplug-credit-widget-overlay h5,.fireplug-credit-widget-overlay h6,.fireplug-credit-widget-overlay p,.fireplug-credit-widget-overlay blockquote,.fireplug-credit-widget-overlay pre,.fireplug-credit-widget-overlay a,.fireplug-credit-widget-overlay abbr,.fireplug-credit-widget-overlay acronym,.fireplug-credit-widget-overlay address,.fireplug-credit-widget-overlay big,.fireplug-credit-widget-overlay cite,.fireplug-credit-widget-overlay code,.fireplug-credit-widget-overlay del,.fireplug-credit-widget-overlay dfn,.fireplug-credit-widget-overlay em,.fireplug-credit-widget-overlay img,.fireplug-credit-widget-overlay ins,.fireplug-credit-widget-overlay kbd,.fireplug-credit-widget-overlay q,.fireplug-credit-widget-overlay s,.fireplug-credit-widget-overlay samp,.fireplug-credit-widget-overlay small,.fireplug-credit-widget-overlay strike,.fireplug-credit-widget-overlay strong,.fireplug-credit-widget-overlay sub,.fireplug-credit-widget-overlay sup,.fireplug-credit-widget-overlay tt,.fireplug-credit-widget-overlay var,.fireplug-credit-widget-overlay b,.fireplug-credit-widget-overlay u,.fireplug-credit-widget-overlay i,.fireplug-credit-widget-overlay center,.fireplug-credit-widget-overlay dl,.fireplug-credit-widget-overlay dt,.fireplug-credit-widget-overlay dd,.fireplug-credit-widget-overlay ol,.fireplug-credit-widget-overlay ul,.fireplug-credit-widget-overlay li,.fireplug-credit-widget-overlay fieldset,.fireplug-credit-widget-overlay form,.fireplug-credit-widget-overlay label,.fireplug-credit-widget-overlay legend,.fireplug-credit-widget-overlay table,.fireplug-credit-widget-overlay caption,.fireplug-credit-widget-overlay tbody,.fireplug-credit-widget-overlay tfoot,.fireplug-credit-widget-overlay thead,.fireplug-credit-widget-overlay tr,.fireplug-credit-widget-overlay th,.fireplug-credit-widget-overlay td,.fireplug-credit-widget-overlay article,.fireplug-credit-widget-overlay aside,.fireplug-credit-widget-overlay canvas,.fireplug-credit-widget-overlay details,.fireplug-credit-widget-overlay embed,.fireplug-credit-widget-overlay figure,.fireplug-credit-widget-overlay figcaption,.fireplug-credit-widget-overlay footer,.fireplug-credit-widget-overlay header,.fireplug-credit-widget-overlay hgroup,.fireplug-credit-widget-overlay menu,.fireplug-credit-widget-overlay nav,.fireplug-credit-widget-overlay output,.fireplug-credit-widget-overlay ruby,.fireplug-credit-widget-overlay section,.fireplug-credit-widget-overlay summary,.fireplug-credit-widget-overlay time,.fireplug-credit-widget-overlay mark,.fireplug-credit-widget-overlay audio,.fireplug-credit-widget-overlay video{margin:0;padding:0;border:0;font:inherit;font-size:100%;vertical-align:baseline}.fireplug-credit-widget-overlay table{border-collapse:collapse;border-spacing:0}.fireplug-credit-widget-overlay caption,.fireplug-credit-widget-overlay th,.fireplug-credit-widget-overlay td{text-align:left;font-weight:normal;vertical-align:middle}.fireplug-credit-widget-overlay q,.fireplug-credit-widget-overlay blockquote{quotes:none}.fireplug-credit-widget-overlay q:before,.fireplug-credit-widget-overlay q:after,.fireplug-credit-widget-overlay blockquote:before,.fireplug-credit-widget-overlay blockquote:after{content:"";content:none}.fireplug-credit-widget-overlay a img{border:none}.fireplug-credit-widget-overlay .fireplug-credit-widget-overlay-item{z-index:9999999999999999999;-webkit-box-shadow:#333 0px 0px 10px;-moz-box-shadow:#333 0px 0px 10px;box-shadow:#333 0px 0px 10px}.fireplug-credit-widget-overlay-body{height:100% !important;overflow:hidden !important}.fp-getcredit iframe{border:none;overflow:hidden;height:20px;width:145px}
+</style></head>
+<body>
+<div id="full">
+<div id="container">
+
+
+<div id="top">
+		<div id="lang">
+		  
+		  <a href="http://www.camacau.com/changeLang?lang=zh_TW&url=/statistic_list">繁體中文</a> | 
+		  <a href="http://www.camacau.com/changeLang?lang=zh_CN&url=/statistic_list">簡體中文</a> 
+		  <!--<a href="changeLang?lang=pt_PT&url=/statistic_list" >Portuguese</a>
+		  -->
+		  </div>
+</div>
+
+<div id="header">
+  <div id="sitelogo"><a href="http://www.camacau.com/index" style="color : #FFF;"><img src="./macau_files/cam h04.jpg"></a></div>
+  <div id="navcontainer">
+		  <div id="menu">
+		  <div id="search">
+		  <form id="searchForm" name="searchForm" action="http://www.camacau.com/search" method="POST">
+			<input id="keyword" name="keyword" type="text">
+			<a href="javascript:document.searchForm.submit();">Search</a> | 
+			<a href="mailto:mkd@macau-airport.com">Contact Us</a>  | 
+			<a href="http://www.camacau.com/sitemap">SiteMap</a> |
+			
+		  	<a href="http://www.camacau.com/rssBuilder.action"><img src="./macau_files/rssIcon.png" alt="RSS">RSS</a>
+			</form></div>
+		</div>
+</div>
+</div>
+<div id="menu2">
+			<div>
+			
+		          	 
+		    <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="95" height="20" id="FlashID4" title="Main Page">
+				<param name="movie" value="flash/button_index_EN.swf">
+				<param name="quality" value="high">
+				<param name="scale" value="exactfit">
+				<param name="wmode" value="opaque">
+				<param name="swfversion" value="6.0.65.0">
+				<!-- 此 param 標籤會提示使用 Flash Player 6.0 r65 和更新版本的使用者下載最新版本的 Flash Player。如果您不想讓使用者看到這項提示，請將其刪除。 -->
+				<param name="expressinstall" value="flash/expressInstall.swf">
+				<!-- 下一個物件標籤僅供非 IE 瀏覽器使用。因此，請使用 IECC 將其自 IE 隱藏。 -->
+				<!--[if !IE]>-->
+				<object type="application/x-shockwave-flash" data="http://www.camacau.com/flash/button_index_EN.swf" width="92" height="20">
+				  <!--<![endif]-->
+				  <param name="quality" value="high">
+				  <param name="scale" value="exactfit">
+				  <param name="wmode" value="opaque">
+				  <param name="swfversion" value="6.0.65.0">
+				  <param name="expressinstall" value="flash/expressInstall.swf">
+				  <!-- 瀏覽器會為使用 Flash Player 6.0 和更早版本的使用者顯示下列替代內容。 -->
+				  <div>
+					<h4>這個頁面上的內容需要較新版本的 Adobe Flash Player。</h4>
+					<p><a href="http://www.adobe.com/go/getflashplayer"><img src="./macau_files/get_flash_player.gif" alt="取得 Adobe Flash Player" width="112" height="33"></a></p>
+				  </div>
+				  <!--[if !IE]>-->
+				</object>
+				<!--<![endif]-->
+			  </object>		  
+		          	 
+			<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="95" height="20" id="FlashID4" title="Our Business">
+				<param name="movie" value="flash/button_our business_EN.swf">
+				<param name="quality" value="high">
+				<param name="scale" value="exactfit">
+				<param name="wmode" value="opaque">
+				<param name="swfversion" value="6.0.65.0">
+				<!-- 此 param 標籤會提示使用 Flash Player 6.0 r65 和更新版本的使用者下載最新版本的 Flash Player。如果您不想讓使用者看到這項提示，請將其刪除。 -->
+				<param name="expressinstall" value="flash/expressInstall.swf">
+				<!-- 下一個物件標籤僅供非 IE 瀏覽器使用。因此，請使用 IECC 將其自 IE 隱藏。 -->
+				<!--[if !IE]>-->
+				<object type="application/x-shockwave-flash" data="http://www.camacau.com/flash/button_our%20business_EN.swf" width="92" height="20">
+				  <!--<![endif]-->
+				  <param name="quality" value="high">
+				  <param name="scale" value="exactfit">
+				  <param name="wmode" value="opaque">
+				  <param name="swfversion" value="6.0.65.0">
+				  <param name="expressinstall" value="flash/expressInstall.swf">
+				  <!-- 瀏覽器會為使用 Flash Player 6.0 和更早版本的使用者顯示下列替代內容。 -->
+				  <div>
+					<h4>這個頁面上的內容需要較新版本的 Adobe Flash Player。</h4>
+					<p><a href="http://www.adobe.com/go/getflashplayer"><img src="./macau_files/get_flash_player.gif" alt="取得 Adobe Flash Player" width="112" height="33"></a></p>
+				  </div>
+				  <!--[if !IE]>-->
+				</object>
+				<!--<![endif]-->
+			  </object>
+			  
+			  <object id="FlashID" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="95" height="20" title="About Us">
+				<param name="movie" value="flash/button_about us_EN.swf">
+				<param name="quality" value="high">
+				<param name="scale" value="exactfit">
+				<param name="wmode" value="opaque">
+				<param name="swfversion" value="6.0.65.0">
+				  <!-- 此 param 標籤會提示使用 Flash Player 6.0 r65 和更新版本的使用者下載最新版本的 Flash Player。如果您不想讓使用者看到這項提示，請將其刪除。 -->
+				<param name="expressinstall" value="flash/expressInstall.swf">
+				  <!-- 下一個物件標籤僅供非 IE 瀏覽器使用。因此，請使用 IECC 將其自 IE 隱藏。 -->
+				  <!--[if !IE]>-->
+				  <object type="application/x-shockwave-flash" data="http://www.camacau.com/flash/button_about%20us_EN.swf" width="92" height="20">
+					<!--<![endif]-->
+					<param name="quality" value="high">
+					<param name="scale" value="exactfit">
+					<param name="wmode" value="opaque">
+					<param name="swfversion" value="6.0.65.0">
+					<param name="expressinstall" value="flash/expressInstall.swf">
+					<!-- 瀏覽器會為使用 Flash Player 6.0 和更早版本的使用者顯示下列替代內容。 -->
+					<div>
+					  <h4>這個頁面上的內容需要較新版本的 Adobe Flash Player。</h4>
+					  <p><a href="http://www.adobe.com/go/getflashplayer"><img src="./macau_files/get_flash_player.gif" alt="取得 Adobe Flash Player" width="112" height="33"></a></p>
+					</div>
+					<!--[if !IE]>-->
+				</object>
+				  <!--<![endif]-->
+			  </object>
+			  
+			  <object id="FlashID3" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="95" height="20" title="Media Centre">
+				<param name="movie" value="flash/button_media centre_EN.swf">
+				<param name="quality" value="high">
+				<param name="scale" value="exactfit">
+				<param name="wmode" value="opaque">
+				<param name="swfversion" value="6.0.65.0">
+				<!-- 此 param 標籤會提示使用 Flash Player 6.0 r65 和更新版本的使用者下載最新版本的 Flash Player。如果您不想讓使用者看到這項提示，請將其刪除。 -->
+				<param name="expressinstall" value="flash/expressInstall.swf">
+				<!-- 下一個物件標籤僅供非 IE 瀏覽器使用。因此，請使用 IECC 將其自 IE 隱藏。 -->
+				<!--[if !IE]>-->
+				<object type="application/x-shockwave-flash" data="http://www.camacau.com/flash/button_media%20centre_EN.swf" width="92" height="20">
+				  <!--<![endif]-->
+				  <param name="quality" value="high">
+				  <param name="wmode" value="opaque">
+				  <param name="scale" value="exactfit">
+				  <param name="swfversion" value="6.0.65.0">
+				  <param name="expressinstall" value="flash/expressInstall.swf">
+				  <!-- 瀏覽器會為使用 Flash Player 6.0 和更早版本的使用者顯示下列替代內容。 -->
+				  <div>
+					<h4>這個頁面上的內容需要較新版本的 Adobe Flash Player。</h4>
+					<p><a href="http://www.adobe.com/go/getflashplayer"><img src="./macau_files/get_flash_player.gif" alt="取得 Adobe Flash Player" width="112" height="33"></a></p>
+				  </div>
+				  <!--[if !IE]>-->
+				</object>
+				<!--<![endif]-->
+			  </object>
+			  
+			  <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="95" height="20" id="FlashID5" title="Related Links">
+				<param name="movie" value="flash/button_related links_EN.swf">
+				<param name="quality" value="high">
+				<param name="scale" value="exactfit">
+				<param name="wmode" value="opaque">
+				<param name="swfversion" value="6.0.65.0">
+				<!-- 此 param 標籤會提示使用 Flash Player 6.0 r65 和更新版本的使用者下載最新版本的 Flash Player。如果您不想讓使用者看到這項提示，請將其刪除。 -->
+				<param name="expressinstall" value="flash/expressInstall.swf">
+				<!-- 下一個物件標籤僅供非 IE 瀏覽器使用。因此，請使用 IECC 將其自 IE 隱藏。 -->
+				<!--[if !IE]>-->
+				<object type="application/x-shockwave-flash" data="http://www.camacau.com/flash/button_related%20links_EN.swf" width="92" height="20">
+				  <!--<![endif]-->
+				  <param name="quality" value="high">
+				  <param name="scale" value="exactfit">
+				  <param name="wmode" value="opaque">
+				  <param name="swfversion" value="6.0.65.0">
+				  <param name="expressinstall" value="flash/expressInstall.swf">
+				  <!-- 瀏覽器會為使用 Flash Player 6.0 和更早版本的使用者顯示下列替代內容。 -->
+				  <div>
+					<h4>這個頁面上的內容需要較新版本的 Adobe Flash Player。</h4>
+					<p><a href="http://www.adobe.com/go/getflashplayer"><img src="./macau_files/get_flash_player.gif" alt="取得 Adobe Flash Player" width="112" height="33"></a></p>
+				  </div>
+				  <!--[if !IE]>-->
+				</object>
+				<!--<![endif]-->
+			  </object>
+			  
+			  <object id="FlashID2" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="95" height="20" title="Interactive">
+				<param name="movie" value="flash/button_interactive_EN.swf">
+				<param name="quality" value="high">
+				<param name="scale" value="exactfit">
+				<param name="wmode" value="opaque">
+				<param name="swfversion" value="6.0.65.0">
+				<!-- 此 param 標籤會提示使用 Flash Player 6.0 r65 和更新版本的使用者下載最新版本的 Flash Player。如果您不想讓使用者看到這項提示，請將其刪除。 -->
+				<param name="expressinstall" value="flash/expressInstall.swf">
+				<!-- 下一個物件標籤僅供非 IE 瀏覽器使用。因此，請使用 IECC 將其自 IE 隱藏。 -->
+				<!--[if !IE]>-->
+				<object type="application/x-shockwave-flash" data="http://www.camacau.com/flash/button_interactive_EN.swf" width="92" height="20">
+				  <!--<![endif]-->
+				  <param name="quality" value="high">
+				  <param name="scale" value="exactfit">
+				  <param name="wmode" value="opaque">
+				  <param name="swfversion" value="6.0.65.0">
+				  <param name="expressinstall" value="flash/expressInstall.swf">
+				  <!-- 瀏覽器會為使用 Flash Player 6.0 和更早版本的使用者顯示下列替代內容。 -->
+				  <div>
+					<h4>這個頁面上的內容需要較新版本的 Adobe Flash Player。</h4>
+					<p><a href="http://www.adobe.com/go/getflashplayer"><img src="./macau_files/get_flash_player.gif" alt="取得 Adobe Flash Player" width="112" height="33"></a></p>
+				  </div>
+				  <!--[if !IE]>-->
+				</object>
+				<!--<![endif]-->
+			  </object>
+			  
+			  <!--<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" width="95" height="20" id="FlashID4" title="Group of Public">
+				<param name="movie" value="flash/button_pressRelease_EN.swf" />
+				<param name="quality" value="high" />
+				<param name="scale" value="exactfit">
+				<param name="wmode" value="opaque" />
+				<param name="swfversion" value="6.0.65.0" />
+				 此 param 標籤會提示使用 Flash Player 6.0 r65 和更新版本的使用者下載最新版本的 Flash Player。如果您不想讓使用者看到這項提示，請將其刪除。 
+				<param name="expressinstall" value="flash/expressInstall.swf" />
+				 下一個物件標籤僅供非 IE 瀏覽器使用。因此，請使用 IECC 將其自 IE 隱藏。 
+				[if !IE]>
+				<object type="application/x-shockwave-flash" data="flash/button_pressRelease_EN.swf" width="92" height="20">
+				  <![endif]
+				  <param name="quality" value="high" />
+				  <param name="scale" value="exactfit">
+				  <param name="wmode" value="opaque" />
+				  <param name="swfversion" value="6.0.65.0" />
+				  <param name="expressinstall" value="flash/expressInstall.swf" />
+				   瀏覽器會為使用 Flash Player 6.0 和更早版本的使用者顯示下列替代內容。 
+				  <div>
+					<h4>這個頁面上的內容需要較新版本的 Adobe Flash Player。</h4>
+					<p><a href="http://www.adobe.com/go/getflashplayer"><img src="http://www.adobe.com/images/shared/download_buttons/get_flash_player.gif" alt="取得 Adobe Flash Player" width="112" height="33" /></a></p>
+				  </div>
+				  [if !IE]>
+				</object>
+				<![endif]
+			  </object>
+			  
+			  --></div>
+		  </div>
+
+
+
+
+
+
+
+<style>
+#slider ul li 
+{ 
+height: 90px;
+list-style:none;
+width:95%;
+font-size:11pt;
+text-indent:2em;
+text-align:justify;
+text-justify:inter-ideograph;
+color:#663300;
+}
+
+
+#slider
+{
+margin: auto;
+overflow: hidden;
+/* Non Core */
+background: #f6f7f8;
+box-shadow: 4px 4px 15px #aaa;
+-o-box-shadow: 4px 4px 15px #aaa;
+-icab-box-shadow: 4px 4px 15px #aaa;
+-khtml-box-shadow: 4px 4px 15px #aaa;
+-moz-box-shadow: 4px 4px 15px #aaa;
+-webkit-box-shadow: 4px 4px 15px #aaa;
+border: 4px solid #bcc5cb;
+
+border-width: 1px 2px 2px 1px;
+
+-o-border-radius: 10px;
+-icab-border-radius: 10px;
+-khtml-border-radius: 10px;
+-moz-border-radius: 10px;
+-webkit-border-radius: 10px;
+border-radius: 10px;
+
+}
+
+#close_tbNotice img
+{
+width:20px;
+height:20px;
+align:right;
+cursor:pointer;
+}
+</style>
+
+<div id="banner">
+	<!--<div id="leftGradient"></div>-->
+	
+			<table id="tbNotice" style="display:none;width:800px;z-index:999;position:absolute;left:20%;" align="center">
+				<tbody><tr height="40px"><td></td></tr> 
+				<tr><td>
+					
+					<div id="slider">
+				<div id="close_tbNotice"><img src="./macau_files/delete.png" onclick="close_notice()"></div>
+				<ul>
+					<li>
+						
+		                
+		                
+						
+					</li>
+				</ul>
+				
+			</div>
+			<div id="show_notice" style="display:none;">
+			
+			</div>
+			
+				</td>
+	
+				</tr>
+				<tr><td align="right"></td></tr>
+			</tbody></table>
+			 
+		
+	<div class="gradient">
+		
+	</div>
+	<div class="banner1" id="banner1">
+	
+	
+			
+			
+             <a href="http://www.macau-airport.com/" target="_blank" style="display: none;" id="image1" class="">
+		     <img src="./macau_files/41.jpeg" alt="Slideshow Image 1">
+	         </a>
+		    
+            
+	
+			
+            
+             <a href="http://www.macau-airport.com/" target="_blank" style="display: none;" id="image2" class="">
+		     <img src="./macau_files/45.jpeg" alt="Slideshow Image 2">
+	         </a>
+		    
+		
+	
+			
+            
+             <a href="http://www.macau-airport.com/" target="_blank" style="display: none;" id="image3" class="">
+		     <img src="./macau_files/46.jpeg" alt="Slideshow Image 3">
+	         </a>
+		    
+		
+	
+			
+            
+             <a href="http://www.macau-airport.com/" target="_blank" style="display: inline;" id="image4" class="active">
+		     <img src="./macau_files/47.jpeg" alt="Slideshow Image 4">
+	         </a>
+		    
+		
+	
+			
+            
+             <a href="http://www.macau-airport.com/" target="_blank" style="display: none;" id="image5" class="">
+		     <img src="./macau_files/48.jpeg" alt="Slideshow Image 5">
+	         </a>
+		    
+		
+	
+			
+            
+             <a href="http://www.macau-airport.com/" target="_blank" style="display: none;" id="image6" class="">
+		     <img src="./macau_files/49.jpeg" alt="Slideshow Image 6">
+	         </a>
+		    
+		
+	
+			
+            
+             <a href="http://www.4cpscac.com/" target="_blank" style="display: none;" id="image7" class="">
+		     <img src="./macau_files/50.jpg" alt="Slideshow Image 7">
+	         </a>
+		    
+		
+	
+	
+	</div>
+	<div id="bannerTotal" style="display:none;">7</div>
+</div>
+
+<div id="content">
+        <div id="leftnav">
+        
+                <div id="navmenu">
+				
+        		
+
+
+
+<link href="./macau_files/ddaccordion.css" rel="stylesheet" type="text/css">
+<script type="text/javascript" src="./macau_files/ddaccordion.js"></script>
+
+
+
+<script type="text/javascript">
+	ddaccordion.init({
+	headerclass: "leftmenu_silverheader", //Shared CSS class name of headers group
+	contentclass: "leftmenu_submenu", //Shared CSS class name of contents group
+	revealtype: "clickgo", //Reveal content when user clicks or onmouseover the header? Valid value: "click", "clickgo", or "mouseover"
+	mouseoverdelay: 100, //if revealtype="mouseover", set delay in milliseconds before header expands onMouseover
+	collapseprev: true, //Collapse previous content (so only one open at any time)? true/false
+	defaultexpanded: [0], //index of content(s) open by default [index1, index2, etc] [] denotes no content
+	onemustopen: false, //Specify whether at least one header should be open always (so never all headers closed)
+	animatedefault: true, //Should contents open by default be animated into view?
+	persiststate: true, //persist state of opened contents within browser session?
+	toggleclass: ["", "selected"], //Two CSS classes to be applied to the header when it's collapsed and expanded, respectively ["class1", "class2"]
+	togglehtml: ["", "", ""], //Additional HTML added to the header when it's collapsed and expanded, respectively  ["position", "html1", "html2"] (see docs)
+	animatespeed: "normal", //speed of animation: integer in milliseconds (ie: 200), or keywords "fast", "normal", or "slow"
+	oninit:function(headers, expandedindices){ //custom code to run when headers have initalized
+		//do nothing
+	},
+	onopenclose:function(header, index, state, isuseractivated){ //custom code to run whenever a header is opened or closed
+		//do nothing
+	
+	}
+});
+</script><style type="text/css">
+.leftmenu_submenu{display: none}
+a.hiddenajaxlink{display: none}
+</style>
+
+	
+				<table>
+				<tbody><tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/geographic_information">MIA Geographical Information</a></td></tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/airport_services">Scope of Service</a></td></tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/services_agreement">Air Services Agreement</a></td></tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/airport_charges" class="leftmenu_silverheader selected" headerindex="0h"><span>Airport Charges</span></a></td></tr>
+				<tr><td colspan="2" style="padding-top:0px;padding-bottom:0px;padding-right:0px;">
+				<table class="leftmenu_submenu" contentindex="0c" style="display: block;">
+				<tbody><tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/airport_charges1">Passenger Service Fees</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/airport_charges2">Aircraft Parking fees</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/airport_charges3">Airport Security Fee</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/airport_charges4">Utilization fees</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/airport_charges5">Refuelling Charge</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/calculation">Calculation of Landing fee Rate</a></td></tr></tbody></table></td></tr>
+				</tbody></table>
+				</td>
+				</tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/application_facilities">Application of Credit Facilities</a></td></tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="javascript:void(0)" class="leftmenu_silverheader " headerindex="1h"><span>Passenger Flight Incentive Program</span></a></td></tr>
+				<tr><td colspan="2" style="padding-top:0px;padding-bottom:0px;padding-right:0px;">
+				<table class="leftmenu_submenu" contentindex="1c" style="display: none;">
+				<tbody><tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/incentive_program1">Incentive policy for new routes and additional flights</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/incentive_program1_1">Passenger flights</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/incentive_program1_2">Charter flights</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/docs/MIA_Route_Development_IncentiveApp_Form.pdf" target="_blank">Route Development Incentive Application Form</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/online_application">Online Application</a></td></tr></tbody></table></td></tr>
+				</tbody></table>
+				</td>
+				</tr>
+				
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/slot_application">Slot Application</a></td></tr>
+				
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/freighter_forwards">Macau Freight Forwarders</a></td></tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/ctplatform">Cargo Tracking Platform</a></td></tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/for_rent">For Rent</a></td></tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/capacity">Airport Capacity</a></td></tr>
+				
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td style="color: #606060;text-decoration: none;"><a href="javascript:void(0)" class="leftmenu_silverheader " headerindex="2h">Airport Characteristics &amp; Traffic Statistics</a></td></tr>
+				<tr><td colspan="2" style="padding-top:0px;padding-bottom:0px;padding-right:0px;">
+				<table class="leftmenu_submenu" contentindex="2c" style="display: none;">
+				<!--<tr><td>&nbsp;</td><td><table class="submenu"><tr><td><img width="20" height="15" src="images/sub_icon.gif"/></td><td><a href="airport_characteristics">Airport Characteristics</a></td></tr></table></td></tr>
+				-->
+				<tbody><tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="./macau_files/macau.html">Traffic Statistics - Passengers</a></td></tr></tbody></table></td></tr>
+				<tr><td>&nbsp;</td><td><table class="submenu"><tbody><tr><td><img width="20" height="15" src="./macau_files/sub_icon.gif"></td><td><a href="http://www.camacau.com/statistics_cargo">Traffic Statistics - Cargo</a></td></tr></tbody></table></td></tr>
+				</tbody></table>
+				</td>
+				</tr>
+				<tr><td><img width="20" height="15" src="./macau_files/double.gif"></td><td><a href="http://www.camacau.com/operational_routes">Operational Routes</a></td></tr>
+
+				<!--<tr><td><img width="20" height="15" src="images/double.gif"/></td><td><a href="route_development">Member Registration</a></td></tr>
+				
+				--><!--<tr><td><img width="20" height="15" src="images/double.gif"/></td><td><a href="cargo_arrival">Cargo Flight Information</a></td></tr>-->
+				
+				<!--<tr><td><img width="20" height="15" src="images/double.gif"/></td><td><a href="/mvnforum/mvnforum/index">Forum</a></td></tr>-->
+				
+				</tbody></table>
+
+
+        		</div>
+		</div>
+
+<div id="under">
+			<div id="contextTitle">
+          			<h2 class="con">Traffic Statistics - Passengers</h2>
+          
+          </div>
+			<div class="contextTitleAfter"></div>
+	<div>
+    	  
+          
+    	  <div id="context">
+          <!--/*begin context*/-->
+          <div class="Container">
+                     <div id="Scroller-1">
+                           <div class="Scroller-Container">
+          		<div id="statisticspassengers" style="width:550px;">
+          		
+
+   <span id="title">Traffic Statistics</span>
+
+  
+   
+   
+   
+   <br><br><br>
+   <span id="title">Passengers Figure(2008-2013) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">2013</th>
+   
+   <th align="center">2012</th>
+   
+   <th align="center">2011</th>
+   
+   <th align="center">2010</th>
+   
+   <th align="center">2009</th>
+   
+   <th align="center">2008</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+    
+    374,917
+   </td>
+   
+   <td align="center">
+    
+    362,379
+   </td>
+   
+   <td align="center">
+    
+    301,503
+   </td>
+   
+   <td align="center">
+    
+    358,902
+   </td>
+   
+   <td align="center">
+    
+    342,323
+   </td>
+   
+   <td align="center">
+    
+    420,574
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    393,152
+   </td>
+   
+   <td align="center">
+   
+    312,405
+   </td>
+   
+   <td align="center">
+   
+    301,259
+   </td>
+   
+   <td align="center">
+   
+    351,654
+   </td>
+   
+   <td align="center">
+   
+    297,755
+   </td>
+   
+   <td align="center">
+   
+    442,809
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    408,755
+   </td>
+   
+   <td align="center">
+   
+    334,000
+   </td>
+   
+   <td align="center">
+   
+    318,908
+   </td>
+   
+   <td align="center">
+   
+    360,365
+   </td>
+   
+   <td align="center">
+   
+    387,879
+   </td>
+   
+   <td align="center">
+   
+    468,540
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    408,860
+   </td>
+   
+   <td align="center">
+   
+    358,198
+   </td>
+   
+   <td align="center">
+   
+    339,060
+   </td>
+   
+   <td align="center">
+   
+    352,976
+   </td>
+   
+   <td align="center">
+   
+    400,553
+   </td>
+   
+   <td align="center">
+   
+    492,930
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    374,397
+   </td>
+   
+   <td align="center">
+   
+    329,218
+   </td>
+   
+   <td align="center">
+   
+    321,060
+   </td>
+   
+   <td align="center">
+   
+    330,407
+   </td>
+   
+   <td align="center">
+   
+    335,967
+   </td>
+   
+   <td align="center">
+   
+    465,045
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    401,995
+   </td>
+   
+   <td align="center">
+   
+    356,679
+   </td>
+   
+   <td align="center">
+   
+    343,006
+   </td>
+   
+   <td align="center">
+   
+    326,724
+   </td>
+   
+   <td align="center">
+   
+    296,748
+   </td>
+   
+   <td align="center">
+   
+    426,764
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    423,081
+   </td>
+   
+   <td align="center">
+   
+    378,993
+   </td>
+   
+   <td align="center">
+   
+    356,580
+   </td>
+   
+   <td align="center">
+   
+    351,110
+   </td>
+   
+   <td align="center">
+   
+    439,425
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    453,391
+   </td>
+   
+   <td align="center">
+   
+    395,883
+   </td>
+   
+   <td align="center">
+   
+    364,011
+   </td>
+   
+   <td align="center">
+   
+    404,076
+   </td>
+   
+   <td align="center">
+   
+    425,814
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    384,887
+   </td>
+   
+   <td align="center">
+   
+    325,124
+   </td>
+   
+   <td align="center">
+   
+    308,940
+   </td>
+   
+   <td align="center">
+   
+    317,226
+   </td>
+   
+   <td align="center">
+   
+    379,898
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    383,889
+   </td>
+   
+   <td align="center">
+   
+    333,102
+   </td>
+   
+   <td align="center">
+   
+    317,040
+   </td>
+   
+   <td align="center">
+   
+    355,935
+   </td>
+   
+   <td align="center">
+   
+    415,339
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    379,065
+   </td>
+   
+   <td align="center">
+   
+    327,803
+   </td>
+   
+   <td align="center">
+   
+    303,186
+   </td>
+   
+   <td align="center">
+   
+    372,104
+   </td>
+   
+   <td align="center">
+   
+    366,411
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    413,873
+   </td>
+   
+   <td align="center">
+   
+    359,313
+   </td>
+   
+   <td align="center">
+   
+    348,051
+   </td>
+   
+   <td align="center">
+   
+    388,573
+   </td>
+   
+   <td align="center">
+   
+    354,253
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    2,362,076
+   </td>
+   
+   <td align="center">
+   
+    4,491,065
+   </td>
+   
+   <td align="center">
+   
+    4,045,014
+   </td>
+   
+   <td align="center">
+   
+    4,078,836
+   </td>
+   
+   <td align="center">
+   
+    4,250,249
+   </td>
+   
+   <td align="center">
+   
+    5,097,802
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+   <br><br><br>
+   <span id="title">Passengers Figure(2002-2007) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">2007</th>
+   
+   <th align="center">2006</th>
+   
+   <th align="center">2005</th>
+   
+   <th align="center">2004</th>
+   
+   <th align="center">2003</th>
+   
+   <th align="center">2002</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+    
+    381,887
+   </td>
+   
+   <td align="center">
+    
+    323,282
+   </td>
+   
+   <td align="center">
+    
+    289,701
+   </td>
+   
+   <td align="center">
+    
+    288,507
+   </td>
+   
+   <td align="center">
+    
+    290,140
+   </td>
+   
+   <td align="center">
+    
+    268,783
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    426,014
+   </td>
+   
+   <td align="center">
+   
+    360,820
+   </td>
+   
+   <td align="center">
+   
+    348,723
+   </td>
+   
+   <td align="center">
+   
+    207,710
+   </td>
+   
+   <td align="center">
+   
+    323,264
+   </td>
+   
+   <td align="center">
+   
+    323,654
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    443,805
+   </td>
+   
+   <td align="center">
+   
+    389,125
+   </td>
+   
+   <td align="center">
+   
+    321,953
+   </td>
+   
+   <td align="center">
+   
+    273,910
+   </td>
+   
+   <td align="center">
+   
+    295,052
+   </td>
+   
+   <td align="center">
+   
+    360,668
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    500,917
+   </td>
+   
+   <td align="center">
+   
+    431,550
+   </td>
+   
+   <td align="center">
+   
+    367,976
+   </td>
+   
+   <td align="center">
+   
+    324,931
+   </td>
+   
+   <td align="center">
+   
+    144,082
+   </td>
+   
+   <td align="center">
+   
+    380,648
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    468,637
+   </td>
+   
+   <td align="center">
+   
+    399,743
+   </td>
+   
+   <td align="center">
+   
+    359,298
+   </td>
+   
+   <td align="center">
+   
+    250,601
+   </td>
+   
+   <td align="center">
+   
+    47,333
+   </td>
+   
+   <td align="center">
+   
+    359,547
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    463,676
+   </td>
+   
+   <td align="center">
+   
+    393,713
+   </td>
+   
+   <td align="center">
+   
+    360,147
+   </td>
+   
+   <td align="center">
+   
+    296,000
+   </td>
+   
+   <td align="center">
+   
+    94,294
+   </td>
+   
+   <td align="center">
+   
+    326,508
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    490,404
+   </td>
+   
+   <td align="center">
+   
+    465,497
+   </td>
+   
+   <td align="center">
+   
+    413,131
+   </td>
+   
+   <td align="center">
+   
+    365,454
+   </td>
+   
+   <td align="center">
+   
+    272,784
+   </td>
+   
+   <td align="center">
+   
+    388,061
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    490,830
+   </td>
+   
+   <td align="center">
+   
+    478,474
+   </td>
+   
+   <td align="center">
+   
+    409,281
+   </td>
+   
+   <td align="center">
+   
+    372,802
+   </td>
+   
+   <td align="center">
+   
+    333,840
+   </td>
+   
+   <td align="center">
+   
+    384,719
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    446,594
+   </td>
+   
+   <td align="center">
+   
+    412,444
+   </td>
+   
+   <td align="center">
+   
+    354,751
+   </td>
+   
+   <td align="center">
+   
+    321,456
+   </td>
+   
+   <td align="center">
+   
+    295,447
+   </td>
+   
+   <td align="center">
+   
+    334,029
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    465,757
+   </td>
+   
+   <td align="center">
+   
+    461,215
+   </td>
+   
+   <td align="center">
+   
+    390,435
+   </td>
+   
+   <td align="center">
+   
+    358,362
+   </td>
+   
+   <td align="center">
+   
+    291,193
+   </td>
+   
+   <td align="center">
+   
+    372,706
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    455,132
+   </td>
+   
+   <td align="center">
+   
+    425,116
+   </td>
+   
+   <td align="center">
+   
+    323,347
+   </td>
+   
+   <td align="center">
+   
+    327,593
+   </td>
+   
+   <td align="center">
+   
+    268,282
+   </td>
+   
+   <td align="center">
+   
+    350,324
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    465,225
+   </td>
+   
+   <td align="center">
+   
+    435,114
+   </td>
+   
+   <td align="center">
+   
+    308,999
+   </td>
+   
+   <td align="center">
+   
+    326,933
+   </td>
+   
+   <td align="center">
+   
+    249,855
+   </td>
+   
+   <td align="center">
+   
+    322,056
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    5,498,878
+   </td>
+   
+   <td align="center">
+   
+    4,976,093
+   </td>
+   
+   <td align="center">
+   
+    4,247,742
+   </td>
+   
+   <td align="center">
+   
+    3,714,259
+   </td>
+   
+   <td align="center">
+   
+    2,905,566
+   </td>
+   
+   <td align="center">
+   
+    4,171,703
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+   <br><br><br>
+   <span id="title">Passengers Figure(1996-2001) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">2001</th>
+   
+   <th align="center">2000</th>
+   
+   <th align="center">1999</th>
+   
+   <th align="center">1998</th>
+   
+   <th align="center">1997</th>
+   
+   <th align="center">1996</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+    
+    265,603
+   </td>
+   
+   <td align="center">
+    
+    184,381
+   </td>
+   
+   <td align="center">
+    
+    161,264
+   </td>
+   
+   <td align="center">
+    
+    161,432
+   </td>
+   
+   <td align="center">
+    
+    117,984
+   </td>
+   
+   <td align="center">
+    
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    249,259
+   </td>
+   
+   <td align="center">
+   
+    264,066
+   </td>
+   
+   <td align="center">
+   
+    209,569
+   </td>
+   
+   <td align="center">
+   
+    168,777
+   </td>
+   
+   <td align="center">
+   
+    150,772
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    312,319
+   </td>
+   
+   <td align="center">
+   
+    226,483
+   </td>
+   
+   <td align="center">
+   
+    186,965
+   </td>
+   
+   <td align="center">
+   
+    172,060
+   </td>
+   
+   <td align="center">
+   
+    149,795
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    351,793
+   </td>
+   
+   <td align="center">
+   
+    296,541
+   </td>
+   
+   <td align="center">
+   
+    237,449
+   </td>
+   
+   <td align="center">
+   
+    180,241
+   </td>
+   
+   <td align="center">
+   
+    179,049
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    338,692
+   </td>
+   
+   <td align="center">
+   
+    288,949
+   </td>
+   
+   <td align="center">
+   
+    230,691
+   </td>
+   
+   <td align="center">
+   
+    172,391
+   </td>
+   
+   <td align="center">
+   
+    189,925
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    332,630
+   </td>
+   
+   <td align="center">
+   
+    271,181
+   </td>
+   
+   <td align="center">
+   
+    231,328
+   </td>
+   
+   <td align="center">
+   
+    157,519
+   </td>
+   
+   <td align="center">
+   
+    175,402
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    344,658
+   </td>
+   
+   <td align="center">
+   
+    304,276
+   </td>
+   
+   <td align="center">
+   
+    243,534
+   </td>
+   
+   <td align="center">
+   
+    205,595
+   </td>
+   
+   <td align="center">
+   
+    173,103
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    360,899
+   </td>
+   
+   <td align="center">
+   
+    300,418
+   </td>
+   
+   <td align="center">
+   
+    257,616
+   </td>
+   
+   <td align="center">
+   
+    241,140
+   </td>
+   
+   <td align="center">
+   
+    178,118
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    291,817
+   </td>
+   
+   <td align="center">
+   
+    280,803
+   </td>
+   
+   <td align="center">
+   
+    210,885
+   </td>
+   
+   <td align="center">
+   
+    183,954
+   </td>
+   
+   <td align="center">
+   
+    163,385
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    327,232
+   </td>
+   
+   <td align="center">
+   
+    298,873
+   </td>
+   
+   <td align="center">
+   
+    231,251
+   </td>
+   
+   <td align="center">
+   
+    205,726
+   </td>
+   
+   <td align="center">
+   
+    176,879
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    315,538
+   </td>
+   
+   <td align="center">
+   
+    265,528
+   </td>
+   
+   <td align="center">
+   
+    228,637
+   </td>
+   
+   <td align="center">
+   
+    181,677
+   </td>
+   
+   <td align="center">
+   
+    146,804
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    314,866
+   </td>
+   
+   <td align="center">
+   
+    257,929
+   </td>
+   
+   <td align="center">
+   
+    210,922
+   </td>
+   
+   <td align="center">
+   
+    183,975
+   </td>
+   
+   <td align="center">
+   
+    151,362
+   </td>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    3,805,306
+   </td>
+   
+   <td align="center">
+   
+    3,239,428
+   </td>
+   
+   <td align="center">
+   
+    2,640,111
+   </td>
+   
+   <td align="center">
+   
+    2,214,487
+   </td>
+   
+   <td align="center">
+   
+    1,952,578
+   </td>
+   
+   <td align="center">
+   
+    0
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+   <br><br><br>
+   <span id="title">Passengers Figure(1995-1995) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">1995</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+    
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    6,601
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    37,041
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    43,642
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+
+   <br><br><br>
+   <div align="right"><img src="./macau_files/pass_stat.jpg" alt="passenger statistic picture" width="565" height="318"></div>
+   <br><br><br>
+   
+   
+   <!--statistics-movement  --> 
+   
+   <br><br><br>
+   <span id="title">Movement Statistics(2008-2013) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">2013</th>
+   
+   <th align="center">2012</th>
+   
+   <th align="center">2011</th>
+   
+   <th align="center">2010</th>
+   
+   <th align="center">2009</th>
+   
+   <th align="center">2008</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+   
+    3,925
+   </td>
+   
+   <td align="center">
+   
+    3,463
+   </td>
+   
+   <td align="center">
+   
+    3,289
+   </td>
+   
+   <td align="center">
+   
+    3,184
+   </td>
+   
+   <td align="center">
+   
+    3,488
+   </td>
+   
+   <td align="center">
+   
+    4,568
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    3,632
+   </td>
+   
+   <td align="center">
+   
+    2,983
+   </td>
+   
+   <td align="center">
+   
+    2,902
+   </td>
+   
+   <td align="center">
+   
+    3,053
+   </td>
+   
+   <td align="center">
+   
+    3,347
+   </td>
+   
+   <td align="center">
+   
+    4,527
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    3,909
+   </td>
+   
+   <td align="center">
+   
+    3,166
+   </td>
+   
+   <td align="center">
+   
+    3,217
+   </td>
+   
+   <td align="center">
+   
+    3,175
+   </td>
+   
+   <td align="center">
+   
+    3,636
+   </td>
+   
+   <td align="center">
+   
+    4,594
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    3,903
+   </td>
+   
+   <td align="center">
+   
+    3,258
+   </td>
+   
+   <td align="center">
+   
+    3,146
+   </td>
+   
+   <td align="center">
+   
+    3,023
+   </td>
+   
+   <td align="center">
+   
+    3,709
+   </td>
+   
+   <td align="center">
+   
+    4,574
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    4,075
+   </td>
+   
+   <td align="center">
+   
+    3,234
+   </td>
+   
+   <td align="center">
+   
+    3,266
+   </td>
+   
+   <td align="center">
+   
+    3,033
+   </td>
+   
+   <td align="center">
+   
+    3,603
+   </td>
+   
+   <td align="center">
+   
+    4,511
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    4,038
+   </td>
+   
+   <td align="center">
+   
+    3,272
+   </td>
+   
+   <td align="center">
+   
+    3,316
+   </td>
+   
+   <td align="center">
+   
+    2,909
+   </td>
+   
+   <td align="center">
+   
+    3,057
+   </td>
+   
+   <td align="center">
+   
+    4,081
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    3,661
+   </td>
+   
+   <td align="center">
+   
+    3,359
+   </td>
+   
+   <td align="center">
+   
+    3,062
+   </td>
+   
+   <td align="center">
+   
+    3,354
+   </td>
+   
+   <td align="center">
+   
+    4,215
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    3,942
+   </td>
+   
+   <td align="center">
+   
+    3,417
+   </td>
+   
+   <td align="center">
+   
+    3,077
+   </td>
+   
+   <td align="center">
+   
+    3,395
+   </td>
+   
+   <td align="center">
+   
+    4,139
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    3,703
+   </td>
+   
+   <td align="center">
+   
+    3,169
+   </td>
+   
+   <td align="center">
+   
+    3,095
+   </td>
+   
+   <td align="center">
+   
+    3,100
+   </td>
+   
+   <td align="center">
+   
+    3,752
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    3,727
+   </td>
+   
+   <td align="center">
+   
+    3,469
+   </td>
+   
+   <td align="center">
+   
+    3,179
+   </td>
+   
+   <td align="center">
+   
+    3,375
+   </td>
+   
+   <td align="center">
+   
+    3,874
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    3,722
+   </td>
+   
+   <td align="center">
+   
+    3,145
+   </td>
+   
+   <td align="center">
+   
+    3,159
+   </td>
+   
+   <td align="center">
+   
+    3,213
+   </td>
+   
+   <td align="center">
+   
+    3,567
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   <td align="center">
+   
+    3,866
+   </td>
+   
+   <td align="center">
+   
+    3,251
+   </td>
+   
+   <td align="center">
+   
+    3,199
+   </td>
+   
+   <td align="center">
+   
+    3,324
+   </td>
+   
+   <td align="center">
+   
+    3,362
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    23,482
+   </td>
+   
+   <td align="center">
+   
+    41,997
+   </td>
+   
+   <td align="center">
+   
+    38,946
+   </td>
+   
+   <td align="center">
+   
+    37,148
+   </td>
+   
+   <td align="center">
+   
+    40,601
+   </td>
+   
+   <td align="center">
+   
+    49,764
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+   <br><br><br>
+   <span id="title">Movement Statistics(2002-2007) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">2007</th>
+   
+   <th align="center">2006</th>
+   
+   <th align="center">2005</th>
+   
+   <th align="center">2004</th>
+   
+   <th align="center">2003</th>
+   
+   <th align="center">2002</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+   
+    4,384
+   </td>
+   
+   <td align="center">
+   
+    3,933
+   </td>
+   
+   <td align="center">
+   
+    3,528
+   </td>
+   
+   <td align="center">
+   
+    3,051
+   </td>
+   
+   <td align="center">
+   
+    3,257
+   </td>
+   
+   <td align="center">
+   
+    2,711
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    4,131
+   </td>
+   
+   <td align="center">
+   
+    3,667
+   </td>
+   
+   <td align="center">
+   
+    3,331
+   </td>
+   
+   <td align="center">
+   
+    2,372
+   </td>
+   
+   <td align="center">
+   
+    3,003
+   </td>
+   
+   <td align="center">
+   
+    2,747
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    4,349
+   </td>
+   
+   <td align="center">
+   
+    4,345
+   </td>
+   
+   <td align="center">
+   
+    3,549
+   </td>
+   
+   <td align="center">
+   
+    3,049
+   </td>
+   
+   <td align="center">
+   
+    3,109
+   </td>
+   
+   <td align="center">
+   
+    2,985
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    4,460
+   </td>
+   
+   <td align="center">
+   
+    4,490
+   </td>
+   
+   <td align="center">
+   
+    3,832
+   </td>
+   
+   <td align="center">
+   
+    3,359
+   </td>
+   
+   <td align="center">
+   
+    2,033
+   </td>
+   
+   <td align="center">
+   
+    2,928
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    4,629
+   </td>
+   
+   <td align="center">
+   
+    4,245
+   </td>
+   
+   <td align="center">
+   
+    3,663
+   </td>
+   
+   <td align="center">
+   
+    3,251
+   </td>
+   
+   <td align="center">
+   
+    1,229
+   </td>
+   
+   <td align="center">
+   
+    3,109
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    4,365
+   </td>
+   
+   <td align="center">
+   
+    4,124
+   </td>
+   
+   <td align="center">
+   
+    3,752
+   </td>
+   
+   <td align="center">
+   
+    3,414
+   </td>
+   
+   <td align="center">
+   
+    1,217
+   </td>
+   
+   <td align="center">
+   
+    3,049
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    4,612
+   </td>
+   
+   <td align="center">
+   
+    4,386
+   </td>
+   
+   <td align="center">
+   
+    3,876
+   </td>
+   
+   <td align="center">
+   
+    3,664
+   </td>
+   
+   <td align="center">
+   
+    2,423
+   </td>
+   
+   <td align="center">
+   
+    3,078
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    4,446
+   </td>
+   
+   <td align="center">
+   
+    4,373
+   </td>
+   
+   <td align="center">
+   
+    3,987
+   </td>
+   
+   <td align="center">
+   
+    3,631
+   </td>
+   
+   <td align="center">
+   
+    3,040
+   </td>
+   
+   <td align="center">
+   
+    3,166
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    4,414
+   </td>
+   
+   <td align="center">
+   
+    4,311
+   </td>
+   
+   <td align="center">
+   
+    3,782
+   </td>
+   
+   <td align="center">
+   
+    3,514
+   </td>
+   
+   <td align="center">
+   
+    2,809
+   </td>
+   
+   <td align="center">
+   
+    3,239
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    4,445
+   </td>
+   
+   <td align="center">
+   
+    4,455
+   </td>
+   
+   <td align="center">
+   
+    3,898
+   </td>
+   
+   <td align="center">
+   
+    3,744
+   </td>
+   
+   <td align="center">
+   
+    3,052
+   </td>
+   
+   <td align="center">
+   
+    3,562
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    4,563
+   </td>
+   
+   <td align="center">
+   
+    4,285
+   </td>
+   
+   <td align="center">
+   
+    3,951
+   </td>
+   
+   <td align="center">
+   
+    3,694
+   </td>
+   
+   <td align="center">
+   
+    3,125
+   </td>
+   
+   <td align="center">
+   
+    3,546
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    4,588
+   </td>
+   
+   <td align="center">
+   
+    4,435
+   </td>
+   
+   <td align="center">
+   
+    3,855
+   </td>
+   
+   <td align="center">
+   
+    3,763
+   </td>
+   
+   <td align="center">
+   
+    2,996
+   </td>
+   
+   <td align="center">
+   
+    3,444
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    53,386
+   </td>
+   
+   <td align="center">
+   
+    51,049
+   </td>
+   
+   <td align="center">
+   
+    45,004
+   </td>
+   
+   <td align="center">
+   
+    40,506
+   </td>
+   
+   <td align="center">
+   
+    31,293
+   </td>
+   
+   <td align="center">
+   
+    37,564
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+   <br><br><br>
+   <span id="title">Movement Statistics(1996-2001) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">2001</th>
+   
+   <th align="center">2000</th>
+   
+   <th align="center">1999</th>
+   
+   <th align="center">1998</th>
+   
+   <th align="center">1997</th>
+   
+   <th align="center">1996</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+   
+    2,694
+   </td>
+   
+   <td align="center">
+   
+    2,201
+   </td>
+   
+   <td align="center">
+   
+    1,835
+   </td>
+   
+   <td align="center">
+   
+    2,177
+   </td>
+   
+   <td align="center">
+   
+    1,353
+   </td>
+   
+   <td align="center">
+   
+    744
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    2,364
+   </td>
+   
+   <td align="center">
+   
+    2,357
+   </td>
+   
+   <td align="center">
+   
+    1,826
+   </td>
+   
+   <td align="center">
+   
+    1,740
+   </td>
+   
+   <td align="center">
+   
+    1,339
+   </td>
+   
+   <td align="center">
+   
+    692
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    2,543
+   </td>
+   
+   <td align="center">
+   
+    2,206
+   </td>
+   
+   <td align="center">
+   
+    1,895
+   </td>
+   
+   <td align="center">
+   
+    1,911
+   </td>
+   
+   <td align="center">
+   
+    1,533
+   </td>
+   
+   <td align="center">
+   
+    872
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    2,531
+   </td>
+   
+   <td align="center">
+   
+    2,311
+   </td>
+   
+   <td align="center">
+   
+    2,076
+   </td>
+   
+   <td align="center">
+   
+    1,886
+   </td>
+   
+   <td align="center">
+   
+    1,587
+   </td>
+   
+   <td align="center">
+   
+    1,026
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    2,579
+   </td>
+   
+   <td align="center">
+   
+    2,383
+   </td>
+   
+   <td align="center">
+   
+    1,914
+   </td>
+   
+   <td align="center">
+   
+    2,102
+   </td>
+   
+   <td align="center">
+   
+    1,720
+   </td>
+   
+   <td align="center">
+   
+    1,115
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    2,681
+   </td>
+   
+   <td align="center">
+   
+    2,370
+   </td>
+   
+   <td align="center">
+   
+    1,890
+   </td>
+   
+   <td align="center">
+   
+    2,038
+   </td>
+   
+   <td align="center">
+   
+    1,716
+   </td>
+   
+   <td align="center">
+   
+    1,037
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    2,903
+   </td>
+   
+   <td align="center">
+   
+    2,609
+   </td>
+   
+   <td align="center">
+   
+    1,916
+   </td>
+   
+   <td align="center">
+   
+    2,078
+   </td>
+   
+   <td align="center">
+   
+    1,693
+   </td>
+   
+   <td align="center">
+   
+    1,209
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    3,037
+   </td>
+   
+   <td align="center">
+   
+    2,487
+   </td>
+   
+   <td align="center">
+   
+    1,968
+   </td>
+   
+   <td align="center">
+   
+    2,061
+   </td>
+   
+   <td align="center">
+   
+    1,676
+   </td>
+   
+   <td align="center">
+   
+    1,241
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    2,767
+   </td>
+   
+   <td align="center">
+   
+    2,329
+   </td>
+   
+   <td align="center">
+   
+    1,955
+   </td>
+   
+   <td align="center">
+   
+    1,970
+   </td>
+   
+   <td align="center">
+   
+    1,681
+   </td>
+   
+   <td align="center">
+   
+    1,263
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    2,922
+   </td>
+   
+   <td align="center">
+   
+    2,417
+   </td>
+   
+   <td align="center">
+   
+    2,267
+   </td>
+   
+   <td align="center">
+   
+    1,969
+   </td>
+   
+   <td align="center">
+   
+    1,809
+   </td>
+   
+   <td align="center">
+   
+    1,368
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    2,670
+   </td>
+   
+   <td align="center">
+   
+    2,273
+   </td>
+   
+   <td align="center">
+   
+    2,132
+   </td>
+   
+   <td align="center">
+   
+    2,102
+   </td>
+   
+   <td align="center">
+   
+    1,786
+   </td>
+   
+   <td align="center">
+   
+    1,433
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    2,815
+   </td>
+   
+   <td align="center">
+   
+    2,749
+   </td>
+   
+   <td align="center">
+   
+    2,187
+   </td>
+   
+   <td align="center">
+   
+    1,981
+   </td>
+   
+   <td align="center">
+   
+    1,944
+   </td>
+   
+   <td align="center">
+   
+    1,386
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    32,506
+   </td>
+   
+   <td align="center">
+   
+    28,692
+   </td>
+   
+   <td align="center">
+   
+    23,861
+   </td>
+   
+   <td align="center">
+   
+    24,015
+   </td>
+   
+   <td align="center">
+   
+    19,837
+   </td>
+   
+   <td align="center">
+   
+    13,386
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+   <br><br><br>
+   <span id="title">Movement Statistics(1995-1995) </span><br><br>
+   <table class="style1">
+   <tbody>
+   <tr height="17">
+   <th align="right">&nbsp; </th>
+   
+   <th align="center">1995</th>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">January</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">February</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">March</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">April</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">May</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">June</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">July</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">August</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">September</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">October</th>
+   
+   <td align="center">
+   
+    
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">November</th>
+   
+   <td align="center">
+   
+    126
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">December</th>
+   
+   <td align="center">
+   
+    536
+   </td>
+   
+   </tr>
+   <tr height="17">
+   <th align="right">Total</th>
+   
+   <td align="center">
+   
+    662
+   </td>
+   
+   </tr>
+   </tbody>
+   </table>
+   
+
+   <br><br><br>
+   <div align="right"><img src="./macau_files/mov_stat.jpg" alt="passenger statistic picture" width="565" height="318"></div>
+
+          		
+  </div>
+            
+          </div>
+                     </div>
+            </div>
+         
+          
+          <!--/*end context*/-->
+          </div>
+    </div>
+  
+	<div id="buttombar"><img height="100" src="./macau_files/buttombar.gif"></div>
+	<div id="logo">
+
+
+		
+		<div>
+		
+          <a href="http://www.macau-airport.com/envirop/zh/default.php" style="display: inline;"><img height="80" src="./macau_files/38.jpg"></a>
+		
+		</div>
+
+		
+		<div>
+		
+          <a href="http://www.macau-airport.com/envirop/en/default.php" style="display: inline;"><img height="80" src="./macau_files/36.jpg"></a>
+		
+		</div>
+
+</div>
+</div>
+
+
+
+</div>
+
+
+<div id="footer">
+<hr>
+  <div id="footer-left">
+  <a href="http://www.camacau.com/index">Main Page</a> | 
+  <a href="http://www.camacau.com/geographic_information">Our Business</a> | 
+  <a href="http://www.camacau.com/about_us">About Us</a> | 
+  <a href="http://www.camacau.com/pressReleases_list">Media Centre</a> | 
+  <a href="http://www.camacau.com/rlinks2">Related Links</a> | 
+  <a href="http://www.camacau.com/download_list">Interactive</a>
+  </div>
+  <div id="footer-right">Macau International Airport Co. Ltd. | Copyright 2013 | All rights reserved</div>
+</div>
+</div>
+</div>
+
+<div id="___fireplug_chrome_extension___" style="display: none;"></div><iframe id="rdbIndicator" width="100%" height="270" border="0" src="./macau_files/indicator.html" style="display: none; border: 0; position: fixed; left: 0; top: 0; z-index: 2147483647"></iframe><link rel="stylesheet" type="text/css" media="screen" href="chrome-extension://fcdjadjbdihbaodagojiomdljhjhjfho/css/atd.css"></body></html>

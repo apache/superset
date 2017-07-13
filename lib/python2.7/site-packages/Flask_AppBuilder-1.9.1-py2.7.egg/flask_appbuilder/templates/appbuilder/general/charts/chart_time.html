@@ -1,0 +1,32 @@
+<!-- extend base layout -->
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+
+{{ lib.panel_begin(title) }}
+
+	{% block list_search scoped %}
+		{% call lib.accordion_tag("accordion1",_("Search"), False) %}
+			{{ widgets.get('search')()|safe }} 
+		{% endcall %}
+	{% endblock %}
+
+    <div class="well well-sm">
+
+    <label>{{_('Group by fields') }}:</label>
+    {% for group_by in group_by_columns %}
+        <a href="{{url_for('.chart',period = 'month', group_by=group_by)}}" class="btn btn-sm btn-primary">
+        {{label_columns[group_by]}} Month
+        </a>
+        <a href="{{url_for('.chart',period = 'year', group_by=group_by)}}" class="btn btn-sm btn-primary">
+        {{label_columns[group_by]}} Year
+        </a>
+    </div>
+    
+    {% endfor %}
+
+    {{ widgets.get('chart')()|safe }}
+
+{{ lib.panel_end() }}
+{% endblock %}

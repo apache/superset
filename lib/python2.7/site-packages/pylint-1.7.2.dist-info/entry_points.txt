@@ -1,0 +1,6 @@
+[console_scripts]
+epylint = pylint:run_epylint
+pylint = pylint:run_pylint
+pyreverse = pylint:run_pyreverse
+symilar = pylint:run_symilar
+

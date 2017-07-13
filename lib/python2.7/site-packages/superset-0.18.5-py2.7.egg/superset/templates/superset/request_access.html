@@ -1,0 +1,20 @@
+{% extends "superset/basic.html" %}
+{% block title %}{{ _("No Access!") }}{% endblock %}
+{% block body %}
+  <div class="container">
+    {% include "superset/flash_wrapper.html" %}
+    <h4>
+      {{ _("You do not have permissions to access the datasource(s): %(name)s.",
+      name=datasource_names)
+      }}
+    </h4>
+    <div>
+      <button  onclick="window.location += '&action=go';">
+        {{ _("Request Permissions") }}
+      </button>
+      <button onclick="window.location.href = '/slicemodelview/list/';">
+        {{ _("Cancel") }}
+      </button>
+    </div>
+  </div>
+{% endblock %}

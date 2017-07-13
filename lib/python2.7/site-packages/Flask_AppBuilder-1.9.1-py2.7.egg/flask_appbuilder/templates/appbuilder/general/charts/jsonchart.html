@@ -1,0 +1,25 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+
+{{ lib.panel_begin(title) }}
+	{% block list_search scoped %}
+		{% call lib.accordion_tag("accordion1",_("Search"), False) %}
+			{{ widgets.get('search')()|safe }} 
+		{% endcall %}
+	{% endblock %}
+
+    <div class="well well-sm">
+    <label>{{ group_by_label }}:</label>
+    {% for definition in definitions %}
+        <a href="{{url_for('.chart',group_by=loop.index - 1)}}" class="btn btn-sm btn-primary">
+            {{ definition['label'] }}
+        </a>
+    {% endfor %}
+    </div>
+
+    {{ widgets.get('chart')()|safe }}
+
+{{ lib.panel_end() }}
+{% endblock %}

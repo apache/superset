@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+"""a python file without .py extension"""
+
+__revision__ = None

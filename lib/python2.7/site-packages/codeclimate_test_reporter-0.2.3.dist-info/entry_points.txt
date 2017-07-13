@@ -1,0 +1,3 @@
+[console_scripts]
+codeclimate-test-reporter = codeclimate_test_reporter.__main__:run
+

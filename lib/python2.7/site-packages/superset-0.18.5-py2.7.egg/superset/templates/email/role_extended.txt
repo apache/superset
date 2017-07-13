@@ -1,0 +1,14 @@
+Dear {{ user.username }},
+<br>
+<a href={{ url_for('Superset.profile', username=granter.username, _external=True) }}>
+   {{ granter.username }}</a> has extended the role {{ role.name }} to include
+<a href={{ url_for('Superset.explore', datasource_type=datasource.type, datasource_id=datasource.id, _external=True) }}>
+ {{datasource.full_name}}</a> and granted you access to it.
+<br>
+<br>
+To see all your permissions please visit your
+<a href={{ url_for('Superset.profile', username=user.username, _external=True) }}>
+   profile page</a>.
+<br>
+<br>
+Regards, Superset Admin.

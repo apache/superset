@@ -1,0 +1,3 @@
+W:  6: Using possibly undefined loop variable 'C'
+W: 15: Using possibly undefined loop variable 'var1'
+

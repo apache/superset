@@ -1,0 +1,54 @@
+verbose: true
+instrumentation:
+    root: './javascripts'
+    extensions: ['.js', '.jsx']
+    excludes: [
+        'dist/**'
+    ]
+    embed-source: false
+    variable: __coverage__
+    compact: true
+    preserve-comments: false
+    complete-copy: false
+    save-baseline: true
+    baseline-file: ./coverage/coverage-baseline.json
+    include-all-sources: true
+    include-pid: false
+    es-modules: true
+reporting:
+    print: summary
+    reports:
+        - lcov
+    dir: ./coverage
+    watermarks:
+        statements: [50, 80]
+        lines: [50, 80]
+        functions: [50, 80]
+        branches: [50, 80]
+    report-config:
+        clover: {file: clover.xml}
+        cobertura: {file: cobertura-coverage.xml}
+        json: {file: coverage-final.json}
+        json-summary: {file: coverage-summary.json}
+        lcovonly: {file: lcov.info}
+        teamcity: {file: null, blockName: Code Coverage Summary}
+        text: {file: null, maxCols: 0}
+        text-lcov: {file: lcov.info}
+        text-summary: {file: null}
+hooks:
+    hook-run-in-context: false
+    post-require-hook: null
+    handle-sigint: false
+check:
+    global:
+        statements: 0
+        lines: 0
+        branches: 0
+        functions: 0
+        excludes: []
+    each:
+        statements: 0
+        lines: 0
+        branches: 0
+        functions: 0
+        excludes: []

@@ -1,0 +1,6 @@
+unbalanced-tuple-unpacking:9:do_stuff:"Possible unbalanced tuple unpacking with sequence (1, 2, 3): left side has 2 label(s), right side has 3 value(s)"
+unbalanced-tuple-unpacking:14:do_stuff1:"Possible unbalanced tuple unpacking with sequence [1, 2, 3]: left side has 2 label(s), right side has 3 value(s)"
+unbalanced-tuple-unpacking:19:do_stuff2:"Possible unbalanced tuple unpacking with sequence (1, 2, 3): left side has 2 label(s), right side has 3 value(s)"
+unbalanced-tuple-unpacking:24:do_stuff3:"Possible unbalanced tuple unpacking with sequence (1, 2, 3): left side has 2 label(s), right side has 3 value(s)"
+unbalanced-tuple-unpacking:69:do_stuff9:"Possible unbalanced tuple unpacking with sequence defined at line 7 of functional.unpacking: left side has 2 label(s), right side has 3 value(s)"
+unbalanced-tuple-unpacking:81:UnbalancedUnpacking.test:"Possible unbalanced tuple unpacking with sequence defined at line 7 of functional.unpacking: left side has 2 label(s), right side has 3 value(s)"

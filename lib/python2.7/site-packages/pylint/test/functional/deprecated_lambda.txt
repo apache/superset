@@ -1,0 +1,2 @@
+deprecated-lambda:6::map/filter on lambda could be replaced by comprehension
+deprecated-lambda:8::map/filter on lambda could be replaced by comprehension

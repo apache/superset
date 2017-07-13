@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+  {% module Template("navbar.html", active_tab="workers") %}
+{% end %}
+
+{% block container %}
+  <div class="container-fluid">
+    <div class="row-fluid">
+      <div class="span12">
+        <div class="page-header">
+                <small>Worker: </small><h1 id="workername">{{ worker['name'] }}</h1>
+        </div>
+
+        <button class="btn pull-right" type="button" onclick="flower.on_worker_refresh(event)">Refresh</button>
+        <div class="tabbable">
+          <ul class="nav nav-tabs">
+            <li class="active"><a href="#tab-pool" data-toggle="tab">Pool</a></li>
+            <li><a href="#tab-broker" data-toggle="tab">Broker</a></li>
+            <li><a href="#tab-queues" data-toggle="tab">Queues</a></li>
+            <li><a href="#tab-tasks" data-toggle="tab">Tasks</a></li>
+            <li><a href="#tab-limits" data-toggle="tab">Limits</a></li>
+            <li><a href="#tab-config" data-toggle="tab">Config</a></li>
+            <li><a href="#tab-system" data-toggle="tab">System</a></li>
+          </ul>
+
+          <div class="tab-content">
+            <div class="tab-pane active" id="tab-pool">
+
+              <div class="row-fluid">
+                <div class="span6">
+                  <table class="table table-bordered table-striped">
+                    <caption>Worker pool options</caption>
+                    <tbody>
+                      {% for name,value in worker['stats']['pool'].items() %}
+                        <tr>
+                          <td>{{ humanize(name) }}</td>
+                          <td>{{ humanize(value) }}</td>
+                        </tr>
+                      {% end %}
+                        <tr>
+                            <td>Worker PID</td>
+                            <td>{{ worker['stats'].get('pid', 'N/A')}}</td>
+                        </tr>
+                        <tr>
+                            <td>Prefetch Count</td>
+                            <td>{{ worker['stats'].get('prefetch_count', 'N/A')}}</td>
+                        </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="span6">
+                  <div class="form-horizontal">
+                    <fieldset>
+                      <legend>Pool size control</legend>
+                      <div class="control-group">
+                        <label class="control-label" for="pool-size">Pool size</label>
+                        <div class="controls">
+                          <div class="input-append">
+                            <select class="input-mini" id="pool-size">
+                              <option>1</option>
+                              <option>2</option>
+                              <option>3</option>
+                              <option>4</option>
+                              <option>5</option>
+                            </select>
+                            <button class="btn" type="button" onclick="flower.on_pool_grow(event)">Grow</button>
+                            <button class="btn" type="button" onclick="flower.on_pool_shrink(event)">Shrink</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="control-group">
+                        <label class="control-label" for="min-autoscale">Min/Max autoscale</label>
+                        <div class="controls">
+                          <div class="input-append">
+                            <input class="input-mini" id="min-autoscale" size="6" type="text">
+                            <input class="input-mini" id="max-autoscale" size="6" type="text">
+                            <button class="btn" type="button" onclick="flower.on_pool_autoscale(event)">Apply</button>
+                          </div>
+                        </div>
+                      </div>
+                    </fieldset>
+                  </div>
+                </div>
+              </div>
+
+              {% if worker['stats'].get('autoscaler', None) %}
+                <div class="row-fluid">
+                    <div class="span6">
+                        <table class="table table-bordered table-striped">
+                            <caption>Autoscaler options</caption>
+                            <tbody>
+                            {% for name,value in worker['stats']['autoscaler'].items() %}
+                                <tr>
+                                <td>{{ humanize(name) }}</td>
+                                <td>{{ humanize(value) }}</td>
+                                </tr>
+                            {% end %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+              {% end %}
+
+            </div> <!-- end pool tab -->
+
+            <div class="tab-pane" id="tab-broker">
+              <div class="span6">
+                <table class="table table-bordered table-striped">
+                  <caption>Broker options</caption>
+                  <tbody>
+                    {% for name,value in (worker['stats'].get('consumer', None) or worker['stats'])['broker'].items() %}
+                      <tr>
+                        <td>{{ humanize(name) }}</td>
+                        <td>{{ value }}</td>
+                      </tr>
+                    {% end %}
+                  </tbody>
+                </table>
+              </div>
+            </div> <!-- end broker tab -->
+
+            <div class="tab-pane" id="tab-queues">
+              <h3>Active  <small>queues being consumed from</small></h3>
+
+              <div class="control-group">
+                <div class="controls">
+                  <div class="input-append">
+                    <input class="span2" id="add-consumer-name" size="16" type="text">
+                    <button class="btn" type="button" onclick="flower.on_add_consumer(event)">Add Consumer</button>
+                 </div>
+                </div>
+              </div>
+
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Exclusive</th>
+                    <!-- <th>Exchange</th> -->
+                    <th>Durable</th>
+                    <th>Routing key</th>
+                    <th>No ACK</th>
+                    <th>Alias</th>
+                    <th>Queue arguments</th>
+                    <th>Binding arguments</th>
+                    <th>Auto delete</th>
+                    <th style="width: 125px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for queue in worker.get('active_queues', []) %}
+                    <tr>
+                      <td>{{ queue['name'] }}</td>
+                      <td>{{ queue['exclusive'] }}</td>
+                      <!-- <td>{{ queue['exchange'] }}</td> -->
+                      <td>{{ queue['durable'] }}</td>
+                      <td>{{ queue['routing_key'] }}</td>
+                      <td>{{ queue['no_ack'] }}</td>
+                      <td>{{ queue['alias'] }}</td>
+                      <td>{{ queue['queue_arguments'] }}</td>
+                      <td>{{ queue['binding_arguments'] }}</td>
+                      <td>{{ queue['auto_delete'] }}</td>
+                      <td><button class="btn btn-danger" onclick="flower.on_cancel_consumer(event)">Cancel Consumer</button></td>
+                  </tr>
+                {% end %}
+              </tbody>
+              </table>
+            </div> <!-- end queues tab -->
+
+            <div class="tab-pane" id="tab-tasks">
+              <h2>Processed <small>number of completed tasks</small></h2>
+              <table class="table table-bordered table-striped">
+                <tbody>
+                  {% for name,value in worker['stats']['total'].items() %}
+                    <tr>
+                      <td>{{ name }}</td>
+                      <td>{{ value }}</td>
+                    </tr>
+                  {% end %}
+                  </tbody>
+              </table>
+
+              <h2>Active  <small>currently executing tasks</small></h2>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>UUID</th>
+                    <th>Start time</th>
+                    <th>Ack</th>
+                    <th>PID</th>
+                    <th>args</th>
+                    <th>kwargs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for task in worker.get('active', {}) %}
+                    <tr>
+                      <td>{{ task['name'] }}</td>
+                      <td><a href="{{ reverse_url('task', task['id']) }}">{{ task['id'] }}</a></td>
+                      <td>{{ humanize(task['time_start'], type='time') }}</td>
+                      <td>{{ task['acknowledged'] }}</td>
+                      <td>{{ task['worker_pid'] }}</td>
+                      <td>{{ task.get('args', 'N/A') }}</td>
+                      <td>{{ task.get('kwargs', 'N/A') }}</td>
+                    </tr>
+                  {% end %}
+                </tbody>
+              </table>
+
+              <h2>Scheduled <small>scheduled (eta/countdown/retry) tasks</small></h2>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>UUID</th>
+                    <th>args</th>
+                    <th>kwargs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for task in worker.get('scheduled', {}) %}
+                    <tr>
+                      <td>{{ task['request']['name'] }}</td>
+                      <td><a href="{{ reverse_url('task', task['request']['id']) }}">{{ task['request']['id'] }}</a></td>
+                      <td>{{ task['request']['args'] }}</td>
+                      <td>{{ task['request']['kwargs'] }}</td>
+                    </tr>
+                  {% end %}
+                  </tbody>
+              </table>
+
+              <h2>Reserved  <small>tasks that have been received, but are still waiting to be executed</small></h2>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>UUID</th>
+                    <th>args</th>
+                    <th>kwargs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                {% for task in worker.get('reserved', {}) %}
+                    <tr>
+                      <td>{{ task['name'] }}</td>
+                      <td><a href="{{ reverse_url('task', task['id']) }}">{{ task['id'] }}</a></td>
+                      <td>{{ task['args'] }}</td>
+                      <td>{{ task['kwargs'] }}</td>
+                    </tr>
+                  {% end %}
+                  </tbody>
+              </table>
+
+              <h2>Revoked  <small>cancelled tasks</small></h2>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>UUID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for task in worker.get('revoked', []) %}
+                    <tr>
+                      <td><a href="{{ reverse_url('task', task) }}">{{ task }}</a></td>
+                    </tr>
+                  {% end %}
+                </tbody>
+              </table>
+            </div> <!-- end tasks tab -->
+
+            <div class="tab-pane" id="tab-limits">
+              <h3>Task limits</h3>
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Task name</th>
+                    <th>Rate limit</th>
+                    <th>Timeouts</th>
+                  </tr>
+                </thead>
+                {% for taskname in worker.get('registered', []) %}
+                  <tr>
+                    <td>{{ taskname }}</td>
+                    <td>
+                      <div class="control-group">
+                        <div class="controls">
+                          <div class="input-append">
+                            <input class="input-small" type="text">
+                            <button class="btn" type="button" onclick="flower.on_task_rate_limit(event)">Apply</button>
+                            </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="control-group">
+                        <div class="controls">
+                          <div class="input-append">
+                            <input class="input-small" type="text">
+                            <button class="btn" type="button" onclick="flower.on_task_timeout(event)">Soft</button>
+                            <button class="btn" type="button" onclick="flower.on_task_timeout(event)">Hard</button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                {% end %}
+              </table>
+          </div> <!-- end limits tab -->
+
+          <div class="tab-pane" id="tab-config">
+            <div class="span8">
+              <table class="table table-bordered table-striped">
+                <caption>Configuration options</caption>
+                <tbody>
+                {% for name,value in sorted(worker.get('conf', {}).items()) %}
+                    {% if value is not None %}
+                      <tr>
+                        <td><a href="http://docs.celeryproject.org/en/latest/configuration.html#{{ name.lower().replace('_', '-') }}" target="_blank">{{ name }}</a></td>
+                        <td>{{ value }}</td>
+                      </tr>
+                    {% end %}
+                  {% end %}
+                </tbody>
+              </table>
+            </div>
+          </div> <!-- end config tab -->
+
+          <div class="tab-pane" id="tab-system">
+            <div class="span8">
+              <table class="table table-bordered table-striped">
+                <caption>System usage statistics</caption>
+                <tbody>
+                {% if isinstance(worker['stats'].get('rusage', None), dict) %}
+                    {% for name, value in worker['stats']['rusage'].items() %}
+                        <tr>
+                            <td>{{ name }}</td>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% end %}
+                {% end %}
+                </tbody>
+              </table>
+            </div>
+          </div> <!-- end system tab -->
+
+         </div>
+        </div>
+      </div>
+  </div>
+  </div>
+{% end %}

@@ -1,0 +1,8 @@
+boolean-datetime:5::Using datetime.time in a boolean context.
+boolean-datetime:10::Using datetime.time in a boolean context.
+boolean-datetime:15::Using datetime.time in a boolean context.
+boolean-datetime:16::Using datetime.time in a boolean context.
+boolean-datetime:17::Using datetime.time in a boolean context.
+boolean-datetime:18::Using datetime.time in a boolean context.
+boolean-datetime:19::Using datetime.time in a boolean context.
+boolean-datetime:20::Using datetime.time in a boolean context.

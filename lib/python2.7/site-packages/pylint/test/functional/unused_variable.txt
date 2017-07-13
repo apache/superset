@@ -1,0 +1,6 @@
+unused-variable:4:test_regression_737:Unused variable 'xml'
+unused-variable:7:test_regression_923:Unused variable 'unittest.case'
+unused-variable:8:test_regression_923:Unused variable 'sql'
+unused-variable:15:test_unused_with_prepended_underscore:Unused variable '_a_'
+unused-variable:16:test_unused_with_prepended_underscore:Unused variable '__a__'
+unused-variable:20:test_local_field_prefixed_with_unused_or_ignored:Unused variable 'flagged_local_field'

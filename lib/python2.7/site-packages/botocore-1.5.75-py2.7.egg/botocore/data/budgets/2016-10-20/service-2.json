@@ -1,0 +1,779 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "apiVersion":"2016-10-20",
+    "endpointPrefix":"budgets",
+    "jsonVersion":"1.1",
+    "protocol":"json",
+    "serviceAbbreviation":"AWSBudgets",
+    "serviceFullName":"AWS Budgets",
+    "signatureVersion":"v4",
+    "targetPrefix":"AWSBudgetServiceGateway",
+    "uid":"budgets-2016-10-20"
+  },
+  "operations":{
+    "CreateBudget":{
+      "name":"CreateBudget",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateBudgetRequest"},
+      "output":{"shape":"CreateBudgetResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"InternalErrorException"},
+        {"shape":"CreationLimitExceededException"},
+        {"shape":"DuplicateRecordException"}
+      ],
+      "documentation":"Create a new budget"
+    },
+    "CreateNotification":{
+      "name":"CreateNotification",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateNotificationRequest"},
+      "output":{"shape":"CreateNotificationResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"},
+        {"shape":"CreationLimitExceededException"},
+        {"shape":"DuplicateRecordException"}
+      ],
+      "documentation":"Create a new Notification with subscribers for a budget"
+    },
+    "CreateSubscriber":{
+      "name":"CreateSubscriber",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateSubscriberRequest"},
+      "output":{"shape":"CreateSubscriberResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"CreationLimitExceededException"},
+        {"shape":"DuplicateRecordException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Create a new Subscriber for a notification"
+    },
+    "DeleteBudget":{
+      "name":"DeleteBudget",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteBudgetRequest"},
+      "output":{"shape":"DeleteBudgetResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Delete a budget and related notifications"
+    },
+    "DeleteNotification":{
+      "name":"DeleteNotification",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteNotificationRequest"},
+      "output":{"shape":"DeleteNotificationResponse"},
+      "errors":[
+        {"shape":"InvalidParameterException"},
+        {"shape":"InternalErrorException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Delete a notification and related subscribers"
+    },
+    "DeleteSubscriber":{
+      "name":"DeleteSubscriber",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteSubscriberRequest"},
+      "output":{"shape":"DeleteSubscriberResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Delete a Subscriber for a notification"
+    },
+    "DescribeBudget":{
+      "name":"DescribeBudget",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeBudgetRequest"},
+      "output":{"shape":"DescribeBudgetResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Get a single budget"
+    },
+    "DescribeBudgets":{
+      "name":"DescribeBudgets",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeBudgetsRequest"},
+      "output":{"shape":"DescribeBudgetsResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"ExpiredNextTokenException"}
+      ],
+      "documentation":"Get all budgets for an account"
+    },
+    "DescribeNotificationsForBudget":{
+      "name":"DescribeNotificationsForBudget",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeNotificationsForBudgetRequest"},
+      "output":{"shape":"DescribeNotificationsForBudgetResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"ExpiredNextTokenException"}
+      ],
+      "documentation":"Get notifications of a budget"
+    },
+    "DescribeSubscribersForNotification":{
+      "name":"DescribeSubscribersForNotification",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeSubscribersForNotificationRequest"},
+      "output":{"shape":"DescribeSubscribersForNotificationResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"NotFoundException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidNextTokenException"},
+        {"shape":"ExpiredNextTokenException"}
+      ],
+      "documentation":"Get subscribers of a notification"
+    },
+    "UpdateBudget":{
+      "name":"UpdateBudget",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateBudgetRequest"},
+      "output":{"shape":"UpdateBudgetResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Update the information of a budget already created"
+    },
+    "UpdateNotification":{
+      "name":"UpdateNotification",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateNotificationRequest"},
+      "output":{"shape":"UpdateNotificationResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Update the information about a notification already created"
+    },
+    "UpdateSubscriber":{
+      "name":"UpdateSubscriber",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateSubscriberRequest"},
+      "output":{"shape":"UpdateSubscriberResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"NotFoundException"}
+      ],
+      "documentation":"Update a subscriber"
+    }
+  },
+  "shapes":{
+    "AccountId":{
+      "type":"string",
+      "documentation":"Account Id of the customer. It should be a 12 digit number.",
+      "max":12,
+      "min":12
+    },
+    "Budget":{
+      "type":"structure",
+      "required":[
+        "BudgetName",
+        "BudgetLimit",
+        "CostTypes",
+        "TimeUnit",
+        "TimePeriod",
+        "BudgetType"
+      ],
+      "members":{
+        "BudgetName":{"shape":"BudgetName"},
+        "BudgetLimit":{"shape":"Spend"},
+        "CostFilters":{"shape":"CostFilters"},
+        "CostTypes":{"shape":"CostTypes"},
+        "TimeUnit":{"shape":"TimeUnit"},
+        "TimePeriod":{"shape":"TimePeriod"},
+        "CalculatedSpend":{"shape":"CalculatedSpend"},
+        "BudgetType":{"shape":"BudgetType"}
+      },
+      "documentation":"AWS Budget model"
+    },
+    "BudgetName":{
+      "type":"string",
+      "documentation":"A string represents the budget name. No \":\" character is allowed.",
+      "max":100,
+      "pattern":"[^:]+"
+    },
+    "BudgetType":{
+      "type":"string",
+      "documentation":"The type of a budget. Can be COST or USAGE.",
+      "enum":[
+        "USAGE",
+        "COST"
+      ]
+    },
+    "Budgets":{
+      "type":"list",
+      "member":{"shape":"Budget"},
+      "documentation":"A list of budgets"
+    },
+    "CalculatedSpend":{
+      "type":"structure",
+      "required":["ActualSpend"],
+      "members":{
+        "ActualSpend":{"shape":"Spend"},
+        "ForecastedSpend":{"shape":"Spend"}
+      },
+      "documentation":"A structure holds the actual and forecasted spend for a budget."
+    },
+    "ComparisonOperator":{
+      "type":"string",
+      "documentation":"The comparison operator of a notification. Currently we support less than, equal to and greater than.",
+      "enum":[
+        "GREATER_THAN",
+        "LESS_THAN",
+        "EQUAL_TO"
+      ]
+    },
+    "CostFilters":{
+      "type":"map",
+      "key":{"shape":"GenericString"},
+      "value":{"shape":"DimensionValues"},
+      "documentation":"A map represents the cost filters applied to the budget."
+    },
+    "CostTypes":{
+      "type":"structure",
+      "required":[
+        "IncludeTax",
+        "IncludeSubscription",
+        "UseBlended"
+      ],
+      "members":{
+        "IncludeTax":{"shape":"GenericBoolean"},
+        "IncludeSubscription":{"shape":"GenericBoolean"},
+        "UseBlended":{"shape":"GenericBoolean"}
+      },
+      "documentation":"This includes the options for getting the cost of a budget."
+    },
+    "CreateBudgetRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "Budget"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "Budget":{"shape":"Budget"},
+        "NotificationsWithSubscribers":{"shape":"NotificationWithSubscribersList"}
+      },
+      "documentation":"Request of CreateBudget"
+    },
+    "CreateBudgetResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of CreateBudget"
+    },
+    "CreateNotificationRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName",
+        "Notification",
+        "Subscribers"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "Notification":{"shape":"Notification"},
+        "Subscribers":{"shape":"Subscribers"}
+      },
+      "documentation":"Request of CreateNotification"
+    },
+    "CreateNotificationResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of CreateNotification"
+    },
+    "CreateSubscriberRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName",
+        "Notification",
+        "Subscriber"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "Notification":{"shape":"Notification"},
+        "Subscriber":{"shape":"Subscriber"}
+      },
+      "documentation":"Request of CreateSubscriber"
+    },
+    "CreateSubscriberResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of CreateSubscriber"
+    },
+    "CreationLimitExceededException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "documentation":"The exception is thrown when customer tries to create a record (e.g. budget), but the number this record already exceeds the limitation.",
+      "exception":true
+    },
+    "DeleteBudgetRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"}
+      },
+      "documentation":"Request of DeleteBudget"
+    },
+    "DeleteBudgetResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of DeleteBudget"
+    },
+    "DeleteNotificationRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName",
+        "Notification"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "Notification":{"shape":"Notification"}
+      },
+      "documentation":"Request of DeleteNotification"
+    },
+    "DeleteNotificationResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of DeleteNotification"
+    },
+    "DeleteSubscriberRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName",
+        "Notification",
+        "Subscriber"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "Notification":{"shape":"Notification"},
+        "Subscriber":{"shape":"Subscriber"}
+      },
+      "documentation":"Request of DeleteSubscriber"
+    },
+    "DeleteSubscriberResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of DeleteSubscriber"
+    },
+    "DescribeBudgetRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"}
+      },
+      "documentation":"Request of DescribeBudget"
+    },
+    "DescribeBudgetResponse":{
+      "type":"structure",
+      "members":{
+        "Budget":{"shape":"Budget"}
+      },
+      "documentation":"Response of DescribeBudget"
+    },
+    "DescribeBudgetsRequest":{
+      "type":"structure",
+      "required":["AccountId"],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "MaxResults":{"shape":"MaxResults"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Request of DescribeBudgets"
+    },
+    "DescribeBudgetsResponse":{
+      "type":"structure",
+      "members":{
+        "Budgets":{"shape":"Budgets"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Response of DescribeBudgets"
+    },
+    "DescribeNotificationsForBudgetRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "MaxResults":{"shape":"MaxResults"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Request of DescribeNotificationsForBudget"
+    },
+    "DescribeNotificationsForBudgetResponse":{
+      "type":"structure",
+      "members":{
+        "Notifications":{"shape":"Notifications"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Response of GetNotificationsForBudget"
+    },
+    "DescribeSubscribersForNotificationRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName",
+        "Notification"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "Notification":{"shape":"Notification"},
+        "MaxResults":{"shape":"MaxResults"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Request of DescribeSubscribersForNotification"
+    },
+    "DescribeSubscribersForNotificationResponse":{
+      "type":"structure",
+      "members":{
+        "Subscribers":{"shape":"Subscribers"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Response of DescribeSubscribersForNotification"
+    },
+    "DimensionValues":{
+      "type":"list",
+      "member":{"shape":"GenericString"}
+    },
+    "DuplicateRecordException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "documentation":"The exception is thrown when customer tries to create a record (e.g. budget) that already exists.",
+      "exception":true
+    },
+    "ExpiredNextTokenException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "documentation":"This exception is thrown if the paging token is expired - past its TTL",
+      "exception":true
+    },
+    "GenericBoolean":{
+      "type":"boolean",
+      "documentation":"A generic boolean value."
+    },
+    "GenericString":{
+      "type":"string",
+      "documentation":"A generic String."
+    },
+    "GenericTimestamp":{
+      "type":"timestamp",
+      "documentation":"A generic timestamp. In Java it is transformed to a Date object."
+    },
+    "InternalErrorException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "documentation":"This exception is thrown on an unknown internal failure.",
+      "exception":true
+    },
+    "InvalidNextTokenException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "documentation":"This exception is thrown if paging token signature didn't match the token, or the paging token isn't for this request",
+      "exception":true
+    },
+    "InvalidParameterException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "documentation":"This exception is thrown if any request is given an invalid parameter. E.g., if a required Date field is null.",
+      "exception":true
+    },
+    "MaxResults":{
+      "type":"integer",
+      "documentation":"An integer to represent how many entries should a pagianted response contains. Maxium is set to 100.",
+      "box":true,
+      "max":100,
+      "min":1
+    },
+    "NotFoundException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"errorMessage"}
+      },
+      "documentation":"This exception is thrown if a requested entity is not found. E.g., if a budget id doesn't exist for an account ID.",
+      "exception":true
+    },
+    "Notification":{
+      "type":"structure",
+      "required":[
+        "NotificationType",
+        "ComparisonOperator",
+        "Threshold"
+      ],
+      "members":{
+        "NotificationType":{"shape":"NotificationType"},
+        "ComparisonOperator":{"shape":"ComparisonOperator"},
+        "Threshold":{"shape":"NotificationThreshold"}
+      },
+      "documentation":"Notification model. Each budget may contain multiple notifications with different settings."
+    },
+    "NotificationThreshold":{
+      "type":"double",
+      "documentation":"The threshold of the a notification. It should be a number between 0 and 100.",
+      "max":300,
+      "min":0.1
+    },
+    "NotificationType":{
+      "type":"string",
+      "documentation":"The type of a notification. It should be ACTUAL or FORECASTED.",
+      "enum":[
+        "ACTUAL",
+        "FORECASTED"
+      ]
+    },
+    "NotificationWithSubscribers":{
+      "type":"structure",
+      "required":[
+        "Notification",
+        "Subscribers"
+      ],
+      "members":{
+        "Notification":{"shape":"Notification"},
+        "Subscribers":{"shape":"Subscribers"}
+      },
+      "documentation":"A structure to relate notification and a list of subscribers who belong to the notification."
+    },
+    "NotificationWithSubscribersList":{
+      "type":"list",
+      "member":{"shape":"NotificationWithSubscribers"},
+      "documentation":"A list of Notifications, each with a list of subscribers.",
+      "max":5
+    },
+    "Notifications":{
+      "type":"list",
+      "member":{"shape":"Notification"},
+      "documentation":"A list of notifications."
+    },
+    "NumericValue":{
+      "type":"string",
+      "documentation":"A string to represent NumericValue.",
+      "pattern":"[0-9]*(\\.)?[0-9]+"
+    },
+    "Spend":{
+      "type":"structure",
+      "required":[
+        "Amount",
+        "Unit"
+      ],
+      "members":{
+        "Amount":{"shape":"NumericValue"},
+        "Unit":{"shape":"GenericString"}
+      },
+      "documentation":"A structure represent either a cost spend or usage spend. Contains an amount and a unit."
+    },
+    "Subscriber":{
+      "type":"structure",
+      "required":[
+        "SubscriptionType",
+        "Address"
+      ],
+      "members":{
+        "SubscriptionType":{"shape":"SubscriptionType"},
+        "Address":{"shape":"GenericString"}
+      },
+      "documentation":"Subscriber model. Each notification may contain multiple subscribers with different addresses."
+    },
+    "Subscribers":{
+      "type":"list",
+      "member":{"shape":"Subscriber"},
+      "documentation":"A list of subscribers.",
+      "max":11,
+      "min":1
+    },
+    "SubscriptionType":{
+      "type":"string",
+      "documentation":"The subscription type of the subscriber. It can be SMS or EMAIL.",
+      "enum":[
+        "SNS",
+        "EMAIL"
+      ]
+    },
+    "TimePeriod":{
+      "type":"structure",
+      "required":[
+        "Start",
+        "End"
+      ],
+      "members":{
+        "Start":{"shape":"GenericTimestamp"},
+        "End":{"shape":"GenericTimestamp"}
+      },
+      "documentation":"A time period indicated the start date and end date of a budget."
+    },
+    "TimeUnit":{
+      "type":"string",
+      "documentation":"The time unit of the budget. e.g. weekly, monthly, etc.",
+      "enum":[
+        "MONTHLY",
+        "QUARTERLY",
+        "ANNUALLY"
+      ]
+    },
+    "UpdateBudgetRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "NewBudget"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "NewBudget":{"shape":"Budget"}
+      },
+      "documentation":"Request of UpdateBudget"
+    },
+    "UpdateBudgetResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of UpdateBudget"
+    },
+    "UpdateNotificationRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName",
+        "OldNotification",
+        "NewNotification"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "OldNotification":{"shape":"Notification"},
+        "NewNotification":{"shape":"Notification"}
+      },
+      "documentation":"Request of UpdateNotification"
+    },
+    "UpdateNotificationResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of UpdateNotification"
+    },
+    "UpdateSubscriberRequest":{
+      "type":"structure",
+      "required":[
+        "AccountId",
+        "BudgetName",
+        "Notification",
+        "OldSubscriber",
+        "NewSubscriber"
+      ],
+      "members":{
+        "AccountId":{"shape":"AccountId"},
+        "BudgetName":{"shape":"BudgetName"},
+        "Notification":{"shape":"Notification"},
+        "OldSubscriber":{"shape":"Subscriber"},
+        "NewSubscriber":{"shape":"Subscriber"}
+      },
+      "documentation":"Request of UpdateSubscriber"
+    },
+    "UpdateSubscriberResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of UpdateSubscriber"
+    },
+    "errorMessage":{
+      "type":"string",
+      "documentation":"The error message the exception carries."
+    }
+  },
+  "documentation":"All public APIs for AWS Budgets"
+}

@@ -1,0 +1,797 @@
+
+<!DOCTYPE html>
+<!--[if lt IE 7 ]> <html lang="en" class="no-js ie6"> <![endif]-->
+<!--[if IE 7 ]>    <html lang="en" class="no-js ie7"> <![endif]-->
+<!--[if IE 8 ]>    <html lang="en" class="no-js ie8"> <![endif]-->
+<!--[if IE 9 ]>    <html lang="en" class="no-js ie9"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html lang="en" class="no-js"><!--<![endif]-->
+ 
+    
+<html>
+    <head>
+     
+        <title>Show Foods</title>
+        <link rel="shortcut icon" href="/ndb/static/images/favicon.ico" type="image/x-icon" />
+    
+     
+
+         
+         
+         
+         <link rel='stylesheet' type='text/css' href='/ndb/plugins/richui-0.8/css/autocomplete.css' />
+<script type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/yahoo-dom-event/yahoo-dom-event.js'></script>
+<script type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/connection/connection-min.js'></script>
+<script type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/datasource/datasource-min.js'></script>
+<script type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/animation/animation-min.js'></script>
+<script type='text/javascript' src='/ndb/plugins/richui-0.8/js/yui/autocomplete/autocomplete-min.js'></script>
+                   
+<link rel="stylesheet" href="/ndb/static/css/main.css" />
+           
+      	<script type="text/JavaScript"> 
+		 var _gaq = _gaq || [];
+		 // NAL 
+		  _gaq.push(['_setAccount', 'UA-28627214-1']);
+		  _gaq.push(['_setDomainName', 'nal.usda.gov']);
+		  _gaq.push(['_setAllowLinker', true]);
+		  _gaq.push(['_trackPageview']);
+		 //
+		// _gaq.push(['_setAccount', 'UA-3876418-1']);
+		//  _gaq.push(['_trackPageview']);
+		  // for NDB
+		  _gaq.push(['_setAccount', 'UA-36442725-1']);
+		  _gaq.push(['_trackPageview']);
+			// USDA servers
+		  _gaq.push(['_setAccount', 'UA-466807-3']);
+		  _gaq.push(['_setDomainName', 'usda.gov']);
+		  _gaq.push(['_setAllowLinker', true]);
+		  _gaq.push(['_trackPageview']);
+		  //
+		  _gaq.push(['a._setAccount', 'UA-27627304-18']);
+		  _gaq.push(['a._setDomainName', 'usda.gov']);
+		  _gaq.push(['a._setAllowLinker', true]);
+		  _gaq.push(['a._trackPageview']);
+			//
+		  _gaq.push(['b._setAccount', 'UA-27627304-1']);
+		  _gaq.push(['b._setDomainName', 'usda.gov']);
+		  _gaq.push(['b._setAllowLinker', true]);
+		  _gaq.push(['b._trackPageview']);
+		 
+		  (function() {
+		    var ga = document.createElement('script'); ga.type = 
+		'text/javascript'; ga.async = true;
+		    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 
+		'http://www') + '.google-analytics.com/ga.js';
+		    var s = document.getElementsByTagName('script')[0]; 
+		s.parentNode.insertBefore(ga, s);
+		  })();
+	</script> 
+      
+     
+          
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <meta name="layout" content="main"/>
+        
+        
+       
+		
+
+      
+    
+          <script src="/ndb/static/plugins/yui-2.8.2.1/js/yui/yahoo-dom-event/yahoo-dom-event.js" type="text/javascript" ></script>
+<script src="/ndb/static/plugins/yui-2.8.2.1/js/yui/element/element-min.js" type="text/javascript" ></script>
+<script src="/ndb/static/plugins/yui-2.8.2.1/js/yui/animation/animation-min.js" type="text/javascript" ></script>
+<script src="/ndb/static/plugins/yui-2.8.2.1/js/yui/connection/connection-min.js" type="text/javascript" ></script>
+<script src="/ndb/static/plugins/yui-2.8.2.1/js/yui/dragdrop/dragdrop-min.js" type="text/javascript" ></script>
+<script src="/ndb/static/bundle-bundle_yui-container_head.js" type="text/javascript" ></script>
+<link href="/ndb/static/bundle-bundle_yui-container_head.css" type="text/css" rel="stylesheet" media="screen, projection" />
+<link href="/ndb/static/plugins/yui-2.8.2.1/js/yui/fonts/fonts-min.css" type="text/css" rel="stylesheet" media="screen, projection" />
+<script src="/ndb/static/plugins/grails-ui-1.2.3/js/grailsui/grailsui.js" type="text/javascript" ></script>
+<link href="/ndb/static/plugins/jquery-ui-1.8.24/jquery-ui/themes/ui-lightness/jquery-ui-1.8.24.custom.css" type="text/css" rel="stylesheet" media="screen, projection" />
+<script src="/ndb/static/plugins/jquery-1.8.0/js/jquery/jquery-1.8.0.min.js" type="text/javascript" ></script>
+<script src="/ndb/static/plugins/jquery-ui-1.8.24/jquery-ui/js/jquery-ui-1.8.24.custom.min.js" type="text/javascript" ></script>
+<script src="/ndb/static/bundle-bundle_yui-menu_head.js" type="text/javascript" ></script>
+<link href="/ndb/static/bundle-bundle_yui-menu_head.css" type="text/css" rel="stylesheet" media="screen, projection" />
+<script src="/ndb/static/bundle-bundle_yui-button_head.js" type="text/javascript" ></script>
+<link href="/ndb/static/bundle-bundle_yui-button_head.css" type="text/css" rel="stylesheet" media="screen, projection" />
+
+    </head>
+   <body class="yui-skin-sam">  
+   <div class="section clearfix" >   
+    	<div id="name-and-slogan" style="padding-left:15px;" >
+         <a href="http://www.ars.usda.gov"><img id="masthead-map" usemap="#masthead-map" src="/ndb/static/images/masthead.jpg" alt="National Nutrient Database" border="0" /></a>
+         <map id="masthead-map" name="masthead-map">
+<area shape="rect" coords="4,2,54,52" href="http://www.usda.gov" alt="" title="USDA Website"    />
+<area shape="rect" coords="66,1,128,49" href="http://www.ars.usda.gov" alt="" title="Agricultural Research Service Website"    />
+<area shape="rect" coords="127,0,336,50" href="http://www.nal.usda.gov" alt="" title="National Agricultural Library Website"    />
+<area shape="rect" coords="470,2,679,52" href="http://www.ars.usda.gov/main/site_main.htm?modecode=12-35-45-00" alt="" title="Nutrient Data Laboratory Website"    />
+<area shape="rect" coords="702,6,742,47" href="http://fnic.nal.usda.gov" alt="" title="Food and Nutrition Information Center Website"    />
+</map>
+         
+         
+    </div>
+       
+
+			
+        </div>
+        	<div id='site-slogan'  align='left'>
+				National Nutrient Database for Standard Reference<br>Release 25
+			</div>
+			<div class="bodywrapper">
+        
+		 <div class="nav">
+          <span class="menuButton"> <a href="http://www.ars.usda.gov/main/site_main.htm?modecode=12-35-45-00" class="home" title="Go the NDL home page">NDL Home</a></span>
+        <span class="menuButton"><a href="/ndb/search/list" class="list" name="menu-advanced" title="Browse the foods list">Foods List</a></span>
+        <span class="menuButton"><a href="/ndb/beef/show" class="calc" title="Use the ground beef calculator">Ground Beef Calculator</a></span>
+        <span class="menuButton"><a href="http://www.ars.usda.gov/SP2UserFiles/Place/12354500/Data/SR25/sr25_doc.pdf" class="docs" title="View and download release documentation" target="_help">SR25 Documentation</a></span>
+        <span class="menuButton"><a href="/ndb/help/index" class="help" target="_help" title="Read help on how to use the website">Help</a></span>
+       </div>
+      
+       
+       
+        
+    
+     <div id="view-name">Basic Report</div>
+        
+        <div class="body">
+            <h1>Nutrient data for 07908, Luncheon meat, pork with ham, minced, canned, includes SPAM (Hormel)
+            
+         	
+              </h1>
+             <div class="menuButton" >
+            <a href="/ndb/search/list?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Abridged&amp;new=" name="search" class="previous" title="Return to results list">Return to Search Results</a><script type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip("myTooltip", { context:"null" } );</script>
+           
+            
+           
+            	<a href="/ndb/foods/show/1732?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Full&amp;new=" name="full" title="View Full Report">Full Report (All Nutrients)</a><script type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip("myTooltip", { context:"null" } );</script>
+          	
+          	 
+            	 <a href="/ndb/foods/show/1732?fg=&amp;man=&amp;lfacet=&amp;count=&amp;max=25&amp;sort=&amp;qlookup=spam&amp;offset=&amp;format=Stats&amp;new=" name="stats" title="View Statistics Report">Statistics Report</a><script type='text/javascript'> var myTooltip = new YAHOO.widget.Tooltip("myTooltip", { context:"null" } );</script>
+            
+            </div>
+            
+            
+            <div class="dialog">
+            
+                
+        <div class="null">
+            <div id="measuresHelpDialog">
+                <div class="hd">Modifying household measures</div>
+                <div class="bd">
+                       
+                	<div id="helpDiv"></div>   
+         		
+                </div>
+            </div>
+        </div>
+        <script>
+            function init_dlg_measuresHelpDialog() {
+                // Instantiate the Dialog
+                GRAILSUI.measuresHelpDialog = new YAHOO.widget.Dialog("measuresHelpDialog",
+                { 'width': '600px',
+'class': 'helpDialog',
+'draggable': true,
+'modal': false,
+'fixedcenter': true,
+'visible': false,
+'params': [],
+'constraintoviewport': true,
+'buttons': [{'text': 'OK',
+handler: function() {this.cancel();},
+'isDefault': true}] });
+                GRAILSUI.measuresHelpDialog.render(document.body);
+                
+        
+            }
+            YAHOO.util.Event.onDOMReady(init_dlg_measuresHelpDialog);
+        </script>
+                
+                  
+               <!--  NUTRIENT DATA TABLE -->
+               <form action="/ndb/foods/show/1732" method="get" >
+               <input type="hidden" name="fg" value="" id="fg" />
+               <input type="hidden" name="man" value="" id="man" />
+               <input type="hidden" name="lfacet" value="" id="lfacet" />
+               <input type="hidden" name="count" value="" id="count" />
+               <input type="hidden" name="max" value="25" id="max" />
+               <input type="hidden" name="qlookup" value="spam" id="qlookup" />
+               <input type="hidden" name="offset" value="" id="offset" />
+               <input type="hidden" name="sort" value="" id="sort" />
+               <input type="hidden" name="format" value="Abridged" id="format" />
+               
+               
+              		<div class="nutlist">
+              		
+              	
+              	<p style="font-style:italic;font-size:.8em">Nutrient values and weights are for edible portion</p>
+              	
+						
+	<table>
+                <thead>
+                
+                <tr><td colspan="6" style="vertical-align:middle;text-align:center;height:2em;" class="buttons"><input type="submit" name="_action_show" value="Apply Changes" class="calc" title="Click to recalculate measures" id="1732" /><a href="/ndb/help/contextHelp/measures" onclick="jQuery.ajax({type:'POST', url:'/ndb/help/contextHelp/measures',success:function(data,textStatus){jQuery('#helpDiv').html(data);},error:function(XMLHttpRequest,textStatus,errorThrown){},complete:function(XMLHttpRequest,textStatus){GRAILSUI.measuresHelpDialog.show();}});return false;" controller="help" action="contextHelp" id="measures"><img  title="Click for more information on calculating household measures" src="/ndb/static/images/skin/help.png" alt="Help" border="0" style="vertical-align:middle"/></a></span></td></tr>
+                <th style="vertical-align:middle">Nutrient</th>
+				<th style="vertical-align:middle" >Unit</th>
+                <th style="vertical-align:middle"><input type="text" name="Qv" style="width:30px;text-align:right;border-style:inset;height:15px" maxlength="5" value="1" id="Qv" /><br/>Value per 100.0g</th>
+                
+                
+
+
+  <th style="width:130px;line-height:1.2em;text-align:center">
+  	<input type="text" name="Q3483" style="width:30px;text-align:right;border-style:inset;height:15px" maxlength="5" value="2.0" id="Q3483" />
+  	<br>
+  	
+  	oz 1 NLEA serving
+  	<br>56g
+  	<!--
+  	-->
+  	</th>
+
+                </thead>
+                <tbody>
+               
+                <tr class="even" >
+                <td style="font-weight:bold" colspan="6" bgcolor="#dddddd" >Proximates</td>
+                </tr>
+                	
+                	
+	                	<tr class="odd">
+	                	<td >Water
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">51.70</td>
+		               
+	                	
+	                		<td style="text-align:right;">28.95</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Energy
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">kcal</td>
+	                	<td style="text-align:right;">315</td>
+		               
+	                	
+	                		<td style="text-align:right;">176</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Protein
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">13.40</td>
+		               
+	                	
+	                		<td style="text-align:right;">7.50</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Total lipid (fat)
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">26.60</td>
+		               
+	                	
+	                		<td style="text-align:right;">14.90</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Carbohydrate, by difference
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">4.60</td>
+		               
+	                	
+	                		<td style="text-align:right;">2.58</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Fiber, total dietary
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">0.0</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.0</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Sugars, total
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">0.00</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.00</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+               	
+                <tr class="even" >
+                <td style="font-weight:bold" colspan="6" bgcolor="#dddddd" >Minerals</td>
+                </tr>
+                	
+                	
+	                	<tr class="odd">
+	                	<td >Calcium, Ca
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0</td>
+		               
+	                	
+	                		<td style="text-align:right;">0</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Iron, Fe
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0.64</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.36</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Magnesium, Mg
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">14</td>
+		               
+	                	
+	                		<td style="text-align:right;">8</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Phosphorus, P
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">151</td>
+		               
+	                	
+	                		<td style="text-align:right;">85</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Potassium, K
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">409</td>
+		               
+	                	
+	                		<td style="text-align:right;">229</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Sodium, Na
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">1411</td>
+		               
+	                	
+	                		<td style="text-align:right;">790</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Zinc, Zn
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">1.59</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.89</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+               	
+                <tr class="even" >
+                <td style="font-weight:bold" colspan="6" bgcolor="#dddddd" >Vitamins</td>
+                </tr>
+                	
+                	
+	                	<tr class="odd">
+	                	<td >Vitamin C, total ascorbic acid
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0.0</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.0</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Thiamin
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0.317</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.178</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Riboflavin
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0.176</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.099</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Niacin
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">3.530</td>
+		               
+	                	
+	                		<td style="text-align:right;">1.977</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Vitamin B-6
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0.218</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.122</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Folate, DFE
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">µg</td>
+	                	<td style="text-align:right;">3</td>
+		               
+	                	
+	                		<td style="text-align:right;">2</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Vitamin B-12
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">µg</td>
+	                	<td style="text-align:right;">0.45</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.25</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Vitamin A, RAE
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">µg</td>
+	                	<td style="text-align:right;">0</td>
+		               
+	                	
+	                		<td style="text-align:right;">0</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Vitamin A, IU
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">IU</td>
+	                	<td style="text-align:right;">0</td>
+		               
+	                	
+	                		<td style="text-align:right;">0</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Vitamin E (alpha-tocopherol)
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0.42</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.24</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Vitamin D (D2 + D3)
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">µg</td>
+	                	<td style="text-align:right;">0.6</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.3</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Vitamin D
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">IU</td>
+	                	<td style="text-align:right;">26</td>
+		               
+	                	
+	                		<td style="text-align:right;">15</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Vitamin K (phylloquinone)
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">µg</td>
+	                	<td style="text-align:right;">0.0</td>
+		               
+	                	
+	                		<td style="text-align:right;">0.0</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+               	
+                <tr class="even" >
+                <td style="font-weight:bold" colspan="6" bgcolor="#dddddd" >Lipids</td>
+                </tr>
+                	
+                	
+	                	<tr class="odd">
+	                	<td >Fatty acids, total saturated
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">9.987</td>
+		               
+	                	
+	                		<td style="text-align:right;">5.593</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Fatty acids, total monounsaturated
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">13.505</td>
+		               
+	                	
+	                		<td style="text-align:right;">7.563</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="odd">
+	                	<td >Fatty acids, total polyunsaturated
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">g</td>
+	                	<td style="text-align:right;">2.019</td>
+		               
+	                	
+	                		<td style="text-align:right;">1.131</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+	                	<tr class="even">
+	                	<td >Cholesterol
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">71</td>
+		               
+	                	
+	                		<td style="text-align:right;">40</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+               	
+                <tr class="even" >
+                <td style="font-weight:bold" colspan="6" bgcolor="#dddddd" >Other</td>
+                </tr>
+                	
+                	
+	                	<tr class="odd">
+	                	<td >Caffeine
+	                	
+	                	
+	                	</td>
+	                	
+	                	<td style="text-align:center;">mg</td>
+	                	<td style="text-align:right;">0</td>
+		               
+	                	
+	                		<td style="text-align:right;">0</td>
+	                	
+	                	
+	                	</tr>
+                	
+               		 
+               	
+                </tbody>
+                </table>
+				
+                </div>
+               </form>
+               
+                
+                 
+                    	
+               
+            </div>
+           
+        </div>
+    
+        <script src="/ndb/static/js/application.js" type="text/javascript" ></script>
+
+
+        </div>
+        <div class="footer">
+        National Nutrient Database for Standard Reference<br>Release 25
+			&nbsp;&nbsp;Software v.1.2.2
+		</div>
+    </body>
+</html>

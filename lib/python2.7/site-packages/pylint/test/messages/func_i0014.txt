@@ -1,0 +1,2 @@
+I:  1: Ignoring entire file
+I:  1: Pragma "disable-all" is deprecated, use "skip-file" instead

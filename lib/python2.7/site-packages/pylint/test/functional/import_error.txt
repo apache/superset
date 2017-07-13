@@ -1,0 +1,3 @@
+import-error:3::"Unable to import 'totally_missing'"
+import-error:16::"Unable to import 'maybe_missing_2'"
+import-error:27::"Unable to import 'functional.collections'"

@@ -9,167 +9,9 @@
       "description": ""
     },
     "viz_type": {
-      "type": "SelectControl",
+      "type": "VizTypeControl",
       "label": "Visualization Type",
-      "clearable": false,
       "default": "table",
-      "choices": [
-        [
-          "dist_bar",
-          "Distribution - Bar Chart",
-          "/static/assets/images/viz_thumbnails/dist_bar.png"
-        ],
-        [
-          "pie",
-          "Pie Chart",
-          "/static/assets/images/viz_thumbnails/pie.png"
-        ],
-        [
-          "line",
-          "Time Series - Line Chart",
-          "/static/assets/images/viz_thumbnails/line.png"
-        ],
-        [
-          "dual_line",
-          "Time Series - Dual Axis Line Chart",
-          "/static/assets/images/viz_thumbnails/dual_line.png"
-        ],
-        [
-          "bar",
-          "Time Series - Bar Chart",
-          "/static/assets/images/viz_thumbnails/bar.png"
-        ],
-        [
-          "compare",
-          "Time Series - Percent Change",
-          "/static/assets/images/viz_thumbnails/compare.png"
-        ],
-        [
-          "area",
-          "Time Series - Stacked",
-          "/static/assets/images/viz_thumbnails/area.png"
-        ],
-        [
-          "table",
-          "Table View",
-          "/static/assets/images/viz_thumbnails/table.png"
-        ],
-        [
-          "markup",
-          "Markup",
-          "/static/assets/images/viz_thumbnails/markup.png"
-        ],
-        [
-          "pivot_table",
-          "Pivot Table",
-          "/static/assets/images/viz_thumbnails/pivot_table.png"
-        ],
-        [
-          "separator",
-          "Separator",
-          "/static/assets/images/viz_thumbnails/separator.png"
-        ],
-        [
-          "word_cloud",
-          "Word Cloud",
-          "/static/assets/images/viz_thumbnails/word_cloud.png"
-        ],
-        [
-          "treemap",
-          "Treemap",
-          "/static/assets/images/viz_thumbnails/treemap.png"
-        ],
-        [
-          "cal_heatmap",
-          "Calendar Heatmap",
-          "/static/assets/images/viz_thumbnails/cal_heatmap.png"
-        ],
-        [
-          "box_plot",
-          "Box Plot",
-          "/static/assets/images/viz_thumbnails/box_plot.png"
-        ],
-        [
-          "bubble",
-          "Bubble Chart",
-          "/static/assets/images/viz_thumbnails/bubble.png"
-        ],
-        [
-          "bullet",
-          "Bullet Chart",
-          "/static/assets/images/viz_thumbnails/bullet.png"
-        ],
-        [
-          "big_number",
-          "Big Number with Trendline",
-          "/static/assets/images/viz_thumbnails/big_number.png"
-        ],
-        [
-          "big_number_total",
-          "Big Number",
-          "/static/assets/images/viz_thumbnails/big_number_total.png"
-        ],
-        [
-          "histogram",
-          "Histogram",
-          "/static/assets/images/viz_thumbnails/histogram.png"
-        ],
-        [
-          "sunburst",
-          "Sunburst",
-          "/static/assets/images/viz_thumbnails/sunburst.png"
-        ],
-        [
-          "sankey",
-          "Sankey",
-          "/static/assets/images/viz_thumbnails/sankey.png"
-        ],
-        [
-          "directed_force",
-          "Directed Force Layout",
-          "/static/assets/images/viz_thumbnails/directed_force.png"
-        ],
-        [
-          "country_map",
-          "Country Map",
-          "/static/assets/images/viz_thumbnails/country_map.png"
-        ],
-        [
-          "world_map",
-          "World Map",
-          "/static/assets/images/viz_thumbnails/world_map.png"
-        ],
-        [
-          "filter_box",
-          "Filter Box",
-          "/static/assets/images/viz_thumbnails/filter_box.png"
-        ],
-        [
-          "iframe",
-          "iFrame",
-          "/static/assets/images/viz_thumbnails/iframe.png"
-        ],
-        [
-          "para",
-          "Parallel Coordinates",
-          "/static/assets/images/viz_thumbnails/para.png"
-        ],
-        [
-          "heatmap",
-          "Heatmap",
-          "/static/assets/images/viz_thumbnails/heatmap.png"
-        ],
-        [
-          "horizon",
-          "Horizon",
-          "/static/assets/images/viz_thumbnails/horizon.png"
-        ],
-        [
-          "mapbox",
-          "Mapbox",
-          "/static/assets/images/viz_thumbnails/mapbox.png"
-        ]
-      ],
       "description": "The type of visualization to display"
     },
     "metrics": {
@@ -179,7 +21,17 @@
       "validators": [
         null
       ],
+      "valueKey": "metric_name",
       "description": "One or many metrics to display"
+    },
+    "y_axis_bounds": {
+      "type": "BoundsControl",
+      "label": "Y Axis Bounds",
+      "default": [
+        null,
+        null
+      ],
+      "description": "Bounds for the Y axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent."
     },
     "order_by_cols": {
       "type": "SelectControl",
@@ -192,14 +44,22 @@
       "type": "SelectControl",
       "label": "Metric",
       "clearable": false,
-      "description": "Choose the metric"
+      "description": "Choose the metric",
+      "validators": [
+        null
+      ],
+      "valueKey": "metric_name"
     },
     "metric_2": {
       "type": "SelectControl",
       "label": "Right Axis Metric",
-      "choices": [],
-      "default": [],
-      "description": "Choose a metric for right axis"
+      "default": null,
+      "validators": [
+        null
+      ],
+      "clearable": true,
+      "description": "Choose a metric for right axis",
+      "valueKey": "metric_name"
     },
     "stacked_style": {
       "type": "SelectControl",
@@ -779,28 +639,20 @@
     },
     "select_country": {
       "type": "SelectControl",
-      "label": "Country Name Type",
+      "label": "Country Name",
       "default": "France",
       "choices": [
-        [
-          "Algeria",
-          "Algeria"
-        ],
         [
           "Belgium",
           "Belgium"
         ],
         [
-          "Brasil",
-          "Brasil"
+          "Brazil",
+          "Brazil"
         ],
         [
           "China",
           "China"
-        ],
-        [
-          "Germany",
-          "Germany"
         ],
         [
           "Egypt",
@@ -811,6 +663,10 @@
           "France"
         ],
         [
+          "Germany",
+          "Germany"
+        ],
+        [
           "Italy",
           "Italy"
         ],
@@ -819,8 +675,8 @@
           "Morocco"
         ],
         [
-          "Nederlanden",
-          "Nederlanden"
+          "Netherlands",
+          "Netherlands"
         ],
         [
           "Russia",
@@ -837,6 +693,10 @@
         [
           "Uk",
           "Uk"
+        ],
+        [
+          "Ukraine",
+          "Ukraine"
         ],
         [
           "Usa",
@@ -874,14 +734,16 @@
       "multi": true,
       "label": "Group by",
       "default": [],
-      "description": "One or many controls to group by"
+      "description": "One or many controls to group by",
+      "valueKey": "column_name"
     },
     "columns": {
       "type": "SelectControl",
       "multi": true,
       "label": "Columns",
       "default": [],
-      "description": "One or many controls to pivot as columns"
+      "description": "One or many controls to pivot as columns",
+      "valueKey": "column_name"
     },
     "all_columns": {
       "type": "SelectControl",
@@ -1562,24 +1424,39 @@
       "type": "SelectControl",
       "label": "Entity",
       "default": null,
+      "validators": [
+        null
+      ],
       "description": "This define the element to be plotted on the chart"
     },
     "x": {
       "type": "SelectControl",
       "label": "X Axis",
+      "description": "Metric assigned to the [X] axis",
       "default": null,
-      "description": "Metric assigned to the [X] axis"
+      "validators": [
+        null
+      ],
+      "valueKey": "metric_name"
     },
     "y": {
       "type": "SelectControl",
       "label": "Y Axis",
       "default": null,
-      "description": "Metric assigned to the [Y] axis"
+      "validators": [
+        null
+      ],
+      "description": "Metric assigned to the [Y] axis",
+      "valueKey": "metric_name"
     },
     "size": {
       "type": "SelectControl",
       "label": "Bubble Size",
-      "default": null
+      "default": null,
+      "validators": [
+        null
+      ],
+      "valueKey": "metric_name"
     },
     "url": {
       "type": "TextControl",
@@ -1626,7 +1503,11 @@
       "type": "SelectControl",
       "freeForm": true,
       "label": "Table Timestamp Format",
-      "default": "smart_date",
+      "default": "%Y-%m-%d %H:%M:%S",
+      "validators": [
+        null
+      ],
+      "clearable": false,
       "choices": [
         [
           "smart_date",
@@ -1740,7 +1621,41 @@
     "x_axis_format": {
       "type": "SelectControl",
       "freeForm": true,
-      "label": "X axis format",
+      "label": "X Axis Format",
+      "renderTrigger": true,
+      "default": ".3s",
+      "choices": [
+        [
+          ".3s",
+          ".3s | 12.3k"
+        ],
+        [
+          ".3%",
+          ".3% | 1234543.210%"
+        ],
+        [
+          ".4r",
+          ".4r | 12350"
+        ],
+        [
+          ".3f",
+          ".3f | 12345.432"
+        ],
+        [
+          "+,",
+          "+, | +12,345.4321"
+        ],
+        [
+          "$,.2f",
+          "$,.2f | $12,345.43"
+        ]
+      ],
+      "description": "D3 format syntax: https://github.com/d3/d3-format"
+    },
+    "x_axis_time_format": {
+      "type": "SelectControl",
+      "freeForm": true,
+      "label": "X Axis Format",
       "renderTrigger": true,
       "default": "smart_date",
       "choices": [
@@ -1770,7 +1685,7 @@
     "y_axis_format": {
       "type": "SelectControl",
       "freeForm": true,
-      "label": "Y axis format",
+      "label": "Y Axis Format",
       "renderTrigger": true,
       "default": ".3s",
       "choices": [
@@ -1804,7 +1719,7 @@
     "y_axis_2_format": {
       "type": "SelectControl",
       "freeForm": true,
-      "label": "Right axis format",
+      "label": "Right Axis Format",
       "default": ".3s",
       "choices": [
         [
@@ -1837,6 +1752,7 @@
     "markup_type": {
       "type": "SelectControl",
       "label": "Markup Type",
+      "clearable": false,
       "choices": [
         [
           "markdown",
@@ -1848,6 +1764,9 @@
         ]
       ],
       "default": "markdown",
+      "validators": [
+        null
+      ],
       "description": "Pick your favorite markup language"
     },
     "rotation": {
@@ -2047,13 +1966,6 @@
       "default": true,
       "description": "The rich tooltip shows a list of all series for that point in time"
     },
-    "y_axis_zero": {
-      "type": "CheckboxControl",
-      "label": "Y Axis Zero",
-      "default": false,
-      "renderTrigger": true,
-      "description": "Force the Y axis to start at 0 instead of the minimum value"
-    },
     "y_log_scale": {
       "type": "CheckboxControl",
       "label": "Y Log Scale",
@@ -2072,12 +1984,14 @@
       "type": "CheckboxControl",
       "label": "Donut",
       "default": false,
+      "renderTrigger": true,
       "description": "Do you want a donut or a pie?"
     },
     "labels_outside": {
       "type": "CheckboxControl",
       "label": "Put labels outside",
       "default": true,
+      "renderTrigger": true,
       "description": "Put the labels outside the pie?"
     },
     "contribution": {

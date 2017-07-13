@@ -1,0 +1,790 @@
+Metadata-Version: 1.1
+Name: billiard
+Version: 3.3.0.23
+Summary: Python multiprocessing fork with improvements and bugfixes
+Home-page: http://github.com/celery/billiard
+Author: Ask Solem
+Author-email: ask@celeryproject.org
+License: BSD
+Description: ========
+        billiard
+        ========
+        :version: 3.3.0.23
+        
+        About
+        -----
+        
+        `billiard` is a fork of the Python 2.7 `multiprocessing <http://docs.python.org/library/multiprocessing.html>`_
+        package. The multiprocessing package itself is a renamed and updated version of
+        R Oudkerk's `pyprocessing <http://pypi.python.org/pypi/processing/>`_ package.
+        This standalone variant is intended to be compatible with Python 2.4 and 2.5,
+        and will draw it's fixes/improvements from python-trunk.
+        
+        - This package would not be possible if not for the contributions of not only
+          the current maintainers but all of the contributors to the original pyprocessing
+          package listed `here <http://pyprocessing.berlios.de/doc/THANKS.html>`_
+        
+        - Also it is a fork of the multiprocessin backport package by Christian Heims.
+        
+        - It includes the no-execv patch contributed by R. Oudkerk.
+        
+        - And the Pool improvements previously located in `Celery`_.
+        
+        .. _`Celery`: http://celeryproject.org
+        
+        
+        Bug reporting
+        -------------
+        
+        Please report bugs related to multiprocessing at the
+        `Python bug tracker <http://bugs.python.org/>`_. Issues related to billiard
+        should be reported at http://github.com/celery/billiard/issues.
+        
+        
+        .. image:: https://d2weczhvl823v0.cloudfront.net/celery/billiard/trend.png
+            :alt: Bitdeli badge
+            :target: https://bitdeli.com/free
+        
+        
+        ===========
+        Changes
+        ===========
+        
+        3.3.0.23 - 2016-03-03
+        ---------------------
+        
+        - ExceptionInfo: Adds tb_lasti and other missing traceback fields
+          (Issue #180).
+        
+        - monotonic: Now makes sure ctypes is available.
+        
+        - PipeConnection: Make sure the pipe is not closed multiple times.
+        
+        3.3.0.22 - 2015-12-08
+        ---------------------
+        
+        - Wheel packages for Windows now available.
+        
+        3.3.0.21 - 2015-10-26
+        ---------------------
+        
+        - Pool: Fixed semaphore error on Python3.
+        
+        - Fixed libSystem error on OS X El Capitan.
+        
+        3.3.0.20 - 2015-04-17
+        ---------------------
+        
+        - Pool: Timeouts will attempt to send SIGKILL, but this signal
+          does not exist on Windows.  Replaced with SIGTERM.
+        
+        3.3.0.19 - 2014-10-13
+        ---------------------
+        
+        - Pool: Exceptions in user timeout callbacks are now logged instead
+          of crashing the pool.
+        
+            Contributed by Pierre Fersing.
+        
+        - Pool: Exit codes in errors were improperly being represented as signals.
+        
+        - Pool: ``.map``. and ``.imap`` now working again.
+        
+        - Now builds on FreeBSD 10.
+        
+            Contributed by Michael Fladischer.
+        
+        3.3.0.18 - 2014-06-20
+        ---------------------
+        
+        - Now compiles on GNU/kFreeBSD
+        
+            Contributed by Michael Fladischer.
+        
+        - Pool: `AF_PIPE` address fixed so that it works on recent Windows versions
+          in combination with Python 2.7.7.
+        
+            Fix contributed by Joshua Tacoma.
+        
+        - Pool: Fix for `Supervisor object has no attribute _children` error.
+        
+            Fix contributed by Andres Riancho.
+        
+        - Pool: Fixed bug with human_status(None).
+        
+        - Pool: shrink did not work properly if asked to remove more than 1 process.
+        
+        
+        3.3.0.17 - 2014-04-16
+        ---------------------
+        
+        - Fixes SemLock on Python 3.4 (Issue #107) when using
+          ``forking_enable(False)``.
+        
+        - Pool: Include more useful exitcode information when processes exit.
+        
+        3.3.0.16 - 2014-02-11
+        ---------------------
+        
+        - Previous release was missing the billiard.py3 package from MANIFEST
+          so the installation would not work on Python 3.
+        
+        3.3.0.15 - 2014-02-10
+        ---------------------
+        
+        - Pool: Fixed "cannot join process not started" error.
+        
+        - Now uses billiard.py2 and billiard.py3 specific packages that are installed
+          depending on the python version used.
+        
+            This way the installation will not import version specific modules (and
+            possibly crash).
+        
+        3.3.0.14 - 2014-01-17
+        ---------------------
+        
+        - Fixed problem with our backwards compatible ``bytes`` wrapper
+          (Issue #103).
+        
+        - No longer expects frozen applications to have a valid ``__file__``
+          attribute.
+        
+            Fix contributed by George Sibble.
+        
+        3.3.0.13 - 2013-12-13
+        ---------------------
+        
+        - Fixes compatability with Python < 2.7.6
+        
+        - No longer attempts to handle ``SIGBUS``
+        
+            Contributed by Vishal Vatsa.
+        
+        - Non-thread based pool now only handles signals:
+        
+            ``SIGHUP``, ``SIGQUIT``, ``SIGTERM``, ``SIGUSR1``,
+            ``SIGUSR2``.
+        
+        - setup.py: Only show compilation warning for build related commands.
+        
+        3.3.0.12 - 2013-12-09
+        ---------------------
+        
+        - Fixed installation for Python 3.
+        
+            Contributed by Rickert Mulder.
+        
+        - Pool: Fixed bug with maxtasksperchild.
+        
+            Fix contributed by Ionel Cristian Maries.
+        
+        - Pool: Fixed bug in maintain_pool.
+        
+        3.3.0.11 - 2013-12-03
+        ---------------------
+        
+        - Fixed Unicode error when installing the distribution (Issue #89).
+        
+        - Daemonic processes are now allowed to have children.
+        
+            But note that it will not be possible to automatically
+            terminate them when the process exits.
+        
+            See discussion at https://github.com/celery/celery/issues/1709
+        
+        - Pool:  Would not always be able to detect that a process exited.
+        
+        
+        3.3.0.10 - 2013-12-02
+        ---------------------
+        
+        - Windows: Fixed problem with missing ``WAITABANDONED_0``
+        
+            Fix contributed by Matthias Wagner
+        
+        - Windows: PipeConnection can now be inherited.
+        
+            Fix contributed by Matthias Wagner
+        
+        3.3.0.9 - 2013-12-02
+        --------------------
+        
+        - Temporary workaround for Celery maxtasksperchild issue.
+        
+            Fix contributed by Ionel Cristian Maries.
+        
+        3.3.0.8 - 2013-11-21
+        --------------------
+        
+        - Now also sets ``multiprocessing.current_process`` for compatibility
+          with loggings ``processName`` field.
+        
+        3.3.0.7 - 2013-11-15
+        --------------------
+        
+        - Fixed compatibility with PyPy 2.1 + 2.2.
+        
+        - Fixed problem in pypy detection.
+        
+            Fix contributed by Tin Tvrtkovic.
+        
+        - Now uses ``ctypes.find_library`` instead of hardcoded path to find
+          the OS X CoreServices framework.
+        
+            Fix contributed by Moritz Kassner.
+        
+        
+        3.3.0.6 - 2013-11-12
+        --------------------
+        
+        - Now works without C extension again.
+        
+        - New ``_billiard.read(fd, buffer, [len, ])`` function
+          implements os.read with buffer support (new buffer API)
+        
+        - New pure-python implementation of ``Connection.send_offset``.
+        
+        3.3.0.5 - 2013-11-11
+        --------------------
+        
+        - All platforms except for Windows/PyPy/Jython now requires the C extension.
+        
+        3.3.0.4 - 2013-11-11
+        --------------------
+        
+        - Fixed problem with Python3 and setblocking.
+        
+        3.3.0.3 - 2013-11-09
+        --------------------
+        
+        - Now works on Windows again.
+        
+        3.3.0.2 - 2013-11-08
+        --------------------
+        
+        - ApplyResult.terminate() may be set to signify that the job
+          must not be executed.  It can be used in combination with
+          Pool.terminate_job.
+        
+        - Pipe/_SimpleQueue: Now supports rnonblock/wnonblock arguments
+          to set the read or write end of the pipe to be nonblocking.
+        
+        - Pool: Log message included exception info but exception happened
+          in another process so the resulting traceback was wrong.
+        
+        - Pool: Worker process can now prepare results before they are sent
+          back to the main process (using ``Worker.prepare_result``).
+        
+        3.3.0.1 - 2013-11-04
+        --------------------
+        
+        - Pool: New ``correlation_id`` argument to ``apply_async`` can be
+          used to set a related id for the ``ApplyResult`` object returned:
+        
+            >>> r = pool.apply_async(target, args, kwargs, correlation_id='foo')
+            >>> r.correlation_id
+            'foo'
+        
+        - Pool: New callback `on_process_exit` is called when a pool
+          process exits, with signature ``(pid, exitcode)``.
+        
+            Contributed by Daniel M. Taub.
+        
+        - Pool: Improved the too many restarts detection.
+        
+        3.3.0.0 - 2013-10-14
+        --------------------
+        
+        - Dual code base now runs on Python 2.6+ and Python 3.
+        
+        - No longer compatible with Python 2.5
+        
+        - Includes many changes from multiprocessing in 3.4.
+        
+        - Now uses ``time.monotonic`` when available, also including
+          fallback implementations for Linux and OS X.
+        
+        - No longer cleans up after receiving SIGILL, SIGSEGV or SIGFPE
+        
+            Contributed by Kevin Blackham
+        
+        - ``Finalize`` and ``register_after_fork`` is now aliases to multiprocessing.
+        
+            It's better to import these from multiprocessing directly now
+            so that there aren't multiple registries.
+        
+        - New `billiard.queues._SimpleQueue` that does not use semaphores.
+        
+        - Pool: Can now be extended to support using multiple IPC queues.
+        
+        - Pool: Can now use async I/O to write to pool IPC queues.
+        
+        - Pool: New ``Worker.on_loop_stop`` handler can be used to add actions
+          at pool worker process shutdown.
+        
+            Note that, like all finalization handlers, there is no guarantee that
+            this will be executed.
+        
+            Contributed by dmtaub.
+        
+        2.7.3.30 - 2013-06-28
+        ---------------------
+        
+        - Fixed ImportError in billiard._ext
+        
+        2.7.3.29 - 2013-06-28
+        ---------------------
+        
+        - Compilation: Fixed improper handling of HAVE_SEM_OPEN (Issue #55)
+        
+            Fix contributed by Krzysztof Jagiello.
+        
+        - Process now releases logging locks after fork.
+        
+            This previously happened in Pool, but it was done too late
+            as processes logs when they bootstrap.
+        
+        - Pool.terminate_job now ignores `No such process` errors.
+        
+        - billiard.Pool entrypoint did not support new arguments
+          to billiard.pool.Pool
+        
+        - Connection inbound buffer size increased from 1kb to 128kb.
+        
+        - C extension cleaned up by properly adding a namespace to symbols.
+        
+        - _exit_function now works even if thread wakes up after gc collect.
+        
+        2.7.3.28 - 2013-04-16
+        ---------------------
+        
+        - Pool: Fixed regression that disabled the deadlock
+          fix in 2.7.3.24
+        
+        - Pool: RestartFreqExceeded could be raised prematurely.
+        
+        - Process: Include pid in startup and process INFO logs.
+        
+        2.7.3.27 - 2013-04-12
+        ---------------------
+        
+        - Manager now works again.
+        
+        - Python 3 fixes for billiard.connection.
+        
+        - Fixed invalid argument bug when running on Python 3.3
+        
+            Fix contributed by Nathan Wan.
+        
+        - Ignore OSError when setting up signal handlers.
+        
+        2.7.3.26 - 2013-04-09
+        ---------------------
+        
+        - Pool: Child processes must ignore SIGINT.
+        
+        2.7.3.25 - 2013-04-09
+        ---------------------
+        
+        - Pool: 2.7.3.24 broke support for subprocesses (Issue #48).
+        
+            Signals that should be ignored were instead handled
+            by terminating.
+        
+        2.7.3.24 - 2013-04-08
+        ---------------------
+        
+        - Pool:  Make sure finally blocks are called when process exits
+          due to a signal.
+        
+            This fixes a deadlock problem when the process is killed
+            while having acquired the shared semaphore.  However, this solution
+            does not protect against the processes being killed, a more elaborate
+            solution is required for that. Hopefully this will be fixed soon in a
+            later version.
+        
+        - Pool:  Can now use GDB to debug pool child processes.
+        
+        - Fixes Python 3 compatibility problems.
+        
+            Contributed by Albertas Agejevas.
+        
+        2.7.3.23 - 2013-03-22
+        ---------------------
+        
+        - Windows: Now catches SystemExit from setuptools while trying to build
+          the C extension (Issue #41).
+        
+        2.7.3.22 - 2013-03-08
+        ---------------------
+        
+        - Pool: apply_async now supports a ``callbacks_propagate`` keyword
+          argument that can be a tuple of exceptions to propagate in callbacks.
+          (callback, errback, accept_callback, timeout_callback).
+        
+        - Errors are no longer logged for OK and recycle exit codes.
+        
+            This would cause normal maxtasksperchild recycled process
+            to log an error.
+        
+        - Fixed Python 2.5 compatibility problem (Issue #33).
+        
+        - FreeBSD: Compilation now disables semaphores if Python was built
+          without it (Issue #40).
+        
+            Contributed by William Grzybowski
+        
+        2.7.3.21 - 2013-02-11
+        ---------------------
+        
+        - Fixed typo EX_REUSE -> EX_RECYCLE
+        
+        - Code now conforms to new pep8.py rules.
+        
+        2.7.3.20 - 2013-02-08
+        ---------------------
+        
+        - Pool: Disable restart limit if maxR is not set.
+        
+        - Pool: Now uses os.kill instead of signal.signal.
+        
+            Contributed by Lukasz Langa
+        
+        - Fixed name error in process.py
+        
+        - Pool: ApplyResult.get now properly raises exceptions.
+        
+            Fix contributed by xentac.
+        
+        2.7.3.19 - 2012-11-30
+        ---------------------
+        
+        - Fixes problem at shutdown when gc has collected symbols.
+        
+        - Pool now always uses _kill for Py2.5 compatibility on Windows (Issue #32).
+        
+        - Fixes Python 3 compatibility issues
+        
+        2.7.3.18 - 2012-11-05
+        ---------------------
+        
+        - [Pool] Fix for check_timeouts if not set.
+        
+            Fix contributed by Dmitry Sukhov
+        
+        - Fixed pickle problem with Traceback.
+        
+            Code.frame.__loader__ is now ignored as it may be set to
+            an unpickleable object.
+        
+        - The Django old-layout warning was always showing.
+        
+        2.7.3.17 - 2012-09-26
+        ---------------------
+        
+        - Fixes typo
+        
+        2.7.3.16 - 2012-09-26
+        ---------------------
+        
+        - Windows: Fixes for SemLock._rebuild (Issue #24).
+        
+        - Pool: Job terminated with terminate_job now raises
+          billiard.exceptions.Terminated.
+        
+        2.7.3.15 - 2012-09-21
+        ---------------------
+        
+        - Windows: Fixes unpickling of SemLock when using fallback.
+        
+        - Windows: Fixes installation when no C compiler.
+        
+        2.7.3.14 - 2012-09-20
+        ---------------------
+        
+        - Installation now works again for Python 3.
+        
+        2.7.3.13 - 2012-09-14
+        ---------------------
+        
+        - Merged with Python trunk (many authors, many fixes: see Python changelog in
+          trunk).
+        
+        - Using execv now also works with older Django projects using setup_environ
+          (Issue #10).
+        
+        - Billiard now installs with a warning that the C extension could not be built
+          if a compiler is not installed or the build fails in some other way.
+        
+            It really is recommended to have the C extension installed when running
+            with force execv, but this change also makes it easier to install.
+        
+        - Pool: Hard timeouts now sends KILL shortly after TERM so that C extensions
+          cannot block the signal.
+        
+            Python signal handlers are called in the interpreter, so they cannot
+            be called while a C extension is blocking the interpreter from running.
+        
+        - Now uses a timeout value for Thread.join that doesn't exceed the maximum
+          on some platforms.
+        
+        - Fixed bug in the SemLock fallback used when C extensions not installed.
+        
+            Fix contributed by Mher Movsisyan.
+        
+        - Pool: Now sets a Process.index attribute for every process in the pool.
+        
+            This number will always be between 0 and concurrency-1, and
+            can be used to e.g. create a logfile for each process in the pool
+            without creating a new logfile whenever a process is replaced.
+        
+        2.7.3.12 - 2012-08-05
+        ---------------------
+        
+        - Fixed Python 2.5 compatibility issue.
+        
+        - New Pool.terminate_job(pid) to terminate a job without raising WorkerLostError
+        
+        2.7.3.11 - 2012-08-01
+        ---------------------
+        
+        - Adds support for FreeBSD 7+
+        
+            Fix contributed by koobs.
+        
+        - Pool: New argument ``allow_restart`` is now required to enable
+          the pool process sentinel that is required to restart the pool.
+        
+            It's disabled by default, which reduces the number of file
+            descriptors/semaphores required to run the pool.
+        
+        - Pool: Now emits a warning if a worker process exited with error-code.
+        
+            But not if the error code is 155, which is now returned if the worker
+            process was recycled (maxtasksperchild).
+        
+        - Python 3 compatibility fixes.
+        
+        - Python 2.5 compatibility fixes.
+        
+        2.7.3.10 - 2012-06-26
+        ---------------------
+        
+        - The ``TimeLimitExceeded`` exception string representation
+          only included the seconds as a number, it now gives a more human
+          friendly description.
+        
+        - Fixed typo in ``LaxBoundedSemaphore.shrink``.
+        
+        - Pool: ``ResultHandler.handle_event`` no longer requires
+          any arguments.
+        
+        - setup.py bdist now works
+        
+        2.7.3.9 - 2012-06-03
+        --------------------
+        
+        - Environment variable ``MP_MAIN_FILE`` envvar is now set to
+          the path of the ``__main__`` module when execv is enabled.
+        
+        - Pool: Errors occurring in the TaskHandler are now reported.
+        
+        2.7.3.8 - 2012-06-01
+        --------------------
+        
+        - Can now be installed on Py 3.2
+        
+        - Issue #12091: simplify ApplyResult and MapResult with threading.Event
+        
+          Patch by Charles-Francois Natali
+        
+        - Pool: Support running without TimeoutHandler thread.
+        
+            - The with_*_thread arguments has also been replaced with
+              a single `threads=True` argument.
+        
+            - Two new pool callbacks:
+        
+                - ``on_timeout_set(job, soft, hard)``
+        
+                    Applied when a task is executed with a timeout.
+        
+                - ``on_timeout_cancel(job)``
+        
+                    Applied when a timeout is cancelled (the job completed)
+        
+        2.7.3.7 - 2012-05-21
+        --------------------
+        
+        - Fixes Python 2.5 support.
+        
+        2.7.3.6 - 2012-05-21
+        --------------------
+        
+        - Pool: Can now be used in an event loop, without starting the supporting
+          threads (TimeoutHandler still not supported)
+        
+            To facilitate this the pool has gained the following keyword arguments:
+        
+                - ``with_task_thread``
+                - ``with_result_thread``
+                - ``with_supervisor_thread``
+                - ``on_process_up``
+        
+                    Callback called with Process instance as argument
+                    whenever a new worker process is added.
+        
+                    Used to add new process fds to the eventloop::
+        
+                        def on_process_up(proc):
+                            hub.add_reader(proc.sentinel, pool.maintain_pool)
+        
+                - ``on_process_down``
+        
+                    Callback called with Process instance as argument
+                    whenever a new worker process is found dead.
+        
+                    Used to remove process fds from the eventloop::
+        
+                        def on_process_down(proc):
+                            hub.remove(proc.sentinel)
+        
+                - ``semaphore``
+        
+                    Sets the semaphore used to protect from adding new items to the
+                    pool when no processes available.  The default is a threaded
+                    one, so this can be used to change to an async semaphore.
+        
+            And the following attributes::
+        
+                - ``readers``
+        
+                    A map of ``fd`` -> ``callback``, to be registered in an eventloop.
+                    Currently this is only the result outqueue with a callback
+                    that processes all currently incoming results.
+        
+            And the following methods::
+        
+                - ``did_start_ok``
+        
+                    To be called after starting the pool, and after setting up the
+                    eventloop with the pool fds, to ensure that the worker processes
+                    didn't immediately exit caused by an error (internal/memory).
+        
+                - ``maintain_pool``
+        
+                    Public version of ``_maintain_pool`` that handles max restarts.
+        
+        - Pool: Process too frequent restart protection now only counts if the process
+          had a non-successful exit-code.
+        
+            This to take into account the maxtasksperchild option, and allowing
+            processes to exit cleanly on their own.
+        
+        - Pool: New options max_restart + max_restart_freq
+        
+            This means that the supervisor can't restart processes
+            faster than max_restart' times per max_restart_freq seconds
+            (like the Erlang supervisor maxR & maxT settings).
+        
+            The pool is closed and joined if the max restart
+            frequency is exceeded, where previously it would keep restarting
+            at an unlimited rate, possibly crashing the system.
+        
+            The current default value is to stop if it exceeds
+            100 * process_count restarts in 1 seconds.  This may change later.
+        
+            It will only count processes with an unsuccessful exit code,
+            this is to take into account the ``maxtasksperchild`` setting
+            and code that voluntarily exits.
+        
+        - Pool: The ``WorkerLostError`` message now includes the exit-code of the
+          process that disappeared.
+        
+        
+        2.7.3.5 - 2012-05-09
+        --------------------
+        
+        - Now always cleans up after ``sys.exc_info()`` to avoid
+          cyclic references.
+        
+        - ExceptionInfo without arguments now defaults to ``sys.exc_info``.
+        
+        - Forking can now be disabled using the
+          ``MULTIPROCESSING_FORKING_DISABLE`` environment variable.
+        
+            Also this envvar is set so that the behavior is inherited
+            after execv.
+        
+        - The semaphore cleanup process started when execv is used
+          now sets a useful process name if the ``setproctitle``
+          module is installed.
+        
+        - Sets the ``FORKED_BY_MULTIPROCESSING``
+          environment variable if forking is disabled.
+        
+        
+        2.7.3.4 - 2012-04-27
+        --------------------
+        
+        - Added `billiard.ensure_multiprocessing()`
+        
+            Raises NotImplementedError if the platform does not support
+            multiprocessing (e.g. Jython).
+        
+        
+        2.7.3.3 - 2012-04-23
+        --------------------
+        
+        - PyPy now falls back to using its internal _multiprocessing module,
+          so everything works except for forking_enable(False) (which
+          silently degrades).
+        
+        - Fixed Python 2.5 compat. issues.
+        
+        - Uses more with statements
+        
+        - Merged some of the changes from the Python 3 branch.
+        
+        2.7.3.2 - 2012-04-20
+        --------------------
+        
+        - Now installs on PyPy/Jython (but does not work).
+        
+        2.7.3.1 - 2012-04-20
+        --------------------
+        
+        - Python 2.5 support added.
+        
+        2.7.3.0 - 2012-04-20
+        --------------------
+        
+        - Updated from Python 2.7.3
+        
+        - Python 2.4 support removed, now only supports 2.5, 2.6 and 2.7.
+          (may consider py3k support at some point).
+        
+        - Pool improvements from Celery.
+        
+        - no-execv patch added (http://bugs.python.org/issue8713)
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: C
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.5
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.2
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Programming Language :: Python :: Implementation :: Jython
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: System :: Distributed Computing

@@ -1,0 +1,2 @@
+Flask>=0.10
+SQLAlchemy>=0.7

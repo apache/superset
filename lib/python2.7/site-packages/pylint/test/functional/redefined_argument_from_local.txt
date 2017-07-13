@@ -1,0 +1,7 @@
+redefined-argument-from-local:5:test_redefined_in_with:Redefining argument with the local name 'name'
+redefined-argument-from-local:7:test_redefined_in_with:Redefining argument with the local name 'name'
+redefined-argument-from-local:9:test_redefined_in_with:Redefining argument with the local name 'name'
+redefined-argument-from-local:24:test_redefined_in_for:Redefining argument with the local name 'name'
+redefined-argument-from-local:26:test_redefined_in_for:Redefining argument with the local name 'name'
+redefined-argument-from-local:28:test_redefined_in_for:Redefining argument with the local name 'name'
+redefined-argument-from-local:48:test_redefined_in_except_handler:Redefining argument with the local name 'name'

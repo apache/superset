@@ -1,0 +1,343 @@
+{% macro render_additional_links(additional_links, pk) %}
+	{% if additional_links %}
+		{% for item in additional_links %}
+			<a href="{{item.href}}?pk={{pk}}" class="btn btn-sm btn-primary"><span class="glyphicon glyphicon"></span>
+			{{_(item.label)}}</a>
+		{% endfor %}
+	{% endif %}
+{% endmacro %}
+
+{% macro render_action_links(actions, pk, modelview_name) %}
+    {% set actions = actions | get_actions_on_show(modelview_name) %}
+    {% for key in actions %}
+        {%  set action = actions.get(key) %}
+
+        {% set url = url_for(modelview_name + '.action', name = action.name, pk = pk) %}
+        <a href="javascript:void(0)" class="btn btn-sm btn-primary"
+           onclick="var a = new AdminActions(); return a.execute_single('{{url}}','{{action.confirmation}}');">
+            <i class="fa {{action.icon}}"></i>
+                {{_(action.text)}}
+            </a>
+    {% endfor %}
+{% endmacro %}
+
+{% macro action_form(actions, modelview_name) %}
+    {% if actions %}
+    {% set url = url_for(modelview_name + '.action_post') %}
+    <form id="action_form" action="{{ url }}" method="POST" style="display: none">
+        {% if csrf_token %}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        {% endif %}
+        <input type="hidden" id="action" name="action" />
+    </form>
+    {% endif %}
+{% endmacro %}
+
+{% macro render_actions(actions, modelview_name) %}
+{% if actions %}
+<div class="btn-group">
+    <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+    {{_('Actions')}}<span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" role="menu">
+    	{% for action_key in actions %}
+            {% set action = actions.get(action_key) %}
+                <li>
+                    <a href="javascript:void(0)"
+                       onclick="return modelActions.execute_multiple('{{action.name}}','{{action.confirmation}}');">
+                        <i class="fa {{action.icon}}"></i>
+                        {{ _(action.text) }}
+                    </a>
+                </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endmacro %}
+
+
+{% macro render_set_page_size(page, page_size, count, modelview_name) %}
+{% if not page %} {% set page = 0 %} {% endif %}
+{% set pages = ((count / page_size)|round(0,'ceil')|int)%}
+{% if pages > 1 %}
+<div class="btn-group">
+    <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+    {{_('Page size')}}<span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" role="menu">
+    	{% for sel_page_size in range(25,125,25) %}
+    	{% if sel_page_size == page_size %}
+        	<li class="active"><a href="{{sel_page_size | link_page_size(modelview_name) }}">{{sel_page_size}}</a></li>
+        {% else %}
+        	<li><a href="{{sel_page_size | link_page_size(modelview_name) }}">{{sel_page_size}}</a></li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro render_dropdown_orderby(order_columns, label_columns, modelview_name) %}
+<div class="btn-group">
+    <button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown">
+    {{_('Order by')}}<span class="caret"></span>
+    </button>
+    <ul class="dropdown-menu" role="menu">
+    {% for item in order_columns %}
+    {% set res = item | get_link_order(modelview_name) %}
+        {% if res == 2 %}
+            <li class="active">
+    	    <a href={{ item | link_order(modelview_name) }}>{{label_columns.get(item)}}
+    	    <i class="fa fa-fw fa-chevron-up"></i></a>
+            </li>
+    	{% elif res == 1 %}
+            <li class="active">
+            <a href={{ item | link_order(modelview_name) }}>{{label_columns.get(item)}}
+    	    <i class="fa fa-fw fa-chevron-down"></i></a>
+            </li>
+    	{% else %}
+            <li>
+            <a href={{ item | link_order(modelview_name) }}>{{label_columns.get(item)}}</a>
+            </li>
+        {% endif %}
+    {% endfor %}
+    </ul>
+</div>
+{% endmacro %}
+
+
+{% macro render_pagination(page, page_size, count, modelview_name) %}
+
+    {% if not page %} {% set page = 0 %} {% endif %}
+    {% set pages = ((count / page_size)|round(0,'ceil')|int)%}
+    {% if pages > 1 %}
+    <ul class="pagination pagination-sm" style="display:inherit;">
+
+        {% set init_page = 0 %}
+        {% set min = page - 3 %}
+        {% set max = page + 3 + 1 %}
+
+        {% if min < 0 %}
+            {% set max = max - min %}
+        {% endif %}
+        {% if max >= pages %}
+            {% set min = min - max + pages %}
+        {% endif %}
+
+        {% if min < 0 %}
+            {% set min = 0 %}
+        {% endif %}
+        {% if max >= pages %}
+            {% set max = pages %}
+        {% endif %}
+
+    {% if min > 0 %}
+    <li>
+        <a href="{{ init_page | link_page(modelview_name) }}">&laquo;</a>
+    </li>
+    {% else %}
+    <li class="disabled">
+        <a href="javascript:void(0)">&laquo;</a>
+    </li>
+    {% endif %}
+    {% if page > 0 %}
+    <li>
+        <a href="{{ (page - 1) | link_page(modelview_name) }}">&lt;</a>
+    </li>
+    {% else %}
+    <li class="disabled">
+        <a href="javascript:void(0)">&lt;</a>
+    </li>
+    {% endif %}
+
+    {% for p in range(min, max) %}
+        {% if page == p %}
+        <li class="active">
+            <a href="javascript:void(0)">{{ p }}</a>
+        </li>
+        {% else %}
+        <li>
+            <a href="{{ p | link_page(modelview_name) }}">{{ p }}</a>
+        </li>
+        {% endif %}
+    {% endfor %}
+
+    {% if page + 1 < pages %}
+        <li>
+            <a href="{{ (page + 1) | link_page(modelview_name) }}">&gt;</a>
+        </li>
+    {% else %}
+        <li class="disabled">
+            <a href="javascript:void(0)">&gt;</a>
+        </li>
+    {% endif %}
+    {% if max < pages %}
+        <li>
+            <a href="{{ (pages - 1) | link_page(modelview_name) }}">&raquo;</a>
+        </li>
+    {% else %}
+        <li class="disabled">
+            <a href="javascript:void(0)">&raquo;</a>
+        </li>
+    {% endif %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+
+{% macro render_field(field, begin_sep_label='', end_sep_label='', begin_sep_field='', end_sep_field='') %}
+	  {% if field.id != 'csrf_token' %}
+          {% if field.type == 'HiddenField' %}
+            {{ field}}
+          {% else %}
+            {{begin_sep_label|safe}}
+                <label for="{{field.id}}" control-label>
+                    {{ field.label.text }}
+                    {% if field.flags.required %}
+                        <strong style="color: red">&#42;</strong>
+                    {% endif %}
+                </label>
+            {{end_sep_label|safe}}
+            {{begin_sep_field|safe}}
+                {{ field(**kwargs)|safe }}
+               <span class="help-block">{{ field.description }}</span>
+          {% endif %}
+          {% if field.errors %}
+            <div class="alert alert-danger">
+            {% for error in field.errors %}
+              {{ _(error) }}
+            {% endfor %}
+            </div>
+          {% endif %}
+            {{end_sep_field|safe}}
+      {% endif %}
+{% endmacro %}
+
+
+{% macro render_field_search(field) %}
+{% if field.id != 'csrf_token' %}
+	<div class="control-label">
+        	<th class="col-lg-2">{{ field.label.text }}</th>
+        </div>
+        <div class="controls">
+                <td>{{ field(name_='_flt_' + field.name)|safe }}</td>
+	</div>
+{% endif %}
+{% endmacro %}
+
+{% macro panel_begin(title) %}
+<div class="panel panel-primary">
+	<div class="panel-heading">
+	<h4 class="panel-title">{{title}}</h4>
+	</div>
+{% endmacro %}
+{% macro panel_end() %}
+</div>
+{% endmacro %}
+
+
+{% macro accordion_tag(id, label, open) %}
+<div class="panel-group" id="{{id}}">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a class="accordion-toggle" data-toggle="collapse" data-parent="#{{id}}"
+                   href="#{{id}}_href">{{label}}</a><span class="caret"></span>
+            </h4>
+        </div>
+        {% if open %}
+        <div id="{{id}}_href" class="panel-collapse collapse in">
+            {% else %}
+            <div id="{{id}}_href" class="panel-collapse collapse">
+                {% endif %}
+                <div class="panel-body">
+                    {{ caller() }}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro render_form_controls() %}
+    <div class="well well-sm">
+        <button type="submit" class="btn  btn-sm btn-primary">{{_("Save")}}
+            <i class="fa fa-save"></i></button>
+        {{ lnk_back() }}
+    </div>
+{% endmacro %}
+
+{% macro render_list_header(can_add, page, page_size, count, filters, actions, modelview_name) %}
+        {{ render_pagination(page, page_size, count, modelview_name) }}
+        {{ render_set_page_size(page, page_size, count, modelview_name) }}
+    	{% if can_add %}
+		    {% set path = url_for(modelview_name + '.add') %}
+			{% set path = path | set_link_filters(filters) %}
+			&nbsp;{{ lnk_add(path) }}
+        {% endif %}
+        &nbsp;{{ render_actions(actions, modelview_name) }}
+        &nbsp;{{ lnk_back() }}
+		<div class="pull-right">
+			<strong>{{ _('Record Count') }}:</strong> {{ count }}
+		</div>
+{% endmacro %}
+
+{% macro btn_crud(can_show, can_edit, can_delete, pk, modelview_name, filters) %}
+    <div class="btn-group btn-group-xs" style="display: flex;">
+        {% if can_show %}
+            {% set path = url_for(modelview_name + '.show',pk=pk) %}
+            {% set path = path | set_link_filters(filters) %}
+            {{ lnk_show(path) }}
+        {% endif %}
+        {% if can_edit %}
+            {% set path = url_for(modelview_name + '.edit',pk=pk) %}
+            {% set path = path | set_link_filters(filters) %}
+            {{ lnk_edit(path) }}
+        {% endif %}
+        {% if can_delete %}
+            {{ lnk_delete(url_for(modelview_name + '.delete',pk=pk)) }}
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro btn_search() %}
+    <button type="submit" class="btn  btn-sm btn-primary">{{_("Search")}}
+        <i class="fa fa-search"></i>
+    </button>
+{% endmacro %}
+
+{% macro lnk_back() %}
+    <a href="{{url_for('UtilView' + '.back')}}" class="btn btn-sm btn-default" data-toggle="tooltip" rel="tooltip"
+       title="{{_('Back')}}">
+        <i class="fa fa-arrow-left"></i>
+    </a>
+{% endmacro %}
+
+
+{% macro lnk_add(my_href) %}
+    <a href="{{my_href}}" class="btn btn-sm btn-primary" data-toggle="tooltip" rel="tooltip"
+       title="{{_('Add a new record')}}">
+        <i class="fa fa-plus"></i>
+    </a>
+{% endmacro %}
+
+{% macro lnk_edit(my_href) %}
+    <a href="{{my_href}}" class="btn btn-sm btn-default" data-toggle="tooltip" rel="tooltip"
+       title="{{_('Edit record')}}">
+        <i class="fa fa-edit"></i>
+    </a>
+{% endmacro %}
+
+{% macro lnk_show(my_href) %}
+    <a href="{{my_href}}" class="btn btn-sm btn-default" data-toggle="tooltip" rel="tooltip"
+       title="{{_('Show record')}}">
+        <i class="fa fa-search"></i>
+    </a>
+{% endmacro %}
+
+{% macro lnk_delete(my_href) %}
+    <a data-text="{{ _('You sure you want to delete this item?') }}" data-href="{{my_href}}" class="btn btn-sm btn-default confirm" rel="tooltip"
+        title="{{_('Delete record')}}" data-toggle="modal" data-target="#modal-confirm" href="#">
+        <i class="fa fa-eraser"></i>
+    </a>
+{% endmacro %}
+

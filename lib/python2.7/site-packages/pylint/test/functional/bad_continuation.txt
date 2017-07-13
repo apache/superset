@@ -1,0 +1,63 @@
+bad-continuation:14::"Wrong hanging indentation.
+   ]  # [bad-continuation]
+|  ^|"
+bad-continuation:19::"Wrong continued indentation (remove 3 spaces).
+         7,  # [bad-continuation]
+      |  ^"
+bad-continuation:27::"Wrong hanging indentation (add 1 space).
+   'b': 2,  # [bad-continuation]
+   ^|"
+bad-continuation:33::"Wrong hanging indentation (add 1 space).
+   'b': 2,  # [bad-continuation]
+   ^|"
+bad-continuation:41::"Wrong continued indentation.
+                             # [bad-continuation] is not accepted
+      |                   |  ^"
+bad-continuation:42::"Wrong continued indentation (remove 20 spaces).
+                          'contents', # [bad-continuation] nor this.
+      |                   ^"
+bad-continuation:51::"Wrong hanging indentation in dict value.
+      'value2',  # [bad-continuation]
+    | ^ |"
+bad-continuation:61::"Wrong continued indentation (add 4 spaces).
+        'wrong',  # [bad-continuation]
+        ^   |"
+bad-continuation:85::"Wrong hanging indentation in dict value.
+'value1',  # [bad-continuation]
+^     |   |"
+bad-continuation:89::"Wrong hanging indentation in dict value.
+    'value1',  # [bad-continuation]
+    ^ |   |"
+bad-continuation:106::"Wrong hanging indentation before block (add 4 spaces).
+    some_arg,         # [bad-continuation]
+    ^   |"
+bad-continuation:107::"Wrong hanging indentation before block (add 4 spaces).
+    some_other_arg):  # [bad-continuation]
+    ^   |"
+bad-continuation:127::"Wrong continued indentation (add 3 spaces).
+    ""b"")  # [bad-continuation]
+    ^  |"
+bad-continuation:141::"Wrong hanging indentation before block.
+   ): pass  # [bad-continuation]
+|  ^|"
+bad-continuation:144::"Wrong continued indentation before block (add 4 spaces).
+    2):  # [bad-continuation]
+    ^   |"
+bad-continuation:152::"Wrong continued indentation (remove 2 spaces).
+         2 and  # [bad-continuation]
+       | ^"
+bad-continuation:157::"Wrong hanging indentation before block.
+  2): pass  # [bad-continuation]
+  ^ |   |"
+bad-continuation:164::"Wrong continued indentation before block.
+     2 or  # [bad-continuation]
+    |^  |"
+bad-continuation:168::"Wrong continued indentation before block.
+  2): pass  # [bad-continuation]
+  ^ |   |"
+bad-continuation:174::"Wrong hanging indentation before block.
+  2):  # [bad-continuation]
+  ^ |   |"
+bad-continuation:185::"Wrong continued indentation (add 4 spaces).
+    2):  # [bad-continuation]
+    ^   |"

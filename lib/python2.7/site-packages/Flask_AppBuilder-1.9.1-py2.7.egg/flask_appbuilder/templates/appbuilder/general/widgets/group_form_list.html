@@ -1,0 +1,8 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% if form_widget %}
+        {{ lib.panel_begin(form_title) }}
+            {{ form_widget(form_action = form_action) | safe }}
+        {{ lib.panel_end() }}
+{% endif %}
+{{ list_widget() | safe }}

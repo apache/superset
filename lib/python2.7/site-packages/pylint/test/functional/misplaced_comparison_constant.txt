@@ -1,0 +1,6 @@
+misplaced-comparison-constant:19:bad_comparisons:Comparison should be i >= 5
+misplaced-comparison-constant:21:bad_comparisons:Comparison should be i == 1
+misplaced-comparison-constant:23:bad_comparisons:Comparison should be dummy_return() > 3
+misplaced-comparison-constant:25:bad_comparisons:Comparison should be instance.dummy_return() != 4
+misplaced-comparison-constant:27:bad_comparisons:Comparison should be instance.attr == 1
+misplaced-comparison-constant:29:bad_comparisons:Comparison should be instance.attr == 'aaa'

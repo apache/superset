@@ -1,0 +1,64 @@
+{% import 'appbuilder/baselib.html' as baselib with context %}
+
+
+{% if appbuilder %}
+    {% set app_name = appbuilder.app_name %}
+{% endif %}
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block page_title %}{{app_name}}{% endblock %}</title>
+
+    {% block head_meta %}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
+    {% endblock %}
+    {% block head_css %}
+        <link href="{{url_for('appbuilder.static',filename='css/bootstrap.min.css')}}" rel="stylesheet">
+        <link href="{{url_for('appbuilder.static',filename='css/font-awesome.min.css')}}" rel="stylesheet">
+        {% if appbuilder.app_theme %}
+           <link href="{{url_for('appbuilder.static',filename='css/themes/'+ appbuilder.app_theme )}}"  rel="stylesheet">
+        {% endif %}
+
+         <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+         <!--[if lt IE 9]>
+            <script src="{{url_for('appbuilder.static',filename='js/html5shiv.js')}}"></script>
+            <script src="{{url_for('appbuilder.static',filename='js/respond.min.js')}}"></script>
+         <![endif]-->
+
+        <link href="{{url_for('appbuilder.static',filename='datepicker/bootstrap-datepicker.css')}}" rel="stylesheet">
+        <link href="{{url_for('appbuilder.static',filename='select2/select2.css')}}" rel="stylesheet">
+        <link href="{{url_for('appbuilder.static',filename='css/flags/flags16.css')}}" rel="stylesheet">
+        <link href="{{url_for('appbuilder.static',filename='css/ab.css')}}" rel="stylesheet">
+    {% endblock %}
+    {% block head_js %}
+        <script src="{{url_for('appbuilder.static',filename='js/jquery-latest.js')}}"></script>
+        <script src="{{url_for('appbuilder.static',filename='js/ab_filters.js')}}"></script>
+        <script src="{{url_for('appbuilder.static',filename='js/ab_actions.js')}}"></script>
+    {% endblock %}
+
+</head>
+
+<body >
+
+{% block body %}
+{% endblock %}
+
+
+{% block tail_js %}
+    <script src="{{url_for('appbuilder.static',filename='js/bootstrap.min.js')}}"></script>
+    <script src="{{url_for('appbuilder.static',filename='datepicker/bootstrap-datepicker.js')}}"></script>
+    <script src="{{url_for('appbuilder.static',filename='select2/select2.js')}}"></script>
+    <script src="{{url_for('appbuilder.static',filename='js/ab.js')}}"></script>
+{% endblock %}
+
+{% block add_tail_js %}
+{% endblock %}
+
+{% block tail %}
+{% endblock %}
+
+  </body>
+</html>

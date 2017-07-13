@@ -1,0 +1,2 @@
+[variables]
+allow-global-unused-variables=no

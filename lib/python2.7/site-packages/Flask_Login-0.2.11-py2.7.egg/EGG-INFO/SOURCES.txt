@@ -1,0 +1,12 @@
+LICENSE
+MANIFEST.in
+README.markdown
+flask_login.py
+setup.cfg
+setup.py
+Flask_Login.egg-info/PKG-INFO
+Flask_Login.egg-info/SOURCES.txt
+Flask_Login.egg-info/dependency_links.txt
+Flask_Login.egg-info/not-zip-safe
+Flask_Login.egg-info/requires.txt
+Flask_Login.egg-info/top_level.txt

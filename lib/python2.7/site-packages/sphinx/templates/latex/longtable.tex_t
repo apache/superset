@@ -1,0 +1,32 @@
+\begin{savenotes}\sphinxatlongtablestart\begin{longtable}
+<%- if table.align == 'center' -%>
+  [c]
+<%- elif table.align == 'left' -%>
+  [l]
+<%- elif table.align == 'right' -%>
+  [r]
+<%- endif -%>
+<%= table.get_colspec() %>
+<%- if table.caption -%>
+\caption{<%= ''.join(table.caption) %>\strut}<%= labels %>\\*[\sphinxlongtablecapskipadjust]
+<% endif -%>
+\hline
+<%= ''.join(table.header) %>
+\endfirsthead
+
+\multicolumn{<%= table.colcount %>}{c}%
+{\makebox[0pt]{\sphinxtablecontinued{\tablename\ \thetable{} -- <%= _('continued from previous page') %>}}}\\
+\hline
+<%= ''.join(table.header) %>
+\endhead
+
+\hline
+\multicolumn{<%= table.colcount %>}{r}{\makebox[0pt][r]{\sphinxtablecontinued{<%= _('Continued on next page') %>}}}\\
+\endfoot
+
+\endlastfoot
+<% if table.caption_footnotetexts -%>
+<%= ''.join(table.caption_footnotetexts) %>
+<% endif -%>
+<%= ''.join(table.body) %>
+\end{longtable}\sphinxatlongtableend\end{savenotes}

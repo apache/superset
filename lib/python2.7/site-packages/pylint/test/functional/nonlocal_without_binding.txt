@@ -1,0 +1,3 @@
+nonlocal-without-binding:22:func.other_func:nonlocal name b found without binding
+nonlocal-without-binding:25:SomeClass:nonlocal name x found without binding
+nonlocal-without-binding:28:SomeClass.func:nonlocal name some_attr found without binding

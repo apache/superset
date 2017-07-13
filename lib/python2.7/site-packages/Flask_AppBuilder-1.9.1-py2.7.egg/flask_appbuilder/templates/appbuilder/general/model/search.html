@@ -1,0 +1,17 @@
+<form class="form-search" action="" method="post">
+<div class="table-responsive">
+<table class="table table-condensed"><tr>
+    {% for item in form if item.id in search_columns %}
+        <tr>
+        {{ lib.render_field_simple(item) }}
+        </tr>
+    {% endfor %}
+    <tr> <td> {{ lib.btn_search() }} </td></tr>
+
+</table>
+</div>
+</form>
+<script>
+$(".my_select2").prepend("<option value=''></option>");
+</script>
+

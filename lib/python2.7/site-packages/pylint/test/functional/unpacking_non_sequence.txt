@@ -1,0 +1,10 @@
+unpacking-non-sequence:78::Attempting to unpack a non-sequence defined at line 75
+unpacking-non-sequence:79::Attempting to unpack a non-sequence
+unpacking-non-sequence:80::Attempting to unpack a non-sequence None
+unpacking-non-sequence:81::Attempting to unpack a non-sequence 1
+unpacking-non-sequence:82::Attempting to unpack a non-sequence defined at line 9 of functional.unpacking
+unpacking-non-sequence:83::Attempting to unpack a non-sequence defined at line 11 of functional.unpacking
+unpacking-non-sequence:84::Attempting to unpack a non-sequence
+unpacking-non-sequence:99:ClassUnpacking.test:Attempting to unpack a non-sequence defined at line 75
+unpacking-non-sequence:100:ClassUnpacking.test:Attempting to unpack a non-sequence
+unpacking-non-sequence:101:ClassUnpacking.test:Attempting to unpack a non-sequence

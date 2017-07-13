@@ -1,0 +1,2 @@
+no-member:6::Instance of 'TextIOWrapper' has no 'buff' member:INFERENCE
+no-member:7::Instance of 'BufferedWriter' has no 'write1' member; maybe 'write'?:INFERENCE

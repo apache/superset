@@ -1,0 +1,2 @@
+deprecated-module:4::Uses of a deprecated module 'optparse'
+deprecated-module:5::Uses of a deprecated module 'tkinter.tix'

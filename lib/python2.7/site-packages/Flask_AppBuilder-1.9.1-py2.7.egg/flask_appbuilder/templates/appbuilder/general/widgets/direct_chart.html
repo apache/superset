@@ -1,0 +1,63 @@
+<div id="{{ modelview_name }}" style="height: {{height}};">
+</div>
+<script type="text/javascript" src="{{url_for('appbuilder.static',filename='js/google_charts.js')}}"></script>
+<script type="text/javascript">
+    //load the Google Visualization API and the chart
+    google.load('visualization', '1', {'packages': ['corechart']});
+
+    //set callback
+    google.setOnLoadCallback (createChart);
+    // playground http://code.google.com/apis/ajax/playground/?type=visualization#line_chart
+
+    var jsonData{{ modelview_name }} = {{ value_columns | tojson | safe }}
+
+
+    //-----------------------------------
+    // Attach listener for tab open event
+    //-----------------------------------
+    function attachRedrawForTab(chart, dataTable, options) {
+        var $tab_el = $('a[data-toggle="tab"]');
+        $tab_el.on('shown.bs.tab', function () {
+            // Redraws the chart when the tab is activated, so that chart size on tab
+            // won't be too small.
+            $curr_tab_id = ($(this).attr('href'));
+            $curr_tab = $($curr_tab_id);
+            if ($curr_tab.children('div').attr('id')=='{{ modelview_name }}')
+            {
+                chart.draw(dataTable, options);
+            }
+        });
+    }
+
+    //------------------------------------------
+    // Attach listener for Accordion open event
+    //------------------------------------------
+    function attachRedrawForAccord(chart, dataTable, options) {
+        var $accordion_el = $('.panel-collapse');
+        $accordion_el.on('shown.bs.collapse', function(){
+            // Redraws the chart when the tab is activated, so that chart size on tab
+            // won't be too small.
+            $curr_tab_id = ($(this).attr('href'));
+            $curr_tab = $($curr_tab_id);
+            if ($curr_tab.children('div').attr('id')=='{{ modelview_name }}')
+            {
+                chart.draw(dataTable, options);
+            }
+        });
+    }
+
+    //callback function
+    function createChart() {
+
+        var dataTable = new google.visualization.DataTable(jsonData{{ modelview_name }});
+        //instantiate our chart object
+        var chart = new google.visualization.{{chart_type}}(document.getElementById('{{ modelview_name }}'));
+        //define options for visualization
+        var options = {is3D: {{ chart_3d }}, title: '{{ chart_title }}' };
+
+        attachRedrawForTab(chart, dataTable, options);
+        attachRedrawForAccord(chart, dataTable, options);
+        //draw our chart
+        chart.draw(dataTable, options);
+    }
+</script>

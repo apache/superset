@@ -1,0 +1,4 @@
+no-else-return:6:foo1:Unnecessary "else" after "return"
+no-else-return:15:foo2:Unnecessary "else" after "return"
+no-else-return:27:foo3:Unnecessary "else" after "return"
+no-else-return:29:foo3:Unnecessary "else" after "return"

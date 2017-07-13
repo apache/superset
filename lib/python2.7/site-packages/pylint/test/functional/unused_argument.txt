@@ -1,0 +1,3 @@
+unused-argument:3:test_unused:Unused argument 'first'
+unused-argument:3:test_unused:Unused argument 'second'
+unused-argument:32:Sub.newmethod:Unused argument 'aay':INFERENCE

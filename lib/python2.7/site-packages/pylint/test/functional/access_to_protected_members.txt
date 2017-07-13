@@ -1,0 +1,6 @@
+protected-access:19:MyClass.test:Access to a protected member _haha of a client class
+protected-access:41::Access to a protected member _protected of a client class
+protected-access:42::Access to a protected member _protected of a client class
+protected-access:43::Access to a protected member _cls_protected of a client class
+protected-access:44::Access to a protected member _cls_protected of a client class
+protected-access:58:Issue1031.incorrect_access:Access to a protected member _protected of a client class

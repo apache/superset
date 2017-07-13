@@ -1,0 +1,18 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+
+
+{% if value_columns %}
+    <div class="list-group">
+    {% for item in value_columns %}
+        {% set pk=pks[loop.index-1] %}
+        {% for value in include_columns %}
+            {% set path = url_for(modelview_name + '.list',pk=pk,next=request.path) %}
+            {% set path = path | set_link_filters(filters) %}
+            <a class="list-group-item"  href="{{path}}">
+            {{ item[value]|safe }}</a>
+        {% endfor %}
+    {% endfor %}
+    </div>
+{% else %}
+    <b> {{_("No records found")}}</b>
+{% endif %}

@@ -1,0 +1,7 @@
+{% extends "appbuilder/general/model/add.html" %}
+
+{% import "superset/models/database/macros.html" as macros %}
+{% block tail_js %}
+  {{ super() }}
+  {{ macros.testconn() }}
+{% endblock %}

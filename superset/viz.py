@@ -77,11 +77,16 @@ class BaseViz(object):
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(query_obj)
+        # call query(query_obj) inside of datasource and return a pandas dataframe.
+        
+        
         self.query = self.results.query
         self.status = self.results.status
         self.error_message = self.results.error_message
 
-        df = self.results.df
+        df = self.results.df  # actual dataframe from pandas
+        
+        
         # Transform the timestamp we received from database to pandas supported
         # datetime format. If no python_date_format is specified, the pattern will
         # be considered as the default ISO date format
@@ -353,6 +358,9 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_iso_dttm_ser)
+
 
 class PivotTableViz(BaseViz):
 
@@ -396,14 +404,11 @@ class PivotTableViz(BaseViz):
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=True,
         )
-        return dict(
-            columns=list(df.columns),
-            html=df.to_html(
-                na_rep='',
-                classes=(
-                    "dataframe table table-striped table-bordered "
-                    "table-condensed table-hover").split(" ")),
-        )
+        return df.to_html(
+            na_rep='',
+            classes=(
+                "dataframe table table-striped table-bordered "
+                "table-condensed table-hover").split(" "))
 
 
 class MarkupViz(BaseViz):
@@ -648,16 +653,15 @@ class BubbleViz(NVD3Viz):
     def query_obj(self):
         form_data = self.form_data
         d = super(BubbleViz, self).query_obj()
-        d['groupby'] = [
+        d['groupby'] = list({
+            form_data.get('series'),
             form_data.get('entity')
-        ]
-        if form_data.get('series'):
-            d['groupby'].append(form_data.get('series'))
+        })
         self.x_metric = form_data.get('x')
         self.y_metric = form_data.get('y')
         self.z_metric = form_data.get('size')
         self.entity = form_data.get('entity')
-        self.series = form_data.get('series') or self.entity
+        self.series = form_data.get('series')
         d['row_limit'] = form_data.get('limit')
 
         d['metrics'] = [
@@ -665,7 +669,7 @@ class BubbleViz(NVD3Viz):
             self.x_metric,
             self.y_metric,
         ]
-        if not all(d['metrics'] + [self.entity]):
+        if not all(d['metrics'] + [self.entity, self.series]):
             raise Exception("Pick a metric for x, y and size")
         return d
 
@@ -1265,6 +1269,18 @@ class ChordViz(BaseViz):
         }
 
 
+class LatticeViz(BaseViz):
+
+    """A Lattice diagram"""
+
+    viz_type = "lattice"
+    verbose_name = _("Directed Force Layout")
+    credits = '<a href="https://github.com/d3/d3-chord">Bostock</a>'
+    is_timeseries = False
+
+    
+
+
 class CountryMapViz(BaseViz):
 
     """A country centric"""
@@ -1621,6 +1637,7 @@ viz_types_list = [
     MapboxViz,
     HistogramViz,
     SeparatorViz,
+    LatticeViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list

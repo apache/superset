@@ -1,0 +1,179 @@
+# Norwegian Bokmål translations for WTForms.
+# Copyright (C) 2013 WTForms Team
+# This file is distributed under the same license as the WTForms project.
+# Frode Danielsen <frode@e5r.no>, 2014.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: WTForms 2.0dev\n"
+"Report-Msgid-Bugs-To: wtforms+i18n@jamescrasta.com\n"
+"POT-Creation-Date: 2013-11-08 15:21-0700\n"
+"PO-Revision-Date: 2014-05-05 16:18+0100\n"
+"Last-Translator: Frode Danielsen <frode@e5r.no>\n"
+"Language-Team: nb <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.0-dev\n"
+"Language: nb\n"
+"X-Generator: Poedit 1.6.5\n"
+
+#: wtforms/validators.py:55
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "Ugyldig feltnavn '%s'."
+
+#: wtforms/validators.py:63
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr "Feltet må være lik som %(other_name)s."
+
+#: wtforms/validators.py:96
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] "Feltet må være minst %(min)d tegn langt."
+msgstr[1] "Feltet må være minst %(min)d tegn langt."
+
+#: wtforms/validators.py:99
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] "Feltet kan ikke være lenger enn %(max)d tegn."
+msgstr[1] "Feltet kan ikke være lenger enn %(max)d tegn."
+
+#: wtforms/validators.py:102
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr "Feltet må være mellom %(min)d og %(max)d tegn langt."
+
+#: wtforms/validators.py:138
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr "Tall må være minst %(min)s."
+
+#: wtforms/validators.py:140
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr "Tall må være maks %(max)s."
+
+#: wtforms/validators.py:142
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr "Tall må være mellom %(min)s og %(max)s."
+
+#: wtforms/validators.py:198 wtforms/validators.py:233
+msgid "This field is required."
+msgstr "Dette feltet er påkrevd."
+
+#: wtforms/validators.py:264
+msgid "Invalid input."
+msgstr "Ugyldig verdi."
+
+#: wtforms/validators.py:286
+msgid "Invalid email address."
+msgstr "Ugyldig e-postadresse."
+
+#: wtforms/validators.py:318
+msgid "Invalid IP address."
+msgstr "Ugyldig IP-adresse."
+
+#: wtforms/validators.py:367
+msgid "Invalid Mac address."
+msgstr "Ugyldig MAC-adresse."
+
+#: wtforms/validators.py:393
+msgid "Invalid URL."
+msgstr "Ugyldig URL."
+
+#: wtforms/validators.py:412
+msgid "Invalid UUID."
+msgstr "Ugyldig UUID."
+
+#: wtforms/validators.py:440
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr "Ugyldig verdi, den må være en av følgende: %(values)s."
+
+#: wtforms/validators.py:472
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr "Ugyldig verdi, den kan ikke være en av følgende: %(values)s."
+
+#: wtforms/csrf/core.py:83 wtforms/ext/csrf/form.py:47
+msgid "Invalid CSRF Token"
+msgstr "Ugyldig CSRF-pollett"
+
+#: wtforms/csrf/session.py:61 wtforms/ext/csrf/session.py:58
+msgid "CSRF token missing"
+msgstr "Manglende CSRF-pollett"
+
+#: wtforms/csrf/session.py:69 wtforms/ext/csrf/session.py:66
+msgid "CSRF failed"
+msgstr "CSRF-sjekk feilet"
+
+#: wtforms/csrf/session.py:74 wtforms/ext/csrf/session.py:71
+msgid "CSRF token expired"
+msgstr "Utløpt CSRF-pollett"
+
+#: wtforms/ext/appengine/fields.py:87 wtforms/ext/appengine/fields.py:164
+#: wtforms/ext/appengine/fields.py:166 wtforms/ext/django/fields.py:96
+#: wtforms/ext/sqlalchemy/fields.py:125 wtforms/ext/sqlalchemy/fields.py:127
+#: wtforms/ext/sqlalchemy/fields.py:177 wtforms/ext/sqlalchemy/fields.py:182
+#: wtforms/fields/core.py:456
+msgid "Not a valid choice"
+msgstr "Ikke et gyldig valg"
+
+#: wtforms/ext/appengine/fields.py:185
+msgid "Not a valid list"
+msgstr "Ikke en gyldig liste"
+
+#: wtforms/ext/appengine/fields.py:204
+msgid "Not a valid integer list"
+msgstr "Ikke en gyldig heltallsliste"
+
+#: wtforms/ext/dateutil/fields.py:63
+msgid "Please input a date/time value"
+msgstr "Vennligst fyll inn en dato- og tidsverdi"
+
+#: wtforms/ext/dateutil/fields.py:75 wtforms/ext/dateutil/fields.py:83
+msgid "Invalid date/time input"
+msgstr "Ugyldig dato- og tidsverdi"
+
+#: wtforms/ext/sqlalchemy/validators.py:34
+msgid "Already exists."
+msgstr "Eksisterer allerede."
+
+#: wtforms/fields/core.py:449
+msgid "Invalid Choice: could not coerce"
+msgstr "Ugyldig valg: Kunne ikke oversette"
+
+#: wtforms/fields/core.py:482
+msgid "Invalid choice(s): one or more data inputs could not be coerced"
+msgstr "Ugyldig(e) valg: En eller flere dataverdier kunne ikke oversettes"
+
+#: wtforms/fields/core.py:489
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field"
+msgstr "'%(value)s' er ikke et gyldig valg for dette feltet"
+
+#: wtforms/fields/core.py:572
+msgid "Not a valid integer value"
+msgstr "Ikke en gyldig heltallsverdi"
+
+#: wtforms/fields/core.py:638
+msgid "Not a valid decimal value"
+msgstr "Ikke en gyldig desimalverdi"
+
+#: wtforms/fields/core.py:665
+msgid "Not a valid float value"
+msgstr "Ikke en gyldig flyttallsverdi"
+
+#: wtforms/fields/core.py:724
+msgid "Not a valid datetime value"
+msgstr "Ikke en gyldig dato- og tidsverdi"
+
+#: wtforms/fields/core.py:741
+msgid "Not a valid date value"
+msgstr "Ikke en gyldig datoverdi"

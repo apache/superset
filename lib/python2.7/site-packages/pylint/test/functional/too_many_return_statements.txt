@@ -1,0 +1,1 @@
+too-many-return-statements:3:stupid_function:Too many return statements (11/6)

@@ -1,0 +1,7 @@
+used-before-assignment:7:used_before_assignment_1:Using variable 'x' before assignment
+redefined-outer-name:8:used_before_assignment_1:Redefining name 'x' from outer scope (line 3)
+used-before-assignment:13:used_before_assignment_2:Using variable 'x' before assignment
+redefined-outer-name:15:used_before_assignment_2:Redefining name 'x' from outer scope (line 3)
+used-before-assignment:19:used_before_assignment_3:Using variable 'x' before assignment
+redefined-outer-name:21:used_before_assignment_3:Redefining name 'x' from outer scope (line 3)
+redefined-outer-name:30:not_used_before_assignment_2:Redefining name 'x' from outer scope (line 3)

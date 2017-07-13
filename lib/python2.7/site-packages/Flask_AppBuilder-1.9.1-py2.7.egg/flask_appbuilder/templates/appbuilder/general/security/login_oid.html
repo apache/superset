@@ -1,0 +1,129 @@
+<!-- extend base layout -->
+{% extends "appbuilder/base.html" %}
+
+{% block content %}
+
+<script type="text/javascript">
+
+function showUsername() {
+    $("#username").removeClass('hidden');
+    $("#label-username").removeClass('hidden');
+}
+
+function hideUsername() {
+    $("#username").addClass('hidden');
+    $("#label-username").addClass('hidden');
+    $("#username").val('');
+}
+
+function hideOpenId() {
+    $("#openid").addClass('hidden');
+    $("#label-openid").addClass('hidden');
+    $("#openid").val('');
+}
+
+function showOpenId() {
+    $("#openid").removeClass('hidden');
+    $("#label-openid").removeClass('hidden');
+}
+
+function set_openid(openid, pr)
+{
+    $('.img-select').attr('class', 'img-rounded img-unselect');
+    $('#' + pr).attr('class', 'img-rounded img-select');
+    if (openid == '') {
+        hideUsername();
+        showOpenId();
+    }
+    else {
+        u = openid.search('<username>');
+        if (u != -1) {
+            showUsername();
+            hideOpenId();
+        }
+        else {
+            hideUsername();
+            hideOpenId();
+        }
+    }
+    form = document.forms['login'];
+    form.elements['openid'].value = openid;
+}
+
+
+function beforeSubmit() {
+    openid = $("#openid").val();
+    u = openid.search('<username>');
+    if (u != -1) {
+        openid = openid.substr(0, u) + $("#username").val();
+    }
+}
+
+//---------------------------------
+// POST FORM to Register User View
+//---------------------------------
+function registerUser() {
+    form = document.forms['login'];
+    if (form.elements['openid'].value == '') {
+        alert('Please choose a provider first');
+    }
+    else {
+        form.action = "{{appbuilder.sm.get_url_for_registeruser}}";
+        form.submit();
+    }
+}
+
+</script>
+
+
+<div class="container">
+        <div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+            <div class="panel panel-primary" >
+                    <div class="panel-heading">
+                        <div class="panel-title">{{ title }}</div>
+                    </div>
+                    <div style="padding-top:30px" class="panel-body" >
+
+    <form class="form" action="" method="post" name="login">
+        {{form.hidden_tag()}}
+        <div class="help-block">{{_("Click on your OpenID provider below")}}:</div>
+            <center>
+            <div class="center-block btn-group btn-group-lg" role="group">
+            {% for pr in providers %}
+                <a href="javascript:set_openid('{{pr.url}}', '{{pr.name}}');">
+                <img src="{{url_for('appbuilder.static',filename='img/' + pr.name.lower() + '.png')}}"
+                     id="{{pr.name}}" class="img-rounded img-unselect"/>
+                </a>
+            {% endfor %}
+        </div>
+        </center>
+        <div class="control-group{% if form.errors.openid %} error{% endif %}">
+            <label class="hidden control-label" id="label-openid" for="openid">{{_("Or enter your OpenID here")}}:</label>
+            <div class="controls">
+                {{ form.openid(size = 80, class = "hidden form-control") }}
+                {% for error in form.errors.openid %}
+                    <span class="help-inline">{{_('Please choose a provider')}}</span><br>
+                {% endfor %}
+                <label class="hidden control-label" id="label-username" for="username">{{_("Enter your OpenID Username")}}:</label>
+                {{ form.username(size = 80, class = "hidden form-control") }}
+            </div>
+        </div>
+        <div class="control-group">
+            <div class="controls">
+                <label class="checkbox" for="remember_me">
+                    {{ form.remember_me }} Remember Me
+                </label>
+            </div>
+        </div>
+                <input onclick="beforeSubmit();" class="btn btn-primary btn-block" type="submit" value="{{_('Sign In')}}">
+                {% if appbuilder.sm.auth_user_registration %}
+                    <a href="javascript:registerUser();" class="btn btn-block btn-primary" data-toggle="tooltip" rel="tooltip"
+                       title="{{_('If your not already a user, please register')}}">
+                        {{_('Register')}}
+                        </a>
+                {% endif %}
+
+    </form>
+</div>
+</div></div></div>
+{% endblock %}

@@ -1,0 +1,13 @@
+line_max 100
+headings_flag 1
+heading_prefix "  \\bigletter "
+
+preamble "\\begin{sphinxtheindex}
+\\def\\bigletter#1{{\\Large\\sffamily#1}\\nopagebreak\\vspace{1mm}}
+
+"
+
+postamble "\n\n\\end{sphinxtheindex}\n"
+
+symhead_positive "{Symbols}"
+numhead_positive "{Numbers}"

@@ -1,0 +1,2 @@
+E: 12:function: Instance of 'unicode' has no 'looower' member
+W:  4: Relative import 'func_w0401', should be 'input.func_w0401'

@@ -1,0 +1,3 @@
+no-staticmethod-decorator:14:MyClass:Consider using a decorator instead of calling staticmethod
+no-staticmethod-decorator:17:MyClass:Consider using a decorator instead of calling staticmethod
+no-staticmethod-decorator:25:MyClass:Consider using a decorator instead of calling staticmethod

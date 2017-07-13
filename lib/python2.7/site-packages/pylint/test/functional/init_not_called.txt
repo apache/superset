@@ -1,0 +1,6 @@
+old-style-class:6:AAAA:Old-style class defined.
+old-style-class:12:BBBB:Old-style class defined.
+no-init:18:CCCC:Class has no __init__ method
+old-style-class:18:CCCC:Old-style class defined.
+super-init-not-called:25:ZZZZ.__init__:__init__ method from base class 'BBBB' is not called
+super-init-not-called:58:AssignedInit.__init__:__init__ method from base class 'NewStyleC' is not called

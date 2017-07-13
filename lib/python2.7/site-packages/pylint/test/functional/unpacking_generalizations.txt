@@ -1,0 +1,6 @@
+too-many-function-args:24::Too many positional arguments for function call
+no-value-for-parameter:25::"No value for argument 'd' in function call"
+too-many-function-args:26::Too many positional arguments for function call
+repeated-keyword:27::Got multiple values for keyword argument 'd' in function call
+repeated-keyword:29::Got multiple values for keyword argument 'c' in function call
+repeated-keyword:29::Got multiple values for keyword argument 'd' in function call

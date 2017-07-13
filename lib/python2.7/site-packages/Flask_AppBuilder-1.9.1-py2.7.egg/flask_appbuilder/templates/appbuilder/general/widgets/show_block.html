@@ -1,0 +1,55 @@
+{% import 'appbuilder/general/lib.html' as lib %}
+{% include 'appbuilder/general/confirm.html' %}
+{% include 'appbuilder/general/alert.html' %}
+
+<div class="list-group">
+
+    {% if fieldsets %}
+
+    {% for fieldset_item in fieldsets %}
+            {% if fieldset_item[1].get('expanded') == None %}
+                {% set expanded = True %}
+            {% else %}
+                {% set expanded = fieldset_item[1].get('expanded') %}
+            {% endif %}
+            {% call lib.accordion_tag(loop.index,fieldset_item[0], expanded) %}
+
+            {% for item in fieldset_item[1].get('fields') %}
+
+                {% if loop.index == 1 %}
+                    <h4 class="list-group-item-heading">
+                    <span style="white-space: pre-line">
+                        {{value_columns[include_columns.index(item)]}}
+                    </span>
+                    </h4>
+                {% else %}
+                    <p class="list-group-item-text">
+                    <span style="white-space: pre-line">
+                        {{value_columns[include_columns.index(item)]}}
+                    </span>
+                    </p>
+                {% endif %}
+            {% endfor %}
+
+        {% endcall %}
+    {% endfor %}
+
+    {% else %}
+        {% for item in include_columns %}
+            {% if loop.index == 1 %}
+                <h4 class="list-group-item-heading">{{value_columns[loop.index-1]}}</h4>
+            {% else %}
+                <p class="list-group-item-text">
+                <span style="white-space: pre-line">
+                      {{value_columns[loop.index-1]}}
+                </span>
+                </p>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+</div>
+
+<div class="well well-sm">
+    {{ lib.render_action_links(actions, pk, modelview_name) }}
+    {{ lib.lnk_back() }}
+</div>

@@ -1,0 +1,2 @@
+wildcard-import:3::Wildcard import abc:HIGH
+wildcard-import:4::Wildcard import UNINFERABLE:HIGH

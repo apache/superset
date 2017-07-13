@@ -1,0 +1,8 @@
+useless-super-delegation:98:UselessSuper.equivalent_params:Useless super delegation in method 'equivalent_params'
+useless-super-delegation:101:UselessSuper.equivalent_params_1:Useless super delegation in method 'equivalent_params_1'
+useless-super-delegation:104:UselessSuper.equivalent_params_2:Useless super delegation in method 'equivalent_params_2'
+useless-super-delegation:107:UselessSuper.equivalent_params_3:Useless super delegation in method 'equivalent_params_3'
+useless-super-delegation:110:UselessSuper.equivalent_params_4:Useless super delegation in method 'equivalent_params_4'
+useless-super-delegation:113:UselessSuper.equivalent_params_5:Useless super delegation in method 'equivalent_params_5'
+useless-super-delegation:116:UselessSuper.equivalent_params_6:Useless super delegation in method 'equivalent_params_6'
+useless-super-delegation:119:UselessSuper.__init__:Useless super delegation in method '__init__'

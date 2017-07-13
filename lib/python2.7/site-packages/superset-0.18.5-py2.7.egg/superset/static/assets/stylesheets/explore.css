@@ -1,0 +1,23 @@
+.widget {
+    position: relative;
+}
+
+.slice_container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-color: #fff;
+}
+
+.navbar {
+  margin-bottom: 22px;
+}
+
+.query-and-save-btns-container {
+  margin-bottom: 22px;
+}
+
+.star-edit-icons {
+  padding-left: 10px;
+  font-size: 50%;
+}

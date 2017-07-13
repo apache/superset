@@ -1,0 +1,263 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "apiVersion":"2017-01-06",
+    "endpointPrefix":"cur",
+    "jsonVersion":"1.1",
+    "protocol":"json",
+    "serviceFullName":"AWS Cost and Usage Report Service",
+    "signatureVersion":"v4",
+    "signingName":"cur",
+    "targetPrefix":"AWSOrigamiServiceGatewayService",
+    "uid":"cur-2017-01-06"
+  },
+  "operations":{
+    "DeleteReportDefinition":{
+      "name":"DeleteReportDefinition",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteReportDefinitionRequest"},
+      "output":{"shape":"DeleteReportDefinitionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"ValidationException"}
+      ],
+      "documentation":"Delete a specified report definition"
+    },
+    "DescribeReportDefinitions":{
+      "name":"DescribeReportDefinitions",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeReportDefinitionsRequest"},
+      "output":{"shape":"DescribeReportDefinitionsResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"}
+      ],
+      "documentation":"Describe a list of report definitions owned by the account"
+    },
+    "PutReportDefinition":{
+      "name":"PutReportDefinition",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutReportDefinitionRequest"},
+      "output":{"shape":"PutReportDefinitionResponse"},
+      "errors":[
+        {"shape":"DuplicateReportNameException"},
+        {"shape":"ReportLimitReachedException"},
+        {"shape":"InternalErrorException"},
+        {"shape":"ValidationException"}
+      ],
+      "documentation":"Create a new report definition"
+    }
+  },
+  "shapes":{
+    "AWSRegion":{
+      "type":"string",
+      "documentation":"Region of customer S3 bucket.",
+      "enum":[
+        "us-east-1",
+        "us-west-1",
+        "us-west-2",
+        "eu-central-1",
+        "eu-west-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ap-northeast-1"
+      ]
+    },
+    "AdditionalArtifact":{
+      "type":"string",
+      "documentation":"Enable support for Redshift and/or QuickSight.",
+      "enum":[
+        "REDSHIFT",
+        "QUICKSIGHT"
+      ]
+    },
+    "AdditionalArtifactList":{
+      "type":"list",
+      "member":{"shape":"AdditionalArtifact"},
+      "documentation":"A list of additional artifacts."
+    },
+    "CompressionFormat":{
+      "type":"string",
+      "documentation":"Preferred compression format for report.",
+      "enum":[
+        "ZIP",
+        "GZIP"
+      ]
+    },
+    "DeleteReportDefinitionRequest":{
+      "type":"structure",
+      "members":{
+        "ReportName":{"shape":"ReportName"}
+      },
+      "documentation":"Request of DeleteReportDefinition"
+    },
+    "DeleteReportDefinitionResponse":{
+      "type":"structure",
+      "members":{
+        "ResponseMessage":{"shape":"DeleteResponseMessage"}
+      },
+      "documentation":"Response of DeleteReportDefinition"
+    },
+    "DeleteResponseMessage":{
+      "type":"string",
+      "documentation":"A message indicates if the deletion is successful."
+    },
+    "DescribeReportDefinitionsRequest":{
+      "type":"structure",
+      "members":{
+        "MaxResults":{"shape":"MaxResults"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Request of DescribeReportDefinitions"
+    },
+    "DescribeReportDefinitionsResponse":{
+      "type":"structure",
+      "members":{
+        "ReportDefinitions":{"shape":"ReportDefinitionList"},
+        "NextToken":{"shape":"GenericString"}
+      },
+      "documentation":"Response of DescribeReportDefinitions"
+    },
+    "DuplicateReportNameException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"This exception is thrown when putting a report preference with a name that already exists.",
+      "exception":true
+    },
+    "ErrorMessage":{
+      "type":"string",
+      "documentation":"A message to show the detail of the exception."
+    },
+    "GenericString":{
+      "type":"string",
+      "documentation":"A generic string."
+    },
+    "InternalErrorException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"This exception is thrown on a known dependency failure.",
+      "exception":true,
+      "fault":true
+    },
+    "MaxResults":{
+      "type":"integer",
+      "documentation":"The max number of results returned by the operation.",
+      "box":true,
+      "max":5,
+      "min":5
+    },
+    "PutReportDefinitionRequest":{
+      "type":"structure",
+      "required":["ReportDefinition"],
+      "members":{
+        "ReportDefinition":{"shape":"ReportDefinition"}
+      },
+      "documentation":"Request of PutReportDefinition"
+    },
+    "PutReportDefinitionResponse":{
+      "type":"structure",
+      "members":{
+      },
+      "documentation":"Response of PutReportDefinition"
+    },
+    "ReportDefinition":{
+      "type":"structure",
+      "required":[
+        "ReportName",
+        "TimeUnit",
+        "Format",
+        "Compression",
+        "AdditionalSchemaElements",
+        "S3Bucket",
+        "S3Prefix",
+        "S3Region"
+      ],
+      "members":{
+        "ReportName":{"shape":"ReportName"},
+        "TimeUnit":{"shape":"TimeUnit"},
+        "Format":{"shape":"ReportFormat"},
+        "Compression":{"shape":"CompressionFormat"},
+        "AdditionalSchemaElements":{"shape":"SchemaElementList"},
+        "S3Bucket":{"shape":"S3Bucket"},
+        "S3Prefix":{"shape":"S3Prefix"},
+        "S3Region":{"shape":"AWSRegion"},
+        "AdditionalArtifacts":{"shape":"AdditionalArtifactList"}
+      },
+      "documentation":"The definition of AWS Cost and Usage Report. Customer can specify the report name, time unit, report format, compression format, S3 bucket and additional artifacts and schema elements in the definition."
+    },
+    "ReportDefinitionList":{
+      "type":"list",
+      "member":{"shape":"ReportDefinition"},
+      "documentation":"A list of report definitions."
+    },
+    "ReportFormat":{
+      "type":"string",
+      "documentation":"Preferred format for report.",
+      "enum":["textORcsv"]
+    },
+    "ReportLimitReachedException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"This exception is thrown when the number of report preference reaches max limit. The max number is 5.",
+      "exception":true
+    },
+    "ReportName":{
+      "type":"string",
+      "documentation":"Preferred name for a report, it has to be unique. Must starts with a number/letter, case sensitive. Limited to 256 characters.",
+      "max":256,
+      "pattern":"[0-9A-Za-z!\\-_.*\\'()]+"
+    },
+    "S3Bucket":{
+      "type":"string",
+      "documentation":"Name of customer S3 bucket.",
+      "max":256
+    },
+    "S3Prefix":{
+      "type":"string",
+      "documentation":"Preferred report path prefix. Limited to 256 characters.",
+      "max":256,
+      "pattern":"[0-9A-Za-z!\\-_.*\\'()/]*"
+    },
+    "SchemaElement":{
+      "type":"string",
+      "documentation":"Preference of including Resource IDs. You can include additional details about individual resource IDs in your report.",
+      "enum":["RESOURCES"]
+    },
+    "SchemaElementList":{
+      "type":"list",
+      "member":{"shape":"SchemaElement"},
+      "documentation":"A list of schema elements."
+    },
+    "TimeUnit":{
+      "type":"string",
+      "documentation":"The frequency on which report data are measured and displayed.",
+      "enum":[
+        "HOURLY",
+        "DAILY"
+      ]
+    },
+    "ValidationException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "documentation":"This exception is thrown when providing an invalid input. eg. Put a report preference with an invalid report name, or Delete a report preference with an empty report name.",
+      "exception":true
+    }
+  },
+  "documentation":"All public APIs for AWS Cost and Usage Report service"
+}

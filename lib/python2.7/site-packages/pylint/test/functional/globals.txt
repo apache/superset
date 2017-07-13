@@ -1,0 +1,6 @@
+global-at-module-level:4::Using the global statement at the module level
+undefined-variable:5::Undefined variable 'CSTE'
+global-statement:11:fix_contant:Using the global statement
+global-variable-not-assigned:18:other:Using global for 'HOP' but no assignment is done
+undefined-variable:19:other:Undefined variable 'HOP'
+global-variable-undefined:24:define_constant:Global variable 'SOMEVAR' undefined at the module level

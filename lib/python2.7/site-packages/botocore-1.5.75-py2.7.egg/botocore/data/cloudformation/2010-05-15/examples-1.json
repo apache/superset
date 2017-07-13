@@ -1,0 +1,158 @@
+{
+  "version": "1.0",
+  "examples": {
+    "CancelUpdateStack": [
+      {
+        "input": {
+          "StackName": "MyStack"
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example cancels an update of the specified stack.",
+        "id": "to-cancel-a-stack-update-that-is-in-progress-1472747085196",
+        "title": "To cancel a stack update in progress"
+      }
+    ],
+    "UpdateStack": [
+      {
+        "input": {
+          "NotificationARNs": [
+
+          ],
+          "Parameters": [
+            {
+              "ParameterKey": "KeyPairName",
+              "ParameterValue": "ExampleKeyPair"
+            },
+            {
+              "ParameterKey": "SubnetIDs",
+              "ParameterValue": "ExampleSubnetID1, ExampleSubnetID2"
+            }
+          ],
+          "ResourceTypes": [
+
+          ],
+          "StackName": "MyStack",
+          "Tags": [
+
+          ],
+          "TemplateURL": "https://s3.amazonaws.com/example/updated.template"
+        },
+        "output": {
+          "StackId": ""
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example updates the template and input parameters for the specified stack.",
+        "id": "to-update-an-aws-cloudformation-stack-1472841931621",
+        "title": "To update an AWS CloudFormation stack"
+      },
+      {
+        "input": {
+          "NotificationARNs": [
+
+          ],
+          "Parameters": [
+            {
+              "ParameterKey": "KeyPairName",
+              "UsePreviousValue": true
+            },
+            {
+              "ParameterKey": "SubnetIDs",
+              "ParameterValue": "SampleSubnetID1, UpdatedSampleSubnetID2"
+            }
+          ],
+          "ResourceTypes": [
+
+          ],
+          "StackName": "MyStack",
+          "Tags": [
+
+          ],
+          "TemplateURL": "https://s3.amazonaws.com/example/updated.template"
+        },
+        "output": {
+          "StackId": ""
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example updates only the the specified parameter value for the specified stack. If you don't specify a parameter value, AWS CloudFormation uses the default value from the template.",
+        "id": "to-update-an-aws-cloudformation-stack-1472841931621",
+        "title": "To update an AWS CloudFormation stack"
+      },
+      {
+        "input": {
+          "Capabilities": [
+
+          ],
+          "NotificationARNs": [
+            "arn:aws:sns:use-east-1:123456789012:mytopic1",
+            "arn:aws:sns:us-east-1:123456789012:mytopic2"
+          ],
+          "Parameters": [
+
+          ],
+          "ResourceTypes": [
+
+          ],
+          "StackName": "MyStack",
+          "Tags": [
+
+          ],
+          "TemplateURL": "https://s3.amazonaws.com/example/updated.template",
+          "UsePreviousTemplate": true
+        },
+        "output": {
+          "StackId": ""
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example adds two stack notification topics to the specified stack.",
+        "id": "to-update-an-aws-cloudformation-stack-1472841931621",
+        "title": "To update an AWS CloudFormation stack"
+      }
+    ],
+    "ValidateTemplate": [
+      {
+        "input": {
+          "TemplateBody": "MyTemplate.json"
+        },
+        "output": {
+          "Capabilities": [
+
+          ],
+          "CapabilitiesReason": "",
+          "Description": "AWS CloudFormation Example Template S3_Bucket: An example template that shows how to create a publicly-accessible S3 bucket. IMPORTANT: This template creates an S3 bucket. You will be billed for the AWS resources used if you create a stack from this template.",
+          "Parameters": [
+
+          ]
+        },
+        "comments": {
+          "input": {
+          },
+          "output": {
+          }
+        },
+        "description": "This example validates the specified template.",
+        "id": "to-validate-an-aws-cloudformation-template-1472839072307",
+        "title": "To validate an AWS CloudFormation template"
+      }
+    ]
+  }
+}

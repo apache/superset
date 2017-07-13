@@ -1,0 +1,4 @@
+W:  8: Reimport 'os' (imported line 6)
+W: 16: Reimport 'exists' (imported line 7)
+W: 21:func: Reimport 'os' (imported line 6)
+W: 23:func: Reimport 're' (imported line 9)

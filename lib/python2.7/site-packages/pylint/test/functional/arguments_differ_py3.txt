@@ -1,0 +1,5 @@
+arguments-differ:22:Foo.kwonly_1:Parameters differ from overridden 'kwonly_1' method
+arguments-differ:25:Foo.kwonly_2:Parameters differ from overridden 'kwonly_2' method
+arguments-differ:28:Foo.kwonly_3:Parameters differ from overridden 'kwonly_3' method
+arguments-differ:31:Foo.kwonly_4:Parameters differ from overridden 'kwonly_4' method
+arguments-differ:34:Foo.kwonly_5:Parameters differ from overridden 'kwonly_5' method

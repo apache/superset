@@ -1,0 +1,13 @@
+E: 26:Foo.meth3: Instance of 'Foo' has no 'blop' member
+E: 36:Foo.meth4: Instance of 'Foo' has no 'blip' member
+E: 46:Foo.meth5: Instance of 'Foo' has no 'blip' member
+E: 61:Foo.meth6: Instance of 'Foo' has no 'blip' member
+E: 72:Foo.meth7: Instance of 'Foo' has no 'blip' member
+E: 75:Foo.meth7: Instance of 'Foo' has no 'blip' member
+E: 77:Foo.meth7: Instance of 'Foo' has no 'blip' member
+E: 83:Foo.meth8: Instance of 'Foo' has no 'blip' member
+E:102:Foo.meth9: Instance of 'Foo' has no 'blip' member
+W: 11:Foo.meth1: Unused argument 'arg'
+W:144:ClassLevelMessage.too_complex_but_thats_ok: Else clause on loop without a break statement
+W:150:ClassLevelMessage.too_complex_but_thats_ok: Else clause on loop without a break statement
+W:156:ClassLevelMessage.too_complex_but_thats_ok: Else clause on loop without a break statement

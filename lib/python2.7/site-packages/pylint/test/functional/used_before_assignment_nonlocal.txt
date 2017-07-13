@@ -1,0 +1,6 @@
+used-before-assignment:18:test_fail.wrap:Using variable 'cnt' before assignment
+used-before-assignment:27:test_fail2.wrap:Using variable 'cnt' before assignment
+used-before-assignment:30:test_fail3:Using variable 'test_fail4' before assignment
+used-before-assignment:34:test_fail4:Using variable 'test_fail5' before assignment
+used-before-assignment:34:test_fail4:Using variable 'undefined' before assignment
+used-before-assignment:40:test_fail5:Using variable 'undefined1' before assignment

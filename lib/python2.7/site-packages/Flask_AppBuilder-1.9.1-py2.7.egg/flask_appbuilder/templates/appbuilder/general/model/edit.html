@@ -1,0 +1,37 @@
+{% extends "appbuilder/base.html" %}
+{% import 'appbuilder/general/lib.html' as lib %}
+
+{% block content %}
+{{ lib.panel_begin(title) }}
+
+{% if related_views %}
+    <ul class="nav nav-tabs">
+    <li class="active"><a href="#Home" data-toggle="tab">{{ _("Detail") }}</a> </li>
+        {% for view in related_views %}
+        <li><a href="#{{view.__class__.__name__}}" data-toggle="tab">{{view.title}}</a></li>
+        {% endfor %}
+        </ul>
+
+        <div class="tab-content">
+        {% for view in related_views %}
+        <div id="{{view.__class__.__name__}}" class="tab-pane">
+        {{ widgets.get('related_views')[loop.index - 1]()|safe }}
+    </div>
+    {% endfor %}
+{% endif %}
+
+{% block edit_form %}
+    <div id="Home" class="tab-pane active">
+        {{ widgets.get('edit')(form_action=form_action)|safe }}
+    </div>
+
+{% endblock %}
+
+    {% if related_views %} </div> {% endif %}
+
+{{ lib.panel_end() }}
+{% endblock %}
+
+{% block add_tail_js %}
+<script src="{{url_for('appbuilder.static',filename='js/ab_keep_tab.js')}}"></script>
+{% endblock %}

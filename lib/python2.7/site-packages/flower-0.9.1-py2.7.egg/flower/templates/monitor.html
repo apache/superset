@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+  {% module Template("navbar.html", active_tab="monitor") %}
+{% end %}
+
+{% block container %}
+
+<div class="container">
+    <div class="row">
+        <div class="span6 spacer">
+            <a name="succeeded"></a>
+            <div class="graph content">
+                <a href="#succeeded"><h3>Succeeded tasks</h3></a>
+                <div class="chart-container">
+                    <div id="chart-succeeded" class="chart"></div><br>
+                    <div id="legend-succeeded" class="legend"></div>
+                    <div id="timeline-succeeded" class="timeline"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="span6 spacer">
+            <a name="failed"></a>
+            <div class="graph content">
+                <a href="#failed"><h3>Failed tasks</h3></a>
+                <div class="chart-container">
+                    <div id="chart-failed" class="chart"></div><br>
+                    <div id="legend-failed" class="legend"></div>
+                    <div id="timeline-failed" class="timeline"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="span6 spacer">
+            <a name="times"></a>
+            <div class="graph content">
+                <a href="#times"><h3>Task times</h3></a>
+                <div class="chart-container">
+                    <div id="chart-time" class="chart"></div><br>
+                    <div id="legend-time" class="legend"></div>
+                    <div id="timeline-time" class="timeline"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="span6 spacer">
+            <a name="broker"></a>
+            <div class="graph content">
+                <a href="#broker"><h3>Queued tasks</h3></a>
+                <div class="chart-container">
+                    <div id="chart-broker" class="chart"></div><br>
+                    <div id="legend-broker" class="legend"></div>
+                    <div id="timeline-broker" class="timeline"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% end %}

@@ -1,0 +1,8 @@
+undefined-variable:8:Undefined.test:Undefined variable 'Undefined'
+undefined-variable:33:Undefined1.InnerScope.test_undefined:Undefined variable 'Undef'
+undefined-variable:36:Undefined1.InnerScope.test1:Undefined variable 'ABC'
+undefined-variable:51:FalsePositive342.test_bad:Undefined variable 'trop'
+undefined-variable:54:FalsePositive342.test_bad1:Undefined variable 'trop1'
+undefined-variable:57:FalsePositive342.test_bad2:Undefined variable 'trop2'
+undefined-variable:62:Bad:Undefined variable 'ABCMet'
+undefined-variable:65:SecondBad:Undefined variable 'ab.ABCMeta'

@@ -1,0 +1,24 @@
+no-value-for-parameter:35::No value for argument 'first_argument' in constructor call
+too-many-function-args:36::Too many positional arguments for constructor call
+no-value-for-parameter:38::No value for argument 'third_argument' in constructor call
+no-value-for-parameter:40::No value for argument 'first_argument' in constructor call
+no-value-for-parameter:40::No value for argument 'second_argument' in constructor call
+no-value-for-parameter:40::No value for argument 'third_argument' in constructor call
+too-many-function-args:42::Too many positional arguments for constructor call
+no-value-for-parameter:47::No value for argument 'first_argument' in constructor call
+unexpected-keyword-arg:47::Unexpected keyword argument 'bob' in constructor call
+unexpected-keyword-arg:48::Unexpected keyword argument 'coin' in constructor call
+redundant-keyword-arg:50::Argument 'one' passed by position and keyword in constructor call
+no-value-for-parameter:53::No value for argument 'first_argument' in constructor call
+too-many-function-args:54::Too many positional arguments for constructor call
+too-many-function-args:60::Too many positional arguments for constructor call
+too-many-function-args:63::Too many positional arguments for constructor call
+no-value-for-parameter:64::No value for argument 'first_argument' in constructor call
+unexpected-keyword-arg:64::Unexpected keyword argument 'one' in constructor call
+too-many-function-args:85::Too many positional arguments for constructor call
+unexpected-keyword-arg:85::Unexpected keyword argument 'badarg' in constructor call
+too-many-function-args:95:Clsmethod.from_nothing:Too many positional arguments for constructor call
+no-value-for-parameter:99:Clsmethod.from_nothing1:"No value for argument 'first' in constructor call"
+no-value-for-parameter:99:Clsmethod.from_nothing1:"No value for argument 'second' in constructor call"
+no-value-for-parameter:104:Clsmethod.from_nothing2:"No value for argument 'second' in constructor call"
+unexpected-keyword-arg:104:Clsmethod.from_nothing2:"Unexpected keyword argument 'not_argument' in constructor call"

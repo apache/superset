@@ -1,0 +1,29 @@
+Metadata-Version: 1.1
+Name: Flask-Cache
+Version: 0.13.1
+Summary: Adds cache support to your Flask application
+Home-page: http://github.com/thadeusb/flask-cache
+Author: Thadeus Burgess
+Author-email: thadeusb@thadeusb.com
+License: BSD
+Description: 
+        Flask-Cache
+        -----------
+        
+        Adds cache support to your Flask application
+        
+        
+Platform: any
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

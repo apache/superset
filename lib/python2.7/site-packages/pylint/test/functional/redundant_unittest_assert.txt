@@ -1,0 +1,6 @@
+redundant-unittest-assert:17:Tests.test_something:"Redundant use of assertTrue with constant value 'I meant assertEqual not assertTrue'"
+redundant-unittest-assert:19:Tests.test_something:"Redundant use of assertFalse with constant value 'I meant assertEqual not assertFalse'"
+redundant-unittest-assert:21:Tests.test_something:"Redundant use of assertTrue with constant value True"
+redundant-unittest-assert:23:Tests.test_something:"Redundant use of assertFalse with constant value False"
+redundant-unittest-assert:25:Tests.test_something:"Redundant use of assertFalse with constant value None"
+redundant-unittest-assert:27:Tests.test_something:"Redundant use of assertTrue with constant value 0"

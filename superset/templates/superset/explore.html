@@ -4,7 +4,7 @@
   {% if slc %}
     [slice] {{ slc.slice_name }}
   {% else %}
-    [explore] {{ table_name }}
+    [hello] {{ table_name }}
   {% endif %}
 {% endblock %}
 
@@ -12,6 +12,7 @@
   <div
     id="js-explore-view-container"
     data-bootstrap="{{ bootstrap_data }}"
+    <h3> hello </h3>
   ></div>
 {% endblock %}
 

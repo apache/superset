@@ -1,0 +1,3 @@
+[console_scripts]
+coveralls = coveralls.cli:main
+

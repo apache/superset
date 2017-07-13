@@ -1,0 +1,1 @@
+init-is-generator:4:SomeClass.__init__:__init__ method is a generator

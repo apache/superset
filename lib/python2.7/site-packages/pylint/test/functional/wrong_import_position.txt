@@ -1,0 +1,4 @@
+wrong-import-position:22::Import "import six" should be placed at the top of the module
+wrong-import-position:26::Import "import datetime" should be placed at the top of the module
+wrong-import-position:32::Import "import scipy" should be placed at the top of the module
+wrong-import-position:33::Import "import astroid" should be placed at the top of the module

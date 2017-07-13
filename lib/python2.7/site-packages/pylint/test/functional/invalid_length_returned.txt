@@ -1,0 +1,3 @@
+invalid-length-returned:38:FirstBadLen.__len__:__len__ does not return non-negative integer
+invalid-length-returned:45:SecondBadLen.__len__:__len__ does not return non-negative integer
+invalid-length-returned:52:ThirdBadLen.__len__:__len__ does not return non-negative integer

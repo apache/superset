@@ -1,0 +1,7 @@
+consider-merging-isinstance:15:isinstances:Consider merging these isinstance calls to isinstance(var[3], (float, int))
+consider-merging-isinstance:17:isinstances:Consider merging these isinstance calls to isinstance(var[4], (float, int))
+consider-merging-isinstance:19:isinstances:Consider merging these isinstance calls to isinstance(var[5], (float, int))
+consider-merging-isinstance:22:isinstances:Consider merging these isinstance calls to isinstance(var[6], (float, int))
+consider-merging-isinstance:23:isinstances:Consider merging these isinstance calls to isinstance(var[10], (list, str))
+consider-merging-isinstance:24:isinstances:Consider merging these isinstance calls to isinstance(var[11], (float, int))
+consider-merging-isinstance:30:isinstances:Consider merging these isinstance calls to isinstance(var[12], (float, int, list))

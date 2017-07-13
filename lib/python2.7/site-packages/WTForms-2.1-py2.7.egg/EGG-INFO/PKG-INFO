@@ -1,0 +1,22 @@
+Metadata-Version: 1.1
+Name: WTForms
+Version: 2.1
+Summary: A flexible forms validation and rendering library for python web development.
+Home-page: http://wtforms.simplecodes.com/
+Author: Thomas Johansson, James Crasta
+Author-email: wtforms@simplecodes.com
+License: BSD
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

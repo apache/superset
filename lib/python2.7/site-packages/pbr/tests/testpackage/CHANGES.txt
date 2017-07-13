@@ -1,0 +1,86 @@
+Changelog
+===========
+
+0.3 (unreleased)
+------------------
+
+- The ``glob_data_files`` hook became a pre-command hook for the install_data
+  command instead of being a setup-hook.  This is to support the additional
+  functionality of requiring data_files with relative destination paths to be
+  install relative to the package's install path (i.e. site-packages).
+
+- Dropped support for and deprecated the easier_install custom command.
+  Although it should still work, it probably won't be used anymore for
+  stsci_python packages.
+
+- Added support for the ``build_optional_ext`` command, which replaces/extends
+  the default ``build_ext`` command.  See the README for more details.
+
+- Added the ``tag_svn_revision`` setup_hook as a replacement for the
+  setuptools-specific tag_svn_revision option to the egg_info command.  This
+  new hook is easier to use than the old tag_svn_revision option: It's
+  automatically enabled by the presence of ``.dev`` in the version string, and
+  disabled otherwise.
+
+- The ``svn_info_pre_hook`` and ``svn_info_post_hook`` have been replaced with
+  ``version_pre_command_hook`` and ``version_post_command_hook`` respectively.
+  However, a new ``version_setup_hook``, which has the same purpose, has been
+  added.  It is generally easier to use and will give more consistent results
+  in that it will run every time setup.py is run, regardless of which command
+  is used.  ``stsci.distutils`` itself uses this hook--see the `setup.cfg` file
+  and `stsci/distutils/__init__.py` for example usage.
+
+- Instead of creating an `svninfo.py` module, the new ``version_`` hooks create
+  a file called `version.py`.  In addition to the SVN info that was included
+  in `svninfo.py`, it includes a ``__version__`` variable to be used by the
+  package's `__init__.py`.  This allows there to be a hard-coded
+  ``__version__`` variable included in the source code, rather than using
+  pkg_resources to get the version.
+
+- In `version.py`, the variables previously named ``__svn_version__`` and
+  ``__full_svn_info__`` are now named ``__svn_revision__`` and
+  ``__svn_full_info__``.
+
+- Fixed a bug when using stsci.distutils in the installation of other packages
+  in the ``stsci.*`` namespace package.  If stsci.distutils was not already
+  installed, and was downloaded automatically by distribute through the
+  setup_requires option, then ``stsci.distutils`` would fail to import.  This
+  is because the way the namespace package (nspkg) mechanism currently works,
+  all packages belonging to the nspkg *must* be on the import path at initial
+  import time.
+
+  So when installing stsci.tools, for example, if ``stsci.tools`` is imported
+  from within the source code at install time, but before ``stsci.distutils``
+  is downloaded and added to the path, the ``stsci`` package is already
+  imported and can't be extended to include the path of ``stsci.distutils``
+  after the fact.  The easiest way of dealing with this, it seems, is to
+  delete ``stsci`` from ``sys.modules``, which forces it to be reimported, now
+  the its ``__path__`` extended to include ``stsci.distutil``'s path.
+
+
+0.2.2 (2011-11-09)
+------------------
+
+- Fixed check for the issue205 bug on actual setuptools installs; before it
+  only worked on distribute.  setuptools has the issue205 bug prior to version
+  0.6c10.
+
+- Improved the fix for the issue205 bug, especially on setuptools.
+  setuptools, prior to 0.6c10, did not back of sys.modules either before
+  sandboxing, which causes serious problems.  In fact, it's so bad that it's
+  not enough to add a sys.modules backup to the current sandbox: It's in fact
+  necessary to monkeypatch setuptools.sandbox.run_setup so that any subsequent
+  calls to it also back up sys.modules.
+
+
+0.2.1 (2011-09-02)
+------------------
+
+- Fixed the dependencies so that setuptools is requirement but 'distribute'
+  specifically.  Previously installation could fail if users had plain
+  setuptools installed and not distribute
+
+0.2 (2011-08-23)
+------------------
+
+- Initial public release

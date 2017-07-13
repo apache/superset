@@ -1,0 +1,21 @@
+old-style-class:6:Aaaa:Old-style class defined.
+super-on-old-class:8:Aaaa.hop:Use of super on an old style class
+no-member:10:Aaaa.hop:Super of 'Aaaa' has no 'hop' member:INFERENCE
+super-on-old-class:12:Aaaa.__init__:Use of super on an old style class
+no-member:19:NewAaaa.hop:Super of 'NewAaaa' has no 'hop' member:INFERENCE
+bad-super-call:22:NewAaaa.__init__:Bad first argument 'Aaaa' given to super()
+missing-super-argument:27:Py3kAaaa.__init__:Missing argument to super()
+bad-super-call:32:Py3kWrongSuper.__init__:Bad first argument 'NewAaaa' given to super()
+bad-super-call:37:WrongNameRegression.__init__:Bad first argument 'Missing' given to super()
+bad-super-call:46:CrashSuper.__init__:Bad first argument 'NewAaaa' given to super()
+bad-super-call:62:SuperDifferentScope.test:Bad first argument 'object' given to super()
+bad-super-call:70:UnknownBases.__init__:Bad first argument 'Missing' given to super()
+not-callable:89:InvalidSuperChecks.__init__:super(InvalidSuperChecks, self).not_a_method is not callable
+no-member:90:InvalidSuperChecks.__init__:Super of 'InvalidSuperChecks' has no 'attribute_error' member:INFERENCE
+no-value-for-parameter:92:InvalidSuperChecks.__init__:No value for argument 'param' in method call
+too-many-function-args:93:InvalidSuperChecks.__init__:Too many positional arguments for method call
+no-value-for-parameter:95:InvalidSuperChecks.__init__:No value for argument 'param' in method call
+unexpected-keyword-arg:95:InvalidSuperChecks.__init__:Unexpected keyword argument 'lala' in method call
+no-member:98:InvalidSuperChecks.__init__:Super of 'InvalidSuperChecks' has no 'attribute_error' member:INFERENCE
+bad-super-call:120:SuperWithType.__init__:Bad first argument 'type' given to super()
+bad-super-call:125:SuperWithSelfClass.__init__:Bad first argument 'self.__class__' given to super()

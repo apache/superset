@@ -1,0 +1,1 @@
+invalid-star-assignment-target:3::Starred assignment target must be in a list or tuple

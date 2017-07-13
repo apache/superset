@@ -1,0 +1,1 @@
+no-member:15::Instance of 'Client' has no 'foo' member:INFERENCE

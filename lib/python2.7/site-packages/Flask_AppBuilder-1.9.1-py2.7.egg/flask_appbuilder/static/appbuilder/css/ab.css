@@ -1,0 +1,52 @@
+
+.collapse.in {
+    display:block;
+	overflow: visible;
+}
+
+.panel-group .panel {
+    overflow: visible;
+}
+
+/* Wrapper for page content to push down footer */
+.wrap {
+	min-height: 100%;
+	height: auto !important;
+	height: 100%;
+}
+
+
+.fixed-footer{
+	background-color: #f5f5f5;
+	bottom:0;
+	left:0;
+	right:0;	
+	width:100%;
+	margin:auto;
+}
+
+
+th.action_checkboxes {
+    width: 1%;
+}
+
+.cursor-hand {
+    cursor: pointer;
+    cursor: hand;
+}
+
+.img-select {
+    outline: 2px solid;
+}
+
+.img-unselect {
+    outline: 1px solid;
+}
+
+.fa-black {
+    color: black;
+}
+
+.btn.filter {
+    text-align: left;
+}

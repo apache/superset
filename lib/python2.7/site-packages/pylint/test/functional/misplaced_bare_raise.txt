@@ -1,0 +1,7 @@
+misplaced-bare-raise:5::The raise statement is not inside an except clause
+misplaced-bare-raise:36:test1.best:The raise statement is not inside an except clause
+misplaced-bare-raise:39:test1:The raise statement is not inside an except clause
+misplaced-bare-raise:40::The raise statement is not inside an except clause
+misplaced-bare-raise:49::The raise statement is not inside an except clause
+misplaced-bare-raise:57:A:The raise statement is not inside an except clause
+misplaced-bare-raise:68::The raise statement is not inside an except clause

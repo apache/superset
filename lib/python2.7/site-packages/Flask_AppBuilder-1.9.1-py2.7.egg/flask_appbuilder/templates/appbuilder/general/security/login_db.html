@@ -1,0 +1,62 @@
+<!-- extend base layout -->
+{% extends "appbuilder/base.html" %}
+
+
+
+{% block content %}
+
+<div class="container">
+    <div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+        <div class="panel panel-primary" >
+            <div class="panel-heading">
+                <div class="panel-title">{{ title }}</div>
+            </div>
+            <div style="padding-top:30px" class="panel-body" >
+
+                <form class="form" action="" method="post" name="login">
+                    {{form.hidden_tag()}}
+                    <div class="help-block">{{_("Enter your login and password below")}}:</div>
+                    <div class="control-group{% if form.errors.openid %} error{% endif %}">
+                        <label class="control-label" for="openid">{{_("Username")}}:</label>
+
+                        <div class="controls">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-user"></i></span>
+                                {{ form.username(size = 80, class = "form-control") }}
+                            </div>
+                            {% for error in form.errors.openid %}
+                            <span class="help-inline">[{{error}}]</span><br>
+                            {% endfor %}
+                            <label class="control-label" for="openid">{{_("Password")}}:</label>
+
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fa fa-key"></i></span>
+                                {{ form.password(size = 80, class = "form-control") }}
+                            </div>
+                            {% for error in form.errors.openid %}
+                            <span class="help-inline">[{{error}}]</span><br>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="control-group">
+                        <div class="controls">
+                            <br>
+                            <div>
+                                <input class="btn btn-primary btn-block" type="submit" value="{{_('Sign In')}}">
+                                {% if appbuilder.sm.auth_user_registration %}
+                                <a href="{{appbuilder.sm.get_url_for_registeruser}}" class="btn btn-block btn-primary" data-toggle="tooltip" rel="tooltip"
+                                title="{{_('If your not already a user, please register')}}">
+                                    {{_('Register')}}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

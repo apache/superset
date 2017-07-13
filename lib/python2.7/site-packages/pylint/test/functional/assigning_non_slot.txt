@@ -1,0 +1,4 @@
+assigning-non-slot:18:Bad.__init__:Assigning to attribute 'missing' not defined in class slots
+assigning-non-slot:26:Bad2.__init__:Assigning to attribute 'missing' not defined in class slots
+assigning-non-slot:36:Bad3.__init__:Assigning to attribute 'missing' not defined in class slots
+assigning-non-slot:132:dont_emit_for_descriptors:Assigning to attribute 'non_data_descriptor' not defined in class slots

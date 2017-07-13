@@ -1,0 +1,2 @@
+W:  5:func: Redefining built-in '__file__'
+W:  5:func: Using the global statement

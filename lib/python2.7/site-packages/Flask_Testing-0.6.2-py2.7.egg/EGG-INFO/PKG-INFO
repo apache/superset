@@ -1,0 +1,31 @@
+Metadata-Version: 1.1
+Name: Flask-Testing
+Version: 0.6.2
+Summary: Unit testing for Flask
+Home-page: https://github.com/jarus/flask-testing
+Author: Dan Jacob
+Author-email: danjac354@gmail.com
+License: BSD
+Description: 
+        Flask-Testing
+        -------------
+        
+        Flask unittest integration.
+        
+        Links
+        `````
+        
+        * `documentation <http://packages.python.org/Flask-Testing>`
+        * `development version <http://github.com/jarus/flask-testing/zipball/master#egg=Flask-Testing-dev>`
+        
+        
+Platform: any
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Internet :: WWW/HTTP :: Dynamic Content
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

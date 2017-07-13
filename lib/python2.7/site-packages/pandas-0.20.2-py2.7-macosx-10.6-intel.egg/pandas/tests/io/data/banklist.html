@@ -1,0 +1,4885 @@
+<!DOCTYPE html><!-- HTML5 -->
+<html lang="en-US">
+<!-- Content language is American English. -->
+<head>
+<title>FDIC: Failed Bank List</title>
+<!-- Meta Tags -->
+<meta charset="UTF-8">
+<!-- Unicode character encoding -->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- Turns off IE Compatiblity Mode -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<!-- Makes it so phones don't auto zoom out. -->
+<meta name="author" content="DRR">
+<meta http-equiv="keywords" name="keywords" content="banks, financial institutions, failed, failure, closing, deposits, depositors, banking services, assuming institution, acquiring institution, claims">
+<!-- CSS -->
+<link rel="stylesheet" type="text/css" href="/responsive/css/responsive.css">
+<link rel="stylesheet" type="text/css" href="banklist.css">
+</head>
+<body>
+
+<!-- START of Header -->
+<script type="text/javascript" src="/responsive/header/js/header.js"></script>
+<link rel="stylesheet" type="text/css" href="/responsive/header/css/header.css" />
+<!-- googleac.html includes Autocomplete functionality -->
+<!-- Autocomplete files -->
+<link rel="stylesheet" type="text/css" href="/responsive/header/css/jquery.autocomplete.css" />
+<script type="text/javascript" src="/responsive/js/jquery-1.4.1.min.js"></script>
+<script type="text/javascript" src="/responsive/header/js/jquery.autocomplete-1.4.2.js"></script>
+<script type="text/javascript">
+function findValue(li) {
+	if( li == null ) return alert("No match!");
+
+	// if coming from an AJAX call, let's use the Id as the value
+	if( !!li.extra ) var sValue = li.extra[0];
+
+	// otherwise, let's just display the value in the text box
+	else var sValue = li.selectValue;
+
+	$('#googlesearch').submit();
+	
+}
+function findValue2(li) {
+	if( li == null ) return alert("No match!");
+
+	// if coming from an AJAX call, let's use the Id as the value
+	if( !!li.extra ) var sValue = li.extra[0];
+
+	// otherwise, let's just display the value in the text box
+	else var sValue = li.selectValue;
+	
+	$('#googlesearch2').submit();
+}
+function selectItem(li) {
+	findValue(li);
+}
+function selectItem2(li) {
+	findValue2(li);
+}
+
+$().ready(function() {
+
+	function log(event, data, formatted) {
+		$("<li>").html( !data ? "No match!" : "Selected: " + formatted).appendTo("#result");
+	}
+	
+	function formatItem(row) {
+		return row[0] + " (<strong>id: " + row[1] + "</strong>)";
+	}
+	function formatResult(row) {
+		return row[0].replace(/(<.+?>)/gi, '');
+	}
+
+	$("#newSearch").autocomplete("/searchjs.asp", {
+		width: 179,
+		autoFill: false,
+		//delay:10,
+		minChars:2,
+		cacheLength: 10,
+		onFindValue:findValue,
+		onItemSelect: selectItem,
+		selectFirst: false
+
+	});
+	
+	$("#search2").autocomplete("/searchjs.asp", {
+		width: 160,
+		autoFill: false,
+		//delay:10,
+		minChars:2,
+		cacheLength: 10,
+		onFindValue:findValue2,
+		onItemSelect: selectItem2,
+		selectFirst: false
+
+	});
+	
+});
+
+</script>
+<!-- END CODE NEEDED TO MAKE THE SEARCH BOX WORK -->
+
+<!-- FORESEE Code -->
+<script type="text/javascript" src="/foresee/foresee-trigger.js"></script>
+
+<a href="#after_header" class="responsive_header-skip_header">Skip Header</a>
+<header>
+<div id="responsive_header">
+	<div id="responsive_header-right_side">
+		<ul id="responsive_header-links">
+			<li id="responsive_header-twitter" title="Visit FDIC on Twitter"><a tabindex="1" href="/social.html?site=http://twitter.com/FDICgov">Visit FDIC on Twitter</a></li>
+			<li id="responsive_header-facebook" title="Visit FDIC on Facebook"><a tabindex="1" href="/social.html?site=http://www.facebook.com/FDICgov">Visit FDIC on Facebook</a></li>
+			<li id="responsive_header-fdicchannel" title="Visit FDIC on YouTube"><a tabindex="1" href="/social.html?site=http://www.youtube.com/user/FDICchannel">Visit FDIC on YouTube</a></li>
+			<li id="responsive_header-rss" title="FDIC RSS Feed"><a tabindex="1" href="/rss.html">FDIC RSS Feed</a></li>
+			<li id="responsive_header-subscribe" title="Subscribe to FDIC alerts"><a tabindex="1" href="http://service.govdelivery.com/service/multi_subscribe.html?code=USFDIC">Subscribe to FDIC alerts</a></li>
+		</ul>
+		<div id="responsive_header-search">
+			<a href="/search/advanced.html" class="search" title="Advanced Search">Advanced Search</a>
+			<form id="googlesearch" action="http://search.fdic.gov/search" method="get" name="Search box for FDIC.gov">
+				<fieldset>
+					<div class="form">
+						<label for="q">Search FDIC.gov</label>
+						<input tabindex="1" id="newSearch" name="q" class="field" type="text" style="outline: 0 none;" value="Search FDIC..." onblur="if(this.value == '') {this.value = 'Search FDIC...';}" onfocus="if(this.value == 'Search FDIC...') {this.value = '';}" />
+						<input tabindex="1" id="searchsubmit" class="submit" alt="Search Icon" title="Search Icon" type="submit" value="" />
+						<input value="date:D:L:d1" name="sort" type="hidden" />
+
+						<input value="xml_no_dtd" name="output" type="hidden" />
+						<input value="UTF-8" name="ie" type="hidden" />
+						<input value="UTF-8" name="oe" type="hidden" />
+						<input value="wwwGOV" name="client" type="hidden" />
+						<input value="wwwGOV" name="proxystylesheet" type="hidden" />
+						<input value="default" name="site" type="hidden" />
+					</div>
+				</fieldset>
+			</form>
+		</div>
+	</div>
+	<!-- close right side -->
+	<a id="responsive_header-fdic_logo" href="/" title="FDIC Homepage">FDIC Homepage</a>
+	<h1>Federal Deposit<br>Insurance Corporation</h1>
+	<h2>Each depositor insured to at least $250,000 per insured bank</h2>
+	<div class="clear"></div>
+	<nav>
+		<div id="responsive_header_nav">
+			<div id="responsive_header-topnav">
+				<div id="responsive_header-topnav-downarrow" onclick="show_rwdnav(this)"></div>
+				<ul id="responsive_header-topnav-list">
+					<li id="responsive_header-topnav-home" title="Home" onmouseover="show_responsive_header_subnav(this)"><a href="/">Home</a></li>
+					<li id="responsive_header-topnav-deposit" title="Deposit Insurance" onmouseover="show_responsive_header_subnav(this)"><a href="/deposit/">Deposit Insurance</a></li>
+					<li id="responsive_header-topnav-consumers" title="Consumer Protection" onmouseover="show_responsive_header_subnav(this)"><a href="/consumers/">Consumer Protection</a></li>
+					<li id="responsive_header-topnav-bank" title="Industry Analysis" onmouseover="show_responsive_header_subnav(this)"><a href="/bank/">Industry Analysis</a></li>
+					<li id="responsive_header-topnav-regulations" title="Regulations &amp; Examinations" onmouseover="show_responsive_header_subnav(this)"><a href="/regulations/">Regulations &amp; Examinations</a></li>
+					<li id="responsive_header-topnav-buying" title="Asset Sales" onmouseover="show_responsive_header_subnav(this)"><a href="/buying/">Asset Sales</a></li>
+					<li id="responsive_header-topnav-news" title="News &amp; Events" onmouseover="show_responsive_header_subnav(this)"><a href="/news/">News &amp; Events</a></li>
+					<li id="responsive_header-topnav-about" title="About FDIC" onmouseover="show_responsive_header_subnav(this)"><a href="/about/">About FDIC</a></li>
+				</ul>
+				<div class="clear"></div>
+			</div>
+			<div id="responsive_header-topnav_subnav">
+				<div id="responsive_header-topnav_subnav-downarrow" onclick="show_rwdnav(this)"></div>
+				<ul id="responsive_header-topnav-home_subnav"><li><a>&nbsp;</a></li></ul>
+				<ul id="responsive_header-topnav-deposit_subnav">
+					<li title="BankFind"><a href="http://research.fdic.gov/bankfind/">BankFind</a></li>
+					<li title="Are My Deposits Insured?"><a href="/deposit/deposits/">Are My Deposits Insured?</a></li>
+					<li title="Uninsured Investments"><a href="/deposit/investments/">Uninsured Investments</a></li>
+					<li title="The Deposit Insurance Fund"><a href="/deposit/insurance/index.html">The Deposit Insurance Fund</a></li>
+					<li title="International Deposit Insurance"><a href="/deposit/deposits/international/">International Deposit Insurance</a></li>
+				</ul>
+				<ul id="responsive_header-topnav-consumers_subnav">
+					<li title="Consumer News &amp; Information"><a href="/consumers/consumer/">Consumer News &amp; Information</a></li>
+					<li title="Loans &amp; Mortgages"><a href="/consumers/loans/">Loans &amp; Mortgages</a></li>
+					<li title="Banking &amp; Your Money"><a href="/consumers/banking/">Banking &amp; Your Money</a></li>
+					<li title="Financial Education &amp; Literacy"><a href="/consumers/education/">Financial Education &amp; Literacy</a></li>
+					<li title="Community Affairs"><a href="/consumers/community/">Community Affairs</a></li>
+					<li title="Identity Theft &amp; Fraud"><a href="/consumers/theft/">Identity Theft &amp; Fraud</a></li>
+					<li title="Consumer Financial Privacy"><a href="/consumers/privacy/">Consumer Financial Privacy</a></li>
+				</ul>
+				<ul id="responsive_header-topnav-bank_subnav">
+					<li title="Bank Data &amp; Statistics"><a href="/bank/statistical/">Bank Data &amp; Statistics</a></li>
+					<li title="Research &amp; Analysis"><a href="/bank/analytical/">Research &amp; Analysis</a></li>
+					<li title="Failed Banks"><a href="/bank/individual/failed/">Failed Banks</a></li>
+				</ul>
+				<ul id="responsive_header-topnav-regulations_subnav">
+					<li title="Bank Examinations"><a href="/regulations/examinations/">Bank Examinations</a></li>
+					<li title="Laws &amp; Regulations"><a href="/regulations/laws/">Laws &amp; Regulations</a></li>
+					<li title="Resources for Bank Officers &amp; Directors"><a href="/regulations/resources/">Resources for Bank Officers &amp; Directors</a></li>
+					<li title="FDICconnect"><a href="http://www.fdicconnect.gov/">FDIC<em>connect</em></a></li>
+					<li title="Required Financial Reports"><a href="/regulations/required/">Required Financial Reports</a></li>
+					<li title="Examiner Training Programs"><a href="/regulations/examiner/">Examiner Training Programs</a></li>
+				</ul>
+				<ul id="responsive_header-topnav-buying_subnav">
+					<li title="Loan Sales"><a href="/buying/loan/">Loan Sales</a></li>
+					<li title="Real Estate Sales"><a href="/buying/owned/">Real Estate and Property Marketplace</a></li>
+					<li title="Financial Asset Sales"><a href="/buying/financial/">Financial Asset Sales</a></li>
+					<li title="Servicing Sales Announcements"><a href="/buying/servicing/">Servicing Sales Announcements</a></li>
+					<li title="Other Asset Sales"><a href="/buying/otherasset/">Other Asset Sales</a></li>
+					<li title="Historical Sales"><a href="/buying/historical/">Historical Sales</a></li>
+				</ul>
+				<ul id="responsive_header-topnav-news_subnav">
+					<li title="Press Releases"><a href="/news/news/press/2013/">Press Releases</a></li>
+					<li title="Online Press Room"><a href="https://fdicsurvey.inquisiteasp.com/fdic/cgi-bin/qwebcorporate.dll?M58TRS">Online Press Room</a></li>
+					<li title="Conferences &amp; Events"><a href="/news/conferences/">Conferences &amp; Events</a></li>
+					<li title="Financial Institution Letters"><a href="/news/news/financial/2013/">Financial Institution Letters</a></li>
+					<li title="Special Alerts"><a href="/news/news/SpecialAlert/2012/">Special Alerts</a></li>
+					<li title="Letters to the Editor/Opinion Editorials"><a href="/news/letters/">Letters to the Editor/Opinion Editorials</a></li>
+					<li title="Speeches &amp; Testimony"><a href="/news/news/speeches/chairman/">Speeches &amp; Testimony</a></li>
+				</ul>
+				<ul id="responsive_header-topnav-about_subnav">
+					<li title="Mission &amp; Purpose"><a href="/about/index.html#1">Mission &amp; Purpose</a></span></li>
+					<li title="Advisory Committees"><a href="/about/index.html#2">Advisory Committees</a></span></li>
+					<li title="Careers with the FDIC"><a href="/about/index.html#3">Careers with the FDIC</a></span></li>
+					<li title="Management Team"><a href="/about/index.html#4">Management Team</a></span></li>
+					<li title="Plans &amp; Reports"><a href="/about/index.html#5">Plans &amp; Reports</a></span></li>
+					<li title="What We Can Do for You"><a href="/about/index.html#6">What We Can Do for You</a></span></li>
+					<li title="Diversity at the FDIC"><a href="/about/index.html#7">Diversity at the FDIC</a></span></li>
+				</ul>
+			</div><!-- Close subnav -->
+			<div class="clear"></div>
+		</div>
+	</nav>
+</div>
+</header>
+<a id="after_header" name="after_header"></a>
+<script type="text/javascript">
+prepare_responsive_header_nav();
+</script>
+<!-- END of Header -->
+
+<div id="breadcrumbs"><a href="/">Home</a> &gt; <a href="/bank/">Industry Analysis</a> &gt; <a href="/bank/individual/failed/">Failed Banks</a> &gt; Failed Bank List</div>
+
+<div id="content" class="failed_bank_list">
+
+	<h1 class="page_title">Failed Bank List</h1>
+
+	<p>The FDIC is often appointed as receiver for failed banks. This page contains useful information for the customers and vendors of these banks. This includes information on the acquiring bank (if applicable), how your accounts and loans are affected, and how vendors can file claims against the receivership. <a href="http://www2.fdic.gov/drrip/cs/index.asp">Failed Financial Institution Contact Search</a> displays point of contact information related to failed banks.</p>
+	
+	<p>This list includes banks which have failed since October 1, 2000. To search for banks that failed prior to those on this page, visit this link: <a href="http://www2.fdic.gov/hsob/SelectRpt.asp?EntryTyp=30">Failures and Assistance Transactions</a></p>
+	
+	<p><a href="banklist.csv">Failed Bank List</a> - CSV file (Updated on Mondays. Also opens in Excel - <a href="/excel.html">Excel Help</a>)</p>
+	
+	<p class="small_screen_warning">Due to the small screen size some information is no longer visible.<br>Full information available when viewed on a larger screen.</p>
+
+	<script type="text/javascript">
+	<!--
+	document.writeln("<p><em>Click arrows next to headers to sort in Ascending or Descending order.</em></p>"); 
+	//-->
+	</script>
+
+	<div id="table_wrapper">
+	<table id="table" class="sortable">
+		<thead>
+			<tr>
+				<th id="institution" scope="col">Bank Name</th>
+				<th id="city" class="nosort" scope="col">City</th>
+				<th id="state" scope="col">ST</th>
+				<th id="cert" class="nosort" scope="col">CERT</th>
+				<th id="ai" scope="col">Acquiring Institution</th>    
+				<th id="closing" scope="col">Closing Date</th>
+				<th id="updated" scope="col">Updated Date</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+			  <td class="institution"><a href="kenosha.html">Banks of Wisconsin d/b/a Bank of Kenosha</a></td>
+			  <td class="city">Kenosha</td>
+			  <td class="state">WI</td>
+			  <td class="cert">35386</td>
+			  <td class="ai">North Shore Bank, FSB</td>
+			  <td class="closing">May 31, 2013</td>
+			  <td class="updated">May 31, 2013</td>
+			</tr>
+            <tr>
+			  <td class="institution"><a href="centralaz.html">Central Arizona Bank</a></td>
+			  <td class="city">Scottsdale</td>
+			  <td class="state">AZ</td>
+			  <td class="cert">34527</td>
+			  <td class="ai">Western State Bank</td>
+			  <td class="closing">May 14, 2013</td>
+			  <td class="updated">May 20, 2013</td>
+			</tr>
+			<tr>
+			  <td class="institution"><a href="sunrisebank.html">Sunrise Bank</a></td>
+			  <td class="city">Valdosta</td>
+			  <td class="state">GA</td>
+			  <td class="cert">58185</td>
+			  <td class="ai">Synovus Bank</td>
+			  <td class="closing">May 10, 2013</td>
+			  <td class="updated">May 21, 2013</td>
+			</tr>
+			<tr>
+			  <td class="institution"><a href="pisgahcommbk.html">Pisgah Community Bank</a></td>
+			  <td class="city">Asheville</td>
+			  <td class="state">NC</td>
+			  <td class="cert">58701</td>
+			  <td class="ai">Capital Bank, N.A.</td>
+			  <td class="closing">May 10, 2013</td>
+			  <td class="updated">May 14, 2013</td>
+			</tr>			
+			<tr>
+				<td class="institution"><a href="douglascb.html">Douglas County Bank</a></td>
+				<td class="city">Douglasville</td>
+				<td class="state">GA</td>
+				<td class="cert">21649</td>
+				<td class="ai">Hamilton State Bank</td>
+				<td class="closing">April 26, 2013</td>
+				<td class="updated">May 16, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="parkway.html">Parkway Bank</a></td>
+				<td class="city">Lenoir</td>
+				<td class="state">NC</td>
+				<td class="cert">57158</td>
+				<td class="ai">CertusBank, National Association</td>
+				<td class="closing">April 26, 2013</td>
+				<td class="updated">May 17, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="chipola.html">Chipola Community Bank</a></td>
+				<td class="city">Marianna</td>
+				<td class="state">FL</td>
+				<td class="cert">58034</td>
+				<td class="ai">First Federal Bank of Florida</td>
+				<td class="closing">April 19, 2013</td>
+				<td class="updated">May 16, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="heritagebank-fl.html">Heritage Bank of North Florida</a></td>
+				<td class="city">Orange Park</td>
+				<td class="state">FL</td>
+				<td class="cert">26680</td>
+				<td class="ai">FirstAtlantic Bank</td>
+				<td class="closing">April 19, 2013</td>
+				<td class="updated">May 16, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstfederal-ky.html">First Federal Bank</a></td>
+				<td class="city">Lexington</td>
+				<td class="state">KY</td>
+				<td class="cert">29594</td>
+				<td class="ai">Your Community Bank</td>
+				<td class="closing">April 19, 2013</td>
+				<td class="updated">April 23, 2013</td>
+			</tr>
+				<td class="institution"><a href="goldcanyon.html">Gold Canyon Bank</a></td>
+				<td class="city">Gold Canyon</td>
+				<td class="state">AZ</td>
+				<td class="cert">58066</td>
+				<td class="ai">First Scottsdale Bank, National Association</td>
+				<td class="closing">April 5, 2013</td>
+				<td class="updated">April 9, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="frontier-ga.html">Frontier Bank</a></td>
+				<td class="city">LaGrange</td>
+				<td class="state">GA</td>
+				<td class="cert">16431</td>
+				<td class="ai">HeritageBank of the South</td>
+				<td class="closing">March 8, 2013</td>
+				<td class="updated">March 26, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="covenant-il.html">Covenant Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">22476</td>
+				<td class="ai">Liberty Bank and Trust Company</td>
+				<td class="closing">February 15, 2013</td>
+				<td class="updated">March 4, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="1stregents.html">1st Regents Bank</a></td>
+				<td class="city">Andover</td>
+				<td class="state">MN</td>
+				<td class="cert">57157</td>
+				<td class="ai">First Minnesota Bank</td>
+				<td class="closing">January 18, 2013</td>
+				<td class="updated">February 28, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="westside.html">Westside Community Bank</a></td>
+				<td class="city">University Place</td>
+				<td class="state">WA</td>
+				<td class="cert">33997</td>
+				<td class="ai">Sunwest Bank</td>
+				<td class="closing">January 11, 2013</td>
+				<td class="updated">January 24, 2013</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="cmbkozarks.html">Community Bank of the Ozarks</a></td>
+				<td class="city">Sunrise Beach</td>
+				<td class="state">MO</td>
+				<td class="cert">27331</td>
+				<td class="ai">Bank of Sullivan</td>
+				<td class="closing">December 14, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="hometown.html">Hometown Community Bank</a></td>
+				<td class="city">Braselton</td>
+				<td class="state">GA</td>
+				<td class="cert">57928</td>
+				<td class="ai">CertusBank, National Association</td>
+				<td class="closing">November 16, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>   
+			<tr>
+				<td class="institution"><a href="cfnb.html">Citizens First National Bank</a></td>
+				<td class="city">Princeton</td>
+				<td class="state">IL</td>
+				<td class="cert">3731</td>
+				<td class="ai">Heartland Bank and Trust Company</td>
+				<td class="closing">November 2, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="heritage_fl.html">Heritage Bank of Florida</a></td>
+				<td class="city">Lutz</td>
+				<td class="state">FL</td>
+				<td class="cert">35009</td>
+				<td class="ai">Centennial Bank</td>
+				<td class="closing">November 2, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="novabank.html">NOVA Bank</a></td>
+				<td class="city">Berwyn</td>
+				<td class="state">PA</td>
+				<td class="cert">27148</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">October 26, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="excelbank.html">Excel Bank</a></td>
+				<td class="city">Sedalia</td>
+				<td class="state">MO</td>
+				<td class="cert">19189</td>
+				<td class="ai">Simmons First National Bank</td>
+				<td class="closing">October 19, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firsteastside.html">First East Side Savings Bank</a></td>
+				<td class="city">Tamarac</td>
+				<td class="state">FL</td>
+				<td class="cert">28144</td>
+				<td class="ai">Stearns Bank N.A.</td>
+				<td class="closing">October 19, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="gulfsouth.html">GulfSouth Private Bank</a></td>
+				<td class="city">Destin</td>
+				<td class="state">FL</td>
+				<td class="cert">58073</td>
+				<td class="ai">SmartBank</td>
+				<td class="closing">October 19, 2012</td>
+				<td class="updated">January 24, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstunited.html">First United Bank</a></td>
+				<td class="city">Crete</td>
+				<td class="state">IL</td>
+				<td class="cert">20685</td>
+				<td class="ai">Old Plank Trail Community Bank, National Association</td>
+				<td class="closing">September 28, 2012</td>
+				<td class="updated">November 15, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="truman.html">Truman Bank</a></td>
+				<td class="city">St. Louis</td>
+				<td class="state">MO</td>
+				<td class="cert">27316</td>
+				<td class="ai">Simmons First National Bank</td>
+				<td class="closing">September 14, 2012</td>
+				<td class="updated">December 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstcommbk_mn.html">First Commercial Bank</a></td>
+				<td class="city">Bloomington</td>
+				<td class="state">MN</td>
+				<td class="cert">35246</td>
+				<td class="ai">Republic Bank &amp; Trust Company</td>
+				<td class="closing">September 7, 2012</td>
+				<td class="updated">December 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="waukegan.html">Waukegan Savings Bank</a></td>
+				<td class="city">Waukegan</td>
+				<td class="state">IL</td>
+				<td class="cert">28243</td>
+				<td class="ai">First Midwest Bank</td>
+				<td class="closing">August 3, 2012</td>
+				<td class="updated">October 11, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="jasper.html">Jasper Banking Company</a></td>
+				<td class="city">Jasper</td>
+				<td class="state">GA</td>
+				<td class="cert">16240</td>
+				<td class="ai">Stearns Bank N.A.</td>
+				<td class="closing">July 27, 2012</td>
+				<td class="updated">December 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="secondfederal.html">Second Federal Savings and Loan Association of Chicago</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">27986</td>
+				<td class="ai">Hinsdale Bank &amp; Trust Company</td>
+				<td class="closing">July 20, 2012</td>
+				<td class="updated">January 14, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="heartland.html">Heartland Bank</a></td>
+				<td class="city">Leawood</td>
+				<td class="state">KS</td>
+				<td class="cert">1361</td>
+				<td class="ai">Metcalf Bank</td>
+				<td class="closing">July 20, 2012</td>
+				<td class="updated">December 17, 2012</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="cherokee.html">First Cherokee State Bank</a></td>
+				<td class="city">Woodstock</td>
+				<td class="state">GA</td>
+				<td class="cert">32711</td>
+				<td class="ai">Community &amp; Southern Bank</td>
+				<td class="closing">July 20, 2012</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="georgiatrust.html">Georgia Trust Bank</a></td>
+				<td class="city">Buford</td>
+				<td class="state">GA</td>
+				<td class="cert">57847</td>
+				<td class="ai">Community &amp; Southern Bank</td>
+				<td class="closing">July 20, 2012</td>
+				<td class="updated">December 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="royalpalm.html">The Royal Palm Bank of Florida</a></td>
+				<td class="city">Naples</td>
+				<td class="state">FL</td>
+				<td class="cert">57096</td>
+				<td class="ai">First National Bank of the Gulf Coast</td>
+				<td class="closing">July 20, 2012</td>
+				<td class="updated">January 7, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="glasgow.html">Glasgow Savings Bank</a></td>
+				<td class="city">Glasgow</td>
+				<td class="state">MO</td>
+				<td class="cert">1056</td>
+				<td class="ai">Regional Missouri Bank</td>
+				<td class="closing">July 13, 2012</td>
+				<td class="updated">October 11, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="montgomery.html">Montgomery Bank &amp; Trust</a></td>
+				<td class="city">Ailey</td>
+				<td class="state">GA</td>
+				<td class="cert">19498</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">July 6, 2012</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="farmersbank.html">The Farmers Bank of Lynchburg</a></td>
+				<td class="city">Lynchburg</td>
+				<td class="state">TN</td>
+				<td class="cert">1690</td>
+				<td class="ai">Clayton Bank and Trust</td>
+				<td class="closing">June 15, 2012</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="securityexchange.html">Security Exchange Bank</a></td>
+				<td class="city">Marietta</td>
+				<td class="state">GA</td>
+				<td class="cert">35299</td>
+				<td class="ai">Fidelity Bank</td>
+				<td class="closing">June 15, 2012</td>
+				<td class="updated">October 10, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="putnam.html">Putnam State Bank</a></td>
+				<td class="city">Palatka</td>
+				<td class="state">FL</td>
+				<td class="cert">27405</td>
+				<td class="ai">Harbor Community Bank</td>
+				<td class="closing">June 15, 2012</td>
+				<td class="updated">October 10, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="waccamaw.html">Waccamaw Bank</a></td>
+				<td class="city">Whiteville</td>
+				<td class="state">NC</td>
+				<td class="cert">34515</td>
+				<td class="ai">First Community Bank</td>
+				<td class="closing">June 8, 2012</td>
+				<td class="updated">November 8, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ftsb.html">Farmers' and Traders' State Bank</a></td>
+				<td class="city">Shabbona</td>
+				<td class="state">IL</td>
+				<td class="cert">9257</td>
+				<td class="ai">First State Bank</td>
+				<td class="closing">June 8, 2012</td>
+				<td class="updated">October 10, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="carolina.html">Carolina Federal Savings Bank</a></td>
+				<td class="city">Charleston</td>
+				<td class="state">SC</td>
+				<td class="cert">35372</td>
+				<td class="ai">Bank of North Carolina</td>
+				<td class="closing">June 8, 2012</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstcapital.html">First Capital Bank</a></td>
+				<td class="city">Kingfisher</td>
+				<td class="state">OK</td>
+				<td class="cert">416</td>
+				<td class="ai">F &amp; M Bank</td>
+				<td class="closing">June 8, 2012</td>
+				<td class="updated">October 10, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="alabamatrust.html">Alabama Trust Bank, National Association</a></td>
+				<td class="city">Sylacauga</td>
+				<td class="state">AL</td>
+				<td class="cert">35224</td>
+				<td class="ai">Southern States Bank</td>
+				<td class="closing">May 18, 2012</td>
+				<td class="updated">May 20, 2013</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="securitybank.html">Security Bank, National Association</a></td>
+				<td class="city">North Lauderdale</td>
+				<td class="state">FL</td>
+				<td class="cert">23156</td>
+				<td class="ai">Banesco USA</td>
+				<td class="closing">May 4, 2012</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="palmdesert.html">Palm Desert National Bank</a></td>
+				<td class="city">Palm Desert</td>
+				<td class="state">CA</td>
+				<td class="cert">23632</td>
+				<td class="ai">Pacific Premier Bank</td>
+				<td class="closing">April 27, 2012</td>
+				<td class="updated">May 17, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="plantation.html">Plantation Federal Bank</a></td>
+				<td class="city">Pawleys Island</td>
+				<td class="state">SC</td>
+				<td class="cert">32503</td>
+				<td class="ai">First Federal Bank</td>
+				<td class="closing">April 27, 2012</td>
+				<td class="updated">May 17, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="interbank.html">Inter Savings Bank, fsb D/B/A InterBank, fsb</a></td>
+				<td class="city">Maple Grove</td>
+				<td class="state">MN</td>
+				<td class="cert">31495</td>
+				<td class="ai">Great Southern Bank</td>
+				<td class="closing">April 27, 2012</td>
+				<td class="updated">May 17, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="harvest.html">HarVest Bank of Maryland</a></td>
+				<td class="city">Gaithersburg</td>
+				<td class="state">MD</td>
+				<td class="cert">57766</td>
+				<td class="ai">Sonabank</td>
+				<td class="closing">April 27, 2012</td>
+				<td class="updated">May 17, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="easternshore.html">Bank of the Eastern Shore</a></td>
+				<td class="city">Cambridge</td>
+				<td class="state">MD</td>
+				<td class="cert">26759</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">April 27, 2012</td>
+				<td class="updated">October 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fortlee.html">Fort Lee Federal Savings Bank, FSB</a></td>
+				<td class="city">Fort Lee</td>
+				<td class="state">NJ</td>
+				<td class="cert">35527</td>
+				<td class="ai">Alma Bank</td>
+				<td class="closing">April 20, 2012</td>
+				<td class="updated">May 17, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fidelity.html">Fidelity Bank</a></td>
+				<td class="city">Dearborn</td>
+				<td class="state">MI</td>
+				<td class="cert">33883</td>
+				<td class="ai">The Huntington National Bank</td>
+				<td class="closing">March 30, 2012</td>
+				<td class="updated">May 16, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="premier-il.html">Premier Bank</a></td>
+				<td class="city">Wilmette</td>
+				<td class="state">IL</td>
+				<td class="cert">35419</td>
+				<td class="ai">International Bank of Chicago</td>
+				<td class="closing">March 23, 2012</td>
+				<td class="updated">October 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="covenant.html">Covenant Bank &amp; Trust</a></td>
+				<td class="city">Rock Spring</td>
+				<td class="state">GA</td>
+				<td class="cert">58068</td>
+				<td class="ai">Stearns Bank, N.A.</td>
+				<td class="closing">March 23, 2012</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="newcity.html">New City Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">57597</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">March 9, 2012</td>
+				<td class="updated">October 29, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="global.html">Global Commerce Bank</a></td>
+				<td class="city">Doraville</td>
+				<td class="state">GA</td>
+				<td class="cert">34046</td>
+				<td class="ai">Metro City Bank</td>
+				<td class="closing">March 2, 2012</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="homesvgs.html">Home Savings of America</a></td>
+				<td class="city">Little Falls</td>
+				<td class="state">MN</td>
+				<td class="cert">29178</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">February 24, 2012</td>
+				<td class="updated">December 17, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="cbg.html">Central Bank of Georgia</a></td>
+				<td class="city">Ellaville</td>
+				<td class="state">GA</td>
+				<td class="cert">5687</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">February 24, 2012</td>
+				<td class="updated">August 9, 2012</td>
+			</tr>   
+			<tr>
+				<td class="institution"><a href="scbbank.html">SCB Bank</a></td>
+				<td class="city">Shelbyville</td>
+				<td class="state">IN</td>
+				<td class="cert">29761</td>
+				<td class="ai">First Merchants Bank, National Association</td>
+				<td class="closing">February 10, 2012</td>
+				<td class="updated">March 25, 2013</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="cnbt.html">Charter National Bank and Trust</a></td>
+				<td class="city">Hoffman Estates</td>
+				<td class="state">IL</td>
+				<td class="cert">23187</td>
+				<td class="ai">Barrington Bank &amp; Trust Company, National Association</td>
+				<td class="closing">February 10, 2012</td>
+				<td class="updated">March 25, 2013</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="bankeast.html">BankEast</a></td>
+				<td class="city">Knoxville</td>
+				<td class="state">TN</td>
+				<td class="cert">19869</td>
+				<td class="ai">U.S.Bank National Association</td>
+				<td class="closing">January 27, 2012</td>
+				<td class="updated">March 8, 2013</td>
+			</tr>   
+			<tr>
+				<td class="institution"><a href="patriot-mn.html">Patriot Bank Minnesota</a></td>
+				<td class="city">Forest Lake</td>
+				<td class="state">MN</td>
+				<td class="cert">34823</td>
+				<td class="ai">First Resource Bank</td>
+				<td class="closing">January 27, 2012</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="tcb.html">Tennessee Commerce Bank</a></td>
+				<td class="city">Franklin</td>
+				<td class="state">TN</td>
+				<td class="cert">35296</td>
+				<td class="ai">Republic Bank &amp; Trust Company</td>
+				<td class="closing">January 27, 2012</td>
+				<td class="updated">November 20, 2012</td>
+			</tr>     
+			<tr>
+				<td class="institution"><a href="fgbtcj.html">First Guaranty Bank and Trust Company of Jacksonville</a></td>
+				<td class="city">Jacksonville</td>
+				<td class="state">FL</td>
+				<td class="cert">16579</td>
+				<td class="ai">CenterState Bank of Florida, N.A.</td>
+				<td class="closing">January 27, 2012</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="americaneagle.html">American Eagle Savings Bank</a></td>
+				<td class="city">Boothwyn</td>
+				<td class="state">PA</td>
+				<td class="cert">31581</td>
+				<td class="ai">Capital Bank, N.A.</td>
+				<td class="closing">January 20, 2012</td>
+				<td class="updated">January 25, 2013</td>
+			</tr>      
+			<tr>
+				<td class="institution"><a href="firststatebank-ga.html">The First State Bank</a></td>
+				<td class="city">Stockbridge</td>
+				<td class="state">GA</td>
+				<td class="cert">19252</td>
+				<td class="ai">Hamilton State Bank</td>
+				<td class="closing">January 20, 2012</td>
+				<td class="updated">January 25, 2013</td>
+			</tr>      
+			<tr>
+				<td class="institution"><a href="cfsb.html">Central Florida State Bank</a></td>
+				<td class="city">Belleview</td>
+				<td class="state">FL</td>
+				<td class="cert">57186</td>
+				<td class="ai">CenterState Bank of Florida, N.A.</td>
+				<td class="closing">January 20, 2012</td>
+				<td class="updated">January 25, 2013</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="westernnatl.html">Western National Bank</a></td>
+				<td class="city">Phoenix</td>
+				<td class="state">AZ</td>
+				<td class="cert">57917</td>
+				<td class="ai">Washington Federal</td>
+				<td class="closing">December 16, 2011</td>
+				<td class="updated">August 13, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="premier-fl.html">Premier Community Bank of the Emerald Coast</a></td>
+				<td class="city">Crestview</td>
+				<td class="state">FL</td>
+				<td class="cert">58343</td>
+				<td class="ai">Summit Bank</td>
+				<td class="closing">December 16, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="centralprog.html">Central Progressive Bank</a></td>
+				<td class="city">Lacombe</td>
+				<td class="state">LA</td>
+				<td class="cert">19657</td>
+				<td class="ai">First NBC Bank</td>
+				<td class="closing">November 18, 2011</td>
+				<td class="updated">August 13, 2012</td>
+			</tr>     
+			<tr>
+				<td class="institution"><a href="polkcounty.html">Polk County Bank</a></td>
+				<td class="city">Johnston</td>
+				<td class="state">IA</td>
+				<td class="cert">14194</td>
+				<td class="ai">Grinnell State Bank</td>
+				<td class="closing">November 18, 2011</td>
+				<td class="updated">August 15, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="rockmart.html">Community Bank of Rockmart</a></td>
+				<td class="city">Rockmart</td>
+				<td class="state">GA</td>
+				<td class="cert">57860</td>
+				<td class="ai">Century Bank of Georgia</td>
+				<td class="closing">November 10, 2011</td>
+				<td class="updated">August 13, 2012</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="sunfirst.html">SunFirst Bank</a></td>
+				<td class="city">Saint George</td>
+				<td class="state">UT</td>
+				<td class="cert">57087</td>
+				<td class="ai">Cache Valley Bank</td>
+				<td class="closing">November 4, 2011</td>
+				<td class="updated">November 16, 2012</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="midcity.html">Mid City Bank, Inc.</a></td>
+				<td class="city">Omaha</td>
+				<td class="state">NE</td>
+				<td class="cert">19397</td>
+				<td class="ai">Premier Bank</td>
+				<td class="closing">November 4, 2011</td>
+				<td class="updated">August 15, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="allamerican.html ">All American Bank</a></td>
+				<td class="city">Des Plaines</td>
+				<td class="state">IL</td>
+				<td class="cert">57759</td>
+				<td class="ai">International Bank of Chicago</td>
+				<td class="closing">October 28, 2011</td>
+				<td class="updated">August 15, 2012</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="commbanksco.html">Community Banks of Colorado</a></td>
+				<td class="city">Greenwood Village</td>
+				<td class="state">CO</td>
+				<td class="cert">21132</td>
+				<td class="ai">Bank Midwest, N.A.</td>
+				<td class="closing">October 21, 2011</td>
+				<td class="updated">January 2, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="commcapbk.html">Community Capital Bank</a></td>
+				<td class="city">Jonesboro</td>
+				<td class="state">GA</td>
+				<td class="cert">57036</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">October 21, 2011</td>
+				<td class="updated">November 8, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="decatur.html">Decatur First Bank</a></td>
+				<td class="city">Decatur</td>
+				<td class="state">GA</td>
+				<td class="cert">34392</td>
+				<td class="ai">Fidelity Bank</td>
+				<td class="closing">October 21, 2011</td>
+				<td class="updated">November 8, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="oldharbor.html">Old Harbor Bank</a></td>
+				<td class="city">Clearwater</td>
+				<td class="state">FL</td>
+				<td class="cert">57537</td>
+				<td class="ai">1st United Bank</td>
+				<td class="closing">October 21, 2011</td>
+				<td class="updated">November 8, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="countrybank.html">Country Bank</a></td>
+ 				<td class="city">Aledo</td>
+ 				<td class="state">IL</td>
+ 				<td class="cert">35395</td>
+ 				<td class="ai">Blackhawk Bank &amp; Trust</td>
+ 				<td class="closing">October 14, 2011</td>
+ 				<td class="updated">August 15, 2012</td>
+			</tr>   
+			<tr>
+				<td class="institution"><a href="firststatebank-nj.html">First State Bank</a></td>
+ 				<td class="city">Cranford</td>
+ 				<td class="state">NJ</td>
+ 				<td class="cert">58046</td>
+ 				<td class="ai">Northfield Bank</td>
+ 				<td class="closing">October 14, 2011</td>
+ 				<td class="updated">November 8, 2012</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="blueridge.html">Blue Ridge Savings Bank, Inc.</a></td>
+ 				<td class="city">Asheville</td>
+ 				<td class="state">NC</td>
+ 				<td class="cert">32347</td>
+ 				<td class="ai">Bank of North Carolina</td>
+ 				<td class="closing">October 14, 2011</td>
+ 				<td class="updated">November 8, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="piedmont-ga.html">Piedmont Community Bank</a></td>
+ 				<td class="city">Gray</td>
+ 				<td class="state">GA</td>
+ 				<td class="cert">57256</td>
+ 				<td class="ai">State Bank and Trust Company</td>
+ 				<td class="closing">October 14, 2011</td>
+ 				<td class="updated">January 22, 2013</td>
+			</tr>   
+			<tr>
+				<td class="institution"><a href="sunsecurity.html">Sun Security Bank</a></td>
+ 				<td class="city">Ellington</td>
+ 				<td class="state">MO</td>
+ 				<td class="cert">20115</td>
+ 				<td class="ai">Great Southern Bank</td>
+ 				<td class="closing">October 7, 2011</td>
+ 				<td class="updated">November 7, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="riverbank.html">The RiverBank</a></td>
+ 				<td class="city">Wyoming</td>
+ 				<td class="state">MN</td>
+ 				<td class="cert">10216</td>
+ 				<td class="ai">Central Bank</td>
+ 				<td class="closing">October 7, 2011</td>
+ 				<td class="updated">November 7, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstintlbank.html">First International Bank</a></td>
+ 				<td class="city">Plano</td>
+ 				<td class="state">TX</td>
+ 				<td class="cert">33513</td>
+ 				<td class="ai">American First National Bank</td>
+ 				<td class="closing">September 30, 2011</td>
+ 				<td class="updated">October 9, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cbnc.html">Citizens Bank of Northern California</a></td>
+				<td class="city">Nevada City</td>
+				<td class="state">CA</td>
+				<td class="cert">33983</td>
+				<td class="ai">Tri Counties Bank</td>
+				<td class="closing">September 23, 2011</td>
+				<td class="updated">October 9, 2012</td>
+			</tr>
+			<tr>
+  				<td class="institution"><a href="boc-va.html">Bank of the Commonwealth</a></td>
+				<td class="city">Norfolk</td>
+				<td class="state">VA</td>
+				<td class="cert">20408</td>
+				<td class="ai">Southern Bank and Trust Company</td>
+				<td class="closing">September 23, 2011</td>
+				<td class="updated">October 9, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fnbf.html">The First National Bank of Florida</a></td>
+				<td class="city">Milton</td>
+				<td class="state">FL</td>
+				<td class="cert">25155</td>
+				<td class="ai">CharterBank</td>
+				<td class="closing">September 9, 2011</td>
+				<td class="updated">September 6, 2012</td>
+			</tr>
+			<tr>
+  				<td class="institution"><a href="creekside.html">CreekSide Bank</a></td>
+				<td class="city">Woodstock</td>
+				<td class="state">GA</td>
+				<td class="cert">58226</td>
+				<td class="ai">Georgia Commerce Bank</td>
+				<td class="closing">September 2, 2011</td>
+				<td class="updated">September 6, 2012</td>
+			</tr>
+			<tr>
+  				<td class="institution"><a href="patriot.html">Patriot Bank of Georgia</a></td>
+				<td class="city">Cumming</td>
+				<td class="state">GA</td>
+				<td class="cert">58273</td>
+				<td class="ai">Georgia Commerce Bank</td>
+				<td class="closing">September 2, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstchoice-il.html">First Choice Bank</a></td>
+				<td class="city">Geneva</td>
+				<td class="state">IL</td>
+				<td class="cert">57212</td>
+				<td class="ai">Inland Bank &amp; Trust</td>
+				<td class="closing">August 19, 2011</td>
+				<td class="updated">August 15, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstsouthern-ga.html">First Southern National Bank</a></td>
+				<td class="city">Statesboro</td>
+				<td class="state">GA</td>
+				<td class="cert">57239</td>
+				<td class="ai">Heritage Bank of the South</td>
+				<td class="closing">August 19, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="lydian.html">Lydian Private Bank</a></td>
+				<td class="city">Palm Beach</td>
+				<td class="state">FL</td>
+				<td class="cert">35356</td>
+				<td class="ai">Sabadell United Bank, N.A.</td>
+				<td class="closing">August 19, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="publicsvgs.html">Public Savings Bank</a></td>
+				<td class="city">Huntingdon Valley</td>
+				<td class="state">PA</td>
+				<td class="cert">34130</td>
+				<td class="ai">Capital Bank, N.A.</td>
+				<td class="closing">August 18, 2011</td>
+				<td class="updated">August 15, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fnbo.html">The First National Bank of Olathe</a></td>
+				<td class="city">Olathe</td>
+				<td class="state">KS</td>
+				<td class="cert">4744</td>
+				<td class="ai">Enterprise Bank &amp; Trust</td>
+				<td class="closing">August 12, 2011</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="whitman.html">Bank of Whitman</a></td>
+				<td class="city">Colfax</td>
+				<td class="state">WA</td>
+				<td class="cert">22528</td>
+				<td class="ai">Columbia State Bank</td>
+				<td class="closing">August 5, 2011</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="shorewood.html">Bank of Shorewood</a></td>
+				<td class="city">Shorewood</td>
+				<td class="state">IL</td>
+				<td class="cert">22637</td>
+				<td class="ai">Heartland Bank and Trust Company</td>
+				<td class="closing">August 5, 2011</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="integra.html">Integra Bank National Association</a></td>
+				<td class="city">Evansville</td>
+				<td class="state">IN</td>
+				<td class="cert">4392</td>
+				<td class="ai">Old National Bank</td>
+				<td class="closing">July 29, 2011</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankmeridian.html">BankMeridian, N.A.</a></td>
+				<td class="city">Columbia</td>
+				<td class="state">SC</td>
+				<td class="cert">58222</td>
+				<td class="ai">SCBT National Association</td>
+				<td class="closing">July 29, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="vbb.html">Virginia Business Bank</a></td>
+				<td class="city">Richmond</td>
+				<td class="state">VA</td>
+				<td class="cert">58283</td>
+				<td class="ai">Xenith Bank</td>
+				<td class="closing">July 29, 2011</td>
+				<td class="updated">October 9, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankofchoice.html">Bank of Choice</a></td>
+				<td class="city">Greeley</td>
+				<td class="state">CO</td>
+				<td class="cert">2994</td>
+				<td class="ai">Bank Midwest, N.A.</td>
+				<td class="closing">July 22, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="landmark.html">LandMark Bank of Florida</a></td>
+				<td class="city">Sarasota</td>
+				<td class="state">FL</td>
+				<td class="cert">35244</td>
+				<td class="ai">American Momentum Bank</td>
+				<td class="closing">July 22, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="southshore.html">Southshore Community Bank</a></td>
+				<td class="city">Apollo Beach</td>
+				<td class="state">FL</td>
+				<td class="cert">58056</td>
+				<td class="ai">American Momentum Bank</td>
+				<td class="closing">July 22, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="summitbank.html">Summit Bank</a></td>
+				<td class="city">Prescott</td>
+				<td class="state">AZ</td>
+				<td class="cert">57442</td>
+				<td class="ai">The Foothills Bank</td>
+				<td class="closing">July 15, 2011</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstpeoples.html">First Peoples Bank</a></td>
+				<td class="city">Port St. Lucie</td>
+				<td class="state">FL</td>
+				<td class="cert">34870</td>
+				<td class="ai">Premier American Bank, N.A.</td>
+				<td class="closing">July 15, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="hightrust.html">High Trust Bank</a></td>
+				<td class="city">Stockbridge</td>
+				<td class="state">GA</td>
+				<td class="cert">19554</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">July 15, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="onegeorgia.html">One Georgia Bank</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">58238</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">July 15, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="signaturebank.html">Signature Bank</a></td>
+				<td class="city">Windsor</td>
+				<td class="state">CO</td>
+				<td class="cert">57835</td>
+				<td class="ai">Points West Community Bank</td>
+				<td class="closing">July 8, 2011</td>
+				<td class="updated">October 26, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="coloradocapital.html">Colorado Capital Bank</a></td>
+				<td class="city">Castle Rock</td>
+				<td class="state">CO</td>
+				<td class="cert">34522</td>
+				<td class="ai">First-Citizens Bank &amp; Trust Company</td>
+				<td class="closing">July 8, 2011</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstchicago.html">First Chicago Bank &amp; Trust</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">27935</td>
+				<td class="ai">Northbrook Bank &amp; Trust Company</td>
+				<td class="closing">July 8, 2011</td>
+				<td class="updated">September 9, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="mountain.html">Mountain Heritage Bank</a></td>
+				<td class="city">Clayton</td>
+				<td class="state">GA</td>
+				<td class="cert">57593</td>
+				<td class="ai">First American Bank and Trust Company</td>
+				<td class="closing">June 24, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>   
+			<tr>
+				<td class="institution"><a href="fcbtb.html">First Commercial Bank of Tampa Bay</a></td>
+				<td class="city">Tampa</td>
+				<td class="state">FL</td>
+				<td class="cert">27583</td>
+				<td class="ai">Stonegate Bank</td>
+				<td class="closing">June 17, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>    
+			<tr>
+				<td class="institution"><a href="mcintoshstate.html">McIntosh State Bank</a></td>
+				<td class="city">Jackson</td>
+				<td class="state">GA</td>
+				<td class="cert">19237</td>
+				<td class="ai">Hamilton State Bank</td>
+				<td class="closing">June 17, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>   
+			<tr>
+				<td class="institution"><a href="atlanticbanktrust.html">Atlantic Bank and Trust</a></td>
+				<td class="city">Charleston</td>
+				<td class="state">SC</td>
+				<td class="cert">58420</td>
+				<td class="ai">First Citizens Bank and Trust Company, Inc.</td>
+				<td class="closing">June 3, 2011</td>
+				<td class="updated">October 31, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="firstheritage.html">First Heritage Bank</a></td>
+				<td class="city">Snohomish</td>
+				<td class="state">WA</td>
+				<td class="cert">23626</td>
+				<td class="ai">Columbia State Bank</td>
+				<td class="closing">May 27, 2011</td>
+				<td class="updated">January 28, 2013</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="summit.html">Summit Bank</a></td>
+				<td class="city">Burlington</td>
+				<td class="state">WA</td>
+				<td class="cert">513</td>
+				<td class="ai">Columbia State Bank</td>
+				<td class="closing">May 20, 2011</td>
+				<td class="updated">January 22, 2013</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="fgbc.html">First Georgia Banking Company</a></td>
+				<td class="city">Franklin</td>
+				<td class="state">GA</td>
+				<td class="cert">57647</td>
+				<td class="ai">CertusBank, National Association</td>
+				<td class="closing">May 20, 2011</td>
+				<td class="updated">November 13, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="atlanticsthrn.html">Atlantic Southern Bank</a></td>
+				<td class="city">Macon</td>
+				<td class="state">GA</td>
+				<td class="cert">57213</td>
+				<td class="ai">CertusBank, National Association</td>
+				<td class="closing">May 20, 2011</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="coastal_fl.html">Coastal Bank</a></td>
+				<td class="city">Cocoa Beach</td>
+				<td class="state">FL</td>
+				<td class="cert">34898</td>
+				<td class="ai">Florida Community Bank, a division of Premier American Bank, N.A.</td>
+				<td class="closing">May 6, 2011</td>
+				<td class="updated">November 30, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="communitycentral.html">Community Central Bank</a></td>
+				<td class="city">Mount Clemens</td>
+				<td class="state">MI</td>
+				<td class="cert">34234</td>
+				<td class="ai">Talmer Bank &amp; Trust</td>
+				<td class="closing">April 29, 2011</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="parkavenue_ga.html">The Park Avenue Bank</a></td>
+				<td class="city">Valdosta</td>
+				<td class="state">GA</td>
+				<td class="cert">19797</td>
+				<td class="ai">Bank of the Ozarks</td>
+				<td class="closing">April 29, 2011</td>
+				<td class="updated">November 30, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstchoice.html">First Choice Community Bank</a></td>
+				<td class="city">Dallas</td>
+				<td class="state">GA</td>
+				<td class="cert">58539</td>
+				<td class="ai">Bank of the Ozarks</td>
+				<td class="closing">April 29, 2011</td>
+				<td class="updated">January 22, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cortez.html">Cortez Community Bank</a></td>
+				<td class="city">Brooksville</td>
+				<td class="state">FL</td>
+				<td class="cert">57625</td>
+				<td class="ai">Florida Community Bank, a division of Premier American Bank, N.A.</td>
+				<td class="closing">April 29, 2011</td>
+				<td class="updated">November 30, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fnbcf.html">First National Bank of Central Florida</a></td>
+				<td class="city">Winter Park</td>
+				<td class="state">FL</td>
+				<td class="cert">26297</td>
+				<td class="ai">Florida Community Bank, a division of Premier American Bank, N.A.</td>
+				<td class="closing">April 29, 2011</td>
+				<td class="updated">November 30, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="heritage_ms.html">Heritage Banking Group</a></td>
+				<td class="city">Carthage</td>
+				<td class="state">MS</td>
+				<td class="cert">14273</td>
+				<td class="ai">Trustmark National Bank</td>
+				<td class="closing">April 15, 2011</td>
+				<td class="updated">November 30, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="rosemount.html">Rosemount National Bank</a></td>
+				<td class="city">Rosemount</td>
+				<td class="state">MN</td>
+				<td class="cert">24099</td>
+				<td class="ai">Central Bank</td>
+				<td class="closing">April 15, 2011</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="superior_al.html">Superior Bank</a></td>
+				<td class="city">Birmingham</td>
+				<td class="state">AL</td>
+				<td class="cert">17750</td>
+				<td class="ai">Superior Bank, National Association</td>
+				<td class="closing">April 15, 2011</td>
+				<td class="updated">November 30, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="nexity.html">Nexity Bank</a></td>
+				<td class="city">Birmingham</td>
+				<td class="state">AL</td>
+				<td class="cert">19794</td>
+				<td class="ai">AloStar Bank of Commerce</td>
+				<td class="closing">April 15, 2011</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="newhorizons.html">New Horizons Bank</a></td>
+				<td class="city">East Ellijay</td>
+				<td class="state">GA</td>
+				<td class="cert">57705</td>
+				<td class="ai">Citizens South Bank</td>
+				<td class="closing">April 15, 2011</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bartow.html">Bartow County Bank</a></td>
+				<td class="city">Cartersville</td>
+				<td class="state">GA</td>
+				<td class="cert">21495</td>
+				<td class="ai">Hamilton State Bank</td>
+				<td class="closing">April 15, 2011</td>
+				<td class="updated">January 22, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="nevadacommerce.html">Nevada Commerce Bank</a></td>
+				<td class="city">Las Vegas</td>
+				<td class="state">NV</td>
+				<td class="cert">35418</td>
+				<td class="ai">City National Bank</td>
+				<td class="closing">April 8, 2011</td>
+				<td class="updated">September 9, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="westernsprings.html">Western Springs National Bank and Trust</a></td>
+				<td class="city">Western Springs</td>
+				<td class="state">IL</td>
+				<td class="cert">10086</td>
+				<td class="ai">Heartland Bank and Trust Company</td>
+				<td class="closing">April 8, 2011</td>
+				<td class="updated">January 22, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankofcommerce.html">The Bank of Commerce</a></td>
+				<td class="city">Wood Dale</td>
+				<td class="state">IL</td>
+				<td class="cert">34292</td>
+				<td class="ai">Advantage National Bank Group</td>
+				<td class="closing">March 25, 2011</td>
+				<td class="updated">January 22, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="legacy-wi.html">Legacy Bank</a></td>
+				<td class="city">Milwaukee</td>
+				<td class="state">WI</td>
+				<td class="cert">34818</td>
+				<td class="ai">Seaway Bank and Trust Company</td>
+				<td class="closing">March 11, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstnatldavis.html">First National Bank of Davis</a></td>
+				<td class="city">Davis</td>
+				<td class="state">OK</td>
+				<td class="cert">4077</td>
+				<td class="ai">The Pauls Valley National Bank</td>
+				<td class="closing">March 11, 2011</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="valleycomm.html">Valley Community Bank</a></td>
+				<td class="city">St. Charles</td>
+				<td class="state">IL</td>
+				<td class="cert">34187</td>
+				<td class="ai">First State Bank</td>
+				<td class="closing">February 25, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sanluistrust.html">San Luis Trust Bank, FSB</a></td>
+				<td class="city">San Luis Obispo</td>
+				<td class="state">CA</td>
+				<td class="cert">34783</td>
+				<td class="ai">First California Bank</td>
+				<td class="closing">February 18, 2011</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="charteroak.html">Charter Oak Bank</a></td>
+				<td class="city">Napa</td>
+				<td class="state">CA</td>
+				<td class="cert">57855</td>
+				<td class="ai">Bank of Marin</td>
+				<td class="closing">February 18, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="citizensbk_ga.html">Citizens Bank of Effingham</a></td>
+				<td class="city">Springfield</td>
+				<td class="state">GA</td>
+				<td class="cert">34601</td>
+				<td class="ai">Heritage Bank of the South</td>
+				<td class="closing">February 18, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="habersham.html">Habersham Bank</a></td>
+				<td class="city">Clarkesville</td>
+				<td class="state">GA</td>
+				<td class="cert">151</td>
+				<td class="ai">SCBT National Association</td>
+				<td class="closing">February 18, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="canyonstate.html">Canyon National Bank</a></td>
+				<td class="city">Palm Springs</td>
+				<td class="state">CA</td>
+				<td class="cert">34692</td>
+				<td class="ai">Pacific Premier Bank</td>
+				<td class="closing">February 11, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="badgerstate.html">Badger State Bank</a></td>
+				<td class="city">Cassville</td>
+				<td class="state">WI</td>
+				<td class="cert">13272</td>
+				<td class="ai">Royal Bank</td>
+				<td class="closing">February 11, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="peoplesstatebank.html">Peoples State Bank</a></td>
+				<td class="city">Hamtramck</td>
+				<td class="state">MI</td>
+				<td class="cert">14939</td>
+				<td class="ai">First Michigan Bank</td>
+				<td class="closing">February 11, 2011</td>
+				<td class="updated">January 22, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sunshinestate.html">Sunshine State Community Bank</a></td>
+				<td class="city">Port Orange</td>
+				<td class="state">FL</td>
+				<td class="cert">35478</td>
+				<td class="ai">Premier American Bank, N.A.</td>
+				<td class="closing">February 11, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="commfirst_il.html">Community First Bank Chicago</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">57948</td>
+				<td class="ai">Northbrook Bank &amp; Trust Company</td>
+				<td class="closing">February 4, 2011</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="northgabank.html">North Georgia Bank</a></td>
+				<td class="city">Watkinsville</td>
+				<td class="state">GA</td>
+				<td class="cert">35242</td>
+				<td class="ai">BankSouth</td>
+				<td class="closing">February 4, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="americantrust.html">American Trust Bank</a></td>
+				<td class="city">Roswell</td>
+				<td class="state">GA</td>
+				<td class="cert">57432</td>
+				<td class="ai">Renasant Bank</td>
+				<td class="closing">February 4, 2011</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstcomm_nm.html">First Community Bank</a></td>
+				<td class="city">Taos</td>
+				<td class="state">NM</td>
+				<td class="cert">12261</td>
+				<td class="ai">U.S. Bank, N.A.</td>
+				<td class="closing">January 28, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstier.html">FirsTier Bank</a></td>
+				<td class="city">Louisville</td>
+				<td class="state">CO</td>
+				<td class="cert">57646</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">January 28, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="evergreenstatewi.html">Evergreen State Bank</a></td>
+				<td class="city">Stoughton</td>
+				<td class="state">WI</td>
+				<td class="cert">5328</td>
+				<td class="ai">McFarland State Bank</td>
+				<td class="closing">January 28, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firststatebank_ok.html">The First State Bank</a></td>
+				<td class="city">Camargo</td>
+				<td class="state">OK</td>
+				<td class="cert">2303</td>
+				<td class="ai">Bank 7</td>
+				<td class="closing">January 28, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="unitedwestern.html">United Western Bank</a></td>
+				<td class="city">Denver</td>
+				<td class="state">CO</td>
+				<td class="cert">31293</td>
+				<td class="ai">First-Citizens Bank &amp; Trust Company</td>
+				<td class="closing">January 21, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankofasheville.html">The Bank of Asheville</a></td>
+				<td class="city">Asheville</td>
+				<td class="state">NC</td>
+				<td class="cert">34516</td>
+				<td class="ai">First Bank</td>
+				<td class="closing">January 21, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="commsouth.html">CommunitySouth Bank &amp; Trust</a></td>
+				<td class="city">Easley</td>
+				<td class="state">SC</td>
+				<td class="cert">57868</td>
+				<td class="ai">CertusBank, National Association</td>
+				<td class="closing">January 21, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="enterprise.html">Enterprise Banking Company</a></td>
+				<td class="city">McDonough</td>
+				<td class="state">GA</td>
+				<td class="cert">19758</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">January 21, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="oglethorpe.html">Oglethorpe Bank</a></td>
+				<td class="city">Brunswick</td>
+				<td class="state">GA</td>
+				<td class="cert">57440</td>
+				<td class="ai">Bank of the Ozarks</td>
+				<td class="closing">January 14, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="legacybank.html">Legacy Bank</a></td>
+				<td class="city">Scottsdale</td>
+				<td class="state">AZ</td>
+				<td class="cert">57820</td>
+				<td class="ai">Enterprise Bank &amp; Trust</td>
+				<td class="closing">January 7, 2011</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstcommercial.html">First Commercial Bank of Florida</a></td>
+				<td class="city">Orlando</td>
+				<td class="state">FL</td>
+				<td class="cert">34965</td>
+				<td class="ai">First Southern Bank</td>
+				<td class="closing">January 7, 2011</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="communitynatl.html">Community National Bank</a></td>
+				<td class="city">Lino Lakes</td>
+				<td class="state">MN</td>
+				<td class="cert">23306</td>
+				<td class="ai">Farmers &amp; Merchants Savings Bank</td>
+				<td class="closing">December 17, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstsouthern.html">First Southern Bank</a></td>
+				<td class="city">Batesville</td>
+				<td class="state">AR</td>
+				<td class="cert">58052</td>
+				<td class="ai">Southern Bank</td>
+				<td class="closing">December 17, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="unitedamericas.html">United Americas Bank, N.A.</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">35065</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">December 17, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="appalachianga.html">Appalachian Community Bank, FSB</a></td>
+				<td class="city">McCaysville</td>
+				<td class="state">GA</td>
+				<td class="cert">58495</td>
+				<td class="ai">Peoples Bank of East Tennessee</td>
+				<td class="closing">December 17, 2010</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="chestatee.html">Chestatee State Bank</a></td>
+				<td class="city">Dawsonville</td>
+				<td class="state">GA</td>
+				<td class="cert">34578</td>
+				<td class="ai">Bank of the Ozarks</td>
+				<td class="closing">December 17, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankofmiami.html">The Bank of Miami,N.A.</a></td>
+				<td class="city">Coral Gables</td>
+				<td class="state">FL</td>
+				<td class="cert">19040</td>
+				<td class="ai">1st United Bank</td>
+				<td class="closing">December 17, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="earthstar.html">Earthstar Bank</a></td>
+				<td class="city">Southampton</td>
+				<td class="state">PA</td>
+				<td class="cert">35561</td>
+				<td class="ai">Polonia Bank</td>
+				<td class="closing">December 10, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="paramount.html">Paramount Bank</a></td>
+				<td class="city">Farmington Hills</td>
+				<td class="state">MI</td>
+				<td class="cert">34673</td>
+				<td class="ai">Level One Bank</td>
+				<td class="closing">December 10, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstbanking.html">First Banking Center</a></td>
+				<td class="city">Burlington</td>
+				<td class="state">WI</td>
+				<td class="cert">5287</td>
+				<td class="ai">First Michigan Bank</td>
+				<td class="closing">November 19, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="allegbank.html">Allegiance Bank of North America</a></td>
+				<td class="city">Bala Cynwyd</td>
+				<td class="state">PA</td>
+				<td class="cert">35078</td>
+				<td class="ai">VIST Bank</td>
+				<td class="closing">November 19, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="gulfstate.html">Gulf State Community Bank</a></td>
+				<td class="city">Carrabelle</td>
+				<td class="state">FL</td>
+				<td class="cert">20340</td>
+				<td class="ai">Centennial Bank</td>
+				<td class="closing">November 19, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="copperstar.html">Copper Star Bank</a></td>
+				<td class="city">Scottsdale</td>
+				<td class="state">AZ</td>
+				<td class="cert">35463</td>
+				<td class="ai">Stearns Bank, N.A.</td>
+				<td class="closing">November 12, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="darbybank.html">Darby Bank &amp; Trust Co.</a></td>
+				<td class="city">Vidalia</td>
+				<td class="state">GA</td>
+				<td class="cert">14580</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">November 12, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="tifton.html">Tifton Banking Company</a></td>
+				<td class="city">Tifton</td>
+				<td class="state">GA</td>
+				<td class="cert">57831</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">November 12, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstvietnamese.html">First Vietnamese American Bank</a><br><a href="firstvietnamese_viet.pdf">In Vietnamese</a></td>
+				<td class="city">Westminster</td>
+				<td class="state">CA</td>
+				<td class="cert">57885</td>
+				<td class="ai">Grandpoint Bank</td>
+				<td class="closing">November 5, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="piercecommercial.html">Pierce Commercial Bank</a></td>
+				<td class="city">Tacoma</td>
+				<td class="state">WA</td>
+				<td class="cert">34411</td>
+				<td class="ai">Heritage Bank</td>
+				<td class="closing">November 5, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="westerncommercial_ca.html">Western Commercial Bank</a></td>
+				<td class="city">Woodland Hills</td>
+				<td class="state">CA</td>
+				<td class="cert">58087</td>
+				<td class="ai">First California Bank</td>
+				<td class="closing">November 5, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="kbank.html">K Bank</a></td>
+				<td class="city">Randallstown</td>
+				<td class="state">MD</td>
+				<td class="cert">31263</td>
+				<td class="ai">Manufacturers and Traders Trust Company (M&amp;T Bank)</td>
+				<td class="closing">November 5, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstazfsb.html">First Arizona Savings, A FSB</a></td>
+				<td class="city">Scottsdale</td>
+				<td class="state">AZ</td>
+				<td class="cert">32582</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">October 22, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="hillcrest_ks.html">Hillcrest Bank</a></td>
+				<td class="city">Overland Park</td>
+				<td class="state">KS</td>
+				<td class="cert">22173</td>
+				<td class="ai">Hillcrest Bank, N.A.</td>
+				<td class="closing">October 22, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstsuburban.html">First Suburban National Bank</a></td>
+				<td class="city">Maywood</td>
+				<td class="state">IL</td>
+				<td class="cert">16089</td>
+				<td class="ai">Seaway Bank and Trust Company</td>
+				<td class="closing">October 22, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fnbbarnesville.html">The First National Bank of Barnesville</a></td>
+				<td class="city">Barnesville</td>
+				<td class="state">GA</td>
+				<td class="cert">2119</td>
+				<td class="ai">United Bank</td>
+				<td class="closing">October 22, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="gordon.html">The Gordon Bank</a></td>
+				<td class="city">Gordon</td>
+				<td class="state">GA</td>
+				<td class="cert">33904</td>
+				<td class="ai">Morris Bank</td>
+				<td class="closing">October 22, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="progress_fl.html">Progress Bank of Florida</a></td>
+				<td class="city">Tampa</td>
+				<td class="state">FL</td>
+				<td class="cert">32251</td>
+				<td class="ai">Bay Cities Bank</td>
+				<td class="closing">October 22, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstbankjacksonville.html">First Bank of Jacksonville</a></td>
+				<td class="city">Jacksonville</td>
+				<td class="state">FL</td>
+				<td class="cert">27573</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">October 22, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="premier_mo.html">Premier Bank</a></td>
+				<td class="city">Jefferson City</td>
+				<td class="state">MO</td>
+				<td class="cert">34016</td>
+				<td class="ai">Providence Bank</td>
+				<td class="closing">October 15, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="westbridge.html">WestBridge Bank and Trust Company</a></td>
+				<td class="city">Chesterfield</td>
+				<td class="state">MO</td>
+				<td class="cert">58205</td>
+				<td class="ai">Midland States Bank</td>
+				<td class="closing">October 15, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="securitysavingsfsb.html">Security Savings Bank, F.S.B.</a></td>
+				<td class="city">Olathe</td>
+				<td class="state">KS</td>
+				<td class="cert">30898</td>
+				<td class="ai">Simmons First National Bank</td>
+				<td class="closing">October 15, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="shoreline.html">Shoreline Bank</a></td>
+				<td class="city">Shoreline</td>
+				<td class="state">WA</td>
+				<td class="cert">35250</td>
+				<td class="ai">GBC International Bank</td>
+				<td class="closing">October 1, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="wakulla.html">Wakulla Bank</a></td>
+				<td class="city">Crawfordville</td>
+				<td class="state">FL</td>
+				<td class="cert">21777</td>
+				<td class="ai">Centennial Bank</td>
+				<td class="closing">October 1, 2010</td>
+				<td class="updated">November 2, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="northcounty.html">North County Bank</a></td>
+				<td class="city">Arlington</td>
+				<td class="state">WA</td>
+				<td class="cert">35053</td>
+				<td class="ai">Whidbey Island Bank</td>
+				<td class="closing">September 24, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="haventrust_fl.html">Haven Trust Bank Florida</a></td>
+				<td class="city">Ponte Vedra Beach</td>
+				<td class="state">FL</td>
+				<td class="cert">58308</td>
+				<td class="ai">First Southern Bank</td>
+				<td class="closing">September 24, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="maritimesavings.html">Maritime Savings Bank</a></td>
+				<td class="city">West Allis</td>
+				<td class="state">WI</td>
+				<td class="cert">28612</td>
+				<td class="ai">North Shore Bank, FSB</td>
+				<td class="closing">September 17, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bramblesavings.html">Bramble Savings Bank</a></td>
+				<td class="city">Milford</td>
+				<td class="state">OH</td>
+				<td class="cert">27808</td>
+				<td class="ai">Foundation Bank</td>
+				<td class="closing">September 17, 2010</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="peoplesbank_ga.html">The Peoples Bank</a></td>
+				<td class="city">Winder</td>
+				<td class="state">GA</td>
+				<td class="cert">182</td>
+				<td class="ai">Community &amp; Southern Bank</td>
+				<td class="closing">September 17, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstcommerce_ga.html">First Commerce Community Bank</a></td>
+				<td class="city">Douglasville</td>
+				<td class="state">GA</td>
+				<td class="cert">57448</td>
+				<td class="ai">Community &amp; Southern Bank</td>
+				<td class="closing">September 17, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ellijay.html">Bank of Ellijay</a></td>
+				<td class="city">Ellijay</td>
+				<td class="state">GA</td>
+				<td class="cert">58197</td>
+				<td class="ai">Community &amp; Southern Bank</td>
+				<td class="closing">September 17, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="isnbank.html">ISN Bank</a></td>
+				<td class="city">Cherry Hill</td>
+				<td class="state">NJ</td>
+				<td class="cert">57107</td>
+				<td class="ai">Customers Bank</td>
+				<td class="closing">September 17, 2010</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="horizonfl.html">Horizon Bank</a></td>
+				<td class="city">Bradenton</td>
+				<td class="state">FL</td>
+				<td class="cert">35061</td>
+				<td class="ai">Bank of the Ozarks</td>
+				<td class="closing">September 10, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sonoma.html">Sonoma Valley Bank</a></td>
+				<td class="city">Sonoma</td>
+				<td class="state">CA</td>
+				<td class="cert">27259</td>
+				<td class="ai">Westamerica Bank</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>	 
+			<tr>
+				<td class="institution"><a href="lospadres.html">Los Padres Bank</a></td>
+				<td class="city">Solvang</td>
+				<td class="state">CA</td>
+				<td class="cert">32165</td>
+				<td class="ai">Pacific Western Bank</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="butte.html">Butte Community Bank</a></td>
+				<td class="city">Chico</td>
+				<td class="state">CA</td>
+				<td class="cert">33219</td>
+				<td class="ai">Rabobank, N.A.</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="pacificbk.html">Pacific State Bank</a></td>
+				<td class="city">Stockton</td>
+				<td class="state">CA</td>
+				<td class="cert">27090</td>
+				<td class="ai">Rabobank, N.A.</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="shorebank.html">ShoreBank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">15640</td>
+				<td class="ai">Urban Partnership Bank</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">May 16, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="imperialsvgs.html">Imperial Savings and Loan Association</a></td>
+				<td class="city">Martinsville</td>
+				<td class="state">VA</td>
+				<td class="cert">31623</td>
+				<td class="ai">River Community Bank, N.A.</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">August 24, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="inatbank.html">Independent National Bank</a></td>
+				<td class="city">Ocala</td>
+				<td class="state">FL</td>
+				<td class="cert">27344</td>
+				<td class="ai">CenterState Bank of Florida, N.A.</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cnbbartow.html">Community National Bank at Bartow</a></td>
+				<td class="city">Bartow</td>
+				<td class="state">FL</td>
+				<td class="cert">25266</td>
+				<td class="ai">CenterState Bank of Florida, N.A.</td>
+				<td class="closing">August 20, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="palosbank.html">Palos Bank and Trust Company</a></td>
+				<td class="city">Palos Heights</td>
+				<td class="state">IL</td>
+				<td class="cert">17599</td>
+				<td class="ai">First Midwest Bank</td>
+				<td class="closing">August 13, 2010</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ravenswood.html">Ravenswood Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">34231</td>
+				<td class="ai">Northbrook Bank &amp; Trust Company</td>
+				<td class="closing">August 6, 2010</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="libertyor.html">LibertyBank</a></td>
+				<td class="city">Eugene</td>
+				<td class="state">OR</td>
+				<td class="cert">31964</td>
+				<td class="ai">Home Federal Bank</td>
+				<td class="closing">July 30, 2010</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cowlitz.html">The Cowlitz Bank</a></td>
+				<td class="city">Longview</td>
+				<td class="state">WA</td>
+				<td class="cert">22643</td>
+				<td class="ai">Heritage Bank</td>
+				<td class="closing">July 30, 2010</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="coastal.html">Coastal Community Bank</a></td>
+				<td class="city">Panama City Beach</td>
+				<td class="state">FL</td>
+				<td class="cert">9619</td>
+				<td class="ai">Centennial Bank</td>
+				<td class="closing">July 30, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bayside.html">Bayside Savings Bank</a></td>
+				<td class="city">Port Saint Joe</td>
+				<td class="state">FL</td>
+				<td class="cert">57669</td>
+				<td class="ai">Centennial Bank</td>
+				<td class="closing">July 30, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="northwestga.html">Northwest Bank &amp; Trust</a></td>
+				<td class="city">Acworth</td>
+				<td class="state">GA</td>
+				<td class="cert">57658</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">July 30, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="homevalleyor.html">Home Valley Bank</a></td>
+				<td class="city">Cave Junction</td>
+				<td class="state">OR</td>
+				<td class="cert">23181</td>
+				<td class="ai">South Valley Bank &amp; Trust</td>
+				<td class="closing">July 23, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="southwestusanv.html">SouthwestUSA Bank</a></td>
+				<td class="city">Las Vegas</td>
+				<td class="state">NV</td>
+				<td class="cert">35434</td>
+				<td class="ai">Plaza Bank</td>
+				<td class="closing">July 23, 2010</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="communitysecmn.html">Community Security Bank</a></td>
+				<td class="city">New Prague</td>
+				<td class="state">MN</td>
+				<td class="cert">34486</td>
+				<td class="ai">Roundbank</td>
+				<td class="closing">July 23, 2010</td>
+				<td class="updated">September 12, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="thunderbankks.html">Thunder Bank</a></td>
+				<td class="city">Sylvan Grove</td>
+				<td class="state">KS</td>
+				<td class="cert">10506</td>
+				<td class="ai">The Bennington State Bank</td>
+				<td class="closing">July 23, 2010</td>
+				<td class="updated">September 13, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="williamsburgsc.html">Williamsburg First National Bank</a></td>
+				<td class="city">Kingstree</td>
+				<td class="state">SC</td>
+				<td class="cert">17837</td>
+				<td class="ai">First Citizens Bank and Trust Company, Inc.</td>
+				<td class="closing">July 23, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="crescentga.html">Crescent Bank and Trust Company</a></td>
+				<td class="city">Jasper</td>
+				<td class="state">GA</td>
+				<td class="cert">27559</td>
+				<td class="ai">Renasant Bank</td>
+				<td class="closing">July 23, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sterlingfl.html">Sterling Bank</a></td>
+				<td class="city">Lantana</td>
+				<td class="state">FL</td>
+				<td class="cert">32536</td>
+				<td class="ai">IBERIABANK</td>
+				<td class="closing">July 23, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="mainstsvgs.html">Mainstreet Savings Bank, FSB</a></td>
+				<td class="city">Hastings</td>
+				<td class="state">MI</td>
+				<td class="cert">28136</td>
+				<td class="ai">Commercial Bank</td>
+				<td class="closing">July 16, 2010</td>
+				<td class="updated">September 13, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="oldecypress.html">Olde Cypress Community Bank</a></td>
+				<td class="city">Clewiston</td>
+				<td class="state">FL</td>
+				<td class="cert">28864</td>
+				<td class="ai">CenterState Bank of Florida, N.A.</td>
+				<td class="closing">July 16, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="turnberry.html">Turnberry Bank</a></td>
+				<td class="city">Aventura</td>
+				<td class="state">FL</td>
+				<td class="cert">32280</td>
+				<td class="ai">NAFH National Bank</td>
+				<td class="closing">July 16, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="metrobankfl.html">Metro Bank of Dade County</a></td>
+				<td class="city">Miami</td>
+				<td class="state">FL</td>
+				<td class="cert">25172</td>
+				<td class="ai">NAFH National Bank</td>
+				<td class="closing">July 16, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstnatlsc.html">First National Bank of the South</a></td>
+				<td class="city">Spartanburg</td>
+				<td class="state">SC</td>
+				<td class="cert">35383</td>
+				<td class="ai">NAFH National Bank</td>
+				<td class="closing">July 16, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="woodlands.html">Woodlands Bank</a></td>
+				<td class="city">Bluffton</td>
+				<td class="state">SC</td>
+				<td class="cert">32571</td>
+				<td class="ai">Bank of the Ozarks</td>
+				<td class="closing">July 16, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="homenatlok.html">Home National Bank</a></td>
+				<td class="city">Blackwell</td>
+				<td class="state">OK</td>
+				<td class="cert">11636</td>
+				<td class="ai">RCB Bank</td>
+				<td class="closing">July 9, 2010</td>
+				<td class="updated">December 10, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="usabankny.html">USA Bank</a></td>
+				<td class="city">Port Chester</td>
+				<td class="state">NY</td>
+				<td class="cert">58072</td>
+				<td class="ai">New Century Bank</td>
+				<td class="closing">July 9, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="idealfedsvngsmd.html">Ideal Federal Savings Bank</a></td>
+				<td class="city">Baltimore</td>
+				<td class="state">MD</td>
+				<td class="cert">32456</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">July 9, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="baynatlmd.html">Bay National Bank</a></td>
+				<td class="city">Baltimore</td>
+				<td class="state">MD</td>
+				<td class="cert">35462</td>
+				<td class="ai">Bay Bank, FSB</td>
+				<td class="closing">July 9, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="highdesertnm.html">High Desert State Bank</a></td>
+				<td class="city">Albuquerque</td>
+				<td class="state">NM</td>
+				<td class="cert">35279</td>
+				<td class="ai">First American Bank</td>
+				<td class="closing">June 25, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstnatga.html">First National Bank</a></td>
+				<td class="city">Savannah</td>
+				<td class="state">GA</td>
+				<td class="cert">34152</td>
+				<td class="ai">The Savannah Bank, N.A.</td>
+				<td class="closing">June 25, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="peninsulafl.html">Peninsula Bank</a></td>
+				<td class="city">Englewood</td>
+				<td class="state">FL</td>
+				<td class="cert">26563</td>
+				<td class="ai">Premier American Bank, N.A.</td>
+				<td class="closing">June 25, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="nevsecbank.html">Nevada Security Bank</a></td>
+				<td class="city">Reno</td>
+				<td class="state">NV</td>
+				<td class="cert">57110</td>
+				<td class="ai">Umpqua Bank</td>
+				<td class="closing">June 18, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="washfirstintl.html">Washington First International Bank</a></td>
+				<td class="city">Seattle</td>
+				<td class="state">WA</td>
+				<td class="cert">32955</td>
+				<td class="ai">East West Bank</td>
+				<td class="closing">June 11, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="tieronebankne.html">TierOne Bank</a></td>
+				<td class="city">Lincoln</td>
+				<td class="state">NE</td>
+				<td class="cert">29341</td>
+				<td class="ai">Great Western Bank</td>
+				<td class="closing">June 4, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="arcolail.html">Arcola Homestead Savings Bank</a></td>
+				<td class="city">Arcola</td>
+				<td class="state">IL</td>
+				<td class="cert">31813</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">June 4, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstnatms.html">First National Bank</a></td>
+				<td class="city">Rosedale</td>
+				<td class="state">MS</td>
+				<td class="cert">15814</td>
+				<td class="ai">The Jefferson Bank</td>
+				<td class="closing">June 4, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="swbnevada.html">Sun West Bank</a></td>
+				<td class="city">Las Vegas</td>
+				<td class="state">NV</td>
+				<td class="cert">34785</td>
+				<td class="ai">City National Bank</td>
+				<td class="closing">May 28, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="graniteca.html">Granite Community Bank, NA</a></td>
+				<td class="city">Granite Bay</td>
+				<td class="state">CA</td>
+				<td class="cert">57315</td>
+				<td class="ai">Tri Counties Bank</td>
+				<td class="closing">May 28, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankoffloridatb.html">Bank of Florida - Tampa</a></td>
+				<td class="city">Tampa</td>
+				<td class="state">FL</td>
+				<td class="cert">57814</td>
+				<td class="ai">EverBank</td>
+				<td class="closing">May 28, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankoffloridasw.html">Bank of Florida - Southwest</a></td>
+				<td class="city">Naples</td>
+				<td class="state">FL</td>
+				<td class="cert">35106</td>
+				<td class="ai">EverBank</td>
+				<td class="closing">May 28, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankoffloridase.html">Bank of Florida - Southeast</a></td>
+				<td class="city">Fort Lauderdale</td>
+				<td class="state">FL</td>
+				<td class="cert">57360</td>
+				<td class="ai">EverBank</td>
+				<td class="closing">May 28, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="pinehurstmn.html">Pinehurst Bank</a></td>
+				<td class="city">Saint Paul</td>
+				<td class="state">MN</td>
+				<td class="cert">57735</td>
+				<td class="ai">Coulee Bank</td>
+				<td class="closing">May 21, 2010</td>
+				<td class="updated">October 26, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="midwestil.html">Midwest Bank and Trust Company</a></td>
+				<td class="city">Elmwood Park</td>
+				<td class="state">IL</td>
+				<td class="cert">18117</td>
+				<td class="ai">FirstMerit Bank, N.A.</td>
+				<td class="closing">May 14, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="swcmntymo.html">Southwest Community Bank</a></td>
+				<td class="city">Springfield</td>
+				<td class="state">MO</td>
+				<td class="cert">34255</td>
+				<td class="ai">Simmons First National Bank</td>
+				<td class="closing">May 14, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="newlibertymi.html">New Liberty Bank</a></td>
+				<td class="city">Plymouth</td>
+				<td class="state">MI</td>
+				<td class="cert">35586</td>
+				<td class="ai">Bank of Ann Arbor</td>
+				<td class="closing">May 14, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="satillacmntyga.html">Satilla Community Bank</a></td>
+				<td class="city">Saint Marys</td>
+				<td class="state">GA</td>
+				<td class="cert">35114</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">May 14, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="1stpacific.html">1st Pacific Bank of California</a></td>
+				<td class="city">San Diego</td>
+				<td class="state">CA</td>
+				<td class="cert">35517</td>
+				<td class="ai">City National Bank</td>
+				<td class="closing">May 7, 2010</td>
+				<td class="updated">December 13, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="townebank.html">Towne Bank of Arizona</a></td>
+				<td class="city">Mesa</td>
+				<td class="state">AZ</td>
+				<td class="cert">57697</td>
+				<td class="ai">Commerce Bank of Arizona</td>
+				<td class="closing">May 7, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="accessbank.html">Access Bank</a></td>
+				<td class="city">Champlin</td>
+				<td class="state">MN</td>
+				<td class="cert">16476</td>
+				<td class="ai">PrinsBank</td>
+				<td class="closing">May 7, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bonifay.html">The Bank of Bonifay</a></td>
+				<td class="city">Bonifay</td>
+				<td class="state">FL</td>
+				<td class="cert">14246</td>
+				<td class="ai">First Federal Bank of Florida</td>
+				<td class="closing">May 7, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="frontier.html">Frontier Bank</a></td>
+				<td class="city">Everett</td>
+				<td class="state">WA</td>
+				<td class="cert">22710</td>
+				<td class="ai">Union Bank, N.A.</td>
+				<td class="closing">April 30, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bc-natl.html">BC National Banks</a></td>
+				<td class="city">Butler</td>
+				<td class="state">MO</td>
+				<td class="cert">17792</td>
+				<td class="ai">Community First Bank</td>
+				<td class="closing">April 30, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="champion.html">Champion Bank</a></td>
+				<td class="city">Creve Coeur</td>
+				<td class="state">MO</td>
+				<td class="cert">58362</td>
+				<td class="ai">BankLiberty</td>
+				<td class="closing">April 30, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cfbancorp.html">CF Bancorp</a></td>
+				<td class="city">Port Huron</td>
+				<td class="state">MI</td>
+				<td class="cert">30005</td>
+				<td class="ai">First Michigan Bank</td>
+				<td class="closing">April 30, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="westernbank-puertorico.html">Westernbank Puerto Rico</a><br><a href="westernbank-puertorico_spanish.html">En Espanol</a></td>
+				<td class="city">Mayaguez</td>
+				<td class="state">PR</td>
+				<td class="cert">31027</td>
+				<td class="ai">Banco Popular de Puerto Rico</td>
+				<td class="closing">April 30, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="r-gpremier-puertorico.html">R-G Premier Bank of Puerto Rico</a><br><a href="r-gpremier-puertorico_spanish.html">En Espanol</a></td>
+				<td class="city">Hato Rey</td>
+				<td class="state">PR</td>
+				<td class="cert">32185</td>
+				<td class="ai">Scotiabank de Puerto Rico</td>
+				<td class="closing">April 30, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="eurobank-puertorico.html">Eurobank</a><br><a href="eurobank-puertorico_spanish.html">En Espanol</a></td>
+				<td class="city">San Juan</td>
+				<td class="state">PR</td>
+				<td class="cert">27150</td>
+				<td class="ai">Oriental Bank and Trust</td>
+				<td class="closing">April 30, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="wheatland.html">Wheatland Bank</a></td>
+				<td class="city">Naperville</td>
+				<td class="state">IL</td>
+				<td class="cert">58429</td>
+				<td class="ai">Wheaton Bank &amp; Trust</td>
+				<td class="closing">April 23, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="peotone.html">Peotone Bank and Trust Company</a></td>
+				<td class="city">Peotone</td>
+				<td class="state">IL</td>
+				<td class="cert">10888</td>
+				<td class="ai">First Midwest Bank</td>
+				<td class="closing">April 23, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="lincoln-park.html">Lincoln Park Savings Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">30600</td>
+				<td class="ai">Northbrook Bank &amp; Trust Company</td>
+				<td class="closing">April 23, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="new-century-il.html">New Century Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">34821</td>
+				<td class="ai">MB Financial Bank, N.A.</td>
+				<td class="closing">April 23, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="citizens-bank.html">Citizens Bank and Trust Company of Chicago</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">34658</td>
+				<td class="ai">Republic Bank of Chicago</td>
+				<td class="closing">April 23, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="broadway.html">Broadway Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">22853</td>
+				<td class="ai">MB Financial Bank, N.A.</td>
+				<td class="closing">April 23, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr> 	 	 	 
+			<tr>
+				<td class="institution"><a href="amcore.html">Amcore Bank, National Association</a></td>
+				<td class="city">Rockford</td>
+				<td class="state">IL</td>
+				<td class="cert">3735</td>
+				<td class="ai">Harris N.A.</td>
+				<td class="closing">April 23, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="citybank.html">City Bank</a></td>
+				<td class="city">Lynnwood</td>
+				<td class="state">WA</td>
+				<td class="cert">21521</td>
+				<td class="ai">Whidbey Island Bank</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="tamalpais.html">Tamalpais Bank</a></td>
+				<td class="city">San Rafael</td>
+				<td class="state">CA</td>
+				<td class="cert">33493</td>
+				<td class="ai">Union Bank, N.A.</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="innovative.html">Innovative Bank</a></td>
+				<td class="city">Oakland</td>
+				<td class="state">CA</td>
+				<td class="cert">23876</td>
+				<td class="ai">Center Bank</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="butlerbank.html">Butler Bank</a></td>
+				<td class="city">Lowell</td>
+				<td class="state">MA</td>
+				<td class="cert">26619</td>
+				<td class="ai">People's United Bank</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="riverside-natl.html">Riverside National Bank of Florida</a></td>
+				<td class="city">Fort Pierce</td>
+				<td class="state">FL</td>
+				<td class="cert">24067</td>
+				<td class="ai">TD Bank, N.A.</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="americanfirst.html">AmericanFirst Bank</a></td>
+				<td class="city">Clermont</td>
+				<td class="state">FL</td>
+				<td class="cert">57724</td>
+				<td class="ai">TD Bank, N.A.</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ffbnf.html">First Federal Bank of North Florida</a></td>
+				<td class="city">Palatka</td>
+				<td class="state">FL</td>
+				<td class="cert">28886</td>
+				<td class="ai">TD Bank, N.A.</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="lakeside-comm.html">Lakeside Community Bank</a></td>
+				<td class="city">Sterling Heights</td>
+				<td class="state">MI</td>
+				<td class="cert">34878</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">April 16, 2010</td>
+				<td class="updated">August 23, 2012</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="beachfirst.html">Beach First National Bank</a></td>
+				<td class="city">Myrtle Beach</td>
+				<td class="state">SC</td>
+				<td class="cert">34242</td>
+				<td class="ai">Bank of North Carolina</td>
+				<td class="closing">April 9, 2010</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="deserthills.html">Desert Hills Bank</a></td>
+				<td class="city">Phoenix</td>
+				<td class="state">AZ</td>
+				<td class="cert">57060</td>
+				<td class="ai">New York Community Bank</td>
+				<td class="closing">March 26, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="unity-natl.html">Unity National Bank</a></td>
+				<td class="city">Cartersville</td>
+				<td class="state">GA</td>
+				<td class="cert">34678</td>
+				<td class="ai">Bank of the Ozarks</td>
+				<td class="closing">March 26, 2010</td>
+				<td class="updated">September 14, 2012</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="key-west.html">Key West Bank</a></td>
+				<td class="city">Key West</td>
+				<td class="state">FL</td>
+				<td class="cert">34684</td>
+				<td class="ai">Centennial Bank</td>
+				<td class="closing">March 26, 2010</td>
+				<td class="updated">August 23, 2012</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="mcintosh.html">McIntosh Commercial Bank</a></td>
+				<td class="city">Carrollton</td>
+				<td class="state">GA</td>
+				<td class="cert">57399</td>
+				<td class="ai">CharterBank</td>
+				<td class="closing">March 26, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="state-aurora.html">State Bank of Aurora</a></td>
+				<td class="city">Aurora</td>
+				<td class="state">MN</td>
+				<td class="cert">8221</td>
+				<td class="ai">Northern State Bank</td>
+				<td class="closing">March 19, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstlowndes.html">First Lowndes Bank</a></td>
+				<td class="city">Fort Deposit</td>
+				<td class="state">AL</td>
+				<td class="cert">24957</td>
+				<td class="ai">First Citizens Bank</td>
+				<td class="closing">March 19, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="bankofhiawassee.html">Bank of Hiawassee</a></td>
+				<td class="city">Hiawassee</td>
+				<td class="state">GA</td>
+				<td class="cert">10054</td>
+				<td class="ai">Citizens South Bank</td>
+				<td class="closing">March 19, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="appalachian.html">Appalachian Community Bank</a></td>
+				<td class="city">Ellijay</td>
+				<td class="state">GA</td>
+				<td class="cert">33989</td>
+				<td class="ai">Community &amp; Southern Bank</td>
+				<td class="closing">March 19, 2010</td>
+				<td class="updated">October 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="advanta-ut.html">Advanta Bank Corp.</a></td>
+				<td class="city">Draper</td>
+				<td class="state">UT</td>
+				<td class="cert">33535</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">March 19, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cent-security.html">Century Security Bank</a></td>
+				<td class="city">Duluth</td>
+				<td class="state">GA</td>
+				<td class="cert">58104</td>
+				<td class="ai">Bank of Upson</td>
+				<td class="closing">March 19, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="amer-natl-oh.html">American National Bank</a></td>
+				<td class="city">Parma</td>
+				<td class="state">OH</td>
+				<td class="cert">18806</td>
+				<td class="ai">The National Bank and Trust Company</td>
+				<td class="closing">March 19, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="statewide.html">Statewide Bank</a></td>
+				<td class="city">Covington</td>
+				<td class="state">LA</td>
+				<td class="cert">29561</td>
+				<td class="ai">Home Bank</td>
+				<td class="closing">March 12, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="oldsouthern.html">Old Southern Bank</a></td>
+				<td class="city">Orlando</td>
+				<td class="state">FL</td>
+				<td class="cert">58182</td>
+				<td class="ai">Centennial Bank</td>
+				<td class="closing">March 12, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="parkavenue-ny.html">The Park Avenue Bank</a></td>
+				<td class="city">New York</td>
+				<td class="state">NY</td>
+				<td class="cert">27096</td>
+				<td class="ai">Valley National Bank</td>
+				<td class="closing">March 12, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="libertypointe.html">LibertyPointe Bank</a></td>
+				<td class="city">New York</td>
+				<td class="state">NY</td>
+				<td class="cert">58071</td>
+				<td class="ai">Valley National Bank</td>
+				<td class="closing">March 11, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="centennial-ut.html">Centennial Bank</a></td>
+				<td class="city">Ogden</td>
+				<td class="state">UT</td>
+				<td class="cert">34430</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">March 5, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="waterfield.html">Waterfield Bank</a></td>
+				<td class="city">Germantown</td>
+				<td class="state">MD</td>
+				<td class="cert">34976</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">March 5, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankofillinois.html">Bank of Illinois</a></td>
+				<td class="city">Normal</td>
+				<td class="state">IL</td>
+				<td class="cert">9268</td>
+				<td class="ai">Heartland Bank and Trust Company</td>
+				<td class="closing">March 5, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sunamerican.html">Sun American Bank</a></td>
+				<td class="city">Boca Raton</td>
+				<td class="state">FL</td>
+				<td class="cert">27126</td>
+				<td class="ai">First-Citizens Bank &amp; Trust Company</td>
+				<td class="closing">March 5, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="rainier.html">Rainier Pacific Bank</a></td>
+				<td class="city">Tacoma</td>
+				<td class="state">WA</td>
+				<td class="cert">38129</td>
+				<td class="ai">Umpqua Bank</td>
+				<td class="closing">February 26, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="carsonriver.html">Carson River Community Bank</a></td>
+				<td class="city">Carson City</td>
+				<td class="state">NV</td>
+				<td class="cert">58352</td>
+				<td class="ai">Heritage Bank of Nevada</td>
+				<td class="closing">February 26, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="lajolla.html">La Jolla Bank, FSB</a></td>
+				<td class="city">La Jolla</td>
+				<td class="state">CA</td>
+				<td class="cert">32423</td>
+				<td class="ai">OneWest Bank, FSB</td>
+				<td class="closing">February 19, 2010</td>
+				<td class="updated">August 24, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="georgewashington.html">George Washington Savings Bank</a></td>
+				<td class="city">Orland Park</td>
+				<td class="state">IL</td>
+				<td class="cert">29952</td>
+				<td class="ai">FirstMerit Bank, N.A.</td>
+				<td class="closing">February 19, 2010</td>
+				<td class="updated">August 24, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="lacoste.html">The La Coste National Bank</a></td>
+				<td class="city">La Coste</td>
+				<td class="state">TX</td>
+				<td class="cert">3287</td>
+				<td class="ai">Community National Bank</td>
+				<td class="closing">February 19, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="marco.html">Marco Community Bank</a></td>
+				<td class="city">Marco Island</td>
+				<td class="state">FL</td>
+				<td class="cert">57586</td>
+				<td class="ai">Mutual of Omaha Bank</td>
+				<td class="closing">February 19, 2010</td>
+				<td class="updated">August 24, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="1stamerican.html">1st American State Bank of Minnesota</a></td>
+				<td class="city">Hancock</td>
+				<td class="state">MN</td>
+				<td class="cert">15448</td>
+				<td class="ai">Community Development Bank, FSB</td>
+				<td class="closing">February 5, 2010</td>
+				<td class="updated">August 24, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="americanmarine.html">American Marine Bank</a></td>
+				<td class="city">Bainbridge Island</td>
+				<td class="state">WA</td>
+				<td class="cert">16730</td>
+				<td class="ai">Columbia State Bank</td>
+				<td class="closing">January 29, 2010</td>
+				<td class="updated">August 24, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstregional.html">First Regional Bank</a></td>
+				<td class="city">Los Angeles</td>
+				<td class="state">CA</td>
+				<td class="cert">23011</td>
+				<td class="ai">First-Citizens Bank &amp; Trust Company</td>
+				<td class="closing">January 29, 2010</td>
+				<td class="updated">August 24, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cbt-cornelia.html">Community Bank and Trust</a></td>
+				<td class="city">Cornelia</td>
+				<td class="state">GA</td>
+				<td class="cert">5702</td>
+				<td class="ai">SCBT National Association</td>
+				<td class="closing">January 29, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="marshall-mn.html">Marshall Bank, N.A.</a></td>
+				<td class="city">Hallock</td>
+				<td class="state">MN</td>
+				<td class="cert">16133</td>
+				<td class="ai">United Valley Bank</td>
+				<td class="closing">January 29, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="floridacommunity.html">Florida Community Bank</a></td>
+				<td class="city">Immokalee</td>
+				<td class="state">FL</td>
+				<td class="cert">5672</td>
+				<td class="ai">Premier American Bank, N.A.</td>
+				<td class="closing">January 29, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstnational-carrollton.html">First National Bank of Georgia</a></td>
+				<td class="city">Carrollton</td>
+				<td class="state">GA</td>
+				<td class="cert">16480</td>
+				<td class="ai">Community &amp; Southern Bank</td>
+				<td class="closing">January 29, 2010</td>
+				<td class="updated">December 13, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="columbiariver.html">Columbia River Bank</a></td>
+				<td class="city">The Dalles</td>
+				<td class="state">OR</td>
+				<td class="cert">22469</td>
+				<td class="ai">Columbia State Bank</td>
+				<td class="closing">January 22, 2010</td>
+				<td class="updated">September 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="evergreen-wa.html">Evergreen Bank</a></td>
+				<td class="city">Seattle</td>
+				<td class="state">WA</td>
+				<td class="cert">20501</td>
+				<td class="ai">Umpqua Bank</td>
+				<td class="closing">January 22, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="charter-nm.html">Charter Bank</a></td>
+				<td class="city">Santa Fe</td>
+				<td class="state">NM</td>
+				<td class="cert">32498</td>
+				<td class="ai">Charter Bank</td>
+				<td class="closing">January 22, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="leeton.html">Bank of Leeton</a></td>
+				<td class="city">Leeton</td>
+				<td class="state">MO</td>
+				<td class="cert">8265</td>
+				<td class="ai">Sunflower Bank, N.A.</td>
+				<td class="closing">January 22, 2010</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="premieramerican.html">Premier American Bank</a></td>
+				<td class="city">Miami</td>
+				<td class="state">FL</td>
+				<td class="cert">57147</td>
+				<td class="ai">Premier American Bank, N.A.</td>
+				<td class="closing">January 22, 2010</td>
+				<td class="updated">December 13, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="barnes.html">Barnes Banking Company</a></td>
+				<td class="city">Kaysville</td>
+				<td class="state">UT</td>
+				<td class="cert">1252</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">January 15, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ststephen.html">St. Stephen State Bank</a></td>
+				<td class="city">St. Stephen</td>
+				<td class="state">MN</td>
+				<td class="cert">17522</td>
+				<td class="ai">First State Bank of St. Joseph</td>
+				<td class="closing">January 15, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="towncommunity.html">Town Community Bank &amp; Trust</a></td>
+				<td class="city">Antioch</td>
+				<td class="state">IL</td>
+				<td class="cert">34705</td>
+				<td class="ai">First American Bank</td>
+				<td class="closing">January 15, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="horizon-wa.html">Horizon Bank</a></td>
+				<td class="city">Bellingham</td>
+				<td class="state">WA</td>
+				<td class="cert">22977</td>
+				<td class="ai">Washington Federal Savings and Loan Association</td>
+				<td class="closing">January 8, 2010</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstfederal-ca.html">First Federal Bank of California, F.S.B.</a></td>
+				<td class="city">Santa Monica</td>
+				<td class="state">CA</td>
+				<td class="cert">28536</td>
+				<td class="ai">OneWest Bank, FSB</td>
+				<td class="closing">December 18, 2009</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="imperialcapital.html">Imperial Capital Bank</a></td>
+				<td class="city">La Jolla</td>
+				<td class="state">CA</td>
+				<td class="cert">26348</td>
+				<td class="ai">City National Bank</td>
+				<td class="closing">December 18, 2009</td>
+				<td class="updated">September 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ibb.html">Independent Bankers' Bank</a></td>
+				<td class="city">Springfield</td>
+				<td class="state">IL</td>
+				<td class="cert">26820</td>
+				<td class="ai">The Independent BankersBank (TIB)</td>
+				<td class="closing">December 18, 2009</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="newsouth.html">New South Federal Savings Bank</a></td>
+				<td class="city">Irondale</td>
+				<td class="state">AL</td>
+				<td class="cert">32276</td>
+				<td class="ai">Beal Bank</td>
+				<td class="closing">December 18, 2009</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="citizensstate-mi.html">Citizens State Bank</a></td>
+				<td class="city">New Baltimore</td>
+				<td class="state">MI</td>
+				<td class="cert">1006</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">December 18, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="peoplesfirst-fl.html">Peoples First Community Bank</a></td>
+				<td class="city">Panama City</td>
+				<td class="state">FL</td>
+				<td class="cert">32167</td>
+				<td class="ai">Hancock Bank</td>
+				<td class="closing">December 18, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="rockbridge.html">RockBridge Commercial Bank</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">58315</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">December 18, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="solutions.html">SolutionsBank</a></td>
+				<td class="city">Overland Park</td>
+				<td class="state">KS</td>
+				<td class="cert">4731</td>
+				<td class="ai">Arvest Bank</td>
+				<td class="closing">December 11, 2009</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="valleycapital.html">Valley Capital Bank, N.A.</a></td>
+				<td class="city">Mesa</td>
+				<td class="state">AZ</td>
+				<td class="cert">58399</td>
+				<td class="ai">Enterprise Bank &amp; Trust</td>
+				<td class="closing">December 11, 2009</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="republicfederal.html">Republic Federal Bank, N.A.</a></td>
+				<td class="city">Miami</td>
+				<td class="state">FL</td>
+				<td class="cert">22846</td>
+				<td class="ai">1st United Bank</td>
+				<td class="closing">December 11, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="atlantic-va.html">Greater Atlantic Bank</a></td>
+				<td class="city">Reston</td>
+				<td class="state">VA</td>
+				<td class="cert">32583</td>
+				<td class="ai">Sonabank</td>
+				<td class="closing">December 4, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="benchmark-il.html">Benchmark Bank</a></td>
+				<td class="city">Aurora</td>
+				<td class="state">IL</td>
+				<td class="cert">10440</td>
+				<td class="ai">MB Financial Bank, N.A.</td>
+				<td class="closing">December 4, 2009</td>
+				<td class="updated">August 23, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="amtrust.html">AmTrust Bank</a></td>
+				<td class="city">Cleveland</td>
+				<td class="state">OH</td>
+				<td class="cert">29776</td>
+				<td class="ai">New York Community Bank</td>
+				<td class="closing">December 4, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="tattnall.html">The Tattnall Bank</a></td>
+				<td class="city">Reidsville</td>
+				<td class="state">GA</td>
+				<td class="cert">12080</td>
+				<td class="ai">Heritage Bank of the South</td>
+				<td class="closing">December 4, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstsecurity.html">First Security National Bank</a></td>
+				<td class="city">Norcross</td>
+				<td class="state">GA</td>
+				<td class="cert">26290</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">December 4, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="buckheadcommunity.html">The Buckhead Community Bank</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">34663</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">December 4, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="commercesw-fl.html">Commerce Bank of Southwest Florida</a></td>
+				<td class="city">Fort Myers</td>
+				<td class="state">FL</td>
+				<td class="cert">58016</td>
+				<td class="ai">Central Bank</td>
+				<td class="closing">November 20, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="pacificcoastnatl.html">Pacific Coast National Bank</a></td>
+				<td class="city">San Clemente</td>
+				<td class="state">CA</td>
+				<td class="cert">57914</td>
+				<td class="ai">Sunwest Bank</td>
+				<td class="closing">November 13, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="orion-fl.html">Orion Bank</a></td>
+				<td class="city">Naples</td>
+				<td class="state">FL</td>
+				<td class="cert">22427</td>
+				<td class="ai">IBERIABANK</td>
+				<td class="closing">November 13, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="centuryfsb.html">Century Bank, F.S.B.</a></td>
+				<td class="city">Sarasota</td>
+				<td class="state">FL</td>
+				<td class="cert">32267</td>
+				<td class="ai">IBERIABANK</td>
+				<td class="closing">November 13, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ucb.html">United Commercial Bank</a></td>
+				<td class="city">San Francisco</td>
+				<td class="state">CA</td>
+				<td class="cert">32469</td>
+				<td class="ai">East West Bank</td>
+				<td class="closing">November 6, 2009</td>
+				<td class="updated">November 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="gateway-mo.html">Gateway Bank of St. Louis</a></td>
+				<td class="city">St. Louis</td>
+				<td class="state">MO</td>
+				<td class="cert">19450</td>
+				<td class="ai">Central Bank of Kansas City</td>
+				<td class="closing">November 6, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="prosperan.html">Prosperan Bank</a></td>
+				<td class="city">Oakdale</td>
+				<td class="state">MN</td>
+				<td class="cert">35074</td>
+				<td class="ai">Alerus Financial, N.A.</td>
+				<td class="closing">November 6, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="homefsb-mi.html">Home Federal Savings Bank</a></td>
+				<td class="city">Detroit</td>
+				<td class="state">MI</td>
+				<td class="cert">30329</td>
+				<td class="ai">Liberty Bank and Trust Company</td>
+				<td class="closing">November 6, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="unitedsecurity-ga.html">United Security Bank</a></td>
+				<td class="city">Sparta</td>
+				<td class="state">GA</td>
+				<td class="cert">22286</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">November 6, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="northhouston-tx.html">North Houston Bank</a></td>
+				<td class="city">Houston</td>
+				<td class="state">TX</td>
+				<td class="cert">18776</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="madisonville-tx.html">Madisonville State Bank</a></td>
+				<td class="city">Madisonville</td>
+				<td class="state">TX</td>
+				<td class="cert">33782</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="citizens-teague.html">Citizens National Bank</a></td>
+				<td class="city">Teague</td>
+				<td class="state">TX</td>
+				<td class="cert">25222</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="park-il.html">Park National Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">11677</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="pacificnational-ca.html">Pacific National Bank</a></td>
+				<td class="city">San Francisco</td>
+				<td class="state">CA</td>
+				<td class="cert">30006</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="calnational.html">California National Bank</a></td>
+				<td class="city">Los Angeles</td>
+				<td class="state">CA</td>
+				<td class="cert">34659</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">September 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sandiegonational.html">San Diego National Bank</a></td>
+				<td class="city">San Diego</td>
+				<td class="state">CA</td>
+				<td class="cert">23594</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="community-lemont.html">Community Bank of Lemont</a></td>
+				<td class="city">Lemont</td>
+				<td class="state">IL</td>
+				<td class="cert">35291</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankusa-az.html">Bank USA, N.A.</a></td>
+				<td class="city">Phoenix</td>
+				<td class="state">AZ</td>
+				<td class="cert">32218</td>
+				<td class="ai">U.S. Bank N.A.</td>
+				<td class="closing">October 30, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstdupage.html">First DuPage Bank</a></td>
+				<td class="city">Westmont</td>
+				<td class="state">IL</td>
+				<td class="cert">35038</td>
+				<td class="ai">First Midwest Bank</td>
+				<td class="closing">October 23, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="riverview-mn.html">Riverview Community Bank</a></td>
+				<td class="city">Otsego</td>
+				<td class="state">MN</td>
+				<td class="cert">57525</td>
+				<td class="ai">Central Bank</td>
+				<td class="closing">October 23, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="elmwood.html">Bank of Elmwood</a></td>
+				<td class="city">Racine</td>
+				<td class="state">WI</td>
+				<td class="cert">18321</td>
+				<td class="ai">Tri City National Bank</td>
+				<td class="closing">October 23, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="flagship.html">Flagship National Bank</a></td>
+				<td class="city">Bradenton</td>
+				<td class="state">FL</td>
+				<td class="cert">35044</td>
+				<td class="ai">First Federal Bank of Florida</td>
+				<td class="closing">October 23, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="hillcrest-fl.html">Hillcrest Bank Florida</a></td>
+				<td class="city">Naples</td>
+				<td class="state">FL</td>
+				<td class="cert">58336</td>
+				<td class="ai">Stonegate Bank</td>
+				<td class="closing">October 23, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="americanunited.html">American United Bank</a></td>
+				<td class="city">Lawrenceville</td>
+				<td class="state">GA</td>
+				<td class="cert">57794</td>
+				<td class="ai">Ameris Bank</td>
+				<td class="closing">October 23, 2009</td>
+				<td class="updated">September 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="partners-fl.html">Partners Bank</a></td>
+				<td class="city">Naples</td>
+				<td class="state">FL</td>
+				<td class="cert">57959</td>
+				<td class="ai">Stonegate Bank</td>
+				<td class="closing">October 23, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sanjoaquin.html">San Joaquin Bank</a></td>
+				<td class="city">Bakersfield</td>
+				<td class="state">CA</td>
+				<td class="cert">23266</td>
+				<td class="ai">Citizens Business Bank</td>
+				<td class="closing">October 16, 2009</td>
+				<td class="updated">August 22, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="scnb-co.html">Southern Colorado National Bank</a></td>
+				<td class="city">Pueblo</td>
+				<td class="state">CO</td>
+				<td class="cert">57263</td>
+				<td class="ai">Legacy Bank</td>
+				<td class="closing">October 2, 2009</td>
+				<td class="updated">September 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="jennings-mn.html">Jennings State Bank</a></td>
+				<td class="city">Spring Grove</td>
+				<td class="state">MN</td>
+				<td class="cert">11416</td>
+				<td class="ai">Central Bank</td>
+				<td class="closing">October 2, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr> 
+				<td class="institution"><a href="warren-mi.html">Warren Bank</a></td>
+				<td class="city">Warren</td>
+				<td class="state">MI</td>
+				<td class="cert">34824</td>
+				<td class="ai">The Huntington National Bank</td>
+				<td class="closing">October 2, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="georgian.html">Georgian Bank</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">57151</td>
+				<td class="ai">First Citizens Bank and Trust Company, Inc.</td>
+				<td class="closing">September 25, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="irwin-ky.html">Irwin Union Bank, F.S.B.</a></td>
+				<td class="city">Louisville</td>
+				<td class="state">KY</td>
+				<td class="cert">57068</td>
+				<td class="ai">First Financial Bank, N.A.</td>
+				<td class="closing">September 18, 2009</td>
+				<td class="updated">September 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="irwin-in.html">Irwin Union Bank and Trust Company</a></td>
+				<td class="city">Columbus</td>
+				<td class="state">IN</td>
+				<td class="cert">10100</td>
+				<td class="ai">First Financial Bank, N.A.</td>
+				<td class="closing">September 18, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="venture-wa.html">Venture Bank</a></td>
+				<td class="city">Lacey</td>
+				<td class="state">WA</td>
+				<td class="cert">22868</td>
+				<td class="ai">First-Citizens Bank &amp; Trust Company</td>
+				<td class="closing">September 11, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="brickwell-mn.html">Brickwell Community Bank</a></td>
+				<td class="city">Woodbury</td>
+				<td class="state">MN</td>
+				<td class="cert">57736</td>
+				<td class="ai">CorTrust Bank N.A.</td>
+				<td class="closing">September 11, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="corus.html">Corus Bank, N.A.</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">13693</td>
+				<td class="ai">MB Financial Bank, N.A.</td>
+				<td class="closing">September 11, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firststate-az.html">First State Bank</a></td>
+				<td class="city">Flagstaff</td>
+				<td class="state">AZ</td>
+				<td class="cert">34875</td>
+				<td class="ai">Sunwest Bank</td>
+				<td class="closing">September 4, 2009</td>
+				<td class="updated">January 15, 2013</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="platinum-il.html">Platinum Community Bank</a></td>
+				<td class="city">Rolling Meadows</td>
+				<td class="state">IL</td>
+				<td class="cert">35030</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">September 4, 2009</td>
+				<td class="updated">August 21, 2012</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="vantus.html">Vantus Bank</a></td>
+				<td class="city">Sioux City</td>
+				<td class="state">IN</td>
+				<td class="cert">27732</td>
+				<td class="ai">Great Southern Bank</td>
+				<td class="closing">September 4, 2009</td>
+				<td class="updated">August 21, 2012</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="inbank.html">InBank</a></td>
+				<td class="city">Oak Forest</td>
+				<td class="state">IL</td>
+				<td class="cert">20203</td>
+				<td class="ai">MB Financial Bank, N.A.</td>
+				<td class="closing">September 4, 2009</td>
+				<td class="updated">August 21, 2012</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="firstbankkc-mo.html">First Bank of Kansas City</a></td>
+				<td class="city">Kansas City</td>
+				<td class="state">MO</td>
+				<td class="cert">25231</td>
+				<td class="ai">Great American Bank</td>
+				<td class="closing">September 4, 2009</td>
+				<td class="updated">August 21, 2012</td>
+	  			</tr>
+			<tr>
+				<td class="institution"><a href="affinity-ca.html">Affinity Bank</a></td>
+				<td class="city">Ventura</td>
+				<td class="state">CA</td>
+				<td class="cert">27197</td>
+				<td class="ai">Pacific Western Bank</td>
+				<td class="closing">August 28, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="mainstreet-mn.html">Mainstreet Bank</a></td>
+				<td class="city">Forest Lake</td>
+				<td class="state">MN</td>
+				<td class="cert">1909</td>
+				<td class="ai">Central Bank</td>
+				<td class="closing">August 28, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bradford-md.html">Bradford Bank</a></td>
+				<td class="city">Baltimore</td>
+				<td class="state">MD</td>
+				<td class="cert">28312</td>
+				<td class="ai">Manufacturers and Traders Trust Company (M&amp;T Bank)</td>
+				<td class="closing">August 28, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="guaranty-tx.html">Guaranty Bank</a></td>
+				<td class="city">Austin</td>
+				<td class="state">TX</td>
+				<td class="cert">32618</td>
+				<td class="ai">BBVA Compass</td>
+				<td class="closing">August 21, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="capitalsouth.html">CapitalSouth Bank</a></td>
+				<td class="city">Birmingham</td>
+				<td class="state">AL</td>
+				<td class="cert">22130</td>
+				<td class="ai">IBERIABANK</td>
+				<td class="closing">August 21, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="coweta.html">First Coweta Bank</a></td>
+				<td class="city">Newnan</td>
+				<td class="state">GA</td>
+				<td class="cert">57702</td>
+				<td class="ai">United Bank</td>
+				<td class="closing">August 21, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ebank.html">ebank</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">34682</td>
+				<td class="ai">Stearns Bank, N.A.</td>
+				<td class="closing">August 21, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="community-nv.html">Community Bank of Nevada</a></td>
+				<td class="city">Las Vegas</td>
+				<td class="state">NV</td>
+				<td class="cert">34043</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">August 14, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="community-az.html">Community Bank of Arizona</a></td>
+				<td class="city">Phoenix</td>
+				<td class="state">AZ</td>
+				<td class="cert">57645</td>
+				<td class="ai">MidFirst Bank</td>
+				<td class="closing">August 14, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="union-az.html">Union Bank, National Association</a></td>
+				<td class="city">Gilbert</td>
+				<td class="state">AZ</td>
+				<td class="cert">34485</td>
+				<td class="ai">MidFirst Bank</td>
+				<td class="closing">August 14, 2009</td>
+				<td class="updated">August 21, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="colonial-al.html">Colonial Bank</a></td>
+				<td class="city">Montgomery</td>
+				<td class="state">AL</td>
+				<td class="cert">9609</td>
+				<td class="ai">Branch Banking &amp; Trust Company, (BB&amp;T)</td>
+				<td class="closing">August 14, 2009</td>
+				<td class="updated">September 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="dwelling.html">Dwelling House Savings and Loan Association</a></td>
+				<td class="city">Pittsburgh</td>
+				<td class="state">PA</td>
+				<td class="cert">31559</td>
+				<td class="ai">PNC Bank, N.A.</td>
+				<td class="closing">August 14, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="community-prineville.html">Community First Bank</a></td>
+				<td class="city">Prineville</td>
+				<td class="state">OR</td>
+				<td class="cert">23268</td>
+				<td class="ai">Home Federal Bank</td>
+				<td class="closing">August 7, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="community-venice.html">Community National Bank of Sarasota County</a></td>
+				<td class="city">Venice</td>
+				<td class="state">FL</td>
+				<td class="cert">27183</td>
+				<td class="ai">Stearns Bank, N.A.</td>
+				<td class="closing">August 7, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fsb-sarasota.html">First State Bank</a></td>
+				<td class="city">Sarasota</td>
+				<td class="state">FL</td>
+				<td class="cert">27364</td>
+				<td class="ai">Stearns Bank, N.A.</td>
+				<td class="closing">August 7, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="mutual-harvey.html">Mutual Bank</a></td>
+				<td class="city">Harvey</td>
+				<td class="state">IL</td>
+				<td class="cert">18659</td>
+				<td class="ai">United Central Bank</td>
+				<td class="closing">July 31, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="americano.html">First BankAmericano</a></td>
+				<td class="city">Elizabeth</td>
+				<td class="state">NJ</td>
+				<td class="cert">34270</td>
+				<td class="ai">Crown Bank</td>
+				<td class="closing">July 31, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="peoplescommunity-oh.html">Peoples Community Bank</a></td>
+				<td class="city">West Chester</td>
+				<td class="state">OH</td>
+				<td class="cert">32288</td>
+				<td class="ai">First Financial Bank, N.A.</td>
+				<td class="closing">July 31, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="integrity-fl.html">Integrity Bank</a></td>
+				<td class="city">Jupiter</td>
+				<td class="state">FL</td>
+				<td class="cert">57604</td>
+				<td class="ai">Stonegate Bank</td>
+				<td class="closing">July 31, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fsb-altus.html">First State Bank of Altus</a></td>
+				<td class="city">Altus</td>
+				<td class="state">OK</td>
+				<td class="cert">9873</td>
+				<td class="ai">Herring Bank</td>
+				<td class="closing">July 31, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr> 
+			<tr>
+				<td class="institution"><a href="sb-jones.html">Security Bank of Jones County</a></td>
+				<td class="city">Gray</td>
+				<td class="state">GA</td>
+				<td class="cert">8486</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">July 24, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sb-houston.html">Security Bank of Houston County</a></td>
+				<td class="city">Perry</td>
+				<td class="state">GA</td>
+				<td class="cert">27048</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">July 24, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sb-bibb.html">Security Bank of Bibb County</a></td>
+				<td class="city">Macon</td>
+				<td class="state">GA</td>
+				<td class="cert">27367</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">July 24, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sb-metro.html">Security Bank of North Metro</a></td>
+				<td class="city">Woodstock</td>
+				<td class="state">GA</td>
+				<td class="cert">57105</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">July 24, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sb-fulton.html">Security Bank of North Fulton</a></td>
+				<td class="city">Alpharetta</td>
+				<td class="state">GA</td>
+				<td class="cert">57430</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">July 24, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sb-gwinnett.html">Security Bank of Gwinnett County</a></td>
+				<td class="city">Suwanee</td>
+				<td class="state">GA</td>
+				<td class="cert">57346</td>
+				<td class="ai">State Bank and Trust Company</td>
+				<td class="closing">July 24, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="waterford.html">Waterford Village Bank</a></td>
+				<td class="city">Williamsville</td>
+				<td class="state">NY</td>
+				<td class="cert">58065</td>
+				<td class="ai">Evans Bank, N.A.</td>
+				<td class="closing">July 24, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="temecula.html">Temecula Valley Bank</a></td>
+				<td class="city">Temecula</td>
+				<td class="state">CA</td>
+				<td class="cert">34341</td>
+				<td class="ai">First-Citizens Bank &amp; Trust Company</td>
+				<td class="closing">July 17, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="vineyard.html">Vineyard Bank</a></td>
+				<td class="city">Rancho Cucamonga</td>
+				<td class="state">CA</td>
+				<td class="cert">23556</td>
+				<td class="ai">California Bank &amp; Trust</td>
+				<td class="closing">July 17, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>  
+			<tr>
+				<td class="institution"><a href="bankfirst.html">BankFirst</a></td>
+				<td class="city">Sioux Falls</td>
+				<td class="state">SD</td>
+				<td class="cert">34103</td>
+				<td class="ai">Alerus Financial, N.A.</td>
+				<td class="closing">July 17, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="piedmont.html">First Piedmont Bank</a></td>
+				<td class="city">Winder</td>
+				<td class="state">GA</td>
+				<td class="cert">34594</td>
+				<td class="ai">First American Bank and Trust Company</td>
+				<td class="closing">July 17, 2009</td>
+				<td class="updated">January 15, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="wyoming.html">Bank of Wyoming</a></td>
+				<td class="city">Thermopolis</td>
+				<td class="state">WY</td>
+				<td class="cert">22754</td>
+				<td class="ai">Central Bank &amp; Trust</td>
+				<td class="closing">July 10, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="founders.html">Founders Bank</a></td>
+				<td class="city">Worth</td>
+				<td class="state">IL</td>
+				<td class="cert">18390</td>
+				<td class="ai">The PrivateBank and Trust Company</td>
+				<td class="closing">July 2, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="millennium.html">Millennium State Bank of Texas</a></td>
+				<td class="city">Dallas</td>
+				<td class="state">TX</td>
+				<td class="cert">57667</td>
+				<td class="ai">State Bank of Texas</td>
+				<td class="closing">July 2, 2009</td>
+				<td class="updated">October 26, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="danville.html">First National Bank of Danville</a></td>
+				<td class="city">Danville</td>
+				<td class="state">IL</td>
+				<td class="cert">3644</td>
+				<td class="ai">First Financial Bank, N.A.</td>
+				<td class="closing">July 2, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="elizabeth.html">Elizabeth State Bank</a></td>
+				<td class="city">Elizabeth</td>
+				<td class="state">IL</td>
+				<td class="cert">9262</td>
+				<td class="ai">Galena State Bank and Trust Company</td>
+				<td class="closing">July 2, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="rockriver.html">Rock River Bank</a></td>
+				<td class="city">Oregon</td>
+				<td class="state">IL</td>
+				<td class="cert">15302</td>
+				<td class="ai">The Harvard State Bank</td>
+				<td class="closing">July 2, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="winchester.html">First State Bank of Winchester</a></td>
+				<td class="city">Winchester</td>
+				<td class="state">IL</td>
+				<td class="cert">11710</td>
+				<td class="ai">The First National Bank of Beardstown</td>
+				<td class="closing">July 2, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="warner.html">John Warner Bank</a></td>
+				<td class="city">Clinton</td>
+				<td class="state">IL</td>
+				<td class="cert">12093</td>
+				<td class="ai">State Bank of Lincoln</td>
+				<td class="closing">July 2, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="mirae.html">Mirae Bank</a></td>
+				<td class="city">Los Angeles</td>
+				<td class="state">CA</td>
+				<td class="cert">57332</td>
+				<td class="ai">Wilshire State Bank</td>
+				<td class="closing">June 26, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="metropacific.html">MetroPacific Bank</a></td>
+				<td class="city">Irvine</td>
+				<td class="state">CA</td>
+				<td class="cert">57893</td>
+				<td class="ai">Sunwest Bank</td>
+				<td class="closing">June 26, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="horizon.html">Horizon Bank</a></td>
+				<td class="city">Pine City</td>
+				<td class="state">MN</td>
+				<td class="cert">9744</td>
+				<td class="ai">Stearns Bank, N.A.</td>
+				<td class="closing">June 26, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="neighbor.html">Neighborhood Community Bank</a></td>
+				<td class="city">Newnan</td>
+				<td class="state">GA</td>
+				<td class="cert">35285</td>
+				<td class="ai">CharterBank</td>
+				<td class="closing">June 26, 2009</td>
+				<td class="updated">August 20, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="communityga.html">Community Bank of West Georgia</a></td>
+				<td class="city">Villa Rica</td>
+				<td class="state">GA</td>
+				<td class="cert">57436</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">June 26, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="anthony.html">First National Bank of Anthony</a></td>
+				<td class="city">Anthony</td>
+				<td class="state">KS</td>
+				<td class="cert">4614</td>
+				<td class="ai">Bank of Kansas</td>
+				<td class="closing">June 19, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cooperative.html">Cooperative Bank</a></td>
+				<td class="city">Wilmington</td>
+				<td class="state">NC</td>
+				<td class="cert">27837</td>
+				<td class="ai">First Bank</td>
+				<td class="closing">June 19, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="scb.html">Southern Community Bank</a></td>
+				<td class="city">Fayetteville</td>
+				<td class="state">GA</td>
+				<td class="cert">35251</td>
+				<td class="ai">United Community Bank</td>
+				<td class="closing">June 19, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="lincolnwood.html">Bank of Lincolnwood</a></td>
+				<td class="city">Lincolnwood</td>
+				<td class="state">IL</td>
+				<td class="cert">17309</td>
+				<td class="ai">Republic Bank of Chicago</td>
+				<td class="closing">June 5, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="citizensnational.html">Citizens National Bank</a></td>
+				<td class="city">Macomb</td>
+				<td class="state">IL</td>
+				<td class="cert">5757</td>
+				<td class="ai">Morton Community Bank</td>
+				<td class="closing">May 22, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="strategiccapital.html">Strategic Capital Bank</a></td>
+				<td class="city">Champaign</td>
+				<td class="state">IL</td>
+				<td class="cert">35175</td>
+				<td class="ai">Midland States Bank</td>
+				<td class="closing">May 22, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankunited.html">BankUnited, FSB</a></td>
+				<td class="city">Coral Gables</td>
+				<td class="state">FL</td>
+				<td class="cert">32247</td>
+				<td class="ai">BankUnited</td>
+				<td class="closing">May 21, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="westsound.html">Westsound Bank</a></td>
+				<td class="city">Bremerton</td>
+				<td class="state">WA</td>
+				<td class="cert">34843</td>
+				<td class="ai">Kitsap Bank</td>
+				<td class="closing">May 8, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="americawest.html">America West Bank</a></td>
+				<td class="city">Layton</td>
+				<td class="state">UT</td>
+				<td class="cert">35461</td>
+				<td class="ai">Cache Valley Bank</td>
+				<td class="closing">May 1, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="citizens.html">Citizens Community Bank</a></td>
+				<td class="city">Ridgewood</td>
+				<td class="state">NJ</td>
+				<td class="cert">57563</td>
+				<td class="ai">North Jersey Community Bank</td>
+				<td class="closing">May 1, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="silverton.html">Silverton Bank, NA</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">26535</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">May 1, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstbankidaho.html">First Bank of Idaho</a></td>
+				<td class="city">Ketchum</td>
+				<td class="state">ID</td>
+				<td class="cert">34396</td>
+				<td class="ai">U.S. Bank, N.A.</td>
+				<td class="closing">April 24, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="beverlyhills.html">First Bank of Beverly Hills</a></td>
+				<td class="city">Calabasas</td>
+				<td class="state">CA</td>
+				<td class="cert">32069</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">April 24, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="michiganheritage.html">Michigan Heritage Bank</a></td>
+				<td class="city">Farmington Hills</td>
+				<td class="state">MI</td>
+				<td class="cert">34369</td>
+				<td class="ai">Level One Bank</td>
+				<td class="closing">April 24, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="amsouthern.html">American Southern Bank</a></td>
+				<td class="city">Kennesaw</td>
+				<td class="state">GA</td>
+				<td class="cert">57943</td>
+				<td class="ai">Bank of North Georgia</td>
+				<td class="closing">April 24, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="greatbasin.html">Great Basin Bank of Nevada</a></td>
+				<td class="city">Elko</td>
+				<td class="state">NV</td>
+				<td class="cert">33824</td>
+				<td class="ai">Nevada State Bank</td>
+				<td class="closing">April 17, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="amsterling.html">American Sterling Bank</a></td>
+				<td class="city">Sugar Creek</td>
+				<td class="state">MO</td>
+				<td class="cert">8266</td>
+				<td class="ai">Metcalf Bank</td>
+				<td class="closing">April 17, 2009</td>
+				<td class="updated">August 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="newfrontier.html">New Frontier Bank</a></td>
+				<td class="city">Greeley</td>
+				<td class="state">CO</td>
+				<td class="cert">34881</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">April 10, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="capefear.html">Cape Fear Bank</a></td>
+				<td class="city">Wilmington</td>
+				<td class="state">NC</td>
+				<td class="cert">34639</td>
+				<td class="ai">First Federal Savings and Loan Association</td>
+				<td class="closing">April 10, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="omni.html">Omni National Bank</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">22238</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">March 27, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="teambank.html">TeamBank, NA</a></td>
+				<td class="city">Paola</td>
+				<td class="state">KS</td>
+				<td class="cert">4754</td>
+				<td class="ai">Great Southern Bank</td>
+				<td class="closing">March 20, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="coloradonational.html">Colorado National Bank</a></td>
+				<td class="city">Colorado Springs</td>
+				<td class="state">CO</td>
+				<td class="cert">18896</td>
+				<td class="ai">Herring Bank</td>
+				<td class="closing">March 20, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstcity.html">FirstCity Bank</a></td>
+				<td class="city">Stockbridge</td>
+				<td class="state">GA</td>
+				<td class="cert">18243</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">March 20, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="freedomga.html">Freedom Bank of Georgia</a></td>
+				<td class="city">Commerce</td>
+				<td class="state">GA</td>
+				<td class="cert">57558</td>
+				<td class="ai">Northeast Georgia Bank</td>
+				<td class="closing">March 6, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="securitysavings.html">Security Savings Bank</a></td>
+				<td class="city">Henderson</td>
+				<td class="state">NV</td>
+				<td class="cert">34820</td>
+				<td class="ai">Bank of Nevada</td>
+				<td class="closing">February 27, 2009</td>
+				<td class="updated">September 7, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="heritagebank.html">Heritage Community Bank</a></td>
+				<td class="city">Glenwood</td>
+				<td class="state">IL</td>
+				<td class="cert">20078</td>
+				<td class="ai">MB Financial Bank, N.A.</td>
+				<td class="closing">February 27, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="silverfalls.html">Silver Falls Bank</a></td>
+				<td class="city">Silverton</td>
+				<td class="state">OR</td>
+				<td class="cert">35399</td>
+				<td class="ai">Citizens Bank</td>
+				<td class="closing">February 20, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="pinnacle.html">Pinnacle Bank of Oregon</a></td>
+				<td class="city">Beaverton</td>
+				<td class="state">OR</td>
+				<td class="cert">57342</td>
+				<td class="ai">Washington Trust Bank of Spokane</td>
+				<td class="closing">February 13, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cornbelt.html">Corn Belt Bank &amp; Trust Co.</a></td>
+				<td class="city">Pittsfield</td>
+				<td class="state">IL</td>
+				<td class="cert">16500</td>
+				<td class="ai">The Carlinville National Bank</td>
+				<td class="closing">February 13, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="riverside.html">Riverside Bank of the Gulf Coast</a></td>
+				<td class="city">Cape Coral</td>
+				<td class="state">FL</td>
+				<td class="cert">34563</td>
+				<td class="ai">TIB Bank</td>
+				<td class="closing">February 13, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sherman.html">Sherman County Bank</a></td>
+				<td class="city">Loup City</td>
+				<td class="state">NE</td>
+				<td class="cert">5431</td>
+				<td class="ai">Heritage Bank</td>
+				<td class="closing">February 13, 2009</td>
+				<td class="updated">August 17, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="county.html">County Bank</a></td>
+				<td class="city">Merced</td>
+				<td class="state">CA</td>
+				<td class="cert">22574</td>
+				<td class="ai">Westamerica Bank</td>
+				<td class="closing">February 6, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="alliance.html">Alliance Bank</a></td>
+				<td class="city">Culver City</td>
+				<td class="state">CA</td>
+				<td class="cert">23124</td>
+				<td class="ai">California Bank &amp; Trust</td>
+				<td class="closing">February 6, 2009</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstbank.html">FirstBank Financial Services</a></td>
+				<td class="city">McDonough</td>
+				<td class="state">GA</td>
+				<td class="cert">57017</td>
+				<td class="ai">Regions Bank</td>
+				<td class="closing">February 6, 2009</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ocala.html">Ocala National Bank</a></td>
+				<td class="city">Ocala</td>
+				<td class="state">FL</td>
+				<td class="cert">26538</td>
+				<td class="ai">CenterState Bank of Florida, N.A.</td>
+				<td class="closing">January 30, 2009</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="suburban.html">Suburban FSB</a></td>
+				<td class="city">Crofton</td>
+				<td class="state">MD</td>
+				<td class="cert">30763</td>
+				<td class="ai">Bank of Essex</td>
+				<td class="closing">January 30, 2009</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="magnet.html">MagnetBank</a></td>
+				<td class="city">Salt Lake City</td>
+				<td class="state">UT</td>
+				<td class="cert">58001</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">January 30, 2009</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="centennial.html">1st Centennial Bank</a></td>
+				<td class="city">Redlands</td>
+				<td class="state">CA</td>
+				<td class="cert">33025</td>
+				<td class="ai">First California Bank</td>
+				<td class="closing">January 23, 2009</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="clark.html">Bank of Clark County</a></td>
+				<td class="city">Vancouver</td>
+				<td class="state">WA</td>
+				<td class="cert">34959</td>
+				<td class="ai">Umpqua Bank</td>
+				<td class="closing">January 16, 2009</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="commerce.html">National Bank of Commerce</a></td>
+				<td class="city">Berkeley</td>
+				<td class="state">IL</td>
+				<td class="cert">19733</td>
+				<td class="ai">Republic Bank of Chicago</td>
+				<td class="closing">January 16, 2009</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sanderson.html">Sanderson State Bank</a><br><a href="sanderson_spanish.html">En Espanol</a></td>
+				<td class="city">Sanderson</td>
+				<td class="state">TX</td>
+				<td class="cert">11568</td>
+				<td class="ai">The Pecos County State Bank</td>
+				<td class="closing">December 12, 2008</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="haventrust.html">Haven Trust Bank</a></td>
+				<td class="city">Duluth</td>
+				<td class="state">GA</td>
+				<td class="cert">35379</td>
+				<td class="ai">Branch Banking &amp; Trust Company, (BB&amp;T)</td>
+				<td class="closing">December 12, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstga.html">First Georgia Community Bank</a></td>
+				<td class="city">Jackson</td>
+				<td class="state">GA</td>
+				<td class="cert">34301</td>
+				<td class="ai">United Bank</td>
+				<td class="closing">December 5, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="pff.html">PFF Bank &amp; Trust</a></td>
+				<td class="city">Pomona</td>
+				<td class="state">CA</td>
+				<td class="cert">28344</td>
+				<td class="ai">U.S. Bank, N.A.</td>
+				<td class="closing">November 21, 2008</td>
+				<td class="updated">January 4, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="downey.html">Downey Savings &amp; Loan</a></td>
+				<td class="city">Newport Beach</td>
+				<td class="state">CA</td>
+				<td class="cert">30968</td>
+				<td class="ai">U.S. Bank, N.A.</td>
+				<td class="closing">November 21, 2008</td>
+				<td class="updated">January 4, 2013</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="community.html">Community Bank</a></td>
+				<td class="city">Loganville</td>
+				<td class="state">GA</td>
+				<td class="cert">16490</td>
+				<td class="ai">Bank of Essex</td>
+				<td class="closing">November 21, 2008</td>
+				<td class="updated">September 4, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="securitypacific.html">Security Pacific Bank</a></td>
+				<td class="city">Los Angeles</td>
+				<td class="state">CA</td>
+				<td class="cert">23595</td>
+				<td class="ai">Pacific Western Bank</td>
+				<td class="closing">November 7, 2008</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="franklinbank.html">Franklin Bank, SSB</a></td>
+				<td class="city">Houston</td>
+				<td class="state">TX</td>
+				<td class="cert">26870</td>
+				<td class="ai">Prosperity Bank</td>
+				<td class="closing">November 7, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="freedom.html">Freedom Bank</a></td>
+				<td class="city">Bradenton</td>
+				<td class="state">FL</td>
+				<td class="cert">57930</td>
+				<td class="ai">Fifth Third Bank</td>
+				<td class="closing">October 31, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="alpha.html">Alpha Bank &amp; Trust</a></td>
+				<td class="city">Alpharetta</td>
+				<td class="state">GA</td>
+				<td class="cert">58241</td>
+				<td class="ai">Stearns Bank, N.A.</td>
+				<td class="closing">October 24, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="meridian.html">Meridian Bank</a></td>
+				<td class="city">Eldred</td>
+				<td class="state">IL</td>
+				<td class="cert">13789</td>
+				<td class="ai">National Bank</td>
+				<td class="closing">October 10, 2008</td>
+				<td class="updated">May 31, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="mainstreet.html">Main Street Bank</a></td>
+				<td class="city">Northville</td>
+				<td class="state">MI</td>
+				<td class="cert">57654</td>
+				<td class="ai">Monroe Bank &amp; Trust</td>
+				<td class="closing">October 10, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="wamu.html">Washington Mutual Bank<br>(Including its subsidiary Washington Mutual Bank FSB)</a></td>
+				<td class="city">Henderson</td>
+				<td class="state">NV</td>
+				<td class="cert">32633</td>
+				<td class="ai">JP Morgan Chase Bank</td>
+				<td class="closing">September 25, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ameribank.html">Ameribank</a></td>
+				<td class="city">Northfork</td>
+				<td class="state">WV</td>
+				<td class="cert">6782</td>
+				<td class="ai">The Citizens Savings Bank<br><br>Pioneer Community Bank, Inc.</td>
+				<td class="closing">September 19, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="silverstate.html">Silver State Bank</a><br><a href="silverstatesp.html">En Espanol</a></td>
+				<td class="city">Henderson</td>
+				<td class="state">NV</td>
+				<td class="cert">34194</td>
+				<td class="ai">Nevada State Bank</td>
+				<td class="closing">September 5, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="integrity.html">Integrity Bank</a></td>
+				<td class="city">Alpharetta</td>
+				<td class="state">GA</td>
+				<td class="cert">35469</td>
+				<td class="ai">Regions Bank</td>
+				<td class="closing">August 29, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="columbian.html">Columbian Bank &amp; Trust</a></td>
+				<td class="city">Topeka</td>
+				<td class="state">KS</td>
+				<td class="cert">22728</td>
+				<td class="ai">Citizens Bank &amp; Trust</td>
+				<td class="closing">August 22, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstprioritybank.html">First Priority Bank</a></td>
+				<td class="city">Bradenton</td>
+				<td class="state">FL</td>
+				<td class="cert">57523</td>
+				<td class="ai">SunTrust Bank</td>
+				<td class="closing">August 1, 2008</td>
+				<td class="updated">August 16, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="heritage.html">First Heritage Bank, NA</a></td>
+				<td class="city">Newport Beach</td>
+				<td class="state">CA</td>
+				<td class="cert">57961</td>
+				<td class="ai">Mutual of Omaha Bank</td>
+				<td class="closing">July 25, 2008</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="fnbnv.html">First National Bank of Nevada</a></td>
+				<td class="city">Reno</td>
+				<td class="state">NV</td>
+				<td class="cert">27011</td>
+				<td class="ai">Mutual of Omaha Bank</td>
+				<td class="closing">July 25, 2008</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="IndyMac.html">IndyMac Bank</a></td>
+				<td class="city">Pasadena</td>
+				<td class="state">CA</td>
+				<td class="cert">29730</td>
+				<td class="ai">OneWest Bank, FSB</td>
+				<td class="closing">July 11, 2008</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="first_integrity_bank.html">First Integrity Bank, NA</a></td>
+				<td class="city">Staples</td>
+				<td class="state">MN</td>
+				<td class="cert">12736</td>
+				<td class="ai">First International Bank and Trust</td>
+				<td class="closing">May 30, 2008</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="anb.html">ANB Financial, NA</a></td>
+				<td class="city">Bentonville</td>
+				<td class="state">AR</td>
+				<td class="cert">33901</td>
+				<td class="ai">Pulaski Bank and Trust Company</td>
+				<td class="closing">May 9, 2008</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="Hume.html">Hume Bank</a></td>
+				<td class="city">Hume</td>
+				<td class="state">MO</td>
+				<td class="cert">1971</td>
+				<td class="ai">Security Bank</td>
+				<td class="closing">March 7, 2008</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="Douglass.html">Douglass National Bank</a></td>
+				<td class="city">Kansas City</td>
+				<td class="state">MO</td>
+				<td class="cert">24660</td>
+				<td class="ai">Liberty Bank and Trust Company</td>
+				<td class="closing">January 25, 2008</td>
+				<td class="updated">October 26, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="MiamiValley.html">Miami Valley Bank</a></td>
+				<td class="city">Lakeview</td>
+				<td class="state">OH</td>
+				<td class="cert">16848</td>
+				<td class="ai">The Citizens Banking Company</td>
+				<td class="closing">October 4, 2007</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="NetBank.html">NetBank</a></td>
+				<td class="city">Alpharetta</td>
+				<td class="state">GA</td>
+				<td class="cert">32575</td>
+				<td class="ai">ING DIRECT</td>
+				<td class="closing">September 28, 2007</td>
+				<td class="updated">August 28, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="MetropolitanSB.html">Metropolitan Savings Bank</a></td>
+				<td class="city">Pittsburgh</td>
+				<td class="state">PA</td>
+				<td class="cert">35353</td>
+				<td class="ai">Allegheny Valley Bank of Pittsburgh</td>
+				<td class="closing">February 2, 2007</td>
+				<td class="updated">October 27, 2010</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="ephraim.html">Bank of Ephraim</a></td>
+				<td class="city">Ephraim</td>
+				<td class="state">UT</td>
+				<td class="cert">1249</td>
+				<td class="ai">Far West Bank</td>
+				<td class="closing">June 25, 2004</td>
+				<td class="updated">April 9, 2008</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="reliance.html">Reliance Bank</a></td>
+				<td class="city">White Plains</td>
+				<td class="state">NY</td>
+				<td class="cert">26778</td>
+				<td class="ai">Union State Bank</td>
+				<td class="closing">March 19, 2004</td>
+				<td class="updated">April 9, 2008</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="gnb.html">Guaranty National Bank of Tallahassee</a></td>
+				<td class="city">Tallahassee</td>
+				<td class="state">FL</td>
+				<td class="cert">26838</td>
+				<td class="ai">Hancock Bank of Florida</td>
+				<td class="closing">March 12, 2004</td>
+				<td class="updated">June 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="dollar.html">Dollar Savings Bank</a></td>
+				<td class="city">Newark</td>
+				<td class="state">NJ</td>
+				<td class="cert">31330</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">February 14, 2004</td>
+				<td class="updated">April 9, 2008</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="pulaski.html">Pulaski Savings Bank</a></td>
+				<td class="city">Philadelphia</td>
+				<td class="state">PA</td>
+				<td class="cert">27203</td>
+				<td class="ai">Earthstar Bank</td>
+				<td class="closing">November 14, 2003</td>
+				<td class="updated">July 22, 2005</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="blanchardville.html">First National Bank of Blanchardville</a></td>
+				<td class="city">Blanchardville</td>
+				<td class="state">WI</td>
+				<td class="cert">11639</td>
+				<td class="ai">The Park Bank</td>
+				<td class="closing">May 9, 2003</td>
+				<td class="updated">June 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="spbank.html">Southern Pacific Bank</a></td>
+				<td class="city">Torrance</td>
+				<td class="state">CA</td>
+				<td class="cert">27094</td>
+				<td class="ai">Beal Bank</td>
+				<td class="closing">February 7, 2003</td>
+				<td class="updated">October 20, 2008</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="farmers.html">Farmers Bank of Cheneyville</a></td>
+				<td class="city">Cheneyville</td>
+				<td class="state">LA</td>
+				<td class="cert">16445</td>
+				<td class="ai">Sabine State Bank &amp; Trust</td>
+				<td class="closing">December 17, 2002</td>
+				<td class="updated">October 20, 2004</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="bankofalamo.html">Bank of Alamo</a></td>
+				<td class="city">Alamo</td>
+				<td class="state">TN</td>
+				<td class="cert">9961</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">November 8, 2002</td>
+				<td class="updated">March 18, 2005</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="amtrade.html">AmTrade International Bank</a><br><a href="amtrade-spanish.html">En Espanol</a></td>
+				<td class="city">Atlanta</td>
+				<td class="state">GA</td>
+				<td class="cert">33784</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">September 30, 2002</td>
+				<td class="updated">September 11, 2006</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="universal.html">Universal Federal Savings Bank</a></td>
+				<td class="city">Chicago</td>
+				<td class="state">IL</td>
+				<td class="cert">29355</td>
+				<td class="ai">Chicago Community Bank</td>
+				<td class="closing">June 27, 2002</td>
+				<td class="updated">April 9, 2008</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="cbc.html">Connecticut Bank of Commerce</a></td>
+				<td class="city">Stamford</td>
+				<td class="state">CT</td>
+				<td class="cert">19183</td>
+				<td class="ai">Hudson United Bank</td>
+				<td class="closing">June 26, 2002</td>
+				<td class="updated">February 14, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="newcentury.html">New Century Bank</a></td>
+				<td class="city">Shelby Township</td>
+				<td class="state">MI</td>
+				<td class="cert">34979</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">March 28, 2002</td>
+				<td class="updated">March 18, 2005</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="netfirst.html">Net 1st National Bank</a></td>
+				<td class="city">Boca Raton</td>
+				<td class="state">FL</td>
+				<td class="cert">26652</td>
+				<td class="ai">Bank Leumi USA</td>
+				<td class="closing">March 1, 2002</td>
+				<td class="updated">April 9, 2008</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="nextbank.html">NextBank, NA</a></td>
+				<td class="city">Phoenix</td>
+				<td class="state">AZ</td>
+				<td class="cert">22314</td>
+				<td class="ai">No Acquirer</td>
+				<td class="closing">February 7, 2002</td>
+				<td class="updated">August 27, 2010</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="Oakwood.html">Oakwood Deposit Bank Co.</a></td>
+				<td class="city">Oakwood</td>
+				<td class="state">OH</td>
+				<td class="cert">8966</td>
+				<td class="ai">The State Bank &amp; Trust Company</td>
+				<td class="closing">February 1, 2002</td>
+				<td class="updated">October 25, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sierrablanca.html">Bank of Sierra Blanca</a></td>
+				<td class="city">Sierra Blanca</td>
+				<td class="state">TX</td>
+				<td class="cert">22002</td>
+				<td class="ai">The Security State Bank of Pecos</td>
+				<td class="closing">January 18, 2002</td>
+				<td class="updated">November 6, 2003</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="hamilton.html">Hamilton Bank, NA</a><br><a href="hamilton-spanish.html">En Espanol</a></td>
+				<td class="city">Miami</td>
+				<td class="state">FL</td>
+				<td class="cert">24382</td>
+				<td class="ai">Israel Discount Bank of New York</td>
+				<td class="closing">January 11, 2002</td>
+				<td class="updated">June 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="sinclair.html">Sinclair National Bank</a></td>
+				<td class="city">Gravette</td>
+				<td class="state">AR</td>
+				<td class="cert">34248</td>
+				<td class="ai">Delta Trust &amp; Bank</td>
+				<td class="closing">September 7, 2001</td>
+				<td class="updated">February 10, 2004</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="superior.html">Superior Bank, FSB</a></td>
+				<td class="city">Hinsdale</td>
+				<td class="state">IL</td>
+				<td class="cert">32646</td>
+				<td class="ai">Superior Federal, FSB</td>
+				<td class="closing">July 27, 2001</td>
+				<td class="updated">June 5, 2012</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="Malta.html">Malta National Bank</a></td>
+				<td class="city">Malta</td>
+				<td class="state">OH</td>
+				<td class="cert">6629</td>
+				<td class="ai">North Valley Bank</td>
+				<td class="closing">May 3, 2001</td>
+				<td class="updated">November 18, 2002</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="firstalliance.html">First Alliance Bank &amp; Trust Co.</a></td>
+				<td class="city">Manchester</td>
+				<td class="state">NH</td>
+				<td class="cert">34264</td>
+				<td class="ai">Southern New Hampshire Bank &amp; Trust</td>
+				<td class="closing">February 2, 2001</td>
+				<td class="updated">February 18, 2003</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="nsb.html">National State Bank of Metropolis</a></td>
+				<td class="city">Metropolis</td>
+				<td class="state">IL</td>
+				<td class="cert">3815</td>
+				<td class="ai">Banterra Bank of Marion</td>
+				<td class="closing">December 14, 2000</td>
+				<td class="updated">March 17, 2005</td>
+			</tr>
+			<tr>
+				<td class="institution"><a href="boh.html">Bank of Honolulu</a></td>
+				<td class="city">Honolulu</td>
+				<td class="state">HI</td>
+				<td class="cert">21029</td>
+				<td class="ai">Bank of the Orient</td>
+				<td class="closing">October 13, 2000</td>
+				<td class="updated">March 17, 2005</td>
+			</tr> 	 
+		</tbody>
+	</table>
+	</div>
+
+</div>
+<div id="page_foot">
+	<div class="date">Last Updated 05/31/2013</div>
+	<div class="email"><a href="mailto:cservicefdicdal@fdic.gov">cservicefdicdal@fdic.gov</a></div>
+	<div class="clear"></div>
+</div>
+
+<!-- START of Footer -->
+<footer>
+<link rel="stylesheet" type="text/css" href="/responsive/footer/css/footer.css" />
+<div id="responsive_footer">
+	<div id="responsive_footer-full">
+		<ul>
+			<li><a href="/" title="Home">Home</a></li>
+			<li><a href="/about/contact/ask/" title="Contact Us">Contact Us</a></li>
+			<li><a href="/search/" title="Search">Search</a></li>
+			<li><a href="/help/" title="Help">Help</a></li>
+			<li><a href="/sitemap/" title="SiteMap">SiteMap</a></li>
+			<li><a href="/regulations/laws/forms/" title="Forms">Forms</a></li>
+			<li><a href="/quicklinks/spanish.html" title="En Espa&ntilde;ol">En Espa&ntilde;ol</a></li>
+		</ul>
+		<hr>
+		<ul>
+			<li><a href="/about/policies/" title="Website Policies">Website Policies</a></li>
+			<li><a href="/about/privacy/policy/" title="Privacy Policy">Privacy Policy</a></li>
+			<li><a href="/plainlanguage/" title="Privacy Policy">Plain Writing Act of 2010 </a></li>
+			<li><a href="http://www.usa.gov/" title="USA.gov">USA.gov</a></li>
+			<li><a href="http://www.fdicoig.gov/" title="FDIC Office of Inspector General">FDIC Office of Inspector General</a></li>
+		</ul>
+		<hr>
+		<ul>
+			<li><a href="/about/freedom/" title="Freedom of Information Act (FOIA) Service Center">Freedom of Information Act (FOIA) Service Center</a></li>
+			<li><a href="/open/" title="FDIC Open Government Webpage">FDIC Open Government Webpage</a></li>
+			<li><a href="/about/diversity/nofear/" title="No FEAR Act Data">No  FEAR Act Data</a></li>
+		</ul>
+	</div>
+	<div id="responsive_footer-small">
+		<ul>
+			<li><a href="/" title="Home">Home</a></li> 
+			<li><a href="/about/contact/ask/" title="Contact Us">Contact Us</a></li>
+			<li><a href="/about/policies/" title="Website Policies">Website Policies</a></li>
+			<li><a href="/search/" title="Search">Search</a></li>
+		</ul>
+    </div>
+</div>
+</footer>
+<!-- START Omniture SiteCatalyst Code -->
+<script language="JavaScript" type="text/javascript" src="/js/s_code_v1.js"></script>
+<script type="text/javascript">
+/************* DO NOT ALTER ANYTHING BELOW THIS LINE ! **************/
+var s_code=s.t();if(s_code)document.write(s_code)</script>
+<script type="text/javascript">
+if(navigator.appVersion.indexOf('MSIE')>=0)document.write(unescape('%3C')+'\!-'+'-')
+</script>
+<noscript>
+<a href="http://www.omniture.com" title="Web Analytics">
+<img src="http://fdic.122.2o7.net/b/ss/fdicgovprod/1/H.21--NS/0?[AQB]%26cl=Session%26AQE" height="1" width="1" border="0" alt="" /></a></li>
+</noscript>
+<!--/DO NOT REMOVE/-->
+<!-- END Omniture SiteCatalyst Code -->
+<!-- END of Footer -->
+
+<script type="text/javascript" src="/responsive/js/jquery.tablesorter.js"></script>
+<script type="text/javascript" src="banklist.js"></script>
+
+</body>
+</html>

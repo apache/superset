@@ -1,0 +1,682 @@
+{
+  "version":"2.0",
+  "metadata":{
+    "apiVersion":"2016-06-02",
+    "endpointPrefix":"shield",
+    "jsonVersion":"1.1",
+    "protocol":"json",
+    "serviceAbbreviation":"AWS Shield",
+    "serviceFullName":"AWS Shield",
+    "signatureVersion":"v4",
+    "targetPrefix":"AWSShield_20160616",
+    "uid":"shield-2016-06-02"
+  },
+  "operations":{
+    "CreateProtection":{
+      "name":"CreateProtection",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateProtectionRequest"},
+      "output":{"shape":"CreateProtectionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidResourceException"},
+        {"shape":"InvalidOperationException"},
+        {"shape":"LimitsExceededException"},
+        {"shape":"ResourceAlreadyExistsException"},
+        {"shape":"OptimisticLockException"},
+        {"shape":"ResourceNotFoundException"}
+      ],
+      "documentation":"<p>Enables AWS Shield Advanced for a specific AWS resource. The resource can be an Amazon CloudFront distribution, Elastic Load Balancing load balancer, or an Amazon Route 53 hosted zone.</p>"
+    },
+    "CreateSubscription":{
+      "name":"CreateSubscription",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateSubscriptionRequest"},
+      "output":{"shape":"CreateSubscriptionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"ResourceAlreadyExistsException"}
+      ],
+      "documentation":"<p>Activates AWS Shield Advanced for an account.</p>"
+    },
+    "DeleteProtection":{
+      "name":"DeleteProtection",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteProtectionRequest"},
+      "output":{"shape":"DeleteProtectionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"OptimisticLockException"}
+      ],
+      "documentation":"<p>Deletes an AWS Shield Advanced <a>Protection</a>.</p>"
+    },
+    "DeleteSubscription":{
+      "name":"DeleteSubscription",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteSubscriptionRequest"},
+      "output":{"shape":"DeleteSubscriptionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"LockedSubscriptionException"},
+        {"shape":"ResourceNotFoundException"}
+      ],
+      "documentation":"<p>Removes AWS Shield Advanced from an account.</p>"
+    },
+    "DescribeAttack":{
+      "name":"DescribeAttack",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeAttackRequest"},
+      "output":{"shape":"DescribeAttackResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"}
+      ],
+      "documentation":"<p>Describes the details of a DDoS attack. </p>"
+    },
+    "DescribeProtection":{
+      "name":"DescribeProtection",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeProtectionRequest"},
+      "output":{"shape":"DescribeProtectionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"ResourceNotFoundException"}
+      ],
+      "documentation":"<p>Lists the details of a <a>Protection</a> object.</p>"
+    },
+    "DescribeSubscription":{
+      "name":"DescribeSubscription",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DescribeSubscriptionRequest"},
+      "output":{"shape":"DescribeSubscriptionResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"ResourceNotFoundException"}
+      ],
+      "documentation":"<p>Provides details about the AWS Shield Advanced subscription for an account.</p>"
+    },
+    "ListAttacks":{
+      "name":"ListAttacks",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListAttacksRequest"},
+      "output":{"shape":"ListAttacksResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidParameterException"},
+        {"shape":"InvalidOperationException"}
+      ],
+      "documentation":"<p>Returns all ongoing DDoS attacks or all DDoS attacks during a specified time period.</p>"
+    },
+    "ListProtections":{
+      "name":"ListProtections",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListProtectionsRequest"},
+      "output":{"shape":"ListProtectionsResponse"},
+      "errors":[
+        {"shape":"InternalErrorException"},
+        {"shape":"ResourceNotFoundException"}
+      ],
+      "documentation":"<p>Lists all <a>Protection</a> objects for the account.</p>"
+    }
+  },
+  "shapes":{
+    "AttackDetail":{
+      "type":"structure",
+      "members":{
+        "AttackId":{
+          "shape":"AttackId",
+          "documentation":"<p>The unique identifier (ID) of the attack.</p>"
+        },
+        "ResourceArn":{
+          "shape":"ResourceArn",
+          "documentation":"<p>The ARN (Amazon Resource Name) of the resource that was attacked.</p>"
+        },
+        "SubResources":{
+          "shape":"SubResourceSummaryList",
+          "documentation":"<p>If applicable, additional detail about the resource being attacked, for example, IP address or URL.</p>"
+        },
+        "StartTime":{
+          "shape":"AttackTimestamp",
+          "documentation":"<p>The time the attack started, in the format 2016-12-16T13:50Z.</p>"
+        },
+        "EndTime":{
+          "shape":"AttackTimestamp",
+          "documentation":"<p>The time the attack ended, in the format 2016-12-16T13:50Z.</p>"
+        },
+        "AttackCounters":{
+          "shape":"SummarizedCounterList",
+          "documentation":"<p>List of counters that describe the attack for the specified time period.</p>"
+        },
+        "Mitigations":{
+          "shape":"MitigationList",
+          "documentation":"<p>List of mitigation actions taken for the attack.</p>"
+        }
+      },
+      "documentation":"<p>The details of a DDoS attack.</p>"
+    },
+    "AttackId":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"[a-zA-Z0-9\\\\-]*"
+    },
+    "AttackSummaries":{
+      "type":"list",
+      "member":{"shape":"AttackSummary"}
+    },
+    "AttackSummary":{
+      "type":"structure",
+      "members":{
+        "AttackId":{
+          "shape":"String",
+          "documentation":"<p>The unique identifier (ID) of the attack.</p>"
+        },
+        "ResourceArn":{
+          "shape":"String",
+          "documentation":"<p>The ARN (Amazon Resource Name) of the resource that was attacked.</p>"
+        },
+        "StartTime":{
+          "shape":"AttackTimestamp",
+          "documentation":"<p>The start time of the attack, in the format 2016-12-16T13:50Z.</p>"
+        },
+        "EndTime":{
+          "shape":"AttackTimestamp",
+          "documentation":"<p>The end time of the attack, in the format 2016-12-16T13:50Z.</p>"
+        },
+        "AttackVectors":{
+          "shape":"AttackVectorDescriptionList",
+          "documentation":"<p>The list of attacks for a specified time period.</p>"
+        }
+      },
+      "documentation":"<p>Summarizes all DDoS attacks for a specified time period.</p>"
+    },
+    "AttackTimestamp":{"type":"timestamp"},
+    "AttackVectorDescription":{
+      "type":"structure",
+      "required":["VectorType"],
+      "members":{
+        "VectorType":{
+          "shape":"String",
+          "documentation":"<p>The attack type, for example, SNMP reflection or SYN flood.</p>"
+        }
+      },
+      "documentation":"<p>Describes the attack.</p>"
+    },
+    "AttackVectorDescriptionList":{
+      "type":"list",
+      "member":{"shape":"AttackVectorDescription"}
+    },
+    "CreateProtectionRequest":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "ResourceArn"
+      ],
+      "members":{
+        "Name":{
+          "shape":"ProtectionName",
+          "documentation":"<p>Friendly name for the <code>Protection</code> you are creating.</p>"
+        },
+        "ResourceArn":{
+          "shape":"ResourceArn",
+          "documentation":"<p>The ARN (Amazon Resource Name) of the resource to be protected.</p>"
+        }
+      }
+    },
+    "CreateProtectionResponse":{
+      "type":"structure",
+      "members":{
+        "ProtectionId":{
+          "shape":"ProtectionId",
+          "documentation":"<p>The unique identifier (ID) for the <a>Protection</a> object that is created.</p>"
+        }
+      }
+    },
+    "CreateSubscriptionRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "CreateSubscriptionResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteProtectionRequest":{
+      "type":"structure",
+      "required":["ProtectionId"],
+      "members":{
+        "ProtectionId":{
+          "shape":"ProtectionId",
+          "documentation":"<p>The unique identifier (ID) for the <a>Protection</a> object to be deleted.</p>"
+        }
+      }
+    },
+    "DeleteProtectionResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteSubscriptionRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteSubscriptionResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DescribeAttackRequest":{
+      "type":"structure",
+      "required":["AttackId"],
+      "members":{
+        "AttackId":{
+          "shape":"AttackId",
+          "documentation":"<p>The unique identifier (ID) for the attack that to be described.</p>"
+        }
+      }
+    },
+    "DescribeAttackResponse":{
+      "type":"structure",
+      "members":{
+        "Attack":{
+          "shape":"AttackDetail",
+          "documentation":"<p>The attack that is described.</p>"
+        }
+      }
+    },
+    "DescribeProtectionRequest":{
+      "type":"structure",
+      "required":["ProtectionId"],
+      "members":{
+        "ProtectionId":{
+          "shape":"ProtectionId",
+          "documentation":"<p>The unique identifier (ID) for the <a>Protection</a> object that is described.</p>"
+        }
+      }
+    },
+    "DescribeProtectionResponse":{
+      "type":"structure",
+      "members":{
+        "Protection":{
+          "shape":"Protection",
+          "documentation":"<p>The <a>Protection</a> object that is described.</p>"
+        }
+      }
+    },
+    "DescribeSubscriptionRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DescribeSubscriptionResponse":{
+      "type":"structure",
+      "members":{
+        "Subscription":{
+          "shape":"Subscription",
+          "documentation":"<p>The AWS Shield Advanced subscription details for an account.</p>"
+        }
+      }
+    },
+    "Double":{"type":"double"},
+    "DurationInSeconds":{
+      "type":"long",
+      "min":0
+    },
+    "Integer":{"type":"integer"},
+    "InternalErrorException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception that indicates that a problem occurred with the service infrastructure. You can retry the request.</p>",
+      "exception":true,
+      "fault":true
+    },
+    "InvalidOperationException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception that indicates that the operation would not cause any change to occur.</p>",
+      "exception":true
+    },
+    "InvalidParameterException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception that indicates that the parameters passed to the API are invalid. </p>",
+      "exception":true
+    },
+    "InvalidResourceException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception that indicates that the resource is invalid. You might not have access to the resource, or the resource might not exist.</p>",
+      "exception":true
+    },
+    "LimitNumber":{"type":"long"},
+    "LimitType":{"type":"string"},
+    "LimitsExceededException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"},
+        "Type":{"shape":"LimitType"},
+        "Limit":{"shape":"LimitNumber"}
+      },
+      "documentation":"<p>Exception that indicates that the operation would exceed a limit.</p>",
+      "exception":true
+    },
+    "ListAttacksRequest":{
+      "type":"structure",
+      "members":{
+        "ResourceArns":{
+          "shape":"ResourceArnFilterList",
+          "documentation":"<p>The ARN (Amazon Resource Name) of the resource that was attacked. If this is left blank, all applicable resources for this account will be included.</p>"
+        },
+        "StartTime":{
+          "shape":"TimeRange",
+          "documentation":"<p>The time period for the attacks.</p>"
+        },
+        "EndTime":{
+          "shape":"TimeRange",
+          "documentation":"<p>The end of the time period for the attacks.</p>"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>The <code>ListAttacksRequest.NextMarker</code> value from a previous call to <code>ListAttacksRequest</code>. Pass null if this is the first call.</p>"
+        },
+        "MaxResults":{
+          "shape":"MaxResults",
+          "documentation":"<p>The maximum number of <a>AttackSummary</a> objects to be returned. If this is left blank, the first 20 results will be returned.</p>"
+        }
+      }
+    },
+    "ListAttacksResponse":{
+      "type":"structure",
+      "members":{
+        "AttackSummaries":{
+          "shape":"AttackSummaries",
+          "documentation":"<p>The attack information for the specified time range.</p>"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>The token returned by a previous call to indicate that there is more data available. If not null, more results are available. Pass this value for the <code>NextMarker</code> parameter in a subsequent call to <code>ListAttacks</code> to retrieve the next set of items.</p>"
+        }
+      }
+    },
+    "ListProtectionsRequest":{
+      "type":"structure",
+      "members":{
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>The <code>ListProtectionsRequest.NextToken</code> value from a previous call to <code>ListProtections</code>. Pass null if this is the first call.</p>"
+        },
+        "MaxResults":{
+          "shape":"MaxResults",
+          "documentation":"<p>The maximum number of <a>Protection</a> objects to be returned. If this is left blank the first 20 results will be returned.</p>"
+        }
+      }
+    },
+    "ListProtectionsResponse":{
+      "type":"structure",
+      "members":{
+        "Protections":{
+          "shape":"Protections",
+          "documentation":"<p>The array of enabled <a>Protection</a> objects.</p>"
+        },
+        "NextToken":{
+          "shape":"Token",
+          "documentation":"<p>If you specify a value for <code>MaxResults</code> and you have more Protections than the value of MaxResults, AWS Shield Advanced returns a NextToken value in the response that allows you to list another group of Protections. For the second and subsequent ListProtections requests, specify the value of NextToken from the previous response to get information about another batch of Protections.</p>"
+        }
+      }
+    },
+    "LockedSubscriptionException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception that indicates that the subscription has been modified by another client. You can retry the request.</p>",
+      "exception":true
+    },
+    "MaxResults":{
+      "type":"integer",
+      "box":true,
+      "max":100,
+      "min":0
+    },
+    "Mitigation":{
+      "type":"structure",
+      "members":{
+        "MitigationName":{
+          "shape":"String",
+          "documentation":"<p>The name of the mitigation taken for this attack.</p>"
+        }
+      },
+      "documentation":"<p>The mitigation applied to a DDoS attack.</p>"
+    },
+    "MitigationList":{
+      "type":"list",
+      "member":{"shape":"Mitigation"}
+    },
+    "OptimisticLockException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception that indicates that the protection state has been modified by another client. You can retry the request.</p>",
+      "exception":true
+    },
+    "Protection":{
+      "type":"structure",
+      "members":{
+        "Id":{
+          "shape":"ProtectionId",
+          "documentation":"<p>The unique identifier (ID) of the protection.</p>"
+        },
+        "Name":{
+          "shape":"ProtectionName",
+          "documentation":"<p>The friendly name of the protection. For example, <code>My CloudFront distributions</code>.</p>"
+        },
+        "ResourceArn":{
+          "shape":"ResourceArn",
+          "documentation":"<p>The ARN (Amazon Resource Name) of the AWS resource that is protected.</p>"
+        }
+      },
+      "documentation":"<p>An object that represents a resource that is under DDoS protection.</p>"
+    },
+    "ProtectionId":{
+      "type":"string",
+      "max":36,
+      "min":1,
+      "pattern":"[a-zA-Z0-9\\\\-]*"
+    },
+    "ProtectionName":{
+      "type":"string",
+      "max":128,
+      "min":1,
+      "pattern":"[ a-zA-Z0-9_\\\\.\\\\-]*"
+    },
+    "Protections":{
+      "type":"list",
+      "member":{"shape":"Protection"}
+    },
+    "ResourceAlreadyExistsException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception indicating the specified resource already exists.</p>",
+      "exception":true
+    },
+    "ResourceArn":{
+      "type":"string",
+      "min":1
+    },
+    "ResourceArnFilterList":{
+      "type":"list",
+      "member":{"shape":"ResourceArn"}
+    },
+    "ResourceNotFoundException":{
+      "type":"structure",
+      "members":{
+        "message":{"shape":"errorMessage"}
+      },
+      "documentation":"<p>Exception indicating the specified resource does not exist.</p>",
+      "exception":true
+    },
+    "String":{"type":"string"},
+    "SubResourceSummary":{
+      "type":"structure",
+      "members":{
+        "Type":{
+          "shape":"SubResourceType",
+          "documentation":"<p>The <code>SubResource</code> type.</p>"
+        },
+        "Id":{
+          "shape":"String",
+          "documentation":"<p>The unique identifier (ID) of the <code>SubResource</code>.</p>"
+        },
+        "AttackVectors":{
+          "shape":"SummarizedAttackVectorList",
+          "documentation":"<p>The list of attack types and associated counters.</p>"
+        },
+        "Counters":{
+          "shape":"SummarizedCounterList",
+          "documentation":"<p>The counters that describe the details of the attack.</p>"
+        }
+      },
+      "documentation":"<p>The attack information for the specified SubResource.</p>"
+    },
+    "SubResourceSummaryList":{
+      "type":"list",
+      "member":{"shape":"SubResourceSummary"}
+    },
+    "SubResourceType":{
+      "type":"string",
+      "enum":[
+        "IP",
+        "URL"
+      ]
+    },
+    "Subscription":{
+      "type":"structure",
+      "members":{
+        "StartTime":{
+          "shape":"Timestamp",
+          "documentation":"<p>The start time of the subscription, in the format \"2016-12-16T13:50Z\".</p>"
+        },
+        "TimeCommitmentInSeconds":{
+          "shape":"DurationInSeconds",
+          "documentation":"<p>The length, in seconds, of the AWS Shield Advanced subscription for the account.</p>"
+        }
+      },
+      "documentation":"<p>Information about the AWS Shield Advanced subscription for an account.</p>"
+    },
+    "SummarizedAttackVector":{
+      "type":"structure",
+      "required":["VectorType"],
+      "members":{
+        "VectorType":{
+          "shape":"String",
+          "documentation":"<p>The attack type, for example, SNMP reflection or SYN flood.</p>"
+        },
+        "VectorCounters":{
+          "shape":"SummarizedCounterList",
+          "documentation":"<p>The list of counters that describe the details of the attack.</p>"
+        }
+      },
+      "documentation":"<p>A summary of information about the attack.</p>"
+    },
+    "SummarizedAttackVectorList":{
+      "type":"list",
+      "member":{"shape":"SummarizedAttackVector"}
+    },
+    "SummarizedCounter":{
+      "type":"structure",
+      "members":{
+        "Name":{
+          "shape":"String",
+          "documentation":"<p>The counter name.</p>"
+        },
+        "Max":{
+          "shape":"Double",
+          "documentation":"<p>The maximum value of the counter for a specified time period.</p>"
+        },
+        "Average":{
+          "shape":"Double",
+          "documentation":"<p>The average value of the counter for a specified time period.</p>"
+        },
+        "Sum":{
+          "shape":"Double",
+          "documentation":"<p>The total of counter values for a specified time period.</p>"
+        },
+        "N":{
+          "shape":"Integer",
+          "documentation":"<p>The number of counters for a specified time period.</p>"
+        },
+        "Unit":{
+          "shape":"String",
+          "documentation":"<p>The unit of the counters.</p>"
+        }
+      },
+      "documentation":"<p>The counter that describes a DDoS attack.</p>"
+    },
+    "SummarizedCounterList":{
+      "type":"list",
+      "member":{"shape":"SummarizedCounter"}
+    },
+    "TimeRange":{
+      "type":"structure",
+      "members":{
+        "FromInclusive":{
+          "shape":"AttackTimestamp",
+          "documentation":"<p>The start time, in the format 2016-12-16T13:50Z.</p>"
+        },
+        "ToExclusive":{
+          "shape":"AttackTimestamp",
+          "documentation":"<p>The end time, in the format 2016-12-16T15:50Z.</p>"
+        }
+      },
+      "documentation":"<p>The time range.</p>"
+    },
+    "Timestamp":{"type":"timestamp"},
+    "Token":{
+      "type":"string",
+      "min":1
+    },
+    "errorMessage":{"type":"string"}
+  },
+  "documentation":"<fullname>AWS Shield Advanced</fullname> <p>This is the <i>AWS Shield Advanced API Reference</i>. This guide is for developers who need detailed information about the AWS Shield Advanced API actions, data types, and errors. For detailed information about AWS WAF and AWS Shield Advanced features and an overview of how to use the AWS WAF and AWS Shield Advanced APIs, see the <a href=\"http://docs.aws.amazon.com/waf/latest/developerguide/\">AWS WAF and AWS Shield Developer Guide</a>.</p>"
+}

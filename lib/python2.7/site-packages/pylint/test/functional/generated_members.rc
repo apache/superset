@@ -1,0 +1,5 @@
+[Messages Control]
+disable=too-few-public-methods,print-statement
+
+[typecheck]
+generated-members=DoesNotExist,"[a-zA-Z]+_set{1,2}",node_classes.Tuple.*,checkers.*?base,(session|SESSION).rollback

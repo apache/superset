@@ -1,0 +1,3 @@
+indexing-exception:12::Indexing exceptions will not work on Python 3
+indexing-exception:13::Indexing exceptions will not work on Python 3
+indexing-exception:15::Indexing exceptions will not work on Python 3

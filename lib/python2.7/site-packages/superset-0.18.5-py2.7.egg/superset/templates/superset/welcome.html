@@ -1,0 +1,38 @@
+{% extends "superset/basic.html" %}
+
+{% block head_js %}
+  {{ super() }}
+  {% with filename="welcome" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}
+
+{% block title %}{{ _("Welcome!") }}{% endblock %}
+
+{% block body %}
+<div class="container welcome">
+  {% include 'superset/flash_wrapper.html' %}
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <div class="panel-title">
+        <div class="row">
+          <div class="col-md-6">
+            <h2>{{ _("Dashboards") }}</h2>
+          </div>
+          <div class="col-md-6">
+            <div class="search-container pull-right">
+              <i class="fa fa-search"></i>
+              <span class="search"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-body">
+      <img class="loading" src="/static/assets/images/loading.gif"/>
+      <table id="dash_table" class="table" width="100%"></table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

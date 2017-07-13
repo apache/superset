@@ -1,0 +1,2 @@
+Flask>=0.3
+python-openid>=2.0

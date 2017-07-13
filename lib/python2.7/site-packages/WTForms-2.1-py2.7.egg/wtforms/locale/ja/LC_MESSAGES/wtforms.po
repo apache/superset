@@ -1,0 +1,176 @@
+# Japanese translations for WTForms.
+# Copyright (C) 2013 WTForms Team
+# This file is distributed under the same license as the WTForms project.
+# Yusuke Furukawa <littlefive.jp@gmail.com>, 2015.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: WTForms 2.0dev\n"
+"Report-Msgid-Bugs-To: wtforms+i18n@jamescrasta.com\n"
+"POT-Creation-Date: 2013-11-08 15:21-0700\n"
+"PO-Revision-Date: 2015-07-06 23:49+0900\n"
+"Last-Translator: yusuke furukawa <littlefive.jp@gmail.com>\n"
+"Language-Team: ja <littlefive.jp@gmail.com>\n"
+"Plural-Forms: nplurals=1; plural=0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.3\n"
+
+#: wtforms/validators.py:55
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "%s は無効なフィールド名です。"
+
+#: wtforms/validators.py:63
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr "フィールドは %(other_name)s でなければいけません。"
+
+#: wtforms/validators.py:96
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] "フィールドは %(min)d 文字以上でなければなりません。"
+
+#: wtforms/validators.py:99
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] "フィールドは %(max)d 文字を超えることはできません。"
+
+#: wtforms/validators.py:102
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr "フィールドは %(min)d 以上, %(max)d 文字以内でなければなりません。"
+
+#: wtforms/validators.py:138
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr "数値は %(min)s 以上でなければなりません。"
+
+#: wtforms/validators.py:140
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr "数値は 最高でも %(max)s でなければなりません。"
+
+#: wtforms/validators.py:142
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr "数値は %(min)s 以上, %(max)s 以下でなければいけません。"
+
+#: wtforms/validators.py:198 wtforms/validators.py:233
+msgid "This field is required."
+msgstr "このフィールドは必須です。"
+
+#: wtforms/validators.py:264
+msgid "Invalid input."
+msgstr "無効な入力です。"
+
+#: wtforms/validators.py:286
+msgid "Invalid email address."
+msgstr "無効なメールアドレスです。"
+
+#: wtforms/validators.py:318
+msgid "Invalid IP address."
+msgstr "無効なIPアドレスです。"
+
+#: wtforms/validators.py:367
+msgid "Invalid Mac address."
+msgstr "無効なMacアドレスです。"
+
+#: wtforms/validators.py:393
+msgid "Invalid URL."
+msgstr "無効なURLです。"
+
+#: wtforms/validators.py:412
+msgid "Invalid UUID."
+msgstr "無効なUUIDです。"
+
+#: wtforms/validators.py:440
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr "無効な値です, 次のうちの１つでなければいけません: %(values)s."
+
+#: wtforms/validators.py:472
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr "無効な値です、次に含まれるものは使えません: %(values)s."
+
+#: wtforms/csrf/core.py:83 wtforms/ext/csrf/form.py:47
+msgid "Invalid CSRF Token"
+msgstr "不正なCSRFトークンです"
+
+#: wtforms/csrf/session.py:61 wtforms/ext/csrf/session.py:58
+msgid "CSRF token missing"
+msgstr "CSRFトークンがありません"
+
+#: wtforms/csrf/session.py:69 wtforms/ext/csrf/session.py:66
+msgid "CSRF failed"
+msgstr "CSRF認証に失敗しました"
+
+#: wtforms/csrf/session.py:74 wtforms/ext/csrf/session.py:71
+msgid "CSRF token expired"
+msgstr "CSRFトークンの期限が切れました"
+
+#: wtforms/ext/appengine/fields.py:87 wtforms/ext/appengine/fields.py:164
+#: wtforms/ext/appengine/fields.py:166 wtforms/ext/django/fields.py:96
+#: wtforms/ext/sqlalchemy/fields.py:125 wtforms/ext/sqlalchemy/fields.py:127
+#: wtforms/ext/sqlalchemy/fields.py:177 wtforms/ext/sqlalchemy/fields.py:182
+#: wtforms/fields/core.py:456
+msgid "Not a valid choice"
+msgstr "選択肢が正しくありません"
+
+#: wtforms/ext/appengine/fields.py:185
+msgid "Not a valid list"
+msgstr "リストが正しくありません"
+
+#: wtforms/ext/appengine/fields.py:204
+msgid "Not a valid integer list"
+msgstr "整数リストが正しくありません"
+
+#: wtforms/ext/dateutil/fields.py:63
+msgid "Please input a date/time value"
+msgstr "日付/時間を入力してください"
+
+#: wtforms/ext/dateutil/fields.py:75 wtforms/ext/dateutil/fields.py:83
+msgid "Invalid date/time input"
+msgstr "無効な日付/時間の入力です"
+
+#: wtforms/ext/sqlalchemy/validators.py:34
+msgid "Already exists."
+msgstr "既に存在しています。"
+
+#: wtforms/fields/core.py:449
+msgid "Invalid Choice: could not coerce"
+msgstr "無効な選択: 型変換できません"
+
+#: wtforms/fields/core.py:482
+msgid "Invalid choice(s): one or more data inputs could not be coerced"
+msgstr "無効な選択: １つ以上の値を型変換できません"
+
+#: wtforms/fields/core.py:489
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field"
+msgstr "'%(value)s' はこのフィールドでは有効ではありません"
+
+#: wtforms/fields/core.py:572
+msgid "Not a valid integer value"
+msgstr "無効な整数です"
+
+#: wtforms/fields/core.py:638
+msgid "Not a valid decimal value"
+msgstr "無効な少数です"
+
+#: wtforms/fields/core.py:665
+msgid "Not a valid float value"
+msgstr "無効なfloat値です"
+
+#: wtforms/fields/core.py:724
+msgid "Not a valid datetime value"
+msgstr "無効な時間型です"
+
+#: wtforms/fields/core.py:741
+msgid "Not a valid date value"
+msgstr "無効な日付型です"
+

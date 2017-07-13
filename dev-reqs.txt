@@ -3,7 +3,6 @@ coveralls
 flake8
 flask_cors
 mock
-mysqlclient
 nose
 psycopg2
 pylint

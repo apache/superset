@@ -1,0 +1,1 @@
+simplejson/_speedups.so

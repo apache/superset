@@ -1,0 +1,3 @@
+W:  5: Anomalous Unicode escape in byte string: '\u'. String constant might be missing an r or u prefix.
+W:  6: Anomalous Unicode escape in byte string: '\U'. String constant might be missing an r or u prefix.
+W:  7: Anomalous Unicode escape in byte string: '\N'. String constant might be missing an r or u prefix.

@@ -1,0 +1,180 @@
+# Ukrainian translations for WTForms.
+# Copyright (C) 2013 WTForms Team
+# This file is distributed under the same license as the WTForms project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: WTForms 2.0dev\n"
+"Report-Msgid-Bugs-To: wtforms+i18n@jamescrasta.com\n"
+"POT-Creation-Date: 2013-11-08 15:21-0700\n"
+"PO-Revision-Date: 2014-01-16 10:04+0100\n"
+"Last-Translator: Oleg Pidsadnyi <oleg.pidsadnyi@paylogic.eu>\n"
+"Language-Team: uk <oleg.pidsadnyi@paylogic.eu>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.3\n"
+
+#: wtforms/validators.py:55
+#, python-format
+msgid "Invalid field name '%s'."
+msgstr "Невірне ім'я поля '%s'."
+
+#: wtforms/validators.py:63
+#, python-format
+msgid "Field must be equal to %(other_name)s."
+msgstr "Поле має співпадати з %(other_name)s."
+
+#: wtforms/validators.py:96
+#, python-format
+msgid "Field must be at least %(min)d character long."
+msgid_plural "Field must be at least %(min)d characters long."
+msgstr[0] "Значення поля має містити не менше %(min)d символа."
+msgstr[1] "Значення поля має містити не менше ніж %(min)d символи."
+msgstr[2] "Значення поля має містити не менше ніж %(min)d символів."
+
+#: wtforms/validators.py:99
+#, python-format
+msgid "Field cannot be longer than %(max)d character."
+msgid_plural "Field cannot be longer than %(max)d characters."
+msgstr[0] "Значення поля має містити не більше %(max)d символа."
+msgstr[1] "Значення поля має містити не більше ніж %(max)d символи."
+msgstr[2] "Значення поля має містити не більше ніж %(max)d символів."
+
+#: wtforms/validators.py:102
+#, python-format
+msgid "Field must be between %(min)d and %(max)d characters long."
+msgstr "Значення поля має містити від %(min)d до %(max)d символів."
+
+#: wtforms/validators.py:138
+#, python-format
+msgid "Number must be at least %(min)s."
+msgstr "Число має бути щонайменше %(min)s."
+
+#: wtforms/validators.py:140
+#, python-format
+msgid "Number must be at most %(max)s."
+msgstr "Число має бути щонайбільше %(max)s."
+
+#: wtforms/validators.py:142
+#, python-format
+msgid "Number must be between %(min)s and %(max)s."
+msgstr "Число має бути між %(min)s та %(max)s."
+
+#: wtforms/validators.py:198 wtforms/validators.py:233
+msgid "This field is required."
+msgstr "Це поле є обов'язковим."
+
+#: wtforms/validators.py:264
+msgid "Invalid input."
+msgstr "Введено невірно."
+
+#: wtforms/validators.py:286
+msgid "Invalid email address."
+msgstr "Невірна електронна адреса."
+
+#: wtforms/validators.py:318
+msgid "Invalid IP address."
+msgstr "Невірна IP адреса."
+
+#: wtforms/validators.py:367
+msgid "Invalid Mac address."
+msgstr "Невірна Mac адреса."
+
+#: wtforms/validators.py:393
+msgid "Invalid URL."
+msgstr "Невірний URL."
+
+#: wtforms/validators.py:412
+msgid "Invalid UUID."
+msgstr "Невірний UUID."
+
+#: wtforms/validators.py:440
+#, python-format
+msgid "Invalid value, must be one of: %(values)s."
+msgstr "Значення невірне, має бути одним з: %(values)s."
+
+#: wtforms/validators.py:472
+#, python-format
+msgid "Invalid value, can't be any of: %(values)s."
+msgstr "Значення невірне, не може бути одним з: %(values)s."
+
+#: wtforms/csrf/core.py:83 wtforms/ext/csrf/form.py:47
+msgid "Invalid CSRF Token"
+msgstr "Невірний CSRF токен."
+
+#: wtforms/csrf/session.py:61 wtforms/ext/csrf/session.py:58
+msgid "CSRF token missing"
+msgstr "CSRF токен відсутній"
+
+#: wtforms/csrf/session.py:69 wtforms/ext/csrf/session.py:66
+msgid "CSRF failed"
+msgstr "Помилка CSRF"
+
+#: wtforms/csrf/session.py:74 wtforms/ext/csrf/session.py:71
+msgid "CSRF token expired"
+msgstr "CSRF токен прострочений"
+
+#: wtforms/ext/appengine/fields.py:87 wtforms/ext/appengine/fields.py:164
+#: wtforms/ext/appengine/fields.py:166 wtforms/ext/django/fields.py:96
+#: wtforms/ext/sqlalchemy/fields.py:125 wtforms/ext/sqlalchemy/fields.py:127
+#: wtforms/ext/sqlalchemy/fields.py:177 wtforms/ext/sqlalchemy/fields.py:182
+#: wtforms/fields/core.py:456
+msgid "Not a valid choice"
+msgstr "Недійсний варіант"
+
+#: wtforms/ext/appengine/fields.py:185
+msgid "Not a valid list"
+msgstr "Недійсний список"
+
+#: wtforms/ext/appengine/fields.py:204
+msgid "Not a valid integer list"
+msgstr "Недійсний список цілих чисел"
+
+#: wtforms/ext/dateutil/fields.py:63
+msgid "Please input a date/time value"
+msgstr "Будь ласка введіть дату/час"
+
+#: wtforms/ext/dateutil/fields.py:75 wtforms/ext/dateutil/fields.py:83
+msgid "Invalid date/time input"
+msgstr "Недійсна дата/час"
+
+#: wtforms/ext/sqlalchemy/validators.py:34
+msgid "Already exists."
+msgstr "Вже існує."
+
+#: wtforms/fields/core.py:449
+msgid "Invalid Choice: could not coerce"
+msgstr "Недійсний варіант: перетворення неможливе"
+
+#: wtforms/fields/core.py:482
+msgid "Invalid choice(s): one or more data inputs could not be coerced"
+msgstr "Недійсний варіант: одне чи більше значень неможливо перетворити"
+
+#: wtforms/fields/core.py:489
+#, python-format
+msgid "'%(value)s' is not a valid choice for this field"
+msgstr "'%(value)s' не є дійсним варіантом для цього поля"
+
+#: wtforms/fields/core.py:572
+msgid "Not a valid integer value"
+msgstr "Недійсне ціле число"
+
+#: wtforms/fields/core.py:638
+msgid "Not a valid decimal value"
+msgstr "Не є дійсним десятичним числом"
+
+#: wtforms/fields/core.py:665
+msgid "Not a valid float value"
+msgstr "Недійсне десятичне дробове число"
+
+#: wtforms/fields/core.py:724
+msgid "Not a valid datetime value"
+msgstr "Недійсне значення дати/часу"
+
+#: wtforms/fields/core.py:741
+msgid "Not a valid date value"
+msgstr "Не дійсне значення дати"
+

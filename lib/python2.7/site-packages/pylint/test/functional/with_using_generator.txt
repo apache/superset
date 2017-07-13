@@ -1,0 +1,1 @@
+not-context-manager:13:Base.fun:Context manager 'generator' doesn't implement __enter__ and __exit__.

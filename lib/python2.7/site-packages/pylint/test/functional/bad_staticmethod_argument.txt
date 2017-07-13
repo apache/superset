@@ -1,0 +1,2 @@
+bad-staticmethod-argument:5:Abcd.method1:Static method with 'self' as first argument
+bad-staticmethod-argument:10:Abcd.method2:Static method with 'cls' as first argument

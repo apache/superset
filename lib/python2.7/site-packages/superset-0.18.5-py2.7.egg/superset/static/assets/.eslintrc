@@ -1,0 +1,42 @@
+{
+  "extends": "airbnb",
+  "parserOptions":{
+    "ecmaFeatures": {
+      "experimentalObjectRestSpread": true
+    }
+  },
+  "globals": {
+    "document": true,
+  },
+  "rules": {
+    "prefer-template": 0,
+    "new-cap": 0,
+    "no-restricted-syntax": 0,
+    "guard-for-in": 0,
+    "prefer-arrow-callback": 0,
+    "func-names": 0,
+    "react/jsx-no-bind": 0,
+    "no-confusing-arrow": 0,
+
+    "jsx-a11y/no-static-element-interactions": 0,
+    "jsx-a11y/anchor-has-content": 0,
+    "react/require-default-props": 0,
+    "no-plusplus": 0,
+    "no-mixed-operators": 0,
+    "no-continue": 0,
+    "no-bitwise": 0,
+    "no-undef": 0,
+    "no-multi-assign": 0,
+    "react/no-array-index-key": 0,
+    "no-restricted-properties": 0,
+    "no-prototype-builtins": 0,
+    "jsx-a11y/href-no-hash": 0,
+    "react/forbid-prop-types": 0,
+    "class-methods-use-this": 0,
+    "import/no-named-as-default": 0,
+    "import/prefer-default-export": 0,
+    "react/no-unescaped-entities": 0,
+    "react/no-unused-prop-types": 0,
+    "react/no-string-refs": 0,
+  }
+}

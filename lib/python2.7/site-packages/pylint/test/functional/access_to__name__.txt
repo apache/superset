@@ -1,0 +1,3 @@
+old-style-class:7:Aaaa:Old-style class defined.
+no-member:10:Aaaa.__init__:Instance of 'Aaaa' has no '__name__' member:INFERENCE
+no-member:21:NewClass.__init__:Instance of 'NewClass' has no '__name__' member:INFERENCE

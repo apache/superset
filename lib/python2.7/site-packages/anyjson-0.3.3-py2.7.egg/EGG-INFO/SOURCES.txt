@@ -1,0 +1,15 @@
+CHANGELOG
+LICENSE
+MANIFEST.in
+README
+setup.cfg
+setup.py
+anyjson/__init__.py
+anyjson.egg-info/PKG-INFO
+anyjson.egg-info/SOURCES.txt
+anyjson.egg-info/dependency_links.txt
+anyjson.egg-info/not-zip-safe
+anyjson.egg-info/top_level.txt
+tests/benchmark.py
+tests/test_implementations.py
+tests/test_implementations.pyc

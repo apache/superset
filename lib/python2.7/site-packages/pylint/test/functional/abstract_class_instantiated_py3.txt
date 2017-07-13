@@ -1,0 +1,4 @@
+abstract-class-instantiated:108:main:Abstract class 'BadMroAbstractMethods' with abstract methods instantiated
+abstract-class-instantiated:109:main:Abstract class 'BadClass' with abstract methods instantiated
+abstract-class-instantiated:110:main:Abstract class 'SecondBadClass' with abstract methods instantiated
+abstract-class-instantiated:111:main:Abstract class 'ThirdBadClass' with abstract methods instantiated

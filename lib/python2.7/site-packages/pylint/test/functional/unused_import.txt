@@ -1,0 +1,8 @@
+unused-import:3::Unused import xml.etree
+unused-import:4::Unused import xml.sax
+unused-import:5::Unused os.path imported as test
+unused-import:6::Unused argv imported from sys as test2
+unused-import:7::Unused flags imported from sys
+unused-import:9::Unused OrderedDict imported from collections
+unused-import:9::Unused deque imported from collections
+unused-import:12::Unused SomeOtherName imported from fake

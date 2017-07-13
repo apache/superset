@@ -1,0 +1,32 @@
+Metadata-Version: 2.0
+Name: imagesize
+Version: 0.7.1
+Summary: Getting image size from png/jpeg/jpeg2000/gif file
+Home-page: https://github.com/shibukawa/imagesize_py
+Author: Yoshiki Shibukawa
+Author-email: yoshiki at shibu.jp
+License: MIT
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: Implementation :: PyPy
+Classifier: Topic :: Multimedia :: Graphics
+
+It parses image files' header and return image size.
+
+* PNG
+* JPEG
+* JPEG2000
+* GIF
+
+This is a pure Python library.
+
+

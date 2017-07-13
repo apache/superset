@@ -1,0 +1,2 @@
+attribute-defined-outside-init:16:A.set_z:Attribute 'z' defined outside __init__
+attribute-defined-outside-init:26:B.test:Attribute 'z' defined outside __init__

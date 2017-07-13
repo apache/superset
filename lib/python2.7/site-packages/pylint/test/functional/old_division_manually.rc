@@ -1,0 +1,6 @@
+[testoptions]
+max_pyver=3.0
+
+[Messages Control]
+disable=all
+enable=old-division

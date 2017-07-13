@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+  {% module Template("navbar.html", active_tab="tasks") %}
+{% end %}
+
+{% block container %}
+  <div id='task-page' class="container-fluid">
+    <div class="row-fluid">
+      <div class="span12">
+        <div class="page-header">
+          <p id="taskid" class="hidden">{{ task.uuid }}</p>
+          <h2>{{ getattr(task, 'name', None) }}
+            <small>{{ task.uuid }}</small>
+            {% if task.state == "STARTED" %}
+                <button style="float: right" class="btn btn-danger" onclick="flower.on_task_terminate(event)">Terminate</button>
+            {% elif task.state == "RECEIVED" or task.state == "RETRY" %}
+                <button  style="float: right" class="btn btn-danger" onclick="flower.on_task_revoke(event)">Revoke</button>
+            {% end %}
+          </h2>
+        </div>
+        <div class="row-fluid">
+          <div class="span6">
+            <table class="table table-bordered table-striped">
+              <caption>Basic task options</caption>
+              <tbody>
+              <tr>
+                <td>Name</td>
+                <td>{{ getattr(task, 'name', None) }}</td>
+              </tr>
+              <tr>
+                <td>UUID</td>
+                <td>{{ task.uuid }}</td>
+              </tr>
+              <tr>
+                <td>State</td>
+                <td>
+                  {% if task.state == "SUCCESS" %}
+                  <span class="label label-success">{{ task.state }}</span>
+                  {% elif task.state == "FAILURE" %}
+                  <span class="label label-important">{{ task.state }}</span>
+                  {% else %}
+                  <span class="label label-default">{{ task.state }}</span>
+                  {% end %}
+                </td>
+              </tr>
+              <tr>
+                <td>args</td>
+                <td>{{ task.args }}</td>
+              </tr>
+              <tr>
+                <td>kwargs</td>
+                <td>{{ task.kwargs }}</td>
+              </tr>
+              <tr>
+                <td>Result</td>
+                <td>{{ getattr(task, 'result', '') }}</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="span6">
+            <table class="table table-bordered table-striped">
+              <caption>Advanced task options</caption>
+              <tbody>
+              {% for name in task._fields %}
+                {% if name not in ['name', 'uuid', 'state', 'args', 'kwargs', 'result'] and getattr(task, name, None) is not None %}
+                <tr>
+                  <td>{{ humanize(name) }}</td>
+                  <td>
+                    {% if name in ['sent', 'received', 'started', 'succeeded', 'retried', 'timestamp', 'failed'] %}
+                    {{ humanize(getattr(task, name, None), type='time') }}
+                    {% elif name == 'worker' %}
+                    <a
+                        href="{{ reverse_url('worker', task.worker.hostname) }}">{{ task.worker.hostname }}</a>
+                    {% elif name == 'traceback' %}
+                    <pre>{{ getattr(task, name, None) }}</pre>
+                    {% else %}
+                      {{ getattr(task, name, None) }}
+                    {% end %}
+                  </td>
+                </tr>
+                {% end %}
+              {% end %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% end %}

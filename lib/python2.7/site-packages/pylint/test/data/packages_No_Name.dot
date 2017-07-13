@@ -1,0 +1,8 @@
+digraph "packages_No_Name" {
+charset="utf-8"
+rankdir=BT
+"0" [label="data", shape="box"];
+"1" [label="data.clientmodule_test", shape="box"];
+"2" [label="data.suppliermodule_test", shape="box"];
+"1" -> "2" [arrowhead="open", arrowtail="none"];
+}
