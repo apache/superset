@@ -157,41 +157,39 @@ def create_custom_permissions():
     merge_perm(sm, 'all_database_access', 'all_database_access')
 
 
-def create_missing_datasource_perms(view_menu_set):
+def create_missing_perms():
+    """Creates missing perms for datasources, schemas and metrics"""
+
+    logging.info(
+        "Fetching a set of all perms to lookup which ones are missing")
+    all_pvs = set()
+    for pv in sm.get_session.query(sm.permissionview_model).all():
+        all_pvs.add((pv.permission.name, pv.view_menu.name))
+
+    def merge_pv(view_menu, perm):
+        """Create permission view menu only if it doesn't exist"""
+        if view_menu and perm and (view_menu, perm) not in all_pvs:
+            merge_perm(sm, view_menu, perm)
+
     logging.info("Creating missing datasource permissions.")
-    datasources = ConnectorRegistry.get_all_datasources(
-        db.session)
+    datasources = ConnectorRegistry.get_all_datasources(db.session)
     for datasource in datasources:
-        if datasource and datasource.perm not in view_menu_set:
-            merge_perm(sm, 'datasource_access', datasource.get_perm())
-            if datasource.schema_perm:
-                merge_perm(sm, 'schema_access', datasource.schema_perm)
+        merge_pv('datasource_access', datasource.get_perm())
+        merge_pv('schema_access', datasource.schema_perm)
 
-
-def create_missing_database_perms(view_menu_set):
     logging.info("Creating missing database permissions.")
     databases = db.session.query(models.Database).all()
     for database in databases:
-        if database and database.perm not in view_menu_set:
-            merge_perm(sm, 'database_access', database.perm)
+        merge_pv('database_access', database.perm)
 
-
-def create_missing_metrics_perm(view_menu_set):
-    """Create permissions for restricted metrics
-
-    :param metrics: a list of metrics to be processed, if not specified,
-        all metrics are processed
-    :type metrics: models.SqlMetric or models.DruidMetric
-    """
     logging.info("Creating missing metrics permissions")
     metrics = []
     for datasource_class in ConnectorRegistry.sources.values():
         metrics += list(db.session.query(datasource_class.metric_class).all())
 
     for metric in metrics:
-        if (metric.is_restricted and metric.perm and
-                metric.perm not in view_menu_set):
-            merge_perm(sm, 'metric_access', metric.perm)
+        if (metric.is_restricted):
+            merge_pv('metric_access', metric.perm)
 
 
 def sync_role_definitions():
@@ -220,12 +218,7 @@ def sync_role_definitions():
     if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
         set_role('Public', pvms, is_gamma_pvm)
 
-    view_menu_set = []
-    for datasource_class in ConnectorRegistry.sources.values():
-        view_menu_set += list(db.session.query(datasource_class).all())
-    create_missing_datasource_perms(view_menu_set)
-    create_missing_database_perms(view_menu_set)
-    create_missing_metrics_perm(view_menu_set)
+    create_missing_perms()
 
     # commit role and view menu updates
     sm.get_session.commit()
