@@ -11,8 +11,8 @@ import enUS from '../stores/en_US';
 import zhCN from '../stores/zh_CN';
 
 const locales = {
-  "en_US": enUS,
-  "zh_CN": zhCN,
+  'en_US': enUS,
+  'zh_CN': zhCN,
 };
 
 const propTypes = {
@@ -68,7 +68,7 @@ class SaveModal extends React.Component {
       locales,
     })
     .then(() => {
-    this.setState({initDone: true});
+      this.setState({initDone: true});
     });
   }
   
@@ -199,7 +199,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'noSave'}
             onChange={this.changeDash.bind(this, 'noSave')}
           >
-          {intl.get('do_not_add_to_dash').defaultMessage('Do not add to a dashboard')}
+            {intl.get('do_not_add_to_dash').defaultMessage('Do not add to a dashboard')}
           </Radio>
 
           <Radio
@@ -207,7 +207,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'existing'}
             onChange={this.changeDash.bind(this, 'existing')}
           >
-          {intl.get('add_slice_to_existing_dash').defaultMessage('Add slice to existing dashboard')}
+            {intl.get('add_slice_to_existing_dash').defaultMessage('Add slice to existing dashboard')}
           </Radio>
           <Select
             options={this.props.dashboards}
@@ -221,7 +221,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'new'}
             onChange={this.changeDash.bind(this, 'new')}
           >
-          {intl.get('add_to_new_dash').defaultMessage('Add to new dashboard')} &nbsp;
+            {intl.get('add_to_new_dash').defaultMessage('Add to new dashboard')} &nbsp;
           </Radio>
           <input
             onChange={this.onChange.bind(this, 'newDashboardName')}
@@ -238,7 +238,7 @@ class SaveModal extends React.Component {
             className="btn pull-left"
             onClick={this.saveOrOverwrite.bind(this, false)}
           >
-          {intl.get('save').defaultMessage('Save')}
+            {intl.get('save').defaultMessage('Save')}
           </Button>
           <Button
             type="button"
@@ -247,7 +247,7 @@ class SaveModal extends React.Component {
             disabled={this.state.addToDash === 'noSave'}
             onClick={this.saveOrOverwrite.bind(this, true)}
           >
-          {intl.get('save_go_dash').defaultMessage('Save & go to dashboard')}
+            {intl.get('save_go_dash').defaultMessage('Save & go to dashboard')}
           </Button>
         </Modal.Footer>
       </Modal>
