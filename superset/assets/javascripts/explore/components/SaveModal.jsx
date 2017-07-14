@@ -68,10 +68,9 @@ class SaveModal extends React.Component {
       locales,
     })
     .then(() => {
-      this.setState({initDone: true});
+      this.setState({ initDone: true });
     });
   }
-  
   changeAction(action) {
     this.setState({ action });
   }
