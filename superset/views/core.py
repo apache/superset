@@ -1374,7 +1374,7 @@ class Superset(BaseSupersetView):
                 .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
-            return json.dumps(engine.table_names(), indent=4)
+            return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
             logging.exception(e)
             return json_error_response((
