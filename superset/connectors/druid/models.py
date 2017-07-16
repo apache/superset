@@ -718,51 +718,29 @@ class DruidDatasource(Model, BaseDatasource):
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
 
-    def run_query(  # noqa / druid
-            self,
-            groupby, metrics,
-            granularity,
-            from_dttm, to_dttm,
-            filter=None,  # noqa
-            is_timeseries=True,
-            timeseries_limit=None,
-            timeseries_limit_metric=None,
-            row_limit=None,
-            inner_from_dttm=None, inner_to_dttm=None,
-            orderby=None,
-            extras=None,  # noqa
-            select=None,  # noqa
-            columns=None, phase=2, client=None, form_data=None):
-        """Runs a query against Druid and returns a dataframe.
-        """
-        # TODO refactor into using a TBD Query object
-        client = client or self.cluster.get_pydruid_client()
-        if not is_timeseries:
-            granularity = 'all'
-        inner_from_dttm = inner_from_dttm or from_dttm
-        inner_to_dttm = inner_to_dttm or to_dttm
-
-        # add tzinfo to native datetime with config
-        from_dttm = from_dttm.replace(tzinfo=DRUID_TZ)
-        to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
-        timezone = from_dttm.tzname()
-
-        query_str = ""
-        metrics_dict = {m.metric_name: m for m in self.metrics}
+    @staticmethod
+    def _metrics_and_post_aggs(metrics, metrics_dict):
         all_metrics = []
         post_aggs = {}
 
-        columns_dict = {c.column_name: c for c in self.columns}
-
         def recursive_get_fields(_conf):
-            _fields = _conf.get('fields', [])
+            print(_conf)
+            _type = _conf.get('type')
+            _field = _conf.get('field', None)
+            _fields = _conf.get('fields', None)
+
             field_names = []
-            for _f in _fields:
-                _type = _f.get('type')
-                if _type in ['fieldAccess', 'hyperUniqueCardinality']:
-                    field_names.append(_f.get('fieldName'))
-                elif _type == 'arithmetic':
+            if _type in ['fieldAccess', 'hyperUniqueCardinality',
+                         'quantile', 'quantiles']:
+                field_names.append(_conf.get('fieldName', ''))
+
+            if _field is not None:
+                field_names += recursive_get_fields(_field)
+
+            if _fields is not None:
+                for _f in _fields:
                     field_names += recursive_get_fields(_f)
+
             return list(set(field_names))
 
         for metric_name in metrics:
@@ -799,11 +777,54 @@ class DruidDatasource(Model, BaseDatasource):
                     post_aggs[metric_name] = HyperUniqueCardinality(
                         mconf.get('name')
                     )
-                else:
+                elif mconf.get('type') == 'arithmetic':
                     post_aggs[metric_name] = Postaggregator(
                         mconf.get('fn', "/"),
                         mconf.get('fields', []),
                         mconf.get('name', ''))
+                else:
+                    post_aggs[metric_name] = Postaggregator(
+                        None,
+                        None,
+                        mconf.get('name', ''))
+                    post_aggs[metric_name].post_aggregator = mconf
+        return all_metrics, post_aggs
+
+    def run_query(  # noqa / druid
+            self,
+            groupby, metrics,
+            granularity,
+            from_dttm, to_dttm,
+            filter=None,  # noqa
+            is_timeseries=True,
+            timeseries_limit=None,
+            timeseries_limit_metric=None,
+            row_limit=None,
+            inner_from_dttm=None, inner_to_dttm=None,
+            orderby=None,
+            extras=None,  # noqa
+            select=None,  # noqa
+            columns=None, phase=2, client=None, form_data=None):
+        """Runs a query against Druid and returns a dataframe.
+        """
+        # TODO refactor into using a TBD Query object
+        client = client or self.cluster.get_pydruid_client()
+        if not is_timeseries:
+            granularity = 'all'
+        inner_from_dttm = inner_from_dttm or from_dttm
+        inner_to_dttm = inner_to_dttm or to_dttm
+
+        # add tzinfo to native datetime with config
+        from_dttm = from_dttm.replace(tzinfo=DRUID_TZ)
+        to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
+        timezone = from_dttm.tzname()
+
+        query_str = ""
+        metrics_dict = {m.metric_name: m for m in self.metrics}
+
+        columns_dict = {c.column_name: c for c in self.columns}
+
+        all_metrics, post_aggs = self._metrics_and_post_aggs(metrics, metrics_dict)
 
         aggregations = OrderedDict()
         for m in self.metrics:
