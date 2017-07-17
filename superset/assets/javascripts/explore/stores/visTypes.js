@@ -900,7 +900,8 @@ const visTypes = {
           ['entity'],
           ['all_columns_x'],
           ['row_limit'],
-          ['generic_checkbox'],
+          ['order_by_entity'],
+          ['min_leaf_node_event_count'],
         ],
       },
       {
@@ -925,17 +926,11 @@ const visTypes = {
       },
       row_limit: {
         label: 'Event count limit',
-        description: 'The maximum number of events to return',
+        description: 'The maximum number of events to return, equivalent to number of rows',
       },
       all_columns: {
         label: 'Meta data',
         description: 'Select any columns for meta data inspection',
-      },
-      generic_checkbox: {
-        label: 'Order by entity id',
-        description: 'Important! Select this if the table is not already sorted by entity id ' +
-        'else there is no guarantee that all events for each entity are returned.',
-        default: true,
       },
     },
   },

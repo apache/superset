@@ -1607,7 +1607,7 @@ class EventFlowViz(BaseViz):
 
         query['columns'] = [event_key, entity_key] + meta_keys
 
-        if form_data['generic_checkbox']:
+        if form_data['order_by_entity']:
             query['orderby'] = [(entity_key, True)]
 
         return query

@@ -1274,10 +1274,22 @@ export const controls = {
     description: 'The number of seconds before expiring the cache',
   },
 
-  generic_checkbox: {
+  order_by_entity: {
     type: 'CheckboxControl',
-    label: '',
-    description: '',
+    label: 'Order by entity id',
+    description: 'Important! Select this if the table is not already sorted by entity id, ' +
+    'else there is no guarantee that all events for each entity are returned.',
+    default: true,
+  },
+
+  min_leaf_node_event_count: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: 'Minimum leaf node event count',
+    default: 1,
+    choices: formatSelectOptionsForRange(1, 10),
+    description: 'Leaf nodes that represent fewer than this number of events will be initially ' +
+    'hidden in the visualization',
   },
 };
 export default controls;

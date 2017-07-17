@@ -48,8 +48,9 @@ function renderEventFlow(slice, json) {
 
     const dirtyData = json.data;
     const cleanData = cleanEvents(dirtyData, accessorFunctions);
+    const minEventCount = slice.formData.min_leaf_node_event_count;
 
-    Component = <ResponsiveVis data={cleanData} />;
+    Component = <ResponsiveVis data={cleanData} initialMinEventCount={minEventCount} />;
   } else {
     Component = <div>Sorry, there appears to be no data</div>;
   }
