@@ -319,6 +319,12 @@ class DruidTests(SupersetTestCase):
         assert pv is not None
 
     def test_metrics_and_post_aggs(self):
+        """
+        Test generation of metrics and post-aggregations from an initial list
+        of superset metrics (which may include the results of either). This
+        primarily tests that specifying a post-aggregator metric will also
+        require the raw aggregation of the associated druid metric column.
+        """
         metrics_dict = {
             'unused_count': DruidMetric(
                 metric_name='unused_count',
@@ -363,14 +369,14 @@ class DruidTests(SupersetTestCase):
 
         metrics = ['some_sum']
         all_metrics, post_aggs = DruidDatasource._metrics_and_post_aggs(
-                metrics, metrics_dict)
+            metrics, metrics_dict)
 
         assert all_metrics == ['some_sum']
         assert post_aggs == {}
 
         metrics = ['quantile_p95']
         all_metrics, post_aggs = DruidDatasource._metrics_and_post_aggs(
-                metrics, metrics_dict)
+            metrics, metrics_dict)
 
         result_postaggs = set(['quantile_p95'])
         assert all_metrics == ['a_histogram']
@@ -378,7 +384,7 @@ class DruidTests(SupersetTestCase):
 
         metrics = ['aCustomPostAgg']
         all_metrics, post_aggs = DruidDatasource._metrics_and_post_aggs(
-                metrics, metrics_dict)
+            metrics, metrics_dict)
 
         result_postaggs = set(['aCustomPostAgg'])
         assert all_metrics == ['aCustomMetric']
