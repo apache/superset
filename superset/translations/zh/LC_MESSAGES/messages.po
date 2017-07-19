@@ -917,3 +917,55 @@ msgstr "查询"
 msgid "Saved Queries"
 msgstr "已保存查询"
 
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:73
+msgid "Please enter a slice name"
+msgstr "请输入切片名称"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:88
+msgid "Please select a dashboard"
+msgstr "请选择一个仪表盘"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:96
+msgid "Please enter a dashboard name"
+msgstr "请输入仪表盘名称"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:134
+msgid "Save A Slice"
+msgstr "保存一个切片"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:155
+msgid "Overwrite slice"
+msgstr "覆盖切片"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:164
+msgid "Save as"
+msgstr "另存为"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:168
+msgid "[slice name]"
+msgstr "[切片名称]"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:181
+msgid "Do not add to a dashboard"
+msgstr "不要添加到仪表盘"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:189
+msgid "Add slice to existing dashboard"
+msgstr "将切片添加到现有仪表盘"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:203
+msgid "Add to new dashboard"
+msgstr "添加到新的仪表盘"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:208
+msgid "[dashboard name]"
+msgstr "[仪表盘名称]"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:220
+msgid "Save"
+msgstr "保存"
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:229
+msgid "Save & go to dashboard"
+msgstr "保存并转到仪表盘"
+
