@@ -22,3 +22,13 @@ export function getLanguage() {
       return 'es';
   }
 }
+
+export function getTranslate() {
+  const translate = $.ajax({
+    url: '/superset/rest/api/getTranslate',
+    async: false,
+  });
+  console.log(translate);
+  console.log(translate.responseText);
+  return translate.responseText;
+}

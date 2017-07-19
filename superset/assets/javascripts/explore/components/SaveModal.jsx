@@ -33,8 +33,10 @@ class SaveModal extends React.Component {
     };
   }
   componentDidMount() {
+    this.loadLocales();
     this.props.actions.fetchDashboards(this.props.user_id);
   }
+
   onChange(name, event) {
     switch (name) {
       case 'newSliceName':
@@ -51,6 +53,17 @@ class SaveModal extends React.Component {
         break;
     }
   }
+
+  loadLocales() {
+    intl.init({
+      currentLocale: getLanguage(),
+      locales,
+    })
+    .then(() => {
+    this.setState({initDone: true});
+    });
+  }
+  
   changeAction(action) {
     this.setState({ action });
   }
