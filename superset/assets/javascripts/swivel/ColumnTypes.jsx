@@ -1,0 +1,5 @@
+export default {
+  TIMESTAMP: 'TIMESTAMP',
+  NUMERIC: 'NUMERIC',
+  STRING: 'NVARCHAR',
+};

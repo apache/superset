@@ -1,0 +1,81 @@
+.sidebar-container {
+    height: 35%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    background-color: lightgrey;
+}
+
+.column-drop-bar {
+    padding: 0px 0px 0px 0px;
+    background-color: lightgrey;
+}
+
+.column-drop-bar .col-lg-1 {
+    position: relative;
+    min-height: 1px;
+    padding-left: 10px;
+    padding-right: 0px;
+}
+
+.column-drop-bar .list-group-item {
+    padding: 0px 0px 0px 0px;
+    min-height: 0px;
+}
+
+.column-drop-bar .btn {
+    white-space: normal;
+    padding: 5px 10px;
+}
+
+.column-drop-bar h4 {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.chart-title h4 {
+    font-size: 14px;
+}
+
+#popover-ok-button .btn {
+    float: right;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+#run-tool-bar {
+    height: 30px;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+#run-tool-bar .btn {
+    height: 100%;
+}
+
+.btn-group {
+    display: inline-flex;
+    height: 100%;
+}
+
+.run-button .btn {
+    min-width: 72px;
+    height: 100%;
+}
+
+#run-button-mode {
+    min-width: 0px;
+}
+
+.run-button .caret {
+    display: table-row;
+}
+
+.sidebar-container .list-group-item {
+    padding: 5px 10px;
+}
+
+.label {
+    display: inline-block;
+}

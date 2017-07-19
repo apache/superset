@@ -14,6 +14,7 @@ describe('ExploreActionButtons', () => {
         json_endpoint: '',
       },
     },
+    queryResponse: {},
     queryEndpoint: 'localhost',
   };
 

@@ -378,5 +378,6 @@ try:
         import superset_config
         print('Loaded your LOCAL configuration at [{}]'.format(
             superset_config.__file__))
-except ImportError:
+except ImportError as e:
+    print(e)
     pass

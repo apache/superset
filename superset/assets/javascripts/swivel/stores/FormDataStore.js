@@ -1,0 +1,147 @@
+
+// import controls from '../explore/stores/controls';
+// Object.keys(controls).sort().forEach(x => console.log("this." + x + " = null;"))
+export default class FormDataStore {
+  constructor(...data) {
+    this.all_columns = null;
+    this.all_columns_x = null;
+    this.all_columns_y = null;
+    this.bar_stacked = null;
+    this.bottom_margin = null;
+    this.cache_timeout = null;
+    this.canvas_image_rendering = null;
+    this.charge = null;
+    this.clustering_radius = null;
+    this.code = null;
+    this.color_scheme = null;
+    this.columns = null;
+    this.combine_metric = null;
+    this.compare_lag = null;
+    this.compare_suffix = null;
+    this.contribution = null;
+    this.country_fieldtype = null;
+    this.datasource = null;
+    this.date_filter = null;
+    this.domain_granularity = null;
+    this.donut = null;
+    this.druid_time_origin = null;
+    this.entity = null;
+    this.filters = null;
+    this.global_opacity = null;
+    this.granularity = null;
+    this.granularity_sqla = null;
+    this.groupby = null;
+    this.having = null;
+    this.having_filters = null;
+    this.horizon_color_scale = null;
+    this.include_search = null;
+    this.include_series = null;
+    this.include_time = null;
+    this.instant_filtering = null;
+    this.labels_outside = null;
+    this.left_margin = null;
+    this.limit = null;
+    this.line_interpolation = null;
+    this.linear_color_scheme = null;
+    this.link_length = null;
+    this.mapbox_color = null;
+    this.mapbox_label = null;
+    this.mapbox_style = null;
+    this.marker_labels = null;
+    this.marker_line_labels = null;
+    this.marker_lines = null;
+    this.markers = null;
+    this.markup_type = null;
+    this.max_bubble_size = null;
+    this.metric = null;
+    this.metric_2 = null;
+    this.metrics = null;
+    this.min_leaf_node_event_count = null;
+    this.normalize_across = null;
+    this.num_period_compare = null;
+    this.number_format = null;
+    this.offset_overlays = null;
+    this.order_bars = null;
+    this.order_by_cols = null;
+    this.order_by_entity = null;
+    this.overlays = null;
+    this.page_length = null;
+    this.pandas_aggfunc = null;
+    this.period_ratio_type = null;
+    this.pie_label_type = null;
+    this.pivot_margins = null;
+    this.point_radius = null;
+    this.point_radius_unit = null;
+    this.range_labels = null;
+    this.ranges = null;
+    this.reduce_x_ticks = null;
+    this.render_while_dragging = null;
+    this.resample_fillmethod = null;
+    this.resample_how = null;
+    this.resample_rule = null;
+    this.rich_tooltip = null;
+    this.rolling_periods = null;
+    this.rolling_type = null;
+    this.rotation = null;
+    this.row_limit = null;
+    this.secondary_metric = null;
+    this.select_country = null;
+    this.series = null;
+    this.series_height = null;
+    this.show_bar_value = null;
+    this.show_brush = null;
+    this.show_bubbles = null;
+    this.show_controls = null;
+    this.show_datatable = null;
+    this.show_legend = null;
+    this.show_markers = null;
+    this.since = null;
+    this.size = null;
+    this.size_from = null;
+    this.size_to = null;
+    this.slice_id = null;
+    this.stacked_style = null;
+    this.subdomain_granularity = null;
+    this.subheader = null;
+    this.table_filter = null;
+    this.table_timestamp_format = null;
+    this.time_compare = null;
+    this.time_grain_sqla = null;
+    this.timeseries_limit_metric = null;
+    this.treemap_ratio = null;
+    this.until = null;
+    this.url = null;
+    this.viewport_latitude = null;
+    this.viewport_longitude = null;
+    this.viewport_zoom = null;
+    this.viz_type = null;
+    this.where = null;
+    this.whisker_options = null;
+    this.x = null;
+    this.x_axis_format = null;
+    this.x_axis_label = null;
+    this.x_axis_showminmax = null;
+    this.x_axis_time_format = null;
+    this.x_log_scale = null;
+    this.xscale_interval = null;
+    this.y = null;
+    this.y_axis_2_format = null;
+    this.y_axis_bounds = null;
+    this.y_axis_format = null;
+    this.y_axis_label = null;
+    this.y_axis_showminmax = null;
+    this.y_log_scale = null;
+    this.yscale_interval = null;
+
+    this.error = null;
+    this.update(...data);
+  }
+
+  update(...data) {
+    Object.assign(this, ...data);
+  }
+
+  toJson() {
+    return JSON.stringify(this, (k, v) => v === null ? undefined : v);
+  }
+}

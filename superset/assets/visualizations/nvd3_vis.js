@@ -95,9 +95,21 @@ function formatLabel(column, verbose_map) {
 }
 /* eslint-enable camelcase */
 
+// Calculates the longest label size for stretching bottom margin
+function calculateStretchMargins(data) {
+  const pixelsPerCharX = 4.5; // approx, depends on font size
+  let maxLabelSize = 10; // accommodate for shorter labels
+  data.forEach((d) => {
+    const axisLabels = d.values;
+    for (let i = 0; i < axisLabels.length; i++) {
+      maxLabelSize = Math.max(axisLabels[i].x.toString().length, maxLabelSize);
+    }
+  });
+  return Math.ceil(pixelsPerCharX * maxLabelSize);
+}
+
 function nvd3Vis(slice, payload) {
-  let chart;
-  let colorKey = 'key';
+  let colorKey = slice.formData.colorKey ? slice.formData.colorKey : 'key';
   const isExplore = $('#explore-container').length === 1;
 
   let data;
@@ -111,22 +123,6 @@ function nvd3Vis(slice, payload) {
 
   slice.container.html('');
   slice.clearError();
-
-
-  // Calculates the longest label size for stretching bottom margin
-  function calculateStretchMargins(payloadData) {
-    let stretchMargin = 0;
-    const pixelsPerCharX = 4.5; // approx, depends on font size
-    let maxLabelSize = 10; // accommodate for shorter labels
-    payloadData.data.forEach((d) => {
-      const axisLabels = d.values;
-      for (let i = 0; i < axisLabels.length; i++) {
-        maxLabelSize = Math.max(axisLabels[i].x.toString().length, maxLabelSize);
-      }
-    });
-    stretchMargin = Math.ceil(pixelsPerCharX * maxLabelSize);
-    return stretchMargin;
-  }
 
   let width = slice.width();
   const fd = slice.formData;
@@ -150,7 +146,8 @@ function nvd3Vis(slice, payload) {
   let stacked = false;
   let row;
 
-  const drawGraph = function () {
+  const drawGraph = intervalCallback => function () {
+    let chart;
     let svg = d3.select(slice.selector).select('svg');
     if (svg.empty()) {
       svg = d3.select(slice.selector).append('svg');
@@ -337,6 +334,7 @@ function nvd3Vis(slice, payload) {
     chart.height(height);
     slice.container.css('height', height + 'px');
 
+
     if (chart.forceY &&
         fd.y_axis_bounds &&
         (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
@@ -371,6 +369,7 @@ function nvd3Vis(slice, payload) {
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
       chart.yAxis.tickFormat(yAxisFormatter);
+      chart.rightAlignYAxis(!!fd.rightAlignYAxis);
     }
     if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
@@ -399,7 +398,8 @@ function nvd3Vis(slice, payload) {
     } else if (vizType !== 'bullet') {
       chart.color(d => d.color || getColorFromScheme(d[colorKey], fd.color_scheme));
     }
-    if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
+    if (((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) ||
+        intervalCallback) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         // Custom sorted tooltip
@@ -428,10 +428,9 @@ function nvd3Vis(slice, payload) {
       }
     }
 
-
     if (fd.bottom_margin === 'auto') {
       if (vizType === 'dist_bar') {
-        const stretchMargin = calculateStretchMargins(payload);
+        const stretchMargin = calculateStretchMargins(data);
         chart.margin({ bottom: stretchMargin });
       } else {
         chart.margin({ bottom: 50 });
@@ -467,9 +466,17 @@ function nvd3Vis(slice, payload) {
       const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
                                               : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
-      chart.margin({ left: maxYAxisLabelWidth + marginPad });
-      if (fd.y_axis_label && fd.y_axis_label !== '') {
-        chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
+
+      if (fd.rightAlignYAxis) {
+        chart.margin({ right: maxYAxisLabelWidth + marginPad });
+        if (fd.y_axis_label && fd.y_axis_label !== '') {
+          chart.margin({ right: maxYAxisLabelWidth + marginPad + 25 });
+        }
+      } else {
+        chart.margin({ left: maxYAxisLabelWidth + marginPad });
+        if (fd.y_axis_label && fd.y_axis_label !== '') {
+          chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
+        }
       }
       // Hack to adjust margins to accommodate long axis tick labels.
       // - has to be done only after the chart has been rendered once
@@ -478,16 +485,14 @@ function nvd3Vis(slice, payload) {
       // - adjust margins based on these measures and render again
       if (isTimeSeries && vizType !== 'bar') {
         const chartMargins = {
-          bottom: maxXAxisLabelHeight + marginPad,
-          right: maxXAxisLabelHeight + marginPad,
+          bottom: Math.max(maxXAxisLabelHeight + marginPad, chart.margin().bottom),
+          right: Math.max(maxXAxisLabelHeight + marginPad, chart.margin().right),
         };
 
         if (vizType === 'dual_line') {
           const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
           // use y axis width if it's wider than axis width/height
-          if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-            chartMargins.right = maxYAxis2LabelWidth + marginPad;
-          }
+          chartMargins.right = Math.max(maxYAxis2LabelWidth + marginPad, chartMargins.right);
         }
         // apply margins
         chart.margin(chartMargins);
@@ -499,9 +504,13 @@ function nvd3Vis(slice, payload) {
       if (fd.bottom_margin && fd.bottom_margin !== 'auto') {
         chart.margin().bottom = fd.bottom_margin;
       }
+
       if (fd.left_margin && fd.left_margin !== 'auto') {
         chart.margin().left = fd.left_margin;
+      } else if (fd.rightAlignYAxis) {
+        chart.margin().left = 0;
       }
+
 
       // Axis labels
       const margins = chart.margin();
@@ -517,8 +526,10 @@ function nvd3Vis(slice, payload) {
 
       if (fd.y_axis_label && fd.y_axis_label !== '' && chart.yAxis) {
         let distance = 0;
-        if (margins.left && !isNaN(margins.left)) {
+        if (!fd.rightAlignYAxis && margins.left && !isNaN(margins.left)) {
           distance = margins.left - 70;
+        } else if (fd.rightAlignYAxis && margins.right && !isNaN(margins.right)) {
+          distance = margins.right - 100;
         }
         chart.yAxis.axisLabel(fd.y_axis_label).axisLabelDistance(distance);
       }
@@ -725,6 +736,43 @@ function nvd3Vis(slice, payload) {
         .attr('width', width)
         .call(chart);
     }
+    if (intervalCallback) {
+      let start = null;
+        // Adding a layer for selecting an interval
+      d3.select(slice.selector).select('.nv-wrap').append('g').attr('class', 'nv-selection')
+          .append('rect');
+      chart.interactiveLayer.dispatch.elementMouseDown.on('selection', (e) => {
+        if (e.mouseX) {
+          start = e;
+          chart.interactiveLayer.dispatch.elementMousemove.on('selection', (selection) => {
+            d3.selectAll('.nv-selection rect')
+                        .attr('x', Math.min(start.mouseX, selection.mouseX))
+                        .attr('y', 0)
+                        .attr('width', Math.abs(selection.mouseX - start.mouseX))
+                        .attr('height', height)
+                        .style('fill', d3.rgb('#00A699'))
+                        .style('opacity', 0.2);
+          });
+        }
+      });
+
+      chart.interactiveLayer.dispatch.elementMouseUp.on('selection', (e) => {
+        if (e.mouseX) {
+          d3.select('.nv-selection rect')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('width', 0)
+                    .attr('height', 0);
+          chart.interactiveLayer.dispatch.elementMousemove.on('selection',
+                    () => {});
+                // ignore selections of less than 20pixels -> probably accidental
+          if (start && Math.abs(e.mouseX - start.mouseX) > 20) {
+            intervalCallback(start.pointXValue, e.pointXValue);
+          }
+        }
+      });
+    }
+
     return chart;
   };
 
@@ -732,8 +780,7 @@ function nvd3Vis(slice, payload) {
   // there are left over tooltips in the dom,
   // this will clear them before rendering the chart again.
   hideTooltips();
-
-  nv.addGraph(drawGraph);
+  nv.addGraph(drawGraph(payload.intervalCallback));
 }
 
 module.exports = nvd3Vis;

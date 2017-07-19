@@ -936,15 +936,15 @@ class Superset(BaseSupersetView):
 
     def get_form_data(self):
         # get form data from url
-        if request.args.get('form_data'):
-            form_data = request.args.get('form_data')
-        elif request.form.get('form_data'):
-            # Supporting POST as well as get
-            form_data = request.form.get('form_data')
+        if request.method == 'POST':
+            d = request.json
         else:
-            form_data = '{}'
+            if request.args.get('form_data'):
+                form_data = request.args.get('form_data')
+            else:
+                form_data = '{}'
 
-        d = json.loads(form_data)
+            d = json.loads(form_data)
 
         if request.args.get('viz_type'):
             # Converting old URLs
@@ -977,7 +977,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
-        viz_obj = self.get_viz(slice_id)
+        viz_obj = self.get_viz(slice_id=slice_id)
         endpoint = '/superset/explore/{}/{}?form_data={}'.format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
@@ -1091,7 +1091,8 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access_api
-    @expose('/explore_json/<datasource_type>/<datasource_id>/')
+    @expose('/explore_json/<datasource_type>/<datasource_id>', methods=['POST'])
+    @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET'])
     def explore_json(self, datasource_type, datasource_id):
         try:
             csv = request.args.get('csv') == 'true'
@@ -1237,8 +1238,8 @@ class Superset(BaseSupersetView):
     @has_access_api
     @cache.memoize(timeout=300)
     @expose('/filter/<datasource_type>/<datasource_id>/<column>/')
-    @expose("/filter/<datasource_type>/<datasource_id>/<column>/<limit>/")
-    @expose("/filter/<datasource_type>/<datasource_id>/<column>/<limit>/<search_string>")
+    @expose('/filter/<datasource_type>/<datasource_id>/<column>/<limit>/')
+    @expose('/filter/<datasource_type>/<datasource_id>/<column>/<limit>/<search_string>')
     def filter(self, datasource_type, datasource_id, column, limit=0, search_string=None):
         """
         Endpoint to retrieve values for specified column.
@@ -1258,9 +1259,11 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
         payload = json.dumps(
-            datasource.values_for_column(column_name=column,
-            limit=limit if limit else config.get('FILTER_SELECT_ROW_LIMIT', 10000),
-            search_string=search_string),
+            datasource.values_for_column(
+                column_name=column,
+                limit=limit if limit else config.get(
+                      'FILTER_SELECT_ROW_LIMIT', 10000),
+                search_string=search_string),
             default=utils.json_int_dttm_ser)
         return json_success(payload)
 

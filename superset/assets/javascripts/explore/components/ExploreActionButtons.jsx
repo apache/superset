@@ -5,6 +5,8 @@ import URLShortLinkButton from './URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
 import { t } from '../../locales';
+import { getSwivelUrl } from '../exploreUtils';
+import { isSupportedBySwivel } from '../../swivel/formDataUtils/convertToFormData';
 
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
@@ -22,6 +24,19 @@ export default function ExploreActionButtons({
   if (slice) {
     return (
       <div className="btn-group results" role="group">
+        {
+          queryResponse &&
+          isSupportedBySwivel(queryResponse.form_data) &&
+          <a
+            href={getSwivelUrl(queryResponse.form_data, true)}
+            className="btn btn-default btn-sm"
+            title="Open in Swivel"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open in Swivel
+          </a>
+        }
         <URLShortLinkButton slice={slice} />
 
         <EmbedCodeButton slice={slice} />
