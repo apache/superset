@@ -141,12 +141,14 @@ def is_granter_pvm(pvm):
                                    'can_approve'}
 
 
-def set_role(role_name, pvms, pvm_check):
+def set_role(role_name, pvm_check):
     logging.info("Syncing {} perms".format(role_name))
+    sesh = sm.get_session()
+    pvms = sesh.query(ab_models.PermissionView).all()
+    pvms = [p for p in pvms if p.permission and p.view_menu]
     role = sm.add_role(role_name)
     role_pvms = [p for p in pvms if pvm_check(p)]
     role.permissions = role_pvms
-    sesh = sm.get_session()
     sesh.merge(role)
     sesh.commit()
 
@@ -200,24 +202,15 @@ def sync_role_definitions():
     get_or_create_main_db()
     create_custom_permissions()
 
-    pvms = db.session.query(ab_models.PermissionView).all()
-    pvms = [p for p in pvms if p.permission and p.view_menu]
-
-    # cleanup
-    pvms_to_delete = [p for p in pvms if not (p.permission and p.view_menu)]
-
-    for pvm_to_delete in pvms_to_delete:
-        sm.get_session.delete(pvm_to_delete)
-
     # Creating default roles
-    set_role('Admin', pvms, is_admin_pvm)
-    set_role('Alpha', pvms, is_alpha_pvm)
-    set_role('Gamma', pvms, is_gamma_pvm)
-    set_role('granter', pvms, is_granter_pvm)
-    set_role('sql_lab', pvms, is_sql_lab_pvm)
+    set_role('Admin', is_admin_pvm)
+    set_role('Alpha', is_alpha_pvm)
+    set_role('Gamma', is_gamma_pvm)
+    set_role('granter', is_granter_pvm)
+    set_role('sql_lab', is_sql_lab_pvm)
 
     if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
-        set_role('Public', pvms, is_gamma_pvm)
+        set_role('Public', is_gamma_pvm)
 
     create_missing_perms()
 
