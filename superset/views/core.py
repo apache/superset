@@ -2061,6 +2061,7 @@ class Superset(BaseSupersetView):
     @log_this
     def csv(self, client_id):
         """Download the query results as csv."""
+        logging.info("Exporting CSV file [{}]".format(client_id))
         query = (
             db.session.query(Query)
             .filter_by(client_id=client_id)
@@ -2074,14 +2075,20 @@ class Superset(BaseSupersetView):
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
+            logging.info(
+                "Fetching CSV from results backend "
+                "[{}]".format(query.results_key))
             blob = results_backend.get(query.results_key)
         if blob:
+            logging.info("Decompressing")
             json_payload = utils.zlib_decompress_to_string(blob)
             obj = json.loads(json_payload)
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
+            logging.info("Using pandas to convert to CSV")
             csv = df.to_csv(index=False, encoding='utf-8')
         else:
+            logging.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
@@ -2089,6 +2096,7 @@ class Superset(BaseSupersetView):
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
+        logging.info("Ready to return response")
         return response
 
     @has_access
