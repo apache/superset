@@ -164,7 +164,8 @@ def create_missing_perms():
         "Fetching a set of all perms to lookup which ones are missing")
     all_pvs = set()
     for pv in sm.get_session.query(sm.permissionview_model).all():
-        all_pvs.add((pv.permission.name, pv.view_menu.name))
+        if pv.permission and pv.view_menu:
+            all_pvs.add((pv.permission.name, pv.view_menu.name))
 
     def merge_pv(view_menu, perm):
         """Create permission view menu only if it doesn't exist"""
