@@ -173,6 +173,7 @@ the world know they are using Superset. Join our growing community!
  - [Brilliant.org](https://brilliant.org/)
  - [Clark.de](http://clark.de/)
  - [Digit Game Studios](https://www.digitgaming.com/)
+ - [Douban](https://www.douban.com/)
  - [Endress+Hauser](http://www.endress.com/)
  - [FBK - ICT center](http://ict.fbk.eu)
  - [Faasos](http://faasos.com/)
