@@ -35,7 +35,6 @@ setLocale(getLanguage());
 function formatForReact(formatString, args) {
   let rv = [];
   let cursor = 0;
-
   sprintf.parse(formatString).forEach((match, idx) => {
     if (typeof match === 'string') {
       rv.push(match);
@@ -48,7 +47,6 @@ function formatForReact(formatString, args) {
       } else {
         arg = args[cursor++];
       }
-
       if (React.isValidElement(arg)) {
         rv.push(React.cloneElement(arg, {key: idx}));
       } else {
@@ -60,7 +58,6 @@ function formatForReact(formatString, args) {
       }
     }
   });
-
   return rv;
 }
 
@@ -78,20 +75,17 @@ function argsInvolveReact(args) {
 
 export function parseComponentTemplate(string) {
   let rv = {};
-
   function process(startPos, group, inGroup) {
     let regex = /\[(.*?)(:|\])|\]/g;
     let match;
     let buf = [];
     let satisfied = false;
-
     let pos = regex.lastIndex = startPos;
     while ((match = regex.exec(string)) !== null) {
       let substr = string.substr(pos, match.index - pos);
       if (substr !== '') {
         buf.push(substr);
       }
-
       if (match[0] == ']') {
         if (inGroup) {
           satisfied = true;
@@ -101,7 +95,6 @@ export function parseComponentTemplate(string) {
           continue;
         }
       }
-
       if (match[2] == ']') {
         pos = regex.lastIndex;
       } else {
@@ -109,7 +102,6 @@ export function parseComponentTemplate(string) {
       }
       buf.push({group: match[1]});
     }
-
     let endPos = regex.lastIndex;
     if (!satisfied) {
       let rest = string.substr(pos);
@@ -118,13 +110,10 @@ export function parseComponentTemplate(string) {
       }
       endPos = string.length;
     }
-
     rv[group] = buf;
     return endPos;
   }
-
   process(0, 'root', false);
-
   return rv;
 }
 
@@ -132,7 +121,6 @@ export function renderComponentTemplate(template, components) {
   let idx = 0;
   function renderGroup(group) {
     let children = [];
-
     (template[group] || []).forEach((item) => {
       if (typeof item === 'string') {
         children.push(<span key={idx++}>{item}</span>);
@@ -140,19 +128,16 @@ export function renderComponentTemplate(template, components) {
         children.push(renderGroup(item.group));
       }
     });
-
     let reference = components[group] || <span key={idx++} />;
     if (!React.isValidElement(reference)) {
       reference = <span key={idx++}>{reference}</span>;
     }
-
     if (children.length > 0) {
       return React.cloneElement(reference, {key: idx++}, children);
     } else {
       return React.cloneElement(reference, {key: idx++});
     }
   }
-
   return renderGroup('root');
 }
 
@@ -160,7 +145,6 @@ function mark(rv) {
   if (!LOCALE_DEBUG) {
     return rv;
   }
-
   let proxy = {
     $$typeof: Symbol.for('react.element'),
     type: 'span',
@@ -173,11 +157,9 @@ function mark(rv) {
     _owner: null,
     _store: {}
   };
-
   proxy.toString = function() {
     return '🇦🇹' + rv + '🇦🇹';
   };
-
   return proxy;
 }
 

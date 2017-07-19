@@ -9,13 +9,10 @@ export const translations = (function() {
   let ctx = require.context('../../translations/', true, /\.po$/);
   let rv = {};
   ctx.keys().forEach((translation) => {
-    
     let langCode = translation.match(/([a-zA-Z_]+)/)[1];
-    
     if (_.contains(catalogs, langCode)) {
       rv[dirname_to_locale(langCode)] = ctx(translation);
     }
-    
   });
   return rv;
 })();
