@@ -1,5 +1,5 @@
 
-const $ = window.$ = require('jquery'); // eslint-disable-line
+const $ = window.$ = require('jquery');
 
 export function getLanguage() {
   function getLocale() {
@@ -11,10 +11,14 @@ export function getLanguage() {
   }
   switch (getLocale()) {
     case 'en':
-      return 'en_US';
+      return 'es';
+    case 'fr':
+      return 'fr';
+    case 'it':
+      return 'it';
     case 'zh':
-      return 'zh_CN';
+      return 'zh';
     default:
-      return 'en_US';
+      return 'es';
   }
 }

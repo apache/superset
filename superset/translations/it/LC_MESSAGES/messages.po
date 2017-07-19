@@ -981,3 +981,55 @@ msgstr ""
 msgid "Saved Queries"
 msgstr ""
 
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:75
+msgid "Please enter a slice name"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:90
+msgid "Please select a dashboard"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:98
+msgid "Please enter a dashboard name"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:136
+msgid "Save A Slice"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:157
+msgid "Overwrite slice"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:166
+msgid "Save as"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:170
+msgid "[slice name]"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:183
+msgid "Do not add to a dashboard"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:191
+msgid "Add slice to existing dashboard"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:205
+msgid "Add to new dashboard"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:210
+msgid "[dashboard name]"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:222
+msgid "Save"
+msgstr ""
+
+#: superset/assets/javascripts/explore/components/SaveModal.jsx:231
+msgid "Save & go to dashboard"
+msgstr ""
+
