@@ -272,7 +272,7 @@ class ChartContainer extends React.PureComponent {
 
                   <TooltipWrapper
                     label="edit-desc"
-                    tooltip="Edit Description"
+                    tooltip="Edit slice properties"
                   >
                     <a
                       className="edit-desc-icon"
@@ -341,7 +341,7 @@ function mapStateToProps(state) {
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
     triggerRender: state.triggerRender,
-    datasourceType: state.datasource_type,
+    datasourceType: state.datasource.type,
     datasourceId: state.datasource_id,
   };
 }
