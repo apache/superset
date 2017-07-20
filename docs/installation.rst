@@ -392,13 +392,13 @@ have the same configuration.
 
 .. code-block:: python
 
- 	class CeleryConfig(object):
-    	BROKER_URL = 'redis://localhost:6379/0'
-		CELERY_IMPORTS = ('superset.sql_lab', )
-		CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-		CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+    class CeleryConfig(object):
+        BROKER_URL = 'redis://localhost:6379/0'
+        CELERY_IMPORTS = ('superset.sql_lab', )
+        CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+        CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 
-  	CELERY_CONFIG = CeleryConfig
+    CELERY_CONFIG = CeleryConfig
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
@@ -410,13 +410,13 @@ look something like:
 
 .. code-block:: python
 
-	# On S3
-  	from s3cache.s3cache import S3Cache
-  	S3_CACHE_BUCKET = 'foobar-superset'
-	S3_CACHE_KEY_PREFIX = 'sql_lab_result'
-  	RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
+    # On S3
+    from s3cache.s3cache import S3Cache
+    S3_CACHE_BUCKET = 'foobar-superset'
+    S3_CACHE_KEY_PREFIX = 'sql_lab_result'
+    RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
 
-	# On Redis
+    # On Redis
     from werkzeug.contrib.cache import RedisCache
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
