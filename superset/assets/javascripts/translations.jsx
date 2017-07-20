@@ -26,7 +26,7 @@ export const translations = (function () {
   return rv;
 }());
 
-const defaultLanguage = 'zh';
+const defaultLanguage = 'es';
 
 export function getTranslations(language) {
   return translations[language] || translations[defaultLanguage];

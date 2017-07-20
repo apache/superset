@@ -26,7 +26,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-from flask.ext import babel
+from flask_babel import get_locale
 
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
@@ -2273,7 +2273,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/rest/api/getLocale", methods=['GET', 'POST'])
     def getLocale(self):
-        return str(babel.get_locale())
+        return str(get_locale())
 appbuilder.add_view_no_menu(Superset)
 
 
