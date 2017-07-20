@@ -32,6 +32,8 @@ if not os.path.exists(DATA_DIR):
 # Superset specific config
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, 'static', 'assets')
+
+
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     VERSION_STRING = json.load(package_file)['version']
@@ -77,7 +79,7 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "SmartLink"
 
 # Uncomment to setup an App icon
 APP_ICON = "/static/assets/images/superset-logo@2x.png"
@@ -137,15 +139,15 @@ PUBLIC_ROLE_LIKE_GAMMA = False
 # Babel config for translations
 # ---------------------------------------------------
 # Setup default language
-BABEL_DEFAULT_LOCALE = 'en'
+BABEL_DEFAULT_LOCALE = 'zh'
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
-    'it': {'flag': 'it', 'name': 'Italian'},
+    # 'it': {'flag': 'it', 'name': 'Italian'},
     # 'fr': {'flag': 'fr', 'name': 'French'},
-    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
