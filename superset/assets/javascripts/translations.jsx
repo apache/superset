@@ -1,34 +1,37 @@
-import {_} from 'underscore';
+import { _ } from 'underscore';
+import info from '../../translations/catalogs.json';
 
-const catalogs = (function() {
-  let info = require('../../translations/catalogs.json');
+const catalogs = (function () {
   return info.supported_locales;
-})();
+}());
 
-export const translations = (function() {
-  let ctx = require.context('../../translations/', true, /\.po$/);
-  let rv = {};
+function dirnameToLocale(dirName) {
+  let reDirName = dirName;
+  if (dirName.indexOf('_') >= 0) {
+    const localeArray = dirName.split('_');
+    reDirName = localeArray[0] + '-' + localeArray[1].toLowerCase();
+  }
+  return reDirName;
+}
+
+export const translations = (function () {
+  const ctx = require.context('../../translations/', true, /\.po$/);
+  const rv = {};
   ctx.keys().forEach((translation) => {
-    let langCode = translation.match(/([a-zA-Z_]+)/)[1];
+    const langCode = translation.match(/([a-zA-Z_]+)/)[1];
     if (_.contains(catalogs, langCode)) {
-      rv[dirname_to_locale(langCode)] = ctx(translation);
+      rv[dirnameToLocale(langCode)] = ctx(translation);
     }
   });
   return rv;
-})();
+}());
+
+const defaultLanguage = 'zh';
 
 export function getTranslations(language) {
-  return translations[language] || translations['zh'];
+  return translations[language] || translations[defaultLanguage];
 }
 
 export function translationsExist(language) {
   return translations[language] !== undefined;
-}
-
-function dirname_to_locale(dir_name) {
-  if (dir_name.indexOf('_') >= 0) {
-      let locale_array = dir_name.split('_');
-      dir_name = locale_array[0] + '-' + locale_array[1].toLowerCase();
-  }
-  return dir_name
 }

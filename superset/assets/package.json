@@ -86,7 +86,7 @@
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
     "shortid": "^2.2.6",
-    "sprintfjs": "^1.2.6",
+    "sprintf-js": "^1.1.1",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",

@@ -112,8 +112,8 @@ const config = {
         loader: 'po-catalog-loader',
         query: {
           referenceExtensions: ['.js', '.jsx'],
-          domain: 'superset'
-        }
+          domain: 'superset',
+        },
       },
     ],
   },

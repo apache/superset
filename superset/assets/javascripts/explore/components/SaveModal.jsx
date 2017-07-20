@@ -178,7 +178,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'noSave'}
             onChange={this.changeDash.bind(this, 'noSave')}
           >
-          {t('Do not add to a dashboard')}
+            {t('Do not add to a dashboard')}
           </Radio>
 
           <Radio
@@ -186,7 +186,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'existing'}
             onChange={this.changeDash.bind(this, 'existing')}
           >
-          {t('Add slice to existing dashboard')}
+            {t('Add slice to existing dashboard')}
           </Radio>
           <Select
             options={this.props.dashboards}
@@ -200,7 +200,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'new'}
             onChange={this.changeDash.bind(this, 'new')}
           >
-          {t('Add to new dashboard')} &nbsp;
+            {t('Add to new dashboard')} &nbsp;
           </Radio>
           <input
             onChange={this.onChange.bind(this, 'newDashboardName')}
@@ -217,7 +217,7 @@ class SaveModal extends React.Component {
             className="btn pull-left"
             onClick={this.saveOrOverwrite.bind(this, false)}
           >
-          {t('Save')}
+            {t('Save')}
           </Button>
           <Button
             type="button"
@@ -226,7 +226,7 @@ class SaveModal extends React.Component {
             disabled={this.state.addToDash === 'noSave'}
             onClick={this.saveOrOverwrite.bind(this, true)}
           >
-          {t('Save & go to dashboard')}
+            {t('Save & go to dashboard')}
           </Button>
         </Modal.Footer>
       </Modal>
