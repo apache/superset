@@ -659,7 +659,7 @@ export const controls = {
     label: 'Entity',
     default: null,
     validators: [v.nonEmpty],
-    description: 'This define the element to be plotted on the chart',
+    description: 'This defines the element to be plotted on the chart',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
     }),
@@ -1272,6 +1272,24 @@ export const controls = {
     label: 'Cache Timeout (seconds)',
     hidden: true,
     description: 'The number of seconds before expiring the cache',
+  },
+
+  order_by_entity: {
+    type: 'CheckboxControl',
+    label: 'Order by entity id',
+    description: 'Important! Select this if the table is not already sorted by entity id, ' +
+    'else there is no guarantee that all events for each entity are returned.',
+    default: true,
+  },
+
+  min_leaf_node_event_count: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: 'Minimum leaf node event count',
+    default: 1,
+    choices: formatSelectOptionsForRange(1, 10),
+    description: 'Leaf nodes that represent fewer than this number of events will be initially ' +
+    'hidden in the visualization',
   },
 };
 export default controls;
