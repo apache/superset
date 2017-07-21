@@ -5,7 +5,7 @@ import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
-import { t } from '../../locale';
+import { t } from '../../locales';
 
 const propTypes = {
   can_overwrite: PropTypes.bool,

@@ -2,7 +2,7 @@ import Jed from 'jed';
 import React from 'react';
 import { sprintf } from 'sprintf-js';
 import { getTranslations } from './translations';
-import { getLanguage } from './explore/stores/language';
+import { getLanguage } from './explore/stores/getLanguage';
 
 let LOCALE_DEBUG = false;
 
