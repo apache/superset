@@ -25,6 +25,7 @@ export function setLocale(locale) {
     },
   });
 }
+
 setLocale(getLanguage());
 
 function formatForReact(formatString, args) {
