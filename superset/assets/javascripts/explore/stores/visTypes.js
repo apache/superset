@@ -155,6 +155,11 @@ const visTypes = {
     },
   },
 
+  line_ttest: {
+    label: 'Time Series - Line Chart with Paired t-test',
+    requiresTime: true,
+  },
+
   dual_line: {
     label: 'Dual Axis Line Chart',
     requiresTime: true,
@@ -891,6 +896,8 @@ const visTypes = {
     },
   },
 };
+visTypes.line_ttest.controlPanelSections = visTypes.line.controlPanelSections;
+visTypes.line_ttest.controlOverrides = visTypes.line.controlOverrides;
 
 export default visTypes;
 

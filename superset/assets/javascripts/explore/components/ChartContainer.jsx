@@ -14,6 +14,7 @@ import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
 import CachedLabel from '../../components/CachedLabel';
+import PairedTTestTableContainer from './PairedTTestTableContainer';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -248,71 +249,72 @@ class ChartContainer extends React.PureComponent {
     }
     const queryResponse = this.props.queryResponse;
     return (
-      <div className="chart-container">
-        <Panel
-          style={{ height: this.props.height }}
-          header={
-            <div
-              id="slice-header"
-              className="clearfix panel-title-large"
-            >
-              <EditableTitle
-                title={this.renderChartTitle()}
-                canEdit={this.props.can_overwrite}
-                onSaveTitle={this.updateChartTitle.bind(this)}
-              />
-
-              {this.props.slice &&
-                <span>
-                  <FaveStar
-                    sliceId={this.props.slice.slice_id}
-                    actions={this.props.actions}
-                    isStarred={this.props.isStarred}
-                  />
-
-                  <TooltipWrapper
-                    label="edit-desc"
-                    tooltip="Edit slice properties"
-                  >
-                    <a
-                      className="edit-desc-icon"
-                      href={`/slicemodelview/edit/${this.props.slice.slice_id}`}
+      <div>
+        <div className="chart-container">
+          <Panel
+            style={{ height: this.props.height }}
+            header={
+              <div
+                id="slice-header"
+                className="clearfix panel-title-large"
+              >
+                <EditableTitle
+                  title={this.renderChartTitle()}
+                  canEdit={this.props.can_overwrite}
+                  onSaveTitle={this.updateChartTitle.bind(this)}
+                />
+                {this.props.slice &&
+                  <span>
+                    <FaveStar
+                      sliceId={this.props.slice.slice_id}
+                      actions={this.props.actions}
+                      isStarred={this.props.isStarred}
+                    />
+                    <TooltipWrapper
+                      label="edit-desc"
+                      tooltip="Edit Description"
                     >
-                      <i className="fa fa-edit" />
-                    </a>
-                  </TooltipWrapper>
-                </span>
-              }
-
-              <div className="pull-right">
-                {this.props.chartStatus === 'success' &&
-                this.props.queryResponse &&
-                this.props.queryResponse.is_cached &&
-                  <CachedLabel
-                    onClick={this.runQuery.bind(this)}
-                    cachedTimestamp={queryResponse.cached_dttm}
-                  />
+                      <a
+                        className="edit-desc-icon"
+                        href={`/slicemodelview/edit/${this.props.slice.slice_id}`}
+                      >
+                        <i className="fa fa-edit" />
+                      </a>
+                    </TooltipWrapper>
+                  </span>
                 }
-                <Timer
-                  startTime={this.props.chartUpdateStartTime}
-                  endTime={this.props.chartUpdateEndTime}
-                  isRunning={this.props.chartStatus === 'loading'}
-                  status={CHART_STATUS_MAP[this.props.chartStatus]}
-                  style={{ fontSize: '10px', marginRight: '5px' }}
-                />
-                <ExploreActionButtons
-                  slice={this.state.mockSlice}
-                  canDownload={this.props.can_download}
-                  chartStatus={this.props.chartStatus}
-                  queryResponse={queryResponse}
-                  queryEndpoint={getExploreUrl(this.props.latestQueryFormData, 'query')}
-                />
+                <div className="pull-right">
+                  {this.props.chartStatus === 'success' &&
+                  this.props.queryResponse &&
+                  this.props.queryResponse.is_cached &&
+                    <CachedLabel
+                      onClick={this.runQuery.bind(this)}
+                      cachedTimestamp={queryResponse.cached_dttm}
+                    />
+                  }
+                  <Timer
+                    startTime={this.props.chartUpdateStartTime}
+                    endTime={this.props.chartUpdateEndTime}
+                    isRunning={this.props.chartStatus === 'loading'}
+                    status={CHART_STATUS_MAP[this.props.chartStatus]}
+                    style={{ fontSize: '10px', marginRight: '5px' }}
+                  />
+                  <ExploreActionButtons
+                    slice={this.state.mockSlice}
+                    canDownload={this.props.can_download}
+                    chartStatus={this.props.chartStatus}
+                    queryResponse={queryResponse}
+                    queryEndpoint={getExploreUrl(this.props.latestQueryFormData, 'query')}
+                  />
+                </div>
               </div>
-            </div>
-          }
-        >
-          {this.renderChart()}
-        </Panel>
+            }
+          >
+            {this.renderChart()}
+          </Panel>
+        </div>
+        {this.props.viz_type === 'line_ttest' &&
+        <PairedTTestTableContainer />}
       </div>
     );
   }
@@ -340,6 +342,7 @@ function mapStateToProps(state) {
     standalone: state.standalone,
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
+    metrics: formData.metrics ? formData.metrics.length : 0,
     triggerRender: state.triggerRender,
     datasourceType: state.datasource.type,
     datasourceId: state.datasource_id,

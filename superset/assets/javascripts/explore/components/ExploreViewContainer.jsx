@@ -18,12 +18,15 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
+  metrics: PropTypes.number.isRequired,
   standalone: PropTypes.bool.isRequired,
   triggerQuery: PropTypes.bool.isRequired,
+  queryResponse: PropTypes.object,
   queryRequest: PropTypes.object,
 };
 
 class ExploreViewContainer extends React.Component {
+
   constructor(props) {
     super(props);
     this.state = {
@@ -75,6 +78,18 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.chartUpdateStopped(this.props.queryRequest);
   }
 
+  getChartOffset() {
+    if (this.props.form_data.viz_type === 'line_ttest') {
+      // placed inside a try-catch block because queryResponse will be null initially
+      try {
+        return this.props.queryResponse.data.length * 40;
+      } catch (err) {
+        return 0;
+      }
+    }
+    return 0;
+  }
+
   getHeight() {
     if (this.props.forcedHeight) {
       return this.props.forcedHeight + 'px';
@@ -83,13 +98,25 @@ class ExploreViewContainer extends React.Component {
     return `${window.innerHeight - navHeight}px`;
   }
 
+  getChartHeight() {
+    const offset = this.getChartOffset();
+    const navHeight = this.props.standalone ? 0 : 90;
+    if (this.props.form_data.viz_type !== 'line_ttest') {
+      return this.getHeight();
+    } else if (this.props.metrics > 1) {
+      return parseInt(this.getHeight().slice(0, -2), 10) - 100 + 'px';
+    } else if (this.props.forcedHeight) {
+      return this.getHeight();
+    }
+    const chartHeight = Math.max(500, window.innerHeight - offset - navHeight);
+    return `${chartHeight}px`;
+  }
 
   triggerQueryIfNeeded() {
     if (this.props.triggerQuery && !this.hasErrors()) {
       this.props.actions.runQuery(this.props.form_data);
     }
   }
-
   handleResize() {
     clearTimeout(this.resizeTimer);
     this.resizeTimer = setTimeout(() => {
@@ -131,9 +158,11 @@ class ExploreViewContainer extends React.Component {
     return (
       <ChartContainer
         actions={this.props.actions}
-        height={this.state.height}
-      />);
+        height={this.getChartHeight()}
+      />
+    );
   }
+
 
   render() {
     if (this.props.standalone) {
@@ -173,7 +202,11 @@ class ExploreViewContainer extends React.Component {
             />
           </div>
           <div className="col-sm-8">
-            {this.renderChartContainer()}
+            <div className="scrollbar-container">
+              <div className="scrollbar-content">
+                {this.renderChartContainer()}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -192,7 +225,9 @@ function mapStateToProps(state) {
     form_data,
     standalone: state.standalone,
     triggerQuery: state.triggerQuery,
+    metrics: state.latestQueryFormData.metrics ? state.latestQueryFormData.metrics.length : 0,
     forcedHeight: state.forced_height,
+    queryResponse: state.queryResponse,
     queryRequest: state.queryRequest,
   };
 }

@@ -919,6 +919,14 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return chart_data
 
 
+class NVD3TimeSeriesPairedTTestViz(NVD3TimeSeriesViz):
+
+    """A standard line chart with a table displaying paired t-test values"""
+
+    viz_type = "line_ttest"
+    verbose_name = _("Time Series - Line Chart with Paired t-test")
+
+
 class NVD3DualLineViz(NVD3Viz):
 
     """A rich line chart with dual axis"""
@@ -1592,6 +1600,7 @@ viz_types_list = [
     TableViz,
     PivotTableViz,
     NVD3TimeSeriesViz,
+    NVD3TimeSeriesPairedTTestViz,
     NVD3DualLineViz,
     NVD3CompareTimeSeriesViz,
     NVD3TimeSeriesStackedViz,
