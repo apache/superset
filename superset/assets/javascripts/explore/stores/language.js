@@ -7,7 +7,7 @@ export function getLanguage() {
       url: '/superset/rest/api/getLocale',
       async: false,
     });
-    return locale.responseText;
+    return JSON.parse(locale.responseText).language;
   }
   switch (getLocale()) {
     case 'en':

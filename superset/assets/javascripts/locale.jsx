@@ -27,7 +27,6 @@ export function setLocale(locale) {
 }
 
 setLocale(getLanguage());
-// setLocale('zh');
 
 function formatForReact(formatString, args) {
   const rv = [];
