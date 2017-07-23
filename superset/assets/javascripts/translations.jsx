@@ -1,5 +1,6 @@
 import { _ } from 'underscore';
 import info from '../../translations/catalogs.json';
+import { getLanguage } from './explore/stores/getLanguage';
 
 const catalogs = (function () {
   return info.supported_locales;
@@ -20,7 +21,9 @@ export const translations = (function () {
   ctx.keys().forEach((translation) => {
     const langCode = translation.match(/([a-zA-Z_]+)/)[1];
     if (_.contains(catalogs, langCode)) {
-      rv[dirnameToLocale(langCode)] = ctx(translation);
+      if (langCode === getLanguage()) {
+        rv[dirnameToLocale(langCode)] = ctx(translation);
+      }
     }
   });
   return rv;

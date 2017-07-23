@@ -2271,7 +2271,7 @@ class Superset(BaseSupersetView):
         )
 
     @has_access
-    @expose("/rest/api/getLocale", methods=['GET', 'POST'])
+    @expose("/rest/api/get_locale", methods=['GET', 'POST'])
     def getLocale(self):
         return json_success(json.dumps({
             'language': str(get_locale()),
