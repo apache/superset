@@ -70,7 +70,7 @@ meets these guidelines:
 
 ## Documentation
 
-The latest documentation and tutorial are available [here](http://airbnb.io/superset).
+The latest documentation and tutorial are available [here](https://superset.incubator.apache.org/).
 
 Contributing to the official documentation is relatively easy, once you've setup
 your environment and done an edit end-to-end. The docs can be found in the
@@ -144,7 +144,7 @@ referenced in the rst, e.g.
 
 aren't actually included in that directory. _Instead_, you'll want to add and commit
 images (and any other static assets) to the _superset/assets/images_ directory.
-When the docs are being pushed to [airbnb.io](http://airbnb.io/superset/), images
+When the docs are being pushed to [Apache Superset (incubating)](https://superset.incubator.apache.org/), images
 will be moved from there to the _\_static/img_ directory, just like they're referenced
 in the docs.
 
@@ -161,12 +161,12 @@ instead.
 
 ## Setting up a Python development environment
 
-Check the [OS dependencies](http://airbnb.io/superset/installation.html#os-dependencies) before follows these steps.
+Check the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before follows these steps.
 
     # fork the repo on GitHub and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
-    # git clone git@github.com:airbnb/superset.git
+    # git clone git@github.com:apache/incubator-superset.git
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -331,6 +331,8 @@ key is to instrument the strings that need translation using
 a module, all you have to do is to `_("Wrap your strings")` using the
 underscore `_` "function".
 
+We use `import {t, tn, TCT} from locales;` in js, JSX file, locales is in `./superset/assets/javascripts/` directory.
+
 To enable changing language in your environment, you can simply add the
 `LANGUAGES` parameter to your `superset_config.py`. Having more than one
 options here will add a language selection dropdown on the right side of the
@@ -341,6 +343,10 @@ navigation bar.
         'fr': {'flag': 'fr', 'name': 'French'},
         'zh': {'flag': 'cn', 'name': 'Chinese'},
     }
+
+We need to extract the string to be translated, run the following command:
+
+    pybabel extract -F ./babel/babel.cfg -k _ -k __ -k t -k tn -k tct -o ./babel/messages.pot .
 
 As per the [Flask AppBuilder documentation] about translation, to create a
 new language dictionary, run the following command:
@@ -379,4 +385,4 @@ to take effect, they need to be compiled using this command:
 
 Here's an example as a Github PR with comments that describe what the
 different sections of the code do:
-https://github.com/airbnb/superset/pull/3013
+https://github.com/apache/incubator-superset/pull/3013

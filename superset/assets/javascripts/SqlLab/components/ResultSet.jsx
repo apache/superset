@@ -7,6 +7,7 @@ import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
+import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -35,7 +36,7 @@ export default class ResultSet extends React.PureComponent {
     this.state = {
       searchText: '',
       showModal: false,
-      data: [],
+      data: null,
       height: props.search ? props.height - RESULT_SET_CONTROLS_HEIGHT : props.height,
     };
   }
@@ -64,7 +65,7 @@ export default class ResultSet extends React.PureComponent {
       if (this.props.csv) {
         csvButton = (
           <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
-            <i className="fa fa-file-text-o" /> .CSV
+            <i className="fa fa-file-text-o" /> {t('.CSV')}
           </Button>
         );
       }
@@ -75,7 +76,7 @@ export default class ResultSet extends React.PureComponent {
             bsSize="small"
             onClick={this.showModal.bind(this)}
           >
-            <i className="fa fa-line-chart m-l-1" /> Visualize
+            <i className="fa fa-line-chart m-l-1" /> {t('Visualize')}
           </Button>
         );
       }
@@ -86,7 +87,7 @@ export default class ResultSet extends React.PureComponent {
             type="text"
             onChange={this.changeSearch.bind(this)}
             className="form-control input-sm"
-            placeholder="Search Results"
+            placeholder={t('Search Results')}
           />
         );
       }
@@ -146,44 +147,26 @@ export default class ResultSet extends React.PureComponent {
     const query = this.props.query;
     let sql;
 
-    if (query.state === 'stopped') {
-      return <Alert bsStyle="warning">Query was stopped</Alert>;
-    }
-
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
     }
-    if (['running', 'pending', 'fetching'].indexOf(query.state) > -1) {
-      let progressBar;
-      if (query.progress > 0 && query.state === 'running') {
-        progressBar = (
-          <ProgressBar
-            striped
-            now={query.progress}
-            label={`${query.progress}%`}
-          />);
-      }
-      return (
-        <div>
-          <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
-          <QueryStateLabel query={query} />
-          {progressBar}
-        </div>
-      );
+
+    if (query.state === 'stopped') {
+      return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
       return <Alert bsStyle="danger">{query.errorMessage}</Alert>;
     } else if (query.state === 'success' && query.ctas) {
       return (
         <div>
           <Alert bsStyle="info">
-            Table [<strong>{query.tempTable}</strong>] was
-            created &nbsp;
+            {t('Table')} [<strong>{query.tempTable}</strong>] {t('was ' +
+            'created')} &nbsp;
             <Button
               bsSize="small"
               className="m-r-5"
               onClick={this.popSelectStar.bind(this)}
             >
-              Query in a new tab
+              {t('Query in a new tab')}
             </Button>
           </Alert>
         </div>);
@@ -192,10 +175,10 @@ export default class ResultSet extends React.PureComponent {
       let data;
       if (this.props.cache && query.cached) {
         data = this.state.data;
-      } else {
-        data = results ? results.data : [];
+      } else if (results && results.data) {
+        data = results.data;
       }
-      if (results && data.length > 0) {
+      if (data && data.length > 0) {
         return (
           <div>
             <VisualizeModal
@@ -213,6 +196,8 @@ export default class ResultSet extends React.PureComponent {
             />
           </div>
         );
+      } else if (data && data.length === 0) {
+        return <Alert bsStyle="warning">The query returned no data</Alert>;
       }
     }
     if (query.cached) {
@@ -222,11 +207,40 @@ export default class ResultSet extends React.PureComponent {
           bsStyle="primary"
           onClick={this.reFetchQueryResults.bind(this, query)}
         >
-          Fetch data preview
+          {t('Fetch data preview')}
         </Button>
       );
     }
-    return <Alert bsStyle="warning">The query returned no data</Alert>;
+    let progressBar;
+    let trackingUrl;
+    if (query.progress > 0 && query.state === 'running') {
+      progressBar = (
+        <ProgressBar
+          striped
+          now={query.progress}
+          label={`${query.progress}%`}
+        />);
+    }
+    if (query.trackingUrl) {
+      trackingUrl = (
+        <Button
+          bsSize="small"
+          onClick={() => { window.open(query.trackingUrl); }}
+        >
+            Track Job
+        </Button>
+      );
+    }
+    return (
+      <div>
+        <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
+        <QueryStateLabel query={query} />
+        {progressBar}
+        <div>
+          {trackingUrl}
+        </div>
+      </div>
+    );
   }
 }
 ResultSet.propTypes = propTypes;

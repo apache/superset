@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
+import { t } from '../../../locales';
 
 const $ = window.$ = require('jquery');
 
@@ -114,7 +115,7 @@ export default class Filter extends React.Component {
         onChange={this.changeText.bind(this)}
         value={filter.val}
         className="form-control input-sm"
-        placeholder="Filter value"
+        placeholder={t('Filter value')}
       />
     );
   }
@@ -143,7 +144,7 @@ export default class Filter extends React.Component {
           <Col md={12}>
             <Select
               id="select-col"
-              placeholder={this.props.having ? 'Select metric' : 'Select column'}
+              placeholder={this.props.having ? t('Select metric') : t('Select column')}
               clearable={false}
               options={colChoices}
               value={filter.col}
@@ -155,7 +156,7 @@ export default class Filter extends React.Component {
           <Col md={3}>
             <Select
               id="select-op"
-              placeholder="Select operator"
+              placeholder={t('Select operator')}
               options={opsChoices}
               clearable={false}
               value={filter.op}

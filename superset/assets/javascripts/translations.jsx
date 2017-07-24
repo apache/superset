@@ -1,10 +1,5 @@
-import { _ } from 'underscore';
-import info from '../../translations/catalogs.json';
+/* eslint-disable global-require, import/no-dynamic-require */
 import { getLanguage } from './explore/stores/getLanguage';
-
-const catalogs = (function () {
-  return info.supported_locales;
-}());
 
 function dirnameToLocale(dirName) {
   let reDirName = dirName;
@@ -16,16 +11,9 @@ function dirnameToLocale(dirName) {
 }
 
 export const translations = (function () {
-  const ctx = require.context('../../translations/', true, /\.po$/);
+  const ctx = require(`../../translations/${getLanguage()}/LC_MESSAGES/messages.po`);
   const rv = {};
-  ctx.keys().forEach((translation) => {
-    const langCode = translation.match(/([a-zA-Z_]+)/)[1];
-    if (_.contains(catalogs, langCode)) {
-      if (langCode === getLanguage()) {
-        rv[dirnameToLocale(langCode)] = ctx(translation);
-      }
-    }
-  });
+  rv[dirnameToLocale(getLanguage())] = ctx;
   return rv;
 }());
 

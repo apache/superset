@@ -3,6 +3,7 @@ import { getControlsState, getFormDataFromControls } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { now } from '../../modules/dates';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
+import { t } from '../../locales';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -29,25 +30,6 @@ export const exploreReducer = function (state, action) {
     [actions.SET_DATASOURCE]() {
       return Object.assign({}, state, { datasource: action.datasource });
     },
-    [actions.FETCH_DATASOURCES_STARTED]() {
-      return Object.assign({}, state, { isDatasourcesLoading: true });
-    },
-
-    [actions.FETCH_DATASOURCES_SUCCEEDED]() {
-      return Object.assign({}, state, { isDatasourcesLoading: false });
-    },
-
-    [actions.FETCH_DATASOURCES_FAILED]() {
-      // todo(alanna) handle failure/error state
-      return Object.assign({}, state,
-        {
-          isDatasourcesLoading: false,
-          controlPanelAlert: action.error,
-        });
-    },
-    [actions.SET_DATASOURCES]() {
-      return Object.assign({}, state, { datasources: action.datasources });
-    },
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
     },
@@ -57,7 +39,7 @@ export const exploreReducer = function (state, action) {
 
     [actions.FETCH_DASHBOARDS_FAILED]() {
       return Object.assign({}, state,
-        { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
+        { saveModalAlert: t('fetching dashboards failed for %s', action.userId) });
     },
     [actions.SET_FIELD_VALUE]() {
       const controls = Object.assign({}, state.controls);
@@ -96,13 +78,13 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state,
         {
           chartStatus: 'stopped',
-          chartAlert: 'Updating chart was stopped',
+          chartAlert: t('Updating chart was stopped'),
         });
     },
     [actions.CHART_RENDERING_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: 'An error occurred while rendering the visualization: ' + action.error,
+        chartAlert: t('An error occurred while rendering the visualization: %s', action.error),
       });
     },
     [actions.TRIGGER_QUERY]() {
@@ -113,17 +95,17 @@ export const exploreReducer = function (state, action) {
     [actions.CHART_UPDATE_TIMEOUT]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: '<strong>Query timeout</strong> - visualization query are set to timeout at ' +
-        `${QUERY_TIMEOUT_THRESHOLD / 1000} seconds. ` +
-        'Perhaps your data has grown, your database is under unusual load, ' +
+        chartAlert: '<strong>' + t('Query timeout') + '</strong>' +
+        t('- visualization query are set to timeout at %s seconds. ', QUERY_TIMEOUT_THRESHOLD / 1000) +
+        t('Perhaps your data has grown, your database is under unusual load, ' +
         'or you are simply querying a data source that is to large to be processed within the timeout range. ' +
-        'If that is the case, we recommend that you summarize your data further.',
+        'If that is the case, we recommend that you summarize your data further.'),
       });
     },
     [actions.CHART_UPDATE_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: action.queryResponse ? action.queryResponse.error : 'Network error.',
+        chartAlert: action.queryResponse ? action.queryResponse.error : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
       });
@@ -146,7 +128,7 @@ export const exploreReducer = function (state, action) {
       return state;
     },
     [actions.SAVE_SLICE_FAILED]() {
-      return Object.assign({}, state, { saveModalAlert: 'Failed to save slice' });
+      return Object.assign({}, state, { saveModalAlert: t('Failed to save slice') });
     },
     [actions.SAVE_SLICE_SUCCESS](data) {
       return Object.assign({}, state, { data });

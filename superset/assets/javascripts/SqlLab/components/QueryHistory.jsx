@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Alert } from 'react-bootstrap';
 
 import QueryTable from './QueryTable';
+import { t } from '../../locales';
 
 const propTypes = {
   queries: PropTypes.array.isRequired,
@@ -24,7 +25,7 @@ const QueryHistory = (props) => {
   }
   return (
     <Alert bsStyle="info">
-      No query history yet...
+      {t('No query history yet...')}
     </Alert>
   );
 };

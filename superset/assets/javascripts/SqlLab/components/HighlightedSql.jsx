@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
 import ModalTrigger from '../../components/ModalTrigger';
+import { t } from '../../locales';
 
 const defaultProps = {
   maxWidth: 50,
@@ -52,7 +53,7 @@ class HighlightedSql extends React.Component {
     if (this.props.rawSql && this.props.rawSql !== this.props.sql) {
       rawSql = (
         <div>
-          <h4>Raw SQL</h4>
+          <h4>{t('Raw SQL')}</h4>
           <SyntaxHighlighter language="sql" style={github}>
             {this.props.rawSql}
           </SyntaxHighlighter>
@@ -62,7 +63,7 @@ class HighlightedSql extends React.Component {
     this.setState({
       modalBody: (
         <div>
-          <h4>Source SQL</h4>
+          <h4>{t('Source SQL')}</h4>
           <SyntaxHighlighter language="sql" style={github}>
             {this.props.sql}
           </SyntaxHighlighter>
@@ -74,7 +75,7 @@ class HighlightedSql extends React.Component {
   render() {
     return (
       <ModalTrigger
-        modalTitle="SQL"
+        modalTitle={t('SQL')}
         triggerNode={this.triggerNode()}
         modalBody={this.state.modalBody}
         beforeOpen={this.generateModal.bind(this)}

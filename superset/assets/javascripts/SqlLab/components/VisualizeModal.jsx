@@ -13,12 +13,13 @@ import { getExploreUrl } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
+import { t } from '../../locales';
 
 const CHART_TYPES = [
-  { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
-  { value: 'pie', label: 'Pie Chart', requiresTime: false },
-  { value: 'line', label: 'Time Series - Line Chart', requiresTime: true },
-  { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true },
+  { value: 'dist_bar', label: t('Distribution - Bar Chart'), requiresTime: false },
+  { value: 'pie', label: t('Pie Chart'), requiresTime: false },
+  { value: 'line', label: t('Time Series - Line Chart'), requiresTime: true },
+  { value: 'bar', label: t('Time Series - Bar Chart'), requiresTime: true },
 ];
 
 const propTypes = {
@@ -81,9 +82,9 @@ class VisualizeModal extends React.PureComponent {
       if (!re.test(colName)) {
         hints.push(
           <div>
-            "{colName}" is not right as a column name, please alias it
-            (as in SELECT count(*) <strong>AS my_alias</strong>) using only
-            alphanumeric characters and underscores
+            {t('%s is not right as a column name, please alias it ' +
+            '(as in SELECT count(*) ', colName)} <strong>{t('AS my_alias')}</strong>) {t('using only ' +
+            'alphanumeric characters and underscores')}
           </div>);
       }
     });
@@ -132,12 +133,12 @@ class VisualizeModal extends React.PureComponent {
     if (Math.round(queryDuration.asMilliseconds()) > QUERY_TIMEOUT_THRESHOLD) {
       advise = (
         <Alert bsStyle="warning">
-          This query took {Math.round(queryDuration.asSeconds())} seconds to run,
-          and the explore view times out at {QUERY_TIMEOUT_THRESHOLD / 1000} seconds,
-          following this flow will most likely lead to your query timing out.
-          We recommend your summarize your data further before following that flow.
-          If activated you can use the <strong>CREATE TABLE AS</strong> feature
-          to store a summarized data set that you can then explore.
+          {t('This query took %s seconds to run,', Math.round(queryDuration.asSeconds()))}
+          {t('and the explore view times out at %s seconds,', QUERY_TIMEOUT_THRESHOLD / 1000)}
+          {t('following this flow will most likely lead to your query timing out.' +
+          'We recommend your summarize your data further before following that flow.' +
+          'If activated you can use the ')} <strong>CREATE TABLE AS</strong> {t('feature' +
+          'to store a summarized data set that you can then explore.')}
         </Alert>);
     }
     return advise;
@@ -146,7 +147,6 @@ class VisualizeModal extends React.PureComponent {
     this.props.actions.createDatasource(this.buildVizOptions(), this)
       .done(() => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
-        const mainMetric = columns.filter(d => d.agg)[0];
         const mainGroupBy = columns.filter(d => d.is_dim)[0];
         const formData = {
           datasource: this.props.datasource,
@@ -154,14 +154,10 @@ class VisualizeModal extends React.PureComponent {
           since: '100 years ago',
           limit: '0',
         };
-        if (mainMetric) {
-          formData.metrics = [mainMetric.name];
-          formData.metric = mainMetric.name;
-        }
         if (mainGroupBy) {
           formData.groupby = [mainGroupBy.name];
         }
-        notify.info('Creating a data source and popping a new tab');
+        notify.info(t('Creating a data source and popping a new tab'));
 
         window.open(getExploreUrl(formData));
       })
@@ -191,7 +187,7 @@ class VisualizeModal extends React.PureComponent {
         <div className="VisualizeModal">
           <Modal show={this.props.show} onHide={this.props.onHide}>
             <Modal.Body>
-              No results available for this query
+              {t('No results available for this query')}
             </Modal.Body>
           </Modal>
         </div>
@@ -236,17 +232,17 @@ class VisualizeModal extends React.PureComponent {
       <div className="VisualizeModal">
         <Modal show={this.props.show} onHide={this.props.onHide}>
           <Modal.Header closeButton>
-            <Modal.Title>Visualize</Modal.Title>
+            <Modal.Title>{t('Visualize')}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             {alerts}
             {this.buildVisualizeAdvise()}
             <div className="row">
               <Col md={6}>
-                Chart Type
+                {t('Chart Type')}
                 <Select
                   name="select-chart-type"
-                  placeholder="[Chart Type]"
+                  placeholder={t('[Chart Type]')}
                   options={CHART_TYPES}
                   value={(this.state.chartType) ? this.state.chartType.value : null}
                   autosize={false}
@@ -254,11 +250,11 @@ class VisualizeModal extends React.PureComponent {
                 />
               </Col>
               <Col md={6}>
-                Datasource Name
+                {t('Datasource Name')}
                 <input
                   type="text"
                   className="form-control input-sm"
-                  placeholder="datasource name"
+                  placeholder={t('datasource name')}
                   onChange={this.changeDatasourceName.bind(this)}
                   value={this.state.datasourceName}
                 />
@@ -275,7 +271,7 @@ class VisualizeModal extends React.PureComponent {
               bsStyle="primary"
               disabled={(this.state.hints.length > 0)}
             >
-              Visualize
+              {t('Visualize')}
             </Button>
           </Modal.Body>
         </Modal>
