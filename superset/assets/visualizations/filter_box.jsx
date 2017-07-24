@@ -6,24 +6,30 @@ import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import { dashboardData } from '../spec/javascripts/dashboard/fixtures.jsx'
+import { dashboardContainer } from '../javascripts/dashboard/Dashboard.jsx'
 import '../stylesheets/react-select/select.less';
 import { TIME_CHOICES } from './constants';
 import './filter_box.css';
 
 const propTypes = {
-  origSelectedValues: PropTypes.object,
-  instantFiltering: PropTypes.bool,
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
+  showLabel: PropTypes.bool,
+  showMetricNumber: PropTypes.bool,
+  origSelectedValues: PropTypes.object,
+  instantFiltering: PropTypes.bool,
+  sliceId: PropTypes.number,
 };
 
 const defaultProps = {
-  origSelectedValues: {},
   onChange: () => {},
   showDateFilter: false,
+  showLabel: true,
+  showMetricNumber: false,
+  origSelectedValues: {},
   instantFiltering: true,
+  sliceId: -1,
 };
 
 class FilterBox extends React.Component {
@@ -39,12 +45,16 @@ class FilterBox extends React.Component {
     this.setState({ hasChanged: false });
   }
   changeFilter(filter, options) {
-    let vals = null;
-    if (dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId]) {
+    /*if (dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId]) {
       dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId].push(filter);
     } else {
       dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId] = [filter];
     }
+    console.log('[filter_box.jsx] dashboardData.metadata: ');
+    console.log(dashboardData.metadata);*/
+    console.log('filter: ' + filter);
+    console.log('sliceId: ' + this.props.sliceId);
+    let vals = null;
     if (options) {
       if (Array.isArray(options)) {
         vals = options.map(opt => opt.value);
@@ -144,7 +154,7 @@ function filterBox(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
   const fd = slice.formData;
-  const sliceId = slice.sliceId;
+  const sliceId = slice.data.slice_id;
   const filtersChoices = {};
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json

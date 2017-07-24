@@ -1,0 +1,12 @@
+{
+  "filter_immune_slices": [],
+  "expanded_slices": {},
+  "filter_immune_slice_fields": {
+    43: ["colo"],
+    44: ["device"],
+    45: ["label"],
+    46: ["plugin"], 
+    47: ["unit"],
+    48: ["priority"]
+  }
+}
