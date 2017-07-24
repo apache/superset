@@ -38,6 +38,7 @@
   },
   "homepage": "https://github.com/airbnb/superset#readme",
   "dependencies": {
+    "@data-ui/event-flow": "0.0.4",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "brace": "^0.10.0",
