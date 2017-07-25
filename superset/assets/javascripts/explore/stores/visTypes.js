@@ -302,6 +302,7 @@ const visTypes = {
           ['table_timestamp_format'],
           ['row_limit', 'page_length'],
           ['include_search', 'table_filter'],
+          ['csv_button'],
         ],
       },
     ],
@@ -703,7 +704,9 @@ const visTypes = {
         controlSetRows: [
           ['date_filter', 'instant_filtering'],
           ['groupby'],
+          ['filter_label'],
           ['metric'],
+          ['display_metric'],
         ],
       },
     ],

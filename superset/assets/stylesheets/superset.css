@@ -202,6 +202,10 @@ div.widget .slice_container {
     margin-bottom: 0;
 }
 
+.navbar-brand-image {
+  height: 100%;
+}
+
 .table-condensed {
     font-size: 12px;
 }
