@@ -10,6 +10,9 @@ const APP_DIR = path.resolve(__dirname, './');
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
 const config = {
+  node: {
+    fs: 'empty',
+  },
   entry: {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     common: APP_DIR + '/javascripts/common.js',
@@ -32,9 +35,7 @@ const config = {
     ],
     alias: {
       webworkify: 'webworkify-webpack',
-      'mapbox-gl/js/geo/transform': path.join(
-        __dirname, '/node_modules/mapbox-gl/js/geo/transform'),
-      'mapbox-gl': path.join(__dirname, '/node_modules/mapbox-gl/dist/mapbox-gl.js'),
+      'mapbox-gl$': path.join(__dirname, '/node_modules/mapbox-gl/dist/mapbox-gl.js'),
     },
 
   },
@@ -57,10 +58,10 @@ const config = {
           ],
         },
       },
-      /* for react-map-gl overlays */
+      /* for mapbox-gl/js/geo/transform */
       {
-        test: /\.react\.js$/,
-        include: APP_DIR + '/node_modules/react-map-gl/src/overlays',
+        test: /\.js$/,
+        include: APP_DIR + '/node_modules/mapbox-gl/js',
         loader: 'babel-loader',
       },
       /* for require('*.css') */
