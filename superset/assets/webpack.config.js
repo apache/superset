@@ -39,11 +39,19 @@ const config = {
 
   },
   module: {
-    noParse: /mapbox-gl\/dist/,
     loaders: [
       {
         test: /datatables\.net.*/,
         loader: 'imports-loader?define=>false',
+      },
+      {
+        test: /mapbox-gl\/.*\.js$/,
+        loader: 'babel-loader',
+        query: {
+          presets: [
+            'es2015',
+          ],
+        },
       },
       {
         test: /\.jsx?$/,
