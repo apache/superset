@@ -218,6 +218,14 @@ export const controls = {
     description: null,
   },
 
+  pivot_margins: {
+    type: 'CheckboxControl',
+    label: 'Show totals',
+    renderTrigger: false,
+    default: true,
+    description: 'Display total row/column',
+  },
+
   show_markers: {
     type: 'CheckboxControl',
     label: 'Show Markers',
