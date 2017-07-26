@@ -223,8 +223,13 @@ To install third party libraries defined in `package.json`, run the
 following within the `superset/assets/` directory which will install them in a
 new `node_modules/` folder within `assets/`.
 
-```
-npm install
+```bash
+# from the root of the repository, move to where our JS package.json lives
+cd superset/assets/
+# install yarn, a replacement for `npm install` that is faster and more deterministic
+npm install -g yarn
+# run yarn to fetch all the dependencies
+yarn
 ```
 
 To parse and generate bundled files for superset, run either of the

@@ -1,5 +1,6 @@
 from pyhive import hive
 from pythrifthiveapi.TCLIService import ttypes
+from thrift import Thrift
 
 
 # TODO: contribute back to pyhive.
@@ -15,9 +16,11 @@ def fetch_logs(self, max_rows=1024,
     """
     try:
         req = ttypes.TGetLogReq(operationHandle=self._operationHandle)
-        logs = self._connection.client.GetLog(req)
+        logs = self._connection.client.GetLog(req).log
         return logs
-    except ttypes.TApplicationException as e:  # raised if Hive is used
+    # raised if Hive is used
+    except (ttypes.TApplicationException,
+            Thrift.TApplicationException):
         if self._state == self._STATE_NONE:
             raise hive.ProgrammingError("No query yet")
         logs = []
@@ -30,12 +33,11 @@ def fetch_logs(self, max_rows=1024,
             )
             response = self._connection.client.FetchResults(req)
             hive._check_status(response)
-            assert not (
-                response.results.rows, 'expected data in columnar format'
-            )
+            assert not response.results.rows, \
+                'expected data in columnar format'
             assert len(response.results.columns) == 1, response.results.columns
             new_logs = hive._unwrap_column(response.results.columns[0])
             logs += new_logs
             if not new_logs:
                 break
-        return logs
+        return '\n'.join(logs)

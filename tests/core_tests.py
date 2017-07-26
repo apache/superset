@@ -284,6 +284,7 @@ class CoreTests(SupersetTestCase):
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'application/json'
 
         # validate that the endpoint works with the decrypted sqlalchemy uri
         data = json.dumps({
@@ -292,6 +293,7 @@ class CoreTests(SupersetTestCase):
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'application/json'
 
     def test_databaseview_edit(self, username='admin'):
         # validate that sending a password-masked uri does not over-write the decrypted uri
