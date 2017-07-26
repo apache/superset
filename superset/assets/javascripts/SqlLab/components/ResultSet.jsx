@@ -166,7 +166,10 @@ export default class ResultSet extends React.PureComponent {
       }
       if (query.trackingUrl) {
         trackingUrl = (
-          <Button bsSize="small" onClick={() => {window.open(query.trackingUrl)}}>
+          <Button
+            bsSize="small"
+            onClick={() => { window.open(query.trackingUrl); }}
+          >
               Track Job
           </Button>
         );
