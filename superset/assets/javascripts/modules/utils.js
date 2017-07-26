@@ -229,14 +229,10 @@ export function initJQueryAjax() {
 }
 
 export function tryNumify(s) {
-  // Attempts casting to float, returns string when failing
-  try {
-    const parsed = parseFloat(s);
-    if (parsed) {
-      return parsed;
-    }
-  } catch (e) {
-    // pass
+  // Attempts casting to Number, returns string when failing
+  const n = Number(s);
+  if (isNaN(n)) {
+    return s;
   }
-  return s;
+  return n;
 }
