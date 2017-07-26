@@ -35,6 +35,7 @@ export const controls = {
     isLoading: true,
     clearable: false,
     default: null,
+    validators: [v.nonEmpty],
     mapStateToProps: (state) => {
       const datasources = state.datasources || [];
       return {
