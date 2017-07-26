@@ -74,6 +74,23 @@ class FilterBox extends React.Component {
         );
       });
     }
+    // Add created options to filtersChoices, even though it doesn't exist,
+    // or these options will exist in query sql but invisible to end user.
+    if (this.state.selectedValues){
+      for (var filter in this.state.selectedValues){
+        const exist_values = this.props.filtersChoices[filter].map(f => f.id)
+        for (let v of this.state.selectedValues[filter]){
+          if (exist_values.indexOf(v) == -1){
+            this.props.filtersChoices[filter].push({
+              'filter': filter,
+              'id': v,
+              'text': v,
+              'metric': 0
+            })
+          }
+        }
+      }
+    }
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
       const data = this.props.filtersChoices[filter];
       const maxes = {};
