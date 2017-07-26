@@ -86,7 +86,7 @@ class FilterBox extends React.Component {
               id: v,
               text: v,
               metric: 0,
-            }
+            };
             this.props.filtersChoices[filterKey].push(addChoice);
           }
         }
