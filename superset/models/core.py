@@ -40,6 +40,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.viz import viz_types
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
 install_aliases()
+import urllib
 from urllib import parse  # noqa
 
 config = app.config
@@ -332,7 +333,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     filters = urllib.quote(default_filters)
                 elif isinstance(default_filters, unicode):
                     filters = urllib.quote(default_filters.encode('utf8'))
-                return "/superset/dashboard/{}/?preselect_filters={}".format(self.slug or self.id, filters)
+                return "/superset/dashboard/{}/?preselect_filters={}".format(
+                    self.slug or self.id, filters)
         return "/superset/dashboard/{}/".format(self.slug or self.id)
 
     @property

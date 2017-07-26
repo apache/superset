@@ -167,7 +167,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
     },
     effectiveExtraFilters(sliceId) {
       // Don't filter the filter_box itself by preselect_filters
-      if (this.getSlice(sliceId).formData.viz_type == 'filter_box'){
+      if (this.getSlice(sliceId).formData.viz_type === 'filter_box') {
         return [];
       }
       const f = [];
@@ -202,7 +202,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
       // If slice doesn't exist, remove the related parameters in preselect_filters.
       if (!this.getSlice(sliceId)) {
         return this.updateFilterParamsInUrl();
-      } else if (col != '__from' && col != '__to' && (this.getSlice(sliceId).formData.groupby.indexOf(col) == -1) ){
+      } else if (col !== '__from' && col !== '__to' && (this.getSlice(sliceId).formData.groupby.indexOf(col) === -1)) {
         // If col doesn't exist, remove the related parameters in preselect_filters.
         return this.updateFilterParamsInUrl();
       }
