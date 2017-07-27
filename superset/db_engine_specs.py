@@ -637,6 +637,21 @@ class HiveEngineSpec(PrestoEngineSpec):
     engine = 'hive'
     cursor_execute_kwargs = {'async': True}
 
+    # Scoping regex at class level to avoid recompiling
+    # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
+    jobs_stats_r = re.compile(
+        r'.*INFO.*Total jobs = (?P<max_jobs>[0-9]+)')
+    # 17/02/07 19:37:08 INFO ql.Driver: Launching Job 2 out of 5
+    launching_job_r = re.compile(
+        '.*INFO.*Launching Job (?P<job_number>[0-9]+) out of '
+        '(?P<max_jobs>[0-9]+)')
+    # 17/02/07 19:36:58 INFO exec.Task: 2017-02-07 19:36:58,152 Stage-18
+    # map = 0%,  reduce = 0%
+    stage_progress_r = re.compile(
+        r'.*INFO.*Stage-(?P<stage_number>[0-9]+).*'
+        r'map = (?P<map_progress>[0-9]+)%.*'
+        r'reduce = (?P<reduce_progress>[0-9]+)%.*')
+
     @classmethod
     def patch(cls):
         from pyhive import hive
@@ -666,38 +681,27 @@ class HiveEngineSpec(PrestoEngineSpec):
         return uri
 
     @classmethod
-    def progress(cls, logs):
-        # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
-        jobs_stats_r = re.compile(
-            r'.*INFO.*Total jobs = (?P<max_jobs>[0-9]+)')
-        # 17/02/07 19:37:08 INFO ql.Driver: Launching Job 2 out of 5
-        launching_job_r = re.compile(
-            '.*INFO.*Launching Job (?P<job_number>[0-9]+) out of '
-            '(?P<max_jobs>[0-9]+)')
-        # 17/02/07 19:36:58 INFO exec.Task: 2017-02-07 19:36:58,152 Stage-18
-        # map = 0%,  reduce = 0%
-        stage_progress = re.compile(
-            r'.*INFO.*Stage-(?P<stage_number>[0-9]+).*'
-            r'map = (?P<map_progress>[0-9]+)%.*'
-            r'reduce = (?P<reduce_progress>[0-9]+)%.*')
-        total_jobs = None
+    def progress(cls, log_lines):
+        total_jobs = 1  # assuming there's at least 1 job
         current_job = None
         stages = {}
-        lines = logs.splitlines()
-        for line in lines:
-            match = jobs_stats_r.match(line)
+        for line in log_lines:
+            match = cls.jobs_stats_r.match(line)
             if match:
-                total_jobs = int(match.groupdict()['max_jobs'])
-            match = launching_job_r.match(line)
+                total_jobs = int(match.groupdict()['max_jobs']) or 1
+            match = cls.launching_job_r.match(line)
             if match:
                 current_job = int(match.groupdict()['job_number'])
                 stages = {}
-            match = stage_progress.match(line)
+            match = cls.stage_progress_r.match(line)
             if match:
                 stage_number = int(match.groupdict()['stage_number'])
                 map_progress = int(match.groupdict()['map_progress'])
                 reduce_progress = int(match.groupdict()['reduce_progress'])
                 stages[stage_number] = (map_progress + reduce_progress) / 2
+        logging.info(
+            "Progress detail: {}, "
+            "total jobs: {}".format(stages, total_jobs))
 
         if not total_jobs or not current_job:
             return 0
@@ -710,6 +714,13 @@ class HiveEngineSpec(PrestoEngineSpec):
         return int(progress)
 
     @classmethod
+    def get_tracking_url(cls, log_lines):
+        lkp = "Tracking URL = "
+        for line in log_lines:
+            if lkp in line:
+                return line.split(lkp)[1]
+
+    @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
         from pyhive import hive
@@ -718,18 +729,35 @@ class HiveEngineSpec(PrestoEngineSpec):
             hive.ttypes.TOperationState.RUNNING_STATE,
         )
         polled = cursor.poll()
+        last_log_line = 0
+        tracking_url = None
         while polled.operationState in unfinished_states:
             query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
 
-            logs = cursor.fetch_logs()
-            if logs:
-                progress = cls.progress(logs)
+            resp = cursor.fetch_logs()
+            if resp and resp.log:
+                log = resp.log or ''
+                log_lines = resp.log.splitlines()
+                logging.info("\n".join(log_lines[last_log_line:]))
+                last_log_line = len(log_lines) - 1
+                progress = cls.progress(log_lines)
+                logging.info("Progress total: {}".format(progress))
+                needs_commit = False
                 if progress > query.progress:
                     query.progress = progress
-                session.commit()
+                    needs_commit = True
+                if not tracking_url:
+                    tracking_url = cls.get_tracking_url(log_lines)
+                    if tracking_url:
+                        logging.info(
+                            "Found the tracking url: {}".format(tracking_url))
+                        query.tracking_url = tracking_url
+                        needs_commit = True
+                if needs_commit:
+                    session.commit()
             time.sleep(5)
             polled = cursor.poll()
 

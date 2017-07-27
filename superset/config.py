@@ -241,6 +241,7 @@ class CeleryConfig(object):
   CELERY_IMPORTS = ('superset.sql_lab', )
   CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+  CELERYD_LOG_LEVEL = 'DEBUG'
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None

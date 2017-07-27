@@ -192,6 +192,9 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         conn.close()
         return handle_error(db_engine_spec.extract_error_message(e))
 
+    logging.info("Fetching cursor description")
+    cursor_description = cursor.description
+
     conn.commit()
     conn.close()
 
@@ -203,7 +206,7 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         }, default=utils.json_iso_dttm_ser)
 
     column_names = (
-        [col[0] for col in cursor.description] if cursor.description else [])
+        [col[0] for col in cursor_description] if cursor_description else [])
     column_names = dedup(column_names)
     cdf = dataframe.SupersetDataFrame(pd.DataFrame(
         list(data), columns=column_names))
