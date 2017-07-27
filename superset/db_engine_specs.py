@@ -939,6 +939,34 @@ class ClickHouseEngineSpec(BaseEngineSpec):
                 dttm.strftime('%Y-%m-%d %H:%M:%S'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
+
+class BQEngineSpec(BaseEngineSpec):
+    """Engine spec for Google's BigQuery
+
+    As contributed by @mxmzdlv on issue #945"""
+    engine = 'bigquery'
+
+    time_grains = (
+        Grain("Time Column", _('Time Column'), "{col}"),
+        Grain("second", _('second'), "TIMESTAMP_TRUNC({col}, SECOND)"),
+        Grain("minute", _('minute'), "TIMESTAMP_TRUNC({col}, MINUTE)"),
+        Grain("hour", _('hour'), "TIMESTAMP_TRUNC({col}, HOUR)"),
+        Grain("day", _('day'), "TIMESTAMP_TRUNC({col}, DAY)"),
+        Grain("week", _('week'), "TIMESTAMP_TRUNC({col}, WEEK)"),
+        Grain("month", _('month'), "TIMESTAMP_TRUNC({col}, MONTH)"),
+        Grain("quarter", _('quarter'), "TIMESTAMP_TRUNC({col}, QUARTER)"),
+        Grain("year", _('year'), "TIMESTAMP_TRUNC({col}, YEAR)"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
+        else:
+            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
 engines = {
     o.engine: o for o in globals().values()
     if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}
