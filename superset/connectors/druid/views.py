@@ -24,6 +24,12 @@ from . import models
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
+
+    list_title = _('List Druid Column')
+    show_title = _('Show Druid Column')
+    add_title = _('Add Druid Column')
+    edit_title = _('Edit Druid Column')
+
     edit_columns = [
         'column_name', 'description', 'dimension_spec_json', 'datasource',
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
@@ -70,6 +76,12 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
+
+    list_title = _('List Druid Metric')
+    show_title = _('Show Druid Metric')
+    add_title = _('Add Druid Metric')
+    edit_title = _('Edit Druid Metric')
+
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
@@ -112,6 +124,12 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
+
+    list_title = _('List Druid Cluster')
+    show_title = _('Show Druid Cluster')
+    add_title = _('Add Druid Cluster')
+    edit_title = _('Edit Druid Cluster')
+
     add_columns = [
         'verbose_name', 'coordinator_host', 'coordinator_port',
         'coordinator_endpoint', 'broker_host', 'broker_port',
@@ -151,6 +169,12 @@ appbuilder.add_view(
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
+
+    list_title = _('List Druid Datasource')
+    show_title = _('Show Druid Datasource')
+    add_title = _('Add Druid Datasource')
+    edit_title = _('Edit Druid Datasource')
+
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
         'datasource_link', 'cluster', 'changed_by_', 'modified']

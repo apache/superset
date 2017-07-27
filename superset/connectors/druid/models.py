@@ -492,7 +492,7 @@ class DruidDatasource(Model, BaseDatasource):
             lbound = datetime(1901, 1, 1).isoformat()[:10]
             rbound = datetime(2050, 1, 1).isoformat()[:10]
             if not self.version_higher(self.cluster.druid_version, '0.8.2'):
-                rbound = datetime.now().isoformat()[:10]
+                rbound = datetime.now().isoformat()
             try:
                 segment_metadata = client.segment_metadata(
                     datasource=self.datasource_name,

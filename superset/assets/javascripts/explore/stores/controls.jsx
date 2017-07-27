@@ -35,6 +35,7 @@ export const controls = {
     isLoading: true,
     clearable: false,
     default: null,
+    validators: [v.nonEmpty],
     mapStateToProps: (state) => {
       const datasources = state.datasources || [];
       return {
@@ -217,6 +218,14 @@ export const controls = {
     description: null,
   },
 
+  pivot_margins: {
+    type: 'CheckboxControl',
+    label: 'Show totals',
+    renderTrigger: false,
+    default: true,
+    description: 'Display total row/column',
+  },
+
   show_markers: {
     type: 'CheckboxControl',
     label: 'Show Markers',
@@ -326,7 +335,7 @@ export const controls = {
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.columns : [],
+      options: (state.datasource) ? state.datasource.columns.filter(c => c.groupby) : [],
     }),
   },
 

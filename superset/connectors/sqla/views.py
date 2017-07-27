@@ -24,6 +24,12 @@ from . import models
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
+
+    list_title = _('List Columns')
+    show_title = _('Show Column')
+    add_title = _('Add Column')
+    edit_title = _('Edit Column')
+
     can_delete = False
     list_widget = ListWidgetWithCheckboxes
     edit_columns = [
@@ -92,6 +98,12 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
+
+    list_title = _('List Metrics')
+    show_title = _('Show Metric')
+    add_title = _('Add Metric')
+    edit_title = _('Edit Metric')
+
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
@@ -136,6 +148,12 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
+        
+    list_title = _('List Tables')
+    show_title = _('Show Table')
+    add_title = _('Add Table')
+    edit_title = _('Edit Table')
+
     list_columns = [
         'link', 'database',
         'changed_by_', 'modified']

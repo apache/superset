@@ -723,9 +723,9 @@ class HiveEngineSpec(PrestoEngineSpec):
                 cursor.cancel()
                 break
 
-            resp = cursor.fetch_logs()
-            if resp and resp.log:
-                progress = cls.progress(resp.log)
+            logs = cursor.fetch_logs()
+            if logs:
+                progress = cls.progress(logs)
                 if progress > query.progress:
                     query.progress = progress
                 session.commit()
