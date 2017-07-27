@@ -398,7 +398,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def escape_sql(cls, sql):
-        return sql.replace('%', '%%')
+        return re.sub(r'%%|%', "%%", sql)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
