@@ -74,6 +74,11 @@ class BaseEngineSpec(object):
         return {}
 
     @classmethod
+    def escape_sql(cls, sql):
+        """Escapes the raw SQL"""
+        return sql
+
+    @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
@@ -138,14 +143,6 @@ class BaseEngineSpec(object):
         the database component of the URL, that can be handled here.
         """
         return uri
-
-    @classmethod
-    def sql_preprocessor(cls, sql):
-        """If the SQL needs to be altered prior to running it
-
-        For example Presto needs to double `%` characters
-        """
-        return sql
 
     @classmethod
     def patch(cls):
@@ -398,6 +395,10 @@ class PrestoEngineSpec(BaseEngineSpec):
                 database += '/' + selected_schema
             uri.database = database
         return uri
+
+    @classmethod
+    def escape_sql(cls, sql):
+        return re.sub(r'%%|%', "%%", sql)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
