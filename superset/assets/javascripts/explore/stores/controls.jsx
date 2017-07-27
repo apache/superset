@@ -253,7 +253,8 @@ export const controls = {
     type: 'CheckboxControl',
     label: 'Combine Metrics',
     default: false,
-    description: 'Combine Metrics to display.',
+    description: 'Display metrics side by side within each column, as ' +
+    'opposed to each column being displayed side by side for each metric.',
   },
 
   show_controls: {

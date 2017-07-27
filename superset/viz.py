@@ -390,25 +390,6 @@ class PivotTableViz(BaseViz):
         d['groupby'] = list(set(groupby) | set(columns))
         return d
 
-    def combine_metric(self, df):
-        metric_num = len(self.form_data.get('metrics'))
-        column_num = len(self.form_data.get('columns'))
-        if metric_num > 1 and column_num:
-            all_columns = list(df.columns)
-            distance = len(all_columns) / metric_num
-            # compute the new location of each column
-            sequence_map = {(metric_num * (i % distance) + i / distance): i
-                            for i in range(len(all_columns))}
-            for i in range(len(all_columns)):
-                move_col = all_columns[sequence_map[i]]
-                temp = df.pop(move_col)
-                new_col = tuple(list(move_col[1:]) + [move_col[0]])
-                df.insert(i, new_col, temp)
-
-            # adjust the location of column description
-            df.columns.names = df.columns.names[1:] + [df.columns.names[0]]
-        return df
-
     def get_data(self, df):
         if (
                 self.form_data.get("granularity") == "all" and
@@ -421,8 +402,9 @@ class PivotTableViz(BaseViz):
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=self.form_data.get('pivot_margins'),
         )
+        # Display metrics side by side with each column
         if self.form_data.get('combine_metric'):
-            df = self.combine_metric(df)
+            df = df.stack(0).unstack()
         return dict(
             columns=list(df.columns),
             html=df.to_html(
