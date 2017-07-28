@@ -308,8 +308,12 @@ SILENCE_FAB = True
 # configuration. These blueprints will get integrated in the app
 BLUEPRINTS = []
 
-try:
+# Provide a callable that receives a tracking_url and returns another
+# URL. This is used to translate internal Hadoop job tracker URL
+# into a proxied one
+TRACKING_URL_TRANSFORMER = lambda x: x
 
+try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
         # for case where app is being executed via pex.
