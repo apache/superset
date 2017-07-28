@@ -50,6 +50,13 @@ class JavascriptPostAggregator(Postaggregator):
         self.name = name
 
 
+class CustomPostAggregator(Postaggregator):
+    """A way to allow users to specify completely custom PostAggregators"""
+    def __init__(self, name, post_aggregator):
+        self.name = name
+        self.post_aggregator = post_aggregator
+
+
 class DruidCluster(Model, AuditMixinNullable):
 
     """ORM object referencing the Druid clusters"""
@@ -690,54 +697,25 @@ class DruidDatasource(Model, BaseDatasource):
                 period_name).total_seconds() * 1000
         return granularity
 
-    def values_for_column(self,
-                          column_name,
-                          limit=10000):
-        """Retrieve some values for the given column"""
-        # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
-        if self.fetch_values_from:
-            from_dttm = utils.parse_human_datetime(self.fetch_values_from)
-        else:
-            from_dttm = datetime(1970, 1, 1)
-
-        qry = dict(
-            datasource=self.datasource_name,
-            granularity="all",
-            intervals=from_dttm.isoformat() + '/' + datetime.now().isoformat(),
-            aggregations=dict(count=count("count")),
-            dimension=column_name,
-            metric="count",
-            threshold=limit,
-        )
-
-        client = self.cluster.get_pydruid_client()
-        client.topn(**qry)
-        df = client.export_pandas()
-        return [row[column_name] for row in df.to_records(index=False)]
-
-    def get_query_str(self, query_obj, phase=1, client=None):
-        return self.run_query(client=client, phase=phase, **query_obj)
-
     @staticmethod
     def _metrics_and_post_aggs(metrics, metrics_dict):
         all_metrics = []
         post_aggs = {}
 
         def recursive_get_fields(_conf):
-            print(_conf)
             _type = _conf.get('type')
-            _field = _conf.get('field', None)
-            _fields = _conf.get('fields', None)
+            _field = _conf.get('field')
+            _fields = _conf.get('fields')
 
             field_names = []
             if _type in ['fieldAccess', 'hyperUniqueCardinality',
                          'quantile', 'quantiles']:
                 field_names.append(_conf.get('fieldName', ''))
 
-            if _field is not None:
+            if _field:
                 field_names += recursive_get_fields(_field)
 
-            if _fields is not None:
+            if _fields:
                 for _f in _fields:
                     field_names += recursive_get_fields(_f)
 
@@ -783,12 +761,38 @@ class DruidDatasource(Model, BaseDatasource):
                         mconf.get('fields', []),
                         mconf.get('name', ''))
                 else:
-                    post_aggs[metric_name] = Postaggregator(
-                        None,
-                        None,
-                        mconf.get('name', ''))
-                    post_aggs[metric_name].post_aggregator = mconf
+                    post_aggs[metric_name] = CustomPostAggregator(
+                        mconf.get('name', ''),
+                        mconf)
         return all_metrics, post_aggs
+
+    def values_for_column(self,
+                          column_name,
+                          limit=10000):
+        """Retrieve some values for the given column"""
+        # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
+        if self.fetch_values_from:
+            from_dttm = utils.parse_human_datetime(self.fetch_values_from)
+        else:
+            from_dttm = datetime(1970, 1, 1)
+
+        qry = dict(
+            datasource=self.datasource_name,
+            granularity="all",
+            intervals=from_dttm.isoformat() + '/' + datetime.now().isoformat(),
+            aggregations=dict(count=count("count")),
+            dimension=column_name,
+            metric="count",
+            threshold=limit,
+        )
+
+        client = self.cluster.get_pydruid_client()
+        client.topn(**qry)
+        df = client.export_pandas()
+        return [row[column_name] for row in df.to_records(index=False)]
+
+    def get_query_str(self, query_obj, phase=1, client=None):
+        return self.run_query(client=client, phase=phase, **query_obj)
 
     def run_query(  # noqa / druid
             self,
