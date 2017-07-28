@@ -337,7 +337,7 @@ export const visTypes = {
         controlSetRows: [
           ['groupby', 'columns'],
           ['metrics', 'pandas_aggfunc'],
-          ['number_format', 'pivot_margins'],
+          ['number_format', 'combine_metric', 'pivot_margins'],
         ],
       },
     ],

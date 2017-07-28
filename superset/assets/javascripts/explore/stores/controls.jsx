@@ -249,6 +249,14 @@ export const controls = {
     description: 'Sort bars by x labels.',
   },
 
+  combine_metric: {
+    type: 'CheckboxControl',
+    label: 'Combine Metrics',
+    default: false,
+    description: 'Display metrics side by side within each column, as ' +
+    'opposed to each column being displayed side by side for each metric.',
+  },
+
   show_controls: {
     type: 'CheckboxControl',
     label: 'Extra Controls',
