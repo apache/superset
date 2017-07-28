@@ -62,7 +62,11 @@ class BaseViz(object):
         metrics = self.form_data.get('metrics') or []
         self.metrics = []
         for m in metrics:
-            self.metrics.append(m.get('label'))
+            if isinstance(m, dict):
+                metric_label = m.get('label')
+            else:
+                metric_label = m
+            self.metrics.append(metric_label)
 
         self.groupby = self.form_data.get('groupby') or []
         self.annotation_layers = []
