@@ -13,7 +13,7 @@ body {
 }
 
 .emph {
-  font-weight: bold;
+  font-weight: bold !important;
 }
 
 .alert.alert-danger > .debugger {
