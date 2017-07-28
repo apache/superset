@@ -50,6 +50,13 @@ class JavascriptPostAggregator(Postaggregator):
         self.name = name
 
 
+class CustomPostAggregator(Postaggregator):
+    """A way to allow users to specify completely custom PostAggregators"""
+    def __init__(self, name, post_aggregator):
+        self.name = name
+        self.post_aggregator = post_aggregator
+
+
 class DruidCluster(Model, AuditMixinNullable):
 
     """ORM object referencing the Druid clusters"""
@@ -690,6 +697,75 @@ class DruidDatasource(Model, BaseDatasource):
                 period_name).total_seconds() * 1000
         return granularity
 
+    @staticmethod
+    def _metrics_and_post_aggs(metrics, metrics_dict):
+        all_metrics = []
+        post_aggs = {}
+
+        def recursive_get_fields(_conf):
+            _type = _conf.get('type')
+            _field = _conf.get('field')
+            _fields = _conf.get('fields')
+
+            field_names = []
+            if _type in ['fieldAccess', 'hyperUniqueCardinality',
+                         'quantile', 'quantiles']:
+                field_names.append(_conf.get('fieldName', ''))
+
+            if _field:
+                field_names += recursive_get_fields(_field)
+
+            if _fields:
+                for _f in _fields:
+                    field_names += recursive_get_fields(_f)
+
+            return list(set(field_names))
+
+        for metric_name in metrics:
+            metric = metrics_dict[metric_name]
+            if metric.metric_type != 'postagg':
+                all_metrics.append(metric_name)
+            else:
+                mconf = metric.json_obj
+                all_metrics += recursive_get_fields(mconf)
+                all_metrics += mconf.get('fieldNames', [])
+                if mconf.get('type') == 'javascript':
+                    post_aggs[metric_name] = JavascriptPostAggregator(
+                        name=mconf.get('name', ''),
+                        field_names=mconf.get('fieldNames', []),
+                        function=mconf.get('function', ''))
+                elif mconf.get('type') == 'quantile':
+                    post_aggs[metric_name] = Quantile(
+                        mconf.get('name', ''),
+                        mconf.get('probability', ''),
+                    )
+                elif mconf.get('type') == 'quantiles':
+                    post_aggs[metric_name] = Quantiles(
+                        mconf.get('name', ''),
+                        mconf.get('probabilities', ''),
+                    )
+                elif mconf.get('type') == 'fieldAccess':
+                    post_aggs[metric_name] = Field(mconf.get('name'))
+                elif mconf.get('type') == 'constant':
+                    post_aggs[metric_name] = Const(
+                        mconf.get('value'),
+                        output_name=mconf.get('name', '')
+                    )
+                elif mconf.get('type') == 'hyperUniqueCardinality':
+                    post_aggs[metric_name] = HyperUniqueCardinality(
+                        mconf.get('name')
+                    )
+                elif mconf.get('type') == 'arithmetic':
+                    post_aggs[metric_name] = Postaggregator(
+                        mconf.get('fn', "/"),
+                        mconf.get('fields', []),
+                        mconf.get('name', ''))
+                else:
+                    post_aggs[metric_name] = CustomPostAggregator(
+                        mconf.get('name', ''),
+                        mconf)
+        return all_metrics, post_aggs
+
     def values_for_column(self,
                           column_name,
                           limit=10000):
@@ -749,61 +825,10 @@ class DruidDatasource(Model, BaseDatasource):
 
         query_str = ""
         metrics_dict = {m.metric_name: m for m in self.metrics}
-        all_metrics = []
-        post_aggs = {}
 
         columns_dict = {c.column_name: c for c in self.columns}
 
-        def recursive_get_fields(_conf):
-            _fields = _conf.get('fields', [])
-            field_names = []
-            for _f in _fields:
-                _type = _f.get('type')
-                if _type in ['fieldAccess', 'hyperUniqueCardinality']:
-                    field_names.append(_f.get('fieldName'))
-                elif _type == 'arithmetic':
-                    field_names += recursive_get_fields(_f)
-            return list(set(field_names))
-
-        for metric_name in metrics:
-            metric = metrics_dict[metric_name]
-            if metric.metric_type != 'postagg':
-                all_metrics.append(metric_name)
-            else:
-                mconf = metric.json_obj
-                all_metrics += recursive_get_fields(mconf)
-                all_metrics += mconf.get('fieldNames', [])
-                if mconf.get('type') == 'javascript':
-                    post_aggs[metric_name] = JavascriptPostAggregator(
-                        name=mconf.get('name', ''),
-                        field_names=mconf.get('fieldNames', []),
-                        function=mconf.get('function', ''))
-                elif mconf.get('type') == 'quantile':
-                    post_aggs[metric_name] = Quantile(
-                        mconf.get('name', ''),
-                        mconf.get('probability', ''),
-                    )
-                elif mconf.get('type') == 'quantiles':
-                    post_aggs[metric_name] = Quantiles(
-                        mconf.get('name', ''),
-                        mconf.get('probabilities', ''),
-                    )
-                elif mconf.get('type') == 'fieldAccess':
-                    post_aggs[metric_name] = Field(mconf.get('name'))
-                elif mconf.get('type') == 'constant':
-                    post_aggs[metric_name] = Const(
-                        mconf.get('value'),
-                        output_name=mconf.get('name', '')
-                    )
-                elif mconf.get('type') == 'hyperUniqueCardinality':
-                    post_aggs[metric_name] = HyperUniqueCardinality(
-                        mconf.get('name')
-                    )
-                else:
-                    post_aggs[metric_name] = Postaggregator(
-                        mconf.get('fn', "/"),
-                        mconf.get('fields', []),
-                        mconf.get('name', ''))
+        all_metrics, post_aggs = self._metrics_and_post_aggs(metrics, metrics_dict)
 
         aggregations = OrderedDict()
         for m in self.metrics:
