@@ -187,7 +187,7 @@ function mapStateToProps(state) {
   const form_data = getFormDataFromControls(state.controls);
   return {
     chartStatus: state.chartStatus,
-    datasource_type: state.datasource_type,
+    datasource_type: state.datasource.type,
     controls: state.controls,
     form_data,
     standalone: state.standalone,

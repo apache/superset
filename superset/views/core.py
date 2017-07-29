@@ -87,7 +87,7 @@ def json_success(json_msg, status=200):
 
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
-    return obj and obj.owners and user in obj.owners
+    return obj and user in obj.owners
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -179,6 +179,12 @@ def generate_download_headers(extension):
 
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
+
+    list_title = _('List Databases')
+    show_title = _('Show Database')
+    add_title = _('Add Database')
+    edit_title = _('Edit Database')
+
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
         'allow_dml', 'creator', 'modified']
@@ -494,6 +500,12 @@ appbuilder.add_view(
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
+
+    list_title = _('List Slices')
+    show_title = _('Show Slice')
+    add_title = _('Add Slice')
+    edit_title = _('Edit Slice')
+
     can_add = False
     label_columns = {
         'datasource_link': 'Datasource',
@@ -555,7 +567,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         return self.render_template(
             "superset/add_slice.html",
             bootstrap_data=json.dumps({
-                'datasources': datasources,
+                'datasources': sorted(datasources, key=lambda d: d["label"]),
             }),
         )
 
@@ -590,6 +602,12 @@ appbuilder.add_view_no_menu(SliceAddView)
 
 class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
+
+    list_title = _('List Dashboards')
+    show_title = _('Show Dashboard')
+    add_title = _('Add Dashboard')
+    edit_title = _('Edit Dashboard')
+
     list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
@@ -1238,7 +1256,6 @@ class Superset(BaseSupersetView):
             "can_download": slice_download_perm,
             "can_overwrite": slice_overwrite_perm,
             "datasource": datasource.data,
-            # TODO: separate endpoint for fetching datasources
             "form_data": form_data,
             "datasource_id": datasource_id,
             "datasource_type": datasource_type,
@@ -1282,7 +1299,9 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        payload = json.dumps(datasource.values_for_column(column))
+        payload = json.dumps(
+            datasource.values_for_column(column),
+            default=utils.json_int_dttm_ser)
         return json_success(payload)
 
     def save_or_overwrite_slice(
@@ -1494,6 +1513,7 @@ class Superset(BaseSupersetView):
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data['css']
+        dashboard.dashboard_title = data['dashboard_title']
 
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
@@ -1547,7 +1567,7 @@ class Superset(BaseSupersetView):
                 .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
-            return json.dumps(engine.table_names(), indent=4)
+            return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
             logging.exception(e)
             return json_error_response((
@@ -2185,6 +2205,7 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if async:
+            logging.info("Running query on a Celery worker")
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
@@ -2193,7 +2214,7 @@ class Superset(BaseSupersetView):
             except Exception as e:
                 logging.exception(e)
                 msg = (
-                    "Failed to start remote query on worker. "
+                    "Failed to start remote query on a worker. "
                     "Tell your administrator to verify the availability of "
                     "the message queue."
                 )
@@ -2221,16 +2242,20 @@ class Superset(BaseSupersetView):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
+                payload = json.dumps(data, default=utils.json_iso_dttm_ser)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))
-        return json_success(data)
+        if data.get('status') == QueryStatus.FAILED:
+            return json_error_response(payload)
+        return json_success(payload)
 
     @has_access
     @expose("/csv/<client_id>")
     @log_this
     def csv(self, client_id):
         """Download the query results as csv."""
+        logging.info("Exporting CSV file [{}]".format(client_id))
         query = (
             db.session.query(Query)
             .filter_by(client_id=client_id)
@@ -2244,14 +2269,20 @@ class Superset(BaseSupersetView):
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
+            logging.info(
+                "Fetching CSV from results backend "
+                "[{}]".format(query.results_key))
             blob = results_backend.get(query.results_key)
         if blob:
+            logging.info("Decompressing")
             json_payload = utils.zlib_decompress_to_string(blob)
             obj = json.loads(json_payload)
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
+            logging.info("Using pandas to convert to CSV")
             csv = df.to_csv(index=False, encoding='utf-8')
         else:
+            logging.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
@@ -2259,6 +2290,7 @@ class Superset(BaseSupersetView):
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
+        logging.info("Ready to return response")
         return response
 
     @has_access

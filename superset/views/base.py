@@ -11,7 +11,6 @@ from flask_appbuilder import ModelView
 from flask_appbuilder.widgets import ListWidget
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.filters import BaseFilter
-from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import appbuilder, conf, db, utils, sm, sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry

@@ -75,7 +75,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (dbId && schema) {
       this.setState({ tableLoading: true, tableOptions: [] });
       const url = `/superset/tables/${dbId}/${schema}/${substr}/`;
-      $.get(url, (data) => {
+      $.get(url).done((data) => {
         const filterOptions = createFilterOptions({ options: data.options });
         this.setState({
           filterOptions,
@@ -121,7 +121,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (actualDbId) {
       this.setState({ schemaLoading: true });
       const url = `/superset/schemas/${actualDbId}/`;
-      $.get(url, (data) => {
+      $.get(url).done((data) => {
         const schemaOptions = data.schemas.map(s => ({ value: s, label: s }));
         this.setState({ schemaOptions, schemaLoading: false });
       })

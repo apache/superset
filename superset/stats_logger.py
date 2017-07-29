@@ -1,3 +1,6 @@
+from colorama import Fore, Style
+import logging
+
 
 class BaseStatsLogger(object):
     """Base class for logging realtime events"""
@@ -26,13 +29,18 @@ class BaseStatsLogger(object):
 class DummyStatsLogger(BaseStatsLogger):
 
     def incr(self, key):
-        pass
+        logging.info(
+            Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
 
     def decr(self, key):
-        pass
+        logging.info(
+            Fore.CYAN + "[stats_logger] (decr) " + key + Style.RESET_ALL)
 
-    def gauge(self, key):
-        pass
+    def gauge(self, key, value):
+        logging.info((
+            Fore.CYAN + "[stats_logger] (gauge) "
+            "{key} | {value}" + Style.RESET_ALL).format(**locals())
+        )
 
 
 try:

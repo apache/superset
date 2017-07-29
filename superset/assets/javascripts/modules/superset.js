@@ -8,7 +8,7 @@ import { QUERY_TIMEOUT_THRESHOLD } from '../constants';
 
 const utils = require('./utils');
 
-/* eslint wrap-iife: 0*/
+/* eslint wrap-iife: 0 */
 const px = function () {
   let slice;
   function getParam(name) {
@@ -177,7 +177,7 @@ const px = function () {
         $(selector + ' div.alert').remove();
       },
       width() {
-        return token.width();
+        return container.width();
       },
       height() {
         let others = 0;
