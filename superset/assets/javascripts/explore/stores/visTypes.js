@@ -1,3 +1,6 @@
+import { D3_TIME_FORMAT_OPTIONS } from './controls';
+import * as v from '../validators';
+
 export const sections = {
   druidTimeSeries: {
     label: 'Time',
@@ -72,7 +75,7 @@ export const sections = {
   ],
 };
 
-const visTypes = {
+export const visTypes = {
   dist_bar: {
     label: 'Distribution - Bar Chart',
     controlPanelSections: [
@@ -143,6 +146,12 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
   },
 
   dual_line: {
@@ -158,15 +167,13 @@ const visTypes = {
       {
         label: 'Y Axis 1',
         controlSetRows: [
-          ['metric'],
-          ['y_axis_format'],
+          ['metric', 'y_axis_format'],
         ],
       },
       {
         label: 'Y Axis 2',
         controlSetRows: [
-          ['metric_2'],
-          ['y_axis_2_format'],
+          ['metric_2', 'y_axis_2_format'],
         ],
       },
     ],
@@ -177,6 +184,10 @@ const visTypes = {
       },
       y_axis_format: {
         label: 'Left Axis Format',
+      },
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
       },
     },
   },
@@ -206,6 +217,12 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
   },
 
   compare: {
@@ -221,6 +238,12 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
   },
 
   area: {
@@ -247,6 +270,12 @@ const visTypes = {
       },
       sections.NVD3TimeSeries[1],
     ],
+    controlOverrides: {
+      x_axis_format: {
+        default: 'smart_date',
+        choices: D3_TIME_FORMAT_OPTIONS,
+      },
+    },
   },
 
   table: {
@@ -308,7 +337,7 @@ const visTypes = {
         controlSetRows: [
           ['groupby', 'columns'],
           ['metrics', 'pandas_aggfunc'],
-          ['number_format'],
+          ['number_format', 'combine_metric', 'pivot_margins'],
         ],
       },
     ],
@@ -410,19 +439,41 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['series', 'entity'],
-          ['x', 'y'],
           ['size', 'limit'],
         ],
       },
       {
         label: 'Chart Options',
         controlSetRows: [
-          ['show_legend', 'max_bubble_size'],
-          ['x_axis_label', 'y_axis_label'],
-          ['x_log_scale', 'y_log_scale'],
+          ['show_legend', null],
+        ],
+      },
+      {
+        label: 'Bubbles',
+        controlSetRows: [
+          ['size', 'max_bubble_size'],
+        ],
+      },
+      {
+        label: 'X Axis',
+        controlSetRows: [
+          ['x', 'x_axis_format'],
+          ['x_axis_label', 'x_log_scale'],
+        ],
+      },
+      {
+        label: 'Y Axis',
+        controlSetRows: [
+          ['y', 'y_axis_format'],
+          ['y_axis_label', 'y_log_scale'],
         ],
       },
     ],
+    controlOverrides: {
+      x_axis_format: {
+        default: '.3s',
+      },
+    },
   },
 
   bullet: {
@@ -448,9 +499,8 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['metric'],
-          ['compare_lag'],
-          ['compare_suffix'],
-          ['y_axis_format'],
+          ['compare_lag', 'compare_suffix'],
+          ['y_axis_format', null],
         ],
       },
     ],
@@ -586,6 +636,37 @@ const visTypes = {
       },
     },
   },
+  chord: {
+    label: 'Chord Diagram',
+    controlPanelSections: [
+      {
+        label: null,
+        controlSetRows: [
+          ['groupby', 'columns'],
+          ['metric'],
+          ['row_limit', 'y_axis_format'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      y_axis_format: {
+        label: 'Number format',
+        description: 'Choose a number format',
+      },
+      groupby: {
+        label: 'Source',
+        multi: false,
+        validators: [v.nonEmpty],
+        description: 'Choose a source',
+      },
+      columns: {
+        label: 'Target',
+        multi: false,
+        validators: [v.nonEmpty],
+        description: 'Choose a target',
+      },
+    },
+  },
   country_map: {
     label: 'Country Map',
     controlPanelSections: [
@@ -661,8 +742,13 @@ const visTypes = {
     controlOverrides: {
       groupby: {
         label: 'Filter controls',
-        description: 'The controls you want to filter on',
-        default: [],
+        description: (
+          'The controls you want to filter on. Note that only columns ' +
+          'checked as "filterable" will show up on this list.'
+        ),
+        mapStateToProps: state => ({
+          options: (state.datasource) ? state.datasource.columns.filter(c => c.filterable) : [],
+        }),
       },
     },
   },
@@ -716,6 +802,14 @@ const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      all_columns_x: {
+        validators: [v.nonEmpty],
+      },
+      all_columns_y: {
+        validators: [v.nonEmpty],
+      },
+    },
   },
 
   horizon: {
@@ -797,6 +891,51 @@ const visTypes = {
       groupby: {
         description: 'One or many controls to group by. If grouping, latitude ' +
         'and longitude columns must be present.',
+      },
+    },
+  },
+
+  event_flow: {
+    label: 'Event flow',
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: 'Event definition',
+        controlSetRows: [
+          ['entity'],
+          ['all_columns_x'],
+          ['row_limit'],
+          ['order_by_entity'],
+          ['min_leaf_node_event_count'],
+        ],
+      },
+      {
+        label: 'Additional meta data',
+        controlSetRows: [
+          ['all_columns'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      entity: {
+        label: 'Column containing entity ids',
+        description: 'e.g., a "user id" column',
+      },
+      all_columns_x: {
+        label: 'Column containing event names',
+        validators: [v.nonEmpty],
+        default: control => (
+          control.choices && control.choices.length > 0 ?
+            control.choices[0][0] : null
+        ),
+      },
+      row_limit: {
+        label: 'Event count limit',
+        description: 'The maximum number of events to return, equivalent to number of rows',
+      },
+      all_columns: {
+        label: 'Meta data',
+        description: 'Select any columns for meta data inspection',
       },
     },
   },

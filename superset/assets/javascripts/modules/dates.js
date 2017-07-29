@@ -2,7 +2,7 @@ import moment from 'moment';
 
 const d3 = require('d3');
 
-function UTC(dttm) {
+export function UTC(dttm) {
   return new Date(
     dttm.getUTCFullYear(),
     dttm.getUTCMonth(),
@@ -66,13 +66,6 @@ export const formatDate = function (dttm) {
   const d = UTC(new Date(dttm));
   // d = new Date(d.getTime() - 1 * 60 * 60 * 1000);
   return tickMultiFormat(d);
-};
-export const timeFormatFactory = function (d3timeFormat) {
-  const f = d3.time.format(d3timeFormat);
-  return function (dttm) {
-    const d = UTC(new Date(dttm));
-    return f(d);
-  };
 };
 export const fDuration = function (t1, t2, f = 'HH:mm:ss.SS') {
   const diffSec = t2 - t1;

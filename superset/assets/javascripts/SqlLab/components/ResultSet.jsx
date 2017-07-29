@@ -6,6 +6,7 @@ import shortid from 'shortid';
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
+import QueryStateLabel from './QueryStateLabel';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -143,14 +144,6 @@ export default class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
-    const results = query.results;
-    let data;
-    if (this.props.cache && query.cached) {
-      data = this.state.data;
-    } else {
-      data = results ? results.data : [];
-    }
-
     let sql;
 
     if (query.state === 'stopped') {
@@ -162,6 +155,7 @@ export default class ResultSet extends React.PureComponent {
     }
     if (['running', 'pending', 'fetching'].indexOf(query.state) > -1) {
       let progressBar;
+      let trackingUrl;
       if (query.progress > 0 && query.state === 'running') {
         progressBar = (
           <ProgressBar
@@ -170,10 +164,24 @@ export default class ResultSet extends React.PureComponent {
             label={`${query.progress}%`}
           />);
       }
+      if (query.trackingUrl) {
+        trackingUrl = (
+          <Button
+            bsSize="small"
+            onClick={() => { window.open(query.trackingUrl); }}
+          >
+              Track Job
+          </Button>
+        );
+      }
       return (
         <div>
           <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
+          <QueryStateLabel query={query} />
           {progressBar}
+          <div>
+            {trackingUrl}
+          </div>
         </div>
       );
     } else if (query.state === 'failed') {
@@ -194,7 +202,14 @@ export default class ResultSet extends React.PureComponent {
           </Alert>
         </div>);
     } else if (query.state === 'success') {
-      if (results && data && data.length > 0) {
+      const results = query.results;
+      let data;
+      if (this.props.cache && query.cached) {
+        data = this.state.data;
+      } else {
+        data = results ? results.data : [];
+      }
+      if (results && data.length > 0) {
         return (
           <div>
             <VisualizeModal

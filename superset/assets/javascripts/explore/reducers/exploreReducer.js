@@ -135,6 +135,10 @@ export const exploreReducer = function (state, action) {
       }
       return newState;
     },
+    [actions.UPDATE_CHART_TITLE]() {
+      const updatedSlice = Object.assign({}, state.slice, { slice_name: action.slice_name });
+      return Object.assign({}, state, { slice: updatedSlice });
+    },
     [actions.REMOVE_CHART_ALERT]() {
       if (state.chartAlert !== null) {
         return Object.assign({}, state, { chartAlert: null });
@@ -143,6 +147,9 @@ export const exploreReducer = function (state, action) {
     },
     [actions.SAVE_SLICE_FAILED]() {
       return Object.assign({}, state, { saveModalAlert: 'Failed to save slice' });
+    },
+    [actions.SAVE_SLICE_SUCCESS](data) {
+      return Object.assign({}, state, { data });
     },
     [actions.REMOVE_SAVE_MODAL_ALERT]() {
       return Object.assign({}, state, { saveModalAlert: null });

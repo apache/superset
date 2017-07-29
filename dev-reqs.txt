@@ -9,6 +9,7 @@ psycopg2
 pylint
 pythrifthiveapi
 pyyaml
+redis
 statsd
 # Also install everything we need to build Sphinx docs
 -r dev-reqs-for-docs.txt

@@ -1,15 +1,19 @@
 import json
 
 from sqlalchemy import (
-    Column, Integer, String, Text, Boolean,
+    and_, Column, Integer, String, Text, Boolean,
 )
+from sqlalchemy.orm import foreign, relationship
+from sqlalchemy.ext.declarative import declared_attr
+
 from superset import utils
+from superset.models.core import Slice
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):
-
-    """A common interface to objects that are queryable (tables and datasources)"""
+    """A common interface to objects that are queryable
+    (tables and datasources)"""
 
     # ---------------------------------------------------------------
     # class attributes to define when deriving BaseDatasource
@@ -17,7 +21,6 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     __tablename__ = None  # {connector_name}_datasource
     type = None  # datasoure type, str to be defined when deriving this class
     baselink = None  # url portion pointing to ModelView endpoint
-
     column_class = None  # link to derivative of BaseColumn
     metric_class = None  # link to derivative of BaseMetric
 
@@ -38,6 +41,14 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     params = Column(String(1000))
     perm = Column(String(1000))
+
+    @declared_attr
+    def slices(self):
+        return relationship(
+            'Slice',
+            primaryjoin=lambda: and_(
+              foreign(Slice.datasource_id) == self.id,
+              foreign(Slice.datasource_type) == self.type))
 
     # placeholder for a relationship to a derivative of BaseColumn
     columns = []
@@ -104,7 +115,15 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
-        d = {
+        verbose_map = {
+            o.metric_name: o.verbose_name or o.metric_name
+            for o in self.metrics
+        }
+        verbose_map.update({
+            o.column_name: o.verbose_name or o.column_name
+            for o in self.columns
+        })
+        return {
             'all_cols': utils.choicify(self.column_names),
             'column_formats': self.column_formats,
             'edit_url': self.url,
@@ -116,9 +135,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'name': self.name,
             'order_by_choices': order_by_choices,
             'type': self.type,
+            'metrics': [o.data for o in self.metrics],
+            'columns': [o.data for o in self.columns],
+            'verbose_map': verbose_map,
         }
-
-        return d
 
     def get_query_str(self, query_obj):
         """Returns a query as a string
@@ -196,6 +216,17 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
             any([t in self.type.upper() for t in self.str_types])
         )
 
+    @property
+    def expression(self):
+        raise NotImplementedError()
+
+    @property
+    def data(self):
+        attrs = (
+            'column_name', 'verbose_name', 'description', 'expression',
+            'filterable', 'groupby')
+        return {s: getattr(self, s) for s in attrs}
+
 
 class BaseMetric(AuditMixinNullable, ImportMixin):
 
@@ -227,3 +258,12 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     @property
     def perm(self):
         raise NotImplementedError()
+
+    @property
+    def expression(self):
+        raise NotImplementedError()
+
+    @property
+    def data(self):
+        attrs = ('metric_name', 'verbose_name', 'description', 'expression')
+        return {s: getattr(self, s) for s in attrs}
