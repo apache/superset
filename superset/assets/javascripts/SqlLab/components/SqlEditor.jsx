@@ -109,7 +109,9 @@ class SqlEditor extends React.PureComponent {
     if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
       const tooltip = (
         <Tooltip id="tooltip">
-          {t('It appears that the number of rows in the query results displayed was limited on the server side to the %s limit.', this.props.latestQuery.rows)}
+          {t('It appears that the number of rows in the query results displayed ' +
+          'was limited on the server side to ' +
+          'the %s limit.', this.props.latestQuery.rows)}
         </Tooltip>
       );
       limitWarning = (
