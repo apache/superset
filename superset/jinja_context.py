@@ -97,6 +97,8 @@ class BaseTemplateProcessor(object):
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
+        # Escaping colon
+        sql = sql.replace(':', '\:')
         template = self.env.from_string(sql)
         kwargs.update(self.context)
         return template.render(kwargs)
