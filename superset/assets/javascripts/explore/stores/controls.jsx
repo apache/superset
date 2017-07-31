@@ -35,6 +35,7 @@ export const controls = {
     isLoading: true,
     clearable: false,
     default: null,
+    validators: [v.nonEmpty],
     mapStateToProps: (state) => {
       const datasources = state.datasources || [];
       return {
@@ -217,6 +218,14 @@ export const controls = {
     description: null,
   },
 
+  pivot_margins: {
+    type: 'CheckboxControl',
+    label: 'Show totals',
+    renderTrigger: false,
+    default: true,
+    description: 'Display total row/column',
+  },
+
   show_markers: {
     type: 'CheckboxControl',
     label: 'Show Markers',
@@ -238,6 +247,14 @@ export const controls = {
     label: 'Sort Bars',
     default: false,
     description: 'Sort bars by x labels.',
+  },
+
+  combine_metric: {
+    type: 'CheckboxControl',
+    label: 'Combine Metrics',
+    default: false,
+    description: 'Display metrics side by side within each column, as ' +
+    'opposed to each column being displayed side by side for each metric.',
   },
 
   show_controls: {
@@ -326,7 +343,7 @@ export const controls = {
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.columns : [],
+      options: (state.datasource) ? state.datasource.columns.filter(c => c.groupby) : [],
     }),
   },
 

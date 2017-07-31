@@ -353,6 +353,12 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
+    def json_dumps(self, obj):
+        if self.form_data.get('all_columns'):
+            return json.dumps(obj, default=utils.json_iso_dttm_ser)
+        else:
+            return super(TableViz, self).json_dumps(obj)
+
 
 class PivotTableViz(BaseViz):
 
@@ -394,8 +400,11 @@ class PivotTableViz(BaseViz):
             columns=self.form_data.get('columns'),
             values=self.form_data.get('metrics'),
             aggfunc=self.form_data.get('pandas_aggfunc'),
-            margins=True,
+            margins=self.form_data.get('pivot_margins'),
         )
+        # Display metrics side by side with each column
+        if self.form_data.get('combine_metric'):
+            df = df.stack(0).unstack()
         return dict(
             columns=list(df.columns),
             html=df.to_html(

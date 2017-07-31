@@ -154,7 +154,6 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         template_processor = get_template_processor(
             database=database, query=query)
         executed_sql = template_processor.process_template(executed_sql)
-        executed_sql = db_engine_spec.sql_preprocessor(executed_sql)
     except Exception as e:
         logging.exception(e)
         msg = "Template rendering failed: " + utils.error_msg_from_exception(e)
@@ -193,6 +192,9 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         conn.close()
         return handle_error(db_engine_spec.extract_error_message(e))
 
+    logging.info("Fetching cursor description")
+    cursor_description = cursor.description
+
     conn.commit()
     conn.close()
 
@@ -204,7 +206,7 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         }, default=utils.json_iso_dttm_ser)
 
     column_names = (
-        [col[0] for col in cursor.description] if cursor.description else [])
+        [col[0] for col in cursor_description] if cursor_description else [])
     column_names = dedup(column_names)
     cdf = dataframe.SupersetDataFrame(pd.DataFrame(
         list(data), columns=column_names))

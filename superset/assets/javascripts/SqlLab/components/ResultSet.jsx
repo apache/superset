@@ -155,6 +155,7 @@ export default class ResultSet extends React.PureComponent {
     }
     if (['running', 'pending', 'fetching'].indexOf(query.state) > -1) {
       let progressBar;
+      let trackingUrl;
       if (query.progress > 0 && query.state === 'running') {
         progressBar = (
           <ProgressBar
@@ -163,11 +164,24 @@ export default class ResultSet extends React.PureComponent {
             label={`${query.progress}%`}
           />);
       }
+      if (query.trackingUrl) {
+        trackingUrl = (
+          <Button
+            bsSize="small"
+            onClick={() => { window.open(query.trackingUrl); }}
+          >
+              Track Job
+          </Button>
+        );
+      }
       return (
         <div>
           <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
           <QueryStateLabel query={query} />
           {progressBar}
+          <div>
+            {trackingUrl}
+          </div>
         </div>
       );
     } else if (query.state === 'failed') {
