@@ -108,6 +108,17 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             key=lambda x: x[1])
 
     @property
+    def short_data(self):
+        """Data representation of the datasource sent to the frontend"""
+        return {
+            'edit_url': self.url,
+            'id': self.id,
+            'uid': self.uid,
+            'name': self.name,
+            'type': self.type,
+        }
+
+    @property
     def data(self):
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []

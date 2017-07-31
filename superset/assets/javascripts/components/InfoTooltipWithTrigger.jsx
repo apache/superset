@@ -8,18 +8,23 @@ const propTypes = {
   tooltip: PropTypes.string.isRequired,
   icon: PropTypes.string,
   className: PropTypes.string,
+  onClick: PropTypes.func,
 };
 const defaultProps = {
   icon: 'question-circle-o',
 };
 
-export default function InfoTooltipWithTrigger({ label, tooltip, icon, className }) {
+export default function InfoTooltipWithTrigger({ label, tooltip, icon, className, onClick }) {
   return (
     <OverlayTrigger
       placement="right"
       overlay={<Tooltip id={`${slugify(label)}-tooltip`}>{tooltip}</Tooltip>}
     >
-      <i className={`fa fa-${icon} ${className}`} />
+      <i
+        className={`fa fa-${icon} ${className}`}
+        onClick={onClick}
+        style={{ cursor: onClick ? 'pointer' : null }}
+      />
     </OverlayTrigger>
   );
 }

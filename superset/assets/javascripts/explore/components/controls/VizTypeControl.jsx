@@ -1,6 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Label, Row, Col, FormControl, Modal } from 'react-bootstrap';
+import {
+  Label, Row, Col, FormControl, Modal, OverlayTrigger,
+  Tooltip } from 'react-bootstrap';
 import visTypes from '../../stores/visTypes';
 import ControlHeader from '../ControlHeader';
 
@@ -85,13 +87,17 @@ export default class VizTypeControl extends React.PureComponent {
       <div>
         <ControlHeader
           {...this.props}
-          rightNode={
-            <a onClick={this.toggleModal}>edit</a>
-          }
         />
-        <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }}>
-          {visTypes[this.props.value].label}
-        </Label>
+        <OverlayTrigger
+          placement="right"
+          overlay={
+            <Tooltip id={'error-tooltip'}>Click to change visualization type</Tooltip>
+          }
+        >
+          <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }}>
+            {visTypes[this.props.value].label}
+          </Label>
+        </OverlayTrigger>
         <Modal
           show={this.state.showModal}
           onHide={this.toggleModal}

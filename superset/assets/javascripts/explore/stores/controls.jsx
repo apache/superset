@@ -30,23 +30,13 @@ export const D3_TIME_FORMAT_OPTIONS = [
 
 export const controls = {
   datasource: {
-    type: 'SelectControl',
+    type: 'DatasourceControl',
     label: 'Datasource',
-    isLoading: true,
-    clearable: false,
     default: null,
-    validators: [v.nonEmpty],
-    mapStateToProps: (state) => {
-      const datasources = state.datasources || [];
-      return {
-        choices: datasources,
-        isLoading: datasources.length === 0,
-        rightNode: state.datasource ?
-          <a href={state.datasource.edit_url}>edit</a>
-          : null,
-      };
-    },
-    description: '',
+    description: null,
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
   },
 
   viz_type: {
