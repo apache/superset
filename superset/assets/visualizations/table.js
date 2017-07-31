@@ -77,6 +77,7 @@ function tableVis(slice, payload) {
       data: data.records,
       columns: columns,
       paging: paging,
+      scrollY: true,
       deferRender: true,
       pageLength: pageLength,
       searching: fd.include_search,
@@ -151,6 +152,7 @@ function tableVis(slice, payload) {
 
     datatable = container.find('.dataTable').DataTable({
       paging: paging,
+      scrollY: true,
       deferRender: true,
       pageLength: pageLength,
       aaSorting: [],
