@@ -134,7 +134,7 @@ class PairedTTestTableContainer extends React.Component {
                   {row.stream}
                 </td>
                 <td className={this.getTTestValueClass(row.pval)}>
-                  {row.pval}
+                  {row.pval}  {this.getTTestValueClass(row.pval) === 'color-red' ? '(not significant)' : ''}
                 </td>
                 <td className={this.getLiftClass(row.lift)}>
                   {row.lift}
