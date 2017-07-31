@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import ModalTrigger from '../../components/ModalTrigger';
+import { t } from '../../locales';
 
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,
@@ -31,7 +32,7 @@ export default class CodeModal extends React.PureComponent {
         triggerNode={this.props.triggerNode}
         isButton
         beforeOpen={this.beforeOpen.bind(this)}
-        modalTitle="Active Dashboard Filters"
+        modalTitle={t('Active Dashboard Filters')}
         modalBody={
           <div className="CodeModal">
             <pre>

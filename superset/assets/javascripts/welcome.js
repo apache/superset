@@ -5,6 +5,7 @@ import d3 from 'd3';
 
 import '../stylesheets/welcome.css';
 import { appSetup } from './common';
+import { t } from './locales';
 
 appSetup();
 require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');

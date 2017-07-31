@@ -4,6 +4,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
 
 import ModalTrigger from './../../components/ModalTrigger';
+import { t } from '../../locales';
 
 const $ = window.$ = require('jquery');
 
@@ -52,7 +53,7 @@ export default class DisplayQueryButton extends React.PureComponent {
       },
       error: (data) => {
         this.setState({
-          error: data.responseJSON ? data.responseJSON.error : 'Error...',
+          error: data.responseJSON ? data.responseJSON.error : t('Error...'),
           isLoading: false,
         });
       },
@@ -88,7 +89,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         animation={this.props.animation}
         isButton
         triggerNode={<span>Query</span>}
-        modalTitle="Query"
+        modalTitle={t('Query')}
         bsSize="large"
         beforeOpen={this.beforeOpen}
         modalBody={this.renderModalBody()}
