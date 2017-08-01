@@ -81,6 +81,9 @@ function tableVis(slice, payload) {
       deferRender: true,
       pageLength: pageLength,
       searching: fd.include_search,
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+           '<"row table-body"<"col-sm-12 table-data"tr>>' +
+           '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
       buttons: buttons,
     });
   } else {
@@ -158,7 +161,8 @@ function tableVis(slice, payload) {
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      buttons: buttons,
+      //buttons: buttons,
+      dom: '<Bltripf>',
     });
   }
   datatable.buttons().container().appendTo( '.dataTables_wrapper .col-sm-6:eq(0)' );

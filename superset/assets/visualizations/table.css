@@ -46,3 +46,23 @@ table.table thead th.sorting:after, table.table thead th.sorting_asc:after, tabl
 .dataTables_filter {
   margin: 4px;
 }
+
+.table-header {
+  height: 10%;
+}
+
+.table-body {
+  height: 80%;
+}
+
+.table-data {
+  height: 100%;
+}
+
+.table-footer {
+  height: 10%;
+}
+
+.dataTables_wrapper {
+  height: 100%;
+}
