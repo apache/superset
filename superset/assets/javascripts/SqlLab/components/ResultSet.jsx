@@ -35,7 +35,7 @@ export default class ResultSet extends React.PureComponent {
     this.state = {
       searchText: '',
       showModal: false,
-      data: [],
+      data: null,
       height: props.search ? props.height - RESULT_SET_CONTROLS_HEIGHT : props.height,
     };
   }
@@ -146,44 +146,12 @@ export default class ResultSet extends React.PureComponent {
     const query = this.props.query;
     let sql;
 
-    if (query.state === 'stopped') {
-      return <Alert bsStyle="warning">Query was stopped</Alert>;
-    }
-
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
     }
-    if (['running', 'pending', 'fetching'].indexOf(query.state) > -1) {
-      let progressBar;
-      let trackingUrl;
-      if (query.progress > 0 && query.state === 'running') {
-        progressBar = (
-          <ProgressBar
-            striped
-            now={query.progress}
-            label={`${query.progress}%`}
-          />);
-      }
-      if (query.trackingUrl) {
-        trackingUrl = (
-          <Button
-            bsSize="small"
-            onClick={() => { window.open(query.trackingUrl); }}
-          >
-              Track Job
-          </Button>
-        );
-      }
-      return (
-        <div>
-          <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
-          <QueryStateLabel query={query} />
-          {progressBar}
-          <div>
-            {trackingUrl}
-          </div>
-        </div>
-      );
+
+    if (query.state === 'stopped') {
+      return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
       return <Alert bsStyle="danger">{query.errorMessage}</Alert>;
     } else if (query.state === 'success' && query.ctas) {
@@ -206,10 +174,10 @@ export default class ResultSet extends React.PureComponent {
       let data;
       if (this.props.cache && query.cached) {
         data = this.state.data;
-      } else {
-        data = results ? results.data : [];
+      } else if (results && results.data) {
+        data = results.data;
       }
-      if (results && data.length > 0) {
+      if (data && data.length > 0) {
         return (
           <div>
             <VisualizeModal
@@ -227,6 +195,8 @@ export default class ResultSet extends React.PureComponent {
             />
           </div>
         );
+      } else if (data && data.length === 0) {
+        return <Alert bsStyle="warning">The query returned no data</Alert>;
       }
     }
     if (query.cached) {
@@ -240,7 +210,36 @@ export default class ResultSet extends React.PureComponent {
         </Button>
       );
     }
-    return <Alert bsStyle="warning">The query returned no data</Alert>;
+    let progressBar;
+    let trackingUrl;
+    if (query.progress > 0 && query.state === 'running') {
+      progressBar = (
+        <ProgressBar
+          striped
+          now={query.progress}
+          label={`${query.progress}%`}
+        />);
+    }
+    if (query.trackingUrl) {
+      trackingUrl = (
+        <Button
+          bsSize="small"
+          onClick={() => { window.open(query.trackingUrl); }}
+        >
+            Track Job
+        </Button>
+      );
+    }
+    return (
+      <div>
+        <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
+        <QueryStateLabel query={query} />
+        {progressBar}
+        <div>
+          {trackingUrl}
+        </div>
+      </div>
+    );
   }
 }
 ResultSet.propTypes = propTypes;
