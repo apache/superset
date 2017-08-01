@@ -331,6 +331,8 @@ key is to instrument the strings that need translation using
 a module, all you have to do is to `_("Wrap your strings")` using the
 underscore `_` "function".
 
+We use `import {t, tn, TCT} from locales;` in js, JSX file, locales is in `./superset/assets/javascripts/` directory.
+
 To enable changing language in your environment, you can simply add the
 `LANGUAGES` parameter to your `superset_config.py`. Having more than one
 options here will add a language selection dropdown on the right side of the
@@ -341,6 +343,10 @@ navigation bar.
         'fr': {'flag': 'fr', 'name': 'French'},
         'zh': {'flag': 'cn', 'name': 'Chinese'},
     }
+
+We need to extract the string to be translated, run the following command:
+
+    pybabel extract -F ./babel/babel.cfg -k _ -k __ -k t -k tn -k tct -o ./babel/messages.pot .
 
 As per the [Flask AppBuilder documentation] about translation, to create a
 new language dictionary, run the following command:

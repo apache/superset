@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Label, Row, Col, FormControl, Modal } from 'react-bootstrap';
 import visTypes from '../../stores/visTypes';
 import ControlHeader from '../ControlHeader';
+import { t } from '../../../locales';
 
 const propTypes = {
   description: PropTypes.string,
@@ -86,7 +87,7 @@ export default class VizTypeControl extends React.PureComponent {
         <ControlHeader
           {...this.props}
           rightNode={
-            <a onClick={this.toggleModal}>edit</a>
+            <a onClick={this.toggleModal}>{t('edit')}</a>
           }
         />
         <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }}>
@@ -100,7 +101,7 @@ export default class VizTypeControl extends React.PureComponent {
           bsSize="lg"
         >
           <Modal.Header closeButton>
-            <Modal.Title>Select a visualization type</Modal.Title>
+            <Modal.Title>{t('Select a visualization type')}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <div>
@@ -110,7 +111,7 @@ export default class VizTypeControl extends React.PureComponent {
                 type="text"
                 bsSize="sm"
                 value={this.state.filter}
-                placeholder="Search / Filter"
+                placeholder={t('Search / Filter')}
                 onChange={this.changeSearch}
               />
             </div>
