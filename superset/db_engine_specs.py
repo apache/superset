@@ -751,13 +751,13 @@ class HiveEngineSpec(PrestoEngineSpec):
                 if not tracking_url:
                     tracking_url = cls.get_tracking_url(log_lines)
                     if tracking_url:
+                        job_id = tracking_url.split('/')[-2]
                         logging.info(
                             "Found the tracking url: {}".format(tracking_url))
                         tracking_url = tracking_url_trans(tracking_url)
                         logging.info(
                             "Transformation applied: {}".format(tracking_url))
                         query.tracking_url = tracking_url
-                        job_id = tracking_url.split('/')[-2]
                         logging.info("Job id: {}".format(job_id))
                         needs_commit = True
                 if job_id and len(log_lines) > last_log_line:
