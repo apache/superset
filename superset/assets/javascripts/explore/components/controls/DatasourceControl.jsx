@@ -50,6 +50,8 @@ export default class DatasourceControl extends React.PureComponent {
         success: (data) => {
           const datasources = data.map(ds => ({
             rawName: ds.name,
+            connection: ds.connection,
+            schema: ds.schema,
             name: (
               <a
                 href="#"
@@ -136,11 +138,11 @@ export default class DatasourceControl extends React.PureComponent {
             }
             {this.state.datasources &&
               <Table
-                columns={['name', 'type']}
+                columns={['name', 'type', 'schema', 'connection', 'creator']}
                 className="table table-condensed"
                 data={this.state.datasources}
                 itemsPerPage={20}
-                filterable={['rawName', 'type']}
+                filterable={['rawName', 'type', 'connection', 'schema', 'creator']}
                 filterBy={this.state.filter}
                 hideFilterInput
               />

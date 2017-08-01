@@ -69,6 +69,16 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return "timestamp"
 
     @property
+    def connection(self):
+        """String representing the context of the Datasource"""
+        return None
+
+    @property
+    def schema(self):
+        """String representing the schema of the Datasource (if it applies)"""
+        return None
+
+    @property
     def groupby_column_names(self):
         return sorted([c.column_name for c in self.columns if c.groupby])
 
@@ -114,8 +124,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'edit_url': self.url,
             'id': self.id,
             'uid': self.uid,
+            'schema': self.schema,
             'name': self.name,
             'type': self.type,
+            'connection': self.connection,
+            'creator': str(self.created_by),
         }
 
     @property
