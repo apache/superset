@@ -355,6 +355,10 @@ class DruidDatasource(Model, BaseDatasource):
         return self.cluster
 
     @property
+    def connection(self):
+        return str(self.database)
+
+    @property
     def num_cols(self):
         return [c.column_name for c in self.columns if c.is_num]
 

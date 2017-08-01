@@ -193,6 +193,10 @@ class SqlaTable(Model, BaseDatasource):
         return self.name
 
     @property
+    def connection(self):
+        return str(self.database)
+
+    @property
     def description_markeddown(self):
         return utils.markdown(self.description)
 

@@ -11,7 +11,7 @@ import App from './components/App';
 import { appSetup } from '../common';
 
 import './main.css';
-import './reactable-pagination.css';
+import '../../stylesheets/reactable-pagination.css';
 import '../components/FilterableTable/FilterableTableStyles.css';
 
 appSetup();

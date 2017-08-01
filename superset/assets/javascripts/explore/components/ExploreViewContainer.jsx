@@ -33,9 +33,6 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidMount() {
-    if (!this.props.standalone) {
-      this.props.actions.fetchDatasources();
-    }
     window.addEventListener('resize', this.handleResize.bind(this));
     this.triggerQueryIfNeeded();
   }
