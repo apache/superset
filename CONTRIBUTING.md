@@ -70,7 +70,7 @@ meets these guidelines:
 
 ## Documentation
 
-The latest documentation and tutorial are available [here](http://airbnb.io/superset).
+The latest documentation and tutorial are available [here](https://superset.incubator.apache.org/).
 
 Contributing to the official documentation is relatively easy, once you've setup
 your environment and done an edit end-to-end. The docs can be found in the
