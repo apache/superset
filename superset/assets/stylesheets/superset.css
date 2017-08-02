@@ -13,7 +13,7 @@ body {
 }
 
 .emph {
-  font-weight: bold;
+  font-weight: bold !important;
 }
 
 .alert.alert-danger > .debugger {
@@ -227,6 +227,9 @@ div.widget .slice_container {
 }
 .m-r-5 {
     margin-right: 5px;
+}
+.m-r-3 {
+    margin-right: 3px;
 }
 .m-t-5 {
     margin-top: 5px;

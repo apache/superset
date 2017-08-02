@@ -170,6 +170,12 @@ def generate_download_headers(extension):
 
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
+
+    list_title = _('List Databases')
+    show_title = _('Show Database')
+    add_title = _('Add Database')
+    edit_title = _('Edit Database')
+
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
         'allow_dml', 'creator', 'modified']
@@ -319,6 +325,12 @@ appbuilder.add_view(
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
+
+    list_title = _('List Slices')
+    show_title = _('Show Slice')
+    add_title = _('Add Slice')
+    edit_title = _('Edit Slice')
+
     can_add = False
     label_columns = {
         'datasource_link': 'Datasource',
@@ -415,6 +427,12 @@ appbuilder.add_view_no_menu(SliceAddView)
 
 class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
+
+    list_title = _('List Dashboards')
+    show_title = _('Show Dashboard')
+    add_title = _('Add Dashboard')
+    edit_title = _('Edit Dashboard')
+
     list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
@@ -682,7 +700,8 @@ class Superset(BaseSupersetView):
     @expose("/datasources/")
     def datasources(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
+        datasources = [o.short_data for o in datasources]
+        datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
 
     @has_access_api
@@ -1324,6 +1343,8 @@ class Superset(BaseSupersetView):
 
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
+        if 'timed_refresh_immune_slices' not in md:
+            md['timed_refresh_immune_slices'] = []
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
@@ -2012,6 +2033,7 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if async:
+            logging.info("Running query on a Celery worker")
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(

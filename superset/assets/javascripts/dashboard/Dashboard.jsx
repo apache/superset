@@ -245,15 +245,18 @@ export function dashboardContainer(dashboard, datasources, userid) {
     startPeriodicRender(interval) {
       this.stopPeriodicRender();
       const dash = this;
+      const immune = this.metadata.timed_refresh_immune_slices || [];
       const maxRandomDelay = Math.max(interval * 0.2, 5000);
       const refreshAll = () => {
         dash.sliceObjects.forEach((slice) => {
           const force = !dash.firstLoad;
-          setTimeout(() => {
-            slice.render(force);
-          },
-          // Randomize to prevent all widgets refreshing at the same time
-          maxRandomDelay * Math.random());
+          if (immune.indexOf(slice.data.slice_id) === -1) {
+            setTimeout(() => {
+              slice.render(force);
+            },
+            // Randomize to prevent all widgets refreshing at the same time
+            maxRandomDelay * Math.random());
+          }
         });
         dash.firstLoad = false;
       };
