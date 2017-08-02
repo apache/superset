@@ -33,9 +33,6 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidMount() {
-    if (!this.props.standalone) {
-      this.props.actions.fetchDatasources();
-    }
     window.addEventListener('resize', this.handleResize.bind(this));
     this.triggerQueryIfNeeded();
   }
@@ -187,7 +184,7 @@ function mapStateToProps(state) {
   const form_data = getFormDataFromControls(state.controls);
   return {
     chartStatus: state.chartStatus,
-    datasource_type: state.datasource_type,
+    datasource_type: state.datasource.type,
     controls: state.controls,
     form_data,
     standalone: state.standalone,

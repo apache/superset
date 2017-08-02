@@ -353,6 +353,12 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
+    def json_dumps(self, obj):
+        if self.form_data.get('all_columns'):
+            return json.dumps(obj, default=utils.json_iso_dttm_ser)
+        else:
+            return super(TableViz, self).json_dumps(obj)
+
 
 class PivotTableViz(BaseViz):
 
@@ -394,8 +400,11 @@ class PivotTableViz(BaseViz):
             columns=self.form_data.get('columns'),
             values=self.form_data.get('metrics'),
             aggfunc=self.form_data.get('pandas_aggfunc'),
-            margins=True,
+            margins=self.form_data.get('pivot_margins'),
         )
+        # Display metrics side by side with each column
+        if self.form_data.get('combine_metric'):
+            df = df.stack(0).unstack()
         return dict(
             columns=list(df.columns),
             html=df.to_html(
@@ -1587,6 +1596,35 @@ class MapboxViz(BaseViz):
             "color": fd.get("mapbox_color"),
         }
 
+class EventFlowViz(BaseViz):
+    """A visualization to explore patterns in event sequences"""
+
+    viz_type = "event_flow"
+    verbose_name = _("Event flow")
+    credits = 'from <a href="https://github.com/williaster/data-ui">@data-ui</a>'
+    is_timeseries = True
+
+    def query_obj(self):
+        query = super(EventFlowViz, self).query_obj()
+        form_data = self.form_data
+
+        event_key = form_data.get('all_columns_x')
+        entity_key = form_data.get('entity')
+        meta_keys = [
+            col for col in form_data.get('all_columns') if col != event_key and col != entity_key
+        ]
+
+        query['columns'] = [event_key, entity_key] + meta_keys
+
+        if form_data['order_by_entity']:
+            query['orderby'] = [(entity_key, True)]
+
+        return query
+
+    def get_data(self, df):
+        return df.to_dict(orient="records")
+
+
 
 viz_types_list = [
     TableViz,
@@ -1621,6 +1659,7 @@ viz_types_list = [
     MapboxViz,
     HistogramViz,
     SeparatorViz,
+    EventFlowViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
