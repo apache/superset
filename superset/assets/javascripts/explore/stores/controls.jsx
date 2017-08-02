@@ -248,6 +248,14 @@ export const controls = {
     'opposed to each column being displayed side by side for each metric.',
   },
 
+  combine_metric: {
+    type: 'CheckboxControl',
+    label: 'Combine Metrics',
+    default: false,
+    description: 'Display metrics side by side within each column, as ' +
+    'opposed to each column being displayed side by side for each metric.',
+  },
+
   show_controls: {
     type: 'CheckboxControl',
     label: t('Extra Controls'),

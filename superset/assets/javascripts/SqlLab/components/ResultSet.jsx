@@ -231,6 +231,26 @@ export default class ResultSet extends React.PureComponent {
         </Button>
       );
     }
+    let progressBar;
+    let trackingUrl;
+    if (query.progress > 0 && query.state === 'running') {
+      progressBar = (
+        <ProgressBar
+          striped
+          now={query.progress}
+          label={`${query.progress}%`}
+        />);
+    }
+    if (query.trackingUrl) {
+      trackingUrl = (
+        <Button
+          bsSize="small"
+          onClick={() => { window.open(query.trackingUrl); }}
+        >
+            Track Job
+        </Button>
+      );
+    }
     return (
       <div>
         <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
