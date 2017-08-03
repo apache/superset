@@ -1,5 +1,5 @@
 
-const $ = require('jquery');
+const $ = window.$ = require('jquery');
 
 export function getLanguage() {
   const locale = $.ajax({
