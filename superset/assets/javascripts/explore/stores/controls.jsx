@@ -29,6 +29,36 @@ export const D3_TIME_FORMAT_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
+const timeColumnOption = {
+  verbose_name: 'Time',
+  column_name: '__timestamp',
+  description: (
+    'A reference to the [Time] configuration, taking granularity into ' +
+    'account'),
+};
+
+const groupByControl = {
+  type: 'SelectControl',
+  multi: true,
+  label: 'Group by',
+  default: [],
+  includeTime: false,
+  description: 'One or many controls to group by',
+  optionRenderer: c => <ColumnOption column={c} />,
+  valueRenderer: c => <ColumnOption column={c} />,
+  valueKey: 'column_name',
+  mapStateToProps: (state, control) => {
+    const newState = {};
+    if (state.datasource) {
+      newState.options = state.datasource.columns.filter(c => c.groupby);
+      if (control && control.includeTime) {
+        newState.options.push(timeColumnOption);
+      }
+    }
+    return newState;
+  },
+};
+
 export const controls = {
   datasource: {
     type: 'DatasourceControl',
@@ -332,33 +362,12 @@ export const controls = {
     'to find in the [country] column'),
   },
 
-  groupby: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Group by'),
-    default: [],
-    description: t('One or many controls to group by'),
-    optionRenderer: c => <ColumnOption column={c} />,
-    valueRenderer: c => <ColumnOption column={c} />,
-    valueKey: 'column_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.columns.filter(c => c.groupby) : [],
-    }),
-  },
+  groupby: groupByControl,
 
-  columns: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Columns'),
-    default: [],
-    description: ('One or many controls to pivot as columns'),
-    optionRenderer: c => <ColumnOption column={c} />,
-    valueRenderer: c => <ColumnOption column={c} />,
-    valueKey: 'column_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.columns : [],
-    }),
-  },
+  columns: Object.assign({}, groupByControl, {
+    label: 'Columns',
+    description: 'One or many controls to pivot as columns',
+  }),
 
   all_columns: {
     type: 'SelectControl',

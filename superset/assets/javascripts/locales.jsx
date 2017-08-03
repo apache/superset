@@ -4,16 +4,6 @@ import { sprintf } from 'sprintf-js';
 import { getTranslations } from './translations';
 import { getLanguage } from './explore/stores/getLanguage';
 
-let LOCALE_DEBUG = false;
-
-if (sessionStorage && sessionStorage.getItem('localeDebug') === '1') {
-  LOCALE_DEBUG = true;
-}
-
-export function setLocaleDebug(value) {
-  sessionStorage.setItem('localeDebug', value ? '1' : '0');
-}
-
 let i18n = null;
 
 export function setLocale(locale) {

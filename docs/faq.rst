@@ -107,7 +107,8 @@ never be affected by any dashboard level filtering.
         "filter_immune_slice_fields": {
             "177": ["country_name", "__from", "__to"],
             "32": ["__from", "__to"]
-        }
+        },
+        "timed_refresh_immune_slices": [324]
     }
 
 In the json blob above, slices 324, 65 and 92 won't be affected by any
@@ -123,6 +124,24 @@ for dealing with the time boundary filtering mentioned above.
 But what happens with filtering when dealing with slices coming from
 different tables or databases? If the column name is shared, the filter will
 be applied, it's as simple as that.
+
+
+How to limit the timed refresh on a dashboard?
+----------------------------------------------
+By default, the dashboard timed refresh feature allows you to automatically requery every slice on a dashboard according to a set schedule. Sometimes, however, you won't want all of the slices to be refreshed - especially if some data is slow moving, or run heavy queries.
+To exclude specific slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard ``JSON Metadata`` field:
+
+..code::
+
+    {
+       "filter_immune_slices": [],
+        "expanded_slices": {},
+        "filter_immune_slice_fields": {},
+        "timed_refresh_immune_slices": [324]
+    }
+
+In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will be automatically requeried on schedule.
+
 
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
 -----------------------------------------------------------------------------------------
