@@ -337,10 +337,15 @@ export const visTypes = {
         controlSetRows: [
           ['groupby', 'columns'],
           ['metrics', 'pandas_aggfunc'],
-          ['number_format', 'combine_metric', 'pivot_margins'],
+          ['number_format', 'combine_metric'],
+          ['pivot_margins'],
         ],
       },
     ],
+    controlOverrides: {
+      groupby: { includeTime: true },
+      columns: { includeTime: true },
+    },
   },
 
   separator: {
