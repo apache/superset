@@ -114,6 +114,13 @@ class BaseViz(object):
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or []
+        columns = form_data.get("columns") or []
+        groupby = list(set(groupby + columns))
+
+        is_timeseries = self.is_timeseries
+        if DTTM_ALIAS in groupby:
+            groupby.remove(DTTM_ALIAS)
+            is_timeseries = True
 
         # extra_filters are temporary/contextual filters that are external
         # to the slice definition. We use those for dynamic interactive
@@ -173,7 +180,7 @@ class BaseViz(object):
             'granularity': granularity,
             'from_dttm': from_dttm,
             'to_dttm': to_dttm,
-            'is_timeseries': self.is_timeseries,
+            'is_timeseries': is_timeseries,
             'groupby': groupby,
             'metrics': metrics,
             'row_limit': row_limit,
@@ -385,9 +392,7 @@ class PivotTableViz(BaseViz):
         if (
                 any(v in groupby for v in columns) or
                 any(v in columns for v in groupby)):
-            raise Exception("groupby and columns can't overlap")
-
-        d['groupby'] = list(set(groupby) | set(columns))
+            raise Exception(""""Group By" and "Columns" can't overlap""")
         return d
 
     def get_data(self, df):
@@ -1082,10 +1087,10 @@ class DistributionBarViz(DistributionPieViz):
     def query_obj(self):
         d = super(DistributionBarViz, self).query_obj()  # noqa
         fd = self.form_data
-        gb = fd.get('groupby') or []
-        cols = fd.get('columns') or []
-        d['groupby'] = set(gb + cols)
-        if len(d['groupby']) < len(gb) + len(cols):
+        if (
+                len(self.groupby) <
+                len(fd.get('groupby') or []) + len(fd.get('columns') or [])
+                ):
             raise Exception("Can't have overlap between Series and Breakdowns")
         if not self.metrics:
             raise Exception("Pick at least one metric")
