@@ -75,7 +75,7 @@ export const sections = {
   ],
 };
 
-const visTypes = {
+export const visTypes = {
   dist_bar: {
     label: 'Distribution - Bar Chart',
     controlPanelSections: [
@@ -337,10 +337,15 @@ const visTypes = {
         controlSetRows: [
           ['groupby', 'columns'],
           ['metrics', 'pandas_aggfunc'],
-          ['number_format'],
+          ['number_format', 'combine_metric'],
+          ['pivot_margins'],
         ],
       },
     ],
+    controlOverrides: {
+      groupby: { includeTime: true },
+      columns: { includeTime: true },
+    },
   },
 
   separator: {
@@ -742,8 +747,13 @@ const visTypes = {
     controlOverrides: {
       groupby: {
         label: 'Filter controls',
-        description: 'The controls you want to filter on',
-        default: [],
+        description: (
+          'The controls you want to filter on. Note that only columns ' +
+          'checked as "filterable" will show up on this list.'
+        ),
+        mapStateToProps: state => ({
+          options: (state.datasource) ? state.datasource.columns.filter(c => c.filterable) : [],
+        }),
       },
     },
   },

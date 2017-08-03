@@ -4,6 +4,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
 from superset import appbuilder
 from superset.models.sql_lab import Query, SavedQuery
@@ -25,6 +26,12 @@ appbuilder.add_view(
 
 class SavedQueryView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(SavedQuery)
+
+    list_title = _('List Saved Query')
+    show_title = _('Show Saved Query')
+    add_title = _('Add Saved Query')
+    edit_title = _('Edit Saved Query')
+
     list_columns = [
         'label', 'user', 'database', 'schema', 'description',
         'modified', 'pop_tab_link']

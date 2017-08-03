@@ -265,7 +265,7 @@ div.tablePopover:hover {
 }
 
 .QueryTable .label {
-    margin-top: 5px;
+    display: inline-block;
 }
 
 .ResultsModal .modal-body {

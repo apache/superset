@@ -146,7 +146,6 @@ class VisualizeModal extends React.PureComponent {
     this.props.actions.createDatasource(this.buildVizOptions(), this)
       .done(() => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
-        const mainMetric = columns.filter(d => d.agg)[0];
         const mainGroupBy = columns.filter(d => d.is_dim)[0];
         const formData = {
           datasource: this.props.datasource,
@@ -154,10 +153,6 @@ class VisualizeModal extends React.PureComponent {
           since: '100 years ago',
           limit: '0',
         };
-        if (mainMetric) {
-          formData.metrics = [mainMetric.name];
-          formData.metric = mainMetric.name;
-        }
         if (mainGroupBy) {
           formData.groupby = [mainGroupBy.name];
         }

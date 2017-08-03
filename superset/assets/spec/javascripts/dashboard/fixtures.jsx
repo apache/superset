@@ -43,6 +43,7 @@ export const dashboardData = {
   css: '',
   metadata: {
     filter_immune_slices: [],
+    timed_refresh_immune_slices: [],
     filter_immune_slice_fields: {},
     expanded_slices: {},
   },
