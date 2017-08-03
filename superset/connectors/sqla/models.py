@@ -376,10 +376,6 @@ class SqlaTable(Model, BaseDatasource):
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
-        if DTTM_ALIAS in groupby:
-            groupby.remove(DTTM_ALIAS)
-            is_timeseries = True
-
         # For backward compatibility
         if granularity not in self.dttm_cols:
             granularity = self.main_dttm_col
