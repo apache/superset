@@ -42,6 +42,7 @@ const defaultProps = {
   hideLeftBar: false,
 };
 
+
 class SqlEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -212,6 +213,11 @@ class SqlEditor extends React.PureComponent {
             sm={this.props.hideLeftBar ? 12 : 7}
             md={this.props.hideLeftBar ? 12 : 8}
             lg={this.props.hideLeftBar ? 12 : 9}
+            style={{
+              overflowX: 'hidden',
+              overflowY: 'scroll',
+              height: this.sqlEditorHeight(),
+            }}
           >
             <ResizableAceEditor
               actions={this.props.actions}
