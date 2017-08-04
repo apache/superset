@@ -61,7 +61,7 @@
     "nvd3": "1.8.5",
     "prop-types": "^15.5.8",
     "react": "^15.5.1",
-    "react-ace": "^5.0.1",
+    "react-ace": "^5.1.2",
     "react-addons-css-transition-group": "^15.6.0",
     "react-addons-shallow-compare": "^15.4.2",
     "react-alert": "^1.0.14",
