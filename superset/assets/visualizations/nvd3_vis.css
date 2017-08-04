@@ -11,6 +11,51 @@ text.nv-axislabel {
   font-size: 14px;
 }
 
+.nvd3-paired-ttest-table .table-container {
+  position: relative;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  width: 100%;
+  padding: 0;
+  margin-right: 0px;
+  font-size: 1em;
+  background-color: white;
+}
+
+h4.nvd3-paired-ttest-table .message-outline {
+  border: 1px solid lightgrey;
+  height: 40px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 40px;
+}
+
+h4.nvd3-paired-ttest-table {
+  padding: 15px;
+  height: 70px;
+  background-color: white;
+}
+
+.nvd3-paired-ttest-table .highlight {
+  font-weight: bold;
+  font-size: 110%;
+  background-color: lightgrey;
+}
+
+.nvd3-paired-ttest-table .color-green {
+  color: green;
+}
+
+.nvd3-paired-ttest-table .color-red {
+  color: red;
+}
+
+.nvd3-paired-ttest-table .control {
+  color: blue;
+}
+
 .dist_bar {
   overflow-x: auto !important;
 }

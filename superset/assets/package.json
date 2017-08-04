@@ -53,6 +53,7 @@
     "datatables-bootstrap3-plugin": "^0.5.0",
     "datatables.net": "^1.10.13",
     "datatables.net-bs": "^1.10.12",
+    "distributions": "^1.0.0",
     "immutable": "^3.8.1",
     "jquery": "^3.2.1",
     "lodash.throttle": "^4.1.1",

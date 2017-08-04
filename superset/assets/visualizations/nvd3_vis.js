@@ -122,6 +122,7 @@ function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     switch (vizType) {
+      case 'line_ttest':
       case 'line':
         if (fd.show_brush) {
           chart = nv.models.lineWithFocusChart();
@@ -310,7 +311,7 @@ function nvd3Vis(slice, payload) {
       chart.xScale(d3.scale.log());
     }
     const isTimeSeries = [
-      'line', 'dual_line', 'area', 'compare', 'bar'].indexOf(vizType) >= 0;
+      'line', 'line_ttest', 'dual_line', 'area', 'compare', 'bar'].indexOf(vizType) >= 0;
     // if x axis format is a date format, rotate label 90 degrees
     if (isTimeSeries) {
       chart.xAxis.rotateLabels(45);
@@ -339,9 +340,9 @@ function nvd3Vis(slice, payload) {
     if (vizType !== 'bullet') {
       chart.color(d => category21(d[colorKey]));
     }
-    if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
+    if ((['line', 'area', 'line_ttest'].indexOf(vizType) >= 0) && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);
-      if (vizType === 'line') {
+      if (vizType === 'line' || vizType === 'line_ttest') {
         // Custom sorted tooltip
         chart.interactiveLayer.tooltip.contentGenerator((d) => {
           let tooltip = '';
