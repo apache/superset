@@ -15,13 +15,14 @@ import {
 
 import Button from '../../components/Button';
 
+import ResizableAceEditor from './ResizableAceEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
 import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
-import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
+
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -40,7 +41,6 @@ const defaultProps = {
   latestQuery: null,
   hideLeftBar: false,
 };
-
 
 class SqlEditor extends React.PureComponent {
   constructor(props) {
@@ -213,7 +213,7 @@ class SqlEditor extends React.PureComponent {
             md={this.props.hideLeftBar ? 12 : 8}
             lg={this.props.hideLeftBar ? 12 : 9}
           >
-            <AceEditorWrapper
+            <ResizableAceEditor
               actions={this.props.actions}
               onBlur={this.setQueryEditorSql.bind(this)}
               queryEditor={this.props.queryEditor}
