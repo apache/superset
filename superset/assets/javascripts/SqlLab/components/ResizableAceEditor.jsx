@@ -1,6 +1,6 @@
 import React from 'react';
-import $ from 'jquery';
 import AceEditorWrapper from './AceEditorWrapper';
+import { getTopOffset } from '../../../utils/common';
 
 class ResizableAceEditor extends React.PureComponent {
   constructor(props) {
@@ -16,13 +16,14 @@ class ResizableAceEditor extends React.PureComponent {
 
     window.addEventListener('mouseup', this.handleMouseUp, false);
   }
+
   handleResizeStart() {
-    this.setState({ ...this.state, dragging: true});
+    this.setState({ ...this.state, dragging: true });
     window.addEventListener('mousemove', this.handleMouseMove, false);
   }
 
   handleMouseMove(e) {
-    const offset = $(this.refs.resizableAceEditor).offset().top;
+    const offset = getTopOffset(this.refs.resizableAceEditor);
     const height = e.pageY - offset;
     this.setState({ ...this.state, editorHeight: height });
   }
