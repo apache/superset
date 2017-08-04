@@ -74,6 +74,7 @@ class ControlPanelsContainer extends React.Component {
                   key={`controlsetrow-${i}`}
                   controls={controlSets.map(controlName => (
                     controlName &&
+                    this.props.controls[controlName] &&
                       <Control
                         name={controlName}
                         key={`control-${controlName}`}
