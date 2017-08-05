@@ -69,6 +69,16 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return "timestamp"
 
     @property
+    def connection(self):
+        """String representing the context of the Datasource"""
+        return None
+
+    @property
+    def schema(self):
+        """String representing the schema of the Datasource (if it applies)"""
+        return None
+
+    @property
     def groupby_column_names(self):
         return sorted([c.column_name for c in self.columns if c.groupby])
 
@@ -106,6 +116,20 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
                 (m.metric_name, m.verbose_name or m.metric_name)
                 for m in self.metrics],
             key=lambda x: x[1])
+
+    @property
+    def short_data(self):
+        """Data representation of the datasource sent to the frontend"""
+        return {
+            'edit_url': self.url,
+            'id': self.id,
+            'uid': self.uid,
+            'schema': self.schema,
+            'name': self.name,
+            'type': self.type,
+            'connection': self.connection,
+            'creator': str(self.created_by),
+        }
 
     @property
     def data(self):

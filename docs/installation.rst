@@ -444,8 +444,8 @@ your environment.::
 
     # assuming $SUPERSET_HOME as the root of the repo
     cd $SUPERSET_HOME/superset/assets
-    npm install
-    npm run build
+    yarn
+    yarn run build
     cd $SUPERSET_HOME
     python setup.py install
 
