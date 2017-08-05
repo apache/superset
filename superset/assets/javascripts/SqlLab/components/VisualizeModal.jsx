@@ -15,14 +15,16 @@ import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 import visTypes from '../../explore/stores/visTypes';
 
-const CHART_TYPES = Object.keys(visTypes).map((typeName) => {
-  const vis = visTypes[typeName];
-  return {
-    value: typeName,
-    label: vis.label,
-    requiresTime: !!vis.requiresTime,
-  };
-});
+const CHART_TYPES = Object.keys(visTypes)
+  .filter(typeName => !!visTypes[typeName].showOnExplore)
+  .map((typeName) => {
+    const vis = visTypes[typeName];
+    return {
+      value: typeName,
+      label: vis.label,
+      requiresTime: !!vis.requiresTime,
+    };
+  });
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
