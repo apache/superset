@@ -347,7 +347,7 @@ new language dictionary, run the following command:
 
     pybabel init -i ./babel/messages.pot -d superset/translations -l es
 
-Then it's a matter of running the statement below to gather all stings that
+Then it's a matter of running the statement below to gather all strings that
 need translation
 
     fabmanager babel-extract --target superset/translations/
