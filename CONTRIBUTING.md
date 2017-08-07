@@ -70,7 +70,7 @@ meets these guidelines:
 
 ## Documentation
 
-The latest documentation and tutorial are available [here](http://airbnb.io/superset).
+The latest documentation and tutorial are available [here](https://superset.incubator.apache.org/).
 
 Contributing to the official documentation is relatively easy, once you've setup
 your environment and done an edit end-to-end. The docs can be found in the
@@ -144,7 +144,7 @@ referenced in the rst, e.g.
 
 aren't actually included in that directory. _Instead_, you'll want to add and commit
 images (and any other static assets) to the _superset/assets/images_ directory.
-When the docs are being pushed to [airbnb.io](http://airbnb.io/superset/), images
+When the docs are being pushed to [Apache Superset (incubating)](https://superset.incubator.apache.org/), images
 will be moved from there to the _\_static/img_ directory, just like they're referenced
 in the docs.
 
@@ -161,12 +161,12 @@ instead.
 
 ## Setting up a Python development environment
 
-Check the [OS dependencies](http://airbnb.io/superset/installation.html#os-dependencies) before follows these steps.
+Check the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before follows these steps.
 
     # fork the repo on GitHub and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
-    # git clone git@github.com:airbnb/superset.git
+    # git clone git@github.com:apache/incubator-superset.git
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -223,8 +223,13 @@ To install third party libraries defined in `package.json`, run the
 following within the `superset/assets/` directory which will install them in a
 new `node_modules/` folder within `assets/`.
 
-```
-npm install
+```bash
+# from the root of the repository, move to where our JS package.json lives
+cd superset/assets/
+# install yarn, a replacement for `npm install` that is faster and more deterministic
+npm install -g yarn
+# run yarn to fetch all the dependencies
+yarn
 ```
 
 To parse and generate bundled files for superset, run either of the
@@ -342,7 +347,7 @@ new language dictionary, run the following command:
 
     pybabel init -i ./babel/messages.pot -d superset/translations -l es
 
-Then it's a matter of running the statement below to gather all stings that
+Then it's a matter of running the statement below to gather all strings that
 need translation
 
     fabmanager babel-extract --target superset/translations/
@@ -374,4 +379,4 @@ to take effect, they need to be compiled using this command:
 
 Here's an example as a Github PR with comments that describe what the
 different sections of the code do:
-https://github.com/airbnb/superset/pull/3013
+https://github.com/apache/incubator-superset/pull/3013

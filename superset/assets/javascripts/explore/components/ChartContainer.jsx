@@ -32,6 +32,7 @@ const propTypes = {
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
+  width: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   table_name: PropTypes.string,
@@ -60,6 +61,7 @@ class ChartContainer extends React.PureComponent {
         (
           prevProps.queryResponse !== this.props.queryResponse ||
           prevProps.height !== this.props.height ||
+          prevProps.width !== this.props.width ||
           this.props.triggerRender
         ) && !this.props.queryResponse.error
         && this.props.chartStatus !== 'failed'
@@ -272,7 +274,7 @@ class ChartContainer extends React.PureComponent {
 
                   <TooltipWrapper
                     label="edit-desc"
-                    tooltip="Edit Description"
+                    tooltip="Edit slice properties"
                   >
                     <a
                       className="edit-desc-icon"
@@ -336,7 +338,7 @@ function mapStateToProps({ explore, chart }) {
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
     triggerRender: explore.triggerRender,
-    datasourceType: explore.datasource_type,
+    datasourceType: explore.datasource.type,
     datasourceId: explore.datasource_id,
     chartStatus: chart.chartStatus,
     chartUpdateEndTime: chart.chartUpdateEndTime,

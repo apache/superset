@@ -1,4 +1,4 @@
-/* eslint-disable no-shadow, no-param-reassign, no-underscore-dangle, no-use-before-define*/
+/* eslint-disable no-shadow, no-param-reassign, no-underscore-dangle, no-use-before-define */
 import d3 from 'd3';
 import { category21 } from '../javascripts/modules/colors';
 
@@ -34,6 +34,7 @@ function treemap(slice, payload) {
         .round(false);
 
     const svg = div.append('svg')
+        .attr('class', 'treemap')
         .attr('width', eltWidth)
         .attr('height', eltHeight);
 
@@ -217,7 +218,7 @@ function treemap(slice, payload) {
     const name = function (d) {
       return d.parent
           ? name(d.parent) + ' / ' + d.name + ' (' + formatNumber(d.value) + ')'
-          : d.name + ' (' + formatNumber(d.value) + ')';
+          : (slice.datasource.verbose_map[d.name] || d.name) + ' (' + formatNumber(d.value) + ')';
     };
 
     initialize(data);

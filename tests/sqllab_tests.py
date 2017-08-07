@@ -189,12 +189,9 @@ class SqlLabTests(SupersetTestCase):
         from_time = 'from={}'.format(int(first_query_time))
         to_time = 'to={}'.format(int(second_query_time))
         params = [from_time, to_time]
-        resp = self.get_resp('/superset/search_queries?'+'&'.join(params))
+        resp = self.get_resp('/superset/search_queries?' + '&'.join(params))
         data = json.loads(resp)
         self.assertEquals(2, len(data))
-        for k in data:
-            self.assertLess(int(first_query_time), k['startDttm'])
-            self.assertLess(k['startDttm'], int(second_query_time))
 
     def test_alias_duplicate(self):
         self.run_sql(
