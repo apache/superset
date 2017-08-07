@@ -185,5 +185,5 @@ the world know they are using Superset. Join our growing community!
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
  - [Udemy](https://www.udemy.com/)
- - [Yahoo!](www.yahoo.com)
+ - [Yahoo!](https://yahoo.com/)
  - [Zalando](https://www.zalando.com)
