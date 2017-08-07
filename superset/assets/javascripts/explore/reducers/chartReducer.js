@@ -21,7 +21,6 @@ export default function chartReducer(state = {}, action) {
           chartStatus: 'loading',
           chartUpdateEndTime: null,
           chartUpdateStartTime: now(),
-          // triggerQuery: false,
           queryRequest: action.queryRequest,
           latestQueryFormData: action.latestQueryFormData,
         });

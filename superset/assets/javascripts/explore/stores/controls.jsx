@@ -28,24 +28,45 @@ export const D3_TIME_FORMAT_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
+const timeColumnOption = {
+  verbose_name: 'Time',
+  column_name: '__timestamp',
+  description: (
+    'A reference to the [Time] configuration, taking granularity into ' +
+    'account'),
+};
+
+const groupByControl = {
+  type: 'SelectControl',
+  multi: true,
+  label: 'Group by',
+  default: [],
+  includeTime: false,
+  description: 'One or many controls to group by',
+  optionRenderer: c => <ColumnOption column={c} />,
+  valueRenderer: c => <ColumnOption column={c} />,
+  valueKey: 'column_name',
+  mapStateToProps: (state, control) => {
+    const newState = {};
+    if (state.datasource) {
+      newState.options = state.datasource.columns.filter(c => c.groupby);
+      if (control && control.includeTime) {
+        newState.options.push(timeColumnOption);
+      }
+    }
+    return newState;
+  },
+};
+
 export const controls = {
   datasource: {
-    type: 'SelectControl',
+    type: 'DatasourceControl',
     label: 'Datasource',
-    isLoading: true,
-    clearable: false,
     default: null,
-    mapStateToProps: (state) => {
-      const datasources = state.datasources || [];
-      return {
-        choices: datasources,
-        isLoading: datasources.length === 0,
-        rightNode: state.datasource ?
-          <a href={state.datasource.edit_url}>edit</a>
-          : null,
-      };
-    },
-    description: '',
+    description: null,
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
   },
 
   viz_type: {
@@ -217,6 +238,14 @@ export const controls = {
     description: null,
   },
 
+  pivot_margins: {
+    type: 'CheckboxControl',
+    label: 'Show totals',
+    renderTrigger: false,
+    default: true,
+    description: 'Display total row/column',
+  },
+
   show_markers: {
     type: 'CheckboxControl',
     label: 'Show Markers',
@@ -238,6 +267,14 @@ export const controls = {
     label: 'Sort Bars',
     default: false,
     description: 'Sort bars by x labels.',
+  },
+
+  combine_metric: {
+    type: 'CheckboxControl',
+    label: 'Combine Metrics',
+    default: false,
+    description: 'Display metrics side by side within each column, as ' +
+    'opposed to each column being displayed side by side for each metric.',
   },
 
   show_controls: {
@@ -316,33 +353,12 @@ export const controls = {
     'to find in the [country] column',
   },
 
-  groupby: {
-    type: 'SelectControl',
-    multi: true,
-    label: 'Group by',
-    default: [],
-    description: 'One or many controls to group by',
-    optionRenderer: c => <ColumnOption column={c} />,
-    valueRenderer: c => <ColumnOption column={c} />,
-    valueKey: 'column_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.columns : [],
-    }),
-  },
+  groupby: groupByControl,
 
-  columns: {
-    type: 'SelectControl',
-    multi: true,
+  columns: Object.assign({}, groupByControl, {
     label: 'Columns',
-    default: [],
     description: 'One or many controls to pivot as columns',
-    optionRenderer: c => <ColumnOption column={c} />,
-    valueRenderer: c => <ColumnOption column={c} />,
-    valueKey: 'column_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.columns : [],
-    }),
-  },
+  }),
 
   all_columns: {
     type: 'SelectControl',
@@ -659,7 +675,7 @@ export const controls = {
     label: 'Entity',
     default: null,
     validators: [v.nonEmpty],
-    description: 'This define the element to be plotted on the chart',
+    description: 'This defines the element to be plotted on the chart',
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.gb_cols : [],
     }),
@@ -1272,6 +1288,24 @@ export const controls = {
     label: 'Cache Timeout (seconds)',
     hidden: true,
     description: 'The number of seconds before expiring the cache',
+  },
+
+  order_by_entity: {
+    type: 'CheckboxControl',
+    label: 'Order by entity id',
+    description: 'Important! Select this if the table is not already sorted by entity id, ' +
+    'else there is no guarantee that all events for each entity are returned.',
+    default: true,
+  },
+
+  min_leaf_node_event_count: {
+    type: 'SelectControl',
+    freeForm: false,
+    label: 'Minimum leaf node event count',
+    default: 1,
+    choices: formatSelectOptionsForRange(1, 10),
+    description: 'Leaf nodes that represent fewer than this number of events will be initially ' +
+    'hidden in the visualization',
   },
 };
 export default controls;

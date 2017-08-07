@@ -15,6 +15,7 @@ import rootReducer from './reducers/index';
 
 import { appSetup } from '../common';
 import './main.css';
+import '../../stylesheets/reactable-pagination.css';
 
 appSetup();
 initJQueryAjax();
