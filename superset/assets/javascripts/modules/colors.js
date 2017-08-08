@@ -3,27 +3,28 @@ import d3 from 'd3';
 
 // Color related utility functions go in this object
 export const bnbColors = [
-  '#ff5a5f', // rausch
-  '#7b0051', // hackb
-  '#007A87', // kazan
-  '#00d1c1', // babu
-  '#8ce071', // lima
-  '#ffb400', // beach
-  '#b4a76c', // barol
-  '#ff8083',
-  '#cc0086',
-  '#00a1b3',
-  '#00ffeb',
-  '#bbedab',
-  '#ffd266',
-  '#cbc29a',
-  '#ff3339',
-  '#ff1ab1',
-  '#005c66',
-  '#00b3a5',
-  '#55d12e',
-  '#b37e00',
-  '#988b4e',
+  '#9e0142',
+  '#d53e4f',
+  '#f46d43',
+  '#fdae61',
+  '#fee08b',
+   '#ffffbf',
+  '#e6f598',
+  '#abdda4',
+  '#66c2a5',
+  '#3288bd',
+  '#5e4fa2',
+  '#8e0152',
+  '#c51b7d',
+  '#de77ae',
+  '#f1b6da',
+  '#fde0ef',
+  '#f7f7f7',
+  '#e6f5d0',
+  '#b8e186',
+  '#7fbc41',
+  '#4d9221',
+  '#276419',
 ];
 
 const spectrums = {
