@@ -130,8 +130,13 @@ class SliceAdder extends React.Component {
             height="auto"
           >
             <TableHeaderColumn
-              dataField="sliceName"
+              dataField="id"
               isKey
+              dataSort
+              hidden
+            />
+            <TableHeaderColumn
+              dataField="sliceName"
               dataSort
             >
               {t('Name')}

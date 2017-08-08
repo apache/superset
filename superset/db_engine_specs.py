@@ -978,6 +978,31 @@ class BQEngineSpec(BaseEngineSpec):
             return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
+class ImpalaEngineSpec(BaseEngineSpec):
+    """Engine spec for Cloudera's Impala"""
+
+    engine = 'impala'
+
+    time_grains = (
+        Grain("Time Column", _('Time Column'), "{col}"),
+        Grain("minute", _('minute'), "TRUNC({col}, 'MI')"),
+        Grain("hour", _('hour'), "TRUNC({col}, 'HH')"),
+        Grain("day", _('day'), "TRUNC({col}, 'DD')"),
+        Grain("week", _('week'), "TRUNC({col}, 'WW')"),
+        Grain("month", _('month'), "TRUNC({col}, 'MONTH')"),
+        Grain("quarter", _('quarter'), "TRUNC({col}, 'Q')"),
+        Grain("year", _('year'), "TRUNC({col}, 'YYYY')"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
+        else:
+            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
 engines = {
     o.engine: o for o in globals().values()
     if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}

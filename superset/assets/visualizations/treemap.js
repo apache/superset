@@ -218,7 +218,7 @@ function treemap(slice, payload) {
     const name = function (d) {
       return d.parent
           ? name(d.parent) + ' / ' + d.name + ' (' + formatNumber(d.value) + ')'
-          : d.name + ' (' + formatNumber(d.value) + ')';
+          : (slice.datasource.verbose_map[d.name] || d.name) + ' (' + formatNumber(d.value) + ')';
     };
 
     initialize(data);

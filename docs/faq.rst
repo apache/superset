@@ -145,13 +145,13 @@ In the example above, if a timed refresh is set for the dashboard, then every sl
 
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
 -----------------------------------------------------------------------------------------
-superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
+By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
 
 __ https://www.sqlite.org/lockingv3.html
 
-One work around is to create a symlink from ~/.superset to a directory located on a non-NFS partition.
+You can override this path using the ``SUPERSET_HOME`` environment variable.
 
-Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/localtion/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
+Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
 
 How do I add new columns to an existing table
 ---------------------------------------------
