@@ -1088,13 +1088,13 @@ class DistributionBarViz(DistributionPieViz):
         d = super(DistributionBarViz, self).query_obj()  # noqa
         fd = self.form_data
         if (
-                len(self.groupby) <
+                len(d['groupby']) <
                 len(fd.get('groupby') or []) + len(fd.get('columns') or [])
                 ):
             raise Exception("Can't have overlap between Series and Breakdowns")
-        if not self.metrics:
+        if not fd.get('metrics'):
             raise Exception("Pick at least one metric")
-        if not self.groupby:
+        if not fd.get('groupby'):
             raise Exception("Pick at least one field for [Series]")
         return d
 
