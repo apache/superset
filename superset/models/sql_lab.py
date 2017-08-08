@@ -69,6 +69,7 @@ class Query(Model):
     start_running_time = Column(Numeric(precision=20, scale=6))
     end_time = Column(Numeric(precision=20, scale=6))
     end_result_backend_time = Column(Numeric(precision=20, scale=6))
+    tracking_url = Column(Text)
 
     changed_on = Column(
         DateTime,
@@ -119,6 +120,7 @@ class Query(Model):
             'user': self.user.username,
             'limit_reached': self.limit_reached,
             'resultsKey': self.results_key,
+            'trackingUrl': self.tracking_url,
         }
 
     @property

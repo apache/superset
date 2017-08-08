@@ -16,6 +16,7 @@ import uuid
 import zlib
 
 from collections import OrderedDict, defaultdict
+from itertools import product
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -113,6 +114,13 @@ class BaseViz(object):
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or []
+        columns = form_data.get("columns") or []
+        groupby = list(set(groupby + columns))
+
+        is_timeseries = self.is_timeseries
+        if DTTM_ALIAS in groupby:
+            groupby.remove(DTTM_ALIAS)
+            is_timeseries = True
 
         # extra_filters are temporary/contextual filters that are external
         # to the slice definition. We use those for dynamic interactive
@@ -172,7 +180,7 @@ class BaseViz(object):
             'granularity': granularity,
             'from_dttm': from_dttm,
             'to_dttm': to_dttm,
-            'is_timeseries': self.is_timeseries,
+            'is_timeseries': is_timeseries,
             'groupby': groupby,
             'metrics': metrics,
             'row_limit': row_limit,
@@ -352,6 +360,12 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
+    def json_dumps(self, obj):
+        if self.form_data.get('all_columns'):
+            return json.dumps(obj, default=utils.json_iso_dttm_ser)
+        else:
+            return super(TableViz, self).json_dumps(obj)
+
 
 class PivotTableViz(BaseViz):
 
@@ -378,9 +392,7 @@ class PivotTableViz(BaseViz):
         if (
                 any(v in groupby for v in columns) or
                 any(v in columns for v in groupby)):
-            raise Exception("groupby and columns can't overlap")
-
-        d['groupby'] = list(set(groupby) | set(columns))
+            raise Exception(""""Group By" and "Columns" can't overlap""")
         return d
 
     def get_data(self, df):
@@ -393,8 +405,11 @@ class PivotTableViz(BaseViz):
             columns=self.form_data.get('columns'),
             values=self.form_data.get('metrics'),
             aggfunc=self.form_data.get('pandas_aggfunc'),
-            margins=True,
+            margins=self.form_data.get('pivot_margins'),
         )
+        # Display metrics side by side with each column
+        if self.form_data.get('combine_metric'):
+            df = df.stack(0).unstack()
         return dict(
             columns=list(df.columns),
             html=df.to_html(
@@ -1072,14 +1087,14 @@ class DistributionBarViz(DistributionPieViz):
     def query_obj(self):
         d = super(DistributionBarViz, self).query_obj()  # noqa
         fd = self.form_data
-        gb = fd.get('groupby') or []
-        cols = fd.get('columns') or []
-        d['groupby'] = set(gb + cols)
-        if len(d['groupby']) < len(gb) + len(cols):
+        if (
+                len(d['groupby']) <
+                len(fd.get('groupby') or []) + len(fd.get('columns') or [])
+                ):
             raise Exception("Can't have overlap between Series and Breakdowns")
-        if not self.metrics:
+        if not fd.get('metrics'):
             raise Exception("Pick at least one metric")
-        if not self.groupby:
+        if not fd.get('groupby'):
             raise Exception("Pick at least one field for [Series]")
         return d
 
@@ -1229,6 +1244,39 @@ class DirectedForceViz(BaseViz):
     def get_data(self, df):
         df.columns = ['source', 'target', 'value']
         return df.to_dict(orient='records')
+
+
+class ChordViz(BaseViz):
+
+    """A Chord diagram"""
+
+    viz_type = "chord"
+    verbose_name = _("Directed Force Layout")
+    credits = '<a href="https://github.com/d3/d3-chord">Bostock</a>'
+    is_timeseries = False
+
+    def query_obj(self):
+        qry = super(ChordViz, self).query_obj()
+        fd = self.form_data
+        qry['groupby'] = [fd.get('groupby'), fd.get('columns')]
+        qry['metrics'] = [fd.get('metric')]
+        return qry
+
+    def get_data(self, df):
+        df.columns = ['source', 'target', 'value']
+
+        # Preparing a symetrical matrix like d3.chords calls for
+        nodes = list(set(df['source']) | set(df['target']))
+        matrix = {}
+        for source, target in product(nodes, nodes):
+            matrix[(source, target)] = 0
+        for source, target, value in df.to_records(index=False):
+            matrix[(source, target)] = value
+        m = [[matrix[(n1, n2)] for n1 in nodes] for n2 in nodes]
+        return {
+            'nodes': list(nodes),
+            'matrix': m,
+        }
 
 
 class CountryMapViz(BaseViz):
@@ -1553,6 +1601,35 @@ class MapboxViz(BaseViz):
             "color": fd.get("mapbox_color"),
         }
 
+class EventFlowViz(BaseViz):
+    """A visualization to explore patterns in event sequences"""
+
+    viz_type = "event_flow"
+    verbose_name = _("Event flow")
+    credits = 'from <a href="https://github.com/williaster/data-ui">@data-ui</a>'
+    is_timeseries = True
+
+    def query_obj(self):
+        query = super(EventFlowViz, self).query_obj()
+        form_data = self.form_data
+
+        event_key = form_data.get('all_columns_x')
+        entity_key = form_data.get('entity')
+        meta_keys = [
+            col for col in form_data.get('all_columns') if col != event_key and col != entity_key
+        ]
+
+        query['columns'] = [event_key, entity_key] + meta_keys
+
+        if form_data['order_by_entity']:
+            query['orderby'] = [(entity_key, True)]
+
+        return query
+
+    def get_data(self, df):
+        return df.to_dict(orient="records")
+
+
 
 viz_types_list = [
     TableViz,
@@ -1574,6 +1651,7 @@ viz_types_list = [
     DirectedForceViz,
     SankeyViz,
     CountryMapViz,
+    ChordViz,
     WorldMapViz,
     FilterBoxViz,
     IFrameViz,
@@ -1586,6 +1664,7 @@ viz_types_list = [
     MapboxViz,
     HistogramViz,
     SeparatorViz,
+    EventFlowViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
