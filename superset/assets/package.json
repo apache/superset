@@ -108,6 +108,7 @@
     "eslint-plugin-jsx-a11y": "^5.0.3",
     "eslint-plugin-react": "^7.0.1",
     "exports-loader": "^0.6.3",
+    "extract-text-webpack-plugin": "2.1.2",
     "file-loader": "^0.11.1",
     "github-changes": "^1.0.4",
     "ignore-styles": "^5.0.1",

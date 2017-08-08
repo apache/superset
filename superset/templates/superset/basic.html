@@ -12,15 +12,16 @@
     </title>
     {% block head_meta %}{% endblock %}
     {% block head_css %}
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css" />
-      <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/superset.css" />
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
       <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
+      <link rel="stylesheet" type="text/css" href="{{ js_manifest('theme.css') }}" />
+      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
+      {% if entry %}
+        <link rel="stylesheet" type="text/css" href="{{ js_manifest(entry + '.css') }}" />
+      {% endif %}
     {% endblock %}
     {% block head_js %}
-      {% with filename="css-theme" %}
-        {% include "superset/partials/_script_tag.html" %}
-      {% endwith %}
+      <script src="{{ js_manifest('common.js') }}"></script>
     {% endblock %}
     <input
       type="hidden"
@@ -65,6 +66,9 @@
       </div>
     </div>
     {% block tail_js %}
+      {% if entry %}
+        <script src="{{ js_manifest(entry + '.js') }}"></script>
+      {% endif %}
     {% endblock %}
   </body>
 </html>
