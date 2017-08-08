@@ -1,12 +1,19 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import AceEditorWrapper from './AceEditorWrapper';
 import { getTopOffset } from '../../../utils/common';
+
+
+const propTypes = {
+  defaultHeight: PropTypes.number.isRequired,
+  minHeight: PropTypes.number.isRequired,
+};
 
 class ResizableAceEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      editorHeight: 200,
+      editorHeight: props.defaultHeight,
       dragging: false,
     };
 
@@ -25,7 +32,14 @@ class ResizableAceEditor extends React.PureComponent {
   handleMouseMove(e) {
     const offset = getTopOffset(this.refs.resizableAceEditor);
     const height = e.pageY - offset;
-    this.setState({ ...this.state, editorHeight: height });
+    const editorHeight = height < this.props.minHeight
+      ? this.props.minHeight
+      : height;
+
+    this.setState({
+      ...this.state,
+      editorHeight,
+    });
   }
 
   handleMouseUp() {
@@ -50,5 +64,6 @@ class ResizableAceEditor extends React.PureComponent {
     );
   }
 }
+ResizableAceEditor.propTypes = propTypes;
 
 export default ResizableAceEditor;

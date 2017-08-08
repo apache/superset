@@ -226,6 +226,8 @@ class SqlEditor extends React.PureComponent {
               onAltEnter={this.runQuery.bind(this)}
               sql={this.props.queryEditor.sql}
               tables={this.props.tables}
+              defaultHeight={200}
+              minHeight={100}
             />
             {editorBottomBar}
             <br />
