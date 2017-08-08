@@ -5,7 +5,6 @@ import { Table } from 'reactable';
 import { Label, FormControl, Modal, OverlayTrigger, Tooltip } from 'react-bootstrap';
 
 import ControlHeader from '../ControlHeader';
-import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
   description: PropTypes.string,
@@ -95,18 +94,22 @@ export default class DatasourceControl extends React.PureComponent {
             <Tooltip id={'error-tooltip'}>Click to point to another datasource</Tooltip>
           }
         >
-          <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }} className="m-r-3">
+          <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }} className="m-r-5">
             {this.props.datasource.name}
           </Label>
         </OverlayTrigger>
-        <InfoTooltipWithTrigger
-          tooltip="edit the datasource's configuration"
-          icon="edit"
-          label="edit datasource"
-          onClick={() => {
-            window.location = this.props.datasource.edit_url;
-          }}
-        />
+        <OverlayTrigger
+          placement="right"
+          overlay={
+            <Tooltip id={'edit-datasource-tooltip'}>
+              Edit the datasource's configuration
+            </Tooltip>
+          }
+        >
+          <a href={this.props.datasource.edit_url}>
+            <i className="fa fa-edit" />
+          </a>
+        </OverlayTrigger>
         <Modal
           show={this.state.showModal}
           onHide={this.toggleModal}
