@@ -69,7 +69,7 @@ db = SQLA(app)
 if conf.get('WTF_CSRF_ENABLED'):
     csrf = CSRFProtect(app)
 
-utils.pessimistic_connection_handling(db.engine.pool)
+utils.pessimistic_connection_handling(db.engine)
 
 cache = utils.setup_cache(app, conf.get('CACHE_CONFIG'))
 tables_cache = utils.setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
