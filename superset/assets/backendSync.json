@@ -240,6 +240,10 @@
         [
           "black_white",
           "black/white"
+        ],
+        [
+          "YlGnBu",
+          "yellow/green/blue"
         ]
       ],
       "default": "blue_white_yellow",
