@@ -237,3 +237,22 @@ div.widget .slice_container {
 .Select-menu-outer {
     z-index: 10 !important;
 }
+
+/** not found record **/
+.panel b {
+    display: inline-block;
+    width: 98%;
+    padding: 2rem;
+    margin: 0 1% 20px 1%;
+    background: #f8f8f8;
+}
+
+/** table on both sides of the gap **/
+.panel .table-responsive{
+    margin: 0 1%;
+}
+@media screen and (max-width: 767px) {
+    .panel .table-responsive{
+        width: 98%;
+    }
+}
