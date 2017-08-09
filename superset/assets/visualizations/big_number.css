@@ -1,3 +1,7 @@
+.digits text{
+  font-size: 150%;
+  font-weight: normal;
+}
 .big_number g.axis text,
 .big_number_total g.axis text {
   font-size: 10px;
@@ -28,4 +32,5 @@
   stroke: black;
   stroke-width: 1;
 }
+
 
