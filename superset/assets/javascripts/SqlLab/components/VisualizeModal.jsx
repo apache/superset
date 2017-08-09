@@ -10,16 +10,14 @@ import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
 import { getExploreUrl } from '../../explore/exploreUtils';
+import { visTypes } from '../../explore/stores/visTypes';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 
-const CHART_TYPES = [
-  { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
-  { value: 'pie', label: 'Pie Chart', requiresTime: false },
-  { value: 'line', label: 'Time Series - Line Chart', requiresTime: true },
-  { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true },
-];
+const CHART_TYPES = Object.keys(visTypes)
+  .filter(key => ['bar', 'line', 'pie', 'dist_bar'].indexOf(key) > -1)
+  .map(key => Object.assign({}, visTypes[key], { value: key }));
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -89,19 +87,27 @@ class VisualizeModal extends React.PureComponent {
     });
     if (this.state.chartType === null) {
       hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_CHART_TYPE);
-    } else if (this.state.chartType.requiresTime) {
-      let hasTime = false;
-      for (const colName in cols) {
-        const col = cols[colName];
-        if (col.hasOwnProperty('is_date') && col.is_date) {
-          hasTime = true;
-        }
-      }
-      if (!hasTime) {
+    } else {
+      if (this.state.chartType.requiresTime && !this.hasColumnType(cols, 'is_date')) {
         hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_TIME);
+      }
+      if (this.state.chartType.requiresDimension && !this.hasColumnType(cols, 'is_dim')) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_DIMENSION);
+      }
+      if (this.state.chartType.requiresAggregationFn && !this.hasColumnType(cols, 'agg')) {
+        hints.push(VISUALIZE_VALIDATION_ERRORS.REQUIRE_AGGREGATION_FUNCTION);
       }
     }
     this.setState({ hints });
+  }
+  hasColumnType(cols, propName) {
+    if (!cols || !propName) {
+      return false;
+    }
+
+    return Object.keys(cols)
+        .filter(key => cols[key].hasOwnProperty(propName) && cols[key][propName])
+        .length > 0;
   }
   changeChartType(option) {
     this.setState({ chartType: option }, this.validate);

@@ -78,6 +78,7 @@ export const sections = {
 export const visTypes = {
   dist_bar: {
     label: 'Distribution - Bar Chart',
+    requiresDimension: true,
     controlPanelSections: [
       {
         label: 'Chart Options',
@@ -108,6 +109,7 @@ export const visTypes = {
 
   pie: {
     label: 'Pie Chart',
+    requiresDimension: true,
     controlPanelSections: [
       {
         label: null,
@@ -195,6 +197,7 @@ export const visTypes = {
   bar: {
     label: 'Time Series - Bar Chart',
     requiresTime: true,
+    requiresDimension: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
