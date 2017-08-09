@@ -164,6 +164,7 @@ export const controls = {
       ['blue_white_yellow', 'blue/white/yellow'],
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
+      ['YlGnBu', 'yellow/green/blue'],
     ],
     default: 'blue_white_yellow',
     description: '',
