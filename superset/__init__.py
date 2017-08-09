@@ -39,9 +39,7 @@ manifest = {}
 try:
     with open(MANIFEST_FILE, 'r') as f:
         manifest = json.load(f)
-
-    def get_manifest_file(filename):
-        return '/static/assets/dist/' + manifest.get(filename, '')
+    get_manifest_file = lambda x: '/static/assets/dist/' + manifest.get(x, '')
 except Exception:
     print("no manifest file found at " + MANIFEST_FILE)
 
