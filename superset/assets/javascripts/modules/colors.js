@@ -64,8 +64,8 @@ export const category21 = (function () {
       seen[stringifyS] = Object.keys(seen).length;
     }
     /* eslint consistent-return: 0 */
-    /*return bnbColors[seen[stringifyS] % bnbColors.length];*/
-    return d3.interpolateSpectral[seen[stringifyS] % seen[stringifyS].length];
+    return bnbColors[seen[stringifyS] % bnbColors.length];
+    /*return d3.interpolateSpectral[seen[stringifyS] % seen[stringifyS].length];*/
   };
 }());
 
