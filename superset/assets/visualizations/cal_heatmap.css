@@ -1,3 +1,4 @@
 .cal_heatmap .slice_container {
   padding: 10px;
+   overflow: scroll;
 }
