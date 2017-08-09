@@ -1,17 +1,14 @@
+/* eslint-disable global-require, import/no-dynamic-require */
 import Jed from 'jed';
 import React from 'react';
 import { sprintf } from 'sprintf-js';
-import { getTranslations } from './translations';
 import { getLanguage } from './explore/stores/getLanguage';
 
-let LOCALE_DEBUG = false;
-
-if (sessionStorage && sessionStorage.getItem('localeDebug') === '1') {
-  LOCALE_DEBUG = true;
-}
-
-export function setLocaleDebug(value) {
-  sessionStorage.setItem('localeDebug', value ? '1' : '0');
+export function getTranslations(language) {
+  const ctx = require(`../../translations/${language}/LC_MESSAGES/messages.po`);
+  const translations = {};
+  translations[language] = ctx;
+  return translations[language];
 }
 
 let i18n = null;
@@ -140,35 +137,6 @@ export function renderComponentTemplate(template, components) {
   return renderGroup('root');
 }
 
-function isArrayFn(value) {
-  if (typeof Array.isArray === 'function') {
-    return Array.isArray(value);
-  }
-  return Object.prototype.toString.call(value) === '[object Array]';
-}
-
-function mark(rv) {
-  if (!LOCALE_DEBUG) {
-    return rv;
-  }
-  const proxy = {
-    $$typeof: Symbol.for('react.element'),
-    type: 'span',
-    key: null,
-    ref: null,
-    props: {
-      className: 'translation-wrapper',
-      children: isArrayFn(rv) ? rv : [rv],
-    },
-    _owner: null,
-    _store: {},
-  };
-  proxy.toString = function () {
-    return '🇦🇹' + rv + '🇦🇹';
-  };
-  return proxy;
-}
-
 export function format(formatString, args) {
   if (argsInvolveReact(args)) {
     return formatForReact(formatString, args);
@@ -181,16 +149,16 @@ export function gettext(string, ...args) {
   if (args.length > 0) {
     rv = format(rv, args);
   }
-  return mark(rv);
+  return rv;
 }
 
 export function ngettext(singular, plural, ...args) {
-  return mark(format(i18n.ngettext(singular, plural, args[0] || 0), args));
+  return format(i18n.ngettext(singular, plural, args[0] || 0), args);
 }
 
 export function gettextComponentTemplate(template, components) {
   const tmpl = parseComponentTemplate(i18n.gettext(template));
-  return mark(renderComponentTemplate(tmpl, components));
+  return renderComponentTemplate(tmpl, components);
 }
 
 export const t = gettext;
