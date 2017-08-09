@@ -72,6 +72,7 @@ setup(
         'sqlparse==0.2.3',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
+        'flask==0.12.1',
     ],
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],
