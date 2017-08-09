@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import d3 from 'd3';
+import colorbrewer from 'colorbrewer';
 
 // Color related utility functions go in this object
 const bnbColors = [
