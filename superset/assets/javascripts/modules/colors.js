@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import d3 from 'd3';
-import colorbrewer from 'colorbrewer';
+import * from 'd3-scale-chromatic';
 
 // Color related utility functions go in this object
 export const bnbColors = [
@@ -64,7 +64,8 @@ export const category21 = (function () {
       seen[stringifyS] = Object.keys(seen).length;
     }
     /* eslint consistent-return: 0 */
-    return bnbColors[seen[stringifyS] % bnbColors.length];
+    /*return bnbColors[seen[stringifyS] % bnbColors.length];*/
+    return d3.interpolateSpectral[seen[stringifyS] % seen[stringifyS].length];
   };
 }());
 
