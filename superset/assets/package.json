@@ -45,6 +45,7 @@
     "brfs": "^1.4.3",
     "cal-heatmap": "3.6.2",
     "classnames": "^2.2.5",
+    "colorbrewer": "^1.0.0",
     "d3": "^3.5.15",
     "d3-cloud": "^1.2.1",
     "d3-sankey": "^0.4.2",
