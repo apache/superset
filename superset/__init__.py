@@ -32,19 +32,21 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+# Handling manifest file logic at app start
+MANIFEST_FILE = APP_DIR + '/static/assets/dist/manifest.json'
+get_manifest_file = lambda x: x
+manifest = {}
+try:
+    with open(MANIFEST_FILE, 'r') as f:
+        manifest = json.load(f)
+    get_manifest_file = lambda x: '/static/assets/dist/' + manifest.get(x, '')
+except Exception:
+    print("no manifest file found at " + MANIFEST_FILE)
+
 
 @app.context_processor
 def get_js_manifest():
-    manifest = {}
-    try:
-        with open(APP_DIR + '/static/assets/dist/manifest.json', 'r') as f:
-            manifest = json.load(f)
-    except Exception as e:
-        print(
-            "no manifest file found at " +
-            APP_DIR + "/static/assets/dist/manifest.json"
-        )
-    return dict(js_manifest=manifest)
+    return dict(js_manifest=get_manifest_file)
 
 
 for bp in conf.get('BLUEPRINTS'):
