@@ -1,7 +1,7 @@
 """Add verbose name to table/datasources
 
 Revision ID: 699feb3943c0
-Revises: a65458420354
+Revises: ca69c70ec99b
 Create Date: 2017-06-25 14:00:04.056776
 
 """
