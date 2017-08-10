@@ -170,6 +170,12 @@ def generate_download_headers(extension):
 
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
+
+    list_title = _('List Databases')
+    show_title = _('Show Database')
+    add_title = _('Add Database')
+    edit_title = _('Edit Database')
+
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
         'allow_dml', 'creator', 'modified']
@@ -319,6 +325,12 @@ appbuilder.add_view(
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
+
+    list_title = _('List Slices')
+    show_title = _('Show Slice')
+    add_title = _('Add Slice')
+    edit_title = _('Edit Slice')
+
     can_add = False
     label_columns = {
         'datasource_link': 'Datasource',
@@ -415,6 +427,12 @@ appbuilder.add_view_no_menu(SliceAddView)
 
 class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
+
+    list_title = _('List Dashboards')
+    show_title = _('Show Dashboard')
+    add_title = _('Add Dashboard')
+    edit_title = _('Edit Dashboard')
+
     list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
@@ -682,7 +700,8 @@ class Superset(BaseSupersetView):
     @expose("/datasources/")
     def datasources(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
+        datasources = [o.short_data for o in datasources]
+        datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
 
     @has_access_api
@@ -1074,12 +1093,16 @@ class Superset(BaseSupersetView):
         table_name = datasource.table_name \
             if datasource_type == 'table' \
             else datasource.datasource_name
+        if slc:
+            title = "[slice] " + slc.slice_name
+        else:
+            title = "[explore] " + table_name
         return self.render_template(
-            "superset/explore.html",
+            "superset/basic.html",
             bootstrap_data=json.dumps(bootstrap_data),
-            slice=slc,
-            standalone_mode=standalone,
-            table_name=table_name)
+            entry='explore',
+            title=title,
+            standalone_mode=standalone)
 
     @api
     @has_access_api
@@ -1324,6 +1347,8 @@ class Superset(BaseSupersetView):
 
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
+        if 'timed_refresh_immune_slices' not in md:
+            md['timed_refresh_immune_slices'] = []
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
@@ -1374,7 +1399,7 @@ class Superset(BaseSupersetView):
                 .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
-            return json.dumps(engine.table_names(), indent=4)
+            return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
             logging.exception(e)
             return json_error_response((
@@ -1702,7 +1727,8 @@ class Superset(BaseSupersetView):
 
         return self.render_template(
             "superset/dashboard.html",
-            dashboard_title=dash.dashboard_title,
+            entry='dashboard',
+            title='[dashboard] ' + dash.dashboard_title,
             bootstrap_data=json.dumps(bootstrap_data),
         )
 
@@ -2012,6 +2038,7 @@ class Superset(BaseSupersetView):
 
         # Async request.
         if async:
+            logging.info("Running query on a Celery worker")
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
@@ -2061,6 +2088,7 @@ class Superset(BaseSupersetView):
     @log_this
     def csv(self, client_id):
         """Download the query results as csv."""
+        logging.info("Exporting CSV file [{}]".format(client_id))
         query = (
             db.session.query(Query)
             .filter_by(client_id=client_id)
@@ -2074,14 +2102,20 @@ class Superset(BaseSupersetView):
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
+            logging.info(
+                "Fetching CSV from results backend "
+                "[{}]".format(query.results_key))
             blob = results_backend.get(query.results_key)
         if blob:
+            logging.info("Decompressing")
             json_payload = utils.zlib_decompress_to_string(blob)
             obj = json.loads(json_payload)
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
+            logging.info("Using pandas to convert to CSV")
             csv = df.to_csv(index=False, encoding='utf-8')
         else:
+            logging.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
@@ -2089,6 +2123,7 @@ class Superset(BaseSupersetView):
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
+        logging.info("Ready to return response")
         return response
 
     @has_access
@@ -2202,7 +2237,8 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
-        return self.render_template('superset/welcome.html', utils=utils)
+        return self.render_template(
+            'superset/welcome.html', entry='welcome', utils=utils)
 
     @has_access
     @expose("/profile/<username>/")
@@ -2243,9 +2279,10 @@ class Superset(BaseSupersetView):
             }
         }
         return self.render_template(
-            'superset/profile.html',
+            'superset/basic.html',
             title=user.username + "'s profile",
             navbar_container=True,
+            entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser)
         )
 
@@ -2257,7 +2294,8 @@ class Superset(BaseSupersetView):
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
         }
         return self.render_template(
-            'superset/sqllab.html',
+            'superset/basic.html',
+            entry='sqllab',
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
 appbuilder.add_view_no_menu(Superset)

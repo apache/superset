@@ -29,25 +29,6 @@ export const exploreReducer = function (state, action) {
     [actions.SET_DATASOURCE]() {
       return Object.assign({}, state, { datasource: action.datasource });
     },
-    [actions.FETCH_DATASOURCES_STARTED]() {
-      return Object.assign({}, state, { isDatasourcesLoading: true });
-    },
-
-    [actions.FETCH_DATASOURCES_SUCCEEDED]() {
-      return Object.assign({}, state, { isDatasourcesLoading: false });
-    },
-
-    [actions.FETCH_DATASOURCES_FAILED]() {
-      // todo(alanna) handle failure/error state
-      return Object.assign({}, state,
-        {
-          isDatasourcesLoading: false,
-          controlPanelAlert: action.error,
-        });
-    },
-    [actions.SET_DATASOURCES]() {
-      return Object.assign({}, state, { datasources: action.datasources });
-    },
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
     },

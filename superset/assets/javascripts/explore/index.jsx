@@ -14,11 +14,12 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import { exploreReducer } from './reducers/exploreReducer';
 import { appSetup } from '../common';
 import './main.css';
+import '../../stylesheets/reactable-pagination.css';
 
 appSetup();
 initJQueryAjax();
 
-const exploreViewContainer = document.getElementById('js-explore-view-container');
+const exploreViewContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 const controls = getControlsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;

@@ -3,7 +3,7 @@ import logging
 
 from past.builtins import basestring
 
-from flask import Markup, flash, redirect, abort
+from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import sqlalchemy as sa
@@ -13,6 +13,7 @@ from flask_babel import gettext as __
 
 from superset import appbuilder, db, utils, security, sm
 from superset.utils import has_access
+from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
     SupersetModelView, ListWidgetWithCheckboxes, DeleteMixin, DatasourceFilter,
     get_datasource_exist_error_mgs,
@@ -23,6 +24,12 @@ from . import models
 
 class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
+
+    list_title = _('List Columns')
+    show_title = _('Show Column')
+    add_title = _('Add Column')
+    edit_title = _('Edit Column')
+
     can_delete = False
     list_widget = ListWidgetWithCheckboxes
     edit_columns = [
@@ -91,6 +98,12 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 
 class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
+
+    list_title = _('List Metrics')
+    show_title = _('Show Metric')
+    add_title = _('Add Metric')
+    edit_title = _('Edit Metric')
+
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
@@ -133,8 +146,14 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class TableModelView(SupersetModelView, DeleteMixin):  # noqa
+class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
+        
+    list_title = _('List Tables')
+    show_title = _('Show Table')
+    add_title = _('Add Table')
+    edit_title = _('Edit Table')
+
     list_columns = [
         'link', 'database',
         'changed_by_', 'modified']

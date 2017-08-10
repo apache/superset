@@ -51,7 +51,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = "Superset's documentation"
+project = "Apache Superset"
 copyright = None
 author = u'Maxime Beauchemin'
 

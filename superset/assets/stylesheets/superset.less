@@ -13,7 +13,7 @@ body {
 }
 
 .emph {
-  font-weight: bold;
+  font-weight: bold !important;
 }
 
 .alert.alert-danger > .debugger {
@@ -228,9 +228,31 @@ div.widget .slice_container {
 .m-r-5 {
     margin-right: 5px;
 }
+.m-r-3 {
+    margin-right: 3px;
+}
 .m-t-5 {
     margin-top: 5px;
 }
 .Select-menu-outer {
     z-index: 10 !important;
+}
+
+/** not found record **/
+.panel b {
+    display: inline-block;
+    width: 98%;
+    padding: 2rem;
+    margin: 0 1% 20px 1%;
+    background: #f8f8f8;
+}
+
+/** table on both sides of the gap **/
+.panel .table-responsive{
+    margin: 0 1%;
+}
+@media screen and (max-width: 767px) {
+    .panel .table-responsive{
+        width: 98%;
+    }
 }

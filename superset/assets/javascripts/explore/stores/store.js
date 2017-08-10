@@ -52,7 +52,7 @@ export function getControlsState(state, form_data) {
   controlNames.forEach((k) => {
     const control = Object.assign({}, controls[k], controlOverrides[k]);
     if (control.mapStateToProps) {
-      Object.assign(control, control.mapStateToProps(state));
+      Object.assign(control, control.mapStateToProps(state, control));
       delete control.mapStateToProps;
     }
 
