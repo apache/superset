@@ -14,13 +14,18 @@ import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 import { t } from '../../locales';
+import visTypes from '../../explore/stores/visTypes';
 
-const CHART_TYPES = [
-  { value: 'dist_bar', label: t('Distribution - Bar Chart'), requiresTime: false },
-  { value: 'pie', label: t('Pie Chart'), requiresTime: false },
-  { value: 'line', label: t('Time Series - Line Chart'), requiresTime: true },
-  { value: 'bar', label: t('Time Series - Bar Chart'), requiresTime: true },
-];
+const CHART_TYPES = Object.keys(visTypes)
+  .filter(typeName => !!visTypes[typeName].showOnExplore)
+  .map((typeName) => {
+    const vis = visTypes[typeName];
+    return {
+      value: typeName,
+      label: vis.label,
+      requiresTime: !!vis.requiresTime,
+    };
+  });
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

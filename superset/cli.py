@@ -194,7 +194,7 @@ def worker(workers):
         celery_app.conf.update(
             CELERYD_CONCURRENCY=config.get("SUPERSET_CELERY_WORKERS"))
 
-    worker = celery_worker.worker(app=celery_app)
+    worker = celery_app.Worker(optimization='fair')
     worker.run()
 
 
