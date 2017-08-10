@@ -217,8 +217,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
         if (refresh) {
           this.refreshExcept(sliceId);
         }
-      }
-      return this.updateFilterParamsInUrl();
+      this.updateFilterParamsInUrl();
     },
     readFilters() {
       // Returns a list of human readable active filters
