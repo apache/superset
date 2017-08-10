@@ -199,28 +199,24 @@ export function dashboardContainer(dashboard, datasources, userid) {
       return f;
     },
     addFilter(sliceId, col, vals, merge = true, refresh = true) {
-      // If slice doesn't exist, remove the related parameters in preselect_filters.
-      if (!this.getSlice(sliceId)) {
-        return this.updateFilterParamsInUrl();
-      } else if (col !== '__from' && col !== '__to' && (this.getSlice(sliceId).formData.groupby.indexOf(col) === -1)) {
-        // If col doesn't exist, remove the related parameters in preselect_filters.
-        return this.updateFilterParamsInUrl();
-      }
-      if (!(sliceId in this.filters)) {
-        this.filters[sliceId] = {};
-      }
-      if (!(col in this.filters[sliceId]) || !merge) {
-        this.filters[sliceId][col] = vals;
+      if (this.getSlice(sliceId) && (col === '__from' || col === '__to' ||
+          this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1)){
+        if (!(sliceId in this.filters)) {
+          this.filters[sliceId] = {};
+        }
+        if (!(col in this.filters[sliceId]) || !merge) {
+          this.filters[sliceId][col] = vals;
 
-        // d3.merge pass in array of arrays while some value form filter components
-        // from and to filter box require string to be process and return
-      } else if (this.filters[sliceId][col] instanceof Array) {
-        this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
-      } else {
-        this.filters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
-      }
-      if (refresh) {
-        this.refreshExcept(sliceId);
+          // d3.merge pass in array of arrays while some value form filter components
+          // from and to filter box require string to be process and return
+        } else if (this.filters[sliceId][col] instanceof Array) {
+          this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
+        } else {
+          this.filters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
+        }
+        if (refresh) {
+          this.refreshExcept(sliceId);
+        }
       }
       return this.updateFilterParamsInUrl();
     },

@@ -441,6 +441,9 @@ def load_world_bank_health_n_pop():
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = slug
 
+    filters = json.dumps({str(slices[0].id): {'region': ['North America']}})
+    dash.json_metadata = json.dumps({'default_filters': filters})
+
     dash.slices = slices[:-1]
     db.session.merge(dash)
     db.session.commit()
