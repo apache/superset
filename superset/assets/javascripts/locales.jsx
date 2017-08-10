@@ -4,8 +4,8 @@ import React from 'react';
 import { sprintf } from 'sprintf-js';
 import { getLanguage } from './explore/stores/getLanguage';
 
-export function getTranslations(language) {
-  const ctx = require(`../../translations/${language}/LC_MESSAGES/messages.po`);
+export function getTranslationsJson(language) {
+  const ctx = require(`../../translations/${language}/LC_MESSAGES/messages.json`);
   const translations = {};
   translations[language] = ctx;
   return translations[language];
@@ -14,11 +14,11 @@ export function getTranslations(language) {
 let i18n = null;
 
 export function setLocale(locale) {
-  const translations = getTranslations(locale);
+  const translations = getTranslationsJson(locale);
   i18n = new Jed({
     domain: 'superset',
     locale_data: {
-      superset: translations,
+      superset: translations.locale_data.superset,
     },
   });
 }

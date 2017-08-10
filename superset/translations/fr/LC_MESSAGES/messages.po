@@ -669,27 +669,6 @@ msgstr ""
 msgid "using only alphanumeric characters and underscores"
 msgstr ""
 
-#: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:136
-#, python-format
-msgid "This query took %s seconds to run,"
-msgstr ""
-
-#: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:137
-#, python-format
-msgid "and the explore view times out at %s seconds,"
-msgstr ""
-
-#: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:138
-msgid ""
-"following this flow will most likely lead to your query timing out.We "
-"recommend your summarize your data further before following that flow.If "
-"activated you can use the "
-msgstr ""
-
-#: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:140
-msgid "featureto store a summarized data set that you can then explore."
-msgstr ""
-
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:160
 msgid "Creating a data source and popping a new tab"
 msgstr ""

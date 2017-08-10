@@ -364,6 +364,14 @@ to take effect, they need to be compiled using this command:
 
     fabmanager babel-compile --target superset/translations/
 
+In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the NPM po2json package.
+We need to be compiled using this command:
+
+    npm install po2json -g
+
+Execute this command to convert the en PO file into a json file:
+
+    po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
 
 ## Adding new datasources
 

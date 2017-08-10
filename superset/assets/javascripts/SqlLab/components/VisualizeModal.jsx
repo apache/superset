@@ -13,6 +13,7 @@ import { getExploreUrl } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
+import visTypes from '../../explore/stores/visTypes';
 import { t } from '../../locales';
 import visTypes from '../../explore/stores/visTypes';
 
@@ -138,12 +139,12 @@ class VisualizeModal extends React.PureComponent {
     if (Math.round(queryDuration.asMilliseconds()) > QUERY_TIMEOUT_THRESHOLD) {
       advise = (
         <Alert bsStyle="warning">
-          {t('This query took %s seconds to run,', Math.round(queryDuration.asSeconds()))}
-          {t('and the explore view times out at %s seconds,', QUERY_TIMEOUT_THRESHOLD / 1000)}
-          {t('following this flow will most likely lead to your query timing out.' +
-          'We recommend your summarize your data further before following that flow.' +
-          'If activated you can use the ')} <strong>CREATE TABLE AS</strong> {t('feature' +
-          'to store a summarized data set that you can then explore.')}
+          This query took {Math.round(queryDuration.asSeconds())} seconds to run,
+          and the explore view times out at {QUERY_TIMEOUT_THRESHOLD / 1000} seconds,
+          following this flow will most likely lead to your query timing out.
+          We recommend your summarize your data further before following that flow.
+          If activated you can use the <strong>CREATE TABLE AS</strong> feature
+          to store a summarized data set that you can then explore.
         </Alert>);
     }
     return advise;
