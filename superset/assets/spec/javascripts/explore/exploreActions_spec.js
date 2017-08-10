@@ -82,44 +82,6 @@ describe('fetching actions', () => {
     });
   });
 
-  describe('fetchDatasources', () => {
-    const makeRequest = () => {
-      request = actions.fetchDatasources();
-      request(dispatch);
-    };
-
-    it('calls fetchDatasourcesStarted', () => {
-      makeRequest();
-      expect(dispatch.args[0][0].type).to.equal(actions.FETCH_DATASOURCES_STARTED);
-    });
-
-    it('makes the ajax request', () => {
-      makeRequest();
-      expect(ajaxStub.calledOnce).to.be.true;
-    });
-
-    it('calls correct url', () => {
-      const url = '/superset/datasources/';
-      makeRequest();
-      expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
-    });
-
-    it('calls correct actions on error', () => {
-      ajaxStub.yieldsTo('error', { responseJSON: { error: 'error text' } });
-      makeRequest();
-      expect(dispatch.callCount).to.equal(2);
-      expect(dispatch.getCall(1).args[0].type).to.equal(actions.FETCH_DATASOURCES_FAILED);
-    });
-
-    it('calls correct actions on success', () => {
-      ajaxStub.yieldsTo('success', { data: '' });
-      makeRequest();
-      expect(dispatch.callCount).to.equal(3);
-      expect(dispatch.getCall(1).args[0].type).to.equal(actions.SET_DATASOURCES);
-      expect(dispatch.getCall(2).args[0].type).to.equal(actions.FETCH_DATASOURCES_SUCCEEDED);
-    });
-  });
-
   describe('fetchDashboards', () => {
     const userID = 1;
     const mockDashboardData = {

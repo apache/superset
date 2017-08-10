@@ -1,5 +1,4 @@
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
-
 import * as v from '../validators';
 
 export const sections = {
@@ -76,9 +75,10 @@ export const sections = {
   ],
 };
 
-const visTypes = {
+export const visTypes = {
   dist_bar: {
     label: 'Distribution - Bar Chart',
+    showOnExplore: true,
     controlPanelSections: [
       {
         label: 'Chart Options',
@@ -109,6 +109,7 @@ const visTypes = {
 
   pie: {
     label: 'Pie Chart',
+    showOnExplore: true,
     controlPanelSections: [
       {
         label: null,
@@ -125,6 +126,7 @@ const visTypes = {
 
   line: {
     label: 'Time Series - Line Chart',
+    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -195,6 +197,7 @@ const visTypes = {
 
   bar: {
     label: 'Time Series - Bar Chart',
+    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
@@ -338,10 +341,15 @@ const visTypes = {
         controlSetRows: [
           ['groupby', 'columns'],
           ['metrics', 'pandas_aggfunc'],
-          ['number_format'],
+          ['number_format', 'combine_metric'],
+          ['pivot_margins'],
         ],
       },
     ],
+    controlOverrides: {
+      groupby: { includeTime: true },
+      columns: { includeTime: true },
+    },
   },
 
   separator: {
@@ -743,8 +751,13 @@ const visTypes = {
     controlOverrides: {
       groupby: {
         label: 'Filter controls',
-        description: 'The controls you want to filter on',
-        default: [],
+        description: (
+          'The controls you want to filter on. Note that only columns ' +
+          'checked as "filterable" will show up on this list.'
+        ),
+        mapStateToProps: state => ({
+          options: (state.datasource) ? state.datasource.columns.filter(c => c.filterable) : [],
+        }),
       },
     },
   },
@@ -798,6 +811,14 @@ const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      all_columns_x: {
+        validators: [v.nonEmpty],
+      },
+      all_columns_y: {
+        validators: [v.nonEmpty],
+      },
+    },
   },
 
   horizon: {
@@ -879,6 +900,51 @@ const visTypes = {
       groupby: {
         description: 'One or many controls to group by. If grouping, latitude ' +
         'and longitude columns must be present.',
+      },
+    },
+  },
+
+  event_flow: {
+    label: 'Event flow',
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: 'Event definition',
+        controlSetRows: [
+          ['entity'],
+          ['all_columns_x'],
+          ['row_limit'],
+          ['order_by_entity'],
+          ['min_leaf_node_event_count'],
+        ],
+      },
+      {
+        label: 'Additional meta data',
+        controlSetRows: [
+          ['all_columns'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      entity: {
+        label: 'Column containing entity ids',
+        description: 'e.g., a "user id" column',
+      },
+      all_columns_x: {
+        label: 'Column containing event names',
+        validators: [v.nonEmpty],
+        default: control => (
+          control.choices && control.choices.length > 0 ?
+            control.choices[0][0] : null
+        ),
+      },
+      row_limit: {
+        label: 'Event count limit',
+        description: 'The maximum number of events to return, equivalent to number of rows',
+      },
+      all_columns: {
+        label: 'Meta data',
+        description: 'Select any columns for meta data inspection',
       },
     },
   },

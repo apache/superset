@@ -23,6 +23,7 @@ class EditableTitle extends React.PureComponent {
     this.handleClick = this.handleClick.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
     this.handleChange = this.handleChange.bind(this);
+    this.handleKeyPress = this.handleKeyPress.bind(this);
   }
   handleClick() {
     if (!this.props.canEdit) {
@@ -58,6 +59,13 @@ class EditableTitle extends React.PureComponent {
       title: ev.target.value,
     });
   }
+  handleKeyPress(ev) {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+
+      this.handleBlur();
+    }
+  }
   render() {
     return (
       <span className="editable-title">
@@ -72,6 +80,7 @@ class EditableTitle extends React.PureComponent {
             onChange={this.handleChange}
             onBlur={this.handleBlur}
             onClick={this.handleClick}
+            onKeyPress={this.handleKeyPress}
           />
         </TooltipWrapper>
       </span>

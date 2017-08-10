@@ -298,9 +298,6 @@ function nvd3Vis(slice, payload) {
     chart.height(height);
     slice.container.css('height', height + 'px');
 
-    if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
-      chart.useInteractiveGuideline(true);
-    }
     if (chart.forceY &&
         fd.y_axis_bounds &&
         (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
@@ -341,6 +338,34 @@ function nvd3Vis(slice, payload) {
 
     if (vizType !== 'bullet') {
       chart.color(d => category21(d[colorKey]));
+    }
+    if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
+      chart.useInteractiveGuideline(true);
+      if (vizType === 'line') {
+        // Custom sorted tooltip
+        chart.interactiveLayer.tooltip.contentGenerator((d) => {
+          let tooltip = '';
+          tooltip += "<table><thead><tr><td colspan='3'>"
+            + `<strong class='x-value'>${xAxisFormatter(d.value)}</strong>`
+            + '</td></tr></thead><tbody>';
+          d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
+          d.series.forEach((series) => {
+            tooltip += (
+              `<tr class="${series.highlight ? 'emph' : ''}">` +
+                `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
+                  '<div ' +
+                    `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
+                  '></div>' +
+                '</td>' +
+                `<td>${series.key}</td>` +
+                `<td>${yAxisFormatter(series.value)}</td>` +
+              '</tr>'
+            );
+          });
+          tooltip += '</tbody></table>';
+          return tooltip;
+        });
+      }
     }
 
     if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {

@@ -6,6 +6,8 @@ Create Date: 2016-09-15 08:48:27.284752
 
 """
 
+import logging
+
 # revision identifiers, used by Alembic.
 revision = '65903709c321'
 down_revision = '4500485bde7d'
