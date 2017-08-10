@@ -1,10 +1,11 @@
 /* eslint camelcase: 0 */
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
+import { connect } from 'react-redux';
+
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
-import { connect } from 'react-redux';
+import { getExploreUrl } from '../exploreUtils';
 
 const propTypes = {
   can_overwrite: PropTypes.bool,
@@ -102,12 +103,7 @@ class SaveModal extends React.Component {
     }
     sliceParams.goto_dash = gotodash;
 
-    const baseUrl = `/superset/explore/${this.props.datasource.type}/${this.props.datasource.id}/`;
-    sliceParams.datasource_name = this.props.datasource.name;
-
-    const saveUrl = `${baseUrl}?form_data=` +
-      `${encodeURIComponent(JSON.stringify(this.props.form_data))}` +
-      `&${$.param(sliceParams, true)}`;
+    const saveUrl = getExploreUrl(this.props.form_data, 'base', false, null, sliceParams);
     this.props.actions.saveSlice(saveUrl)
       .then((data) => {
         // Go to new slice url or dashboard url
@@ -234,14 +230,14 @@ class SaveModal extends React.Component {
 
 SaveModal.propTypes = propTypes;
 
-function mapStateToProps(state) {
+function mapStateToProps({ explore, saveModal }) {
   return {
-    datasource: state.datasource,
-    slice: state.slice,
-    can_overwrite: state.can_overwrite,
-    user_id: state.user_id,
-    dashboards: state.dashboards,
-    alert: state.saveModalAlert,
+    datasource: explore.datasource,
+    slice: explore.slice,
+    can_overwrite: explore.can_overwrite,
+    user_id: explore.user_id,
+    dashboards: saveModal.dashboards,
+    alert: explore.saveModalAlert,
   };
 }
 

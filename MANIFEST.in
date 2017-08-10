@@ -1,7 +1,5 @@
 recursive-include superset/templates *
 recursive-include superset/static *
-recursive-exclude superset/static/assets/node_modules *
-recursive-include superset/static/assets/node_modules/font-awesome *
 recursive-exclude superset/static/docs *
 recursive-exclude superset/static/spec *
 recursive-exclude tests *

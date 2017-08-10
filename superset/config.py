@@ -245,6 +245,8 @@ class CeleryConfig(object):
   CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
   CELERYD_LOG_LEVEL = 'DEBUG'
+  CELERYD_PREFETCH_MULTIPLIER = 1
+  CELERY_ACKS_LATE = True
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None

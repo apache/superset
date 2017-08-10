@@ -69,11 +69,11 @@ class DruidCluster(Model, AuditMixinNullable):
     # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(255))
-    coordinator_port = Column(Integer)
+    coordinator_port = Column(Integer, default=8081)
     coordinator_endpoint = Column(
         String(255), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(255))
-    broker_port = Column(Integer)
+    broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)

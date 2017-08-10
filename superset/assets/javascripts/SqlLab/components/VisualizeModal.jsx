@@ -13,13 +13,18 @@ import { getExploreUrl } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
+import visTypes from '../../explore/stores/visTypes';
 
-const CHART_TYPES = [
-  { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
-  { value: 'pie', label: 'Pie Chart', requiresTime: false },
-  { value: 'line', label: 'Time Series - Line Chart', requiresTime: true },
-  { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true },
-];
+const CHART_TYPES = Object.keys(visTypes)
+  .filter(typeName => !!visTypes[typeName].showOnExplore)
+  .map((typeName) => {
+    const vis = visTypes[typeName];
+    return {
+      value: typeName,
+      label: vis.label,
+      requiresTime: !!vis.requiresTime,
+    };
+  });
 
 const propTypes = {
   actions: PropTypes.object.isRequired,

@@ -237,6 +237,24 @@ div.widget .slice_container {
 .Select-menu-outer {
     z-index: 10 !important;
 }
+/** not found record **/
+.panel b {
+  display: inline-block;
+  width: 98%;
+  padding: 2rem;
+  margin: 0 1% 20px 1%;
+  background: #f8f8f8;
+}
+
+/** table on both sides of the gap **/
+.panel .table-responsive{
+  margin: 0 1%;
+}
+@media screen and (max-width: 767px) {
+  .panel .table-responsive{
+    width: 98%;
+  }
+}
 
 .list-container {
     position: relative;
@@ -305,9 +323,9 @@ div.widget .slice_container {
 }
 
 .list-add-action .btn.btn-sm {
-    padding: 5px 6px;
-    font-size: 10px;
-    line-height: 2px;
-    border-radius: 50%;
-    box-shadow: 2px 2px 4px -1px rgba(0, 0, 0, 1);
+  padding: 5px 6px;
+  font-size: 10px;
+  line-height: 2px;
+  border-radius: 50%;
+  box-shadow: 2px 2px 4px -1px rgba(0, 0, 0, 1);
 }
