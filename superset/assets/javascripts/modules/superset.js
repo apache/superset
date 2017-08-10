@@ -8,7 +8,7 @@ import { QUERY_TIMEOUT_THRESHOLD } from '../constants';
 
 const utils = require('./utils');
 
-/* eslint wrap-iife: 0*/
+/* eslint wrap-iife: 0 */
 const px = function () {
   let slice;
   function getParam(name) {

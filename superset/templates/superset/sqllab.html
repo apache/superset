@@ -1,8 +1,0 @@
-{% extends "superset/basic.html" %}
-
-{% block tail_js %}
-  {{ super() }}
-  {% with filename="sqllab" %}
-    {% include "superset/partials/_script_tag.html" %}
-  {% endwith %}
-{% endblock %}
