@@ -15,7 +15,6 @@ import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 import visTypes from '../../explore/stores/visTypes';
 import { t } from '../../locales';
-import visTypes from '../../explore/stores/visTypes';
 
 const CHART_TYPES = Object.keys(visTypes)
   .filter(typeName => !!visTypes[typeName].showOnExplore)
