@@ -11,7 +11,8 @@ import AlertsWrapper from '../components/AlertsWrapper';
 import { getControlsState, getFormDataFromControls } from './stores/store';
 import { initJQueryAjax } from '../modules/utils';
 import ExploreViewContainer from './components/ExploreViewContainer';
-import { exploreReducer } from './reducers/exploreReducer';
+import rootReducer from './reducers/index';
+
 import { appSetup } from '../common';
 import './main.css';
 import '../../stylesheets/reactable-pagination.css';
@@ -28,23 +29,30 @@ delete bootstrapData.form_data;
 // Initial state
 const bootstrappedState = Object.assign(
   bootstrapData, {
-    chartStatus: null,
-    chartUpdateEndTime: null,
-    chartUpdateStartTime: now(),
-    dashboards: [],
     controls,
-    latestQueryFormData: getFormDataFromControls(controls),
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
-    queryResponse: null,
     triggerQuery: true,
     triggerRender: false,
     alert: null,
   },
 );
 
-const store = createStore(exploreReducer, bootstrappedState,
+const initState = {
+  chart: {
+    chartStatus: null,
+    chartUpdateEndTime: null,
+    chartUpdateStartTime: now(),
+    latestQueryFormData: getFormDataFromControls(controls),
+    queryResponse: null,
+  },
+  saveModal: {
+    dashboards: [],
+  },
+  explore: bootstrappedState,
+};
+const store = createStore(rootReducer, initState,
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
 
