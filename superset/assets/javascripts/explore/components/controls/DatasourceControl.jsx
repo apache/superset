@@ -51,6 +51,7 @@ export default class DatasourceControl extends React.PureComponent {
             rawName: ds.name,
             connection: ds.connection,
             schema: ds.schema,
+            verbose_name: ds.verbose_name,
             name: (
               <a
                 href="#"
@@ -95,7 +96,7 @@ export default class DatasourceControl extends React.PureComponent {
           }
         >
           <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }} className="m-r-5">
-            {this.props.datasource.name}
+            {this.props.datasource.verbose_name}
           </Label>
         </OverlayTrigger>
         <OverlayTrigger
@@ -141,11 +142,11 @@ export default class DatasourceControl extends React.PureComponent {
             }
             {this.state.datasources &&
               <Table
-                columns={['name', 'type', 'schema', 'connection', 'creator']}
+                columns={['verbose_name', 'name', 'type', 'schema', 'connection', 'creator']}
                 className="table table-condensed"
                 data={this.state.datasources}
                 itemsPerPage={20}
-                filterable={['rawName', 'type', 'connection', 'schema', 'creator']}
+                filterable={['verbose_name', 'rawName', 'type', 'connection', 'schema', 'creator']}
                 filterBy={this.state.filter}
                 hideFilterInput
               />

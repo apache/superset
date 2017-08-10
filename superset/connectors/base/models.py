@@ -127,6 +127,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'uid': self.uid,
             'schema': self.schema,
             'name': self.name,
+            'verbose_name': self.verbose_name,
             'type': self.type,
             'connection': self.connection,
             'creator': str(self.created_by),
