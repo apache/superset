@@ -200,7 +200,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
     },
     addFilter(sliceId, col, vals, merge = true, refresh = true) {
       if (this.getSlice(sliceId) && (col === '__from' || col === '__to' ||
-          this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1)){
+          this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1)) {
         if (!(sliceId in this.filters)) {
           this.filters[sliceId] = {};
         }
