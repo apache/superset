@@ -112,10 +112,13 @@ class BaseViz(object):
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
-        groupby = form_data.get("groupby") or []
+        gb = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or []
         columns = form_data.get("columns") or []
-        groupby = list(set(groupby + columns))
+        groupby = []
+        for o in gb + columns:
+            if o not in groupby:
+                groupby.append(o)
 
         is_timeseries = self.is_timeseries
         if DTTM_ALIAS in groupby:
