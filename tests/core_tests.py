@@ -393,20 +393,28 @@ class CoreTests(SupersetTestCase):
                 'size_y': 4,
                 'slice_id': '{}'.format(slc.id)}
             positions.append(d)
-        
+
         filters = {str(dash.slices[0].id): {'region': ['North America']}}
-        json_metadata = json.dumps({'default_filters': json.dumps(filters)})
+        default_filters = json.dumps(filters)
         data = {
             'css': '',
             'expanded_slices': {},
             'positions': positions,
             'dashboard_title': dash.dashboard_title,
-            'json_metadata': json_metadata
+            'default_filters': default_filters
         }
 
         url = '/superset/save_dash/{}/'.format(dash.id)
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
+
+        updatedDash = db.session.query(models.Dashboard).filter_by(
+            slug="world_health").first()
+        new_url = updatedDash.url
+        self.assertIn("region", new_url)
+
+        resp = self.get_resp(new_url)
+        self.assertIn("North America", resp)
 
     def test_save_dash_with_dashboard_title(self, username='admin'):
         self.login(username=username)
