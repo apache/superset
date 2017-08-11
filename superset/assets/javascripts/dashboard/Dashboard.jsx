@@ -166,6 +166,10 @@ export function dashboardContainer(dashboard, datasources, userid) {
       }
     },
     effectiveExtraFilters(sliceId) {
+      // Don't filter the filter_box itself by preselect_filters
+      if (this.getSlice(sliceId).formData.viz_type === 'filter_box') {
+        return [];
+      }
       const f = [];
       const immuneSlices = this.metadata.filter_immune_slices || [];
       if (sliceId && immuneSlices.includes(sliceId)) {
@@ -195,21 +199,24 @@ export function dashboardContainer(dashboard, datasources, userid) {
       return f;
     },
     addFilter(sliceId, col, vals, merge = true, refresh = true) {
-      if (!(sliceId in this.filters)) {
-        this.filters[sliceId] = {};
-      }
-      if (!(col in this.filters[sliceId]) || !merge) {
-        this.filters[sliceId][col] = vals;
+      if (this.getSlice(sliceId) && (col === '__from' || col === '__to' ||
+          this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1)) {
+        if (!(sliceId in this.filters)) {
+          this.filters[sliceId] = {};
+        }
+        if (!(col in this.filters[sliceId]) || !merge) {
+          this.filters[sliceId][col] = vals;
 
-        // d3.merge pass in array of arrays while some value form filter components
-        // from and to filter box require string to be process and return
-      } else if (this.filters[sliceId][col] instanceof Array) {
-        this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
-      } else {
-        this.filters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
-      }
-      if (refresh) {
-        this.refreshExcept(sliceId);
+          // d3.merge pass in array of arrays while some value form filter components
+          // from and to filter box require string to be process and return
+        } else if (this.filters[sliceId][col] instanceof Array) {
+          this.filters[sliceId][col] = d3.merge([this.filters[sliceId][col], vals]);
+        } else {
+          this.filters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
+        }
+        if (refresh) {
+          this.refreshExcept(sliceId);
+        }
       }
       this.updateFilterParamsInUrl();
     },

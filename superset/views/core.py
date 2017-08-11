@@ -1352,6 +1352,7 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
+        md['default_filters'] = data.get('default_filters', '')
         dashboard.json_metadata = json.dumps(md, indent=4)
 
     @api
