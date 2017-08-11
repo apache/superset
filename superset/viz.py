@@ -819,6 +819,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     is_timeseries = True
 
     def to_series(self, df, classed='', title_suffix=''):
+        df_timezone(df)
         cols = []
         for col in df.columns:
             if col == '':
@@ -960,6 +961,7 @@ class NVD3DualLineViz(NVD3Viz):
         return d
 
     def to_series(self, df, classed=''):
+        df_timezone(df)
         cols = []
         for col in df.columns:
             if col == '':
@@ -1634,6 +1636,10 @@ class EventFlowViz(BaseViz):
         return df.to_dict(orient="records")
 
 
+
+def df_timezone(df):
+    df.index = pd.Index(pd.to_datetime(df.index)).tz_localize('UTC') \
+        .tz_convert(config.get("DRUID_TZ"))
 
 viz_types_list = [
     TableViz,
