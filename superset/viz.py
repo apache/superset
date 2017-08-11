@@ -28,7 +28,7 @@ import simplejson as json
 from six import string_types, PY3
 from dateutil import relativedelta as rdelta
 
-from superset import app, utils, cache
+from superset import app, utils, cache, get_manifest_file
 from superset.utils import DTTM_ALIAS
 
 config = app.config
@@ -439,7 +439,7 @@ class MarkupViz(BaseViz):
         code = self.form_data.get("code", '')
         if markup_type == "markdown":
             code = markdown(code)
-        return dict(html=code)
+        return dict(html=code, theme_css=get_manifest_file('theme.css'))
 
 
 class SeparatorViz(MarkupViz):
