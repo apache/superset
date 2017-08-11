@@ -227,13 +227,13 @@ export default class ResultSet extends React.PureComponent {
           bsSize="small"
           onClick={() => { window.open(query.trackingUrl); }}
         >
-            Track Job
+            {t('Track Job')}
         </Button>
       );
     }
     return (
       <div>
-        <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
+        <img className="loading" alt={t('Loading...')} src="/static/assets/images/loading.gif" />
         <QueryStateLabel query={query} />
         {progressBar}
         <div>
