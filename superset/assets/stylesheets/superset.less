@@ -243,13 +243,88 @@ div.widget .slice_container {
 
 /** table on both sides of the gap **/
 .panel .table-responsive{
-    margin: 0 1%;
+    padding: 0 1%;
 }
 @media screen and (max-width: 767px) {
     .panel .table-responsive{
         width: 98%;
     }
 }
+
+.list-container {
+    position: relative;
+}
+
+.list-search-container {
+    position: relative;
+}
+
+.list-search-container .dropdown-toggle {
+    position: absolute;
+    top: -43px;
+    right: 25px;
+    border: 0;
+    padding: 0 18px;
+}
+
+.list-search-container .fa-filter {
+    position: relative;
+    left: -8px;
+}
+
+.list-search-container .dropdown-menu {
+    top: -19px;
+    right: 0;
+    left: auto;
+    float: none;
+}
+
+.list-container .pagination-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding-bottom: 20px;
+}
+.list-container .pagination-container .pagination {
+    margin: 0 15px;
+}
+.list-container .pagination-container strong {
+    margin-right: 5px;
+}
+
+.list-container .list-add-action {
+    position: absolute;
+    top: -30px;
+    right: 15px;
+}
+
+.list-container .form-actions-container {
+    padding: 0  0 20px 10px;
+    display: inline;
+}
+
+.list-container .filter-action {
+    margin: 10px 10px 0 10px;
+    padding-bottom: 15px;
+}
+
+.list-container .filters-container table tr:first-child td {
+    border-top: none;
+}
+.list-container .filters-container table tr:last-child td {
+    border-bottom: 1px solid #b3b3b3;
+}
+
+.list-add-action .btn.btn-sm {
+  padding: 5px 6px;
+  font-size: 10px;
+  line-height: 2px;
+  border-radius: 50%;
+  box-shadow: 2px 2px 4px -1px rgba(0, 0, 0, 1);
+}
+
 iframe {
     border: none;
     width: 100%;
