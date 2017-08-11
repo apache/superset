@@ -7,7 +7,6 @@ function markupWidget(slice, payload) {
   const jqdiv = slice.container;
   jqdiv.css({
     overflow: 'auto',
-    height: slice.container.height(),
   });
 
   const iframeId = `if__${slice.containerId}`;
