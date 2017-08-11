@@ -2034,7 +2034,7 @@ class Superset(BaseSupersetView):
         query_id = query.id
         session.commit()  # shouldn't be necessary
         if not query_id:
-            raise Exception("Query record was not created as expected.")
+            raise Exception(_("Query record was not created as expected."))
         logging.info("Triggering query_id: {}".format(query_id))
 
         # Async request.

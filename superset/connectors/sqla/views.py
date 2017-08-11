@@ -239,11 +239,11 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
             table.get_sqla_table_object()
         except Exception as e:
             logging.exception(e)
-            raise Exception(
+            raise Exception(_(
                 "Table [{}] could not be found, "
                 "please double check your "
                 "database connection, schema, and "
-                "table name".format(table.name))
+                "table name").format(table.name))
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()

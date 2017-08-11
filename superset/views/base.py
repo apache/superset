@@ -5,6 +5,7 @@ import traceback
 
 from flask import g, redirect, Response, flash, abort
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
 from flask_appbuilder import BaseView
 from flask_appbuilder import ModelView
@@ -202,7 +203,7 @@ def validate_json(form, field):  # noqa
         json.loads(field.data)
     except Exception as e:
         logging.exception(e)
-        raise Exception("json isn't valid")
+        raise Exception(_("json isn't valid"))
 
 
 class DeleteMixin(object):
