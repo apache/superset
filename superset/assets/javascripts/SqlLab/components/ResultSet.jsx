@@ -227,7 +227,7 @@ export default class ResultSet extends React.PureComponent {
           bsSize="small"
           onClick={() => { window.open(query.trackingUrl); }}
         >
-            {t('Track Job')}
+          {t('Track Job')}
         </Button>
       );
     }
