@@ -66,6 +66,7 @@ class FilterBox extends React.Component {
           <div className="m-b-5" key={field}>
             {field.replace('__', '')}
             <Select.Creatable
+              placeholder="Select"
               options={options}
               value={this.state.selectedValues[field]}
               onChange={this.changeFilter.bind(this, field)}
