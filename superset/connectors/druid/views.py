@@ -35,7 +35,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
     can_delete = False
     page_size = 500

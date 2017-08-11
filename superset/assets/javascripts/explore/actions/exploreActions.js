@@ -14,6 +14,11 @@ export function setDatasource(datasource) {
   return { type: SET_DATASOURCE, datasource };
 }
 
+export const SET_DATASOURCES = 'SET_DATASOURCES';
+export function setDatasources(datasources) {
+  return { type: SET_DATASOURCES, datasources };
+}
+
 export const FETCH_DATASOURCE_STARTED = 'FETCH_DATASOURCE_STARTED';
 export function fetchDatasourceStarted() {
   return { type: FETCH_DATASOURCE_STARTED };
@@ -27,6 +32,21 @@ export function fetchDatasourceSucceeded() {
 export const FETCH_DATASOURCE_FAILED = 'FETCH_DATASOURCE_FAILED';
 export function fetchDatasourceFailed(error) {
   return { type: FETCH_DATASOURCE_FAILED, error };
+}
+
+export const FETCH_DATASOURCES_STARTED = 'FETCH_DATASOURCES_STARTED';
+export function fetchDatasourcesStarted() {
+  return { type: FETCH_DATASOURCES_STARTED };
+}
+
+export const FETCH_DATASOURCES_SUCCEEDED = 'FETCH_DATASOURCES_SUCCEEDED';
+export function fetchDatasourcesSucceeded() {
+  return { type: FETCH_DATASOURCES_SUCCEEDED };
+}
+
+export const FETCH_DATASOURCES_FAILED = 'FETCH_DATASOURCES_FAILED';
+export function fetchDatasourcesFailed(error) {
+  return { type: FETCH_DATASOURCES_FAILED, error };
 }
 
 export const RESET_FIELDS = 'RESET_FIELDS';
@@ -56,6 +76,24 @@ export function fetchDatasourceMetadata(datasourceKey, alsoTriggerQuery = false)
       },
       error(error) {
         dispatch(fetchDatasourceFailed(error.responseJSON.error));
+      },
+    });
+  };
+}
+
+export function fetchDatasources() {
+  return function (dispatch) {
+    dispatch(fetchDatasourcesStarted());
+    const url = '/superset/datasources/';
+    $.ajax({
+      type: 'GET',
+      url,
+      success: (data) => {
+        dispatch(setDatasources(data));
+        dispatch(fetchDatasourcesSucceeded());
+      },
+      error(error) {
+        dispatch(fetchDatasourcesFailed(error.responseJSON.error));
       },
     });
   };
