@@ -217,6 +217,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
         if (refresh) {
           this.refreshExcept(sliceId);
         }
+      }
       this.updateFilterParamsInUrl();
     },
     readFilters() {
