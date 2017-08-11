@@ -96,12 +96,12 @@ class ControlPanelsContainer extends React.Component {
 
 ControlPanelsContainer.propTypes = propTypes;
 
-function mapStateToProps(state) {
+function mapStateToProps({ explore }) {
   return {
-    alert: state.controlPanelAlert,
-    isDatasourceMetaLoading: state.isDatasourceMetaLoading,
-    controls: state.controls,
-    exploreState: state,
+    alert: explore.controlPanelAlert,
+    isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
+    controls: explore.controls,
+    exploreState: explore,
   };
 }
 
