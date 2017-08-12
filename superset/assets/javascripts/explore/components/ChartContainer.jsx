@@ -322,29 +322,29 @@ class ChartContainer extends React.PureComponent {
 
 ChartContainer.propTypes = propTypes;
 
-function mapStateToProps(state) {
-  const formData = getFormDataFromControls(state.controls);
+function mapStateToProps({ explore, chart }) {
+  const formData = getFormDataFromControls(explore.controls);
   return {
-    alert: state.chartAlert,
-    can_overwrite: state.can_overwrite,
-    can_download: state.can_download,
-    chartStatus: state.chartStatus,
-    chartUpdateEndTime: state.chartUpdateEndTime,
-    chartUpdateStartTime: state.chartUpdateStartTime,
-    datasource: state.datasource,
-    column_formats: state.datasource ? state.datasource.column_formats : null,
-    containerId: state.slice ? `slice-container-${state.slice.slice_id}` : 'slice-container',
+    alert: explore.chartAlert,
+    can_overwrite: explore.can_overwrite,
+    can_download: explore.can_download,
+    datasource: explore.datasource,
+    column_formats: explore.datasource ? explore.datasource.column_formats : null,
+    containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
     formData,
-    latestQueryFormData: state.latestQueryFormData,
-    isStarred: state.isStarred,
-    queryResponse: state.queryResponse,
-    slice: state.slice,
-    standalone: state.standalone,
+    isStarred: explore.isStarred,
+    slice: explore.slice,
+    standalone: explore.standalone,
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
-    triggerRender: state.triggerRender,
-    datasourceType: state.datasource.type,
-    datasourceId: state.datasource_id,
+    triggerRender: explore.triggerRender,
+    datasourceType: explore.datasource.type,
+    datasourceId: explore.datasource_id,
+    chartStatus: chart.chartStatus,
+    chartUpdateEndTime: chart.chartUpdateEndTime,
+    chartUpdateStartTime: chart.chartUpdateStartTime,
+    latestQueryFormData: chart.latestQueryFormData,
+    queryResponse: chart.queryResponse,
   };
 }
 

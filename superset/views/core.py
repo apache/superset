@@ -247,6 +247,8 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'sqlalchemy_uri': _("SQLAlchemy URI"),
         'cache_timeout': _("Cache Timeout"),
         'extra': _("Extra"),
+        'allow_run_sync': _("Allow Run Sync"),
+        'allow_run_async': _("Allow Run Async"),
     }
 
     def pre_add(self, db):
@@ -333,7 +335,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     can_add = False
     label_columns = {
-        'datasource_link': 'Datasource',
+        'datasource_link': _('Datasource'),
     }
     search_columns = (
         'slice_name', 'description', 'viz_type', 'owners',
@@ -1093,12 +1095,16 @@ class Superset(BaseSupersetView):
         table_name = datasource.table_name \
             if datasource_type == 'table' \
             else datasource.datasource_name
+        if slc:
+            title = "[slice] " + slc.slice_name
+        else:
+            title = "[explore] " + table_name
         return self.render_template(
-            "superset/explore.html",
+            "superset/basic.html",
             bootstrap_data=json.dumps(bootstrap_data),
-            slice=slc,
-            standalone_mode=standalone,
-            table_name=table_name)
+            entry='explore',
+            title=title,
+            standalone_mode=standalone)
 
     @api
     @has_access_api
@@ -1348,6 +1354,7 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
+        md['default_filters'] = data.get('default_filters', '')
         dashboard.json_metadata = json.dumps(md, indent=4)
 
     @api
@@ -1723,7 +1730,8 @@ class Superset(BaseSupersetView):
 
         return self.render_template(
             "superset/dashboard.html",
-            dashboard_title=dash.dashboard_title,
+            entry='dashboard',
+            title='[dashboard] ' + dash.dashboard_title,
             bootstrap_data=json.dumps(bootstrap_data),
         )
 
@@ -2028,7 +2036,7 @@ class Superset(BaseSupersetView):
         query_id = query.id
         session.commit()  # shouldn't be necessary
         if not query_id:
-            raise Exception("Query record was not created as expected.")
+            raise Exception(_("Query record was not created as expected."))
         logging.info("Triggering query_id: {}".format(query_id))
 
         # Async request.
@@ -2232,7 +2240,8 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
-        return self.render_template('superset/welcome.html', utils=utils)
+        return self.render_template(
+            'superset/welcome.html', entry='welcome', utils=utils)
 
     @has_access
     @expose("/profile/<username>/")
@@ -2273,9 +2282,10 @@ class Superset(BaseSupersetView):
             }
         }
         return self.render_template(
-            'superset/profile.html',
+            'superset/basic.html',
             title=user.username + "'s profile",
             navbar_container=True,
+            entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser)
         )
 
@@ -2287,7 +2297,8 @@ class Superset(BaseSupersetView):
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
         }
         return self.render_template(
-            'superset/sqllab.html',
+            'superset/basic.html',
+            entry='sqllab',
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
 appbuilder.add_view_no_menu(Superset)
@@ -2298,6 +2309,9 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
     add_columns = edit_columns
+    label_columns = {
+        'template_name': _('Template Name'),
+    }
 
 
 class CssTemplateAsyncModelView(CssTemplateModelView):

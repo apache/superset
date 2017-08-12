@@ -178,6 +178,7 @@ the world know they are using Superset. Join our growing community!
  - [FBK - ICT center](http://ict.fbk.eu)
  - [Faasos](http://faasos.com/)
  - [GfK Data Lab](http://datalab.gfk.com)
+ - [Konfío](http://konfio.mx)
  - [Maieutical Labs](https://cloudschooling.it)
  - [Qunar](https://www.qunar.com/)
  - [Shopkick](https://www.shopkick.com)
@@ -185,5 +186,6 @@ the world know they are using Superset. Join our growing community!
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
  - [Udemy](https://www.udemy.com/)
- - [Yahoo!](www.yahoo.com)
+ - [Yahoo!](https://yahoo.com/)
  - [Zalando](https://www.zalando.com)
+
