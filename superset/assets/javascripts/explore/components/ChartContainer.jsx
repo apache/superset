@@ -325,7 +325,7 @@ ChartContainer.propTypes = propTypes;
 function mapStateToProps({ explore, chart }) {
   const formData = getFormDataFromControls(explore.controls);
   return {
-    alert: explore.chartAlert,
+    alert: chart.chartAlert,
     can_overwrite: explore.can_overwrite,
     can_download: explore.can_download,
     datasource: explore.datasource,
