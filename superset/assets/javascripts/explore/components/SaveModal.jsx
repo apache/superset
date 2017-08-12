@@ -189,6 +189,7 @@ class SaveModal extends React.Component {
             onChange={this.onChange.bind(this, 'saveToDashboardId')}
             autoSize={false}
             value={this.state.saveToDashboardId}
+            placeholder="Select Dashboard"
           />
 
           <Radio
