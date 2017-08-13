@@ -957,14 +957,14 @@ export const controls = {
 
   filter_order: {
     type: 'SelectControl',
+    multi: true,
     label: 'Order by optional value',
-    default: 'key',
-    choices: [
-      ['asc', 'Ascending'],
-      ['desc', 'Descending'],
-    ],
-    description: 'The order of optional value.' +
-    'When left empty, it will order the optional value by metric',
+    default: [],
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.order_by_choices : [],
+    }),
+    description: 'The way to order tho optional value of filters. ' +
+    'When does\'t select for one filter, it will order the optional value by metric.',
   },
 
   show_datatable: {
