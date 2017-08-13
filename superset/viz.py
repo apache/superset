@@ -1384,8 +1384,11 @@ class FilterBoxViz(BaseViz):
         qry = self.query_obj()
         filters = [g for g in self.form_data['groupby']]
         d = {}
+        order = self.form_data.get('filter_order')
         for flt in filters:
             qry['groupby'] = [flt]
+            if order:
+                qry['orderby'] = [(flt, True if order == 'asc' else False)]
             df = super(FilterBoxViz, self).get_df(qry)
             d[flt] = [{
                 'id': row[0],

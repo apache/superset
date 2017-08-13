@@ -955,6 +955,18 @@ export const controls = {
     description: 'Whether to include a time filter',
   },
 
+  filter_order: {
+    type: 'SelectControl',
+    label: 'Order by optional value',
+    default: 'key',
+    choices: [
+      ['asc', 'Ascending'],
+      ['desc', 'Descending'],
+    ],
+    description: 'The order of optional value.' +
+    'When left empty, it will order the optional value by metric',
+  },
+
   show_datatable: {
     type: 'CheckboxControl',
     label: 'Data Table',

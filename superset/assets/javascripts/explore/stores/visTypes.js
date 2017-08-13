@@ -745,6 +745,7 @@ export const visTypes = {
           ['date_filter', 'instant_filtering'],
           ['groupby'],
           ['metric'],
+          ['filter_order'],
         ],
       },
     ],

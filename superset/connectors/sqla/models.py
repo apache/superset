@@ -510,12 +510,12 @@ class SqlaTable(Model, BaseDatasource):
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
-        if groupby:
-            qry = qry.order_by(desc(main_metric_expr))
-        elif orderby:
+        if orderby:
             for col, ascending in orderby:
                 direction = asc if ascending else desc
                 qry = qry.order_by(direction(col))
+        elif groupby:
+            qry = qry.order_by(desc(main_metric_expr))
 
         if row_limit:
             qry = qry.limit(row_limit)
