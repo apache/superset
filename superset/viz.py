@@ -1388,8 +1388,7 @@ class FilterBoxViz(BaseViz):
         order = dict(json.loads(o) for o in filter_order)
         for flt in filters:
             qry['groupby'] = [flt]
-            if flt in order:
-                qry['orderby'] = [(flt, order[flt])]
+            qry['orderby'] = [(flt, order[flt])] if flt in order else []
             df = super(FilterBoxViz, self).get_df(qry)
             d[flt] = [{
                 'id': row[0],
