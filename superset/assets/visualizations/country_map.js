@@ -1,6 +1,7 @@
 import d3 from 'd3';
 import './country_map.css';
 import { colorScalerFactory } from '../javascripts/modules/colors';
+import d3ScaleChromatic from 'd3-scale-chromatic';
 
 
 function countryMapChart(slice, payload) {
