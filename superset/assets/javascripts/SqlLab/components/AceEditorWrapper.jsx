@@ -45,6 +45,7 @@ class AceEditorWrapper extends React.PureComponent {
     super(props);
     this.state = {
       sql: props.sql,
+      selectedText: '',
     };
   }
   componentDidMount() {
@@ -77,8 +78,13 @@ class AceEditorWrapper extends React.PureComponent {
     });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
-      this.props.actions.queryEditorSetSelectedText(
-        this.props.queryEditor, editor.getSelectedText());
+      const selectedText = editor.getSelectedText();
+      // Backspace trigger 1 character selection, ignoring
+      if (selectedText !== this.state.selectedText && selectedText.length !== 1) {
+        this.setState({ selectedText });
+        this.props.actions.queryEditorSetSelectedText(
+          this.props.queryEditor, selectedText);
+      }
     });
   }
   getCompletions(aceEditor, session, pos, prefix, callback) {
