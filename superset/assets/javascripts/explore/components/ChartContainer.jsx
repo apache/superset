@@ -325,9 +325,9 @@ ChartContainer.propTypes = propTypes;
 function mapStateToProps({ explore, chart }) {
   const formData = getFormDataFromControls(explore.controls);
   return {
-    alert: explore.chartAlert,
-    can_overwrite: explore.can_overwrite,
-    can_download: explore.can_download,
+    alert: chart.chartAlert,
+    can_overwrite: !!explore.can_overwrite,
+    can_download: !!explore.can_download,
     datasource: explore.datasource,
     column_formats: explore.datasource ? explore.datasource.column_formats : null,
     containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',

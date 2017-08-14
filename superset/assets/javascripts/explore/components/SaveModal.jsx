@@ -238,7 +238,7 @@ function mapStateToProps({ explore, saveModal }) {
     can_overwrite: explore.can_overwrite,
     user_id: explore.user_id,
     dashboards: saveModal.dashboards,
-    alert: explore.saveModalAlert,
+    alert: saveModal.saveModalAlert,
   };
 }
 
