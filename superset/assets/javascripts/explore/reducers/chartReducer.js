@@ -63,6 +63,12 @@ export default function chartReducer(state = {}, action) {
       }
       return newState;
     },
+    [actions.REMOVE_CHART_ALERT]() {
+      if (state.chartAlert !== null) {
+        return Object.assign({}, state, { chartAlert: null });
+      }
+      return state;
+    },
   };
 
   if (action.type in actionHandlers) {

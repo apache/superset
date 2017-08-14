@@ -43,6 +43,11 @@ export function chartRenderingFailed(error) {
   return { type: CHART_RENDERING_FAILED, error };
 }
 
+export const REMOVE_CHART_ALERT = 'REMOVE_CHART_ALERT';
+export function removeChartAlert() {
+  return { type: REMOVE_CHART_ALERT };
+}
+
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false) {
   return function (dispatch, getState) {
