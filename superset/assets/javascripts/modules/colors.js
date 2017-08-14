@@ -78,7 +78,8 @@ export const category21 = (function () {
   };
 }());
 
-export const colorScalerFactory = function (colors, data, accessor) {
+export const colorScalerFactory = function (colors, data, accessor, country) {
+  if (typeof country === 'undefined') { country = 'notmap'; }
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
@@ -93,5 +94,8 @@ export const colorScalerFactory = function (colors, data, accessor) {
   $.each(colors, function (i) {
     points.push(i * chunkSize);
   });
-  return d3.scale.linear().domain(points).range(colors);
+  if (country == 'notmap'){
+    return d3.scale.linear().domain(points).range(colors);
+  } else {return d3.scale.quantile().domain(points).range(colors);}
+  //return d3.scale.quantize().domain(points).range(colors);
 };
