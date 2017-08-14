@@ -93,5 +93,7 @@ export const colorScalerFactory = function (colors, data, accessor) {
   $.each(colors, function (i) {
     points.push(i * chunkSize);
   });
-  return d3.scale.linear().domain(points).range(colors);
+  //return d3.scale.linear().domain(points).range(colors);
+  return d3.scale.quantile().domain(points).range(colors);
+  //return d3.scale.quantize().domain(points).range(colors);
 };
