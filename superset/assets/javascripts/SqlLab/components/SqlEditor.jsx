@@ -15,8 +15,9 @@ import {
 
 import Button from '../../components/Button';
 
-import ResizableAceEditor from './ResizableAceEditor';
+import AceEditorWrapper from './AceEditorWrapper';
 import SouthPane from './SouthPane';
+import SplitPane from './SplitPane'
 import SaveQuery from './SaveQuery';
 import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
@@ -50,6 +51,7 @@ class SqlEditor extends React.PureComponent {
       autorun: props.queryEditor.autorun,
       ctas: '',
     };
+    this.onSizeChange = this.onSizeChange.bind(this);
   }
   componentDidMount() {
     this.onMount();
@@ -101,6 +103,13 @@ class SqlEditor extends React.PureComponent {
     const navBarHeight = 56;
     const mysteryVerticalHeight = 50;
     return window.innerHeight - tabNavHeight - navBarHeight - mysteryVerticalHeight;
+  }
+
+  onSizeChange(newSizes) {
+    this.setState({
+      ...this.state,
+      editorHeight: newSizes.north - 60,
+    });
   }
 
   render() {
@@ -214,28 +223,30 @@ class SqlEditor extends React.PureComponent {
             md={this.props.hideLeftBar ? 12 : 8}
             lg={this.props.hideLeftBar ? 12 : 9}
             style={{
-              overflowX: 'hidden',
-              overflowY: 'scroll',
               height: this.sqlEditorHeight(),
             }}
           >
-            <ResizableAceEditor
-              actions={this.props.actions}
-              onBlur={this.setQueryEditorSql.bind(this)}
-              queryEditor={this.props.queryEditor}
-              onAltEnter={this.runQuery.bind(this)}
-              sql={this.props.queryEditor.sql}
-              tables={this.props.tables}
-              defaultHeight={200}
-              minHeight={100}
-            />
-            {editorBottomBar}
-            <br />
-            <SouthPane
-              editorQueries={this.props.editorQueries}
-              dataPreviewQueries={this.props.dataPreviewQueries}
-              actions={this.props.actions}
-            />
+            <SplitPane
+              onSizeChange={this.onSizeChange}
+            >
+              <div>
+                <AceEditorWrapper
+                  actions={this.props.actions}
+                  onBlur={this.setQueryEditorSql.bind(this)}
+                  queryEditor={this.props.queryEditor}
+                  onAltEnter={this.runQuery.bind(this)}
+                  sql={this.props.queryEditor.sql}
+                  tables={this.props.tables}
+                  height={this.state.editorHeight + 'px'}
+                />
+                {editorBottomBar}
+              </div>
+              <SouthPane
+                editorQueries={this.props.editorQueries}
+                dataPreviewQueries={this.props.dataPreviewQueries}
+                actions={this.props.actions}
+              />
+            </SplitPane>
           </Col>
         </Row>
       </div>
