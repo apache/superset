@@ -98,7 +98,7 @@ export const colorScalerFactory = function (colors, data, accessor, country) {
     console.log(ext)
     console.log(colors)
     //console.log(d3.scale.quantile().domain(points).range(colors));
-    return d3.scale.quantile().domain(ext).range(colors);
+    return d3.scale.quantile().domain(data.map( function(d) { return d['metric']; } )).range(colors);
   } else {
     return d3.scale.linear().domain(points).range(colors);
   }
