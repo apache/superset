@@ -963,7 +963,7 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.order_by_choices : [],
     }),
-    description: "How to order the list of values for the filter. " +
+    description: 'How to order the list of values for the filter. ' +
     "When does't select for one filter, it will order the optional value by metric.",
   },
 
