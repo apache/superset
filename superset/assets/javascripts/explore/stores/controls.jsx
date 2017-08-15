@@ -153,9 +153,6 @@ export const controls = {
     ],
     default: 'stack',
     description: '',
-    schemes: spectrums,
-    renderTrigger: true,
-    isLinear: true,
   },
 
   linear_color_scheme: {
@@ -169,7 +166,9 @@ export const controls = {
     ],
     default: 'blue_white_yellow',
     description: '',
+    renderTrigger: true,
     schemes: spectrums,
+    isLinear: true,
   },
 
   normalize_across: {
