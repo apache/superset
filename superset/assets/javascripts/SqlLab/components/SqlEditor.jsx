@@ -106,9 +106,10 @@ class SqlEditor extends React.PureComponent {
   }
 
   onSizeChange(newSizes) {
+    const bottomBarHeight = this.refs.editorBottomBar.clientHeight;
     this.setState({
       ...this.state,
-      editorHeight: newSizes.north - 60,
+      editorHeight: newSizes.north - bottomBarHeight,
     });
   }
 
@@ -157,7 +158,7 @@ class SqlEditor extends React.PureComponent {
       );
     }
     const editorBottomBar = (
-      <div className="sql-toolbar clearfix" id="js-sql-toolbar">
+      <div ref="editorBottomBar" className="sql-toolbar clearfix" id="js-sql-toolbar">
         <div className="pull-left">
           <Form inline>
             <RunQueryActionButton
