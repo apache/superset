@@ -17,8 +17,8 @@ describe('SliceCell', () => {
       React.isValidElement(<SliceCell {...mockedProps} />),
     ).to.equal(true);
   });
-  it('renders five links', () => {
+  it('renders six links', () => {
     const wrapper = mount(<SliceCell {...mockedProps} />);
-    expect(wrapper.find('a')).to.have.length(5);
+    expect(wrapper.find('a')).to.have.length(6);
   });
 });
