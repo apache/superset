@@ -11,7 +11,7 @@ const propTypes = {
   onSizeChange: PropTypes.func,
 };
 
-class ResizableAceEditor extends React.PureComponent {
+class SplitPane extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -123,6 +123,6 @@ class ResizableAceEditor extends React.PureComponent {
     );
   }
 }
-ResizableAceEditor.propTypes = propTypes;
+SplitPane.propTypes = propTypes;
 
-export default ResizableAceEditor;
+export default SplitPane;
