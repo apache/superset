@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
-import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../javascripts/modules/utils';
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import './table.css';
 
 const $ = require('jquery');
@@ -63,12 +63,8 @@ function tableVis(slice, payload) {
 
   let datatable;
 
-  if ((!data.columns.find((c) => {
-        return metrics.indexOf(c) >= 0;
-      }))) {
-    const columns = data.columns.map((c) => {
-      return { data: c };
-      });
+  if ((!data.columns.find(c => metrics.indexOf(c) >= 0))) {
+    const columns = data.columns.map((c) => ({ data: c }));
     datatable = container.find('.dataTable').DataTable({
       data: data.records,
       columns,
