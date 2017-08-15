@@ -93,9 +93,10 @@ export const colorScalerFactory = function (colors, data, accessor, country) {
   const chunkSize = (ext[1] - ext[0]) / colors.length;
   $.each(colors, function (i) {
     points.push(i * chunkSize);
+    console.log(points)
   });
-  if (country == 'notmap'){
-    return d3.scale.linear().domain(points).range(colors);
-  } else {return d3.scale.quantile().domain(points).range(colors);}
+  if (country == 'map'){
+    return d3.scale.quantile().domain(points).range(colors);
+  } else {return d3.scale.linear().domain(points).range(colors);}
   //return d3.scale.quantize().domain(points).range(colors);
 };
