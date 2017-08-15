@@ -52,7 +52,7 @@ const spectrums = {
     '#c7e9b4',
     '#41b6c4',
     '#225ea8',
-    '#081d5',
+    //'#081d5',
     ],
 };
 
@@ -93,9 +93,6 @@ export const colorScalerFactory = function (colors, data, accessor, country) {
   });
   if (country == 'map'){
     console.log(data.map( function(d) { return d['metric']; } ));
-    console.log(data)
-    console.log(accessor)
-    console.log(ext)
     console.log(colors)
     //console.log(d3.scale.quantile().domain(points).range(colors));
     return d3.scale.quantile().domain(data.map( function(d) { return d['metric']; } )).range(colors);
