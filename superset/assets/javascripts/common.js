@@ -1,5 +1,4 @@
 /* eslint-disable global-require */
-//this is a comment//
 import $ from 'jquery';
 
 const utils = require('./modules/utils');
