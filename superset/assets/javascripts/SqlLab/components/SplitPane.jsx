@@ -15,16 +15,39 @@ class ResizableAceEditor extends React.PureComponent {
       dragging: false,
     };
 
-    this.handleResizeStart = this.handleResizeStart.bind(this);
+    this.handleDraggingStart = this.handleDraggingStart.bind(this);
     this.handleMouseUp = this.handleMouseUp.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
-
-    window.addEventListener('mouseup', this.handleMouseUp, false);
-    window.addEventListener('mousemove', this.handleMouseMove, false);
+    this.handleResize = this.handleResize.bind(this);
   }
 
-  handleResizeStart() {
-    this.setState({ ...this.state, dragging: true });
+  componentDidMount() {
+    window.addEventListener('mouseup', this.handleMouseUp);
+    window.addEventListener('mousemove', this.handleMouseMove);
+    window.addEventListener('resize', this.handleResize);
+
+    const { heightNorth, heightSouth } = this.state;
+    this.setSize(heightNorth, heightSouth);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('mouseup', this.handleMouseUp);
+    window.removeEventListener('mousemove', this.handleMouseMove);
+    window.removeEventListener('resize', this.handleResize);
+  }
+
+  setSize(northInPercent, southInPercent) {
+    const totalHeight = this.refs.splitter.clientHeight - this.refs.dragBar.clientHeight;
+
+    const heightNorthInPixels = northInPercent * totalHeight / 100;
+    const heightSouthInPixels = southInPercent * totalHeight / 100;
+
+    if (this.props.onSizeChange) {
+      this.props.onSizeChange({
+        north: heightNorthInPixels,
+        south: heightSouthInPixels,
+      });
+    }
   }
 
   handleMouseMove(e) {
@@ -36,28 +59,32 @@ class ResizableAceEditor extends React.PureComponent {
     const lowerBoundary = 0;
 
     const offset = getTopOffset(this.refs.splitter);
-    const height = this.refs.splitter.clientHeight;
+    const totalHeight = this.refs.splitter.clientHeight;
     const dragBarHeight = this.refs.dragBar.clientHeight;
     const heightNorthInPixels = e.pageY - offset;
-    const heightSouthInPixels = height - heightNorthInPixels - dragBarHeight;
-    const heightNorthInPercent = 100 * heightNorthInPixels / height;
-    const heightSouthInPercent = 100 * heightSouthInPixels / height;
+    const heightSouthInPixels = totalHeight - heightNorthInPixels - dragBarHeight;
+    const heightNorthInPercent = 100 * heightNorthInPixels / totalHeight;
+    const heightSouthInPercent = 100 * heightSouthInPixels / totalHeight;
 
     if (heightNorthInPercent <= upperBoundary
-     && heightNorthInPercent >= lowerBoundary) {
+      && heightNorthInPercent >= lowerBoundary) {
       this.setState({
         ...this.state,
         heightNorth: heightNorthInPercent,
         heightSouth: heightSouthInPercent,
       });
 
-      if (this.props.onSizeChange) {
-        this.props.onSizeChange({
-          south: heightSouthInPixels,
-          north: heightNorthInPixels,
-        });
-      }
+      this.setSize(heightNorthInPercent, heightSouthInPercent);
     }
+  }
+
+  handleDraggingStart() {
+    this.setState({ ...this.state, dragging: true });
+  }
+
+  handleResize() {
+    const { heightNorth, heightSouth } = this.state;
+    this.setSize(heightNorth, heightSouth);
   }
 
   handleMouseUp() {
@@ -77,7 +104,7 @@ class ResizableAceEditor extends React.PureComponent {
         <div
           ref="dragBar"
           className="DragBar"
-          onMouseDown={this.handleResizeStart}
+          onMouseDown={this.handleDraggingStart}
         />
         <div
           style={{ height: this.state.heightSouth + '%' }}
