@@ -55,6 +55,7 @@
     "datatables.net-bs": "^1.10.12",
     "immutable": "^3.8.1",
     "jquery": "^3.2.1",
+    "lodash.delay": "^4.1.1",
     "lodash.throttle": "^4.1.1",
     "moment": "^2.14.1",
     "mustache": "^2.2.1",

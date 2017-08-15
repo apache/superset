@@ -1,9 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import delay from 'lodash.delay';
 import { getTopOffset } from '../../../utils/common';
 
 
 const propTypes = {
+  minHeight: PropTypes.number,
+  north: PropTypes.object.isRequired,
+  south: PropTypes.object.isRequired,
+  onSizeChange: PropTypes.func,
 };
 
 class ResizableAceEditor extends React.PureComponent {
@@ -12,7 +17,6 @@ class ResizableAceEditor extends React.PureComponent {
     this.state = {
       heightNorth: 50,
       heightSouth: 50,
-      minHeight: 20,
       dragging: false,
     };
 
@@ -57,7 +61,7 @@ class ResizableAceEditor extends React.PureComponent {
     }
 
     const upperBoundary = 100 - (this.props.minHeight || 0);
-    const lowerBoundary = 0 + (this.props.minHeight || 0);
+    const lowerBoundary = this.props.minHeight || 0;
 
     const offset = getTopOffset(this.refs.splitter);
     const totalHeight = this.refs.splitter.clientHeight;
@@ -86,7 +90,9 @@ class ResizableAceEditor extends React.PureComponent {
 
   handleResize() {
     const { heightNorth, heightSouth } = this.state;
-    this.setSize(heightNorth, heightSouth);
+    delay(() => {
+      this.setSize(heightNorth, heightSouth);
+    }, 100);
   }
 
   handleMouseUp() {
@@ -101,7 +107,7 @@ class ResizableAceEditor extends React.PureComponent {
         <div
           style={{ height: this.state.heightNorth + '%' }}
         >
-          {this.props.children[0]}
+          {this.props.north}
         </div>
         <div
           ref="dragBar"
@@ -111,7 +117,7 @@ class ResizableAceEditor extends React.PureComponent {
         <div
           style={{ height: this.state.heightSouth + '%' }}
         >
-          {this.props.children[1]}
+          {this.props.south}
         </div>
       </div>
     );

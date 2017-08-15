@@ -230,25 +230,28 @@ class SqlEditor extends React.PureComponent {
             <SplitPane
               onSizeChange={this.onSizeChange}
               minHeight={25}
-            >
-              <div>
-                <AceEditorWrapper
+              north={
+                <div>
+                  <AceEditorWrapper
+                    actions={this.props.actions}
+                    onBlur={this.setQueryEditorSql.bind(this)}
+                    queryEditor={this.props.queryEditor}
+                    onAltEnter={this.runQuery.bind(this)}
+                    sql={this.props.queryEditor.sql}
+                    tables={this.props.tables}
+                    height={this.state.editorHeight + 'px'}
+                  />
+                  {editorBottomBar}
+                </div>
+              }
+              south={
+                <SouthPane
+                  editorQueries={this.props.editorQueries}
+                  dataPreviewQueries={this.props.dataPreviewQueries}
                   actions={this.props.actions}
-                  onBlur={this.setQueryEditorSql.bind(this)}
-                  queryEditor={this.props.queryEditor}
-                  onAltEnter={this.runQuery.bind(this)}
-                  sql={this.props.queryEditor.sql}
-                  tables={this.props.tables}
-                  height={this.state.editorHeight + 'px'}
                 />
-                {editorBottomBar}
-              </div>
-              <SouthPane
-                editorQueries={this.props.editorQueries}
-                dataPreviewQueries={this.props.dataPreviewQueries}
-                actions={this.props.actions}
-              />
-            </SplitPane>
+              }
+            />
           </Col>
         </Row>
       </div>
