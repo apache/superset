@@ -77,10 +77,8 @@ export const category21 = (function () {
 export const colorScalerFactory = function (colors, data, accessor, country) {
   if (typeof country === 'undefined') { country = 'notmap'; }
   // Returns a linear scaler our of an array of color
-  const map_colors;
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
-    map_colors = spectrums[colors];
     colors = spectrums[colors];
     
   }
@@ -96,9 +94,8 @@ export const colorScalerFactory = function (colors, data, accessor, country) {
   });
   if (country == 'map'){
     console.log(ext)
-    console.log(map_colors)
     //console.log(d3.scale.quantile().domain(points).range(colors));
-    return d3.scale.quantile().domain(ext).range(map_colors);
+    return d3.scale.quantile().domain(ext).range(colors);
   } else {
     return d3.scale.linear().domain(points).range(colors);
   }
