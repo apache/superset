@@ -228,6 +228,7 @@ class SqlEditor extends React.PureComponent {
           >
             <SplitPane
               onSizeChange={this.onSizeChange}
+              minHeight={25}
             >
               <div>
                 <AceEditorWrapper

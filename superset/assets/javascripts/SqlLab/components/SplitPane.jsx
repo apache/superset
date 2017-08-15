@@ -12,6 +12,7 @@ class ResizableAceEditor extends React.PureComponent {
     this.state = {
       heightNorth: 50,
       heightSouth: 50,
+      minHeight: 20,
       dragging: false,
     };
 
@@ -55,12 +56,13 @@ class ResizableAceEditor extends React.PureComponent {
       return;
     }
 
-    const upperBoundary = 100;
-    const lowerBoundary = 0;
+    const upperBoundary = 100 - (this.props.minHeight || 0);
+    const lowerBoundary = 0 + (this.props.minHeight || 0);
 
     const offset = getTopOffset(this.refs.splitter);
     const totalHeight = this.refs.splitter.clientHeight;
     const dragBarHeight = this.refs.dragBar.clientHeight;
+
     const heightNorthInPixels = e.pageY - offset;
     const heightSouthInPixels = totalHeight - heightNorthInPixels - dragBarHeight;
     const heightNorthInPercent = 100 * heightNorthInPixels / totalHeight;
