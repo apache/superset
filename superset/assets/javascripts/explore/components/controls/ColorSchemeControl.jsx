@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
 
+import { colorScalerFactory } from '../../../modules/colors';
+
 const propTypes = {
   description: PropTypes.string,
   label: PropTypes.string.isRequired,
@@ -12,6 +14,7 @@ const propTypes = {
   default: PropTypes.string,
   choices: PropTypes.arrayOf(React.PropTypes.array).isRequired,
   schemes: PropTypes.object.isRequired,
+  isLinear: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -41,10 +44,17 @@ export default class ColorSchemeControl extends React.PureComponent {
     const currentScheme = key ?
       this.props.schemes[key] :
       this.props.schemes[defaultProps.value];
-    const list = currentScheme.map((color, i) => (
+
+    let colors = currentScheme;
+    if (this.props.isLinear) {
+      const colorScaler = colorScalerFactory(currentScheme);
+      colors = [...Array(20).keys()].map(d => (colorScaler(d / 20)));
+    }
+
+    const list = colors.map((color, i) => (
       <li
         key={`${currentScheme}-${i}`}
-        style={{ backgroundColor: color, border: color === 'white' ? '1px solid' : 'none' }}
+        style={{ backgroundColor: color, border: `1px solid ${color === 'white' ? 'black' : color}` }}
       >&nbsp;</li>
     ));
     return (<ul className="color-scheme-container">{list}</ul>);

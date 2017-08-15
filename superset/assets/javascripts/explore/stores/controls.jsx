@@ -153,6 +153,9 @@ export const controls = {
     ],
     default: 'stack',
     description: '',
+    schemes: spectrums,
+    renderTrigger: true,
+    isLinear: true,
   },
 
   linear_color_scheme: {
