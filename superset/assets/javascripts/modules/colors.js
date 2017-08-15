@@ -96,7 +96,10 @@ export const colorScalerFactory = function (colors, data, accessor, country) {
     console.log(points)
   });
   if (country == 'map'){
+    console.log(d3.scale.quantile().domain(points).range(colors));
     return d3.scale.quantile().domain(points).range(colors);
-  } else {return d3.scale.linear().domain(points).range(colors);}
+  } else {
+    return d3.scale.linear().domain(points).range(colors);
+  }
   //return d3.scale.quantize().domain(points).range(colors);
 };
