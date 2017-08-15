@@ -86,13 +86,13 @@ export const colorScalerFactory = function (colors, data, accessor, country) {
   if (data !== undefined) {
     ext = d3.extent(data, accessor);
   }
-  console.log(ext);
   const points = [];
   const chunkSize = (ext[1] - ext[0]) / colors.length;
   $.each(colors, function (i) {
     points.push(i * chunkSize);
   });
   if (country == 'map'){
+    console.log(data)
     console.log(ext)
     console.log(colors)
     //console.log(d3.scale.quantile().domain(points).range(colors));
