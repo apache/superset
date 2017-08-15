@@ -257,6 +257,7 @@ class MapboxViz extends React.Component {
 MapboxViz.propTypes = {
   aggregatorName: PropTypes.string,
   clusterer: PropTypes.object,
+  setControlValue: PropTypes.func,
   globalOpacity: PropTypes.number,
   mapStyle: PropTypes.string,
   mapboxApiKey: PropTypes.string,
