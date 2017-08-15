@@ -137,14 +137,13 @@ export const colorScalerFactory = function (colors, data, accessor) {
 };
 =======
   if (country == 'map'){
-    const all_metric = data.map( function(d) { return d['metric']; } );
+    console.log(data.map( function(d) { return d['metric']; } ));
     console.log(data)
-    console.log(all_metric)
     console.log(accessor)
     console.log(ext)
     console.log(colors)
     //console.log(d3.scale.quantile().domain(points).range(colors));
-    return d3.scale.quantile().domain(all_metric).range(colors);
+    return d3.scale.quantile().domain(ext).range(colors);
   } else {
     return d3.scale.linear().domain(points).range(colors);
   }
