@@ -110,7 +110,7 @@ class FilterBox extends React.Component {
               } else {
                 label = opt.id;
               }
-              return { value: opt.id, label: label, style };
+              return { value: opt.id, label, style };
             })}
             onChange={this.changeFilter.bind(this, filter)}
           />
