@@ -4,7 +4,7 @@ import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
 
-import { category21 } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../javascripts/modules/colors';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
 
 // CSS
@@ -337,7 +337,7 @@ function nvd3Vis(slice, payload) {
     }
 
     if (vizType !== 'bullet') {
-      chart.color(d => category21(d[colorKey]));
+      chart.color(d => getColorFromScheme(d[colorKey], fd.color_scheme));
     }
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
       chart.useInteractiveGuideline(true);

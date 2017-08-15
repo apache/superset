@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
-import { category21 } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../javascripts/modules/colors';
 import './chord.css';
 
 function chordViz(slice, json) {
@@ -60,7 +60,7 @@ function chordViz(slice, json) {
   const groupPath = group.append('path')
   .attr('id', (d, i) => 'group' + i)
   .attr('d', arc)
-  .style('fill', (d, i) => category21(nodes[i]));
+  .style('fill', (d, i) => getColorFromScheme(nodes[i], slice.formData.color_scheme));
 
   // Add a text label.
   const groupText = group.append('text')
@@ -84,7 +84,7 @@ function chordViz(slice, json) {
   .on('mouseover', (d) => {
     chord.classed('fade', p => p !== d);
   })
-  .style('fill', d => category21(nodes[d.source.index]))
+  .style('fill', d => getColorFromScheme(nodes[d.source.index], slice.formData.color_scheme))
   .attr('d', path);
 
   // Add an elaborate mouseover title for each chord.
