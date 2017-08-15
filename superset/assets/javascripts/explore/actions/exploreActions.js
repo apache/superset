@@ -141,11 +141,6 @@ export function removeControlPanelAlert() {
   return { type: REMOVE_CONTROL_PANEL_ALERT };
 }
 
-export const REMOVE_CHART_ALERT = 'REMOVE_CHART_ALERT';
-export function removeChartAlert() {
-  return { type: REMOVE_CHART_ALERT };
-}
-
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
 export function updateChartTitle(slice_name) {
   return { type: UPDATE_CHART_TITLE, slice_name };

@@ -35,12 +35,12 @@ const bootstrappedState = Object.assign(
     isStarred: false,
     triggerQuery: true,
     triggerRender: false,
-    alert: null,
   },
 );
 
 const initState = {
   chart: {
+    chartAlert: null,
     chartStatus: null,
     chartUpdateEndTime: null,
     chartUpdateStartTime: now(),
@@ -49,6 +49,7 @@ const initState = {
   },
   saveModal: {
     dashboards: [],
+    saveModalAlert: null,
   },
   explore: bootstrappedState,
 };
