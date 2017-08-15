@@ -6,7 +6,6 @@ import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import { dashboardContainer } from '../javascripts/dashboard/Dashboard.jsx'
 import '../stylesheets/react-select/select.less';
 import { TIME_CHOICES } from './constants';
 import './filter_box.css';
@@ -46,15 +45,6 @@ class FilterBox extends React.Component {
     this.setState({ hasChanged: false });
   }
   changeFilter(filter, options) {
-    /*if (dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId]) {
-      dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId].push(filter);
-    } else {
-      dashboardData.metadata.filter_immune_slice_fields[this.props.sliceId] = [filter];
-    }
-    console.log('[filter_box.jsx] dashboardData.metadata: ');
-    console.log(dashboardData.metadata);*/
-    console.log('filter: ' + filter);
-    console.log('sliceId: ' + this.props.sliceId);
     let vals = null;
     if (options) {
       if (Array.isArray(options)) {
@@ -114,13 +104,13 @@ class FilterBox extends React.Component {
                 backgroundImage,
                 padding: '2px 5px',
               };
-              let label_;
+              let label;
               if (this.props.showMetricNumber) {
-                label_ = opt.id.concat(" [", opt.metric, "]");
+                label = opt.id.concat(' [', opt.metric, ']');
               } else {
-                label_ = opt.id;
+                label = opt.id;
               }
-              return { value: opt.id, label: label_, style };
+              return { value: opt.id, label: label, style };
             })}
             onChange={this.changeFilter.bind(this, filter)}
           />

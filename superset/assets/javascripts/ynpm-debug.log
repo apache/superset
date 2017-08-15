@@ -1,0 +1,77 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/home/y/libexec64/node',
+1 verbose cli   '/home/y/share/node/ynpm/bin/ynpm-cli.js',
+1 verbose cli   'run',
+1 verbose cli   'test' ]
+2 silly now 2017-08-09T21:30:26.923Z
+3 silly hostname netops1.ops.gq1.yahoo.com
+4 silly platform linux
+5 silly arch x64
+6 silly release 2.6.32-696.6.3.el6.YAHOO.20170712.4.x86_64
+7 silly node { http_parser: '2.7.0',
+7 silly node   node: '8.1.2',
+7 silly node   v8: '5.8.283.41',
+7 silly node   uv: '1.12.0',
+7 silly node   zlib: '1.2.3',
+7 silly node   ares: '1.10.1-DEV',
+7 silly node   modules: '57',
+7 silly node   openssl: '1.0.2l',
+7 silly node   icu: '58.2',
+7 silly node   unicode: '9.0',
+7 silly node   cldr: '30.0.3',
+7 silly node   tz: '2016j',
+7 silly node   ynpm: '3.4.29',
+7 silly node   npm: '3.10.9' }
+8 info using ynpm@3.4.29
+9 info using npm@3.10.9
+10 info using node@v8.1.2
+11 silly conf { argv:
+11 silly conf    { remain: [ 'run', 'test' ],
+11 silly conf      cooked: [ 'run', 'test' ],
+11 silly conf      original: [ 'run', 'test' ] } }
+12 silly argv undefined
+13 silly looking for command:  install
+14 silly found proxy command for install
+15 silly looking for command:  run
+16 verbose run-script [ 'pretest', 'test', 'posttest' ]
+17 info lifecycle superset@0.18.5~pretest: superset@0.18.5
+18 silly lifecycle superset@0.18.5~pretest: no script for pretest, continuing
+19 info lifecycle superset@0.18.5~test: superset@0.18.5
+20 verbose lifecycle superset@0.18.5~test: unsafe-perm in lifecycle true
+21 verbose lifecycle superset@0.18.5~test: PATH: /home/y/share/node/ynpm/node_modules/npm/bin/node-gyp-bin:/home/mflint/superset/superset/assets/node_modules/.bin:/home/y/libexec64:/home/y/bin64:/home/y/bin:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin
+22 verbose lifecycle superset@0.18.5~test: CWD: /home/mflint/superset/superset/assets
+23 silly lifecycle superset@0.18.5~test: Args: [ '-c',
+23 silly lifecycle   'mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*' ]
+24 info lifecycle superset@0.18.5~test: Failed to exec test script
+25 info command completed in: 1.026 seconds
+26 warn Local package.json exists, but node_modules missing, did you mean to install?
+27 info Fixing package.json /home/mflint/superset/superset/assets/package.json
+28 verbose stack Error: superset@0.18.5 test: `mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*`
+28 verbose stack spawn ENOENT
+28 verbose stack     at ChildProcess.<anonymous> (/home/y/share/node/ynpm/node_modules/npm/lib/utils/spawn.js:33:16)
+28 verbose stack     at emitTwo (events.js:125:13)
+28 verbose stack     at ChildProcess.emit (events.js:213:7)
+28 verbose stack     at maybeClose (internal/child_process.js:897:16)
+28 verbose stack     at Process.ChildProcess._handle.onexit (internal/child_process.js:208:5)
+29 verbose pkgid superset@0.18.5
+30 verbose cwd /home/mflint/superset/superset/assets/javascripts
+31 error Linux 2.6.32-696.6.3.el6.YAHOO.20170712.4.x86_64
+32 error argv "/home/y/libexec64/node" "/home/y/share/node/ynpm/bin/ynpm-cli.js" "run" "test"
+33 error node v8.1.2
+34 error npm -v 3.10.9
+35 error ynpm -v 3.4.29
+36 error file sh
+37 error code ELIFECYCLE
+38 error errno ENOENT
+39 error syscall spawn
+40 error superset@0.18.5 test: `mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*`
+40 error spawn ENOENT
+41 error Failed at the superset@0.18.5 test script.
+41 error This is most likely a problem with the superset package,
+41 error not with npm itself.
+41 error Tell the author that this fails on your system:
+41 error     mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*
+41 error You can get their info via:
+41 error     npm owner ls superset
+41 error There is likely additional logging output above.
+42 verbose exit [ 1, true ]

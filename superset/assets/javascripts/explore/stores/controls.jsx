@@ -935,14 +935,14 @@ export const controls = {
     default: false,
     description: 'Whether to include a time filter',
   },
-  
+
   filter_label: {
     type: 'CheckboxControl',
     label: 'Display Label',
     default: true,
     description: 'Whether to display a label above each filter',
   },
-  
+
   display_metric: {
     type: 'CheckboxControl',
     label: 'Display Metric',

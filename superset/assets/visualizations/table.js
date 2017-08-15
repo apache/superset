@@ -1,12 +1,12 @@
-var $ = require ( 'jquery' );
-var dt = require('datatables.net-bs') (window, $);
-var buttons = require ( 'datatables.net-buttons-bs' ) (window, $);
-require ( 'datatables.net-buttons/js/buttons.html5.js') (window, $);
 import d3 from 'd3';
 import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
-
 import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../javascripts/modules/utils';
 import './table.css';
+
+const $ = require('jquery');
+require('datatables.net-bs')(window, $);
+require('datatables.net-buttons-bs')(window, $);
+require('datatables.net-buttons/js/buttons.html5.js')(window, $);
 
 function tableVis(slice, payload) {
   const container = $(slice.selector);
@@ -31,8 +31,6 @@ function tableVis(slice, payload) {
     maxes[metrics[i]] = d3.max(col(metrics[i]));
   }
 
-  const tsFormatter = d3TimeFormatPreset(fd.table_timestamp_format);
-
   const div = d3.select(slice.selector);
   div.html('');
   const table = div.append('table')
@@ -49,11 +47,11 @@ function tableVis(slice, payload) {
     paging = true;
     pageLength = parseInt(fd.page_length, 10);
   }
-  let buttons = [];
+  const buttons = [];
   if (fd.csv_button) {
     buttons.push('csvHtml5');
   }
- 
+
   table.append('thead').append('tr')
     .selectAll('th')
     .data(cols)
@@ -62,25 +60,23 @@ function tableVis(slice, payload) {
     .text(function (d) {
       return d;
     });
-  
+
   let datatable;
 
-  if ((!data.columns.find((c) => {
+  if ((!data.columns.find((c) =>
         return metrics.indexOf(c) >= 0;
-      }))) {
-    let columns = [];
-    data.columns.map((c) => {
-      columns.push({data: c});
-    });
-    console.log(columns);
+      ))) {
+    const columns = data.columns.map((c) => 
+      return { data: c };
+    );
     datatable = container.find('.dataTable').DataTable({
       data: data.records,
-      columns: columns,
-      paging: paging,
+      columns,
+      paging,
       deferRender: true,
-      pageLength: pageLength,
+      pageLength,
       searching: fd.include_search,
-      buttons: buttons,
+      buttons,
     });
   } else {
     table.append('tbody')
@@ -150,17 +146,17 @@ function tableVis(slice, payload) {
       .html(d => d.html ? d.html : d.val);
 
     datatable = container.find('.dataTable').DataTable({
-      paging: paging,
+      paging,
       deferRender: true,
-      pageLength: pageLength,
+      pageLength,
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      buttons: buttons,
+      buttons,
     });
   }
-  datatable.buttons().container().appendTo( '.dataTables_wrapper .col-sm-6:eq(0)' );
- 
+  datatable.buttons().container().appendTo('.dataTables_wrapper .col-sm-6:eq(0)');
+
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
