@@ -4,6 +4,7 @@ import shortid from 'shortid';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import { AutoSizer } from 'react-virtualized';
 
 import * as Actions from '../actions';
 import QueryHistory from './QueryHistory';
@@ -55,6 +56,7 @@ class SouthPane extends React.PureComponent {
 
     return window.innerHeight - sum - 95;
   }
+
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
@@ -67,13 +69,26 @@ class SouthPane extends React.PureComponent {
     let results;
     if (latestQuery) {
       results = (
-        <ResultSet
-          showControls
-          search
-          query={latestQuery}
-          actions={props.actions}
-          height={this.state.innerTabHeight}
-        />
+        <AutoSizer
+          disableWidth
+        >
+          {({ height }) => {
+            if (height !== 0) { // this hack probably won't be necessary after release of react-virtualized v10
+              return (
+                <ResultSet
+                  showControls
+                  search
+                  query={latestQuery}
+                  actions={props.actions}
+                  height={height}
+                />
+              );
+            }
+            else {
+              return <div />;
+            }}
+          }
+        </AutoSizer>
       );
     } else {
       results = <Alert bsStyle="info">Run a query to display results here</Alert>;
@@ -85,20 +100,34 @@ class SouthPane extends React.PureComponent {
         eventKey={query.id}
         key={query.id}
       >
-        <ResultSet
-          query={query}
-          visualize={false}
-          csv={false}
-          actions={props.actions}
-          cache
-          height={this.state.innerTabHeight}
-        />
+        <AutoSizer
+          disableWidth
+        >
+          {({ height }) => {
+            if (height !== 0) { // this hack probably won't be necessary after release of react-virtualized v10
+              return (
+                <ResultSet
+                  query={query}
+                  visualize={false}
+                  csv={false}
+                  actions={props.actions}
+                  cache
+                  height={height}
+                />
+              );
+            }
+            else {
+              return <div />;
+            }}
+          }
+        </AutoSizer>
       </Tab>
     ));
 
     return (
       <div className="SouthPane">
         <Tabs
+          className="Tabs"
           bsStyle="tabs"
           id={shortid.generate()}
           activeKey={this.props.activeSouthPaneTab}
