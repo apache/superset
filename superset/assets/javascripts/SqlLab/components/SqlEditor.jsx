@@ -17,7 +17,7 @@ import Button from '../../components/Button';
 
 import AceEditorWrapper from './AceEditorWrapper';
 import SouthPane from './SouthPane';
-import SplitPane from './SplitPane'
+import SplitPane from './SplitPane';
 import SaveQuery from './SaveQuery';
 import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
@@ -63,6 +63,13 @@ class SqlEditor extends React.PureComponent {
       this.startQuery();
     }
   }
+  onSizeChange(newSizes) {
+    const bottomBarHeight = this.refs.editorBottomBar.clientHeight;
+    this.setState({
+      ...this.state,
+      editorHeight: newSizes.north - bottomBarHeight,
+    });
+  }
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
@@ -103,14 +110,6 @@ class SqlEditor extends React.PureComponent {
     const navBarHeight = 56;
     const mysteryVerticalHeight = 50;
     return window.innerHeight - tabNavHeight - navBarHeight - mysteryVerticalHeight;
-  }
-
-  onSizeChange(newSizes) {
-    const bottomBarHeight = this.refs.editorBottomBar.clientHeight;
-    this.setState({
-      ...this.state,
-      editorHeight: newSizes.north - bottomBarHeight,
-    });
   }
 
   render() {

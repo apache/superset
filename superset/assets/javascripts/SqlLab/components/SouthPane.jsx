@@ -73,7 +73,11 @@ class SouthPane extends React.PureComponent {
           disableWidth
         >
           {({ height }) => {
-            if (height !== 0) { // this hack probably won't be necessary after release of react-virtualized v10
+            /*
+             checking of the height probably won't be necessary
+             after release of react-virtualized v10
+            */
+            if (height !== 0) {
               return (
                 <ResultSet
                   showControls
@@ -84,10 +88,8 @@ class SouthPane extends React.PureComponent {
                 />
               );
             }
-            else {
-              return <div />;
-            }}
-          }
+            return <div />;
+          }}
         </AutoSizer>
       );
     } else {
@@ -104,7 +106,11 @@ class SouthPane extends React.PureComponent {
           disableWidth
         >
           {({ height }) => {
-            if (height !== 0) { // this hack probably won't be necessary after release of react-virtualized v10
+            /*
+             checking of the height probably won't be necessary
+             after release of react-virtualized v10
+            */
+            if (height !== 0) {
               return (
                 <ResultSet
                   query={query}
@@ -116,10 +122,8 @@ class SouthPane extends React.PureComponent {
                 />
               );
             }
-            else {
-              return <div />;
-            }}
-          }
+            return <div />;
+          }}
         </AutoSizer>
       </Tab>
     ));
