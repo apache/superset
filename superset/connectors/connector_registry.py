@@ -18,15 +18,11 @@ class ConnectorRegistry(object):
 
     @classmethod
     def get_datasource(cls, datasource_type, datasource_id, session):
-        try:
-            datasource = (
-                session.query(cls.sources[datasource_type])
-                .filter_by(id=datasource_id)
-                .first()
-            )
-        except NoResultFound:
-            datasource = None
-        return datasource
+        return (
+            session.query(cls.sources[datasource_type])
+            .filter_by(id=datasource_id)
+            .first()
+        )
 
     @classmethod
     def get_all_datasources(cls, session):
