@@ -15,7 +15,7 @@ function countryMapChart(slice, payload) {
   const data = payload.data;
   const viz = 'map';
 
-  const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric, viz);
+  const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric, viz, fd.scale_color_scheme);
   const colorMap = {};
   data.forEach((d) => {
     colorMap[d.country_id] = colorScaler(d.metric);
