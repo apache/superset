@@ -351,6 +351,17 @@ class MySQLEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
+    @classmethod
+    def extract_error_message(cls, e):
+        """Extract error message for queries"""
+        message = str(e)
+        try:
+            if isinstance(e.args, tuple) and len(e.args) > 1:
+                message = e.args[1]
+        except:
+            pass
+        return message
+
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
