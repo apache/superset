@@ -683,11 +683,10 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def extract_error_message(cls, e):
-        msg = str(e)
         try:
             msg = e.message.status.errorMessage
         except:
-            pass
+            msg = str(e)
         return msg
 
     @classmethod
