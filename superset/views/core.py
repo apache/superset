@@ -1991,7 +1991,7 @@ class Superset(BaseSupersetView):
         schema = request.form.get('schema') or None
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if not mydb:
             json_error_response(
