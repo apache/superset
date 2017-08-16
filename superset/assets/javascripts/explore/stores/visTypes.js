@@ -358,6 +358,7 @@ export const visTypes = {
       {
         label: null,
         controlSetRows: [
+          ['markup_type'],
           ['code'],
         ],
       },
