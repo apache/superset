@@ -78,6 +78,14 @@ export const now = function () {
   return moment().utc().valueOf();
 };
 
+export const addXHours = function (date, h) {
+  // add X hours to given utc date
+  return moment(date)
+  .add(h, 'hours')
+  .utc()
+  .valueOf();
+};
+
 export const epochTimeXHoursAgo = function (h) {
   return moment()
     .subtract(h, 'hours')

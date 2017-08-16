@@ -127,4 +127,33 @@ describe('async actions', () => {
       expect(ajaxStub.getCall(0).args[0].data).to.deep.equal(data);
     });
   });
+
+  describe('timeoutQuery', () => {
+    const makeRequest = () => {
+      const request = actions.timeOutQuery(query);
+      request(dispatch);
+    };
+
+    it('makes the ajax request', () => {
+      makeRequest();
+      expect(ajaxStub.calledOnce).to.be.true;
+    });
+
+    it('calls timeOutQuery', () => {
+      makeRequest();
+      expect(dispatch.args[0][0].type).to.equal(actions.QUERY_TIMEOUT);
+    });
+
+    it('calls the correct url', () => {
+      const url = '/superset/timeout_query/';
+      makeRequest();
+      expect(ajaxStub.getCall(0).args[0].url).to.equal(url);
+    });
+
+    it('sends the correct data', () => {
+      const data = { client_id: query.id };
+      makeRequest();
+      expect(ajaxStub.getCall(0).args[0].data).to.deep.equal(data);
+    });
+  });
 });

@@ -27,6 +27,7 @@ export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
 export const RUN_QUERY = 'RUN_QUERY';
+export const QUERY_TIMEOUT = 'QUERY_TIMEOUT';
 export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
 export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
@@ -115,6 +116,10 @@ export function fetchQueryResults(query) {
   };
 }
 
+export function queryTimeout(query) {
+  return { type: QUERY_TIMEOUT, query };
+}
+
 export function runQuery(query) {
   return function (dispatch) {
     dispatch(startQuery(query));
@@ -179,6 +184,26 @@ export function postStopQuery(query) {
       },
       error() {
         notify.error('Failed at stopping query.');
+      },
+    });
+  };
+}
+
+export function timeOutQuery(query) {
+  return function (dispatch) {
+    const timeoutQueryUrl = '/superset/timeout_query/';
+    const timeoutQueryRequestData = { client_id: query.id };
+    dispatch(queryTimeout(query));
+    $.ajax({
+      type: 'POST',
+      dataType: 'json',
+      url: timeoutQueryUrl,
+      data: timeoutQueryRequestData,
+      success() {
+        notify.success('Query was timedout.');
+      },
+      error() {
+        notify.error('Failed at timeing out query.');
       },
     });
   };

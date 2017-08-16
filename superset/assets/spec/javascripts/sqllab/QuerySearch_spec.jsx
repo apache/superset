@@ -65,4 +65,12 @@ describe('QuerySearch', () => {
     /* eslint-disable no-unused-expressions */
     expect(search.called).to.equal(true);
   });
+
+  it('check for query timeouts prior to query refresh', () => {
+    const search = sinon.spy(QuerySearch.prototype, 'setPotentialTimeout');
+    wrapper = shallow(<QuerySearch {...mockedProps} />);
+    wrapper.find(Button).simulate('click');
+    /* eslint-disable no-unused-expressions */
+    expect(search.called).to.equal(true);
+  });
 });
