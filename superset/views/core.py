@@ -1039,12 +1039,8 @@ class Superset(BaseSupersetView):
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
         error_redirect = '/slicemodelview/list/'
-        datasource = (
-            db.session.query(ConnectorRegistry.sources[datasource_type])
-            .filter_by(id=datasource_id)
-            .one()
-        )
-
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session)
         if not datasource:
             flash(DATASOURCE_MISSING_ERR, "danger")
             return redirect(error_redirect)
@@ -1119,13 +1115,8 @@ class Superset(BaseSupersetView):
         :return:
         """
         # TODO: Cache endpoint by user, datasource and column
-        datasource_class = ConnectorRegistry.sources[datasource_type]
-        datasource = (
-            db.session.query(datasource_class)
-            .filter_by(id=datasource_id)
-            .first()
-        )
-
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session)
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not self.datasource_access(datasource):
@@ -2000,7 +1991,7 @@ class Superset(BaseSupersetView):
         schema = request.form.get('schema') or None
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if not mydb:
             json_error_response(
@@ -2138,13 +2129,8 @@ class Superset(BaseSupersetView):
     def fetch_datasource_metadata(self):
         datasource_id, datasource_type = (
             request.args.get('datasourceKey').split('__'))
-        datasource_class = ConnectorRegistry.sources[datasource_type]
-        datasource = (
-            db.session.query(datasource_class)
-            .filter_by(id=int(datasource_id))
-            .first()
-        )
-
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session)
         # Check if datasource exists
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
