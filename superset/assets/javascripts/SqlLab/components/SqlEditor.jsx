@@ -22,6 +22,7 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
+import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -108,9 +109,9 @@ class SqlEditor extends React.PureComponent {
     if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
       const tooltip = (
         <Tooltip id="tooltip">
-          It appears that the number of rows in the query results displayed
-          was limited on the server side to
-          the {this.props.latestQuery.rows} limit.
+          {t('It appears that the number of rows in the query results displayed ' +
+          'was limited on the server side to ' +
+          'the %s limit.', this.props.latestQuery.rows)}
         </Tooltip>
       );
       limitWarning = (
@@ -121,7 +122,7 @@ class SqlEditor extends React.PureComponent {
     }
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
-      const ctasToolTip = 'Create table as with query results';
+      const ctasToolTip = t('Create table as with query results');
       ctasControls = (
         <FormGroup>
           <InputGroup>
@@ -129,7 +130,7 @@ class SqlEditor extends React.PureComponent {
               type="text"
               bsSize="small"
               className="input-sm"
-              placeholder="new table name"
+              placeholder={t('new table name')}
               onChange={this.ctasChanged.bind(this)}
             />
             <InputGroup.Button>

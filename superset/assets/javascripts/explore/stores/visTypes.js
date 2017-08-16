@@ -1,17 +1,18 @@
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from '../validators';
+import { t } from '../../locales';
 
 export const sections = {
   druidTimeSeries: {
-    label: 'Time',
-    description: 'Time related form attributes',
+    label: t('Time'),
+    description: t('Time related form attributes'),
     controlSetRows: [
       ['granularity', 'druid_time_origin'],
       ['since', 'until'],
     ],
   },
   datasourceAndVizType: {
-    label: 'Datasource & Chart Type',
+    label: t('Datasource & Chart Type'),
     controlSetRows: [
       ['datasource'],
       ['viz_type'],
@@ -19,20 +20,20 @@ export const sections = {
     ],
   },
   sqlaTimeSeries: {
-    label: 'Time',
-    description: 'Time related form attributes',
+    label: t('Time'),
+    description: t('Time related form attributes'),
     controlSetRows: [
       ['granularity_sqla', 'time_grain_sqla'],
       ['since', 'until'],
     ],
   },
   sqlClause: {
-    label: 'SQL',
+    label: t('SQL'),
     controlSetRows: [
       ['where'],
       ['having'],
     ],
-    description: 'This section exposes ways to include snippets of SQL in your query',
+    description: t('This section exposes ways to include snippets of SQL in your query'),
   },
   NVD3TimeSeries: [
     {
@@ -44,10 +45,10 @@ export const sections = {
       ],
     },
     {
-      label: 'Advanced Analytics',
-      description: 'This section contains options ' +
+      label: t('Advanced Analytics'),
+      description: t('This section contains options ' +
       'that allow for advanced analytical post processing ' +
-      'of query results',
+      'of query results'),
       controlSetRows: [
         ['rolling_type', 'rolling_periods'],
         ['time_compare'],
@@ -59,17 +60,17 @@ export const sections = {
   ],
   filters: [
     {
-      label: 'Filters',
-      description: 'Filters are defined using comma delimited strings as in <US,FR,Other>' +
+      label: t('Filters'),
+      description: t('Filters are defined using comma delimited strings as in <US,FR,Other>' +
       'Leave the value control empty to filter empty strings or nulls' +
       'For filters with comma in values, wrap them in single quotes' +
-      "as in <NY, 'Tahoe, CA', DC>",
+      "as in <NY, 'Tahoe, CA', DC>"),
       controlSetRows: [['filters']],
     },
     {
-      label: 'Result Filters',
-      description: 'The filters to apply after post-aggregation.' +
-      'Leave the value control empty to filter empty strings or nulls',
+      label: t('Result Filters'),
+      description: t('The filters to apply after post-aggregation.' +
+      'Leave the value control empty to filter empty strings or nulls'),
       controlSetRows: [['having_filters']],
     },
   ],
@@ -77,11 +78,11 @@ export const sections = {
 
 export const visTypes = {
   dist_bar: {
-    label: 'Distribution - Bar Chart',
+    label: t('Distribution - Bar Chart'),
     showOnExplore: true,
     controlPanelSections: [
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['metrics'],
           ['groupby'],
@@ -98,17 +99,17 @@ export const visTypes = {
     ],
     controlOverrides: {
       groupby: {
-        label: 'Series',
+        label: t('Series'),
       },
       columns: {
-        label: 'Breakdowns',
-        description: 'Defines how each series is broken down',
+        label: t('Breakdowns'),
+        description: t('Defines how each series is broken down'),
       },
     },
   },
 
   pie: {
-    label: 'Pie Chart',
+    label: t('Pie Chart'),
     showOnExplore: true,
     controlPanelSections: [
       {
@@ -125,13 +126,13 @@ export const visTypes = {
   },
 
   line: {
-    label: 'Time Series - Line Chart',
+    label: t('Time Series - Line Chart'),
     showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['show_brush', 'show_legend'],
           ['rich_tooltip', null],
@@ -140,7 +141,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Axes',
+        label: t('Axes'),
         controlSetRows: [
           ['x_axis_label', 'x_axis_format'],
           ['y_axis_label', 'y_axis_bounds'],
@@ -158,23 +159,23 @@ export const visTypes = {
   },
 
   dual_line: {
-    label: 'Dual Axis Line Chart',
+    label: t('Dual Axis Line Chart'),
     requiresTime: true,
     controlPanelSections: [
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['x_axis_format'],
         ],
       },
       {
-        label: 'Y Axis 1',
+        label: t('Y Axis 1'),
         controlSetRows: [
           ['metric', 'y_axis_format'],
         ],
       },
       {
-        label: 'Y Axis 2',
+        label: t('Y Axis 2'),
         controlSetRows: [
           ['metric_2', 'y_axis_2_format'],
         ],
@@ -182,11 +183,11 @@ export const visTypes = {
     ],
     controlOverrides: {
       metric: {
-        label: 'Left Axis Metric',
-        description: 'Choose a metric for left axis',
+        label: t('Left Axis Metric'),
+        description: t('Choose a metric for left axis'),
       },
       y_axis_format: {
-        label: 'Left Axis Format',
+        label: t('Left Axis Format'),
       },
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
@@ -196,13 +197,13 @@ export const visTypes = {
   },
 
   bar: {
-    label: 'Time Series - Bar Chart',
+    label: t('Time Series - Bar Chart'),
     showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['show_brush', 'show_legend', 'show_bar_value'],
           ['rich_tooltip', 'contribution'],
@@ -211,7 +212,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Axes',
+        label: t('Axes'),
         controlSetRows: [
           ['x_axis_format', 'y_axis_format'],
           ['x_axis_showminmax', 'reduce_x_ticks'],
@@ -230,12 +231,12 @@ export const visTypes = {
   },
 
   compare: {
-    label: 'Time Series - Percent Change',
+    label: t('Time Series - Percent Change'),
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['x_axis_format', 'y_axis_format'],
         ],
@@ -251,12 +252,12 @@ export const visTypes = {
   },
 
   area: {
-    label: 'Time Series - Stacked',
+    label: t('Time Series - Stacked'),
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['show_brush', 'show_legend'],
           ['line_interpolation', 'stacked_style'],
@@ -265,7 +266,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Axes',
+        label: t('Axes'),
         controlSetRows: [
           ['x_axis_format', 'x_axis_showminmax'],
           ['y_axis_format', 'y_axis_bounds'],
@@ -283,26 +284,26 @@ export const visTypes = {
   },
 
   table: {
-    label: 'Table View',
+    label: t('Table View'),
     controlPanelSections: [
       {
-        label: 'GROUP BY',
-        description: 'Use this section if you want a query that aggregates',
+        label: t('GROUP BY'),
+        description: t('Use this section if you want a query that aggregates'),
         controlSetRows: [
           ['groupby', 'metrics'],
           ['include_time'],
         ],
       },
       {
-        label: 'NOT GROUPED BY',
-        description: 'Use this section if you want to query atomic rows',
+        label: t('NOT GROUPED BY'),
+        description: t('Use this section if you want to query atomic rows'),
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],
         ],
       },
       {
-        label: 'Options',
+        label: t('Options'),
         controlSetRows: [
           ['table_timestamp_format'],
           ['row_limit', 'page_length'],
@@ -321,7 +322,7 @@ export const visTypes = {
   },
 
   markup: {
-    label: 'Markup',
+    label: t('Markup'),
     controlPanelSections: [
       {
         label: null,
@@ -334,7 +335,7 @@ export const visTypes = {
   },
 
   pivot_table: {
-    label: 'Pivot Table',
+    label: t('Pivot Table'),
     controlPanelSections: [
       {
         label: null,
@@ -353,7 +354,7 @@ export const visTypes = {
   },
 
   separator: {
-    label: 'Separator',
+    label: t('Separator'),
     controlPanelSections: [
       {
         label: null,
@@ -374,7 +375,7 @@ export const visTypes = {
   },
 
   word_cloud: {
-    label: 'Word Cloud',
+    label: t('Word Cloud'),
     controlPanelSections: [
       {
         label: null,
@@ -388,7 +389,7 @@ export const visTypes = {
   },
 
   treemap: {
-    label: 'Treemap',
+    label: t('Treemap'),
     controlPanelSections: [
       {
         label: null,
@@ -398,7 +399,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['treemap_ratio'],
           ['number_format'],
@@ -408,7 +409,7 @@ export const visTypes = {
   },
 
   cal_heatmap: {
-    label: 'Calendar Heatmap',
+    label: t('Calendar Heatmap'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -423,7 +424,7 @@ export const visTypes = {
   },
 
   box_plot: {
-    label: 'Box Plot',
+    label: t('Box Plot'),
     controlPanelSections: [
       {
         label: null,
@@ -433,7 +434,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['whisker_options'],
         ],
@@ -442,7 +443,7 @@ export const visTypes = {
   },
 
   bubble: {
-    label: 'Bubble Chart',
+    label: t('Bubble Chart'),
     controlPanelSections: [
       {
         label: null,
@@ -452,26 +453,26 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['show_legend', null],
         ],
       },
       {
-        label: 'Bubbles',
+        label: t('Bubbles'),
         controlSetRows: [
           ['size', 'max_bubble_size'],
         ],
       },
       {
-        label: 'X Axis',
+        label: t('X Axis'),
         controlSetRows: [
           ['x', 'x_axis_format'],
           ['x_axis_label', 'x_log_scale'],
         ],
       },
       {
-        label: 'Y Axis',
+        label: t('Y Axis'),
         controlSetRows: [
           ['y', 'y_axis_format'],
           ['y_axis_label', 'y_log_scale'],
@@ -486,7 +487,7 @@ export const visTypes = {
   },
 
   bullet: {
-    label: 'Bullet Chart',
+    label: t('Bullet Chart'),
     requiresTime: false,
     controlPanelSections: [
       {
@@ -502,7 +503,7 @@ export const visTypes = {
   },
 
   big_number: {
-    label: 'Big Number with Trendline',
+    label: t('Big Number with Trendline'),
     controlPanelSections: [
       {
         label: null,
@@ -515,13 +516,13 @@ export const visTypes = {
     ],
     controlOverrides: {
       y_axis_format: {
-        label: 'Number format',
+        label: t('Number format'),
       },
     },
   },
 
   big_number_total: {
-    label: 'Big Number',
+    label: t('Big Number'),
     controlPanelSections: [
       {
         label: null,
@@ -534,13 +535,13 @@ export const visTypes = {
     ],
     controlOverrides: {
       y_axis_format: {
-        label: 'Number format',
+        label: t('Number format'),
       },
     },
   },
 
   histogram: {
-    label: 'Histogram',
+    label: t('Histogram'),
     controlPanelSections: [
       {
         label: null,
@@ -550,7 +551,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Histogram Options',
+        label: t('Histogram Options'),
         controlSetRows: [
           ['link_length'],
         ],
@@ -558,19 +559,19 @@ export const visTypes = {
     ],
     controlOverrides: {
       all_columns_x: {
-        label: 'Numeric Column',
-        description: 'Select the numeric column to draw the histogram',
+        label: t('Numeric Column'),
+        description: t('Select the numeric column to draw the histogram'),
       },
       link_length: {
-        label: 'No of Bins',
-        description: 'Select number of bins for the histogram',
+        label: t('No of Bins'),
+        description: t('Select number of bins for the histogram'),
         default: 5,
       },
     },
   },
 
   sunburst: {
-    label: 'Sunburst',
+    label: t('Sunburst'),
     controlPanelSections: [
       {
         label: null,
@@ -583,24 +584,24 @@ export const visTypes = {
     ],
     controlOverrides: {
       metric: {
-        label: 'Primary Metric',
-        description: 'The primary metric is used to define the arc segment sizes',
+        label: t('Primary Metric'),
+        description: t('The primary metric is used to define the arc segment sizes'),
       },
       secondary_metric: {
-        label: 'Secondary Metric',
-        description: 'This secondary metric is used to ' +
+        label: t('Secondary Metric'),
+        description: t('This secondary metric is used to ' +
         'define the color as a ratio against the primary metric. ' +
-        'If the two metrics match, color is mapped level groups',
+        'If the two metrics match, color is mapped level groups'),
       },
       groupby: {
-        label: 'Hierarchy',
-        description: 'This defines the level of the hierarchy',
+        label: t('Hierarchy'),
+        description: t('This defines the level of the hierarchy'),
       },
     },
   },
 
   sankey: {
-    label: 'Sankey',
+    label: t('Sankey'),
     controlPanelSections: [
       {
         label: null,
@@ -613,14 +614,14 @@ export const visTypes = {
     ],
     controlOverrides: {
       groupby: {
-        label: 'Source / Target',
-        description: 'Choose a source and a target',
+        label: t('Source / Target'),
+        description: t('Choose a source and a target'),
       },
     },
   },
 
   directed_force: {
-    label: 'Directed Force Layout',
+    label: t('Directed Force Layout'),
     controlPanelSections: [
       {
         label: null,
@@ -631,7 +632,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Force Layout',
+        label: t('Force Layout'),
         controlSetRows: [
           ['link_length'],
           ['charge'],
@@ -640,13 +641,13 @@ export const visTypes = {
     ],
     controlOverrides: {
       groupby: {
-        label: 'Source / Target',
-        description: 'Choose a source and a target',
+        label: t('Source / Target'),
+        description: t('Choose a source and a target'),
       },
     },
   },
   chord: {
-    label: 'Chord Diagram',
+    label: t('Chord Diagram'),
     controlPanelSections: [
       {
         label: null,
@@ -659,25 +660,25 @@ export const visTypes = {
     ],
     controlOverrides: {
       y_axis_format: {
-        label: 'Number format',
-        description: 'Choose a number format',
+        label: t('Number format'),
+        description: t('Choose a number format'),
       },
       groupby: {
-        label: 'Source',
+        label: t('Source'),
         multi: false,
         validators: [v.nonEmpty],
-        description: 'Choose a source',
+        description: t('Choose a source'),
       },
       columns: {
-        label: 'Target',
+        label: t('Target'),
         multi: false,
         validators: [v.nonEmpty],
-        description: 'Choose a target',
+        description: t('Choose a target'),
       },
     },
   },
   country_map: {
-    label: 'Country Map',
+    label: t('Country Map'),
     controlPanelSections: [
       {
         label: null,
@@ -691,17 +692,17 @@ export const visTypes = {
     ],
     controlOverrides: {
       entity: {
-        label: 'ISO 3166-1 codes of region/province/department',
-        description: "It's ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)",
+        label: t('ISO 3166-1 codes of region/province/department'),
+        description: t('It\'s ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)'),
       },
       metric: {
-        label: 'Metric',
-        description: 'Metric to display bottom title',
+        label: t('Metric'),
+        description: t('Metric to display bottom title'),
       },
     },
   },
   world_map: {
-    label: 'World Map',
+    label: t('World Map'),
     controlPanelSections: [
       {
         label: null,
@@ -712,7 +713,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Bubbles',
+        label: t('Bubbles'),
         controlSetRows: [
           ['show_bubbles'],
           ['secondary_metric'],
@@ -722,22 +723,22 @@ export const visTypes = {
     ],
     controlOverrides: {
       entity: {
-        label: 'Country Control',
-        description: '3 letter code of the country',
+        label: t('Country Control'),
+        description: t('3 letter code of the country'),
       },
       metric: {
-        label: 'Metric for color',
-        description: 'Metric that defines the color of the country',
+        label: t('Metric for color'),
+        description: t('Metric that defines the color of the country'),
       },
       secondary_metric: {
-        label: 'Bubble size',
-        description: 'Metric that defines the size of the bubble',
+        label: t('Bubble size'),
+        description: t('Metric that defines the size of the bubble'),
       },
     },
   },
 
   filter_box: {
-    label: 'Filter Box',
+    label: t('Filter Box'),
     controlPanelSections: [
       {
         label: null,
@@ -750,10 +751,10 @@ export const visTypes = {
     ],
     controlOverrides: {
       groupby: {
-        label: 'Filter controls',
+        label: t('Filter controls'),
         description: (
-          'The controls you want to filter on. Note that only columns ' +
-          'checked as "filterable" will show up on this list.'
+          t('The controls you want to filter on. Note that only columns ' +
+          'checked as "filterable" will show up on this list.')
         ),
         mapStateToProps: state => ({
           options: (state.datasource) ? state.datasource.columns.filter(c => c.filterable) : [],
@@ -763,7 +764,7 @@ export const visTypes = {
   },
 
   iframe: {
-    label: 'iFrame',
+    label: t('iFrame'),
     controlPanelSections: [
       {
         label: null,
@@ -775,7 +776,7 @@ export const visTypes = {
   },
 
   para: {
-    label: 'Parallel Coordinates',
+    label: t('Parallel Coordinates'),
     controlPanelSections: [
       {
         label: null,
@@ -791,10 +792,10 @@ export const visTypes = {
   },
 
   heatmap: {
-    label: 'Heatmap',
+    label: t('Heatmap'),
     controlPanelSections: [
       {
-        label: 'Axis & Metrics',
+        label: t('Axis & Metrics'),
         controlSetRows: [
           ['all_columns_x'],
           ['all_columns_y'],
@@ -802,7 +803,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Heatmap Options',
+        label: t('Heatmap Options'),
         controlSetRows: [
           ['linear_color_scheme'],
           ['xscale_interval', 'yscale_interval'],
@@ -822,11 +823,11 @@ export const visTypes = {
   },
 
   horizon: {
-    label: 'Horizon',
+    label: t('Horizon'),
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['series_height', 'horizon_color_scale'],
         ],
@@ -835,7 +836,7 @@ export const visTypes = {
   },
 
   mapbox: {
-    label: 'Mapbox',
+    label: t('Mapbox'),
     controlPanelSections: [
       {
         label: null,
@@ -848,21 +849,21 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Points',
+        label: t('Points'),
         controlSetRows: [
           ['point_radius'],
           ['point_radius_unit'],
         ],
       },
       {
-        label: 'Labelling',
+        label: t('Labelling'),
         controlSetRows: [
           ['mapbox_label'],
           ['pandas_aggfunc'],
         ],
       },
       {
-        label: 'Visual Tweaks',
+        label: t('Visual Tweaks'),
         controlSetRows: [
           ['mapbox_style'],
           ['global_opacity'],
@@ -870,7 +871,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Viewport',
+        label: t('Viewport'),
         controlSetRows: [
           ['viewport_longitude'],
           ['viewport_latitude'],
@@ -880,36 +881,36 @@ export const visTypes = {
     ],
     controlOverrides: {
       all_columns_x: {
-        label: 'Longitude',
-        description: 'Column containing longitude data',
+        label: t('Longitude'),
+        description: t('Column containing longitude data'),
       },
       all_columns_y: {
-        label: 'Latitude',
-        description: 'Column containing latitude data',
+        label: t('Latitude'),
+        description: t('Column containing latitude data'),
       },
       pandas_aggfunc: {
-        label: 'Cluster label aggregator',
-        description: 'Aggregate function applied to the list of points ' +
-        'in each cluster to produce the cluster label.',
+        label: t('Cluster label aggregator'),
+        description: t('Aggregate function applied to the list of points ' +
+        'in each cluster to produce the cluster label.'),
       },
       rich_tooltip: {
-        label: 'Tooltip',
-        description: 'Show a tooltip when hovering over points and clusters ' +
-        'describing the label',
+        label: t('Tooltip'),
+        description: t('Show a tooltip when hovering over points and clusters ' +
+        'describing the label'),
       },
       groupby: {
-        description: 'One or many controls to group by. If grouping, latitude ' +
-        'and longitude columns must be present.',
+        description: t('One or many controls to group by. If grouping, latitude ' +
+        'and longitude columns must be present.'),
       },
     },
   },
 
   event_flow: {
-    label: 'Event flow',
+    label: t('Event flow'),
     requiresTime: true,
     controlPanelSections: [
       {
-        label: 'Event definition',
+        label: t('Event definition'),
         controlSetRows: [
           ['entity'],
           ['all_columns_x'],
@@ -919,7 +920,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Additional meta data',
+        label: t('Additional meta data'),
         controlSetRows: [
           ['all_columns'],
         ],
@@ -927,11 +928,11 @@ export const visTypes = {
     ],
     controlOverrides: {
       entity: {
-        label: 'Column containing entity ids',
-        description: 'e.g., a "user id" column',
+        label: t('Column containing entity ids'),
+        description: t('e.g., a "user id" column'),
       },
       all_columns_x: {
-        label: 'Column containing event names',
+        label: t('Column containing event names'),
         validators: [v.nonEmpty],
         default: control => (
           control.choices && control.choices.length > 0 ?
@@ -939,12 +940,12 @@ export const visTypes = {
         ),
       },
       row_limit: {
-        label: 'Event count limit',
-        description: 'The maximum number of events to return, equivalent to number of rows',
+        label: t('Event count limit'),
+        description: t('The maximum number of events to return, equivalent to number of rows'),
       },
       all_columns: {
-        label: 'Meta data',
-        description: 'Select any columns for meta data inspection',
+        label: t('Meta data'),
+        description: t('Select any columns for meta data inspection'),
       },
     },
   },

@@ -2,6 +2,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import { t } from '../../locales';
 import { getExploreUrl } from '../../explore/exploreUtils';
 
 const propTypes = {
@@ -20,14 +21,14 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
           </div>
           <div className="col-md-12 chart-controls">
             <div className="pull-right">
-              <a title="Move chart" data-toggle="tooltip">
+              <a title={t('Move chart')} data-toggle="tooltip">
                 <i className="fa fa-arrows drag" />
               </a>
-              <a className="refresh" title="Force refresh data" data-toggle="tooltip">
+              <a className="refresh" title={t('Force refresh data')} data-toggle="tooltip">
                 <i className="fa fa-repeat" />
               </a>
               {slice.description &&
-                <a title="Toggle chart description">
+                <a title={t('Toggle chart description')}>
                   <i
                     className="fa fa-info-circle slice_info"
                     title={slice.description}
@@ -37,20 +38,20 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
               }
               <a
                 href={slice.edit_url}
-                title="Edit chart"
+                title={t('Edit chart')}
                 data-toggle="tooltip"
               >
                 <i className="fa fa-pencil" />
               </a>
-              <a href={getExploreUrl(slice.form_data, 'csv')} title="Export CSV" data-toggle="tooltip">
+              <a href={getExploreUrl(slice.form_data, 'csv')} title={t('Export CSV')} data-toggle="tooltip">
                 <i className="fa fa-table" />
               </a>
-              <a href={getExploreUrl(slice.form_data)} title="Explore chart" data-toggle="tooltip">
+              <a href={getExploreUrl(slice.form_data)} title={t('Explore chart')} data-toggle="tooltip">
                 <i className="fa fa-share" />
               </a>
               <a
                 className="remove-chart"
-                title="Remove chart from dashboard"
+                title={t('Remove chart from dashboard')}
                 data-toggle="tooltip"
               >
                 <i

@@ -2,6 +2,7 @@
 import { now } from '../../modules/dates';
 import * as actions from '../actions/chartActions';
 import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
+import { t } from '../../locales';
 
 export default function chartReducer(state = {}, action) {
   const actionHandlers = {
@@ -29,13 +30,13 @@ export default function chartReducer(state = {}, action) {
       return Object.assign({}, state,
         {
           chartStatus: 'stopped',
-          chartAlert: 'Updating chart was stopped',
+          chartAlert: t('Updating chart was stopped'),
         });
     },
     [actions.CHART_RENDERING_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: 'An error occurred while rendering the visualization: ' + action.error,
+        chartAlert: t('An error occurred while rendering the visualization: %s', action.error),
       });
     },
     [actions.CHART_UPDATE_TIMEOUT]() {
@@ -51,7 +52,7 @@ export default function chartReducer(state = {}, action) {
     [actions.CHART_UPDATE_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: action.queryResponse ? action.queryResponse.error : 'Network error.',
+        chartAlert: action.queryResponse ? action.queryResponse.error : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
       });

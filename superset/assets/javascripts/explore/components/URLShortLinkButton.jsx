@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getShortUrl } from '../../../utils/common';
+import { t } from '../../locales';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -28,12 +29,12 @@ export default class URLShortLinkButton extends React.Component {
   }
 
   renderPopover() {
-    const emailBody = `Check out this slice: ${this.state.shortUrl}`;
+    const emailBody = t('Check out this slice: %s', this.state.shortUrl);
     return (
       <Popover id="shorturl-popover">
         <CopyToClipboard
           text={this.state.shortUrl}
-          copyNode={<i className="fa fa-clipboard" title="Copy to clipboard" />}
+          copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
         />
         &nbsp;&nbsp;
         <a href={`mailto:?Subject=Superset%20Slice%20&Body=${emailBody}`}>

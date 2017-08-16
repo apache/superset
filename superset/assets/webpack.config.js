@@ -116,6 +116,14 @@ const config = {
         include: APP_DIR + '/node_modules/mapbox-gl/js/render/painter/use_program.js',
         loader: 'transform/cacheable?brfs',
       },
+      {
+        test: /\.po$/,
+        loader: 'po-catalog-loader',
+        query: {
+          referenceExtensions: ['.js', '.jsx'],
+          domain: 'superset',
+        },
+      },
     ],
   },
   externals: {

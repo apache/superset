@@ -9,6 +9,7 @@ import {
   EVENT_NAME,
   ENTITY_ID,
 } from '@data-ui/event-flow';
+import { t } from '../javascripts/locales';
 
 /*
  * This function takes the slice object and json payload as input and renders a
@@ -52,7 +53,7 @@ function renderEventFlow(slice, json) {
 
     Component = <ResponsiveVis data={cleanData} initialMinEventCount={minEventCount} />;
   } else {
-    Component = <div>Sorry, there appears to be no data</div>;
+    Component = <div>{t('Sorry, there appears to be no data')}</div>;
   }
 
   ReactDOM.render(Component, container);

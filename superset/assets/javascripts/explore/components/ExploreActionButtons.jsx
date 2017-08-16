@@ -4,6 +4,7 @@ import cx from 'classnames';
 import URLShortLinkButton from './URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
+import { t } from '../../locales';
 
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
@@ -28,7 +29,7 @@ export default function ExploreActionButtons({
         <a
           href={slice.data.json_endpoint}
           className="btn btn-default btn-sm"
-          title="Export to .json"
+          title={t('Export to .json')}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -38,7 +39,7 @@ export default function ExploreActionButtons({
         <a
           href={slice.data.csv_endpoint}
           className={exportToCSVClasses}
-          title="Export to .csv format"
+          title={t('Export to .csv format')}
           target="_blank"
           rel="noopener noreferrer"
         >
