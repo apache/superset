@@ -1,4 +1,5 @@
 from sqlalchemy.orm import subqueryload
+from sqlalchemy.orm.exc import NoResultFound
 
 
 class ConnectorRegistry(object):
@@ -17,11 +18,15 @@ class ConnectorRegistry(object):
 
     @classmethod
     def get_datasource(cls, datasource_type, datasource_id, session):
-        return (
-            session.query(cls.sources[datasource_type])
-            .filter_by(id=datasource_id)
-            .first()
-        )
+        try:
+            datasource = (
+                session.query(cls.sources[datasource_type])
+                .filter_by(id=datasource_id)
+                .first()
+            )
+        except NoResultFound:
+            datasource = None
+        return datasource
 
     @classmethod
     def get_all_datasources(cls, session):
