@@ -1,5 +1,4 @@
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.orm.exc import NoResultFound
 
 
 class ConnectorRegistry(object):
