@@ -10,6 +10,7 @@ import SelectControl from './controls/SelectControl';
 import TextAreaControl from './controls/TextAreaControl';
 import TextControl from './controls/TextControl';
 import VizTypeControl from './controls/VizTypeControl';
+import ColorSchemeControl from './controls/ColorSchemeControl';
 
 const controlMap = {
   BoundsControl,
@@ -21,6 +22,7 @@ const controlMap = {
   TextAreaControl,
   TextControl,
   VizTypeControl,
+  ColorSchemeControl,
 };
 const controlTypes = Object.keys(controlMap);
 

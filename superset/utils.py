@@ -203,7 +203,11 @@ def parse_human_datetime(s):
     except Exception:
         try:
             cal = parsedatetime.Calendar()
-            dttm = dttm_from_timtuple(cal.parse(s)[0])
+            parsed_dttm, parsed_flags = cal.parseDT(s)
+            # when time is not extracted, we "reset to midnight"
+            if parsed_flags & 2 == 0:
+                parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
+            dttm = dttm_from_timtuple(parsed_dttm.utctimetuple())
         except Exception as e:
             logging.exception(e)
             raise ValueError("Couldn't parse date string [{}]".format(s))

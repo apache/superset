@@ -66,6 +66,7 @@ class FilterBox extends React.Component {
           <div className="m-b-5" key={field}>
             {field.replace('__', '')}
             <Select.Creatable
+              placeholder="Select"
               options={options}
               value={this.state.selectedValues[field]}
               onChange={this.changeFilter.bind(this, field)}
@@ -73,6 +74,24 @@ class FilterBox extends React.Component {
           </div>
         );
       });
+    }
+    // Add created options to filtersChoices, even though it doesn't exist,
+    // or these options will exist in query sql but invisible to end user.
+    if (this.state.selectedValues.hasOwnProperty()) {
+      for (const filterKey of this.state.selectedValues) {
+        const existValues = this.props.filtersChoices[filterKey].map(f => f.id);
+        for (const v of this.state.selectedValues[filterKey]) {
+          if (existValues.indexOf(v) === -1) {
+            const addChoice = {
+              filter: filterKey,
+              id: v,
+              text: v,
+              metric: 0,
+            };
+            this.props.filtersChoices[filterKey].push(addChoice);
+          }
+        }
+      }
     }
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
       const data = this.props.filtersChoices[filter];

@@ -497,9 +497,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 isinstance(e.orig[0], dict)):
             error_dict = e.orig[0]
             return '{} at {}: {}'.format(
-                error_dict['errorName'],
-                error_dict['errorLocation'],
-                error_dict['message']
+                error_dict.get('errorName'),
+                error_dict.get('errorLocation'),
+                error_dict.get('message'),
             )
         return utils.error_msg_from_exception(e)
 
@@ -680,6 +680,14 @@ class HiveEngineSpec(PrestoEngineSpec):
         if selected_schema:
             uri.database = selected_schema
         return uri
+
+    @classmethod
+    def extract_error_message(cls, e):
+        try:
+            msg = e.message.status.errorMessage
+        except:
+            msg = str(e)
+        return msg
 
     @classmethod
     def progress(cls, log_lines):
