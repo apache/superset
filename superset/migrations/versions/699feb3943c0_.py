@@ -17,10 +17,10 @@ import sqlalchemy as sa
 
 def upgrade():
     # Druid
-    op.add_column('datasources', sa.Column('verbose_name', sa.String(length=1024), nullable=True))
+    op.add_column('datasources', sa.Column('verbose_name', sa.String(length=64), nullable=True))
 
     # SQL
-    op.add_column('tables', sa.Column('verbose_name', sa.String(length=1024), nullable=True))
+    op.add_column('tables', sa.Column('verbose_name', sa.String(length=64), nullable=True))
 
 
 def downgrade():

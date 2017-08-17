@@ -33,7 +33,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     # Columns
     id = Column(Integer, primary_key=True)
-    verbose_name = Column(String(1024))
+    verbose_name = Column(String(64))
     description = Column(Text)
     default_endpoint = Column(Text)
     is_featured = Column(Boolean, default=False)  # TODO deprecating
