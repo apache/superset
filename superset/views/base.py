@@ -29,7 +29,7 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg, status=500, stacktrace=None, payload=None):
+def json_error_response(msg=None, status=500, stacktrace=None, payload=None):
     if not payload:
         payload = {'error': str(msg)}
         if stacktrace:
