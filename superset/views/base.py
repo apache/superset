@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 
-from flask import g, redirect, Response, flash, abort
+from flask import g, redirect, Response, flash, abort, get_flashed_messages
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
@@ -16,6 +16,8 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from superset import appbuilder, conf, db, utils, sm, sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
+
+FRONTEND_CONF_KEYS = ('SUPERSET_WEBSERVER_TIMEOUT',)
 
 
 def get_error_msg():
@@ -185,6 +187,14 @@ class BaseSupersetView(BaseView):
         else:
             full_names = {d.full_name for d in user_datasources}
             return [d for d in datasource_names if d in full_names]
+
+    def common_bootsrap_payload(self):
+        """Common data always sent to the client"""
+        messages = get_flashed_messages(with_categories=True)
+        return {
+            'flash_messages': messages,
+            'conf': {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
+        }
 
 
 class SupersetModelView(ModelView):
