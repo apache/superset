@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import * as v from '../validators';
+import { ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
 import MetricOption from '../../components/MetricOption';
 import ColumnOption from '../../components/ColumnOption';
 
@@ -155,7 +156,7 @@ export const controls = {
   },
 
   linear_color_scheme: {
-    type: 'SelectControl',
+    type: 'ColorSchemeControl',
     label: 'Linear Color Scheme',
     choices: [
       ['fire', 'fire'],
@@ -165,6 +166,9 @@ export const controls = {
     ],
     default: 'blue_white_yellow',
     description: '',
+    renderTrigger: true,
+    schemes: spectrums,
+    isLinear: true,
   },
 
   normalize_across: {
@@ -1306,6 +1310,16 @@ export const controls = {
     choices: formatSelectOptionsForRange(1, 10),
     description: 'Leaf nodes that represent fewer than this number of events will be initially ' +
     'hidden in the visualization',
+  },
+
+  color_scheme: {
+    type: 'ColorSchemeControl',
+    label: 'Color Scheme',
+    default: 'bnbColors',
+    renderTrigger: true,
+    choices: Object.keys(ALL_COLOR_SCHEMES).map(s => ([s, s])),
+    description: 'The color scheme for rendering chart',
+    schemes: ALL_COLOR_SCHEMES,
   },
 };
 export default controls;

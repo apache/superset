@@ -18,6 +18,12 @@ export const sections = {
       ['slice_id', 'cache_timeout'],
     ],
   },
+  colorScheme: {
+    label: 'Color Scheme',
+    controlSetRows: [
+      ['color_scheme'],
+    ],
+  },
   sqlaTimeSeries: {
     label: 'Time',
     description: 'Time related form attributes',
@@ -83,6 +89,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['metrics'],
           ['groupby'],
           ['columns'],
@@ -119,6 +126,7 @@ export const visTypes = {
           ['pie_label_type'],
           ['donut', 'show_legend'],
           ['labels_outside'],
+          ['color_scheme'],
         ],
       },
     ],
@@ -133,6 +141,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['show_brush', 'show_legend'],
           ['rich_tooltip', null],
           ['show_markers', 'x_axis_showminmax'],
@@ -164,6 +173,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['x_axis_format'],
         ],
       },
@@ -204,6 +214,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['show_brush', 'show_legend', 'show_bar_value'],
           ['rich_tooltip', 'contribution'],
           ['line_interpolation', 'bar_stacked'],
@@ -237,6 +248,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['x_axis_format', 'y_axis_format'],
         ],
       },
@@ -260,6 +272,7 @@ export const visTypes = {
         controlSetRows: [
           ['show_brush', 'show_legend'],
           ['line_interpolation', 'stacked_style'],
+          ['color_scheme'],
           ['rich_tooltip', 'contribution'],
           ['show_controls', null],
         ],
@@ -383,6 +396,7 @@ export const visTypes = {
           ['series', 'metric', 'limit'],
           ['size_from', 'size_to'],
           ['rotation'],
+          ['color_scheme'],
         ],
       },
     ],
@@ -401,6 +415,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['treemap_ratio'],
           ['number_format'],
         ],
@@ -436,6 +451,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['whisker_options'],
         ],
       },
@@ -455,6 +471,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['show_legend', null],
         ],
       },
@@ -553,6 +570,7 @@ export const visTypes = {
       {
         label: 'Histogram Options',
         controlSetRows: [
+          ['color_scheme'],
           ['link_length'],
         ],
       },
@@ -579,6 +597,7 @@ export const visTypes = {
           ['groupby'],
           ['metric', 'secondary_metric'],
           ['row_limit'],
+          ['color_scheme'],
         ],
       },
     ],
@@ -609,6 +628,7 @@ export const visTypes = {
           ['groupby'],
           ['metric'],
           ['row_limit'],
+          ['color_scheme'],
         ],
       },
     ],
@@ -655,6 +675,7 @@ export const visTypes = {
           ['groupby', 'columns'],
           ['metric'],
           ['row_limit', 'y_axis_format'],
+          ['color_scheme'],
         ],
       },
     ],
