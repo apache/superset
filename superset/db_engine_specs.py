@@ -682,6 +682,14 @@ class HiveEngineSpec(PrestoEngineSpec):
         return uri
 
     @classmethod
+    def extract_error_message(cls, e):
+        try:
+            msg = e.message.status.errorMessage
+        except:
+            msg = str(e)
+        return msg
+
+    @classmethod
     def progress(cls, log_lines):
         total_jobs = 1  # assuming there's at least 1 job
         current_job = 1
