@@ -159,6 +159,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'id': self.id,
             'metrics_combo': self.metrics_combo,
             'name': self.name,
+            'verbose_name': self.verbose_name or self.name,
             'order_by_choices': order_by_choices,
             'type': self.type,
             'metrics': [o.data for o in self.metrics],
