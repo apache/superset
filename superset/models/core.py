@@ -762,7 +762,7 @@ class Log(Model):
             d.update(post_data)
             d.update(kwargs)
             try:
-                slice_id = d.get('slice_id')
+                slice_id = d.get('slice_id') or json.loads(d.get('form_data')).get('slice_id')
                 slice_id = int(slice_id) if slice_id else 0
             except ValueError:
                 slice_id = 0
