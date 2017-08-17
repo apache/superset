@@ -18,7 +18,11 @@ const utils = require('../modules/utils');
 appSetup();
 
 export function getInitialState(boostrapData) {
-  const dashboard = Object.assign({}, utils.controllerInterface, boostrapData.dashboard_data);
+  const dashboard = Object.assign(
+    {},
+    utils.controllerInterface,
+    boostrapData.dashboard_data,
+    { common: boostrapData.common });
   dashboard.firstLoad = true;
 
   dashboard.posDict = {};
@@ -62,7 +66,7 @@ function renderAlert() {
 function initDashboardView(dashboard) {
   render(
     <div>
-      <AlertsWrapper />
+      <AlertsWrapper initMessages={dashboard.common.flash_messages} />
       <Header dashboard={dashboard} />
     </div>,
     document.getElementById('dashboard-header'),
