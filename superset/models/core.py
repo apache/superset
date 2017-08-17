@@ -753,8 +753,8 @@ class Log(Model):
             post_data = request.form or {}
             d.update(post_data)
             d.update(kwargs)
-            slice_id = d.get('slice_id', 0)
             try:
+                slice_id = d.get('slice_id')
                 slice_id = int(slice_id) if slice_id else 0
             except ValueError:
                 slice_id = 0
@@ -765,12 +765,11 @@ class Log(Model):
                 pass
             stats_logger.incr(f.__name__)
             value = f(*args, **kwargs)
-
             sesh = db.session()
             log = cls(
                 action=f.__name__,
                 json=params,
-                dashboard_id=d.get('dashboard_id') or None,
+                dashboard_id=d.get('dashboard_id'),
                 slice_id=slice_id,
                 duration_ms=(
                     datetime.now() - start_dttm).total_seconds() * 1000,
