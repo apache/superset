@@ -1,7 +1,6 @@
 /* eslint camelcase: 0 */
 import { now } from '../../modules/dates';
 import * as actions from '../actions/chartActions';
-import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 
 export default function chartReducer(state = {}, action) {
   const actionHandlers = {
@@ -41,11 +40,13 @@ export default function chartReducer(state = {}, action) {
     [actions.CHART_UPDATE_TIMEOUT]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: '<strong>Query timeout</strong> - visualization query are set to timeout at ' +
-        `${QUERY_TIMEOUT_THRESHOLD / 1000} seconds. ` +
-        'Perhaps your data has grown, your database is under unusual load, ' +
-        'or you are simply querying a data source that is to large to be processed within the timeout range. ' +
-        'If that is the case, we recommend that you summarize your data further.',
+        chartAlert: (
+          '<strong>Query timeout</strong> - visualization query are set to timeout at ' +
+          `${action.timeout} seconds. ` +
+          'Perhaps your data has grown, your database is under unusual load, ' +
+          'or you are simply querying a data source that is to large ' +
+          'to be processed within the timeout range. ' +
+          'If that is the case, we recommend that you summarize your data further.'),
       });
     },
     [actions.CHART_UPDATE_FAILED]() {

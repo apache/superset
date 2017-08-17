@@ -11,9 +11,11 @@ import AlertsWrapper from '../components/AlertsWrapper';
 
 import '../../stylesheets/dashboard.css';
 
-const px = require('../modules/superset');
+const superset = require('../modules/superset');
 const urlLib = require('url');
 const utils = require('../modules/utils');
+
+let px;
 
 appSetup();
 
@@ -368,6 +370,7 @@ $(document).ready(() => {
   const dashboardData = $('.dashboard').data('bootstrap');
 
   const state = getInitialState(dashboardData);
+  px = superset(state);
   const dashboard = dashboardContainer(state.dashboard, state.datasources, state.user_id);
   initDashboardView(dashboard);
   dashboard.init();
