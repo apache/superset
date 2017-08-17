@@ -31,7 +31,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     };
 
     this.onChange = this.onChange.bind(this);
-    this.optionRender = this.optionRender.bind(this);
+    this.renderOption = this.renderOption.bind(this);
   }
 
   onChange(option) {
@@ -40,9 +40,9 @@ export default class ColorSchemeControl extends React.PureComponent {
     this.setState({ scheme: optionValue });
   }
 
-  optionRender(key) {
-    const currentScheme = key ?
-      this.props.schemes[key] :
+  renderOption(key) {
+    const currentScheme = key.value ?
+      this.props.schemes[key.value] :
       this.props.schemes[defaultProps.value];
 
     let colors = currentScheme;
@@ -71,14 +71,13 @@ export default class ColorSchemeControl extends React.PureComponent {
       autosize: false,
       clearable: false,
       onChange: this.onChange,
-      optionRenderer: opt => this.optionRender(opt.value),
-      valueRenderer: opt => this.optionRender(opt.value),
+      optionRenderer: this.renderOption,
+      valueRenderer: this.renderOption,
     };
-    const selectWrap = (<Creatable {...selectProps} />);
     return (
       <div>
         <ControlHeader {...this.props} />
-        {selectWrap}
+        <Creatable {...selectProps} />
       </div>
     );
   }
