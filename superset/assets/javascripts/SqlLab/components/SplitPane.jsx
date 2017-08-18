@@ -5,9 +5,9 @@ import { getTopOffset } from '../../../utils/common';
 
 
 const propTypes = {
-  minHeight: PropTypes.number,
   north: PropTypes.object.isRequired,
   south: PropTypes.object.isRequired,
+  minHeight: PropTypes.number,
   onSizeChange: PropTypes.func,
 };
 
@@ -60,8 +60,7 @@ class SplitPane extends React.PureComponent {
       return;
     }
 
-    const upperBoundary = 100 - (this.props.minHeight || 0);
-    const lowerBoundary = this.props.minHeight || 0;
+    const minHeight = this.props.minHeight || 0;
 
     const offset = getTopOffset(this.refs.splitter);
     const totalHeight = this.refs.splitter.clientHeight;
@@ -69,11 +68,12 @@ class SplitPane extends React.PureComponent {
 
     const heightNorthInPixels = e.pageY - offset;
     const heightSouthInPixels = totalHeight - heightNorthInPixels - dragBarHeight;
+
     const heightNorthInPercent = 100 * heightNorthInPixels / totalHeight;
     const heightSouthInPercent = 100 * heightSouthInPixels / totalHeight;
 
-    if (heightNorthInPercent <= upperBoundary
-      && heightNorthInPercent >= lowerBoundary) {
+    if (heightNorthInPercent >= minHeight
+      && heightSouthInPercent >= minHeight) {
       this.setState({
         ...this.state,
         heightNorth: heightNorthInPercent,
@@ -90,6 +90,10 @@ class SplitPane extends React.PureComponent {
 
   handleResize() {
     const { heightNorth, heightSouth } = this.state;
+    /*
+    The `delay` is needed since some events like 'onresize' happen before rendering.
+    That means that we can't calculate the sizes right.
+     */
     delay(() => {
       this.setSize(heightNorth, heightSouth);
     }, 100);
