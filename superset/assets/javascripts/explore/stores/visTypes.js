@@ -292,6 +292,9 @@ export const visTypes = {
         default: 'smart_date',
         choices: D3_TIME_FORMAT_OPTIONS,
       },
+      color_scheme: {
+        renderTrigger: false,
+      },
     },
   },
 
@@ -421,6 +424,11 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      color_scheme: {
+        renderTrigger: false,
+      },
+    },
   },
 
   cal_heatmap: {
@@ -499,6 +507,9 @@ export const visTypes = {
     controlOverrides: {
       x_axis_format: {
         default: '.3s',
+      },
+      color_scheme: {
+        renderTrigger: false,
       },
     },
   },
@@ -719,6 +730,9 @@ export const visTypes = {
       metric: {
         label: 'Metric',
         description: 'Metric to display bottom title',
+      },
+      linear_color_scheme: {
+        renderTrigger: false,
       },
     },
   },
