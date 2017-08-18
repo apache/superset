@@ -170,10 +170,6 @@ export function dashboardContainer(dashboard, datasources, userid) {
       }
     },
     effectiveExtraFilters(sliceId) {
-      // Don't filter the filter_box itself by preselect_filters
-      if (this.getSlice(sliceId).formData.viz_type === 'filter_box') {
-        return [];
-      }
       const f = [];
       const immuneSlices = this.metadata.filter_immune_slices || [];
       if (sliceId && immuneSlices.includes(sliceId)) {
@@ -190,6 +186,10 @@ export function dashboardContainer(dashboard, datasources, userid) {
         immuneToFields = this.metadata.filter_immune_slice_fields[sliceId];
       }
       for (const filteringSliceId in this.filters) {
+        if (filteringSliceId === sliceId) {
+          // Filters applied by the slice don't apply to itself
+          continue;
+        }
         for (const field in this.filters[filteringSliceId]) {
           if (!immuneToFields.includes(field)) {
             f.push({

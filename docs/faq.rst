@@ -190,3 +190,9 @@ How can i configure OAuth authentication and authorization?
 
 You can take a look at this Flask-AppBuilder `configuration example 
 <https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py>`_.
+
+How can I set a default filter on my dashboard?
+-----------------------------------------------
+
+Easy. Simply apply the filter and save the dashboard while the filter
+is active.
