@@ -2074,13 +2074,12 @@ class Superset(BaseSupersetView):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
-                payload = json.dumps(data, default=utils.json_iso_dttm_ser)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))
         if data.get('status') == QueryStatus.FAILED:
-            return json_error_response(payload)
-        return json_success(payload)
+            return json_error_response(payload=data)
+        return json_success(json.dumps(data, default=utils.json_iso_dttm_ser))
 
     @has_access
     @expose("/csv/<client_id>")

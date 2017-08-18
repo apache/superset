@@ -31,13 +31,13 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg, status=None, stacktrace=None):
-    data = {'error': str(msg)}
-    if stacktrace:
-        data['stacktrace'] = stacktrace
-    status = status if status else 500
+def json_error_response(msg=None, status=500, stacktrace=None, payload=None):
+    if not payload:
+        payload = {'error': str(msg)}
+        if stacktrace:
+            payload['stacktrace'] = stacktrace
     return Response(
-        json.dumps(data),
+        json.dumps(payload, default=utils.json_iso_dttm_ser),
         status=status, mimetype="application/json")
 
 
