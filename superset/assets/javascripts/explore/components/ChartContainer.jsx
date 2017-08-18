@@ -44,6 +44,7 @@ const propTypes = {
   standalone: PropTypes.bool,
   datasourceType: PropTypes.string,
   datasourceId: PropTypes.number,
+  timeout: PropTypes.number,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -148,7 +149,7 @@ class ChartContainer extends React.PureComponent {
   }
 
   runQuery() {
-    this.props.actions.runQuery(this.props.formData, true);
+    this.props.actions.runQuery(this.props.formData, true, this.props.timeout);
   }
 
   updateChartTitle(newTitle) {
@@ -178,7 +179,8 @@ class ChartContainer extends React.PureComponent {
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
     try {
-      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+      const viz = visMap[this.props.viz_type];
+      viz(mockSlice, this.props.queryResponse, this.props.actions.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }
@@ -322,29 +324,30 @@ class ChartContainer extends React.PureComponent {
 
 ChartContainer.propTypes = propTypes;
 
-function mapStateToProps(state) {
-  const formData = getFormDataFromControls(state.controls);
+function mapStateToProps({ explore, chart }) {
+  const formData = getFormDataFromControls(explore.controls);
   return {
-    alert: state.chartAlert,
-    can_overwrite: state.can_overwrite,
-    can_download: state.can_download,
-    chartStatus: state.chartStatus,
-    chartUpdateEndTime: state.chartUpdateEndTime,
-    chartUpdateStartTime: state.chartUpdateStartTime,
-    datasource: state.datasource,
-    column_formats: state.datasource ? state.datasource.column_formats : null,
-    containerId: state.slice ? `slice-container-${state.slice.slice_id}` : 'slice-container',
+    alert: chart.chartAlert,
+    can_overwrite: !!explore.can_overwrite,
+    can_download: !!explore.can_download,
+    datasource: explore.datasource,
+    column_formats: explore.datasource ? explore.datasource.column_formats : null,
+    containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
     formData,
-    latestQueryFormData: state.latestQueryFormData,
-    isStarred: state.isStarred,
-    queryResponse: state.queryResponse,
-    slice: state.slice,
-    standalone: state.standalone,
+    isStarred: explore.isStarred,
+    slice: explore.slice,
+    standalone: explore.standalone,
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
-    triggerRender: state.triggerRender,
-    datasourceType: state.datasource.type,
-    datasourceId: state.datasource_id,
+    triggerRender: explore.triggerRender,
+    datasourceType: explore.datasource.type,
+    datasourceId: explore.datasource_id,
+    chartStatus: chart.chartStatus,
+    chartUpdateEndTime: chart.chartUpdateEndTime,
+    chartUpdateStartTime: chart.chartUpdateStartTime,
+    latestQueryFormData: chart.latestQueryFormData,
+    queryResponse: chart.queryResponse,
+    timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
   };
 }
 

@@ -120,7 +120,7 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         session.commit()
         payload.update({
             'status': query.status,
-            'error_essage': msg,
+            'error': msg,
         })
         return payload
 
