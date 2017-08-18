@@ -38,7 +38,7 @@ function tableVis(slice, payload) {
   const table = div.append('table')
     .classed(
       'dataframe dataframe table table-striped table-bordered ' +
-      'table-condensed table-hover dataTable no-footer', true)
+      'table-condensed table-hover dataTable', true)
     .attr('width', '100%');
 
   const cols = data.columns.map(c => slice.datasource.verbose_map[c] || c);
