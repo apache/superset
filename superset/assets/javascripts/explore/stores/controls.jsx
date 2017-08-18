@@ -94,6 +94,7 @@ export const controls = {
   y_axis_bounds: {
     type: 'BoundsControl',
     label: 'Y Axis Bounds',
+    renderTrigger: true,
     default: [null, null],
     description: (
       'Bounds for the Y axis. When left empty, the bounds are ' +
@@ -414,7 +415,18 @@ export const controls = {
     label: 'Bottom Margin',
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
-    description: 'Bottom marging, in pixels, allowing for more room for axis labels',
+    renderTrigger: true,
+    description: 'Bottom margin, in pixels, allowing for more room for axis labels',
+  },
+
+  left_margin: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: 'Left Margin',
+    choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
+    default: 'auto',
+    renderTrigger: true,
+    description: 'Left margin, in pixels, allowing for more room for axis labels',
   },
 
   granularity: {
@@ -1003,6 +1015,14 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: 'Whether to display the min and max values of the X axis',
+  },
+
+  y_axis_showminmax: {
+    type: 'CheckboxControl',
+    label: 'Y bounds',
+    renderTrigger: true,
+    default: true,
+    description: 'Whether to display the min and max values of the Y axis',
   },
 
   rich_tooltip: {

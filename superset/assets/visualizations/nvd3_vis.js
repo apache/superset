@@ -252,6 +252,8 @@ function nvd3Vis(slice, payload) {
         });
         chart.pointRange([5, fd.max_bubble_size ** 2]);
         chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
+        chart.xAxis.showMaxMin(fd.x_axis_showminmax);
+        chart.yAxis.showMaxMin(fd.y_axis_showminmax);
         break;
 
       case 'area':
@@ -324,7 +326,7 @@ function nvd3Vis(slice, payload) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (isTimeSeries && chart.xAxis && chart.xAxis.tickFormat) {
+    if (chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
@@ -368,18 +370,6 @@ function nvd3Vis(slice, payload) {
       }
     }
 
-    if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
-      let distance = 0;
-      if (fd.bottom_margin && !isNaN(fd.bottom_margin)) {
-        distance = fd.bottom_margin - 50;
-      }
-      chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
-    }
-
-    if (fd.y_axis_label && fd.y_axis_label !== '' && chart.yAxis) {
-      chart.yAxis.axisLabel(fd.y_axis_label);
-      chart.margin({ left: 90 });
-    }
 
     if (fd.bottom_margin === 'auto') {
       if (vizType === 'dist_bar') {
@@ -441,12 +431,38 @@ function nvd3Vis(slice, payload) {
             chartMargins.right = maxYAxis2LabelWidth + marginPad;
           }
         }
-
         // apply margins
         chart.margin(chartMargins);
       }
+
       if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
         chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
+      }
+      if (fd.bottom_margin && fd.bottom_margin !== 'auto') {
+        chart.margin().bottom = fd.bottom_margin;
+      }
+      if (fd.left_margin && fd.left_margin !== 'auto') {
+        chart.margin().left = fd.left_margin;
+      }
+
+      // Axis labels
+      const margins = chart.margin();
+      if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+        let distance = 0;
+        if (margins.bottom && !isNaN(margins.bottom)) {
+          distance = margins.bottom - 45;
+        }
+        // nvd3 bug axisLabelDistance is disregarded on xAxis
+        // https://github.com/krispo/angular-nvd3/issues/90
+        chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
+      }
+
+      if (fd.y_axis_label && fd.y_axis_label !== '' && chart.yAxis) {
+        let distance = 0;
+        if (margins.left && !isNaN(margins.left)) {
+          distance = margins.left - 70;
+        }
+        chart.yAxis.axisLabel(fd.y_axis_label).axisLabelDistance(distance);
       }
 
       // render chart
