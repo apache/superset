@@ -160,8 +160,6 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     list_columns = [
         'link', 'verbose_name', 'database',
         'changed_by_', 'modified']
-    order_columns = [
-        'link', 'database', 'changed_on_']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
         'table_name', 'verbose_name', 'sql', 'filter_select_enabled', 'slices',

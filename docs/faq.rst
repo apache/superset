@@ -173,7 +173,7 @@ different sections of the code do:
 https://github.com/airbnb/superset/pull/3013
 
 What database engine can I use as a backend for Superset?
---------------------------------------------------------
+---------------------------------------------------------
 
 To clarify, the *database backend* is an OLTP database used by Superset to store its internal
 information like your list of users, slices and dashboard definitions.
@@ -184,3 +184,9 @@ install Superset on one of these database server for production.
 Using a column-store, non-OLTP databases like Vertica, Redshift or Presto as a database backend simply won't work as these databases are not designed for this type of workload. Installation on Oracle, Microsoft SQL Server, or other OLTP databases may work but isn't tested.
 
 Please note that pretty much any databases that have a SqlAlchemy integration should work perfectly fine as a datasource for Superset, just not as the OLTP backend.
+
+How can i configure OAuth authentication and authorization?
+-----------------------------------------------------------
+
+You can take a look at this Flask-AppBuilder `configuration example 
+<https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py>`_.
