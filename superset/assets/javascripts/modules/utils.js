@@ -123,7 +123,12 @@ export function toggleCheckbox(apiUrlPrefix, selector) {
  */
 export const fixDataTableBodyHeight = function ($tableDom, height) {
   const headHeight = $tableDom.find('.dataTables_scrollHead').height();
-  $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight);
+  const headerFooterHeight = $tableDom.find('.table-header').height() +
+      $tableDom.find('.table-footer').height();
+  $tableDom.find('.dataTables_scrollBody').css('max-height', height - (headerFooterHeight + headHeight));
+  $tableDom.find('.table-body').css('max-height', height - headerFooterHeight);
+  $tableDom.find('.dataTables_scroll').css('max-height', height - headerFooterHeight);
+  $tableDom.find('.table-data').css('max-height', height - headerFooterHeight);
 };
 
 export function d3format(format, number) {

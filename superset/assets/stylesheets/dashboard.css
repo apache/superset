@@ -130,3 +130,8 @@ div.widget .chart-controls {
 .slice_container .alert {
     margin: 10px;
 }
+
+.row {
+    margin-left: 0px;
+    margin-right: 0px;
+}
