@@ -161,8 +161,10 @@ function tableVis(slice, payload) {
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      //buttons: buttons,
-      dom: '<Bltripf>',
+      buttons: buttons,
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+           '<"row table-body"<"col-sm-12 table-data"tr>>' +
+           '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
     });
   }
   datatable.buttons().container().appendTo( '.dataTables_wrapper .col-sm-6:eq(0)' );
