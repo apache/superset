@@ -15,8 +15,6 @@ class SplitPane extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      heightNorth: 50,
-      heightSouth: 50,
       dragging: false,
     };
 
@@ -31,8 +29,7 @@ class SplitPane extends React.PureComponent {
     window.addEventListener('mousemove', this.handleMouseMove);
     window.addEventListener('resize', this.handleResize);
 
-    const { heightNorth, heightSouth } = this.state;
-    this.setSize(heightNorth, heightSouth);
+    this.initSize();
   }
 
   componentWillUnmount() {
@@ -53,6 +50,21 @@ class SplitPane extends React.PureComponent {
         south: heightSouthInPixels,
       });
     }
+  }
+
+  initSize() {
+    const totalHeight = this.refs.splitter.clientHeight;
+    const dragBarHeight = this.refs.dragBar.clientHeight;
+
+    const heightInPixels = (totalHeight - dragBarHeight) / 2;
+    const heightInPercent = heightInPixels * 100 / totalHeight;
+
+    this.setState({
+      ...this.state,
+      heightNorth: heightInPercent,
+      heightSouth: heightInPercent,
+    });
+    this.setSize(heightInPercent, heightInPercent);
   }
 
   handleMouseMove(e) {
@@ -117,7 +129,9 @@ class SplitPane extends React.PureComponent {
           ref="dragBar"
           className="DragBar"
           onMouseDown={this.handleDraggingStart}
-        />
+        >
+          <div className="DragBarVisible" />
+        </div>
         <div
           style={{ height: this.state.heightSouth + '%' }}
         >
