@@ -188,7 +188,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
         immuneToFields = this.metadata.filter_immune_slice_fields[sliceId];
       }
       for (const filteringSliceId in this.filters) {
-        if (filteringSliceId === sliceId) {
+        if (filteringSliceId === sliceId.toString()) {
           // Filters applied by the slice don't apply to itself
           continue;
         }
