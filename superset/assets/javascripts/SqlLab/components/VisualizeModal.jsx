@@ -12,7 +12,6 @@ import shortid from 'shortid';
 import { getExploreUrl } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
-import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 import visTypes from '../../explore/stores/visTypes';
 
 const CHART_TYPES = Object.keys(visTypes)
@@ -33,6 +32,7 @@ const propTypes = {
   show: PropTypes.bool,
   datasource: PropTypes.string,
   errorMessage: PropTypes.string,
+  timeout: PropTypes.number,
 };
 const defaultProps = {
   show: false,
@@ -133,12 +133,13 @@ class VisualizeModal extends React.PureComponent {
   }
   buildVisualizeAdvise() {
     let advise;
+    const timeout = this.props.timeout;
     const queryDuration = moment.duration(this.props.query.endDttm - this.props.query.startDttm);
-    if (Math.round(queryDuration.asMilliseconds()) > QUERY_TIMEOUT_THRESHOLD) {
+    if (Math.round(queryDuration.asMilliseconds()) > timeout * 1000) {
       advise = (
         <Alert bsStyle="warning">
           This query took {Math.round(queryDuration.asSeconds())} seconds to run,
-          and the explore view times out at {QUERY_TIMEOUT_THRESHOLD / 1000} seconds,
+          and the explore view times out at {timeout} seconds,
           following this flow will most likely lead to your query timing out.
           We recommend your summarize your data further before following that flow.
           If activated you can use the <strong>CREATE TABLE AS</strong> feature
@@ -291,6 +292,7 @@ function mapStateToProps(state) {
   return {
     datasource: state.datasource,
     errorMessage: state.errorMessage,
+    timeout: state.common ? state.common.SUPERSET_WEBSERVER_TIMEOUT : null,
   };
 }
 

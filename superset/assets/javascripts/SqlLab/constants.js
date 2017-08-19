@@ -11,6 +11,7 @@ export const STATUS_OPTIONS = [
   'success',
   'failed',
   'running',
+  'pending',
 ];
 
 export const TIME_OPTIONS = [

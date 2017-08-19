@@ -1,6 +1,5 @@
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
-import { QUERY_TIMEOUT_THRESHOLD } from '../../constants';
 import { triggerQuery } from './exploreActions';
 
 const $ = window.$ = require('jquery');
@@ -24,8 +23,8 @@ export function chartUpdateStopped(queryRequest) {
 }
 
 export const CHART_UPDATE_TIMEOUT = 'CHART_UPDATE_TIMEOUT';
-export function chartUpdateTimeout(statusText) {
-  return { type: CHART_UPDATE_TIMEOUT, statusText };
+export function chartUpdateTimeout(statusText, timeout) {
+  return { type: CHART_UPDATE_TIMEOUT, statusText, timeout };
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
@@ -43,8 +42,13 @@ export function chartRenderingFailed(error) {
   return { type: CHART_RENDERING_FAILED, error };
 }
 
+export const REMOVE_CHART_ALERT = 'REMOVE_CHART_ALERT';
+export function removeChartAlert() {
+  return { type: REMOVE_CHART_ALERT };
+}
+
 export const RUN_QUERY = 'RUN_QUERY';
-export function runQuery(formData, force = false) {
+export function runQuery(formData, force = false, timeout = 60) {
   return function (dispatch, getState) {
     const { explore } = getState();
     const lastQueryFormData = getFormDataFromControls(explore.controls);
@@ -57,12 +61,12 @@ export function runQuery(formData, force = false) {
       },
       error(err) {
         if (err.statusText === 'timeout') {
-          dispatch(chartUpdateTimeout(err.statusText));
+          dispatch(chartUpdateTimeout(err.statusText, timeout));
         } else if (err.statusText !== 'abort') {
           dispatch(chartUpdateFailed(err.responseJSON));
         }
       },
-      timeout: QUERY_TIMEOUT_THRESHOLD,
+      timeout: timeout * 1000,
     });
     dispatch(chartUpdateStarted(queryRequest, lastQueryFormData));
     dispatch(triggerQuery(false));

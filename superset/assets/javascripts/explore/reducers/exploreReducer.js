@@ -65,12 +65,6 @@ export default function exploreReducer(state = {}, action) {
       const updatedSlice = Object.assign({}, state.slice, { slice_name: action.slice_name });
       return Object.assign({}, state, { slice: updatedSlice });
     },
-    [actions.REMOVE_CHART_ALERT]() {
-      if (state.chartAlert !== null) {
-        return Object.assign({}, state, { chartAlert: null });
-      }
-      return state;
-    },
     [actions.RESET_FIELDS]() {
       const controls = getControlsState(state, getFormDataFromControls(state.controls));
       return Object.assign({}, state, { controls });
