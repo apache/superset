@@ -730,8 +730,9 @@ class CoreTests(SupersetTestCase):
     def test_slice_id_is_always_logged_correctly_on_web_request(self,):
         # superset/explore case
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
+        db.session.expunge_all()
+        self.get_resp(slc.slice_url)
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id, )
-        self.get_resp(slc.slice_url) 
         self.assertEqual(1, qry.count())
 
     def test_slice_id_is_always_logged_correctly_on_ajax_request(self,):
@@ -740,9 +741,9 @@ class CoreTests(SupersetTestCase):
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id, )
         slc_url = slc.slice_url.replace("explore", "explore_json")
-        val = self.get_json_resp(slc_url) 
+        self.get_json_resp(slc_url)
         self.assertEqual(1, qry.count())
+
 
 if __name__ == '__main__':
     unittest.main()
-
