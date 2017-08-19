@@ -66,7 +66,7 @@
     "react-addons-css-transition-group": "^15.6.0",
     "react-addons-shallow-compare": "^15.4.2",
     "react-alert": "^1.0.14",
-    "react-bootstrap": "^0.31.0",
+    "react-bootstrap": "^0.31.2",
     "react-bootstrap-table": "^3.1.7",
     "react-dom": "^15.5.1",
     "react-gravatar": "^2.6.1",
