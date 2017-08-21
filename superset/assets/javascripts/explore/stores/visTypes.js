@@ -151,8 +151,7 @@ export const visTypes = {
         label: 'X Axis',
         controlSetRows: [
           ['x_axis_label', 'bottom_margin'],
-          ['x_axis_showminmax', 'x_log_scale'],
-          ['x_axis_format', null],
+          ['x_axis_showminmax', 'x_axis_format'],
         ],
       },
       {
