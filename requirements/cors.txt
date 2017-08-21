@@ -1,0 +1,8 @@
+click==6.7
+flask-cors==2.0.0
+flask==0.12.2
+itsdangerous==0.24
+jinja2==2.9.6
+markupsafe==1.0
+six==1.10.0
+werkzeug==0.12.2
