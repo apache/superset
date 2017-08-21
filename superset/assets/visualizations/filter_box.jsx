@@ -6,7 +6,6 @@ import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import '../stylesheets/react-select/select.less';
 import { TIME_CHOICES } from './constants';
 import './filter_box.css';
 
