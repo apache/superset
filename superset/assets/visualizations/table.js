@@ -64,7 +64,7 @@ function tableVis(slice, payload) {
   let datatable;
 
   if ((!data.columns.find(c => metrics.indexOf(c) >= 0))) {
-    const columns = data.columns.map((c) => ({ data: c }));
+    const columns = data.columns.map(c => ({ data: c }));
     datatable = container.find('.dataTable').DataTable({
       data: data.records,
       columns,
