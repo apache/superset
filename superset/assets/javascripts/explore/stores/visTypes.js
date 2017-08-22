@@ -89,13 +89,18 @@ export const visTypes = {
     showOnExplore: true,
     controlPanelSections: [
       {
-        label: 'Chart Options',
+        label: 'Query',
         controlSetRows: [
-          ['color_scheme'],
           ['metrics'],
           ['groupby'],
           ['columns'],
           ['row_limit'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
+          ['color_scheme'],
           ['show_legend', 'show_bar_value'],
           ['bar_stacked', 'order_bars'],
           ['y_axis_format', 'bottom_margin'],
