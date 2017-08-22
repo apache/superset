@@ -45,6 +45,7 @@ const propTypes = {
   standalone: PropTypes.bool,
   datasourceType: PropTypes.string,
   datasourceId: PropTypes.number,
+  timeout: PropTypes.number,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -149,7 +150,7 @@ class ChartContainer extends React.PureComponent {
   }
 
   runQuery() {
-    this.props.actions.runQuery(this.props.formData, true);
+    this.props.actions.runQuery(this.props.formData, true, this.props.timeout);
   }
 
   updateChartTitle(newTitle) {
@@ -179,7 +180,8 @@ class ChartContainer extends React.PureComponent {
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
     try {
-      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+      const viz = visMap[this.props.viz_type];
+      viz(mockSlice, this.props.queryResponse, this.props.actions.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }
@@ -346,6 +348,7 @@ function mapStateToProps({ explore, chart }) {
     chartUpdateStartTime: chart.chartUpdateStartTime,
     latestQueryFormData: chart.latestQueryFormData,
     queryResponse: chart.queryResponse,
+    timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
   };
 }
 

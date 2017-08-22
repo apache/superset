@@ -62,12 +62,11 @@ const initState = {
 const store = createStore(rootReducer, initState,
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-
 ReactDOM.render(
   <Provider store={store}>
     <div>
       <ExploreViewContainer />
-      <AlertsWrapper />
+      <AlertsWrapper initMessages={bootstrappedState.common.flash_messages} />
     </div>
   </Provider>,
   exploreViewContainer,

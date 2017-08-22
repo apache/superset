@@ -8,6 +8,7 @@ import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
+
 import {
   kmToPixels,
   rgbLuminance,
@@ -17,8 +18,9 @@ import {
   DEFAULT_LATITUDE,
   DEFAULT_ZOOM,
 } from '../utils/common';
+import './mapbox.css';
 
-require('./mapbox.css');
+const NOOP = () => {};
 
 class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
   drawText(ctx, pixel, options = {}) {
@@ -201,9 +203,10 @@ class MapboxViz extends React.Component {
   }
 
   onChangeViewport(viewport) {
-    this.setState({
-      viewport,
-    });
+    this.setState({ viewport });
+    this.props.setControlValue('viewport_longitude', viewport.longitude);
+    this.props.setControlValue('viewport_latitude', viewport.latitude);
+    this.props.setControlValue('viewport_zoom', viewport.zoom);
   }
 
   render() {
@@ -220,11 +223,6 @@ class MapboxViz extends React.Component {
     const clusters = this.props.clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom));
     const isDragging = this.state.viewport.isDragging === undefined ? false :
                        this.state.viewport.isDragging;
-
-    d3.select('#viewport_longitude').attr('value', this.state.viewport.longitude);
-    d3.select('#viewport_latitude').attr('value', this.state.viewport.latitude);
-    d3.select('#viewport_zoom').attr('value', this.state.viewport.zoom);
-
     return (
       <MapGL
         {...this.state.viewport}
@@ -259,6 +257,7 @@ class MapboxViz extends React.Component {
 MapboxViz.propTypes = {
   aggregatorName: PropTypes.string,
   clusterer: PropTypes.object,
+  setControlValue: PropTypes.func,
   globalOpacity: PropTypes.number,
   mapStyle: PropTypes.string,
   mapboxApiKey: PropTypes.string,
@@ -273,7 +272,7 @@ MapboxViz.propTypes = {
   viewportZoom: PropTypes.number,
 };
 
-function mapbox(slice, json) {
+function mapbox(slice, json, setControlValue) {
   const div = d3.select(slice.selector);
   const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_MAX_ZOOM = 16;
@@ -331,6 +330,7 @@ function mapbox(slice, json) {
       clusterer={clusterer}
       pointRadius={DEFAULT_POINT_RADIUS}
       aggregatorName={aggName}
+      setControlValue={setControlValue || NOOP}
     />,
     div.node(),
   );

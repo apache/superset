@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 
-from flask import g, redirect, Response, flash, abort
+from flask import g, redirect, Response, flash, abort, get_flashed_messages
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from flask_babel import get_locale
@@ -19,6 +19,8 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.translation import get_language_pack
 
+FRONTEND_CONF_KEYS = ('SUPERSET_WEBSERVER_TIMEOUT',)
+
 
 def get_error_msg():
     if conf.get("SHOW_STACKTRACE"):
@@ -31,13 +33,13 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg, status=None, stacktrace=None):
-    data = {'error': str(msg)}
-    if stacktrace:
-        data['stacktrace'] = stacktrace
-    status = status if status else 500
+def json_error_response(msg=None, status=500, stacktrace=None, payload=None):
+    if not payload:
+        payload = {'error': str(msg)}
+        if stacktrace:
+            payload['stacktrace'] = stacktrace
     return Response(
-        json.dumps(data),
+        json.dumps(payload, default=utils.json_iso_dttm_ser),
         status=status, mimetype="application/json")
 
 

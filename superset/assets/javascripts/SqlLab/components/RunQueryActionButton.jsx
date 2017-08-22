@@ -32,6 +32,7 @@ export default function RunQueryActionButton(props) {
       {...commonBtnProps}
       onClick={() => props.runQuery(false)}
       key="run-btn"
+      tooltip={asyncToolTip}
     >
       <i className="fa fa-refresh" /> {runBtnText}
     </Button>

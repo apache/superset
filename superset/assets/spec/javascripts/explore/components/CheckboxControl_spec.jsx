@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { Checkbox } from 'react-bootstrap';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
@@ -28,6 +27,6 @@ describe('CheckboxControl', () => {
     expect(controlHeader).to.have.lengthOf(1);
 
     const headerWrapper = controlHeader.shallow();
-    expect(headerWrapper.find(Checkbox)).to.have.length(1);
+    expect(headerWrapper.find('i.fa-check')).to.have.length(1);
   });
 });
