@@ -99,7 +99,7 @@ class GridLayout extends React.Component {
         {this.state.slices.map(slice => (
           <div
             id={'slice_' + slice.slice_id}
-            key={slice.slice_id}
+            key={slice.slice_id.toString()}
             data-slice-id={slice.slice_id}
             className={`widget ${slice.form_data.viz_type}`}
           >
