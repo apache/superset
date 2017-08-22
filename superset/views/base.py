@@ -17,7 +17,7 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 from superset import appbuilder, conf, db, utils, sm, sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
-from superset.translation import get_language_pack
+from superset.translations.utils import get_language_pack
 
 FRONTEND_CONF_KEYS = ('SUPERSET_WEBSERVER_TIMEOUT',)
 
@@ -193,7 +193,7 @@ class BaseSupersetView(BaseView):
     def common_bootsrap_payload(self):
         """Common data always sent to the client"""
         messages = get_flashed_messages(with_categories=True)
-        locale = get_locale()
+        locale = str(get_locale())
         return {
             'flash_messages': messages,
             'conf': {k: conf.get(k) for k in FRONTEND_CONF_KEYS},
