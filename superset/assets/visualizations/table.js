@@ -36,7 +36,7 @@ function tableVis(slice, payload) {
   const table = div.append('table')
     .classed(
       'dataframe dataframe table table-striped table-bordered ' +
-      'table-condensed table-hover dataTable no-footer', true)
+      'table-condensed table-hover dataTable', true)
     .attr('width', '100%');
 
   const cols = data.columns.map(c => slice.datasource.verbose_map[c] || c);
@@ -67,12 +67,16 @@ function tableVis(slice, payload) {
     const columns = data.columns.map(c => ({ data: c }));
     datatable = container.find('.dataTable').DataTable({
       data: data.records,
-      columns,
-      paging,
+      columns: columns,
+      paging: paging,
+      scrollY: true,
       deferRender: true,
       pageLength,
       searching: fd.include_search,
-      buttons,
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+           '<"row table-body"<"col-sm-12 table-data"tr>>' +
+           '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
+      buttons: buttons,
     });
   } else {
     table.append('tbody')
@@ -142,13 +146,17 @@ function tableVis(slice, payload) {
       .html(d => d.html ? d.html : d.val);
 
     datatable = container.find('.dataTable').DataTable({
-      paging,
+      paging: paging,
+      scrollY: true,
       deferRender: true,
       pageLength,
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      buttons,
+      buttons: buttons,
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+           '<"row table-body"<"col-sm-12 table-data"tr>>' +
+           '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
     });
   }
   datatable.buttons().container().appendTo('.dataTables_wrapper .col-sm-6:eq(0)');
