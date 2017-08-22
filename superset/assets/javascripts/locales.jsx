@@ -2,28 +2,19 @@
 import Jed from 'jed';
 import React from 'react';
 import { sprintf } from 'sprintf-js';
-import { getLanguage } from './explore/stores/getLanguage';
+import { langu } from './explore/stores/getLanguage';
 
-export function getTranslationsJson(language) {
-  const ctx = require(`../../translations/${language}/LC_MESSAGES/messages.json`);
-  const translations = {};
-  translations[language] = ctx;
-  return translations[language];
-}
-
-let i18n = null;
-
-export function setLocale(locale) {
-  const translations = getTranslationsJson(locale);
-  i18n = new Jed({
-    domain: 'superset',
-    locale_data: {
-      superset: translations.locale_data.superset,
-    },
+const load = System.import('../../translations/zh/LC_MESSAGES/messages.json')
+  .then((data) => {
+    console.log('i am ehre');
+    return new Jed({
+      domain: 'superset',
+      locale_data: {
+        superset: data.locale_data.superset,
+      },
+    });
   });
-}
 
-setLocale(getLanguage());
 
 function formatForReact(formatString, args) {
   const rv = [];
@@ -145,11 +136,13 @@ export function format(formatString, args) {
 }
 
 export function gettext(string, ...args) {
-  let rv = i18n.gettext(string);
-  if (args.length > 0) {
-    rv = format(rv, args);
-  }
-  return rv;
+  load.then((i18n) => {
+    let rv = i18n.gettext(string);
+    if (args.length > 0) {
+      rv = format(rv, args);
+    }
+    return rv;
+  });
 }
 
 export function ngettext(singular, plural, ...args) {
