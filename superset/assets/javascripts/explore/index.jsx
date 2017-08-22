@@ -25,6 +25,12 @@ const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstr
 const controls = getControlsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;
 
+/*
+import setLanguagePack from locales;
+setLanguagePack(bootstrapData.common.language_pack);
+delete bootstrapData.common.language_pack;
+*/
+
 
 // Initial state
 const bootstrappedState = Object.assign(
