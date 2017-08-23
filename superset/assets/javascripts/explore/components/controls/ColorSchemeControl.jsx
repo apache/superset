@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
-
 import { colorScalerFactory } from '../../../modules/colors';
 
 const propTypes = {
@@ -51,7 +50,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     if (this.props.isLinear) {
       const colorScaler = colorScalerFactory(currentScheme);
       console.log(colorScaler);
-      colors = [...Array(20).keys()].map(d => (colorScaler(d / 20)));
+      colors = [...Array(3).keys()].map(d => (colorScaler(d /3)));
       console.log(colors);
     }
 

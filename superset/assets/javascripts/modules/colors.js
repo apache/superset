@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import d3 from 'd3';
+s
 
 // Color related utility functions go in this object
 const bnbColors = [
@@ -76,7 +76,7 @@ export const ALL_COLOR_SCHEMES = {
 export const spectrums = {
   blue_white_yellow: [
     '#00d1c1',
-    'white',
+    '#ffffff',
     '#ffb400',
   ],
   fire: [
@@ -135,16 +135,17 @@ export const colorScalerFactory = function (colors, data, accessor, bucket) {
   }
 
   bucket = Number(bucket)  
-
-  const colorScaler = d3.scale.linear().domain([0,(bucket-1)]).range(colors);
+  const colors2 = [];
+  const colorScaler = d3.scale.linear().domain([0,bucket]).range(colors);
   console.log(colorScaler);
-  var colors2 = [...Array(3).keys()].map(function(d) {
-                  console.log(d)
-                  console.log(colorScaler(d))
-                  return colorScaler(d);
-                });
+  
+  for (var i =0; i < bucket; i++){
+    colors2.push(colorScaler(i));
+    console.log(colorScaler(i));
+  }
   console.log(colors2);
+  
   return d3.scale.threshold().domain(points).range(colors);
-  return bucket
+  //return bucket
   //return d3.scale.linear().domain(points).range(colors);
 };
