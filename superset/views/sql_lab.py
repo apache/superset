@@ -14,6 +14,13 @@ from .base import SupersetModelView, BaseSupersetView, DeleteMixin
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
     list_columns = ['user', 'database', 'status', 'start_time', 'end_time']
+    label_columns = {
+        'user': _('User'),
+        'database': _('Database'),
+        'status': _('Status'),
+        'start_time': _('Start Time'),
+        'end_time': _('End Time'),
+    }
 
 appbuilder.add_view(
     QueryView,
@@ -42,6 +49,16 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
     add_columns = ['label', 'database', 'description', 'sql']
     edit_columns = add_columns
     base_order = ('changed_on', 'desc')
+    label_columns = {
+        'label': _('Label'),
+        'user': _('User'),
+        'database': _('Database'),
+        'description': _('Description'),
+        'modified': _('Modified'),
+        'end_time': _('End Time'),
+        'pop_tab_link': _('Pop Tab Link'),
+        'changed_on': _('Changed on'),
+    }
 
     def pre_add(self, obj):
         obj.user = g.user

@@ -67,11 +67,13 @@ class ControlPanelsContainer extends React.Component {
             <ControlPanelSection
               key={section.label}
               label={section.label}
-              tooltip={section.description}
+              startExpanded={section.expanded}
+              description={section.description}
             >
               {section.controlSetRows.map((controlSets, i) => (
                 <ControlRow
                   key={`controlsetrow-${i}`}
+                  className="control-row"
                   controls={controlSets.map(controlName => (
                     controlName &&
                     this.props.controls[controlName] &&
@@ -96,12 +98,12 @@ class ControlPanelsContainer extends React.Component {
 
 ControlPanelsContainer.propTypes = propTypes;
 
-function mapStateToProps(state) {
+function mapStateToProps({ explore }) {
   return {
-    alert: state.controlPanelAlert,
-    isDatasourceMetaLoading: state.isDatasourceMetaLoading,
-    controls: state.controls,
-    exploreState: state,
+    alert: explore.controlPanelAlert,
+    isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
+    controls: explore.controls,
+    exploreState: explore,
   };
 }
 
