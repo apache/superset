@@ -49,7 +49,7 @@ export default class ModalTrigger extends React.Component {
   renderModal() {
     return (
       <Modal
-        animation={this.props.animation}
+        animation={false}
         show={this.state.showModal}
         onHide={this.close}
         onExit={this.props.onExit}
