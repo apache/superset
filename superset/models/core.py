@@ -761,14 +761,14 @@ class Log(Model):
             post_data = request.form or {}
             d.update(post_data)
             d.update(kwargs)
-            slice_id = d.get('slice_id') 
+            slice_id = d.get('slice_id')
             form_data = d.get('form_data')
 
             try:
-                slice_id = int(d.get('slice_id') or json.loads(d.get('form_data')).get('slice_id'))
+                slice_id = int(slice_id or json.loads(form_data).get('slice_id'))
             except Exception:
                 slice_id = 0
-                
+
             params = ""
             try:
                 params = json.dumps(d)
