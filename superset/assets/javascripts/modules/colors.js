@@ -2,31 +2,6 @@ import $ from 'jquery';
 import d3 from 'd3';
 
 // Color related utility functions go in this object
-<<<<<<< HEAD
-export const bnbColors = [
-  '#9e0142',
-  '#d53e4f',
-  '#f46d43',
-  '#fdae61',
-  '#fee08b',
-   '#ffffbf',
-  '#e6f598',
-  '#abdda4',
-  '#66c2a5',
-  '#3288bd',
-  '#5e4fa2',
-  '#8e0152',
-  '#c51b7d',
-  '#de77ae',
-  '#f1b6da',
-  '#fde0ef',
-  '#f7f7f7',
-  '#e6f5d0',
-  '#b8e186',
-  '#7fbc41',
-  '#4d9221',
-  '#276419',
-=======
 const bnbColors = [
   '#ff5a5f', // rausch
   '#7b0051', // hackb
@@ -49,7 +24,6 @@ const bnbColors = [
   '#55d12e',
   '#b37e00',
   '#988b4e',
->>>>>>> apache/master
 ];
 const d3Category10 = d3.scale.category10().range();
 const d3Category20 = d3.scale.category20().range();
@@ -119,17 +93,6 @@ export const spectrums = {
     'black',
     'white',
   ],
-  YlGnBu: [
-    '#ffffd9',
-    '#edf8b1',
-    '#c7e9b4',
-    '#7fcdbb',
-    '#41b6c4',
-    '#1d91c0',
-    '#225ea8',
-    '#253494',
-    '#081d58',
-    ],
 };
 
 export const getColorFromScheme = (function () {
@@ -154,13 +117,11 @@ export const getColorFromScheme = (function () {
   };
 }());
 
-export const colorScalerFactory = function (colors, data, accessor, country) {
-  if (typeof country === 'undefined') { country = 'notmap'; }
+export const colorScalerFactory = function (colors, data, accessor) {
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
     colors = spectrums[colors];
-    
   }
   let ext = [0, 1];
   if (data !== undefined) {
@@ -171,13 +132,5 @@ export const colorScalerFactory = function (colors, data, accessor, country) {
   $.each(colors, function (i) {
     points.push(i * chunkSize);
   });
-  if (country == 'map'){
-    console.log(data.map( function(d) { return d['metric']; } ));
-    console.log(colors)
-    //console.log(d3.scale.quantile().domain(points).range(colors));
-    return d3.scale.quantile().domain(data.map( function(d) { return d['metric']; } )).range(colors);
-  } else {
-    return d3.scale.linear().domain(points).range(colors);
-  }
-  //return d3.scale.quantize().domain(points).range(colors);
+  return d3.scale.linear().domain(points).range(colors);
 };
