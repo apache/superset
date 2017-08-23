@@ -123,7 +123,7 @@ export const colorScalerFactory = function (colors, data, accessor, bucket) {
     /* eslint no-param-reassign: 0 */
     colors = spectrums[colors];
   }
-  
+  bucket = Number(bucket)
   let ext = [0, 1];
   if (data !== undefined) {
     ext = d3.extent(data, accessor);
@@ -134,20 +134,23 @@ export const colorScalerFactory = function (colors, data, accessor, bucket) {
     points.push(ext[0] + (i * chunkSize));
   }
 
+  const linear_domain = [];
+  for (var i = 0; i < bucket; i++) {
+    linear_domain.push(i/bucket);
+  }
 
   const colors2 = [];
-  const colorScaler = d3.scale.linear().domain([0,1]).range(colors);
+  const colorScaler = d3.scale.linear().domain(linear_domain).range(colors);
   console.log(colorScaler);
 
-  console.log(Number(bucket))
   
-  for (var i =0; i < Number(bucket)+1; i++){
-    colors2.push(colorScaler(i/(Number(bucket))));
+  for (var i =0; i < bucket+1; i++){
+    colors2.push(colorScaler(i/bucket));
     console.log(colorScaler(i));
   }
   console.log(colors2);
   
-  return d3.scale.threshold().domain(points).range(colors);
+  return d3.scale.threshold().domain(points).range(colors2);
   //return bucket
   //return d3.scale.linear().domain(points).range(colors);
 };
