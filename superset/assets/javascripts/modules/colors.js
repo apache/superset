@@ -134,21 +134,17 @@ export const colorScalerFactory = function (colors, data, accessor, bucket) {
     points.push(ext[0] + (i * chunkSize));
   }
 
-  const points2 = [];
-  $.each(colors, function (i) {
-    points2.push(i * chunkSize);
-  })
+  bucket = Number(bucket)  
 
-  let colors2 = colors;
-  const colorScaler = d3.scale.linear().domain(points).range(colors2);
+  const colorScaler = d3.scale.linear().domain([0,(bucket-1)]).range(colors);
   console.log(colorScaler);
-  colors2 = [...Array(20).keys()].map(function(d) {
-    console.log((colorScaler(d / 20))
-    colorScaler(d / 20)
-  });
+  var colors2 = [...Array(3).keys()].map(function(d) {
+                  console.log(d)
+                  console.log(colorScaler(d))
+                  return colorScaler(d);
+                });
   console.log(colors2);
-    
-
   return d3.scale.threshold().domain(points).range(colors);
+  return bucket
   //return d3.scale.linear().domain(points).range(colors);
 };
