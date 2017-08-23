@@ -172,6 +172,26 @@ export const controls = {
     isLinear: true,
   },
 
+  bucket_number: {
+    type: 'SelectControl',
+    label: 'Number of Buckets',
+    choices: formatSelectOptions(['3','4','5','6','7','8','9','10','11','12']),
+    default: '3',
+    description: 'The number of buckets want to break your dataset into.',
+  },
+
+  scale_type: {
+    type: 'SelectControl',
+    label: 'Type of Scale',
+    choices: [
+      ['threshold','linear threshold'],
+      ['quantile','quantile'],
+      ['quantize','quantize'], 
+    ],
+    default: 'linear',
+    description: 'The type of scale you want to apply to your dataset.',
+  },
+
   normalize_across: {
     type: 'SelectControl',
     label: 'Normalize Across',
