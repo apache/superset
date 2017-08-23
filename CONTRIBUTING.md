@@ -94,11 +94,11 @@ to manage the Python packages you're about to install:
     virtualenv superset-dev
     source superset-dev/bin/activate
 
-Finally, to make changes to the rst files and build the docs using Sphinx, 
+Finally, to make changes to the rst files and build the docs using Sphinx,
 you'll need to install a handful of dependencies from the repo you cloned:
 
     cd superset
-    pip install -r dev-reqs-for-docs.txt
+    pip install -r requirements/dev.txt
 
 To get the feel for how to edit and build the docs, let's edit a file, build
 the docs and see our changes in action. First, you'll want to
@@ -288,7 +288,7 @@ Codeclimate is a service we use to measure code quality and test coverage. To ge
 
 *Install the codeclimate cli tool*
 ```
-curl -L https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-`uname -s`-`uname -m` > /usr/local/bin/docker-machine && chmod +x /usr/local/bin/docker-machine 
+curl -L https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-`uname -s`-`uname -m` > /usr/local/bin/docker-machine && chmod +x /usr/local/bin/docker-machine
 brew install docker
 docker-machine create --driver virtual box default
 docker-machine env default
@@ -403,7 +403,7 @@ https://github.com/apache/incubator-superset/pull/3013
 
     # copy
     cp -r /tmp/tmp_superset_docs/ ~/incubator-superset-site.git/
- 
+
     # commit and push to `asf-site` branch
     cd ~/incubator-superset-site.git/
     git checkout asf-site
