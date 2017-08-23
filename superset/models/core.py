@@ -767,7 +767,7 @@ class Log(Model):
                 slice_id = int(
                             slice_id or
                             json.loads(d.get('form_data')).get('slice_id'))
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 slice_id = 0
 
             params = ""
