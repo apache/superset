@@ -1,7 +1,6 @@
 import d3 from 'd3';
 import './country_map.css';
 import { colorScalerFactory } from '../javascripts/modules/colors';
-import d3ScaleChromatic from 'd3-scale-chromatic';
 
 
 function countryMapChart(slice, payload) {
@@ -13,9 +12,8 @@ function countryMapChart(slice, payload) {
   let resultText;
   const container = slice.container;
   const data = payload.data;
-  const viz = 'map';
 
-  const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric, viz);
+  const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric);
   const colorMap = {};
   data.forEach((d) => {
     colorMap[d.country_id] = colorScaler(d.metric);
@@ -132,28 +130,6 @@ function countryMapChart(slice, payload) {
     .classed('result-text', true)
     .attr('x', 20)
     .attr('y', 60);
-  
-  //Adding legend for our Choropleth
-
- // var legend = svg.selectAll("g.legend")
- // .data(ext_color_domain)
- // .enter().append("g")
-  //.attr("class", "legend");
-
- // var ls_w = 20, ls_h = 20;
-
- // legend.append("rect")
-  //.attr("x", 20)
-  //.attr("y", function(d, i){ return height - (i*ls_h) - 2*ls_h;})
-  //.attr("width", ls_w)
-  //.attr("height", ls_h)
-  //.style("fill", function(d, i) { return color(d); })
-  //.style("opacity", 0.8);
-
-  //legend.append("text")
-  //.attr("x", 50)
-  //.attr("y", function(d, i){ return height - (i*ls_h) - ls_h - 4;})
-  //.text(function(d, i){ return legend_labels[i]; });
 
   const url = `/static/assets/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;
   d3.json(url, function (error, mapData) {
