@@ -86,8 +86,7 @@ class CssTemplate(Model, AuditMixinNullable):
 slice_user = Table('slice_user', metadata,
                    Column('id', Integer, primary_key=True),
                    Column('user_id', Integer, ForeignKey('ab_user.id')),
-                   Column('slice_id', Integer, ForeignKey('slices.id'))
-                   )
+                   Column('slice_id', Integer, ForeignKey('slices.id')))
 
 
 class Slice(Model, AuditMixinNullable, ImportMixin):
@@ -435,7 +434,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 new_filter_immune_slices.append(new_slc_id_str)
             if ('timed_refresh_immune_slices' in i_params_dict and
                     old_slc_id_str in
-                        i_params_dict['timed_refresh_immune_slices']):
+                    i_params_dict['timed_refresh_immune_slices']):
                 new_timed_refresh_immune_slices.append(new_slc_id_str)
             if ('expanded_slices' in i_params_dict and
                     old_slc_id_str in i_params_dict['expanded_slices']):
@@ -765,8 +764,7 @@ class Log(Model):
 
             try:
                 slice_id = int(
-                            slice_id or
-                            json.loads(d.get('form_data')).get('slice_id'))
+                    slice_id or json.loads(d.get('form_data')).get('slice_id'))
             except (ValueError, TypeError):
                 slice_id = 0
 
