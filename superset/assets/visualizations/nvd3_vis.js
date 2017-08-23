@@ -126,9 +126,7 @@ function nvd3Vis(slice, payload) {
         if (fd.show_brush) {
           chart = nv.models.lineWithFocusChart();
           chart.focus.xScale(d3.time.scale.utc());
-          chart.x2Axis
-          .showMaxMin(fd.x_axis_showminmax)
-          .staggerLabels(false);
+          chart.x2Axis.staggerLabels(false);
         } else {
           chart = nv.models.lineChart();
         }
@@ -136,9 +134,7 @@ function nvd3Vis(slice, payload) {
         // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(fd.line_interpolation);
-        chart.xAxis
-        .showMaxMin(fd.x_axis_showminmax)
-        .staggerLabels(false);
+        chart.xAxis.staggerLabels(false);
         break;
 
       case 'dual_line':
@@ -176,8 +172,7 @@ function nvd3Vis(slice, payload) {
         .rotateLabels(45)
         .groupSpacing(0.1); // Distance between each group of bars.
 
-        chart.xAxis
-        .showMaxMin(false);
+        chart.xAxis.showMaxMin(false);
 
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
@@ -252,8 +247,6 @@ function nvd3Vis(slice, payload) {
         });
         chart.pointRange([5, fd.max_bubble_size ** 2]);
         chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
-        chart.xAxis.showMaxMin(fd.x_axis_showminmax);
-        chart.yAxis.showMaxMin(fd.y_axis_showminmax);
         break;
 
       case 'area':
@@ -261,9 +254,7 @@ function nvd3Vis(slice, payload) {
         chart.showControls(fd.show_controls);
         chart.style(fd.stacked_style);
         chart.xScale(d3.time.scale.utc());
-        chart.xAxis
-        .showMaxMin(fd.x_axis_showminmax)
-        .staggerLabels(true);
+        chart.xAxis.staggerLabels(true);
         break;
 
       case 'box_plot':
@@ -326,7 +317,7 @@ function nvd3Vis(slice, payload) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (chart.xAxis && chart.xAxis.tickFormat) {
+    if (vizType !== 'dist_bar' && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
@@ -337,6 +328,17 @@ function nvd3Vis(slice, payload) {
     if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
     }
+
+
+    // Set showMaxMin for all axis
+    function setAxisShowMaxMin(axis, showminmax) {
+      if (axis && axis.showMaxMin && showminmax !== undefined) {
+        axis.showMaxMin(showminmax);
+      }
+    }
+    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax);
+    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax);
+    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax);
 
     if (vizType !== 'bullet') {
       chart.color(d => getColorFromScheme(d[colorKey], fd.color_scheme));
