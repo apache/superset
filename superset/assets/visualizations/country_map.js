@@ -12,6 +12,7 @@ function countryMapChart(slice, payload) {
   let resultText;
   const container = slice.container;
   const data = payload.data;
+  const number_format = d3.format(fd.number_format);
 
   const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric);
   const colorMap = {};
@@ -23,6 +24,17 @@ function countryMapChart(slice, payload) {
   let centered;
   path = d3.geo.path();
   d3.select(slice.selector).selectAll('*').remove();
+
+  d3.selectAll("div.country_map div#legend").remove();
+  if (fd.show_legend == true) {
+    const map_legend = d3.select("div.country_map");
+    map_legend.append('div').attr('id', 'legend')
+    d3.selectAll("div#legend").append('text').text(fd.metric)
+  }
+  else {
+    d3.selectAll("div.country_map div#legend").remove();
+  }
+
   const div = d3.select(slice.selector)
     .append('svg:svg')
     .attr('width', slice.width())
@@ -91,7 +103,7 @@ function countryMapChart(slice, payload) {
 
   const updateMetrics = function (region) {
     if (region.length > 0) {
-      resultText.text(d3.format(',')(region[0].metric));
+      resultText.text((number_format(region[0].metric)));
     }
   };
 
@@ -130,6 +142,27 @@ function countryMapChart(slice, payload) {
     .classed('result-text', true)
     .attr('x', 20)
     .attr('y', 60);
+
+      //adding legend to map
+  var legend = d3.select('#legend')
+   .append('ul')
+   .attr('class', 'list-inline');
+
+  var keys = legend.selectAll('li.key')
+    .data(colorScaler.range());
+
+  keys.enter().append('li')
+    .attr('class', 'key')
+    .style('border-top-color', String)
+    .text(
+      function(d) {
+        var r = colorScaler.invertExtent(d);
+        if (r[0] == null) {
+          return number_format(d3.min(data, v => v.metric));
+        } else {
+          return (number_format(r[0]));
+        }
+      });
 
   const url = `/static/assets/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;
   d3.json(url, function (error, mapData) {
