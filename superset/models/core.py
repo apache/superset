@@ -763,7 +763,6 @@ class Log(Model):
             d.update(kwargs)
             slice_id = d.get('slice_id')
 
-
             try:
                 slice_id = int(
                             slice_id or
