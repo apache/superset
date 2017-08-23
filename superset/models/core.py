@@ -768,7 +768,7 @@ class Log(Model):
                 slice_id = int(
                             slice_id or
                             json.loads(d.get('form_data')).get('slice_id'))
-            except Exception:www
+            except Exception:
                 slice_id = 0
 
             params = ""
