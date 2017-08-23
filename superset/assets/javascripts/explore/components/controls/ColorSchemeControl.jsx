@@ -50,7 +50,8 @@ export default class ColorSchemeControl extends React.PureComponent {
     if (this.props.isLinear) {
       const colorScaler = colorScalerFactory(currentScheme);
       console.log(colorScaler);
-      colors = [...Array(3).keys()].map(d => (colorScaler(d /3)));
+      const number = 10
+      colors = [...Array(number).keys()].map(d => (colorScaler(d / number)));
       console.log(colors);
     }
 

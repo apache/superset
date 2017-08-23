@@ -1,5 +1,5 @@
 import $ from 'jquery';
-s
+import d3 from 'd3'
 
 // Color related utility functions go in this object
 const bnbColors = [
@@ -134,13 +134,15 @@ export const colorScalerFactory = function (colors, data, accessor, bucket) {
     points.push(ext[0] + (i * chunkSize));
   }
 
-  bucket = Number(bucket)  
+
   const colors2 = [];
-  const colorScaler = d3.scale.linear().domain([0,bucket]).range(colors);
+  const colorScaler = d3.scale.linear().domain([0,1]).range(colors);
   console.log(colorScaler);
+
+  console.log(Number(bucket))
   
-  for (var i =0; i < bucket; i++){
-    colors2.push(colorScaler(i));
+  for (var i =0; i < Number(bucket)+1; i++){
+    colors2.push(colorScaler(i/(Number(bucket))));
     console.log(colorScaler(i));
   }
   console.log(colors2);
