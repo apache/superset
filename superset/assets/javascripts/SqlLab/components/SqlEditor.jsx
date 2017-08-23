@@ -15,15 +15,13 @@ import {
 
 import Button from '../../components/Button';
 
-import AceEditorWrapper from './AceEditorWrapper';
 import SouthPane from './SouthPane';
-import SplitPane from './SplitPane';
 import SaveQuery from './SaveQuery';
 import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
+import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
-
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -51,7 +49,6 @@ class SqlEditor extends React.PureComponent {
       autorun: props.queryEditor.autorun,
       ctas: '',
     };
-    this.onSizeChange = this.onSizeChange.bind(this);
   }
   componentDidMount() {
     this.onMount();
@@ -62,13 +59,6 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);
       this.startQuery();
     }
-  }
-  onSizeChange(newSizes) {
-    const bottomBarHeight = this.refs.editorBottomBar.clientHeight;
-    this.setState({
-      ...this.state,
-      editorHeight: newSizes.north - bottomBarHeight,
-    });
   }
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
@@ -157,7 +147,7 @@ class SqlEditor extends React.PureComponent {
       );
     }
     const editorBottomBar = (
-      <div ref="editorBottomBar" className="sql-toolbar clearfix" id="js-sql-toolbar">
+      <div className="sql-toolbar clearfix" id="js-sql-toolbar">
         <div className="pull-left">
           <Form inline>
             <RunQueryActionButton
@@ -222,34 +212,21 @@ class SqlEditor extends React.PureComponent {
             sm={this.props.hideLeftBar ? 12 : 7}
             md={this.props.hideLeftBar ? 12 : 8}
             lg={this.props.hideLeftBar ? 12 : 9}
-            style={{
-              height: this.sqlEditorHeight(),
-            }}
           >
-            <SplitPane
-              onSizeChange={this.onSizeChange}
-              minHeight={25}
-              north={
-                <div>
-                  <AceEditorWrapper
-                    actions={this.props.actions}
-                    onBlur={this.setQueryEditorSql.bind(this)}
-                    queryEditor={this.props.queryEditor}
-                    onAltEnter={this.runQuery.bind(this)}
-                    sql={this.props.queryEditor.sql}
-                    tables={this.props.tables}
-                    height={this.state.editorHeight + 'px'}
-                  />
-                  {editorBottomBar}
-                </div>
-              }
-              south={
-                <SouthPane
-                  editorQueries={this.props.editorQueries}
-                  dataPreviewQueries={this.props.dataPreviewQueries}
-                  actions={this.props.actions}
-                />
-              }
+            <AceEditorWrapper
+              actions={this.props.actions}
+              onBlur={this.setQueryEditorSql.bind(this)}
+              queryEditor={this.props.queryEditor}
+              onAltEnter={this.runQuery.bind(this)}
+              sql={this.props.queryEditor.sql}
+              tables={this.props.tables}
+            />
+            {editorBottomBar}
+            <br />
+            <SouthPane
+              editorQueries={this.props.editorQueries}
+              dataPreviewQueries={this.props.dataPreviewQueries}
+              actions={this.props.actions}
             />
           </Col>
         </Row>
