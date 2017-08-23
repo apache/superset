@@ -767,8 +767,7 @@ class Log(Model):
             try:
                 slice_id = int(
                             slice_id or
-                            json.loads(d.get('form_data')).get('slice_id')
-                           )
+                            json.loads(d.get('form_data')).get('slice_id'))
             except Exception:www
                 slice_id = 0
 
