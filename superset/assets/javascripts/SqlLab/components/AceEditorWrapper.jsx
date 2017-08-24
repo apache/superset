@@ -32,6 +32,7 @@ const propTypes = {
   sql: PropTypes.string.isRequired,
   tables: PropTypes.array,
   queryEditor: PropTypes.object.isRequired,
+  height: PropTypes.string,
 };
 
 const defaultProps = {
@@ -125,8 +126,7 @@ class AceEditorWrapper extends React.PureComponent {
         theme="github"
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
-        minLines={12}
-        maxLines={12}
+        height={this.props.height}
         onChange={this.textChange.bind(this)}
         width="100%"
         editorProps={{ $blockScrolling: true }}
