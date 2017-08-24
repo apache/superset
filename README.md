@@ -11,6 +11,9 @@ Superset
 [![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset/assets)](https://david-dm.org/apache/incubator-superset?path=superset/assets)
 
 [![Code Health](https://landscape.io/github/timifasubaa/incubator-superset/master/landscape.svg?style=flat)](https://landscape.io/github/timifasubaa/incubator-superset/master)
+[![Issue Count](https://codeclimate.com/github/timifasubaa/incubator-superset/badges/issue_count.svg)](https://codeclimate.com/github/timifasubaa/incubator-superset)
+[![Test Coverage](https://codeclimate.com/github/timifasubaa/incubator-superset/badges/coverage.svg)](https://codeclimate.com/github/timifasubaa/incubator-superset/coverage)
+[![Code Climate](https://codeclimate.com/github/timifasubaa/incubator-superset/badges/gpa.svg)](https://codeclimate.com/github/timifasubaa/incubator-superset)
 
 <img
   src="https://cloud.githubusercontent.com/assets/130878/20946612/49a8a25c-bbc0-11e6-8314-10bef902af51.png"
