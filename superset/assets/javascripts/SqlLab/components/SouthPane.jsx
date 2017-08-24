@@ -4,7 +4,6 @@ import shortid from 'shortid';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { AutoSizer } from 'react-virtualized';
 
 import * as Actions from '../actions';
 import QueryHistory from './QueryHistory';
@@ -56,7 +55,6 @@ class SouthPane extends React.PureComponent {
 
     return window.innerHeight - sum - 95;
   }
-
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
@@ -69,28 +67,13 @@ class SouthPane extends React.PureComponent {
     let results;
     if (latestQuery) {
       results = (
-        <AutoSizer
-          disableWidth
-        >
-          {({ height }) => {
-            /*
-             checking of the height probably won't be necessary
-             after release of react-virtualized v10
-            */
-            if (height !== 0) {
-              return (
-                <ResultSet
-                  showControls
-                  search
-                  query={latestQuery}
-                  actions={props.actions}
-                  height={height}
-                />
-              );
-            }
-            return <div />;
-          }}
-        </AutoSizer>
+        <ResultSet
+          showControls
+          search
+          query={latestQuery}
+          actions={props.actions}
+          height={this.state.innerTabHeight}
+        />
       );
     } else {
       results = <Alert bsStyle="info">Run a query to display results here</Alert>;
@@ -102,36 +85,20 @@ class SouthPane extends React.PureComponent {
         eventKey={query.id}
         key={query.id}
       >
-        <AutoSizer
-          disableWidth
-        >
-          {({ height }) => {
-            /*
-             checking of the height probably won't be necessary
-             after release of react-virtualized v10
-            */
-            if (height !== 0) {
-              return (
-                <ResultSet
-                  query={query}
-                  visualize={false}
-                  csv={false}
-                  actions={props.actions}
-                  cache
-                  height={height}
-                />
-              );
-            }
-            return <div />;
-          }}
-        </AutoSizer>
+        <ResultSet
+          query={query}
+          visualize={false}
+          csv={false}
+          actions={props.actions}
+          cache
+          height={this.state.innerTabHeight}
+        />
       </Tab>
     ));
 
     return (
       <div className="SouthPane">
         <Tabs
-          className="Tabs"
           bsStyle="tabs"
           id={shortid.generate()}
           activeKey={this.props.activeSouthPaneTab}
@@ -147,7 +114,7 @@ class SouthPane extends React.PureComponent {
             title="Query History"
             eventKey="History"
           >
-            <div className="QueryHistoryWrapper">
+            <div style={{ height: `${this.state.innerTabHeight}px`, overflow: 'scroll' }}>
               <QueryHistory queries={props.editorQueries} actions={props.actions} />
             </div>
           </Tab>

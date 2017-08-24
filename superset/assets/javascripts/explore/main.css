@@ -73,3 +73,16 @@
   height: 10px;
   margin: 9px 1px;
 }
+.control-panel-section .panel-body {
+  margin-left: 15px;
+  padding-bottom: 0px;
+}
+.control-panel-section .control-label {
+  margin-bottom: 0px;
+}
+.fa.expander {
+  width: 15px;
+}
+.control-panel-section span.label {
+  display: inline-block;
+}

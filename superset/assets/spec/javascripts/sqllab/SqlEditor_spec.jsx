@@ -6,7 +6,6 @@ import { expect } from 'chai';
 import { initialState, queries, table } from './fixtures';
 import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
 import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
-import SplitPane from '../../../javascripts/SqlLab/components/SplitPane';
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -28,9 +27,5 @@ describe('SqlEditor', () => {
   it('render a SqlEditorLeftBar', () => {
     const wrapper = shallow(<SqlEditor {...mockedProps} />);
     expect(wrapper.find(SqlEditorLeftBar)).to.have.length(1);
-  });
-  it('render a SplitPane', () => {
-    const wrapper = shallow(<SqlEditor {...mockedProps} />);
-    expect(wrapper.find(SplitPane)).to.have.length(1);
   });
 });
