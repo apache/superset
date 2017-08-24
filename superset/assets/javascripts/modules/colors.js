@@ -117,7 +117,7 @@ export const getColorFromScheme = (function () {
   };
 }());
 
-export const colorScalerFactory = function (colors, data, accessor, bucket) {
+export const colorScalerFactory = function (colors, data, accessor, bucket = 20, scale) {
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
@@ -129,28 +129,29 @@ export const colorScalerFactory = function (colors, data, accessor, bucket) {
     ext = d3.extent(data, accessor);
   }
   const points = [];
-  const chunkSize = (ext[1] - ext[0]) / colors.length;
-  for (var i = 1; i < colors.length; i++) {
-    points.push(ext[0] + (i * chunkSize));
-  }
+  const chunkSize = (ext[1] - ext[0]) / bucket;
 
   const linear_domain = [];
-  for (var i = 0; i < bucket; i++) {
-    linear_domain.push(i/bucket);
+  for (var i = 0; i < colors.length; i++) {
+    linear_domain.push(i/colors.length);
   }
 
-  const colors2 = [];
+  const new_colors = [];
   const colorScaler = d3.scale.linear().domain(linear_domain).range(colors);
-  console.log(colorScaler);
-
   
-  for (var i =0; i < bucket+1; i++){
-    colors2.push(colorScaler(i/bucket));
-    console.log(colorScaler(i));
+  for (var i =0; i < bucket; i++){
+    new_colors.push(colorScaler(i/bucket));
   }
-  console.log(colors2);
   
-  return d3.scale.threshold().domain(points).range(colors2);
-  //return bucket
-  //return d3.scale.linear().domain(points).range(colors);
+  for (var i = 1; i < bucket; i++) {
+    points.push(ext[0] + (i * chunkSize));
+  }
+  if (scale == 'quantile'){
+    return d3.scale.quantile().domain(data.map(accessor)).range(new_colors);
+  }
+  else if (scale == 'quantize'){
+    return d3.scale.quantize().domain(data.map(accessor)).range(new_colors)
+  } else {
+  return d3.scale.threshold().domain(points).range(new_colors);
+  }
 };

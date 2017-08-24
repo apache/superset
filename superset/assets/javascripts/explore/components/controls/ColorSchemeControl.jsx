@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
 import { colorScalerFactory } from '../../../modules/colors';
+import d3 from 'd3';
 
 const propTypes = {
   description: PropTypes.string,
@@ -40,20 +41,19 @@ export default class ColorSchemeControl extends React.PureComponent {
   }
 
   renderOption(key) {
-    const currentScheme = key.value ?
-      this.props.schemes[key.value] :
-      this.props.schemes[defaultProps.value];
+      const currentScheme = key.value ?
+        this.props.schemes[key.value] :
+        this.props.schemes[defaultProps.value];
 
-    console.log(currentScheme);
-
-    let colors = currentScheme;
-    if (this.props.isLinear) {
-      const colorScaler = colorScalerFactory(currentScheme);
-      console.log(colorScaler);
-      const number = 10
-      colors = [...Array(number).keys()].map(d => (colorScaler(d / number)));
-      console.log(colors);
-    }
+      let colors = currentScheme;
+      if (this.props.isLinear) {
+        var linear_domain = [];
+        for (var i = 0; i < currentScheme.length; i++) {
+          linear_domain.push(i / currentScheme.length);
+        }
+        const colorScaler = d3.scale.linear().domain(linear_domain).range(currentScheme);
+        colors = [...Array(20).keys()].map(d => (colorScaler(d / 20)));
+      }
 
     const list = colors.map((color, i) => (
       <li
