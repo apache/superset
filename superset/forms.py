@@ -1188,6 +1188,13 @@ class FormFactory(object):
 
 class CsvToDatabaseForm(DynamicForm):
     # These are the fields exposed by Pandas read_csv()
+
+    # TODO: Add a must be alphanumeric, not numeric validator.
+    name = StringField(_('Table Name'),
+                       description=_('Name of table to be created '
+                                     'from csv data.'),
+                       validators=[DataRequired()],
+                       widget=BS3TextFieldWidget())
     csv_file = FileField(_('CSV File'),
                          description=_('Select a CSV file to be '
                                        'uploaded to a database.'),
@@ -1195,6 +1202,29 @@ class CsvToDatabaseForm(DynamicForm):
                                      FileAllowed(['csv'],
                                                  _('CSV Files '
                                                    'Only!'))])
+    con = StringField(_('Database URI'),
+                     description=_('URI of database in which to '
+                                    'add above table.'),
+                     validators=[DataRequired()],
+                     widget=BS3TextFieldWidget())
+    if_exists = SelectField(_('Table Exists'),
+                            description=_('If table exists do one '
+                                          'of the following: '
+                                          'Fail (do nothing), '
+                                          'Replace (drop and '
+                                          'recreate table) '
+                                          'or Append (insert data).'),
+                            choices=[('fail', _('Fail')),
+                                     ('replace', _('Replace')),
+                                     ('append', _('Append'))],
+                            validators=[DataRequired()])
+    # These are the fields exposed by Pandas .to_sql()
+    schema = StringField(_('Schema'),
+                         description=_('Specify a schema (if database '
+                                       'flavour supports this).'),
+                         validators=[Optional()],
+                         widget=BS3TextFieldWidget(),
+                         filters=[lambda x: x or None])
     sep = StringField(_('Delimiter'),
                       description=_('Delimiter used by CSV '
                                     'file (for whitespace '
@@ -1311,12 +1341,6 @@ class CsvToDatabaseForm(DynamicForm):
                           validators=[Optional()],
                           widget=BS3TextFieldWidget(),
                           filters=[lambda x: x or None])
-    encoding = StringField(_('Encoding'),
-                           description=_('Encoding to use for UTF when '
-                                         'reading/writing (e.g. "utf-8").'),
-                           validators=[Optional()],
-                           widget=BS3TextFieldWidget(),
-                           filters=[lambda x: x or None])
     error_bad_lines = BetterBooleanField(_('Error On Bad Lines'),
                                          description=_('Error on bad lines '
                                                        '(e.g. a line with '
@@ -1325,35 +1349,6 @@ class CsvToDatabaseForm(DynamicForm):
                                                        'lines will instead '
                                                        'be dropped from the '
                                                        'resulting dataframe.'))
-
-    # These are the fields exposed by Pandas .to_sql()
-    name = StringField(_('Table Name'),
-                       description=_('Name of table to be created'
-                                     'from csv data.'),
-                       validators=[DataRequired()],
-                       widget=BS3TextFieldWidget())
-    con = StringField(_('Database URI'),
-                      description=_('URI of database in which to '
-                                    'add above table.'),
-                      validators=[DataRequired()],
-                      widget=BS3TextFieldWidget())
-    schema = StringField(_('Schema'),
-                         description=_('Specify a schema (if database '
-                                       'flavour supports this).'),
-                         validators=[Optional()],
-                         widget=BS3TextFieldWidget(),
-                         filters=[lambda x: x or None])
-    if_exists = SelectField(_('Table Exists'),
-                            description=_('If table exists do one '
-                                          'of the following: '
-                                          'Fail (do nothing), '
-                                          'Replace (drop and '
-                                          'recreate table) '
-                                          'or Append (insert data).'),
-                            choices=[('fail', _('Fail')),
-                                     ('replace', _('Replace')),
-                                     ('append', _('Append'))],
-                            validators=[DataRequired()])
     index = BetterBooleanField(_('Dataframe Index'),
                                description=_('Write dataframe '
                                              'index as a column.'))
@@ -1365,11 +1360,4 @@ class CsvToDatabaseForm(DynamicForm):
                               validators=[Optional()],
                               widget=BS3TextFieldWidget(),
                               filters=[lambda x: x or None])
-    chunksize = IntegerField(_('Chunksize'),
-                             description=_('If empty, all rows will be '
-                                           'written at once. Otherwise, '
-                                           'rows will be written in batches '
-                                           'of this many rows at a time.'),
-                             validators=[Optional()],
-                             widget=BS3TextFieldWidget(),
-                             filters=[lambda x: x or None])
+    

@@ -14,7 +14,7 @@ import time
 import traceback
 import os
 import pandas
-
+import pdb
 import sqlalchemy as sqla
 
 from flask import (
@@ -43,6 +43,7 @@ from superset import (
 from superset.legacy import cast_form_data
 from superset.utils import has_access, QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
@@ -305,9 +306,16 @@ appbuilder.add_view_no_menu(DatabaseAsync)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(config['UPLOAD_FOLDER'],
-                               filename)
+    with open("flask-stream-demo", "bw") as f:
+        chunk_size = 4096
+        while True:
+            chunk = flask.request.stream.read(chunk_size).decode('utf-8')
+            if len(chunk) == 0:
+                return
+            f.write(chunk)
 
+    #return send_from_directory(config['UPLOAD_FOLDER'],
+    #                           filename)
 
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm
@@ -316,10 +324,10 @@ class CsvToDatabaseView(SimpleFormView):
     def form_get(self, form):
         # pre process form
         # default values
+        form.name.data = None
         form.csv_file.data = None
         form.sep.data = ','
         form.header.data = 0
-        form.names.data = None
         form.index_col.data = None
         form.squeeze.data = False
         form.prefix.data = None
@@ -328,23 +336,21 @@ class CsvToDatabaseView(SimpleFormView):
         form.skiprows.data = None
         form.nrows.data = None
         form.skip_blank_lines.data = True
-        form.parse_dates.data = False
-        form.infer_datetime_format.data = False
+        form.parse_dates.data = True
+        form.infer_datetime_format.data = True
         form.dayfirst.data = False
         form.thousands.data = None
         form.decimal.data = '.'
         form.quotechar.data = None
         form.escapechar.data = None
         form.comment.data = None
-        form.encoding.data = None
         form.error_bad_lines.data = False
-        form.name.data = None
+        form.names.data = None
         form.con.data = config['SQLALCHEMY_DATABASE_URI']
         form.schema.data = None
         form.if_exists.data = 'append'
         form.index.data = None
         form.index_label.data = None
-        form.chunksize.data = 100000
 
     def form_post(self, form):
         # post process form
@@ -361,10 +367,10 @@ class CsvToDatabaseView(SimpleFormView):
 
         # Use Pandas to convert csv to dataframe
         datetime_flag = form.infer_datetime_format.data
-        df = self.csv_to_df(filepath_or_buffer=filename,
+        df = self.csv_to_df(names=form.names.data,
+                            filepath_or_buffer=filename,
                             sep=form.sep.data,
                             header=form.header.data,
-                            names=form.names.data,
                             index_col=form.index_col.data,
                             squeeze=form.squeeze.data,
                             prefix=form.prefix.data,
@@ -381,9 +387,8 @@ class CsvToDatabaseView(SimpleFormView):
                             quotechar=form.quotechar.data,
                             escapechar=form.escapechar.data,
                             comment=form.comment.data,
-                            encoding=form.encoding.data,
                             error_bad_lines=form.error_bad_lines.data,
-                            chunksize=form.chunksize.data)
+                            chunksize=10000)
 
         # Use Pandas to convert superset dataframe to database
         self.df_to_db(df=df,
@@ -393,7 +398,7 @@ class CsvToDatabaseView(SimpleFormView):
                       if_exists=form.if_exists.data,
                       index=form.index.data,
                       index_label=form.index_label.data,
-                      chunksize=form.chunksize.data)
+                      chunksize=10000)
 
         # Go back to welcome page / splash screen
         message = _('CSV file "{0}" uploaded to table "{1}" in '
@@ -401,14 +406,14 @@ class CsvToDatabaseView(SimpleFormView):
                                             form.name.data,
                                             form.con.data))
         flash(message, 'info')
-        redirect('/databaseview/list')
+        return redirect('/tablemodelview/list/')
 
     @staticmethod
-    def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze,
+    def csv_to_df(names, filepath_or_buffer, sep, header, index_col, squeeze,
                   prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
                   skip_blank_lines, parse_dates, infer_datetime_format,
                   dayfirst, thousands, decimal, quotechar, escapechar, comment,
-                  encoding, error_bad_lines, chunksize):
+                  error_bad_lines, chunksize):
         # Use Pandas to parse csv file to a dataframe
         upload_path = config['UPLOAD_FOLDER'] + filepath_or_buffer
         # Expose this to api so can specify each field
@@ -432,10 +437,10 @@ class CsvToDatabaseView(SimpleFormView):
                                  quotechar=quotechar,
                                  escapechar=escapechar,
                                  comment=comment,
-                                 encoding=encoding,
+                                 encoding='utf-8',
                                  error_bad_lines=error_bad_lines,
-                                 chunksize=chunksize)
-
+                                 chunksize=chunksize,
+                                 iterator=True)
         df = pandas.DataFrame()
         df = pandas.concat(chunk for chunk in chunks)
         return df
@@ -450,11 +455,31 @@ class CsvToDatabaseView(SimpleFormView):
         df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
                   index=index, index_label=index_label, chunksize=chunksize)
 
+
+        table = SqlaTable(table_name=name)
+        database = (
+                    db.session
+                    .query(models.Database)
+                    .filter_by(sqlalchemy_uri=con)
+                    .first()
+        )
+        table.database_id = database.id 
+        table.user_id = g.user.id 
+        table.database = database
+        table.schema = schema
+        db.session.add(table)
+        db.session.commit()
+        # Should I set this to g.user? The other tables don't have an owner.
+        # table.owner = g.user.id
+        # Do I need to set table.sql? None of the default tables have it set.
+        # table.sql = 
+
     @staticmethod
     def allowed_file(filename):
         # Only allow specific file extensions as specified in the config
         return '.' in filename and \
                filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
+
 
     def upload_file(self, form):
         if form.csv_file.data and \
@@ -463,6 +488,7 @@ class CsvToDatabaseView(SimpleFormView):
             form.csv_file.data.save(os.path.join(config['UPLOAD_FOLDER'],
                                                  filename))
             return filename
+
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
 
