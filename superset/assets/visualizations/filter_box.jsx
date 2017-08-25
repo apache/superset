@@ -18,7 +18,6 @@ const propTypes = {
   showMetricNumber: PropTypes.bool,
   origSelectedValues: PropTypes.object,
   instantFiltering: PropTypes.bool,
-  sliceId: PropTypes.number,
 };
 
 const defaultProps = {
@@ -28,7 +27,6 @@ const defaultProps = {
   showMetricNumber: false,
   origSelectedValues: {},
   instantFiltering: true,
-  sliceId: -1,
 };
 
 class FilterBox extends React.Component {
@@ -163,7 +161,6 @@ function filterBox(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
   const fd = slice.formData;
-  const sliceId = slice.data.slice_id;
   const filtersChoices = {};
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json
@@ -180,7 +177,6 @@ function filterBox(slice, payload) {
       showMetricNumber={fd.display_metric}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
-      sliceId={sliceId}
     />,
     document.getElementById(slice.containerId),
   );
