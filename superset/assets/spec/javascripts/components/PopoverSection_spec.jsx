@@ -4,7 +4,6 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import PopoverSection from '../../../javascripts/components/PopoverSection';
-import InfoTooltipWithTrigger from '../../../javascripts/components/InfoTooltipWithTrigger';
 
 describe('PopoverSection', () => {
   const defaultProps = {
@@ -18,13 +17,13 @@ describe('PopoverSection', () => {
   let wrapper;
   const factory = (overrideProps) => {
     const props = Object.assign({}, defaultProps, overrideProps || {});
-    return shallow(<PopoverSection { ...props } />);
+    return shallow(<PopoverSection {...props} />);
   };
   beforeEach(() => {
     wrapper = factory();
   });
   it('renders', () => {
-    expect(React.isValidElement(<PopoverSection { ...defaultProps } />,)).to.equal(true);
+    expect(React.isValidElement(<PopoverSection {...defaultProps} />)).to.equal(true);
   });
   it('is show an icon when selected', () => {
     expect(wrapper.find('.fa-check')).to.have.length(1);
