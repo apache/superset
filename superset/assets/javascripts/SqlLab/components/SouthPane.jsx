@@ -30,7 +30,7 @@ class SouthPane extends React.PureComponent {
     this.props.actions.setActiveSouthPaneTab(id);
   }
   render() {
-    const innerTabHeight = this.props.height - 50;
+    const innerTabHeight = this.props.height - 55;
     let latestQuery;
     const props = this.props;
     if (props.editorQueries.length > 0) {
