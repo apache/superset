@@ -67,16 +67,16 @@ function tableVis(slice, payload) {
     const columns = data.columns.map(c => ({ data: c }));
     datatable = container.find('.dataTable').DataTable({
       data: data.records,
-      columns: columns,
-      paging: paging,
+      columns,
+      paging,
       scrollY: true,
       deferRender: true,
       pageLength,
       searching: fd.include_search,
-      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' +
            '<"row table-body"<"col-sm-12 table-data"tr>>' +
            '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
-      buttons: buttons,
+      buttons,
     });
   } else {
     table.append('tbody')
@@ -146,15 +146,15 @@ function tableVis(slice, payload) {
       .html(d => d.html ? d.html : d.val);
 
     datatable = container.find('.dataTable').DataTable({
-      paging: paging,
+      paging,
       scrollY: true,
       deferRender: true,
       pageLength,
       aaSorting: [],
       searching: fd.include_search,
       bInfo: false,
-      buttons: buttons,
-      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+      buttons,
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' +
            '<"row table-body"<"col-sm-12 table-data"tr>>' +
            '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
     });
