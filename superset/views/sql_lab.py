@@ -4,6 +4,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
 from superset import appbuilder
 from superset.models.sql_lab import Query, SavedQuery
@@ -13,6 +14,13 @@ from .base import SupersetModelView, BaseSupersetView, DeleteMixin
 class QueryView(SupersetModelView):
     datamodel = SQLAInterface(Query)
     list_columns = ['user', 'database', 'status', 'start_time', 'end_time']
+    label_columns = {
+        'user': _('User'),
+        'database': _('Database'),
+        'status': _('Status'),
+        'start_time': _('Start Time'),
+        'end_time': _('End Time'),
+    }
 
 appbuilder.add_view(
     QueryView,
@@ -25,6 +33,12 @@ appbuilder.add_view(
 
 class SavedQueryView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(SavedQuery)
+
+    list_title = _('List Saved Query')
+    show_title = _('Show Saved Query')
+    add_title = _('Add Saved Query')
+    edit_title = _('Edit Saved Query')
+
     list_columns = [
         'label', 'user', 'database', 'schema', 'description',
         'modified', 'pop_tab_link']
@@ -35,6 +49,16 @@ class SavedQueryView(SupersetModelView, DeleteMixin):
     add_columns = ['label', 'database', 'description', 'sql']
     edit_columns = add_columns
     base_order = ('changed_on', 'desc')
+    label_columns = {
+        'label': _('Label'),
+        'user': _('User'),
+        'database': _('Database'),
+        'description': _('Description'),
+        'modified': _('Modified'),
+        'end_time': _('End Time'),
+        'pop_tab_link': _('Pop Tab Link'),
+        'changed_on': _('Changed on'),
+    }
 
     def pre_add(self, obj):
         obj.user = g.user

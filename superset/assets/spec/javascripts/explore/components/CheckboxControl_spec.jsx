@@ -1,27 +1,32 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { Checkbox } from 'react-bootstrap';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
-import { mount } from 'enzyme';
+import { shallow } from 'enzyme';
 
 import CheckboxControl from '../../../../javascripts/explore/components/controls/CheckboxControl';
+import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
 
 const defaultProps = {
   name: 'show_legend',
   onChange: sinon.spy(),
   value: false,
+  label: 'checkbox label',
 };
 
 describe('CheckboxControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = mount(<CheckboxControl {...defaultProps} />);
+    wrapper = shallow(<CheckboxControl {...defaultProps} />);
   });
 
   it('renders a Checkbox', () => {
-    expect(wrapper.find(Checkbox)).to.have.lengthOf(1);
+    const controlHeader = wrapper.find(ControlHeader);
+    expect(controlHeader).to.have.lengthOf(1);
+
+    const headerWrapper = controlHeader.shallow();
+    expect(headerWrapper.find('i.fa-check')).to.have.length(1);
   });
 });

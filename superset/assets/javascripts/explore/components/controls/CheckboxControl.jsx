@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Checkbox } from 'react-bootstrap';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -24,11 +23,16 @@ export default class CheckboxControl extends React.Component {
     return (
       <ControlHeader
         {...this.props}
+        onClick={this.onToggle.bind(this)}
         leftNode={
-          <Checkbox
-            checked={this.props.value}
-            onChange={this.onToggle.bind(this)}
-          />
+          <span>
+            <i
+              className={`fa fa-check ${this.props.value ? 'text-primary' : 'text-transparent'}`}
+              onClick={this.onToggle.bind(this)}
+              style={{ border: '1px solid #aaa', borderRadius: '2px', cursor: 'pointer' }}
+            />
+            &nbsp;&nbsp;
+          </span>
         }
       />
     );

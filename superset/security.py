@@ -141,12 +141,14 @@ def is_granter_pvm(pvm):
                                    'can_approve'}
 
 
-def set_role(role_name, pvms, pvm_check):
+def set_role(role_name, pvm_check):
     logging.info("Syncing {} perms".format(role_name))
+    sesh = sm.get_session()
+    pvms = sesh.query(ab_models.PermissionView).all()
+    pvms = [p for p in pvms if p.permission and p.view_menu]
     role = sm.add_role(role_name)
     role_pvms = [p for p in pvms if pvm_check(p)]
     role.permissions = role_pvms
-    sesh = sm.get_session()
     sesh.merge(role)
     sesh.commit()
 
@@ -157,41 +159,40 @@ def create_custom_permissions():
     merge_perm(sm, 'all_database_access', 'all_database_access')
 
 
-def create_missing_datasource_perms(view_menu_set):
+def create_missing_perms():
+    """Creates missing perms for datasources, schemas and metrics"""
+
+    logging.info(
+        "Fetching a set of all perms to lookup which ones are missing")
+    all_pvs = set()
+    for pv in sm.get_session.query(sm.permissionview_model).all():
+        if pv.permission and pv.view_menu:
+            all_pvs.add((pv.permission.name, pv.view_menu.name))
+
+    def merge_pv(view_menu, perm):
+        """Create permission view menu only if it doesn't exist"""
+        if view_menu and perm and (view_menu, perm) not in all_pvs:
+            merge_perm(sm, view_menu, perm)
+
     logging.info("Creating missing datasource permissions.")
-    datasources = ConnectorRegistry.get_all_datasources(
-        db.session)
+    datasources = ConnectorRegistry.get_all_datasources(db.session)
     for datasource in datasources:
-        if datasource and datasource.perm not in view_menu_set:
-            merge_perm(sm, 'datasource_access', datasource.get_perm())
-            if datasource.schema_perm:
-                merge_perm(sm, 'schema_access', datasource.schema_perm)
+        merge_pv('datasource_access', datasource.get_perm())
+        merge_pv('schema_access', datasource.schema_perm)
 
-
-def create_missing_database_perms(view_menu_set):
     logging.info("Creating missing database permissions.")
     databases = db.session.query(models.Database).all()
     for database in databases:
-        if database and database.perm not in view_menu_set:
-            merge_perm(sm, 'database_access', database.perm)
+        merge_pv('database_access', database.perm)
 
-
-def create_missing_metrics_perm(view_menu_set):
-    """Create permissions for restricted metrics
-
-    :param metrics: a list of metrics to be processed, if not specified,
-        all metrics are processed
-    :type metrics: models.SqlMetric or models.DruidMetric
-    """
     logging.info("Creating missing metrics permissions")
     metrics = []
     for datasource_class in ConnectorRegistry.sources.values():
         metrics += list(db.session.query(datasource_class.metric_class).all())
 
     for metric in metrics:
-        if (metric.is_restricted and metric.perm and
-                metric.perm not in view_menu_set):
-            merge_perm(sm, 'metric_access', metric.perm)
+        if (metric.is_restricted):
+            merge_pv('metric_access', metric.perm)
 
 
 def sync_role_definitions():
@@ -201,31 +202,17 @@ def sync_role_definitions():
     get_or_create_main_db()
     create_custom_permissions()
 
-    pvms = db.session.query(ab_models.PermissionView).all()
-    pvms = [p for p in pvms if p.permission and p.view_menu]
-
-    # cleanup
-    pvms_to_delete = [p for p in pvms if not (p.permission and p.view_menu)]
-
-    for pvm_to_delete in pvms_to_delete:
-        sm.get_session.delete(pvm_to_delete)
-
     # Creating default roles
-    set_role('Admin', pvms, is_admin_pvm)
-    set_role('Alpha', pvms, is_alpha_pvm)
-    set_role('Gamma', pvms, is_gamma_pvm)
-    set_role('granter', pvms, is_granter_pvm)
-    set_role('sql_lab', pvms, is_sql_lab_pvm)
+    set_role('Admin', is_admin_pvm)
+    set_role('Alpha', is_alpha_pvm)
+    set_role('Gamma', is_gamma_pvm)
+    set_role('granter', is_granter_pvm)
+    set_role('sql_lab', is_sql_lab_pvm)
 
     if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
-        set_role('Public', pvms, is_gamma_pvm)
+        set_role('Public', is_gamma_pvm)
 
-    view_menu_set = []
-    for datasource_class in ConnectorRegistry.sources.values():
-        view_menu_set += list(db.session.query(datasource_class).all())
-    create_missing_datasource_perms(view_menu_set)
-    create_missing_database_perms(view_menu_set)
-    create_missing_metrics_perm(view_menu_set)
+    create_missing_perms()
 
     # commit role and view menu updates
     sm.get_session.commit()

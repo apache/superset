@@ -41,6 +41,7 @@ class CoreTests(SupersetTestCase):
     def setUp(self):
         db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
+        db.session.query(models.Log).delete()
 
     def tearDown(self):
         db.session.query(Query).delete()
@@ -284,6 +285,7 @@ class CoreTests(SupersetTestCase):
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'application/json'
 
         # validate that the endpoint works with the decrypted sqlalchemy uri
         data = json.dumps({
@@ -292,6 +294,7 @@ class CoreTests(SupersetTestCase):
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'application/json'
 
     def test_databaseview_edit(self, username='admin'):
         # validate that sending a password-masked uri does not over-write the decrypted uri
@@ -377,6 +380,42 @@ class CoreTests(SupersetTestCase):
         url = '/superset/save_dash/{}/'.format(dash.id)
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
+
+    def test_save_dash_with_filter(self, username='admin'):
+        self.login(username=username)
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="world_health").first()
+        positions = []
+        for i, slc in enumerate(dash.slices):
+            d = {
+                'col': 0,
+                'row': i * 4,
+                'size_x': 4,
+                'size_y': 4,
+                'slice_id': '{}'.format(slc.id)}
+            positions.append(d)
+
+        filters = {str(dash.slices[0].id): {'region': ['North America']}}
+        default_filters = json.dumps(filters)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': dash.dashboard_title,
+            'default_filters': default_filters
+        }
+
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.assertIn("SUCCESS", resp)
+
+        updatedDash = db.session.query(models.Dashboard).filter_by(
+            slug="world_health").first()
+        new_url = updatedDash.url
+        self.assertIn("region", new_url)
+
+        resp = self.get_resp(new_url)
+        self.assertIn("North America", resp)
 
     def test_save_dash_with_dashboard_title(self, username='admin'):
         self.login(username=username)
@@ -688,7 +727,22 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp('/superset/fave_dashboards_by_username/{}/'.format(username))
         self.assertNotIn('message', data)
 
+    def test_slice_id_is_always_logged_correctly_on_web_request(self):
+        # superset/explore case
+        slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
+        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
+        self.get_resp(slc.slice_url)
+        self.assertEqual(1, qry.count())
+
+    def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
+        # superset/explore_json case
+        self.login(username="admin")
+        slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
+        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
+        slc_url = slc.slice_url.replace("explore", "explore_json")
+        self.get_json_resp(slc_url)
+        self.assertEqual(1, qry.count())
+
 
 if __name__ == '__main__':
     unittest.main()
-
