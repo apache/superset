@@ -342,6 +342,7 @@ export const visTypes = {
           ['table_timestamp_format'],
           ['row_limit', 'page_length'],
           ['include_search', 'table_filter'],
+          ['csv_button'],
         ],
       },
     ],
@@ -868,7 +869,9 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['groupby'],
+          ['filter_label'],
           ['metric'],
+          ['display_metric'],
         ],
       },
       {

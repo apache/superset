@@ -10,19 +10,25 @@ import { TIME_CHOICES } from './constants';
 import './filter_box.css';
 
 const propTypes = {
-  origSelectedValues: PropTypes.object,
-  instantFiltering: PropTypes.bool,
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
   datasource: PropTypes.object.isRequired,
+  showLabel: PropTypes.bool,
+  showMetricNumber: PropTypes.bool,
+  origSelectedValues: PropTypes.object,
+  instantFiltering: PropTypes.bool,
+  sliceId: PropTypes.number,
 };
 
 const defaultProps = {
-  origSelectedValues: {},
   onChange: () => {},
   showDateFilter: false,
+  showLabel: true,
+  showMetricNumber: false,
+  origSelectedValues: {},
   instantFiltering: true,
+  sliceId: -1,
 };
 
 class FilterBox extends React.Component {
@@ -100,7 +106,7 @@ class FilterBox extends React.Component {
       });
       return (
         <div key={filter} className="m-b-5">
-          {this.props.datasource.verbose_map[filter] || filter}
+          {this.props.showLabel && (this.props.datasource.verbose_map[filter] || filter)}
           <Select.Creatable
             placeholder={`Select [${filter}]`}
             key={filter}
@@ -116,7 +122,13 @@ class FilterBox extends React.Component {
                 backgroundImage,
                 padding: '2px 5px',
               };
-              return { value: opt.id, label: opt.id, style };
+              let label;
+              if (this.props.showMetricNumber) {
+                label = opt.id.concat(' [', opt.metric, ']');
+              } else {
+                label = opt.id;
+              }
+              return { value: opt.id, label, style };
             })}
             onChange={this.changeFilter.bind(this, filter)}
           />
@@ -151,6 +163,7 @@ function filterBox(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
   const fd = slice.formData;
+  const sliceId = slice.data.slice_id;
   const filtersChoices = {};
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json
@@ -163,8 +176,11 @@ function filterBox(slice, payload) {
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
       datasource={slice.datasource}
+      showLabel={fd.filter_label}
+      showMetricNumber={fd.display_metric}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
+      sliceId={sliceId}
     />,
     document.getElementById(slice.containerId),
   );

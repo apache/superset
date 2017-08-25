@@ -61,7 +61,6 @@ ACCESS_REQUEST_MISSING_ERR = __(
 USER_MISSING_ERR = __("The user seems to have been deleted")
 DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
-
 def get_database_access_error_msg(database_name):
     return __("This view requires the database %(name)s or "
               "`all_datasource_access` permission", name=database_name)
@@ -2229,7 +2228,7 @@ class Superset(BaseSupersetView):
     def welcome(self):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
-            return redirect(appbuilder.get_url_for_login)
+            return appbuilder.sm.auth_view.login()
         return self.render_template(
             'superset/welcome.html', entry='welcome', utils=utils)
 

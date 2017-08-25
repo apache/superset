@@ -1,14 +1,12 @@
 import d3 from 'd3';
 import 'datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css';
-import 'datatables.net';
-import dt from 'datatables.net-bs';
-
-import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../javascripts/modules/utils';
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import './table.css';
 
 const $ = require('jquery');
-
-dt(window, $);
+require('datatables.net-bs')(window, $);
+require('datatables.net-buttons-bs')(window, $);
+require('datatables.net-buttons/js/buttons.html5.js')(window, $);
 
 function tableVis(slice, payload) {
   const container = $(slice.selector);
@@ -33,17 +31,26 @@ function tableVis(slice, payload) {
     maxes[metrics[i]] = d3.max(col(metrics[i]));
   }
 
-  const tsFormatter = d3TimeFormatPreset(fd.table_timestamp_format);
-
   const div = d3.select(slice.selector);
   div.html('');
   const table = div.append('table')
     .classed(
       'dataframe dataframe table table-striped table-bordered ' +
-      'table-condensed table-hover dataTable no-footer', true)
+      'table-condensed table-hover dataTable', true)
     .attr('width', '100%');
 
   const cols = data.columns.map(c => slice.datasource.verbose_map[c] || c);
+  const height = slice.height();
+  let paging = false;
+  let pageLength;
+  if (fd.page_length && fd.page_length > 0) {
+    paging = true;
+    pageLength = parseInt(fd.page_length, 10);
+  }
+  const buttons = [];
+  if (fd.csv_button) {
+    buttons.push('csvHtml5');
+  }
 
   table.append('thead').append('tr')
     .selectAll('th')
@@ -54,89 +61,106 @@ function tableVis(slice, payload) {
       return d;
     });
 
-  table.append('tbody')
-    .selectAll('tr')
-    .data(data.records)
-    .enter()
-    .append('tr')
-    .selectAll('td')
-    .data(row => data.columns.map((c) => {
-      const val = row[c];
-      let html;
-      const isMetric = metrics.indexOf(c) >= 0;
-      if (c === '__timestamp') {
-        html = tsFormatter(val);
-      }
-      if (typeof (val) === 'string') {
-        html = `<span class="like-pre">${val}</span>`;
-      }
-      if (isMetric) {
-        html = slice.d3format(c, val);
-      }
-      return {
-        col: c,
-        val,
-        html,
-        isMetric,
-      };
-    }))
-    .enter()
-    .append('td')
-    .style('background-image', function (d) {
-      if (d.isMetric) {
-        const perc = Math.round((d.val / maxes[d.col]) * 100);
-        // The 0.01 to 0.001 is a workaround for what appears to be a
-        // CSS rendering bug on flat, transparent colors
-        return (
-          `linear-gradient(to left, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
-          `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
-        );
-      }
-      return null;
-    })
-    .classed('text-right', d => d.isMetric)
-    .attr('title', (d) => {
-      if (!isNaN(d.val)) {
-        return fC(d.val);
-      }
-      return null;
-    })
-    .attr('data-sort', function (d) {
-      return (d.isMetric) ? d.val : null;
-    })
-    .on('click', function (d) {
-      if (!d.isMetric && fd.table_filter) {
-        const td = d3.select(this);
-        if (td.classed('filtered')) {
-          slice.removeFilter(d.col, [d.val]);
-          d3.select(this).classed('filtered', false);
-        } else {
-          d3.select(this).classed('filtered', true);
-          slice.addFilter(d.col, [d.val]);
+  let datatable;
+
+  if ((!data.columns.find(c => metrics.indexOf(c) >= 0))) {
+    const columns = data.columns.map(c => ({ data: c }));
+    datatable = container.find('.dataTable').DataTable({
+      data: data.records,
+      columns: columns,
+      paging: paging,
+      scrollY: true,
+      deferRender: true,
+      pageLength,
+      searching: fd.include_search,
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+           '<"row table-body"<"col-sm-12 table-data"tr>>' +
+           '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
+      buttons: buttons,
+    });
+  } else {
+    table.append('tbody')
+      .selectAll('tr')
+      .data(data.records)
+      .enter()
+      .append('tr')
+      .selectAll('td')
+      .data(row => data.columns.map((c) => {
+        const val = row[c];
+        let html;
+        const isMetric = metrics.indexOf(c) >= 0;
+        if (c === 'timestamp') {
+          html = timestampFormatter(val);
         }
-      }
-    })
-    .style('cursor', function (d) {
-      return (!d.isMetric) ? 'pointer' : '';
-    })
-    .html(d => d.html ? d.html : d.val);
-  const height = slice.height();
-  let paging = false;
-  let pageLength;
-  if (fd.page_length && fd.page_length > 0) {
-    paging = true;
-    pageLength = parseInt(fd.page_length, 10);
+        if (typeof (val) === 'string') {
+          html = `<span class="like-pre">${val}</span>`;
+        }
+        if (isMetric) {
+          html = slice.d3format(c, val);
+        }
+        return {
+          col: c,
+          val,
+          html,
+          isMetric,
+        };
+      }))
+      .enter()
+      .append('td')
+      .style('background-image', function (d) {
+        if (d.isMetric) {
+          const perc = Math.round((d.val / maxes[d.col]) * 100);
+          // The 0.01 to 0.001 is a workaround for what appears to be a
+          // CSS rendering bug on flat, transparent colors
+          return (
+            `linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
+            `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
+          );
+        }
+        return null;
+      })
+      .attr('title', (d) => {
+        if (!isNaN(d.val)) {
+          return fC(d.val);
+        }
+        return null;
+      })
+      .attr('data-sort', function (d) {
+        return (d.isMetric) ? d.val : null;
+      })
+      .on('click', function (d) {
+        if (!d.isMetric && fd.table_filter) {
+          const td = d3.select(this);
+          if (td.classed('filtered')) {
+            slice.removeFilter(d.col, [d.val]);
+            d3.select(this).classed('filtered', false);
+          } else {
+            d3.select(this).classed('filtered', true);
+            slice.addFilter(d.col, [d.val]);
+          }
+        }
+      })
+      .style('cursor', function (d) {
+        return (!d.isMetric) ? 'pointer' : '';
+      })
+      .html(d => d.html ? d.html : d.val);
+
+    datatable = container.find('.dataTable').DataTable({
+      paging: paging,
+      scrollY: true,
+      deferRender: true,
+      pageLength,
+      aaSorting: [],
+      searching: fd.include_search,
+      bInfo: false,
+      buttons: buttons,
+      dom: '<"row table-header"<"col-sm-6"lB><"col-sm-6"f>>' + 
+           '<"row table-body"<"col-sm-12 table-data"tr>>' +
+           '<"row table-footer"<"col-sm-5"i><"col-sm-7"p>>',
+    });
   }
-  const datatable = container.find('.dataTable').DataTable({
-    paging,
-    pageLength,
-    aaSorting: [],
-    searching: fd.include_search,
-    bInfo: false,
-    scrollY: height + 'px',
-    scrollCollapse: true,
-    scrollX: true,
-  });
+  datatable.buttons().container().appendTo('.dataTables_wrapper .col-sm-6:eq(0)');
+
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column

@@ -971,6 +971,20 @@ export const controls = {
     description: 'Whether to include a time filter',
   },
 
+  filter_label: {
+    type: 'CheckboxControl',
+    label: 'Display Label',
+    default: true,
+    description: 'Whether to display a label above each filter',
+  },
+
+  display_metric: {
+    type: 'CheckboxControl',
+    label: 'Display Metric',
+    default: false,
+    description: 'Whether to display the metric number next to the filter option',
+  },
+
   show_datatable: {
     type: 'CheckboxControl',
     label: 'Data Table',
@@ -984,6 +998,13 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: 'Whether to include a client side search box',
+  },
+
+  csv_button: {
+    type: 'CheckboxControl',
+    label: 'CSV Button',
+    default: false,
+    description: 'Whether to include a button to export filtered table to csv',
   },
 
   table_filter: {
