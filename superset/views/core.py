@@ -170,6 +170,12 @@ def generate_download_headers(extension):
 
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
+
+    list_title = _('List Databases')
+    show_title = _('Show Database')
+    add_title = _('Add Database')
+    edit_title = _('Edit Database')
+
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
         'allow_dml', 'creator', 'modified']
@@ -241,6 +247,8 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'sqlalchemy_uri': _("SQLAlchemy URI"),
         'cache_timeout': _("Cache Timeout"),
         'extra': _("Extra"),
+        'allow_run_sync': _("Allow Run Sync"),
+        'allow_run_async': _("Allow Run Async"),
     }
 
     def pre_add(self, db):
@@ -319,9 +327,15 @@ appbuilder.add_view(
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
+
+    list_title = _('List Slices')
+    show_title = _('Show Slice')
+    add_title = _('Add Slice')
+    edit_title = _('Edit Slice')
+
     can_add = False
     label_columns = {
-        'datasource_link': 'Datasource',
+        'datasource_link': _('Datasource'),
     }
     search_columns = (
         'slice_name', 'description', 'viz_type', 'owners',
@@ -415,6 +429,12 @@ appbuilder.add_view_no_menu(SliceAddView)
 
 class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
+
+    list_title = _('List Dashboards')
+    show_title = _('Show Dashboard')
+    add_title = _('Add Dashboard')
+    edit_title = _('Edit Dashboard')
+
     list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
@@ -682,7 +702,8 @@ class Superset(BaseSupersetView):
     @expose("/datasources/")
     def datasources(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
+        datasources = [o.short_data for o in datasources]
+        datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
 
     @has_access_api
@@ -1018,12 +1039,8 @@ class Superset(BaseSupersetView):
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
         error_redirect = '/slicemodelview/list/'
-        datasource = (
-            db.session.query(ConnectorRegistry.sources[datasource_type])
-            .filter_by(id=datasource_id)
-            .one()
-        )
-
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session)
         if not datasource:
             flash(DATASOURCE_MISSING_ERR, "danger")
             return redirect(error_redirect)
@@ -1070,16 +1087,21 @@ class Superset(BaseSupersetView):
             "standalone": standalone,
             "user_id": user_id,
             "forced_height": request.args.get('height'),
+            'common': self.common_bootsrap_payload(),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
             else datasource.datasource_name
+        if slc:
+            title = "[slice] " + slc.slice_name
+        else:
+            title = "[explore] " + table_name
         return self.render_template(
-            "superset/explore.html",
+            "superset/basic.html",
             bootstrap_data=json.dumps(bootstrap_data),
-            slice=slc,
-            standalone_mode=standalone,
-            table_name=table_name)
+            entry='explore',
+            title=title,
+            standalone_mode=standalone)
 
     @api
     @has_access_api
@@ -1094,13 +1116,8 @@ class Superset(BaseSupersetView):
         :return:
         """
         # TODO: Cache endpoint by user, datasource and column
-        datasource_class = ConnectorRegistry.sources[datasource_type]
-        datasource = (
-            db.session.query(datasource_class)
-            .filter_by(id=datasource_id)
-            .first()
-        )
-
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session)
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not self.datasource_access(datasource):
@@ -1324,9 +1341,12 @@ class Superset(BaseSupersetView):
 
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
+        if 'timed_refresh_immune_slices' not in md:
+            md['timed_refresh_immune_slices'] = []
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
+        md['default_filters'] = data.get('default_filters', '')
         dashboard.json_metadata = json.dumps(md, indent=4)
 
     @api
@@ -1374,7 +1394,7 @@ class Superset(BaseSupersetView):
                 .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
-            return json.dumps(engine.table_names(), indent=4)
+            return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
             logging.exception(e)
             return json_error_response((
@@ -1687,9 +1707,11 @@ class Superset(BaseSupersetView):
         dash_save_perm = \
             dash_edit_perm and self.can_access('can_save_dash', 'Superset')
 
+        standalone_mode = request.args.get("standalone") == "true"
+
         dashboard_data = dash.data
         dashboard_data.update({
-            'standalone_mode': request.args.get("standalone") == "true",
+            'standalone_mode': standalone_mode,
             'dash_save_perm': dash_save_perm,
             'dash_edit_perm': dash_edit_perm,
         })
@@ -1698,11 +1720,14 @@ class Superset(BaseSupersetView):
             'user_id': g.user.get_id(),
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
+            'common': self.common_bootsrap_payload(),
         }
 
         return self.render_template(
             "superset/dashboard.html",
-            dashboard_title=dash.dashboard_title,
+            entry='dashboard',
+            standalone_mode=standalone_mode,
+            title='[dashboard] ' + dash.dashboard_title,
             bootstrap_data=json.dumps(bootstrap_data),
         )
 
@@ -1968,7 +1993,7 @@ class Superset(BaseSupersetView):
         schema = request.form.get('schema') or None
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).one()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if not mydb:
             json_error_response(
@@ -2007,11 +2032,12 @@ class Superset(BaseSupersetView):
         query_id = query.id
         session.commit()  # shouldn't be necessary
         if not query_id:
-            raise Exception("Query record was not created as expected.")
+            raise Exception(_("Query record was not created as expected."))
         logging.info("Triggering query_id: {}".format(query_id))
 
         # Async request.
         if async:
+            logging.info("Running query on a Celery worker")
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
@@ -2048,19 +2074,19 @@ class Superset(BaseSupersetView):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
-                payload = json.dumps(data, default=utils.json_iso_dttm_ser)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))
         if data.get('status') == QueryStatus.FAILED:
-            return json_error_response(payload)
-        return json_success(payload)
+            return json_error_response(payload=data)
+        return json_success(json.dumps(data, default=utils.json_iso_dttm_ser))
 
     @has_access
     @expose("/csv/<client_id>")
     @log_this
     def csv(self, client_id):
         """Download the query results as csv."""
+        logging.info("Exporting CSV file [{}]".format(client_id))
         query = (
             db.session.query(Query)
             .filter_by(client_id=client_id)
@@ -2074,14 +2100,20 @@ class Superset(BaseSupersetView):
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
+            logging.info(
+                "Fetching CSV from results backend "
+                "[{}]".format(query.results_key))
             blob = results_backend.get(query.results_key)
         if blob:
+            logging.info("Decompressing")
             json_payload = utils.zlib_decompress_to_string(blob)
             obj = json.loads(json_payload)
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
+            logging.info("Using pandas to convert to CSV")
             csv = df.to_csv(index=False, encoding='utf-8')
         else:
+            logging.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
@@ -2089,6 +2121,7 @@ class Superset(BaseSupersetView):
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
+        logging.info("Ready to return response")
         return response
 
     @has_access
@@ -2097,13 +2130,8 @@ class Superset(BaseSupersetView):
     def fetch_datasource_metadata(self):
         datasource_id, datasource_type = (
             request.args.get('datasourceKey').split('__'))
-        datasource_class = ConnectorRegistry.sources[datasource_type]
-        datasource = (
-            db.session.query(datasource_class)
-            .filter_by(id=int(datasource_id))
-            .first()
-        )
-
+        datasource = ConnectorRegistry.get_datasource(
+            datasource_type, datasource_id, db.session)
         # Check if datasource exists
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -2202,7 +2230,8 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
-        return self.render_template('superset/welcome.html', utils=utils)
+        return self.render_template(
+            'superset/welcome.html', entry='welcome', utils=utils)
 
     @has_access
     @expose("/profile/<username>/")
@@ -2240,12 +2269,14 @@ class Superset(BaseSupersetView):
                 'email': user.email,
                 'roles': roles,
                 'permissions': permissions,
-            }
+            },
+            'common': self.common_bootsrap_payload(),
         }
         return self.render_template(
-            'superset/profile.html',
+            'superset/basic.html',
             title=user.username + "'s profile",
             navbar_container=True,
+            entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser)
         )
 
@@ -2255,9 +2286,11 @@ class Superset(BaseSupersetView):
         """SQL Editor"""
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
+            'common': self.common_bootsrap_payload(),
         }
         return self.render_template(
-            'superset/sqllab.html',
+            'superset/basic.html',
+            entry='sqllab',
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
 appbuilder.add_view_no_menu(Superset)
@@ -2268,6 +2301,9 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
     add_columns = edit_columns
+    label_columns = {
+        'template_name': _('Template Name'),
+    }
 
 
 class CssTemplateAsyncModelView(CssTemplateModelView):

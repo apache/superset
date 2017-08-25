@@ -1,12 +1,5 @@
 {% extends "superset/basic.html" %}
 
-{% block head_js %}
-  {{ super() }}
-  {% with filename="welcome" %}
-    {% include "superset/partials/_script_tag.html" %}
-  {% endwith %}
-{% endblock %}
-
 {% block title %}{{ _("Welcome!") }}{% endblock %}
 
 {% block body %}

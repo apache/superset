@@ -43,7 +43,8 @@ export default class SelectControl extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
   }
   componentWillReceiveProps(nextProps) {
-    if (nextProps.choices !== this.props.choices) {
+    if (nextProps.choices !== this.props.choices ||
+        nextProps.options !== this.props.options) {
       const options = this.getOptions(nextProps);
       this.setState({ options });
     }

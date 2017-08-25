@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import { sectionsToRender } from '../stores/visTypes';
+import { sectionsToRender, visTypes } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -28,11 +28,20 @@ class ControlPanelsContainer extends React.Component {
     this.getControlData = this.getControlData.bind(this);
   }
   getControlData(controlName) {
-    const mapF = controls[controlName].mapStateToProps;
-    if (mapF) {
-      return Object.assign({}, this.props.controls[controlName], mapF(this.props.exploreState));
+    const control = this.props.controls[controlName];
+    // Identifying mapStateToProps function to apply (logic can't be in store)
+    let mapF = controls[controlName].mapStateToProps;
+
+    // Looking to find mapStateToProps override for this viz type
+    const controlOverrides = visTypes[this.props.controls.viz_type.value].controlOverrides || {};
+    if (controlOverrides[controlName] && controlOverrides[controlName].mapStateToProps) {
+      mapF = controlOverrides[controlName].mapStateToProps;
     }
-    return this.props.controls[controlName];
+    // Applying mapStateToProps if needed
+    if (mapF) {
+      return Object.assign({}, control, mapF(this.props.exploreState, control));
+    }
+    return control;
   }
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
@@ -58,13 +67,16 @@ class ControlPanelsContainer extends React.Component {
             <ControlPanelSection
               key={section.label}
               label={section.label}
-              tooltip={section.description}
+              startExpanded={section.expanded}
+              description={section.description}
             >
               {section.controlSetRows.map((controlSets, i) => (
                 <ControlRow
                   key={`controlsetrow-${i}`}
+                  className="control-row"
                   controls={controlSets.map(controlName => (
                     controlName &&
+                    this.props.controls[controlName] &&
                       <Control
                         name={controlName}
                         key={`control-${controlName}`}
@@ -86,12 +98,12 @@ class ControlPanelsContainer extends React.Component {
 
 ControlPanelsContainer.propTypes = propTypes;
 
-function mapStateToProps(state) {
+function mapStateToProps({ explore }) {
   return {
-    alert: state.controlPanelAlert,
-    isDatasourceMetaLoading: state.isDatasourceMetaLoading,
-    controls: state.controls,
-    exploreState: state,
+    alert: explore.controlPanelAlert,
+    isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
+    controls: explore.controls,
+    exploreState: explore,
   };
 }
 

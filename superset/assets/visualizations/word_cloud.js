@@ -1,7 +1,7 @@
 /* eslint-disable  no-use-before-define */
 import d3 from 'd3';
 import cloudLayout from 'd3-cloud';
-import { category21 } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../javascripts/modules/colors';
 
 function wordCloudChart(slice, payload) {
   const chart = d3.select(slice.selector);
@@ -42,7 +42,7 @@ function wordCloudChart(slice, payload) {
     .append('text')
     .style('font-size', d => d.size + 'px')
     .style('font-family', 'Impact')
-    .style('fill', d => category21(d.text))
+    .style('fill', d => getColorFromScheme(d.text, fd.color_scheme))
     .attr('text-anchor', 'middle')
     .attr('transform', d => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
     .text(d => d.text);
