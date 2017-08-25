@@ -853,7 +853,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data.append(d)
         return chart_data
 
-    def get_data(self, df):
+    def process_data(self, df):
         fd = self.form_data
         df = df.fillna(0)
         if fd.get("granularity") == "all":
@@ -909,6 +909,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df = df[num_period_compare:]
 
+        return df
+
+    def get_data(self, df):
+        fd = self.form_data
+        df = self.process_data(df)
         chart_data = self.to_series(df)
 
         time_compare = fd.get('time_compare')
@@ -922,10 +927,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df(query_object)
             df2[DTTM_ALIAS] += delta
-            df2 = df2.pivot_table(
-                index=DTTM_ALIAS,
-                columns=fd.get('groupby'),
-                values=fd.get('metrics'))
+            df2 = self.process_data(df2)
             chart_data += self.to_series(
                 df2, classed='superset', title_suffix="---")
             chart_data = sorted(chart_data, key=lambda x: x['key'])
