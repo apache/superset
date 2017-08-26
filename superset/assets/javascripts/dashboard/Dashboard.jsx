@@ -11,14 +11,20 @@ import AlertsWrapper from '../components/AlertsWrapper';
 
 import '../../stylesheets/dashboard.css';
 
-const px = require('../modules/superset');
+const superset = require('../modules/superset');
 const urlLib = require('url');
 const utils = require('../modules/utils');
+
+let px;
 
 appSetup();
 
 export function getInitialState(boostrapData) {
-  const dashboard = Object.assign({}, utils.controllerInterface, boostrapData.dashboard_data);
+  const dashboard = Object.assign(
+    {},
+    utils.controllerInterface,
+    boostrapData.dashboard_data,
+    { common: boostrapData.common });
   dashboard.firstLoad = true;
 
   dashboard.posDict = {};
@@ -62,7 +68,7 @@ function renderAlert() {
 function initDashboardView(dashboard) {
   render(
     <div>
-      <AlertsWrapper />
+      <AlertsWrapper initMessages={dashboard.common.flash_messages} />
       <Header dashboard={dashboard} />
     </div>,
     document.getElementById('dashboard-header'),
@@ -166,10 +172,6 @@ export function dashboardContainer(dashboard, datasources, userid) {
       }
     },
     effectiveExtraFilters(sliceId) {
-      // Don't filter the filter_box itself by preselect_filters
-      if (this.getSlice(sliceId).formData.viz_type === 'filter_box') {
-        return [];
-      }
       const f = [];
       const immuneSlices = this.metadata.filter_immune_slices || [];
       if (sliceId && immuneSlices.includes(sliceId)) {
@@ -186,6 +188,10 @@ export function dashboardContainer(dashboard, datasources, userid) {
         immuneToFields = this.metadata.filter_immune_slice_fields[sliceId];
       }
       for (const filteringSliceId in this.filters) {
+        if (filteringSliceId === sliceId.toString()) {
+          // Filters applied by the slice don't apply to itself
+          continue;
+        }
         for (const field in this.filters[filteringSliceId]) {
           if (!immuneToFields.includes(field)) {
             f.push({
@@ -364,6 +370,7 @@ $(document).ready(() => {
   const dashboardData = $('.dashboard').data('bootstrap');
 
   const state = getInitialState(dashboardData);
+  px = superset(state);
   const dashboard = dashboardContainer(state.dashboard, state.datasources, state.user_id);
   initDashboardView(dashboard);
   dashboard.init();

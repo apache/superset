@@ -44,6 +44,7 @@ const propTypes = {
   standalone: PropTypes.bool,
   datasourceType: PropTypes.string,
   datasourceId: PropTypes.number,
+  timeout: PropTypes.number,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -148,7 +149,7 @@ class ChartContainer extends React.PureComponent {
   }
 
   runQuery() {
-    this.props.actions.runQuery(this.props.formData, true);
+    this.props.actions.runQuery(this.props.formData, true, this.props.timeout);
   }
 
   updateChartTitle(newTitle) {
@@ -178,7 +179,8 @@ class ChartContainer extends React.PureComponent {
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
     try {
-      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+      const viz = visMap[this.props.viz_type];
+      viz(mockSlice, this.props.queryResponse, this.props.actions.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }
@@ -325,9 +327,9 @@ ChartContainer.propTypes = propTypes;
 function mapStateToProps({ explore, chart }) {
   const formData = getFormDataFromControls(explore.controls);
   return {
-    alert: explore.chartAlert,
-    can_overwrite: explore.can_overwrite,
-    can_download: explore.can_download,
+    alert: chart.chartAlert,
+    can_overwrite: !!explore.can_overwrite,
+    can_download: !!explore.can_download,
     datasource: explore.datasource,
     column_formats: explore.datasource ? explore.datasource.column_formats : null,
     containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
@@ -345,6 +347,7 @@ function mapStateToProps({ explore, chart }) {
     chartUpdateStartTime: chart.chartUpdateStartTime,
     latestQueryFormData: chart.latestQueryFormData,
     queryResponse: chart.queryResponse,
+    timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
   };
 }
 

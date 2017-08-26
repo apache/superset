@@ -4,6 +4,7 @@ import * as v from '../validators';
 export const sections = {
   druidTimeSeries: {
     label: 'Time',
+    expanded: true,
     description: 'Time related form attributes',
     controlSetRows: [
       ['granularity', 'druid_time_origin'],
@@ -12,15 +13,23 @@ export const sections = {
   },
   datasourceAndVizType: {
     label: 'Datasource & Chart Type',
+    expanded: true,
     controlSetRows: [
       ['datasource'],
       ['viz_type'],
       ['slice_id', 'cache_timeout'],
     ],
   },
+  colorScheme: {
+    label: 'Color Scheme',
+    controlSetRows: [
+      ['color_scheme'],
+    ],
+  },
   sqlaTimeSeries: {
     label: 'Time',
     description: 'Time related form attributes',
+    expanded: true,
     controlSetRows: [
       ['granularity_sqla', 'time_grain_sqla'],
       ['since', 'until'],
@@ -36,7 +45,8 @@ export const sections = {
   },
   NVD3TimeSeries: [
     {
-      label: null,
+      label: 'Query',
+      expanded: true,
       controlSetRows: [
         ['metrics'],
         ['groupby'],
@@ -60,14 +70,12 @@ export const sections = {
   filters: [
     {
       label: 'Filters',
-      description: 'Filters are defined using comma delimited strings as in <US,FR,Other>' +
-      'Leave the value control empty to filter empty strings or nulls' +
-      'For filters with comma in values, wrap them in single quotes' +
-      "as in <NY, 'Tahoe, CA', DC>",
+      expanded: true,
       controlSetRows: [['filters']],
     },
     {
       label: 'Result Filters',
+      expanded: true,
       description: 'The filters to apply after post-aggregation.' +
       'Leave the value control empty to filter empty strings or nulls',
       controlSetRows: [['having_filters']],
@@ -81,12 +89,18 @@ export const visTypes = {
     showOnExplore: true,
     controlPanelSections: [
       {
-        label: 'Chart Options',
+        label: 'Query',
         controlSetRows: [
           ['metrics'],
           ['groupby'],
           ['columns'],
           ['row_limit'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
+          ['color_scheme'],
           ['show_legend', 'show_bar_value'],
           ['bar_stacked', 'order_bars'],
           ['y_axis_format', 'bottom_margin'],
@@ -112,13 +126,20 @@ export const visTypes = {
     showOnExplore: true,
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['metrics', 'groupby'],
           ['limit'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
           ['pie_label_type'],
           ['donut', 'show_legend'],
           ['labels_outside'],
+          ['color_scheme'],
         ],
       },
     ],
@@ -133,18 +154,25 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['show_brush', 'show_legend'],
-          ['rich_tooltip', null],
-          ['show_markers', 'x_axis_showminmax'],
+          ['rich_tooltip', 'show_markers'],
           ['line_interpolation', 'contribution'],
         ],
       },
       {
-        label: 'Axes',
+        label: 'X Axis',
         controlSetRows: [
-          ['x_axis_label', 'x_axis_format'],
-          ['y_axis_label', 'y_axis_bounds'],
-          ['y_axis_format', 'y_log_scale'],
+          ['x_axis_label', 'bottom_margin'],
+          ['x_axis_showminmax', 'x_axis_format'],
+        ],
+      },
+      {
+        label: 'Y Axis',
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_showminmax', 'y_log_scale'],
+          ['y_axis_format', 'y_axis_bounds'],
         ],
       },
       sections.NVD3TimeSeries[1],
@@ -164,6 +192,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['x_axis_format'],
         ],
       },
@@ -204,6 +233,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['show_brush', 'show_legend', 'show_bar_value'],
           ['rich_tooltip', 'contribution'],
           ['line_interpolation', 'bar_stacked'],
@@ -237,6 +267,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['x_axis_format', 'y_axis_format'],
         ],
       },
@@ -260,6 +291,7 @@ export const visTypes = {
         controlSetRows: [
           ['show_brush', 'show_legend'],
           ['line_interpolation', 'stacked_style'],
+          ['color_scheme'],
           ['rich_tooltip', 'contribution'],
           ['show_controls', null],
         ],
@@ -278,6 +310,9 @@ export const visTypes = {
       x_axis_format: {
         default: 'smart_date',
         choices: D3_TIME_FORMAT_OPTIONS,
+      },
+      color_scheme: {
+        renderTrigger: false,
       },
     },
   },
@@ -324,7 +359,7 @@ export const visTypes = {
     label: 'Markup',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Code',
         controlSetRows: [
           ['markup_type'],
           ['code'],
@@ -337,12 +372,18 @@ export const visTypes = {
     label: 'Pivot Table',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['groupby', 'columns'],
-          ['metrics', 'pandas_aggfunc'],
+          ['metrics'],
+        ],
+      },
+      {
+        label: 'Pivot Options',
+        controlSetRows: [
+          ['pandas_aggfunc', 'pivot_margins'],
           ['number_format', 'combine_metric'],
-          ['pivot_margins'],
         ],
       },
     ],
@@ -356,8 +397,9 @@ export const visTypes = {
     label: 'Separator',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Code',
         controlSetRows: [
+          ['markup_type'],
           ['code'],
         ],
       },
@@ -377,11 +419,18 @@ export const visTypes = {
     label: 'Word Cloud',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['series', 'metric', 'limit'],
+        ],
+      },
+      {
+        label: 'Options',
+        controlSetRows: [
           ['size_from', 'size_to'],
           ['rotation'],
+          ['color_scheme'],
         ],
       },
     ],
@@ -391,7 +440,8 @@ export const visTypes = {
     label: 'Treemap',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['metrics'],
           ['groupby'],
@@ -400,11 +450,17 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['treemap_ratio'],
           ['number_format'],
         ],
       },
     ],
+    controlOverrides: {
+      color_scheme: {
+        renderTrigger: false,
+      },
+    },
   },
 
   cal_heatmap: {
@@ -412,9 +468,15 @@ export const visTypes = {
     requiresTime: true,
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['metric'],
+        ],
+      },
+      {
+        label: 'Options',
+        controlSetRows: [
           ['domain_granularity'],
           ['subdomain_granularity'],
         ],
@@ -426,7 +488,8 @@ export const visTypes = {
     label: 'Box Plot',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['metrics'],
           ['groupby', 'limit'],
@@ -435,6 +498,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['whisker_options'],
         ],
       },
@@ -445,7 +509,8 @@ export const visTypes = {
     label: 'Bubble Chart',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['series', 'entity'],
           ['size', 'limit'],
@@ -454,6 +519,7 @@ export const visTypes = {
       {
         label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['show_legend', null],
         ],
       },
@@ -466,21 +532,26 @@ export const visTypes = {
       {
         label: 'X Axis',
         controlSetRows: [
+          ['x_axis_label', 'left_margin'],
           ['x', 'x_axis_format'],
-          ['x_axis_label', 'x_log_scale'],
+          ['x_log_scale', 'x_axis_showminmax'],
         ],
       },
       {
         label: 'Y Axis',
         controlSetRows: [
+          ['y_axis_label', 'bottom_margin'],
           ['y', 'y_axis_format'],
-          ['y_axis_label', 'y_log_scale'],
+          ['y_log_scale', 'y_axis_showminmax'],
         ],
       },
     ],
     controlOverrides: {
       x_axis_format: {
         default: '.3s',
+      },
+      color_scheme: {
+        renderTrigger: false,
       },
     },
   },
@@ -490,7 +561,14 @@ export const visTypes = {
     requiresTime: false,
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
+        controlSetRows: [
+          ['metric'],
+        ],
+      },
+      {
+        label: 'Chart Options',
         controlSetRows: [
           ['metric'],
           ['ranges', 'range_labels'],
@@ -505,9 +583,15 @@ export const visTypes = {
     label: 'Big Number with Trendline',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['metric'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
         ],
@@ -524,9 +608,15 @@ export const visTypes = {
     label: 'Big Number',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['metric'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
           ['subheader'],
           ['y_axis_format'],
         ],
@@ -543,15 +633,17 @@ export const visTypes = {
     label: 'Histogram',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['all_columns_x'],
           ['row_limit'],
         ],
       },
       {
-        label: 'Histogram Options',
+        label: 'Chart Options',
         controlSetRows: [
+          ['color_scheme'],
           ['link_length'],
         ],
       },
@@ -573,11 +665,18 @@ export const visTypes = {
     label: 'Sunburst',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['groupby'],
           ['metric', 'secondary_metric'],
           ['row_limit'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
+          ['color_scheme'],
         ],
       },
     ],
@@ -603,11 +702,18 @@ export const visTypes = {
     label: 'Sankey',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['groupby'],
           ['metric'],
           ['row_limit'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
+          ['color_scheme'],
         ],
       },
     ],
@@ -623,7 +729,8 @@ export const visTypes = {
     label: 'Directed Force Layout',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['groupby'],
           ['metric'],
@@ -631,7 +738,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Force Layout',
+        label: 'Options',
         controlSetRows: [
           ['link_length'],
           ['charge'],
@@ -649,11 +756,18 @@ export const visTypes = {
     label: 'Chord Diagram',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['groupby', 'columns'],
-          ['metric'],
-          ['row_limit', 'y_axis_format'],
+          ['metric', 'row_limit'],
+        ],
+      },
+      {
+        label: 'Chart Options',
+        controlSetRows: [
+          ['y_axis_format', null],
+          ['color_scheme'],
         ],
       },
     ],
@@ -680,11 +794,17 @@ export const visTypes = {
     label: 'Country Map',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
-          ['select_country'],
           ['entity'],
           ['metric'],
+        ],
+      },
+      {
+        label: 'Options',
+        controlSetRows: [
+          ['select_country'],
           ['linear_color_scheme'],
         ],
       },
@@ -698,13 +818,17 @@ export const visTypes = {
         label: 'Metric',
         description: 'Metric to display bottom title',
       },
+      linear_color_scheme: {
+        renderTrigger: false,
+      },
     },
   },
   world_map: {
     label: 'World Map',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['entity'],
           ['country_fieldtype'],
@@ -740,11 +864,17 @@ export const visTypes = {
     label: 'Filter Box',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
-          ['date_filter', 'instant_filtering'],
           ['groupby'],
           ['metric'],
+        ],
+      },
+      {
+        label: 'Options',
+        controlSetRows: [
+          ['date_filter', 'instant_filtering'],
         ],
       },
     ],
@@ -766,7 +896,7 @@ export const visTypes = {
     label: 'iFrame',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Options',
         controlSetRows: [
           ['url'],
         ],
@@ -778,12 +908,18 @@ export const visTypes = {
     label: 'Parallel Coordinates',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['series'],
           ['metrics'],
           ['secondary_metric'],
           ['limit'],
+        ],
+      },
+      {
+        label: 'Options',
+        controlSetRows: [
           ['show_datatable', 'include_series'],
         ],
       },
@@ -838,13 +974,13 @@ export const visTypes = {
     label: 'Mapbox',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
           ['all_columns_x', 'all_columns_y'],
           ['clustering_radius'],
           ['row_limit'],
           ['groupby'],
-          ['render_while_dragging'],
         ],
       },
       {
@@ -864,6 +1000,7 @@ export const visTypes = {
       {
         label: 'Visual Tweaks',
         controlSetRows: [
+          ['render_while_dragging'],
           ['mapbox_style'],
           ['global_opacity'],
           ['mapbox_color'],

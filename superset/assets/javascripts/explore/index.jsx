@@ -35,12 +35,12 @@ const bootstrappedState = Object.assign(
     isStarred: false,
     triggerQuery: true,
     triggerRender: false,
-    alert: null,
   },
 );
 
 const initState = {
   chart: {
+    chartAlert: null,
     chartStatus: null,
     chartUpdateEndTime: null,
     chartUpdateStartTime: now(),
@@ -49,18 +49,18 @@ const initState = {
   },
   saveModal: {
     dashboards: [],
+    saveModalAlert: null,
   },
   explore: bootstrappedState,
 };
 const store = createStore(rootReducer, initState,
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-
 ReactDOM.render(
   <Provider store={store}>
     <div>
       <ExploreViewContainer />
-      <AlertsWrapper />
+      <AlertsWrapper initMessages={bootstrappedState.common.flash_messages} />
     </div>
   </Provider>,
   exploreViewContainer,
