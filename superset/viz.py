@@ -143,18 +143,14 @@ class BaseViz(object):
         # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or
-            form_data.get("since") or
-            config.get("SUPERSET_DEFAULT_SINCE", "1 year ago")
+            form_data.get("since")
         )
 
         from_dttm = utils.parse_human_datetime(since)
-        now = datetime.now()
-        if from_dttm > now:
-            from_dttm = now - (from_dttm - now)
 
         until = extra_filters.get('__to') or form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
-        if from_dttm > to_dttm:
+        if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_("From date cannot be larger than to date"))
 
         # extras are used to query elements specific to a datasource type
