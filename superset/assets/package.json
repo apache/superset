@@ -9,7 +9,7 @@
   },
   "scripts": {
     "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
-    "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
+    "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --require ignore-styles spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool inline-source-map",
     "dev-fast": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool eval-cheap-source-map",
     "prod": "NODE_ENV=production node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
@@ -68,6 +68,7 @@
     "react-alert": "^1.0.14",
     "react-bootstrap": "^0.31.2",
     "react-bootstrap-table": "^3.1.7",
+    "react-datetime": "^2.9.0",
     "react-dom": "^15.5.1",
     "react-gravatar": "^2.6.1",
     "react-grid-layout": "^0.14.4",
