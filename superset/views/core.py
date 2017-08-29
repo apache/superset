@@ -1295,13 +1295,28 @@ class Superset(BaseSupersetView):
         session = db.session()
         data = json.loads(request.form.get('data'))
         dash = models.Dashboard()
-        original_dash = (session
-                         .query(models.Dashboard)
-                         .filter_by(id=dashboard_id).first())
+        original_dash = (
+            session
+            .query(models.Dashboard)
+            .filter_by(id=dashboard_id).first())
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data['dashboard_title']
-        dash.slices = original_dash.slices
+        if data['duplicate_slices']:
+            # Duplicating slices as well, mapping old ids to new ones
+            old_to_new_sliceids = {}
+            for slc in original_dash.slices:
+                new_slice = slc.clone()
+                new_slice.owners = [g.user] if g.user else []
+                session.add(new_slice)
+                session.flush()
+                new_slice.dashboards.append(dash)
+                old_to_new_sliceids['{}'.format(slc.id)] =\
+                    '{}'.format(new_slice.id)
+            for d in data['positions']:
+                d['slice_id'] = old_to_new_sliceids[d['slice_id']]
+        else:
+            dash.slices = original_dash.slices
         dash.params = original_dash.params
 
         self._set_dash_metadata(dash, data)
