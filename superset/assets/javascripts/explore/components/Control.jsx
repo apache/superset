@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import BoundsControl from './controls/BoundsControl';
 import CheckboxControl from './controls/CheckboxControl';
 import DatasourceControl from './controls/DatasourceControl';
+import DateFilterControl from './controls/DateFilterControl';
 import FilterControl from './controls/FilterControl';
 import HiddenControl from './controls/HiddenControl';
 import SelectControl from './controls/SelectControl';
@@ -16,6 +17,7 @@ const controlMap = {
   BoundsControl,
   CheckboxControl,
   DatasourceControl,
+  DateFilterControl,
   FilterControl,
   HiddenControl,
   SelectControl,
