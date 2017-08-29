@@ -63,7 +63,7 @@ export default class VizTypeControl extends React.PureComponent {
           src={`/static/assets/images/viz_thumbnails/${vt}.png`}
         />
         <div className="viztype-label">
-          <strong>{visTypes[vt].label}</strong>
+          <strong>{t(visTypes[vt].label)}</strong>
         </div>
       </div>);
   }
@@ -96,7 +96,7 @@ export default class VizTypeControl extends React.PureComponent {
           }
         >
           <Label onClick={this.toggleModal} style={{ cursor: 'pointer' }}>
-            {visTypes[this.props.value].label}
+            { t(visTypes[this.props.value].label) }
           </Label>
         </OverlayTrigger>
         <Modal

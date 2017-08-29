@@ -29,8 +29,8 @@ export default class ControlHeader extends React.Component {
           {this.props.description &&
             <span>
               <InfoTooltipWithTrigger
-                label="descr"
-                tooltip={this.props.description}
+                label="description"
+                tooltip={t(this.props.description)}
                 placement="top"
               />
               {' '}
@@ -40,7 +40,7 @@ export default class ControlHeader extends React.Component {
             <span>
               <InfoTooltipWithTrigger
                 label="bolt"
-                tooltip={this.props.description}
+                tooltip={t(this.props.description)}
                 placement="top"
                 icon="bolt"
               />
@@ -67,7 +67,7 @@ export default class ControlHeader extends React.Component {
               className={labelClass}
               style={{ cursor: this.props.onClick ? 'pointer' : '' }}
             >
-              {this.props.label}
+              {t(this.props.label)}
             </span>
             {' '}
             {(this.props.validationErrors.length > 0) &&

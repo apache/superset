@@ -8,7 +8,7 @@ import { t } from '../locales';
 export function getInitialState(defaultDbId) {
   const defaultQueryEditor = {
     id: shortid.generate(),
-    title: t('Untitled Query'),
+    title: 'Untitled Query',
     sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
     latestQueryId: null,

@@ -1,9 +1,8 @@
 import React from 'react';
 import { Overlay, Popover, FormControl } from 'react-bootstrap';
-import { shallow, mount } from 'enzyme';
+import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-
 import SaveQuery from '../../../javascripts/SqlLab/components/SaveQuery';
 
 describe('SavedQuery', () => {
@@ -30,11 +29,11 @@ describe('SavedQuery', () => {
     expect(wrapper.find(Popover)).to.have.length(1);
   });
   it('pops and hides', () => {
-    const wrapper = mount(<SaveQuery {...mockedProps} />);
+    const wrapper = shallow(<SaveQuery {...mockedProps} />);
     expect(wrapper.state().showSave).to.equal(false);
-    wrapper.find('.toggleSave').simulate('click');
+    wrapper.find('.toggleSave').simulate('click', { target: { value: 'test' } });
     expect(wrapper.state().showSave).to.equal(true);
-    wrapper.find('.toggleSave').simulate('click');
+    wrapper.find('.toggleSave').simulate('click', { target: { value: 'test' } });
     expect(wrapper.state().showSave).to.equal(false);
   });
   it('has a cancel button', () => {

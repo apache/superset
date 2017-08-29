@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
-import { sectionsToRender, visTypes } from '../stores/visTypes';
+import visTypes, { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -63,9 +63,9 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {this.sectionsToRender().map(section => (
+          {this.sectionsToRender().map((section, index) => (
             <ControlPanelSection
-              key={section.label}
+              key={`section.label-${index}`}
               label={section.label}
               startExpanded={section.expanded}
               description={section.description}

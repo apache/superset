@@ -8,7 +8,7 @@ import GridLayout from './components/GridLayout';
 import Header from './components/Header';
 import { appSetup } from '../common';
 import AlertsWrapper from '../components/AlertsWrapper';
-import { t } from '../locales';
+import { setLanguagePack, t } from '../locales';
 import '../../stylesheets/dashboard.css';
 
 const superset = require('../modules/superset');
@@ -367,10 +367,13 @@ $(document).ready(() => {
   // Getting bootstrapped data from the DOM
   utils.initJQueryAjax();
   const dashboardData = $('.dashboard').data('bootstrap');
+  const languagePack = dashboardData.common.language_pack;
 
-  const state = getInitialState(dashboardData);
-  px = superset(state);
-  const dashboard = dashboardContainer(state.dashboard, state.datasources, state.user_id);
-  initDashboardView(dashboard);
-  dashboard.init();
+  setLanguagePack(languagePack).then(() => {
+    const state = getInitialState(dashboardData);
+    px = superset(state);
+    const dashboard = dashboardContainer(state.dashboard, state.datasources, state.user_id);
+    initDashboardView(dashboard);
+    dashboard.init();
+  });
 });

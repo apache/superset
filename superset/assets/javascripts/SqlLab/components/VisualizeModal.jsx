@@ -87,7 +87,7 @@ class VisualizeModal extends React.PureComponent {
       if (!re.test(colName)) {
         hints.push(
           <div>
-            {t('%s is not right as a column name, please alias it ' +
+            {('%s is not right as a column name, please alias it ' +
             '(as in SELECT count(*) ', colName)} <strong>{t('AS my_alias')}</strong>) {t('using only ' +
             'alphanumeric characters and underscores')}
           </div>);
@@ -232,7 +232,7 @@ class VisualizeModal extends React.PureComponent {
       ),
     }));
     const alerts = this.state.hints.map((hint, i) => (
-      <Alert bsStyle="warning" key={i}>{hint}</Alert>
+      <Alert bsStyle="warning" key={i}>{t(hint)}</Alert>
     ));
     const modal = (
       <div className="VisualizeModal">

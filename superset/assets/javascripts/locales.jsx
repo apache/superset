@@ -2,19 +2,9 @@
 import Jed from 'jed';
 import React from 'react';
 import { sprintf } from 'sprintf-js';
-import { langu } from './explore/stores/getLanguage';
 
-const load = System.import('../../translations/zh/LC_MESSAGES/messages.json')
-  .then((data) => {
-    console.log('i am ehre');
-    return new Jed({
-      domain: 'superset',
-      locale_data: {
-        superset: data.locale_data.superset,
-      },
-    });
-  });
-
+let i18n = null;
+let i18nPromise = null;
 
 function formatForReact(formatString, args) {
   const rv = [];
@@ -135,13 +125,40 @@ export function format(formatString, args) {
   return sprintf(formatString, ...args);
 }
 
-export function gettext(string, ...args) {
-  load.then((i18n) => {
+export const setLanguagePack = function (translations) {
+  i18n = new Jed({
+    domain: 'superset',
+    locale_data: {
+      superset: translations.locale_data.superset,
+    },
+  });
+  return Promise.resolve(true);
+};
+
+function gettext(string, ...args) {
+  const doGettext = () => {
+    if (!string || !i18n) {
+      return string;
+    }
     let rv = i18n.gettext(string);
     if (args.length > 0) {
       rv = format(rv, args);
     }
     return rv;
+  };
+
+  if (i18n) {
+    return doGettext();
+  }
+
+  if (!i18nPromise) {
+    i18nPromise = new Promise((res) => {
+      res(setLanguagePack);
+    });
+  }
+
+  return i18nPromise.then(() => {
+    doGettext();
   });
 }
 

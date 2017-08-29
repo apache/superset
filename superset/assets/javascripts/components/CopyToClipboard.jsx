@@ -18,7 +18,7 @@ const defaultProps = {
   onCopyEnd: () => {},
   shouldShowText: true,
   inMenu: false,
-  tooltipText: t('Copy to clipboard'),
+  tooltipText: 'Copy to clipboard',
 };
 
 export default class CopyToClipboard extends React.Component {
@@ -78,7 +78,7 @@ export default class CopyToClipboard extends React.Component {
     if (this.state.hasCopied) {
       return t('Copied!');
     }
-    return this.props.tooltipText;
+    return t(this.props.tooltipText);
   }
 
   renderLink() {
