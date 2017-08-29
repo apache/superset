@@ -38,24 +38,26 @@ const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
         return true;
       }
       return i === countSeriesDisplayed - 1;
-    }).selectAll('rect.positive');
+    }).selectAll('rect');
 
   const groupLabels = svg.select('g.nv-barsWrap').append('g');
   rectsToBeLabeled.each(
     function (d, index) {
       const rectObj = d3.select(this);
-      const transformAttr = rectObj.attr('transform');
-      const yPos = parseFloat(rectObj.attr('y'));
-      const xPos = parseFloat(rectObj.attr('x'));
-      const rectWidth = parseFloat(rectObj.attr('width'));
-      const t = groupLabels.append('text')
-        .attr('x', xPos) // rough position first, fine tune later
-        .attr('y', yPos - 5)
-        .text(format(stacked ? totalStackedValues[index] : d.y))
-        .attr('transform', transformAttr)
-        .attr('class', 'bar-chart-label');
-      const labelWidth = t.node().getBBox().width;
-      t.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+      if (rectObj.attr('class').includes('positive')) {
+        const transformAttr = rectObj.attr('transform');
+        const yPos = parseFloat(rectObj.attr('y'));
+        const xPos = parseFloat(rectObj.attr('x'));
+        const rectWidth = parseFloat(rectObj.attr('width'));
+        const t = groupLabels.append('text')
+          .attr('x', xPos) // rough position first, fine tune later
+          .attr('y', yPos - 5)
+          .text(format(stacked ? totalStackedValues[index] : d.y))
+          .attr('transform', transformAttr)
+          .attr('class', 'bar-chart-label');
+        const labelWidth = t.node().getBBox().width;
+        t.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+      }
     });
 };
 

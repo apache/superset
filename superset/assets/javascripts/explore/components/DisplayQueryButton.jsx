@@ -1,10 +1,15 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { github } from 'react-syntax-highlighter/dist/styles';
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
+import html from 'react-syntax-highlighter/dist/languages/htmlbars';
+import markdown from 'react-syntax-highlighter/dist/languages/markdown';
+import github from 'react-syntax-highlighter/dist/styles/github';
 
 import ModalTrigger from './../../components/ModalTrigger';
 import { t } from '../../locales';
+
+registerLanguage('markdown', markdown);
+registerLanguage('html', html);
 
 const $ = window.$ = require('jquery');
 

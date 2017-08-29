@@ -557,37 +557,17 @@ export const controls = {
   },
 
   since: {
-    type: 'SelectControl',
+    type: 'DateFilterControl',
     freeForm: true,
-    label: 'Since',
+    label: 'Until',
     default: '7 days ago',
-    choices: formatSelectOptions([
-      '1 hour ago',
-      '12 hours ago',
-      '1 day ago',
-      '7 days ago',
-      '28 days ago',
-      '90 days ago',
-      '1 year ago',
-      '100 year ago',
-    ]),
-    description: 'Timestamp from filter. This supports free form typing and ' +
-    'natural language as in `1 day ago`, `28 days` or `3 years`',
   },
 
   until: {
-    type: 'SelectControl',
+    type: 'DateFilterControl',
     freeForm: true,
     label: 'Until',
     default: 'now',
-    choices: formatSelectOptions([
-      'now',
-      '1 day ago',
-      '7 days ago',
-      '28 days ago',
-      '90 days ago',
-      '1 year ago',
-    ]),
   },
 
   max_bubble_size: {
