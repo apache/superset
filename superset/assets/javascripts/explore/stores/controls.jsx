@@ -664,7 +664,7 @@ export const controls = {
       'you may want your "Min Period" to be 7, so that all data points ' +
       'shown are the total of 7 periods. This will hide the "ramp up" ' +
       'taking place over the first 7 periods'
-    )
+    ),
   },
 
   series: {
