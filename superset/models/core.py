@@ -120,6 +120,17 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     def datasource(self):
         return self.get_datasource
 
+    def clone(self):
+        return Slice(
+            slice_name=self.slice_name,
+            datasource_id=self.datasource_id,
+            datasource_type=self.datasource_type,
+            datasource_name=self.datasource_name,
+            viz_type=self.viz_type,
+            params=self.params,
+            description=self.description,
+            cache_timeout=self.cache_timeout)
+
     @datasource.getter
     @utils.memoized
     def get_datasource(self):
