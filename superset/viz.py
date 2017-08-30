@@ -146,6 +146,13 @@ class BaseViz(object):
             form_data.get("since")
         )
 
+        # Backward compatibility hack
+        since_words = since.split(' ')
+        if (
+                len(since_words) == 2 and
+                since_words[1] in ['days', 'years', 'hours', 'day', 'year']):
+            since += ' ago'
+
         from_dttm = utils.parse_human_datetime(since)
 
         until = extra_filters.get('__to') or form_data.get("until", "now")
