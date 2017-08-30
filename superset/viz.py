@@ -886,18 +886,25 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dft = df.T
             df = (dft / dft.sum()).T
 
-        rolling_periods = fd.get("rolling_periods")
         rolling_type = fd.get("rolling_type")
+        rolling_periods = int(fd.get("rolling_periods") or 0)
+        min_periods = int(fd.get("min_periods") or 0)
 
         if rolling_type in ('mean', 'std', 'sum') and rolling_periods:
+            kwargs = dict(
+                arg=df,
+                window=rolling_periods,
+                min_periods=min_periods)
             if rolling_type == 'mean':
-                df = pd.rolling_mean(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_mean(**kwargs)
             elif rolling_type == 'std':
-                df = pd.rolling_std(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_std(**kwargs)
             elif rolling_type == 'sum':
-                df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_sum(**kwargs)
         elif rolling_type == 'cumsum':
             df = df.cumsum()
+        if min_periods:
+            df = df[min_periods:]
 
         num_period_compare = fd.get("num_period_compare")
         if num_period_compare:
@@ -911,7 +918,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = df / df.shift(num_period_compare)
 
             df = df[num_period_compare:]
-
         return df
 
     def get_data(self, df):
