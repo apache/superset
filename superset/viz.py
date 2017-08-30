@@ -155,7 +155,7 @@ class BaseViz(object):
 
         from_dttm = utils.parse_human_datetime(since)
 
-        until = extra_filters.get('__to') or form_data.get("until", "now")
+        until = extra_filters.get('__to') or form_data.get("until") or "now"
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_("From date cannot be larger than to date"))
