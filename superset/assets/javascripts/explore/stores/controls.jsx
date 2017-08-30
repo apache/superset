@@ -559,7 +559,7 @@ export const controls = {
   since: {
     type: 'DateFilterControl',
     freeForm: true,
-    label: 'Until',
+    label: 'Since',
     default: '7 days ago',
   },
 
