@@ -59,11 +59,10 @@ export const sections = {
       'that allow for advanced analytical post processing ' +
       'of query results',
       controlSetRows: [
-        ['rolling_type', 'rolling_periods'],
-        ['time_compare'],
+        ['rolling_type', 'rolling_periods', 'min_periods'],
+        ['time_compare', null],
         ['num_period_compare', 'period_ratio_type'],
-        ['resample_how', 'resample_rule'],
-        ['resample_fillmethod'],
+        ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],
     },
   ],
