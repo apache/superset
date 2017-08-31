@@ -58,7 +58,7 @@ export default class ColorSchemeControl extends React.PureComponent {
     const list = colors.map((color, i) => (
       <li
         key={`${currentScheme}-${i}`}
-        style={{ backgroundColor: color, border: `1px solid ${color === 'white' ? 'black' : color}` }}
+        style={{ backgroundColor: color, border: `1px solid '#D3D3D3'` }}
       >&nbsp;</li>
     ));
     return (<ul className="color-scheme-container">{list}</ul>);
