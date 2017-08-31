@@ -26,15 +26,12 @@ function countryMapChart(slice, payload) {
   d3.select(slice.selector).selectAll('*').remove();
 
   d3.selectAll("div.country_map div#legend").remove();
-  if (fd.show_legend == true) {
+  if (fd.show_maplegend) {
     const map_legend = d3.select("div.country_map");
-    map_legend.append('div').attr('id', 'legend')
+    map_legend.append('div').attr('id', 'legend');
     d3.selectAll("div#legend").append('text').text(fd.metric)
   }
-  else {
-    d3.selectAll("div.country_map div#legend").remove();
-  }
-
+  
   const div = d3.select(slice.selector)
     .append('svg:svg')
     .attr('width', slice.width())

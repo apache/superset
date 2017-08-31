@@ -1041,12 +1041,11 @@ export const controls = {
     description: 'Whether to display bubbles on top of countries',
   },
 
-  show_legend: {
+  show_maplegend: {
     type: 'CheckboxControl',
     label: 'Legend',
-    renderTrigger: true,
     default: true,
-    description: 'Whether to display the legend (toggles)',
+    description: 'Whether to display a legend on the map',
   },
 
   x_axis_showminmax: {

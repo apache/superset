@@ -807,7 +807,7 @@ export const visTypes = {
           ['number_format'],
           ['scale_type','bucket_number'],
           ['linear_color_scheme'],
-          ['show_legend']
+          ['show_maplegend'],
         ],
       },
     ],
