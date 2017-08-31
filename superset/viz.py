@@ -148,9 +148,8 @@ class BaseViz(object):
 
         # Backward compatibility hack
         since_words = since.split(' ')
-        if (
-                len(since_words) == 2 and
-                since_words[1] in ['days', 'years', 'hours', 'day', 'year']):
+        grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
+        if (len(since_words) == 2 and since_words[1] in grains):
             since += ' ago'
 
         from_dttm = utils.parse_human_datetime(since)
