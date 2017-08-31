@@ -120,15 +120,13 @@ class AceEditorWrapper extends React.PureComponent {
     this.setState({ sql: text });
   }
   render() {
-    const { height } = this.props;
     return (
       <AceEditor
-        ref="editor"
         mode="sql"
         theme="github"
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
-        height={height}
+        height={this.props.height}
         onChange={this.textChange.bind(this)}
         width="100%"
         editorProps={{ $blockScrolling: true }}

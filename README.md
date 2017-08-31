@@ -171,6 +171,7 @@ the world know they are using Superset. Join our growing community!
  - [Airbnb](https://github.com/airbnb)
  - [Amino](https://amino.com)
  - [Brilliant.org](https://brilliant.org/)
+ - [Capital Service S.A.](http://capitalservice.pl)
  - [Clark.de](http://clark.de/)
  - [Digit Game Studios](https://www.digitgaming.com/)
  - [Douban](https://www.douban.com/)

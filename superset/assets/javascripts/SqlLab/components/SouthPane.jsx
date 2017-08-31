@@ -4,7 +4,6 @@ import shortid from 'shortid';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import { AutoSizer } from 'react-virtualized';
 
 import * as Actions from '../actions';
 import QueryHistory from './QueryHistory';
@@ -19,6 +18,7 @@ const propTypes = {
   dataPreviewQueries: PropTypes.array.isRequired,
   actions: PropTypes.object.isRequired,
   activeSouthPaneTab: PropTypes.string,
+  height: PropTypes.number,
 };
 
 const defaultProps = {
@@ -26,41 +26,11 @@ const defaultProps = {
 };
 
 class SouthPane extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      innerTabHeight: this.getInnerTabHeight(),
-    };
-  }
-  getInnerTabHeight() {
-    // hack to get height the tab container so it can be fixed and scroll in place
-    // calculate inner tab height
-
-    // document.getElementById('brace-editor').getBoundingClientRect().height;
-    const sqlEditorHeight = 192;
-
-    // document.getElementById('js-sql-toolbar').getBoundingClientRect().height;
-    const sqlToolbar = 30;
-
-    // document.getElementsByClassName('nav-tabs')[0].getBoundingClientRect().height * 2;
-    const tabsHeight = 88;
-
-    // document.getElementsByTagName('header')[0].getBoundingClientRect().height;
-    const headerHeight = 59;
-
-    const sum =
-      sqlEditorHeight +
-      sqlToolbar +
-      tabsHeight +
-      headerHeight;
-
-    return window.innerHeight - sum - 95;
-  }
-
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
   render() {
+    const innerTabHeight = this.props.height - 55;
     let latestQuery;
     const props = this.props;
     if (props.editorQueries.length > 0) {
@@ -69,28 +39,13 @@ class SouthPane extends React.PureComponent {
     let results;
     if (latestQuery) {
       results = (
-        <AutoSizer
-          disableWidth
-        >
-          {({ height }) => {
-            /*
-             checking of the height probably won't be necessary
-             after release of react-virtualized v10
-            */
-            if (height !== 0) {
-              return (
-                <ResultSet
-                  showControls
-                  search
-                  query={latestQuery}
-                  actions={props.actions}
-                  height={height}
-                />
-              );
-            }
-            return <div />;
-          }}
-        </AutoSizer>
+        <ResultSet
+          showControls
+          search
+          query={latestQuery}
+          actions={props.actions}
+          height={innerTabHeight}
+        />
       );
     } else {
       results = <Alert bsStyle="info">Run a query to display results here</Alert>;
@@ -102,36 +57,20 @@ class SouthPane extends React.PureComponent {
         eventKey={query.id}
         key={query.id}
       >
-        <AutoSizer
-          disableWidth
-        >
-          {({ height }) => {
-            /*
-             checking of the height probably won't be necessary
-             after release of react-virtualized v10
-            */
-            if (height !== 0) {
-              return (
-                <ResultSet
-                  query={query}
-                  visualize={false}
-                  csv={false}
-                  actions={props.actions}
-                  cache
-                  height={height}
-                />
-              );
-            }
-            return <div />;
-          }}
-        </AutoSizer>
+        <ResultSet
+          query={query}
+          visualize={false}
+          csv={false}
+          actions={props.actions}
+          cache
+          height={innerTabHeight}
+        />
       </Tab>
     ));
 
     return (
       <div className="SouthPane">
         <Tabs
-          className="Tabs"
           bsStyle="tabs"
           id={shortid.generate()}
           activeKey={this.props.activeSouthPaneTab}
@@ -147,7 +86,7 @@ class SouthPane extends React.PureComponent {
             title="Query History"
             eventKey="History"
           >
-            <div className="QueryHistoryWrapper">
+            <div style={{ height: `${innerTabHeight}px`, overflow: 'scroll' }}>
               <QueryHistory queries={props.editorQueries} actions={props.actions} />
             </div>
           </Tab>

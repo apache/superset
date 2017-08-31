@@ -1,8 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { github } from 'react-syntax-highlighter/dist/styles';
+
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
+import sql from 'react-syntax-highlighter/dist/languages/sql';
+import github from 'react-syntax-highlighter/dist/styles/github';
+
 import ModalTrigger from '../../components/ModalTrigger';
+
+registerLanguage('sql', sql);
 
 const defaultProps = {
   maxWidth: 50,
@@ -26,8 +31,8 @@ class HighlightedSql extends React.Component {
     };
   }
   shrinkSql() {
-    const sql = this.props.sql || '';
-    let lines = sql.split('\n');
+    const ssql = this.props.sql || '';
+    let lines = ssql.split('\n');
     if (lines.length >= this.props.maxLines) {
       lines = lines.slice(0, this.props.maxLines);
       lines.push('{...}');

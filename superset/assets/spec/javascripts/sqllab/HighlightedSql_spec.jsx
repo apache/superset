@@ -28,7 +28,9 @@ describe('HighlightedSql', () => {
     const pre = wrapper.find('pre');
     expect(pre).to.have.length(1);
     pre.simulate('click');
-    const modalBody = mount(wrapper.state().modalBody);
-    expect(modalBody.find(SyntaxHighlighter)).to.have.length(2);
+    setTimeout(() => {
+      const modalBody = mount(wrapper.state().modalBody);
+      expect(modalBody.find(SyntaxHighlighter)).to.have.length(2);
+    }, 10);
   });
 });

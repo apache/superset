@@ -86,8 +86,3 @@ export function getShortUrl(longUrl, callback) {
     },
   });
 }
-
-export function getTopOffset(element) {
-  const box = element.getBoundingClientRect();
-  return box.top + window.pageYOffset - document.documentElement.clientTop;
-}

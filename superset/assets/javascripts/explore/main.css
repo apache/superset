@@ -86,3 +86,17 @@
 .control-panel-section span.label {
   display: inline-block;
 }
+.input-inline {
+  float: left;
+  display: inline-block;
+  padding-right: 3px;
+}
+.input-inline .Select-control {
+  display: flex;
+}
+.input-inline .Select-control .Select-arrow-zone {
+  width: auto;
+  position: absolute;
+  right: 0;
+  top: 12px;
+}
