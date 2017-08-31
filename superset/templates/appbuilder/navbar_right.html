@@ -9,7 +9,7 @@
        <div class="f16"><i class="flag {{languages[locale].get('flag')}}"></i><b class="caret"></b>
        </div>
     </a>
-    <ul class="dropdown-menu">
+    <ul class="dropdown-menu" id="language-picker">
       <li class="dropdown">
         {% for lang in languages %}
             {% if lang != locale %}

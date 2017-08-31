@@ -1,28 +1,17 @@
-import { beforeEach, describe, it } from 'mocha';
+import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import * as r from '../../../javascripts/SqlLab/reducers';
 import * as actions from '../../../javascripts/SqlLab/actions';
 import { alert, table, initialState } from './fixtures';
-import { setLanguagePack } from '../../../javascripts/locales';
 
 describe('sqlLabReducer', () => {
   describe('CLONE_QUERY_TO_NEW_TAB', () => {
     const testQuery = { sql: 'SELECT * FROM...', dbId: 1, id: 'flasj233' };
     let newState = Object.assign({}, initialState, { queries: { [testQuery.id]: testQuery } });
-    setLanguagePack({
-      domain: 'superset',
-      locale_data: {
-        superset: {
-          '': {
-            domain: 'superset',
-            lang: 'en',
-            plural_forms: 'nplurals=1; plural=0',
-          },
-        },
-      },
+    beforeEach(() => {
+      newState = r.sqlLabReducer(newState, actions.cloneQueryToNewTab(testQuery));
     });
-    newState = r.sqlLabReducer(newState, actions.cloneQueryToNewTab(testQuery));
 
     it('should have at most one more tab', () => {
       expect(newState.queryEditors).have.length(2);
