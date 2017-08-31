@@ -143,7 +143,7 @@ class BaseViz(object):
         # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or
-            form_data.get("since")
+            form_data.get("since") or ''
         )
 
         # Backward compatibility hack
