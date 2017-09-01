@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import { Checkbox } from 'react-bootstrap';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
@@ -8,6 +7,7 @@ import { shallow } from 'enzyme';
 
 import CheckboxControl from '../../../../javascripts/explore/components/controls/CheckboxControl';
 import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+import Checkbox from '../../../../javascripts/components/Checkbox';
 
 const defaultProps = {
   name: 'show_legend',

@@ -27,3 +27,7 @@ table.table thead th.sorting:after, table.table thead th.sorting_asc:after, tabl
 .like-pre {
   white-space: pre-wrap;
 }
+
+.widget.table thead tr {
+  height: 25px;
+}

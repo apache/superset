@@ -41,6 +41,7 @@ class CoreTests(SupersetTestCase):
     def setUp(self):
         db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
+        db.session.query(models.Log).delete()
 
     def tearDown(self):
         db.session.query(Query).delete()
@@ -466,6 +467,7 @@ class CoreTests(SupersetTestCase):
             positions.append(d)
         data = {
             'css': '',
+            'duplicate_slices': False,
             'expanded_slices': {},
             'positions': positions,
             'dashboard_title': 'Copy Of Births',
@@ -726,7 +728,22 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp('/superset/fave_dashboards_by_username/{}/'.format(username))
         self.assertNotIn('message', data)
 
+    def test_slice_id_is_always_logged_correctly_on_web_request(self):
+        # superset/explore case
+        slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
+        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
+        self.get_resp(slc.slice_url)
+        self.assertEqual(1, qry.count())
+
+    def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
+        # superset/explore_json case
+        self.login(username="admin")
+        slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
+        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
+        slc_url = slc.slice_url.replace("explore", "explore_json")
+        self.get_json_resp(slc_url)
+        self.assertEqual(1, qry.count())
+
 
 if __name__ == '__main__':
     unittest.main()
-

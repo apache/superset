@@ -557,37 +557,17 @@ export const controls = {
   },
 
   since: {
-    type: 'SelectControl',
+    type: 'DateFilterControl',
     freeForm: true,
     label: 'Since',
     default: '7 days ago',
-    choices: formatSelectOptions([
-      '1 hour ago',
-      '12 hours ago',
-      '1 day ago',
-      '7 days ago',
-      '28 days ago',
-      '90 days ago',
-      '1 year ago',
-      '100 year ago',
-    ]),
-    description: 'Timestamp from filter. This supports free form typing and ' +
-    'natural language as in `1 day ago`, `28 days` or `3 years`',
   },
 
   until: {
-    type: 'SelectControl',
+    type: 'DateFilterControl',
     freeForm: true,
     label: 'Until',
     default: 'now',
-    choices: formatSelectOptions([
-      'now',
-      '1 day ago',
-      '7 days ago',
-      '28 days ago',
-      '90 days ago',
-      '1 year ago',
-    ]),
   },
 
   max_bubble_size: {
@@ -672,6 +652,19 @@ export const controls = {
     isInt: true,
     description: 'Defines the size of the rolling window function, ' +
     'relative to the time granularity selected',
+  },
+
+  min_periods: {
+    type: 'TextControl',
+    label: 'Min Periods',
+    isInt: true,
+    description: (
+      'The minimum number of rolling periods required to show ' +
+      'a value. For instance if you do a cumulative sum on 7 days ' +
+      'you may want your "Min Period" to be 7, so that all data points ' +
+      'shown are the total of 7 periods. This will hide the "ramp up" ' +
+      'taking place over the first 7 periods'
+    ),
   },
 
   series: {

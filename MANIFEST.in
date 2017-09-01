@@ -2,6 +2,7 @@ recursive-include superset/templates *
 recursive-include superset/static *
 recursive-exclude superset/static/docs *
 recursive-exclude superset/static/spec *
+recursive-exclude superset/static/assets/node_modules *
 recursive-exclude tests *
 recursive-include superset/data *
 recursive-include superset/migrations *

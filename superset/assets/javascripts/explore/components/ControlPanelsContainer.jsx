@@ -67,11 +67,13 @@ class ControlPanelsContainer extends React.Component {
             <ControlPanelSection
               key={section.label}
               label={section.label}
-              tooltip={section.description}
+              startExpanded={section.expanded}
+              description={section.description}
             >
               {section.controlSetRows.map((controlSets, i) => (
                 <ControlRow
                   key={`controlsetrow-${i}`}
+                  className="control-row"
                   controls={controlSets.map(controlName => (
                     controlName &&
                     this.props.controls[controlName] &&
