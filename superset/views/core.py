@@ -386,7 +386,22 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        session = db.create_scoped_session()
+
+        roles = get_user_roles()
+        perms = set()
+        for role in roles:
+            _perms = {p.view_menu.name for p in role.permissions
+                      if p.permission.name in ['all_datasource_access', 'datasource_access']}
+            perms = perms.union(_perms)
+
+        role_names_set = {r.name for r in roles}
+        if role_names_set.intersection(['Admin', 'Alpha']) or 'all_datasource_access' in perms:
+            datasources = ConnectorRegistry.get_all_datasources(db.session)
+        else:
+            perms.discard('all_datasource_access')
+            datasources = ConnectorRegistry.get_datasources_by_permissions(session, perms)
+
         datasources = [
             {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
             for d in datasources
