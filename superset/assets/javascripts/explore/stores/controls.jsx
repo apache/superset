@@ -213,7 +213,7 @@ export const controls = {
     choices: [
       ['threshold', 'linear threshold'],
       ['quantile', 'quantile'],
-      ['quantize', 'quantize'], 
+      ['quantize', 'quantize'],
     ],
     default: 'linear',
     description: 'The type of scale you want to apply to your dataset.',
@@ -1388,6 +1388,7 @@ export const controls = {
     description: 'The color scheme for rendering chart',
     schemes: ALL_COLOR_SCHEMES,
   },
-  
+
 };
+
 export default controls;

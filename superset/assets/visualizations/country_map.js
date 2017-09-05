@@ -12,10 +12,16 @@ function countryMapChart(slice, payload) {
   let resultText;
   const container = slice.container;
   const data = payload.data;
-  const number_format = d3.format(fd.number_format);
-  const map_legend = d3.select("div.country_map");
+  const numberFormat = d3.format(fd.number_format);
+  const mapLegend = d3.select('div.country_map');
 
-  const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric, fd.bucket_number, fd.scale_type);
+  const colorScaler = colorScalerFactory(
+    fd.linear_color_scheme,
+    data,
+    v => v.metric,
+    fd.bucket_number,
+    fd.scale_type
+  );
   const colorMap = {};
   data.forEach((d) => {
     colorMap[d.country_id] = colorScaler(d.metric);
@@ -27,10 +33,10 @@ function countryMapChart(slice, payload) {
   d3.select(slice.selector).selectAll('*').remove();
 
   if (fd.show_map_legend) {
-    map_legend.append('div').attr('id', 'legend');
-    d3.selectAll("div#legend").append('text').text(fd.metric)
+    mapLegend.append('div').attr('id', 'legend');
+    d3.selectAll('div#legend').append('text').text(fd.metric)
   } else {
-    d3.selectAll("div.country_map div#legend").remove();
+    d3.selectAll('div.country_map div#legend').remove();
   }
   
   const div = d3.select(slice.selector)
@@ -101,7 +107,7 @@ function countryMapChart(slice, payload) {
 
   const updateMetrics = function (region) {
     if (region.length > 0) {
-      resultText.text((number_format(region[0].metric)));
+      resultText.text((numberFormat(region[0].metric)));
     }
   };
 
@@ -141,24 +147,24 @@ function countryMapChart(slice, payload) {
     .attr('x', 20)
     .attr('y', 60);
 
-      //adding legend to map
-  var legend = d3.select('#legend')
+  // Adding legend to map
+  const legend = d3.select('#legend')
    .append('ul')
    .attr('class', 'list-inline');
 
-  var keys = legend.selectAll('li.key')
+  const keys = legend.selectAll('li.key')
     .data(colorScaler.range());
 
   keys.enter().append('li')
     .attr('class', 'key')
     .style('border-top-color', String)
     .text(
-      function(d) {
-        var r = colorScaler.invertExtent(d);
+      function (d) {
+        const r = colorScaler.invertExtent(d);
         if (r[0] == null) {
-          return number_format(d3.min(data, v => v.metric));
+          return numberFormat(d3.min(data, v => v.metric));
         } else {
-          return (number_format(r[0]));
+          return (numberFormat(r[0]));
         }
       });
 

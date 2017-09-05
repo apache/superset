@@ -2453,7 +2453,7 @@
     "show_map_legend": {
       "type": "CheckboxControl",
       "label": "Map Legend",
-      "default": false,
+      "default": true,
       "description": "Whether to apply filter when table cell is clicked"
     },
     "x_axis_showminmax": {

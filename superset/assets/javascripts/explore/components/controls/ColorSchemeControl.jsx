@@ -47,13 +47,13 @@ export default class ColorSchemeControl extends React.PureComponent {
 
     let colors = currentScheme;
     if (this.props.isLinear) {
-        let linearDomain = [];
-        for (let x = 0; x < currentScheme.length; x++) {
-          linearDomain.push(x / currentScheme.length);
-        }
-        const colorScaler = d3.scale.linear().domain(linearDomain).range(currentScheme);
-        colors = [...Array(20).keys()].map(d => (colorScaler(d / 20)));
+      const linearDomain = [];
+      for (let x = 0; x < currentScheme.length; x++) {
+        linearDomain.push(x / currentScheme.length);
       }
+      const colorScaler = d3.scale.linear().domain(linearDomain).range(currentScheme);
+      colors = [...Array(20).keys()].map(d => (colorScaler(d / 20)));
+    }
 
     const list = colors.map((color, i) => (
       <li
