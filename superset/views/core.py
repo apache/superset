@@ -2010,7 +2010,6 @@ class Superset(BaseSupersetView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
-        user_name = g.user.username
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2062,7 +2061,7 @@ class Superset(BaseSupersetView):
             try:
                 sql_lab.get_sql_results.delay(
                     query_id=query_id, return_results=False,
-                    store_results=not query.select_as_cta, user_name=user_name)
+                    store_results=not query.select_as_cta, user_name=g.user.username)
             except Exception as e:
                 logging.exception(e)
                 msg = (
@@ -2093,7 +2092,7 @@ class Superset(BaseSupersetView):
                     ).format(**locals())):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
-                    query_id=query_id, return_results=True, user_name=user_name)
+                    query_id=query_id, return_results=True)
         except Exception as e:
             logging.exception(e)
             return json_error_response("{}".format(e))
