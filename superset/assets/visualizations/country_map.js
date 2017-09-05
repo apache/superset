@@ -13,6 +13,7 @@ function countryMapChart(slice, payload) {
   const container = slice.container;
   const data = payload.data;
   const number_format = d3.format(fd.number_format);
+  const map_legend = d3.select("div.country_map");
 
   const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric, fd.bucket_number, fd.scale_type);
   const colorMap = {};
@@ -25,11 +26,11 @@ function countryMapChart(slice, payload) {
   path = d3.geo.path();
   d3.select(slice.selector).selectAll('*').remove();
 
-  d3.selectAll("div.country_map div#legend").remove();
-  if (fd.show_maplegend) {
-    const map_legend = d3.select("div.country_map");
+  if (fd.show_map_legend) {
     map_legend.append('div').attr('id', 'legend');
     d3.selectAll("div#legend").append('text').text(fd.metric)
+  } else {
+    d3.selectAll("div.country_map div#legend").remove();
   }
   
   const div = d3.select(slice.selector)
