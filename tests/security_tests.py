@@ -235,5 +235,5 @@ class DatasourceAccessTests(SupersetTestCase):
         url = '/slicemodelview/add'
         resp = self.client.get(url)
 
-        self.assertIn('table_for_test_role', resp.data)
-        self.assertNotIn('table_not_for_test_role', resp.data)
+        self.assertIn('table_for_test_role', str(resp.data))
+        self.assertNotIn('table_not_for_test_role', str(resp.data))
