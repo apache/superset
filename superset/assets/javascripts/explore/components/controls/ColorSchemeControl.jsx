@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
-import { colorScalerFactory } from '../../../modules/colors';
 import d3 from 'd3';
 
 const propTypes = {
