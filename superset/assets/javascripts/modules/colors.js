@@ -176,8 +176,7 @@ export const colorScalerFactory = function (colors, data, accessor, bucket = 40,
     return d3.scale.quantile().domain(data.map(accessor)).range(newColors);
   } else if (scale === 'quantize') {
     return d3.scale.quantize().domain(data.map(accessor)).range(newColors);
-  } else if  (scale === 'threshold')  {
+  } else if (scale === 'threshold') {
     return d3.scale.threshold().domain(points).range(newColors);
   }
-
 };

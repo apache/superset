@@ -162,13 +162,9 @@ function countryMapChart(slice, payload) {
       function (d) {
         const r = colorScaler.invertExtent(d);
         if (r[0] == null) {
-
           return numberFormat(d3.min(data, v => v.metric));
-
         }
-          
         return (numberFormat(r[0]));
-
       });
 
   const url = `/static/assets/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;
