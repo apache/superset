@@ -20,7 +20,7 @@ function countryMapChart(slice, payload) {
     data,
     v => v.metric,
     fd.bucket_number,
-    fd.scale_type
+    fd.scale_type,
   );
   const colorMap = {};
   data.forEach((d) => {
@@ -34,11 +34,11 @@ function countryMapChart(slice, payload) {
 
   if (fd.show_map_legend) {
     mapLegend.append('div').attr('id', 'legend');
-    d3.selectAll('div#legend').append('text').text(fd.metric)
+    d3.selectAll('div#legend').append('text').text(fd.metric);
   } else {
     d3.selectAll('div.country_map div#legend').remove();
   }
-  
+
   const div = d3.select(slice.selector)
     .append('svg:svg')
     .attr('width', slice.width())
@@ -162,10 +162,13 @@ function countryMapChart(slice, payload) {
       function (d) {
         const r = colorScaler.invertExtent(d);
         if (r[0] == null) {
+
           return numberFormat(d3.min(data, v => v.metric));
-        } else {
-          return (numberFormat(r[0]));
+
         }
+          
+        return (numberFormat(r[0]));
+
       });
 
   const url = `/static/assets/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;

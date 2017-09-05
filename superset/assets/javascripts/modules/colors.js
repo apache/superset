@@ -159,14 +159,14 @@ export const colorScalerFactory = function (colors, data, accessor, bucket = 40,
 
   const linearDomain = [];
   for (let i = 0; i < colors.length; i++) {
-    linearDomain.push( i / colors.length );
+    linearDomain.push(i / colors.length);
   }
 
   const newColors = [];
   const colorScaler = d3.scale.linear().domain(linearDomain).range(colors);
 
   for (let i = 0; i < bucket; i++) {
-    newColors.push(colorScaler( i / bucket ));
+    newColors.push(colorScaler(i / bucket));
   }
 
   for (let i = 1; i < bucket; i++) {
@@ -176,7 +176,7 @@ export const colorScalerFactory = function (colors, data, accessor, bucket = 40,
     return d3.scale.quantile().domain(data.map(accessor)).range(newColors);
   } else if (scale === 'quantize') {
     return d3.scale.quantize().domain(data.map(accessor)).range(newColors);
-  } else {
+  } else if  (scale === 'threshold')  {
     return d3.scale.threshold().domain(points).range(newColors);
   }
 
