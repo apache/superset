@@ -57,9 +57,14 @@ class BaseViz(object):
             'token', 'token_' + uuid.uuid4().hex[:8])
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
+        self.verbose_metrics = [self.get_name(n) for n in self.metrics]
+        self.verbose_groupby = [self.get_name(n) for n in self.groupby]
 
         self.status = None
         self.error_message = None
+
+    def get_name(self, name):
+        return self.datasource.data.get('verbose_map', dict()).get(name, name)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -103,6 +108,10 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna(0)
+            df.rename(
+                index=str,
+                columns={n: self.get_name(n) for n in df.columns},
+                inplace=True)
         return df
 
     def get_extra_filters(self):
@@ -164,8 +173,10 @@ class BaseViz(object):
         extras = {
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
-            'having_druid': form_data.get('having_filters') \
-                if 'having_filters' in form_data else [],
+            'having_druid':
+                form_data.get('having_filters')
+                if 'having_filters' in form_data
+                else [],
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
@@ -408,7 +419,7 @@ class PivotTableViz(BaseViz):
         df = df.pivot_table(
             index=self.form_data.get('groupby'),
             columns=self.form_data.get('columns'),
-            values=self.form_data.get('metrics'),
+            values=self.verbose_metrics,
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=self.form_data.get('pivot_margins'),
         )
@@ -863,8 +874,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         df = df.pivot_table(
             index=DTTM_ALIAS,
-            columns=fd.get('groupby'),
-            values=fd.get('metrics'))
+            columns=self.verbose_groupby,
+            values=self.verbose_metrics)
 
         fm = fd.get("resample_fillmethod")
         if not fm:
