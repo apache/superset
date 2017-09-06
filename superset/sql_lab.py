@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from time import sleep
 from datetime import datetime
 import json
@@ -174,7 +176,7 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
             schema=query.schema, nullpool=not ctask.request.called_directly)
         conn = engine.raw_connection()
         cursor = conn.cursor()
-        logging.info("Running query: \n{}".format(executed_sql))
+        logging.info(u"Running query: \n{}".format(executed_sql))
         logging.info(query.executed_sql)
         cursor.execute(
             query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
