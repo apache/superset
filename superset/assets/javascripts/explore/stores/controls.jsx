@@ -203,7 +203,7 @@ export const controls = {
     type: 'SelectControl',
     label: 'Number of Buckets',
     choices: formatSelectOptions(['3', '4', '5', '6', '7', '8', '9', '10', '11', '12']),
-    default: '3',
+    default: '7',
     description: 'The number of buckets want to break your dataset into.',
   },
 
@@ -215,7 +215,7 @@ export const controls = {
       ['quantile', 'quantile'],
       ['quantize', 'quantize'],
     ],
-    default: 'linear',
+    default: 'threshold',
     description: 'The type of scale you want to apply to your dataset.',
   },
 
