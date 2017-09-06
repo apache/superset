@@ -39,7 +39,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max', 'is_dttm']
     page_size = 500
     description_columns = {
@@ -91,7 +91,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression': _("Expression"),
         'is_dttm': _("Is temporal"),
         'python_date_format': _("Datetime Format"),
-        'database_expression': _("Database Expression")
+        'database_expression': _("Database Expression"),
+        'type': _('Type'),
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
@@ -133,6 +134,8 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'metric_type': _("Type"),
         'expression': _("SQL Expression"),
         'table': _("Table"),
+        'd3format': _("D3 Format"),
+        'is_restricted': _('Is Restricted')
     }
 
     def post_add(self, metric):
@@ -157,8 +160,6 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     list_columns = [
         'link', 'database',
         'changed_by_', 'modified']
-    order_columns = [
-        'link', 'database', 'changed_on_']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
         'table_name', 'sql', 'filter_select_enabled', 'slices',
@@ -216,11 +217,14 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
         'changed_on_': _("Last Changed"),
         'filter_select_enabled': _("Enable Filter Select"),
         'schema': _("Schema"),
-        'default_endpoint': _(
-            "Redirects to this endpoint when clicking on the datasource "
-            "from the datasource list"),
+        'default_endpoint': _('Default Endpoint'),
         'offset': _("Offset"),
         'cache_timeout': _("Cache Timeout"),
+        'table_name': _("Table Name"),
+        'fetch_values_predicate': _('Fetch Values Predicate'),
+        'owner': _("Owner"),
+        'main_dttm_col': _("Main Datetime Column"),
+        'description': _('Description'),
     }
 
     def pre_add(self, table):
@@ -239,11 +243,11 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
             table.get_sqla_table_object()
         except Exception as e:
             logging.exception(e)
-            raise Exception(
+            raise Exception(_(
                 "Table [{}] could not be found, "
                 "please double check your "
                 "database connection, schema, and "
-                "table name".format(table.name))
+                "table name").format(table.name))
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()

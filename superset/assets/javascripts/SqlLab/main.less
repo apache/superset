@@ -130,9 +130,6 @@ div.Workspace {
     display: inline-block;
     background-color: #ccc;
 }
-.Pane2 {
-    width: 0;
-}
 .running {
     background-color: lime;
     color: black;
@@ -161,7 +158,6 @@ div.Workspace {
     margin: 0px;
     border: none;
     font-size: 12px;
-    line-height: @line-height-base;
     background-color: transparent !important;
 }
 
@@ -265,7 +261,7 @@ div.tablePopover:hover {
 }
 
 .QueryTable .label {
-    margin-top: 5px;
+    display: inline-block;
 }
 
 .ResultsModal .modal-body {
@@ -292,4 +288,7 @@ a.Link {
 }
 .tooltip-inner {
     max-width: 500px;
+}
+.SouthPane {
+    margin-top: 10px;
 }

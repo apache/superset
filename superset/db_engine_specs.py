@@ -351,6 +351,17 @@ class MySQLEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
+    @classmethod
+    def extract_error_message(cls, e):
+        """Extract error message for queries"""
+        message = str(e)
+        try:
+            if isinstance(e.args, tuple) and len(e.args) > 1:
+                message = e.args[1]
+        except:
+            pass
+        return message
+
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
@@ -497,9 +508,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 isinstance(e.orig[0], dict)):
             error_dict = e.orig[0]
             return '{} at {}: {}'.format(
-                error_dict['errorName'],
-                error_dict['errorLocation'],
-                error_dict['message']
+                error_dict.get('errorName'),
+                error_dict.get('errorLocation'),
+                error_dict.get('message'),
             )
         return utils.error_msg_from_exception(e)
 
@@ -676,10 +687,28 @@ class HiveEngineSpec(PrestoEngineSpec):
             db, datasource_type, force=force)
 
     @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+        elif tt == 'TIMESTAMP':
+            return "CAST('{}' AS TIMESTAMP)".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         if selected_schema:
             uri.database = selected_schema
         return uri
+
+    @classmethod
+    def extract_error_message(cls, e):
+        try:
+            msg = e.message.status.errorMessage
+        except:
+            msg = str(e)
+        return msg
 
     @classmethod
     def progress(cls, log_lines):
@@ -967,6 +996,31 @@ class BQEngineSpec(BaseEngineSpec):
         Grain("month", _('month'), "TIMESTAMP_TRUNC({col}, MONTH)"),
         Grain("quarter", _('quarter'), "TIMESTAMP_TRUNC({col}, QUARTER)"),
         Grain("year", _('year'), "TIMESTAMP_TRUNC({col}, YEAR)"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
+        else:
+            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class ImpalaEngineSpec(BaseEngineSpec):
+    """Engine spec for Cloudera's Impala"""
+
+    engine = 'impala'
+
+    time_grains = (
+        Grain("Time Column", _('Time Column'), "{col}"),
+        Grain("minute", _('minute'), "TRUNC({col}, 'MI')"),
+        Grain("hour", _('hour'), "TRUNC({col}, 'HH')"),
+        Grain("day", _('day'), "TRUNC({col}, 'DD')"),
+        Grain("week", _('week'), "TRUNC({col}, 'WW')"),
+        Grain("month", _('month'), "TRUNC({col}, 'MONTH')"),
+        Grain("quarter", _('quarter'), "TRUNC({col}, 'Q')"),
+        Grain("year", _('year'), "TRUNC({col}, 'YYYY')"),
     )
 
     @classmethod

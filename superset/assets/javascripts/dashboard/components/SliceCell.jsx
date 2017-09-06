@@ -2,6 +2,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import { getExploreUrl } from '../../explore/exploreUtils';
+
 const propTypes = {
   slice: PropTypes.object.isRequired,
   removeSlice: PropTypes.func.isRequired,
@@ -40,7 +42,10 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
               >
                 <i className="fa fa-pencil" />
               </a>
-              <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
+              <a href={getExploreUrl(slice.form_data, 'csv')} title="Export CSV" data-toggle="tooltip">
+                <i className="fa fa-table" />
+              </a>
+              <a href={getExploreUrl(slice.form_data)} title="Explore chart" data-toggle="tooltip">
                 <i className="fa fa-share" />
               </a>
               <a

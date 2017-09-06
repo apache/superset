@@ -24,7 +24,10 @@ from superset.stats_logger import DummyStatsLogger
 STATS_LOGGER = DummyStatsLogger()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
+if 'SUPERSET_HOME' in os.environ:
+    DATA_DIR = os.environ['SUPERSET_HOME']
+else:
+    DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
@@ -246,6 +249,8 @@ class CeleryConfig(object):
   CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
   CELERYD_LOG_LEVEL = 'DEBUG'
+  CELERYD_PREFETCH_MULTIPLIER = 1
+  CELERY_ACKS_LATE = True
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None

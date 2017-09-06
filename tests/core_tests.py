@@ -11,13 +11,10 @@ import logging
 import io
 import random
 import unittest
-import os
-import csv
-import sys
 
 from flask import escape
 
-from superset import app, db, utils, appbuilder, sm, jinja_context, sql_lab
+from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
@@ -44,6 +41,7 @@ class CoreTests(SupersetTestCase):
     def setUp(self):
         db.session.query(Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
+        db.session.query(models.Log).delete()
 
     def tearDown(self):
         db.session.query(Query).delete()
@@ -383,6 +381,42 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
         self.assertIn("SUCCESS", resp)
 
+    def test_save_dash_with_filter(self, username='admin'):
+        self.login(username=username)
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="world_health").first()
+        positions = []
+        for i, slc in enumerate(dash.slices):
+            d = {
+                'col': 0,
+                'row': i * 4,
+                'size_x': 4,
+                'size_y': 4,
+                'slice_id': '{}'.format(slc.id)}
+            positions.append(d)
+
+        filters = {str(dash.slices[0].id): {'region': ['North America']}}
+        default_filters = json.dumps(filters)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': dash.dashboard_title,
+            'default_filters': default_filters
+        }
+
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.assertIn("SUCCESS", resp)
+
+        updatedDash = db.session.query(models.Dashboard).filter_by(
+            slug="world_health").first()
+        new_url = updatedDash.url
+        self.assertIn("region", new_url)
+
+        resp = self.get_resp(new_url)
+        self.assertIn("North America", resp)
+
     def test_save_dash_with_dashboard_title(self, username='admin'):
         self.login(username=username)
         dash = (
@@ -433,6 +467,7 @@ class CoreTests(SupersetTestCase):
             positions.append(d)
         data = {
             'css': '',
+            'duplicate_slices': False,
             'expanded_slices': {},
             'positions': positions,
             'dashboard_title': 'Copy Of Births',
@@ -693,44 +728,21 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp('/superset/fave_dashboards_by_username/{}/'.format(username))
         self.assertNotIn('message', data)
 
-    def test_import_csv(self):
-        self.login(username='admin')
+    def test_slice_id_is_always_logged_correctly_on_web_request(self):
+        # superset/explore case
+        slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
+        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
+        self.get_resp(slc.slice_url)
+        self.assertEqual(1, qry.count())
 
-        os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
-        con = app.config.get('SQLALCHEMY_DATABASE_URI')
-
-        if sys.version_info[0] == 2:
-            test_file = open('tests/testCSV.csv', 'w+b')
-            csv_writer = csv.writer(test_file)
-            csv_writer.writerow(['Column 1', 'Column 2'])
-            csv_writer.writerow(['Test 1', 'Test 2'])
-        elif sys.version_info[0] == 3:
-            test_file = open('tests/testCSV.csv' , 'ab+')
-            test_file.write(b'Column 1, Column 2\n')
-            test_file.write(b'Column 3, Column 4')
-        test_file.seek(0)
-
-        form_data = {'csv_file': test_file,
-                            'sep': ',',
-                            'name': 'TestName',
-                            'con': con,
-                            'if_exists': 'append',
-                            'index_label': 'test_label',
-                            'chunksize': 1,
-                            'mangle_dupe_cols': True}
-
-        url = '/databaseview/list/'
-        add_datasource_page = self.get_resp(url)
-        assert 'Add CSV Table to Database' in add_datasource_page
-
-        url = '/csvtodatabaseview/form'
-        form_get = self.get_resp(url)
-        assert 'CSV to Database configuration' in form_get
-
-        self.login(username='admin')
-        form_post = self.get_resp(url, data=form_data)
-        assert 'CSV file "tests_testCSV.csv" uploaded to table' in form_post
-        os.remove('tests/testCSV.csv')
+    def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
+        # superset/explore_json case
+        self.login(username="admin")
+        slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
+        qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
+        slc_url = slc.slice_url.replace("explore", "explore_json")
+        self.get_json_resp(slc_url)
+        self.assertEqual(1, qry.count())
 
 
 if __name__ == '__main__':

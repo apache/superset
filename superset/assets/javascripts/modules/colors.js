@@ -2,7 +2,7 @@ import $ from 'jquery';
 import d3 from 'd3';
 
 // Color related utility functions go in this object
-export const bnbColors = [
+const bnbColors = [
   '#ff5a5f', // rausch
   '#7b0051', // hackb
   '#007A87', // kazan
@@ -25,8 +25,55 @@ export const bnbColors = [
   '#b37e00',
   '#988b4e',
 ];
+const d3Category10 = d3.scale.category10().range();
+const d3Category20 = d3.scale.category20().range();
+const d3Category20b = d3.scale.category20b().range();
+const d3Category20c = d3.scale.category20c().range();
+const googleCategory10c = [
+  '#3366cc',
+  '#dc3912',
+  '#ff9900',
+  '#109618',
+  '#990099',
+  '#0099c6',
+  '#dd4477',
+  '#66aa00',
+  '#b82e2e',
+  '#316395',
+];
+const googleCategory20c = [
+  '#3366cc',
+  '#dc3912',
+  '#ff9900',
+  '#109618',
+  '#990099',
+  '#0099c6',
+  '#dd4477',
+  '#66aa00',
+  '#b82e2e',
+  '#316395',
+  '#994499',
+  '#22aa99',
+  '#aaaa11',
+  '#6633cc',
+  '#e67300',
+  '#8b0707',
+  '#651067',
+  '#329262',
+  '#5574a6',
+  '#3b3eac',
+];
+export const ALL_COLOR_SCHEMES = {
+  bnbColors,
+  d3Category10,
+  d3Category20,
+  d3Category20b,
+  d3Category20c,
+  googleCategory10c,
+  googleCategory20c,
+};
 
-const spectrums = {
+export const spectrums = {
   blue_white_yellow: [
     '#00d1c1',
     'white',
@@ -48,21 +95,25 @@ const spectrums = {
   ],
 };
 
-export const category21 = (function () {
+export const getColorFromScheme = (function () {
   // Color factory
   const seen = {};
-  return function (s) {
+  return function (s, scheme) {
     if (!s) {
       return;
     }
+    const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
     let stringifyS = String(s);
     // next line is for superset series that should have the same color
     stringifyS = stringifyS.replace('---', '');
-    if (seen[stringifyS] === undefined) {
-      seen[stringifyS] = Object.keys(seen).length;
+    if (seen[selectedScheme] === undefined) {
+      seen[selectedScheme] = {};
+    }
+    if (seen[selectedScheme][stringifyS] === undefined) {
+      seen[selectedScheme][stringifyS] = Object.keys(seen[selectedScheme]).length;
     }
     /* eslint consistent-return: 0 */
-    return bnbColors[seen[stringifyS] % bnbColors.length];
+    return selectedScheme[seen[selectedScheme][stringifyS] % selectedScheme.length];
   };
 }());
 

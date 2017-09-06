@@ -61,10 +61,12 @@ class TableColumn(Model, BaseColumn):
 
     def get_time_filter(self, start_dttm, end_dttm):
         col = self.sqla_col.label('__time')
-        return and_(
-            col >= text(self.dttm_sql_literal(start_dttm)),
-            col <= text(self.dttm_sql_literal(end_dttm)),
-        )
+        l = []
+        if start_dttm:
+            l.append(col >= text(self.dttm_sql_literal(start_dttm)))
+        if end_dttm:
+            l.append(col <= text(self.dttm_sql_literal(end_dttm)))
+        return and_(*l)
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
@@ -191,6 +193,10 @@ class SqlaTable(Model, BaseDatasource):
 
     def __repr__(self):
         return self.name
+
+    @property
+    def connection(self):
+        return str(self.database)
 
     @property
     def description_markeddown(self):
@@ -360,7 +366,6 @@ class SqlaTable(Model, BaseDatasource):
             columns=None,
             form_data=None):
         """Querying any sqla table from this common interface"""
-
         template_kwargs = {
             'from_dttm': from_dttm,
             'groupby': groupby,
@@ -574,9 +579,9 @@ class SqlaTable(Model, BaseDatasource):
         try:
             table = self.get_sqla_table_object()
         except Exception:
-            raise Exception(
+            raise Exception(_(
                 "Table doesn't seem to exist in the specified database, "
-                "couldn't fetch column information")
+                "couldn't fetch column information"))
 
         TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa

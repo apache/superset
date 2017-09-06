@@ -28,6 +28,7 @@ class ControlPanelsContainer extends React.Component {
     this.getControlData = this.getControlData.bind(this);
   }
   getControlData(controlName) {
+    const control = this.props.controls[controlName];
     // Identifying mapStateToProps function to apply (logic can't be in store)
     let mapF = controls[controlName].mapStateToProps;
 
@@ -38,9 +39,9 @@ class ControlPanelsContainer extends React.Component {
     }
     // Applying mapStateToProps if needed
     if (mapF) {
-      return Object.assign({}, this.props.controls[controlName], mapF(this.props.exploreState));
+      return Object.assign({}, control, mapF(this.props.exploreState, control));
     }
-    return this.props.controls[controlName];
+    return control;
   }
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
@@ -66,13 +67,16 @@ class ControlPanelsContainer extends React.Component {
             <ControlPanelSection
               key={section.label}
               label={section.label}
-              tooltip={section.description}
+              startExpanded={section.expanded}
+              description={section.description}
             >
               {section.controlSetRows.map((controlSets, i) => (
                 <ControlRow
                   key={`controlsetrow-${i}`}
+                  className="control-row"
                   controls={controlSets.map(controlName => (
                     controlName &&
+                    this.props.controls[controlName] &&
                       <Control
                         name={controlName}
                         key={`control-${controlName}`}
@@ -94,12 +98,12 @@ class ControlPanelsContainer extends React.Component {
 
 ControlPanelsContainer.propTypes = propTypes;
 
-function mapStateToProps(state) {
+function mapStateToProps({ explore }) {
   return {
-    alert: state.controlPanelAlert,
-    isDatasourceMetaLoading: state.isDatasourceMetaLoading,
-    controls: state.controls,
-    exploreState: state,
+    alert: explore.controlPanelAlert,
+    isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
+    controls: explore.controls,
+    exploreState: explore,
   };
 }
 

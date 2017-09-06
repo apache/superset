@@ -1,6 +1,6 @@
 /* eslint-disable no-shadow, no-param-reassign, no-underscore-dangle, no-use-before-define */
 import d3 from 'd3';
-import { category21 } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../javascripts/modules/colors';
 
 require('./treemap.css');
 
@@ -185,7 +185,7 @@ function treemap(slice, payload) {
           .text(function (d) { return formatNumber(d.value); });
       t.call(text);
       g.selectAll('rect')
-          .style('fill', function (d) { return category21(d.name); });
+          .style('fill', function (d) { return getColorFromScheme(d.name, formData.color_scheme); });
 
       return g;
     };
@@ -218,7 +218,7 @@ function treemap(slice, payload) {
     const name = function (d) {
       return d.parent
           ? name(d.parent) + ' / ' + d.name + ' (' + formatNumber(d.value) + ')'
-          : d.name + ' (' + formatNumber(d.value) + ')';
+          : (slice.datasource.verbose_map[d.name] || d.name) + ' (' + formatNumber(d.value) + ')';
     };
 
     initialize(data);

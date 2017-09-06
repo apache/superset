@@ -116,7 +116,8 @@ never be affected by any dashboard level filtering.
         "filter_immune_slice_fields": {
             "177": ["country_name", "__from", "__to"],
             "32": ["__from", "__to"]
-        }
+        },
+        "timed_refresh_immune_slices": [324]
     }
 
 In the json blob above, slices 324, 65 and 92 won't be affected by any
@@ -133,15 +134,33 @@ But what happens with filtering when dealing with slices coming from
 different tables or databases? If the column name is shared, the filter will
 be applied, it's as simple as that.
 
+
+How to limit the timed refresh on a dashboard?
+----------------------------------------------
+By default, the dashboard timed refresh feature allows you to automatically requery every slice on a dashboard according to a set schedule. Sometimes, however, you won't want all of the slices to be refreshed - especially if some data is slow moving, or run heavy queries.
+To exclude specific slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard ``JSON Metadata`` field:
+
+..code::
+
+    {
+       "filter_immune_slices": [],
+        "expanded_slices": {},
+        "filter_immune_slice_fields": {},
+        "timed_refresh_immune_slices": [324]
+    }
+
+In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will be automatically requeried on schedule.
+
+
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
 -----------------------------------------------------------------------------------------
-superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
+By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
 
 __ https://www.sqlite.org/lockingv3.html
 
-One work around is to create a symlink from ~/.superset to a directory located on a non-NFS partition.
+You can override this path using the ``SUPERSET_HOME`` environment variable.
 
-Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/localtion/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
+Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
 
 How do I add new columns to an existing table
 ---------------------------------------------
@@ -161,3 +180,28 @@ How do I go about developing a new visualization type?
 Here's an example as a Github PR with comments that describe what the
 different sections of the code do:
 https://github.com/airbnb/superset/pull/3013
+
+What database engine can I use as a backend for Superset?
+---------------------------------------------------------
+
+To clarify, the *database backend* is an OLTP database used by Superset to store its internal
+information like your list of users, slices and dashboard definitions.
+
+Superset is tested using Mysql, Postgresql and Sqlite for its backend. It's recommended you
+install Superset on one of these database server for production.
+
+Using a column-store, non-OLTP databases like Vertica, Redshift or Presto as a database backend simply won't work as these databases are not designed for this type of workload. Installation on Oracle, Microsoft SQL Server, or other OLTP databases may work but isn't tested.
+
+Please note that pretty much any databases that have a SqlAlchemy integration should work perfectly fine as a datasource for Superset, just not as the OLTP backend.
+
+How can i configure OAuth authentication and authorization?
+-----------------------------------------------------------
+
+You can take a look at this Flask-AppBuilder `configuration example 
+<https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py>`_.
+
+How can I set a default filter on my dashboard?
+-----------------------------------------------
+
+Easy. Simply apply the filter and save the dashboard while the filter
+is active.

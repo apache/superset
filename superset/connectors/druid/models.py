@@ -69,11 +69,11 @@ class DruidCluster(Model, AuditMixinNullable):
     # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(255))
-    coordinator_port = Column(Integer)
+    coordinator_port = Column(Integer, default=8081)
     coordinator_endpoint = Column(
         String(255), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(255))
-    broker_port = Column(Integer)
+    broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
@@ -353,6 +353,10 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def database(self):
         return self.cluster
+
+    @property
+    def connection(self):
+        return str(self.database)
 
     @property
     def num_cols(self):
@@ -813,6 +817,7 @@ class DruidDatasource(Model, BaseDatasource):
         """
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
+
         if not is_timeseries:
             granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm

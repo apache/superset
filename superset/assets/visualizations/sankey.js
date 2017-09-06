@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
-import { category21 } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../javascripts/modules/colors';
 import './sankey.css';
 
 d3.sankey = require('d3-sankey').sankey;
@@ -138,7 +138,7 @@ function sankeyVis(slice, payload) {
     .attr('width', sankey.nodeWidth())
     .style('fill', function (d) {
       const name = d.name || 'N/A';
-      d.color = category21(name.replace(/ .*/, ''));
+      d.color = getColorFromScheme(name.replace(/ .*/, ''), slice.formData.color_scheme);
       return d.color;
     })
     .style('stroke', function (d) {

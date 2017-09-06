@@ -10,8 +10,8 @@ import { initJQueryAjax } from '../modules/utils';
 import App from './components/App';
 import { appSetup } from '../common';
 
-import './main.css';
-import './reactable-pagination.css';
+import './main.less';
+import '../../stylesheets/reactable-pagination.css';
 import '../components/FilterableTable/FilterableTableStyles.css';
 
 appSetup();
