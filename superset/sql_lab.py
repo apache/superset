@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from time import sleep
 from datetime import datetime
 import json
@@ -34,8 +36,8 @@ def dedup(l, suffix='__'):
     Always returns the same number of entries as provided, and always returns
     unique values.
 
-    >>> dedup(['foo', 'bar', 'bar', 'bar'])
-    ['foo', 'bar', 'bar__1', 'bar__2']
+    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
+    foo,bar,bar__1,bar__2
     """
     new_l = []
     seen = {}
