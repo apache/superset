@@ -597,7 +597,7 @@ class Database(Model, AuditMixinNullable):
             params['poolclass'] = NullPool
         uri = self.db_engine_spec.adjust_database_uri(uri, schema)
         if self.impersonate_user:
-            uri.user = user_name if user_name != None else g.user.username
+            uri.username = user_name if user_name != None else g.user.username
         return create_engine(uri, **params)
 
     def get_reserved_words(self):

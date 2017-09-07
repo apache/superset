@@ -57,13 +57,13 @@ class DatabaseModelTestCase(unittest.TestCase):
 
     def test_database_impersonate_user(self):
         uri = 'mysql://root@localhost'
-        user_name = 'giuseppe'
+        example_user = 'giuseppe'
         model = Database(sqlalchemy_uri=uri)
 
         model.impersonate_user = True
-        user_name = make_url(model.get_sqla_engine(user_name=user_name).url).user
-        self.assertEquals(user_name, user_name)
+        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
+        self.assertEquals(example_user, user_name)
 
         model.impersonate_user = False
-        url = make_url(model.get_sqla_engine(user_name=user_name).url)
-        self.assertFalse(hasattr(url, 'user'))
+        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
+        self.assertNotEquals(example_user, user_name)
