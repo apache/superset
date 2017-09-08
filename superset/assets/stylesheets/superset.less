@@ -340,13 +340,22 @@ iframe {
 }
 
 // overwrite react-select css
-.Select-multi-value-wrapper .Select-input {
-  display: inline-block;
-  width: 100px;
+.Select--multi {
+  .Select-multi-value-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    padding-bottom: 3px;
+  }
+
+  .Select-value {
+    line-height: 1.2;
+  }
+
+  .Select-input > input {
+    width: 100px;
+  }
 }
-.Select--multi .Select-value {
-  line-height: 1.2;
-}
+
 .dimmed {
   opacity: 0.5;
 }
