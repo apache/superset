@@ -582,8 +582,8 @@ class Database(Model, AuditMixinNullable):
 
     def set_sqlalchemy_uri(self, uri):
         password_mask = "X" * 10
-        conn = sqla.engine.url.make_url(uri)
-        if conn.password != password_mask and not self.custom_password_store:
+        conn = sqla.engine.url.make_url(uri.strip())
+        if conn.password != password_mask:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn.password = password_mask if conn.password else None
