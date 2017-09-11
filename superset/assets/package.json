@@ -57,6 +57,7 @@
     "lodash.throttle": "^4.1.1",
     "moment": "^2.14.1",
     "mustache": "^2.2.1",
+    "npm": "^5.4.1",
     "nvd3": "1.8.6",
     "prop-types": "^15.5.8",
     "react": "^15.5.1",
