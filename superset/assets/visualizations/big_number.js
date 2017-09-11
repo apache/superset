@@ -8,7 +8,7 @@ import '../stylesheets/d3tip.css';
 function wrap(text, width) {
   text.each(function () {
     const ntext = d3.select(this);
-    const words = text.text().split(/\s+/).reverse();
+    const words = text.text().split(/\s+/);
     let word;
     let line = [];
     let lineNumber = 0;
@@ -20,7 +20,8 @@ function wrap(text, width) {
       .append('tspan')
       .attr('x', x).attr('y', y)
       .attr('dy', dy + 'em');
-    while (word = words.pop()) {
+    for (let i = 0; i < words.length; i++) {
+      word = words[i];
       line.push(word);
       tspan.text(line.join(' '));
       if (tspan.node().getComputedTextLength() > width) {
