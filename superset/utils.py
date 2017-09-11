@@ -676,6 +676,8 @@ def setup_cache(app, cache_config):
     """Setup the flask-cache on a flask app"""
     if cache_config and cache_config.get('CACHE_TYPE') != 'null':
         return Cache(app, config=cache_config)
+    # By default setup a no-op cache
+    return Cache(app, config={'CACHE_TYPE': 'null'})
 
 
 def zlib_compress(data):

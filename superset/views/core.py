@@ -57,7 +57,6 @@ log_this = models.Log.log_this
 can_access = utils.can_access
 DAR = models.DatasourceAccessRequest
 
-
 ALL_DATASOURCE_ACCESS_ERR = __(
     'This endpoint requires the `all_datasource_access` permission')
 DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
@@ -1236,15 +1235,19 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @cache.memoize(timeout=300)
     @expose('/filter/<datasource_type>/<datasource_id>/<column>/')
-    def filter(self, datasource_type, datasource_id, column):
+    @expose("/filter/<datasource_type>/<datasource_id>/<column>/<limit>/")
+    @expose("/filter/<datasource_type>/<datasource_id>/<column>/<limit>/<search_string>")
+    def filter(self, datasource_type, datasource_id, column, limit=0, search_string=None):
         """
         Endpoint to retrieve values for specified column.
 
         :param datasource_type: Type of datasource e.g. table
         :param datasource_id: Datasource id
         :param column: Column name to retrieve values for
-        :return:
+        :param limit: Return at most these entries (default: 10000)
+        :return: search_string: Only return columns containing the search_string
         """
         # TODO: Cache endpoint by user, datasource and column
         datasource = ConnectorRegistry.get_datasource(
@@ -1255,10 +1258,9 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
         payload = json.dumps(
-            datasource.values_for_column(
-                column,
-                config.get('FILTER_SELECT_ROW_LIMIT', 10000),
-            ),
+            datasource.values_for_column(column_name=column,
+            limit=limit if limit else config.get('FILTER_SELECT_ROW_LIMIT', 10000),
+            search_string=search_string),
             default=utils.json_int_dttm_ser)
         return json_success(payload)
 

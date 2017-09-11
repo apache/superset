@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 from multiprocessing.pool import ThreadPool
+import re
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -913,7 +914,8 @@ class DruidDatasource(Model, BaseDatasource):
 
     def values_for_column(self,
                           column_name,
-                          limit=10000):
+                          limit=10000,
+                          search_string=None):
         """Retrieve some values for the given column"""
         logging.info(
             'Getting values for columns [{}] limited to [{}]'
@@ -934,10 +936,27 @@ class DruidDatasource(Model, BaseDatasource):
             threshold=limit,
         )
 
+        if search_string:
+            # Druid can't make the regex case-insensitive :(
+            pattern = ''.join([
+                '[{0}{1}]'.format(c.upper(), c.lower())
+                if c.isalpha() else re.escape(c)
+                for c in search_string])
+
+            filter_params = {
+                'type': 'regex',
+                'dimension': column_name,
+                'pattern': '.*{}.*'.format(pattern),
+            }
+            qry['filter'] = Filter(**filter_params)
+
         client = self.cluster.get_pydruid_client()
         client.topn(**qry)
         df = client.export_pandas()
-        return [row[column_name] for row in df.to_records(index=False)]
+        if (df.values.any()):
+            return [row[column_name] for row in df.to_records(index=False)]
+        else:
+            return []
 
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
