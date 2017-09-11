@@ -390,6 +390,38 @@ class DruidTests(SupersetTestCase):
         assert all_metrics == ['aCustomMetric']
         assert set(post_aggs.keys()) == result_postaggs
 
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_values_for_column(self, py_druid):
+        ds = 'test_datasource'
+        column = 'test_column'
+        search_string = "$t1"  # difficult test string
+
+        datasource = self.get_or_create(
+            DruidDatasource, {'datasource_name': ds},
+            db.session)
+        druid = py_druid()
+        datasource.cluster.get_pydruid_client = Mock(return_value=druid)
+
+        # search_string
+        datasource.values_for_column(column_name=column, limit=5,
+                                     search_string=search_string)
+
+        assert druid.topn.call_args[1]['datasource'] == ds
+        assert druid.topn.call_args[1]['granularity'] == 'all'
+        assert druid.topn.call_args[1]['metric'] == 'count'
+        assert druid.topn.call_args[1]['dimension'] == column
+        assert druid.topn.call_args[1]['threshold'] == 5
+
+        # test filter
+        assert(druid.topn.call_args[1]['filter']
+               .filter['filter']['dimension'] == column)
+        assert(druid.topn.call_args[1]['filter']
+               .filter['filter']['pattern'] == '.*\\$[Tt]1.*')
+
+        # no search_string
+        datasource.values_for_column(column_name=column)
+        assert not druid.topn.call_args[1].get('filter')
+
 
 if __name__ == '__main__':
     unittest.main()

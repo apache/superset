@@ -183,7 +183,6 @@ class CoreTests(SupersetTestCase):
         assert slc.slice_name == new_slice_name
         db.session.delete(slc)
 
-
     def test_filter_endpoint(self):
         self.login(username='admin')
         slice_name = "Energy Sankey"
@@ -199,8 +198,28 @@ class CoreTests(SupersetTestCase):
             "datasource_id=1&datasource_type=table")
 
         # Changing name
-        resp = self.get_resp(url.format(tbl_id, slice_id))
-        assert len(resp) > 0
+        resp = json.loads(self.get_resp(url.format(tbl_id, slice_id)))
+        assert len(resp) > 1
+        assert 'Carbon Dioxide' in resp
+
+        # Limit to 3
+        url = (
+            "/superset/filter/table/{}/target/3?viz_type=sankey&groupby=source"
+            "&metric=sum__value&flt_col_0=source&flt_op_0=in&flt_eq_0=&"
+            "slice_id={}&datasource_name=energy_usage&"
+            "datasource_id=1&datasource_type=table")
+        resp = json.loads(self.get_resp(url.format(tbl_id, slice_id)))
+        assert len(resp) == 3
+
+        # With search_string = "carbon"
+        url = (
+            "/superset/filter/table/{}/target/100/carbon?"
+            "viz_type=sankey&groupby=source&"
+            "metric=sum__value&flt_col_0=source&flt_op_0=in&flt_eq_0=&"
+            "slice_id={}&datasource_name=energy_usage&"
+            "datasource_id=1&datasource_type=table")
+        resp = json.loads(self.get_resp(url.format(tbl_id, slice_id)))
+        assert len(resp) == 1
         assert 'Carbon Dioxide' in resp
 
     def test_slices(self):

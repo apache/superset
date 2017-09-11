@@ -10,8 +10,8 @@ from sqlalchemy import (
     DateTime,
 )
 import sqlalchemy as sa
-from sqlalchemy import asc, and_, desc, select
-from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy import asc, and_, desc, select, String as SqlString
+from sqlalchemy.sql.expression import cast, TextAsFrom
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import table, literal_column, text, column
 
@@ -20,7 +20,9 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 
 from superset import db, utils, import_util, sm
-from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
+from superset.connectors.base.models import (
+    BaseDatasource, BaseColumn, BaseMetric
+)
 from superset.utils import DTTM_ALIAS, QueryStatus
 from superset.models.helpers import QueryResult
 from superset.models.core import Database
@@ -106,7 +108,8 @@ class TableColumn(Model, BaseColumn):
 
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
-            return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+            return self.database_expression.format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
         elif tf == 'epoch_s':
             return str((dttm - datetime(1970, 1, 1)).total_seconds())
         elif tf == 'epoch_ms':
@@ -285,7 +288,7 @@ class SqlaTable(Model, BaseDatasource):
             d['time_grain_sqla'] = grains
         return d
 
-    def values_for_column(self, column_name, limit=10000):
+    def values_for_column(self, column_name, limit=10000, search_string=None):
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
@@ -299,6 +302,14 @@ class SqlaTable(Model, BaseDatasource):
             .select_from(self.get_from_clause(tp, db_engine_spec))
             .distinct(column_name)
         )
+
+        if search_string:
+            # cast to String in case we want to search for numeric values
+            qry = qry.where(
+                cast(target_col.sqla_col, SqlString(length=100)).ilike(
+                    '%%{}%%'.format(search_string))).order_by(
+                        target_col.sqla_col)
+
         if limit:
             qry = qry.limit(limit)
 
@@ -711,6 +722,7 @@ class SqlaTable(Model, BaseDatasource):
         if schema:
             query = query.filter_by(schema=schema)
         return query.all()
+
 
 sa.event.listen(SqlaTable, 'after_insert', set_perm)
 sa.event.listen(SqlaTable, 'after_update', set_perm)
