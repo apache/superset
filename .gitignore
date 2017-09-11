@@ -35,3 +35,5 @@ npm-debug.log
 yarn.lock
 superset/assets/version_info.json
 
+# IntelliJ
+*.iml
