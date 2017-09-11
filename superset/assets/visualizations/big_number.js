@@ -5,6 +5,38 @@ import { d3FormatPreset, d3TimeFormatPreset } from '../javascripts/modules/utils
 import './big_number.css';
 import '../stylesheets/d3tip.css';
 
+function wrap(text, width) {
+  text.each(function () {
+    const ntext = d3.select(this);
+    const words = text.text().split(/\s+/).reverse();
+    let word;
+    let line = [];
+    let lineNumber = 0;
+    const lineHeight = 1.1; // ems
+    const y = ntext.attr('y');
+    const x = ntext.attr('x');
+    const dy = parseFloat(ntext.attr('dy'));
+    let tspan = ntext.text(null)
+      .append('tspan')
+      .attr('x', x).attr('y', y)
+      .attr('dy', dy + 'em');
+    while (word = words.pop()) {
+      line.push(word);
+      tspan.text(line.join(' '));
+      if (tspan.node().getComputedTextLength() > width) {
+        line.pop();
+        tspan.text(line.join(' '));
+        line = [word];
+        tspan = ntext.append('tspan')
+          .attr('x', x)
+          .attr('y', y)
+          .attr('dy', ++lineNumber * lineHeight + dy + 'em')
+          .text(word);
+      }
+    }
+  });
+}
+
 function bigNumberVis(slice, payload) {
   const div = d3.select(slice.selector);
   // Define the percentage bounds that define color from red to green
@@ -84,10 +116,12 @@ function bigNumberVis(slice, payload) {
     g.append('text')
     .attr('x', width / 2)
     .attr('y', (height / 16) * 12)
+    .attr('dy', '-0.1em')
     .text(json.subheader)
     .attr('id', 'subheader_text')
     .style('font-size', d3.min([height, width]) / 8)
-    .style('text-anchor', 'middle');
+    .style('text-anchor', 'middle')
+    .call(wrap, width);
   }
 
   if (fd.viz_type === 'big_number') {
