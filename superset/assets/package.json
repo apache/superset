@@ -125,7 +125,7 @@
     "redux-mock-store": "^1.2.3",
     "sinon": "^3.2.1",
     "style-loader": "^0.18.2",
-    "transform-loader": "^0.2.3",
+    "transform-loader": "^0.2.4",
     "uglifyjs-webpack-plugin": "^0.4.6",
     "url-loader": "^0.5.7",
     "webpack": "^3.4.1",

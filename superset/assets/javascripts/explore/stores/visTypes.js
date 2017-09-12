@@ -804,6 +804,8 @@ export const visTypes = {
         label: 'Options',
         controlSetRows: [
           ['select_country'],
+          ['number_format', 'show_map_legend'],
+          ['scale_type', 'bucket_number'],
           ['linear_color_scheme'],
         ],
       },

@@ -164,12 +164,59 @@ export const controls = {
       ['blue_white_yellow', 'blue/white/yellow'],
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
+      ['yellow_green', 'yellow/green'],
+      ['yellow_green_blue', 'yellow/green/blue'],
+      ['green_blue', 'green/blue'],
+      ['blue_green', 'blue/green'],
+      ['purple_blue_green', 'purple/blue/green'],
+      ['purple_blue', 'purple/blue'],
+      ['blue_purple', 'blue/purple'],
+      ['red_purple', 'red/purple'],
+      ['purple_red', 'purple/red'],
+      ['orange_red', 'orange/red'],
+      ['yellow_orange_red', 'yellow/orange/red'],
+      ['yellow_orange_brown', 'yellow/orange/brown'],
+      ['purples', 'purples'],
+      ['blues', 'blues'],
+      ['greens', 'greens'],
+      ['oranges', 'oranges'],
+      ['reds', 'reds'],
+      ['greys', 'greys'],
+      ['purple_orange', 'purple/orange'],
+      ['brown_bluegreen', 'brown/bluegreen'],
+      ['purple_green', 'purple/green'],
+      ['pink_yellowgreen', 'pink/yellowgreen'],
+      ['red_blue', 'red/blue'],
+      ['red_grey', 'red/grey'],
+      ['red_yellow_blue', 'red/yellow/blue'],
+      ['spectral', 'spectral'],
+      ['red_yellow_green', 'red/yellow/green'],
     ],
     default: 'blue_white_yellow',
     description: '',
     renderTrigger: true,
     schemes: spectrums,
     isLinear: true,
+  },
+
+  bucket_number: {
+    type: 'SelectControl',
+    label: 'Number of Buckets',
+    choices: formatSelectOptions(['3', '4', '5', '6', '7', '8', '9', '10', '11', '12']),
+    default: '7',
+    description: 'The number of buckets want to break your dataset into.',
+  },
+
+  scale_type: {
+    type: 'SelectControl',
+    label: 'Type of Scale',
+    choices: [
+      ['threshold', 'linear threshold'],
+      ['quantile', 'quantile'],
+      ['quantize', 'quantize'],
+    ],
+    default: 'threshold',
+    description: 'The type of scale you want to apply to your dataset.',
   },
 
   normalize_across: {
@@ -1002,6 +1049,13 @@ export const controls = {
     description: 'Whether to display the legend (toggles)',
   },
 
+  show_map_legend: {
+    type: 'CheckboxControl',
+    label: 'Map Legend',
+    default: true,
+    description: 'Whether to apply filter when table cell is clicked',
+  },
+
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: 'X bounds',
@@ -1334,5 +1388,7 @@ export const controls = {
     description: 'The color scheme for rendering chart',
     schemes: ALL_COLOR_SCHEMES,
   },
+
 };
+
 export default controls;

@@ -12,8 +12,16 @@ function countryMapChart(slice, payload) {
   let resultText;
   const container = slice.container;
   const data = payload.data;
+  const numberFormat = d3.format(fd.number_format);
 
-  const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric);
+
+  const colorScaler = colorScalerFactory(
+    fd.linear_color_scheme,
+    data,
+    v => v.metric,
+    fd.bucket_number,
+    fd.scale_type,
+  );
   const colorMap = {};
   data.forEach((d) => {
     colorMap[d.country_id] = colorScaler(d.metric);
@@ -23,6 +31,17 @@ function countryMapChart(slice, payload) {
   let centered;
   path = d3.geo.path();
   d3.select(slice.selector).selectAll('*').remove();
+
+  if (fd.show_map_legend) {
+    d3.select(slice.selector)
+      .append('div')
+      .attr('id', 'legend')
+      .append('text')
+      .text(fd.metric);
+  } else {
+    d3.select(slice.selector).select('div#legend').remove();
+  }
+
   const div = d3.select(slice.selector)
     .append('svg:svg')
     .attr('width', slice.width())
@@ -91,7 +110,7 @@ function countryMapChart(slice, payload) {
 
   const updateMetrics = function (region) {
     if (region.length > 0) {
-      resultText.text(d3.format(',')(region[0].metric));
+      resultText.text((numberFormat(region[0].metric)));
     }
   };
 
@@ -130,6 +149,26 @@ function countryMapChart(slice, payload) {
     .classed('result-text', true)
     .attr('x', 20)
     .attr('y', 60);
+
+  // Adding legend to map
+  const legend = d3.select('#legend')
+   .append('ul')
+   .attr('class', 'list-inline');
+
+  const keys = legend.selectAll('li.key')
+    .data(colorScaler.range());
+
+  keys.enter().append('li')
+    .attr('class', 'key')
+    .style('border-top-color', String)
+    .text(
+      function (d) {
+        const r = colorScaler.invertExtent(d);
+        if (r[0] == null) {
+          return numberFormat(d3.min(data, v => v.metric));
+        }
+        return (numberFormat(r[0]));
+      });
 
   const url = `/static/assets/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;
   d3.json(url, function (error, mapData) {
