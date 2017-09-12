@@ -68,7 +68,7 @@ setup(
         'simplejson==3.10.0',
         'six==1.10.0',
         'sqlalchemy==1.1.9',
-        'sqlalchemy-utils==0.32.14',
+        'sqlalchemy-utils==0.32.16',
         'sqlparse==0.2.3',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',

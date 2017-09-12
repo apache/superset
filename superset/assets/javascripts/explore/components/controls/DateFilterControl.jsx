@@ -21,20 +21,20 @@ const propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
-  value: PropTypes.string.isRequired,
+  value: PropTypes.string,
   height: PropTypes.number,
 };
 
 const defaultProps = {
   animation: true,
   onChange: () => {},
-  value: null,
+  value: '',
 };
 
 export default class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
-    const words = props.value.split(' ');
+    const value = props.value || '';
     this.state = {
       num: '7',
       grain: 'days',
@@ -43,16 +43,17 @@ export default class DateFilterControl extends React.Component {
       type: 'free',
       free: '',
     };
+    const words = value.split(' ');
     if (words.length >= 3 && RELATIVE_TIME_OPTIONS.indexOf(words[2]) >= 0) {
       this.state.num = words[0];
       this.state.grain = words[1];
       this.state.rel = words[2];
       this.state.type = 'rel';
-    } else if (moment(props.value).isValid()) {
-      this.state.dttm = props.value;
+    } else if (moment(value).isValid()) {
+      this.state.dttm = value;
       this.state.type = 'fix';
     } else {
-      this.state.free = props.value;
+      this.state.free = value;
       this.state.type = 'free';
     }
   }
@@ -193,6 +194,7 @@ export default class DateFilterControl extends React.Component {
     );
   }
   render() {
+    const value = this.props.value || '';
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -206,7 +208,7 @@ export default class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
         >
           <Label style={{ cursor: 'pointer' }}>
-            {this.props.value.replace('T00:00:00', '') || '∞'}
+            {value.replace('T00:00:00', '') || '∞'}
           </Label>
         </OverlayTrigger>
       </div>

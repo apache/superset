@@ -137,14 +137,23 @@ class BaseViz(object):
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
 
+        # default order direction
+        order_desc = form_data.get("order_desc", True)
+
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or
-            form_data.get("since")
+            form_data.get("since") or ''
         )
+
+        # Backward compatibility hack
+        since_words = since.split(' ')
+        grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
+        if (len(since_words) == 2 and since_words[1] in grains):
+            since += ' ago'
 
         from_dttm = utils.parse_human_datetime(since)
 
@@ -188,6 +197,7 @@ class BaseViz(object):
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
+            'order_desc': order_desc
         }
         return d
 
@@ -879,18 +889,25 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dft = df.T
             df = (dft / dft.sum()).T
 
-        rolling_periods = fd.get("rolling_periods")
         rolling_type = fd.get("rolling_type")
+        rolling_periods = int(fd.get("rolling_periods") or 0)
+        min_periods = int(fd.get("min_periods") or 0)
 
         if rolling_type in ('mean', 'std', 'sum') and rolling_periods:
+            kwargs = dict(
+                arg=df,
+                window=rolling_periods,
+                min_periods=min_periods)
             if rolling_type == 'mean':
-                df = pd.rolling_mean(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_mean(**kwargs)
             elif rolling_type == 'std':
-                df = pd.rolling_std(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_std(**kwargs)
             elif rolling_type == 'sum':
-                df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_sum(**kwargs)
         elif rolling_type == 'cumsum':
             df = df.cumsum()
+        if min_periods:
+            df = df[min_periods:]
 
         num_period_compare = fd.get("num_period_compare")
         if num_period_compare:
@@ -904,7 +921,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = df / df.shift(num_period_compare)
 
             df = df[num_period_compare:]
-
         return df
 
     def get_data(self, df):

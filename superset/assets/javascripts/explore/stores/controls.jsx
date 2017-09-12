@@ -167,6 +167,7 @@ export const controls = {
       ['black_white', 'black/white'],
     ],
     default: 'blue_white_yellow',
+    clearable: false,
     description: '',
     renderTrigger: true,
     schemes: spectrums,
@@ -561,7 +562,7 @@ export const controls = {
     type: 'DateFilterControl',
     freeForm: true,
     label: t('Since'),
-    default: '7 days ago',
+    default: t('7 days ago'),
   },
 
   until: {
@@ -665,6 +666,19 @@ export const controls = {
       'you may want your "Min Period" to be 7, so that all data points ' +
       'shown are the total of 7 periods. This will hide the "ramp up" ' +
       'taking place over the first 7 periods'),
+  },
+
+  min_periods: {
+    type: 'TextControl',
+    label: 'Min Periods',
+    isInt: true,
+    description: (
+      'The minimum number of rolling periods required to show ' +
+      'a value. For instance if you do a cumulative sum on 7 days ' +
+      'you may want your "Min Period" to be 7, so that all data points ' +
+      'shown are the total of 7 periods. This will hide the "ramp up" ' +
+      'taking place over the first 7 periods'
+    ),
   },
 
   series: {

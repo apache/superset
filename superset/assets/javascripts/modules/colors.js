@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import d3 from 'd3';
 
 // Color related utility functions go in this object
@@ -127,10 +126,7 @@ export const colorScalerFactory = function (colors, data, accessor) {
   if (data !== undefined) {
     ext = d3.extent(data, accessor);
   }
-  const points = [];
-  const chunkSize = (ext[1] - ext[0]) / colors.length;
-  $.each(colors, function (i) {
-    points.push(i * chunkSize);
-  });
+  const chunkSize = (ext[1] - ext[0]) / (colors.length - 1);
+  const points = colors.map((col, i) => i * chunkSize);
   return d3.scale.linear().domain(points).range(colors);
 };
