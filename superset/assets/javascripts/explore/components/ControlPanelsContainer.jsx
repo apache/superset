@@ -50,6 +50,7 @@ class ControlPanelsContainer extends React.Component {
     this.props.actions.removeControlPanelAlert();
   }
   render() {
+    const ctrls = this.props.controls;
     return (
       <div className="scrollbar-container">
         <div className="scrollbar-content">
@@ -63,33 +64,39 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {this.sectionsToRender().map(section => (
-            <ControlPanelSection
-              key={section.label}
-              label={section.label}
-              startExpanded={section.expanded}
-              description={section.description}
-            >
-              {section.controlSetRows.map((controlSets, i) => (
-                <ControlRow
-                  key={`controlsetrow-${i}`}
-                  className="control-row"
-                  controls={controlSets.map(controlName => (
-                    controlName &&
-                    this.props.controls[controlName] &&
-                      <Control
-                        name={controlName}
-                        key={`control-${controlName}`}
-                        value={this.props.form_data[controlName]}
-                        validationErrors={this.props.controls[controlName].validationErrors}
-                        actions={this.props.actions}
-                        {...this.getControlData(controlName)}
-                      />
-                  ))}
-                />
-              ))}
-            </ControlPanelSection>
-          ))}
+          {this.sectionsToRender().map((section) => {
+            const hasErrors = section.controlSetRows.some(rows => rows.some((s) => {
+              const errors = ctrls[s].validationErrors;
+              return errors && (errors.length > 0);
+            }));
+            return (
+              <ControlPanelSection
+                key={section.label}
+                label={section.label}
+                startExpanded={section.expanded}
+                hasErrors={hasErrors}
+                description={section.description}
+              >
+                {section.controlSetRows.map((controlSets, i) => (
+                  <ControlRow
+                    key={`controlsetrow-${i}`}
+                    className="control-row"
+                    controls={controlSets.map(controlName => (
+                      controlName &&
+                      ctrls[controlName] &&
+                        <Control
+                          name={controlName}
+                          key={`control-${controlName}`}
+                          value={this.props.form_data[controlName]}
+                          validationErrors={ctrls[controlName].validationErrors}
+                          actions={this.props.actions}
+                          {...this.getControlData(controlName)}
+                        />
+                    ))}
+                  />
+                ))}
+              </ControlPanelSection>);
+          })}
         </div>
       </div>
     );
