@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
-import { t } from '../../locales';
 
 const propTypes = {
   label: PropTypes.string,
@@ -36,9 +35,9 @@ export default class ControlPanelSection extends React.Component {
             onClick={this.toggleExpand.bind(this)}
           />
           {' '}
-          <span onClick={this.toggleExpand.bind(this)}>{t(label)}</span>
+          <span onClick={this.toggleExpand.bind(this)}>{label}</span>
           {' '}
-          {description && <InfoTooltipWithTrigger label={t(label)} tooltip={t(description)} />}
+          {description && <InfoTooltipWithTrigger label={label} tooltip={description} />}
         </div>
       );
     }

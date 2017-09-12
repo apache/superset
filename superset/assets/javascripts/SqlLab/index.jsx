@@ -9,7 +9,6 @@ import { initEnhancer } from '../reduxUtils';
 import { initJQueryAjax } from '../modules/utils';
 import App from './components/App';
 import { appSetup } from '../common';
-import { setLanguagePack } from '../locales';
 
 import './main.less';
 import '../../stylesheets/reactable-pagination.css';
@@ -20,7 +19,6 @@ initJQueryAjax();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-const languagePack = bootstrapData.common.language_pack;
 const state = Object.assign({}, getInitialState(bootstrapData.defaultDbId), bootstrapData);
 
 const store = createStore(
@@ -29,11 +27,9 @@ const store = createStore(
 // jquery hack to highlight the navbar menu
 $('a:contains("SQL Lab")').parent().addClass('active');
 
-setLanguagePack(languagePack).then(() => {
-  render(
-    <Provider store={store}>
-      <App />
-    </Provider>,
-    appContainer,
-  );
-});
+render(
+  <Provider store={store}>
+    <App />
+  </Provider>,
+  appContainer,
+);

@@ -1,10 +1,7 @@
 /* eslint-disable global-require, import/no-dynamic-require */
-import Jed from 'jed';
 import React from 'react';
 import { sprintf } from 'sprintf-js';
-
-let i18n = null;
-let i18nPromise = null;
+import i18n from './i18n';
 
 function formatForReact(formatString, args) {
   const rv = [];
@@ -125,41 +122,16 @@ export function format(formatString, args) {
   return sprintf(formatString, ...args);
 }
 
-export const setLanguagePack = function (translations) {
-  i18n = new Jed({
-    domain: 'superset',
-    locale_data: {
-      superset: translations.locale_data.superset,
-    },
-  });
-  return Promise.resolve(true);
-};
-
-function gettext(string, ...args) {
-  const doGettext = () => {
-    if (!string || !i18n) {
-      return string;
-    }
-    let rv = i18n.gettext(string);
-    if (args.length > 0) {
-      rv = format(rv, args);
-    }
-    return rv;
-  };
-
-  if (i18n) {
-    return doGettext();
+export function gettext(string, ...args) {
+  if (!string || !i18n) {
+    return string;
   }
 
-  if (!i18nPromise) {
-    i18nPromise = new Promise((res) => {
-      res(setLanguagePack);
-    });
+  let rv = i18n.gettext(string);
+  if (args.length > 0) {
+    rv = format(rv, args);
   }
-
-  return i18nPromise.then(() => {
-    doGettext();
-  });
+  return rv;
 }
 
 export function ngettext(singular, plural, ...args) {

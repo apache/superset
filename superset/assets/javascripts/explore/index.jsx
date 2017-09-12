@@ -14,7 +14,6 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import rootReducer from './reducers/index';
 
 import { appSetup } from '../common';
-import { setLanguagePack } from '../locales';
 import './main.css';
 import '../../stylesheets/reactable-pagination.css';
 
@@ -24,7 +23,6 @@ initJQueryAjax();
 const exploreViewContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 const controls = getControlsState(bootstrapData, bootstrapData.form_data);
-const languagePack = bootstrapData.common.language_pack;
 delete bootstrapData.form_data;
 delete bootstrapData.common.locale;
 delete bootstrapData.common.language_pack;
@@ -59,14 +57,13 @@ const initState = {
 const store = createStore(rootReducer, initState,
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
-setLanguagePack(languagePack).then(() => {
-  ReactDOM.render(
-    <Provider store={store}>
-      <div>
-        <ExploreViewContainer />
-        <AlertsWrapper initMessages={bootstrappedState.common.flash_messages} />
-      </div>
-    </Provider>,
-    exploreViewContainer,
-  );
-});
+
+ReactDOM.render(
+  <Provider store={store}>
+    <div>
+      <ExploreViewContainer />
+      <AlertsWrapper initMessages={bootstrappedState.common.flash_messages} />
+    </div>
+  </Provider>,
+  exploreViewContainer,
+);

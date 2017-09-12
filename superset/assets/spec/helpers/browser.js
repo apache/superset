@@ -9,6 +9,28 @@ const exposedProperties = ['window', 'navigator', 'document'];
 
 global.jsdom = jsdom.jsdom;
 global.document = global.jsdom('<!doctype html><html><body></body></html>');
+// bootstrap attribute, used by localization
+const bootstrap = JSON.stringify({
+  common: {
+    language_pack: {
+      domain: 'superset',
+      locale_data: {
+        superset: {
+          '': {
+            domain: 'superset',
+            lang: 'en',
+            plural_forms: 'nplurals=1; plural=0',
+          },
+        },
+      },
+    },
+  },
+});
+const appRoot = document.createElement('div');
+appRoot.setAttribute('id', 'app');
+appRoot.setAttribute('data-bootstrap', bootstrap);
+global.document.body.appendChild(appRoot);
+
 global.window = document.defaultView;
 Object.keys(document.defaultView).forEach((property) => {
   if (typeof global[property] === 'undefined') {
