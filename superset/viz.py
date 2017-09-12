@@ -137,6 +137,9 @@ class BaseViz(object):
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
 
+        # default order direction
+        order_desc = form_data.get("order_desc", True)
+
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
@@ -194,6 +197,7 @@ class BaseViz(object):
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
+            'order_desc': order_desc
         }
         return d
 
