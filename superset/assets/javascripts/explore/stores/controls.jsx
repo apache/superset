@@ -964,6 +964,18 @@ export const controls = {
     description: 'Whether to include a time filter',
   },
 
+  filter_order: {
+    type: 'SelectControl',
+    multi: true,
+    label: 'Ordering by optional value',
+    default: [],
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.order_by_choices : [],
+    }),
+    description: 'How to order the list of values for the filter. ' +
+    "When does't select for one filter, it will order the optional value by metric.",
+  },
+
   show_datatable: {
     type: 'CheckboxControl',
     label: 'Data Table',

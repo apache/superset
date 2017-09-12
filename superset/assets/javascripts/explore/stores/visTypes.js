@@ -868,6 +868,7 @@ export const visTypes = {
         controlSetRows: [
           ['groupby'],
           ['metric'],
+          ['filter_order'],
         ],
       },
       {
