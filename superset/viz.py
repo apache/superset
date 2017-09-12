@@ -351,12 +351,16 @@ class TableViz(BaseViz):
                 "Choose either fields to [Group By] and [Metrics] or "
                 "[Columns], not both"))
 
+        sort_by = fd.get('timeseries_limit_metric')
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
+        elif sort_by and sort_by not in d['metrics']:
+            d['metrics'] += [sort_by]
 
+        d['order_desc'] = fd.get("order_desc", True)
         d['is_timeseries'] = self.should_be_timeseries()
         return d
 
