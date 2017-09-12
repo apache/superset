@@ -166,6 +166,7 @@ export const controls = {
       ['black_white', 'black/white'],
     ],
     default: 'blue_white_yellow',
+    clearable: false,
     description: '',
     renderTrigger: true,
     schemes: spectrums,
