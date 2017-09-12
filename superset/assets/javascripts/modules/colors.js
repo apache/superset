@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import d3 from 'd3';
 
 // Color related utility functions go in this object
