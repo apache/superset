@@ -20,7 +20,7 @@ const defaultProps = {
 
 export default function InfoTooltipWithTrigger({
     label, tooltip, icon, className, onClick, placement, bsStyle }) {
-  let iconClass = `fa fa-${icon} ${className} ${bsStyle ? 'text-' + bsStyle : ''}`;
+  const iconClass = `fa fa-${icon} ${className} ${bsStyle ? 'text-' + bsStyle : ''}`;
   return (
     <OverlayTrigger
       placement={placement}

@@ -50,7 +50,7 @@ class ControlPanelsContainer extends React.Component {
     this.props.actions.removeControlPanelAlert();
   }
   render() {
-    const controls = this.props.controls;
+    const ctrls = this.props.controls;
     return (
       <div className="scrollbar-container">
         <div className="scrollbar-content">
@@ -64,8 +64,11 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {this.sectionsToRender().map(section => {
-            const hasErrors = section.controlSetRows.some(rows => rows.some(s => controls[s].validationErrors.length > 0));
+          {this.sectionsToRender().map((section) => {
+            const hasErrors = section.controlSetRows.some(rows => rows.some((s) => {
+              const errors = ctrls[s].validationErrors;
+              return errors && (errors.length > 0);
+            }));
             return (
               <ControlPanelSection
                 key={section.label}
@@ -80,12 +83,12 @@ class ControlPanelsContainer extends React.Component {
                     className="control-row"
                     controls={controlSets.map(controlName => (
                       controlName &&
-                      controls[controlName] &&
+                      ctrls[controlName] &&
                         <Control
                           name={controlName}
                           key={`control-${controlName}`}
                           value={this.props.form_data[controlName]}
-                          validationErrors={controls[controlName].validationErrors}
+                          validationErrors={ctrls[controlName].validationErrors}
                           actions={this.props.actions}
                           {...this.getControlData(controlName)}
                         />
