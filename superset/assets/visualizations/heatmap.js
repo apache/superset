@@ -21,22 +21,31 @@ function heatmapVis(slice, payload) {
   };
 
   const data = payload.data;
+  const fd = slice.formData;
   // Dynamically adjusts  based on max x / y category lengths
   function adjustMargins() {
     const pixelsPerCharX = 4.5; // approx, depends on font size
-    const pixelsPerCharY = 6.8; // approx, depends on font size
+    const pixelsPerCharY = 10; // approx, depends on font size
     let longestX = 1;
     let longestY = 1;
     let datum;
 
     for (let i = 0; i < data.length; i++) {
       datum = data[i];
-      longestX = Math.max(longestX, datum.x.length || 1);
-      longestY = Math.max(longestY, datum.y.length || 1);
+      longestX = Math.max(longestX, datum.x.toString().length || 1);
+      longestY = Math.max(longestY, datum.y.toString().length || 1);
     }
 
-    margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));
-    margin.bottom = Math.ceil(Math.max(margin.bottom, pixelsPerCharX * longestX));
+    if (fd.left_margin === 'auto') {
+      margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));
+    } else {
+      margin.left = fd.left_margin;
+    }
+    if (fd.bottom_margin === 'auto') {
+      margin.bottom = Math.ceil(Math.max(margin.bottom, pixelsPerCharX * longestX));
+    } else {
+      margin.bottom = fd.bottom_margin;
+    }
   }
 
   function ordScale(k, rangeBands, reverse = false) {
@@ -44,9 +53,7 @@ function heatmapVis(slice, payload) {
     $.each(data, function (i, d) {
       domain[d[k]] = true;
     });
-    domain = Object.keys(domain).sort(function (a, b) {
-      return b - a;
-    });
+    domain = Object.keys(domain).sort();
     if (reverse) {
       domain.reverse();
     }
@@ -58,7 +65,6 @@ function heatmapVis(slice, payload) {
 
   slice.container.html('');
   const matrix = {};
-  const fd = slice.formData;
 
   adjustMargins();
 
