@@ -36,6 +36,12 @@ const timeColumnOption = {
     'A reference to the [Time] configuration, taking granularity into ' +
     'account'),
 };
+const sortAxisChoices = [
+  ['alpha_asc', 'Alphabetical ascending'],
+  ['alpha_desc', 'Alphabetical descending'],
+  ['value_asc', 'Value ascending'],
+  ['value_desc', 'Value descending'],
+];
 
 const groupByControl = {
   type: 'SelectControl',
@@ -156,6 +162,22 @@ export const controls = {
     description: '',
   },
 
+  sort_x_axis: {
+    type: 'SelectControl',
+    label: 'Sort X Axis',
+    choices: sortAxisChoices,
+    clearable: false,
+    default: 'alpha_asc',
+  },
+
+  sort_y_axis: {
+    type: 'SelectControl',
+    label: 'Sort Y Axis',
+    choices: sortAxisChoices,
+    clearable: false,
+    default: 'alpha_asc',
+  },
+
   linear_color_scheme: {
     type: 'ColorSchemeControl',
     label: 'Linear Color Scheme',
@@ -202,6 +224,7 @@ export const controls = {
   canvas_image_rendering: {
     type: 'SelectControl',
     label: 'Rendering',
+    renderTrigger: true,
     choices: [
       ['pixelated', 'pixelated (Sharp)'],
       ['auto', 'auto (Smooth)'],
@@ -234,6 +257,14 @@ export const controls = {
     label: 'Include Time',
     description: 'Whether to include the time granularity as defined in the time section',
     default: false,
+  },
+
+  show_perc: {
+    type: 'CheckboxControl',
+    label: 'Show percentage',
+    renderTrigger: true,
+    description: 'Whether to include the percentage in the tooltip',
+    default: true,
   },
 
   bar_stacked: {

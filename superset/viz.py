@@ -1479,6 +1479,13 @@ class HeatmapViz(BaseViz):
             df.columns = ['x', 'y', 'v']
         norm = fd.get('normalize_across')
         overall = False
+        max_ = df.v.max()
+        min_ = df.v.min()
+        bounds = fd.get('y_axis_bounds')
+        if bounds and bounds[0]:
+            min_ = bounds[0]
+        if bounds and bounds[1]:
+            max_ = bounds[1]
         if norm == 'heatmap':
             overall = True
         else:
@@ -1491,10 +1498,11 @@ class HeatmapViz(BaseViz):
                         lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
                 )
         if overall:
-            v = df.v
-            min_ = v.min()
-            df['perc'] = (v - min_) / (v.max() - min_)
-        return df.to_dict(orient="records")
+            df['perc'] = (df.v - min_) / (max_ - min_)
+        return {
+            'records': df.to_dict(orient="records"),
+            'extents': [min_, max_],
+        }
 
 
 class HorizonViz(NVD3TimeSeriesViz):

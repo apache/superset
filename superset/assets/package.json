@@ -49,6 +49,7 @@
     "d3": "^3.5.17",
     "d3-cloud": "^1.2.1",
     "d3-sankey": "^0.4.2",
+    "d3-svg-legend": "^1.x",
     "d3-tip": "^0.6.7",
     "datamaps": "^0.5.8",
     "datatables.net-bs": "^1.10.15",
