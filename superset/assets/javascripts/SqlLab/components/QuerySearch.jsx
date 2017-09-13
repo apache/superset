@@ -185,12 +185,9 @@ class QuerySearch extends React.PureComponent {
             />
 
             <Button bsSize="small" bsStyle="success" onClick={this.refreshQueries.bind(this)}>
-              Search
+              {t('Search')}
             </Button>
           </div>
-          <Button bsSize="small" bsStyle="success" onClick={this.refreshQueries.bind(this)}>
-            {t('Search')}
-          </Button>
         </div>
         {this.state.queriesLoading ?
           (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)

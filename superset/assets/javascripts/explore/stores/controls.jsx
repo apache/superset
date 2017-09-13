@@ -33,7 +33,7 @@ export const D3_TIME_FORMAT_OPTIONS = [
 const timeColumnOption = {
   verbose_name: 'Time',
   column_name: '__timestamp',
-  description: (
+  description: t(
   'A reference to the [Time] configuration, taking granularity into ' +
   'account'),
 };
@@ -97,12 +97,10 @@ export const controls = {
     label: t('Y Axis Bounds'),
     renderTrigger: true,
     default: [null, null],
-    description: (
-      'Bounds for the Y axis. When left empty, the bounds are ' +
-      'dynamically defined based on the min/max of the data. Note that ' +
-      "this feature will only expand the axis range. It won't " +
-      "narrow the data's extent."
-    ),
+    description: t('Bounds for the Y axis. When left empty, the bounds are ' +
+    'dynamically defined based on the min/max of the data. Note that ' +
+    "this feature will only expand the axis range. It won't " +
+    "narrow the data's extent."),
   },
   order_by_cols: {
     type: 'SelectControl',
@@ -183,9 +181,9 @@ export const controls = {
       ['y', 'y'],
     ],
     default: 'heatmap',
-    description: t('Color will be rendered based on a ratio ') +
+    description: t('Color will be rendered based on a ratio ' +
     'of the cell against the sum of across this ' +
-    'criteria',
+    'criteria'),
   },
 
   horizon_color_scale: {
@@ -208,8 +206,8 @@ export const controls = {
       ['auto', 'auto (Smooth)'],
     ],
     default: 'pixelated',
-    description: t('image-rendering CSS attribute of the canvas object that ') +
-    'defines how the browser scales up the image',
+    description: t('image-rendering CSS attribute of the canvas object that ' +
+    'defines how the browser scales up the image'),
   },
 
   xscale_interval: {
@@ -660,25 +658,11 @@ export const controls = {
     type: 'TextControl',
     label: t('Min Periods'),
     isInt: true,
-    description: t(
-      'The minimum number of rolling periods required to show ' +
-      'a value. For instance if you do a cumulative sum on 7 days ' +
-      'you may want your "Min Period" to be 7, so that all data points ' +
-      'shown are the total of 7 periods. This will hide the "ramp up" ' +
-      'taking place over the first 7 periods'),
-  },
-
-  min_periods: {
-    type: 'TextControl',
-    label: 'Min Periods',
-    isInt: true,
-    description: (
-      'The minimum number of rolling periods required to show ' +
-      'a value. For instance if you do a cumulative sum on 7 days ' +
-      'you may want your "Min Period" to be 7, so that all data points ' +
-      'shown are the total of 7 periods. This will hide the "ramp up" ' +
-      'taking place over the first 7 periods'
-    ),
+    description: t('The minimum number of rolling periods required to show ' +
+    'a value. For instance if you do a cumulative sum on 7 days ' +
+    'you may want your "Min Period" to be 7, so that all data points ' +
+    'shown are the total of 7 periods. This will hide the "ramp up" ' +
+    'taking place over the first 7 periods'),
   },
 
   series: {
