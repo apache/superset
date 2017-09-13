@@ -378,6 +378,8 @@ class SqlaTable(Model, BaseDatasource):
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
+        orderby = orderby or []
+
         # For backward compatibility
         if granularity not in self.dttm_cols:
             granularity = self.main_dttm_col
@@ -392,15 +394,12 @@ class SqlaTable(Model, BaseDatasource):
             raise Exception(_(
                 "Datetime column not provided as part table configuration "
                 "and is required by this type of chart"))
+        if not groupby and not metrics and not columns:
+            raise Exception(_("Empty query?"))
         for m in metrics:
             if m not in metrics_dict:
                 raise Exception(_("Metric '{}' is not valid".format(m)))
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
-        timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
-        timeseries_limit_metric_expr = None
-        if timeseries_limit_metric:
-            timeseries_limit_metric_expr = \
-                timeseries_limit_metric.sqla_col
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -512,13 +511,16 @@ class SqlaTable(Model, BaseDatasource):
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
-        if groupby:
-            direction = desc if order_desc else asc
-            qry = qry.order_by(direction(main_metric_expr))
-        elif orderby:
-            for col, ascending in orderby:
-                direction = asc if ascending else desc
-                qry = qry.order_by(direction(col))
+
+        if not orderby and not columns:
+            orderby = [(main_metric_expr, not order_desc)]
+
+        for col, ascending in orderby:
+            direction = asc if ascending else desc
+            print('-='*20)
+            print([col, ascending])
+            print('-='*20)
+            qry = qry.order_by(direction(col))
 
         if row_limit:
             qry = qry.limit(row_limit)
@@ -538,12 +540,15 @@ class SqlaTable(Model, BaseDatasource):
             )
             subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
             subq = subq.group_by(*inner_groupby_exprs)
+
             ob = inner_main_metric_expr
-            if timeseries_limit_metric_expr is not None:
-                ob = timeseries_limit_metric_expr
+            if timeseries_limit_metric:
+                timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
+                ob = timeseries_limit_metric.sqla_col
             direction = desc if order_desc else asc
             subq = subq.order_by(direction(ob))
             subq = subq.limit(timeseries_limit)
+
             on_clause = []
             for i, gb in enumerate(groupby):
                 on_clause.append(

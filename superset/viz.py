@@ -357,10 +357,11 @@ class TableViz(BaseViz):
             d['groupby'] = []
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
-        elif sort_by and sort_by not in d['metrics']:
-            d['metrics'] += [sort_by]
+        elif sort_by:
+            if sort_by not in d['metrics']:
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get("order_desc", True))]
 
-        d['order_desc'] = fd.get("order_desc", True)
         d['is_timeseries'] = self.should_be_timeseries()
         return d
 

@@ -65,10 +65,11 @@ class ControlPanelsContainer extends React.Component {
             </Alert>
           }
           {this.sectionsToRender().map((section) => {
-            const hasErrors = section.controlSetRows.some(rows => rows.some((s) => {
-              const errors = ctrls[s].validationErrors;
-              return errors && (errors.length > 0);
-            }));
+            const hasErrors = section.controlSetRows.some(rows => rows.some(s => (
+                ctrls[s] &&
+                ctrls[s].validationErrors &&
+                (ctrls[s].validationErrors.length > 0)
+            )));
             return (
               <ControlPanelSection
                 key={section.label}
