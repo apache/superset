@@ -1486,11 +1486,22 @@ class HeatmapViz(BaseViz):
                     gb.apply(
                         lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
                 )
+        bounds = fd.get('y_axis_bounds')
         if overall:
             v = df.v
-            min_ = v.min()
-            df['perc'] = (v - min_) / (v.max() - min_)
-        return df.to_dict(orient="records")
+            if bounds and bounds[0]:
+                min_ = bounds[0]
+            else:
+                min_ = v.min()
+            if bounds and bounds[1]:
+                max_ = bounds[1]
+            else:
+                max_ = v.max()
+            df['perc'] = (v - min_) / (max_ - min_)
+        return {
+            'records': df.to_dict(orient="records"),
+            'extents': [min_, max_],
+        }
 
 
 class HorizonViz(NVD3TimeSeriesViz):
