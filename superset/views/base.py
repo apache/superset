@@ -336,3 +336,10 @@ class DatasourceFilter(SupersetFilter):
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
         return query.filter(self.model.perm.in_(perms))
+
+
+class CsvResponse(Response):
+    """
+    Override Response to take into account csv encoding from config.py
+    """
+    charset = conf.get('CSV_EXPORT').get('encoding', 'utf-8')
