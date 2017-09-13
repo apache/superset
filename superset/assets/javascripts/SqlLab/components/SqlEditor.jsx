@@ -67,6 +67,10 @@ class SqlEditor extends React.PureComponent {
       southPaneHeight: height - this.refs.ace.clientHeight,
       height,
     });
+
+    if (this.refs.ace.clientHeight) {
+      this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
+    }
   }
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
@@ -191,7 +195,7 @@ class SqlEditor extends React.PureComponent {
   }
   render() {
     const height = this.sqlEditorHeight();
-    const defaultNorthHeight = 200;
+    const defaultNorthHeight = this.props.queryEditor.height || 200;
     return (
       <div
         className="SqlEditor"

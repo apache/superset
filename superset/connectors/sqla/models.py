@@ -364,7 +364,8 @@ class SqlaTable(Model, BaseDatasource):
             orderby=None,
             extras=None,
             columns=None,
-            form_data=None):
+            form_data=None,
+            order_desc=True):
         """Querying any sqla table from this common interface"""
         template_kwargs = {
             'from_dttm': from_dttm,
@@ -512,7 +513,8 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
         if groupby:
-            qry = qry.order_by(desc(main_metric_expr))
+            direction = desc if order_desc else asc
+            qry = qry.order_by(direction(main_metric_expr))
         elif orderby:
             for col, ascending in orderby:
                 direction = asc if ascending else desc
@@ -539,7 +541,8 @@ class SqlaTable(Model, BaseDatasource):
             ob = inner_main_metric_expr
             if timeseries_limit_metric_expr is not None:
                 ob = timeseries_limit_metric_expr
-            subq = subq.order_by(desc(ob))
+            direction = desc if order_desc else asc
+            subq = subq.order_by(direction(ob))
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for i, gb in enumerate(groupby):
