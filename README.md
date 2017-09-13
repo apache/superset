@@ -10,8 +10,6 @@ Superset
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.incubator.apache.org)
 [![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset/assets)](https://david-dm.org/apache/incubator-superset?path=superset/assets)
 
-[![Code Health](https://landscape.io/github/timifasubaa/incubator-superset/master/landscape.svg?style=flat)](https://landscape.io/github/timifasubaa/incubator-superset/master)
-
 <img
   src="https://cloud.githubusercontent.com/assets/130878/20946612/49a8a25c-bbc0-11e6-8314-10bef902af51.png"
   alt="Superset"
