@@ -959,6 +959,11 @@ export const visTypes = {
       y_axis_bounds: {
         label: 'Value bounds',
         renderTrigger: false,
+        description: (
+          'Hard value bounds applied for color coding. Is only relevant ' +
+          'and applied when the normalization is applied against the whole ' +
+          'heatmap.'
+        ),
       },
       y_axis_format: {
         label: 'Value Format',

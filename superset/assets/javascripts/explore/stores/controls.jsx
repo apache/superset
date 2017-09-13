@@ -166,14 +166,16 @@ export const controls = {
     type: 'SelectControl',
     label: 'Sort X Axis',
     choices: sortAxisChoices,
-    default: 'stack',
+    clearable: false,
+    default: 'alpha_asc',
   },
 
   sort_y_axis: {
     type: 'SelectControl',
     label: 'Sort Y Axis',
     choices: sortAxisChoices,
-    default: 'stack',
+    clearable: false,
+    default: 'alpha_asc',
   },
 
   linear_color_scheme: {

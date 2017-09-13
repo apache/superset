@@ -59,10 +59,14 @@ function heatmapVis(slice, payload) {
       domain = Object.keys(domain).sort();
     } else if (sortMethod === 'alpha_desc') {
       domain = Object.keys(domain).sort().reverse();
-    } else if (sortMethod === 'value_asc') {
-      domain = Object.keys(domain).sort((d1, d2) => domain[d1] - domain[d2]);
     } else if (sortMethod === 'value_desc') {
       domain = Object.keys(domain).sort((d1, d2) => domain[d2] - domain[d1]);
+    } else if (sortMethod === 'value_asc') {
+      domain = Object.keys(domain).sort((d1, d2) => domain[d1] - domain[d2]);
+    }
+
+    if (k === 'y' && rangeBands) {
+      domain.reverse();
     }
 
     if (rangeBands) {
