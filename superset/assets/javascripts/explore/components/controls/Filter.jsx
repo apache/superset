@@ -4,8 +4,6 @@ import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
 
-const $ = window.$ = require('jquery');
-
 const operatorsArr = [
   { val: 'in', type: 'array', useSelect: true, multi: true },
   { val: 'not in', type: 'array', useSelect: true, multi: true },
@@ -50,17 +48,17 @@ export default class Filter extends React.Component {
       const val = this.props.filter.val;
       let newVal;
       if (operators[nextOp].type === 'string') {
-          if (!val || !val.length) {
-            newVal = '';
-          } else {
-            newVal = val[0];
-          }
+        if (!val || !val.length) {
+          newVal = '';
+        } else {
+          newVal = val[0];
+        }
       } else if (operators[nextOp].type === 'array') {
-          if (!val || !val.length) {
-            newVal = [];
-          } else {
-            newVal = [val];
-          }
+        if (!val || !val.length) {
+          newVal = [];
+        } else {
+          newVal = [val];
+        }
       }
       this.props.changeFilter(['val', 'op'], [newVal, nextOp]);
     } else {

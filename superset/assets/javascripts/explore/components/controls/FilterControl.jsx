@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import { Button, Row, Col } from 'react-bootstrap';
 import Filter from './Filter';
 
+const $ = window.$ = require('jquery');
+
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
@@ -19,7 +21,7 @@ export default class FilterControl extends React.Component {
 
   constructor(props) {
     super(props);
-    const initialFilters = props.value.map((filter, i) => ({
+    const initialFilters = props.value.map(() => ({
       valuesLoading: false,
       valueChoices: [],
     }));
@@ -34,10 +36,10 @@ export default class FilterControl extends React.Component {
 
   fetchFilterValues(index, column) {
     const datasource = this.props.datasource;
-    const col = column ? column : this.props.value[index].col;
+    const col = column || this.props.value[index].col;
     const having = this.props.name === 'having_filters';
     if (col && this.props.datasource && this.props.datasource.filter_select && !having) {
-      this.setState(prevState => {
+      this.setState((prevState) => {
         const newStateFilters = Object.assign([], prevState.filters);
         newStateFilters[index].valuesLoading = true;
         return { filters: newStateFilters };
@@ -46,11 +48,11 @@ export default class FilterControl extends React.Component {
         type: 'GET',
         url: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
         success: (data) => {
-        this.setState(prevState => {
-          const newStateFilters = Object.assign([], prevState.filters);
-          newStateFilters[index] = { valuesLoading: false, valueChoices: data };
-          return { filters: newStateFilters };
-        });
+          this.setState((prevState) => {
+            const newStateFilters = Object.assign([], prevState.filters);
+            newStateFilters[index] = { valuesLoading: false, valueChoices: data };
+            return { filters: newStateFilters };
+          });
         },
       });
     }
@@ -68,11 +70,11 @@ export default class FilterControl extends React.Component {
     });
     this.props.onChange(newFilters);
     const nextIndex = this.state.filters.length;
-    this.setState(prevState => {
+    this.setState((prevState) => {
       const newStateFilters = Object.assign([], prevState.filters);
       newStateFilters.push({ valuesLoading: false, valueChoices: [] });
       return { filters: newStateFilters };
-    })
+    });
     this.fetchFilterValues(nextIndex, col);
   }
 
@@ -101,11 +103,11 @@ export default class FilterControl extends React.Component {
 
   removeFilter(index) {
     this.props.onChange(this.props.value.filter((f, i) => i !== index));
-    this.setState(prevState => {
+    this.setState((prevState) => {
       const newStateFilters = Object.assign([], prevState.filters);
       newStateFilters.splice(index, 1);
       return { filters: newStateFilters };
-    })
+    });
   }
 
   render() {
