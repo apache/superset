@@ -669,6 +669,13 @@ export const controls = {
     }),
   },
 
+  order_desc: {
+    type: 'CheckboxControl',
+    label: 'Sort Descending',
+    default: true,
+    description: 'Whether to sort descending or ascending',
+  },
+
   rolling_type: {
     type: 'SelectControl',
     label: 'Rolling',
