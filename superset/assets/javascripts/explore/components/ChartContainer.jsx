@@ -152,15 +152,20 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.runQuery(this.props.formData, true, this.props.timeout);
   }
 
-  updateChartTitle(newTitle) {
+  updateChartTitleOrSaveSlice(newTitle) {
+    const isNewSlice = !this.props.slice;
     const params = {
       slice_name: newTitle,
-      action: 'overwrite',
+      action: isNewSlice ? 'saveas' : 'overwrite',
     };
     const saveUrl = getExploreUrl(this.props.formData, 'base', false, null, params);
     this.props.actions.saveSlice(saveUrl)
-      .then(() => {
-        this.props.actions.updateChartTitle(newTitle);
+      .then((data) => {
+        if (isNewSlice) {
+          window.location = data;
+        } else {
+          this.props.actions.updateChartTitle(newTitle);
+        }
       });
   }
 
@@ -262,8 +267,8 @@ class ChartContainer extends React.PureComponent {
             >
               <EditableTitle
                 title={this.renderChartTitle()}
-                canEdit={this.props.can_overwrite}
-                onSaveTitle={this.updateChartTitle.bind(this)}
+                canEdit={!this.props.slice || this.props.can_overwrite}
+                onSaveTitle={this.updateChartTitleOrSaveSlice.bind(this)}
               />
 
               {this.props.slice &&
