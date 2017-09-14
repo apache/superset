@@ -76,6 +76,9 @@ class SqlEditor extends React.PureComponent {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
   runQuery(runAsync = false) {
+    if (!this.props.queryEditor.sql) {
+      return;
+    }
     let effectiveRunAsync = runAsync;
     if (!this.props.database.allow_run_sync) {
       effectiveRunAsync = true;
