@@ -162,6 +162,10 @@ class BaseViz(object):
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_("From date cannot be larger than to date"))
 
+        self.from_dttm = from_dttm
+        self.to_dttm = to_dttm
+        self.annotation_layers = form_data.get("annotation_layers") or []
+
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
@@ -221,6 +225,15 @@ class BaseViz(object):
         s = str([(k, self.form_data[k]) for k in sorted(self.form_data.keys())])
         return hashlib.md5(s.encode('utf-8')).hexdigest()
 
+    def get_annotations(self):
+        """Fetches the annotations for the specified layers and date range"""
+        annotations = []
+        if self.annotation_layers:
+            from superset.models.core import Annotations
+
+            annotations = []
+        return annotations
+
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
@@ -241,6 +254,7 @@ class BaseViz(object):
                 logging.error("Error reading cache: " +
                               utils.error_msg_from_exception(e))
                 payload = None
+                return []
             logging.info("Serving from cache")
 
         if not payload:
@@ -253,6 +267,7 @@ class BaseViz(object):
                 df = self.get_df()
                 if not self.error_message:
                     data = self.get_data(df)
+                annotations = self.get_annotations()
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -269,6 +284,7 @@ class BaseViz(object):
                 'query': self.query,
                 'status': self.status,
                 'stacktrace': stacktrace,
+                'annotations': annotations,
             }
             payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
