@@ -214,5 +214,4 @@ describe('FilterControl', () => {
       },
     ]);
   });
-
 });
