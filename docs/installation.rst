@@ -284,6 +284,24 @@ on top of the **database**. For Superset to connect to a specific schema,
 there's a **schema** parameter you can set in the table form.
 
 
+External Password store for SQLAlchemy connections
+--------------------------------------------------
+It is possible to use an external store for you database passwords. This is
+useful if you a running a custom secret distribution framework and do not wish
+to store secrets in Superset's meta database.
+
+Example:
+Write a function that takes a single argument of type ``sqla.engine.url`` and returns
+the password for the given connection string. Then set ``SQLALCHEMY_CUSTOM_PASSWORD_STORE``
+in your config file to point to that function. ::
+
+    def example_lookup_password(url):
+        secret = <<get password from external framework>>
+        return 'secret'
+
+    SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_lookup_password
+
+
 SSL Access to databases
 -----------------------
 This example worked with a MySQL database that requires SSL. The configuration
