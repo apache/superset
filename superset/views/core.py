@@ -17,8 +17,8 @@ import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup,
-    abort, url_for)
-from flask_appbuilder import expose
+    url_for)
+from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
@@ -2337,6 +2337,41 @@ appbuilder.add_view(
     category="Manage",
     category_label=__("Manage"),
     category_icon='')
+
+
+class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
+    datamodel = SQLAInterface(models.Annotation)
+    list_columns = ['layer', 'short_descr', 'start_dttm', 'end_dttm']
+    edit_columns = [
+        'short_descr', 'long_descr', 'start_dttm', 'end_dttm', 'layer']
+    add_columns = edit_columns
+
+
+class AnnotationLayerModelView(SupersetModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.AnnotationLayer)
+    list_columns = ['name']
+    edit_columns = ['name', 'descr']
+    add_columns = edit_columns
+    #related_views = [AnnotationInlineView]
+
+
+appbuilder.add_view(
+    AnnotationLayerModelView,
+    "Annotation Layers",
+    label=__("Annotation Layers"),
+    icon="fa-comment",
+    category="Manage",
+    category_label=__("Manage"),
+    category_icon='')
+appbuilder.add_view(
+    AnnotationModelView,
+    "Annotations",
+    label=__("Annotations"),
+    icon="fa-comments",
+    category="Manage",
+    category_label=__("Manage"),
+    category_icon='')
+
 
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 

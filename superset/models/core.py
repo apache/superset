@@ -25,10 +25,10 @@ from flask_appbuilder.models.decorators import renders
 
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, Date, Table,
+    DateTime, Date, Table, Index,
     create_engine, MetaData, select
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
@@ -887,3 +887,36 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 href = "{} Role".format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'
+
+
+class AnnotationLayer(Model, AuditMixinNullable):
+
+    """A logical namespace for a set of annotations"""
+
+    __tablename__ = 'annotation_layer'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(250))
+    descr = Column(Text)
+
+    def __repr__(self):
+        return self.name
+
+
+class Annotation(Model, AuditMixinNullable):
+
+    """Time-related annotation"""
+
+    __tablename__ = 'annotation'
+    id = Column(Integer, primary_key=True)
+    start_dttm = Column(DateTime, default=datetime.utcnow)
+    end_dttm = Column(DateTime, default=datetime.utcnow)
+    layer_id = Column(Integer, ForeignKey('annotation_layer.id'))
+    short_descr = Column(String(500))
+    long_descr = Column(Text)
+    layer = relationship(
+        AnnotationLayer,
+        backref='annotation')
+
+    __table_args__ = (
+        Index('ti_dag_state', layer_id, start_dttm, end_dttm),
+    )
