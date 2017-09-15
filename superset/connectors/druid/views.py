@@ -54,14 +54,13 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'filterable': _(
             "Whether this column is exposed in the `Filters` section "
             "of the explore view."),
-        'dimension_spec_json': utils.markdown(
-            "this field can be used to specify  "
-            "a `dimensionSpec` as documented [here]"
+        'dimension_spec_json': _(
+            "This field can be used to specify  "
+            "a `dimensionSpec` as documented "
             "(http://druid.io/docs/latest/querying/dimensionspecs.html). "
             "Make sure to input valid JSON and that the "
             "`outputName` matches the `column_name` defined "
-            "above.",
-            True),
+            "above."),
     }
 
     def post_update(self, col):
@@ -92,11 +91,10 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'json': [validate_json],
     }
     description_columns = {
-        'metric_type': utils.markdown(
+        'metric_type': _(
             "use `postagg` as the metric type if you are defining a "
             "[Druid Post Aggregation]"
-            "(http://druid.io/docs/latest/querying/post-aggregations.html)",
-            True),
+            "(http://druid.io/docs/latest/querying/post-aggregations.html)"),
         'is_restricted': _("Whether the access to this metric is restricted "
                            "to certain roles. Only roles with the permission "
                            "'metric access on XXX (the name of this metric)' "
@@ -201,9 +199,9 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
             "datasource. If you want to change the datasource for a slice, "
             "overwrite the slice from the 'explore view'"),
         'offset': _("Timezone offset (in hours) for this datasource"),
-        'description': Markup(
-            "Supports <a href='"
-            "https://daringfireball.net/projects/markdown/'>markdown</a>"),
+        'description': _(
+            "Supports Markdown "
+            "(https://daringfireball.net/projects/markdown/>"),
         'fetch_values_from': _(
             "Time expression to use as a predicate when retrieving "
             "distinct values to populate the filter component. "
