@@ -12,13 +12,16 @@ import pickle
 import re
 import time
 import traceback
-
+import os
+import pandas
+import pdb
 import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup,
-    abort, url_for)
-from flask_appbuilder import expose
+    abort, url_for, send_from_directory)
+from flask_appbuilder import (
+    ModelView, CompactCRUDMixin, BaseView, expose, SimpleFormView)
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
@@ -27,8 +30,11 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
+from wtforms.validators import ValidationError
+
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
+from werkzeug.utils import secure_filename
 
 from superset import (
     appbuilder, cache, db, viz, utils, app,
@@ -37,9 +43,13 @@ from superset import (
 from superset.legacy import cast_form_data
 from superset.utils import has_access, QueryStatus
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
+from superset.widgets import CsvListWidget
+from superset.forms import CsvToDatabaseForm
+from superset.views.base import DatabaseFilter
 
 from .base import (
     api, SupersetModelView, BaseSupersetView, DeleteMixin,
@@ -199,6 +209,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'changed_by',
         'changed_on',
     ]
+    list_widget = CsvListWidget
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
     base_order = ('changed_on', 'desc')
@@ -285,6 +296,7 @@ appbuilder.add_view(
 
 
 class DatabaseAsync(DatabaseView):
+    base_filters = [['id', DatabaseFilter, lambda: []]]
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
@@ -292,6 +304,195 @@ class DatabaseAsync(DatabaseView):
     ]
 
 appbuilder.add_view_no_menu(DatabaseAsync)
+
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    with open("flask-stream-demo", "bw") as f:
+        chunk_size = 4096
+        while True:
+            chunk = flask.request.stream.read(chunk_size).decode('utf-8')
+            if len(chunk) == 0:
+                return
+            f.write(chunk)
+
+    #return send_from_directory(config['UPLOAD_FOLDER'],
+    #                           filename)
+
+class CsvToDatabaseView(SimpleFormView):
+    form = CsvToDatabaseForm
+    form_title = _('CSV to Database configuration')
+
+    def form_get(self, form):
+        # pre process form
+        # default values
+        form.name.data = None
+        form.csv_file.data = None
+        form.sep.data = ','
+        form.header.data = 0
+        form.index_col.data = None
+        form.squeeze.data = False
+        form.prefix.data = None
+        form.mangle_dupe_cols.data = True
+        form.skipinitialspace.data = False
+        form.skiprows.data = None
+        form.nrows.data = None
+        form.skip_blank_lines.data = True
+        form.parse_dates.data = True
+        form.infer_datetime_format.data = True
+        form.dayfirst.data = False
+        form.thousands.data = None
+        form.decimal.data = '.'
+        form.quotechar.data = None
+        form.escapechar.data = None
+        form.comment.data = None
+        form.error_bad_lines.data = False
+        form.names.data = None
+        form.con.data = config['SQLALCHEMY_DATABASE_URI']
+        form.schema.data = None
+        form.if_exists.data = 'append'
+        form.index.data = None
+        form.index_label.data = None
+
+    def form_post(self, form):
+        # post process form
+
+        # Turn into list of strings
+        if form.names.data is not None:
+            form.names.data = form.names.data.split(",")
+        else:
+            if form.header.data is None:
+                form.header.data = 0
+
+        # Attempt to upload csv file
+        filename = self.upload_file(form)
+
+        # Use Pandas to convert csv to dataframe
+        datetime_flag = form.infer_datetime_format.data
+        df = self.csv_to_df(names=form.names.data,
+                            filepath_or_buffer=filename,
+                            sep=form.sep.data,
+                            header=form.header.data,
+                            index_col=form.index_col.data,
+                            squeeze=form.squeeze.data,
+                            prefix=form.prefix.data,
+                            mangle_dupe_cols=form.mangle_dupe_cols.data,
+                            skipinitialspace=form.skipinitialspace.data,
+                            skiprows=form.skiprows.data,
+                            nrows=form.nrows.data,
+                            skip_blank_lines=form.skip_blank_lines.data,
+                            parse_dates=form.parse_dates.data,
+                            infer_datetime_format=datetime_flag,
+                            dayfirst=form.dayfirst.data,
+                            thousands=form.thousands.data,
+                            decimal=form.decimal.data,
+                            quotechar=form.quotechar.data,
+                            escapechar=form.escapechar.data,
+                            comment=form.comment.data,
+                            error_bad_lines=form.error_bad_lines.data,
+                            chunksize=10000)
+
+        # Use Pandas to convert superset dataframe to database
+        self.df_to_db(df=df,
+                      name=form.name.data,
+                      con=form.con.data,
+                      schema=form.schema.data,
+                      if_exists=form.if_exists.data,
+                      index=form.index.data,
+                      index_label=form.index_label.data,
+                      chunksize=10000)
+
+        # Go back to welcome page / splash screen
+        message = _('CSV file "{0}" uploaded to table "{1}" in '
+                    'database "{2}"'.format(filename,
+                                            form.name.data,
+                                            form.con.data))
+        flash(message, 'info')
+        return redirect('/tablemodelview/list/')
+
+    @staticmethod
+    def csv_to_df(names, filepath_or_buffer, sep, header, index_col, squeeze,
+                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
+                  skip_blank_lines, parse_dates, infer_datetime_format,
+                  dayfirst, thousands, decimal, quotechar, escapechar, comment,
+                  error_bad_lines, chunksize):
+        # Use Pandas to parse csv file to a dataframe
+        upload_path = config['UPLOAD_FOLDER'] + filepath_or_buffer
+        # Expose this to api so can specify each field
+        chunks = pandas.read_csv(filepath_or_buffer=upload_path,
+                                 sep=sep,
+                                 header=header,
+                                 names=names,
+                                 index_col=index_col,
+                                 squeeze=squeeze,
+                                 prefix=prefix,
+                                 mangle_dupe_cols=mangle_dupe_cols,
+                                 skipinitialspace=skipinitialspace,
+                                 skiprows=skiprows,
+                                 nrows=nrows,
+                                 skip_blank_lines=skip_blank_lines,
+                                 parse_dates=parse_dates,
+                                 infer_datetime_format=infer_datetime_format,
+                                 dayfirst=dayfirst,
+                                 thousands=thousands,
+                                 decimal=decimal,
+                                 quotechar=quotechar,
+                                 escapechar=escapechar,
+                                 comment=comment,
+                                 encoding='utf-8',
+                                 error_bad_lines=error_bad_lines,
+                                 chunksize=chunksize,
+                                 iterator=True)
+        df = pandas.DataFrame()
+        df = pandas.concat(chunk for chunk in chunks)
+        return df
+
+    @staticmethod
+    def df_to_db(df, name, con, schema, if_exists, index,
+                 index_label, chunksize):
+
+        engine = create_engine(con, echo=False)
+
+        # Use Pandas to parse dataframe to database
+        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
+                  index=index, index_label=index_label, chunksize=chunksize)
+
+
+        table = SqlaTable(table_name=name)
+        database = (
+                    db.session
+                    .query(models.Database)
+                    .filter_by(sqlalchemy_uri=con)
+                    .first()
+        )
+        table.database_id = database.id 
+        table.user_id = g.user.id 
+        table.database = database
+        table.schema = schema
+        db.session.add(table)
+        db.session.commit()
+        # Should I set this to g.user? The other tables don't have an owner.
+        # table.owner = g.user.id
+        # Do I need to set table.sql? None of the default tables have it set.
+        # table.sql = 
+
+    @staticmethod
+    def allowed_file(filename):
+        # Only allow specific file extensions as specified in the config
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
+
+
+    def upload_file(self, form):
+        if form.csv_file.data and \
+                self.allowed_file(form.csv_file.data.filename):
+            filename = secure_filename(form.csv_file.data.filename)
+            form.csv_file.data.save(os.path.join(config['UPLOAD_FOLDER'],
+                                                 filename))
+            return filename
+
+
+appbuilder.add_view_no_menu(CsvToDatabaseView)
 
 
 class DatabaseTablesAsync(DatabaseView):

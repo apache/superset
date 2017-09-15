@@ -329,6 +329,16 @@ class SupersetFilter(BaseFilter):
             self.has_perm('all_datasource_access', 'all_datasource_access'))
 
 
+class DatabaseFilter(SupersetFilter):
+    def apply(self, query, func):  # noqa
+        if (
+                self.has_role('Admin') or
+                self.has_perm('all_database_access', 'all_database_access')):
+            return query
+        perms = self.get_view_menus('database_access')
+        return query.filter(self.model.perm.in_(perms))
+
+
 class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
