@@ -229,9 +229,17 @@ class BaseViz(object):
         """Fetches the annotations for the specified layers and date range"""
         annotations = []
         if self.annotation_layers:
-            from superset.models.core import Annotations
-
-            annotations = []
+            from superset.models.annotations import Annotation
+            from superset import db
+            qry = (
+                db.session
+                .query(Annotation)
+                .filter(Annotation.layer_id.in_(self.annotation_layers)))
+            if self.from_dttm:
+                qry = qry.filter(Annotation.start_dttm >= self.from_dttm)
+            if self.to_dttm:
+                qry = qry.filter(Annotation.end_dttm <= self.to_dttm)
+            annotations = [o.data for o in qry.all()]
         return annotations
 
     def get_payload(self, force=False):
@@ -263,6 +271,7 @@ class BaseViz(object):
             is_cached = False
             cache_timeout = self.cache_timeout
             stacktrace = None
+            annotations = []
             try:
                 df = self.get_df()
                 if not self.error_message:

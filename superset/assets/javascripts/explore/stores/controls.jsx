@@ -119,6 +119,21 @@ export const controls = {
     }),
   },
 
+  annotation_layers: {
+    type: 'SelectControl',
+    multi: true,
+    label: 'Annotation Layers',
+    default: [],
+    description: 'Annotation layers to overlay on the visualization',
+    // Mocking with hard coded values for now
+    // this should be out of a new SelectAsyncControl who would fetch the
+    // choices on its own
+    choices: [
+      [1, 'Outages'],
+      [2, 'Holidays'],
+    ],
+  },
+
   metric: {
     type: 'SelectControl',
     label: t('Metric'),

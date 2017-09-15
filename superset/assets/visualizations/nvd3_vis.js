@@ -74,6 +74,7 @@ function getMaxLabelSize(container, axisClass) {
 }
 
 function nvd3Vis(slice, payload) {
+  console.log("Annotations are here!", payload.annotations);
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
