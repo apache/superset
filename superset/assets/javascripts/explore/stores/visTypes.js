@@ -51,6 +51,7 @@ export const sections = {
         ['metrics'],
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
+        ['order_desc', null],
       ],
     },
     {
@@ -324,7 +325,8 @@ export const visTypes = {
         description: 'Use this section if you want a query that aggregates',
         controlSetRows: [
           ['groupby', 'metrics'],
-          ['include_time'],
+          ['include_time', null],
+          ['timeseries_limit_metric', 'order_desc'],
         ],
       },
       {
@@ -929,10 +931,10 @@ export const visTypes = {
     label: 'Heatmap',
     controlPanelSections: [
       {
-        label: 'Axis & Metrics',
+        label: 'Query',
+        expanded: true,
         controlSetRows: [
-          ['all_columns_x'],
-          ['all_columns_y'],
+          ['all_columns_x', 'all_columns_y'],
           ['metric'],
         ],
       },
@@ -941,8 +943,11 @@ export const visTypes = {
         controlSetRows: [
           ['linear_color_scheme'],
           ['xscale_interval', 'yscale_interval'],
-          ['canvas_image_rendering'],
-          ['normalize_across'],
+          ['canvas_image_rendering', 'normalize_across'],
+          ['left_margin', 'bottom_margin'],
+          ['y_axis_bounds', 'y_axis_format'],
+          ['show_legend', 'show_perc'],
+          ['sort_x_axis', 'sort_y_axis'],
         ],
       },
     ],
@@ -952,6 +957,18 @@ export const visTypes = {
       },
       all_columns_y: {
         validators: [v.nonEmpty],
+      },
+      y_axis_bounds: {
+        label: 'Value bounds',
+        renderTrigger: false,
+        description: (
+          'Hard value bounds applied for color coding. Is only relevant ' +
+          'and applied when the normalization is applied against the whole ' +
+          'heatmap.'
+        ),
+      },
+      y_axis_format: {
+        label: 'Value Format',
       },
     },
   },

@@ -19,7 +19,7 @@ env:
     - TOX_ENV=py27-mysql
     - TOX_ENV=py27-sqlite
 before_install:
-  - npm install -g npm@'>=5.0.3'
+  - npm install -g npm@'>=5.4.1'
 before_script:
   - mysql -e 'drop database if exists superset; create database superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"

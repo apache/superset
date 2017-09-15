@@ -19,8 +19,8 @@ const defaultProps = {
 const checkboxStyle = { paddingRight: '5px' };
 
 export default class CheckboxControl extends React.Component {
-  onChange(checked) {
-    this.props.onChange(checked);
+  onChange() {
+    this.props.onChange(!this.props.value);
   }
   render() {
     return (

@@ -137,6 +137,9 @@ class BaseViz(object):
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
 
+        # default order direction
+        order_desc = form_data.get("order_desc", True)
+
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
@@ -194,6 +197,7 @@ class BaseViz(object):
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
+            'order_desc': order_desc
         }
         return d
 
@@ -306,7 +310,7 @@ class BaseViz(object):
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index, encoding="utf-8")
+        return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
         return []
@@ -347,11 +351,16 @@ class TableViz(BaseViz):
                 "Choose either fields to [Group By] and [Metrics] or "
                 "[Columns], not both"))
 
+        sort_by = fd.get('timeseries_limit_metric')
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
+        elif sort_by:
+            if sort_by not in d['metrics']:
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get("order_desc", True))]
 
         d['is_timeseries'] = self.should_be_timeseries()
         return d
@@ -1475,6 +1484,13 @@ class HeatmapViz(BaseViz):
             df.columns = ['x', 'y', 'v']
         norm = fd.get('normalize_across')
         overall = False
+        max_ = df.v.max()
+        min_ = df.v.min()
+        bounds = fd.get('y_axis_bounds')
+        if bounds and bounds[0]:
+            min_ = bounds[0]
+        if bounds and bounds[1]:
+            max_ = bounds[1]
         if norm == 'heatmap':
             overall = True
         else:
@@ -1487,10 +1503,11 @@ class HeatmapViz(BaseViz):
                         lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
                 )
         if overall:
-            v = df.v
-            min_ = v.min()
-            df['perc'] = (v - min_) / (v.max() - min_)
-        return df.to_dict(orient="records")
+            df['perc'] = (df.v - min_) / (max_ - min_)
+        return {
+            'records': df.to_dict(orient="records"),
+            'extents': [min_, max_],
+        }
 
 
 class HorizonViz(NVD3TimeSeriesViz):
