@@ -8,6 +8,32 @@ Superset is tested against Python ``2.7`` and Python ``3.4``.
 Airbnb currently uses 2.7.* in production. We do not plan on supporting
 Python ``2.6``.
 
+Cloud-native!
+-------------
+
+Superset is designed to be highly available. It is
+"cloud-native" as it has been designed scale out in large,
+distributed environments, and works well inside containers.
+While you can easily
+test drive Superset on a modest setup or simply on your laptop,
+there's virtually no limit around scaling out the platform.
+Superset is also cloud-native in the sense that it is
+flexible and lets you choose your web server (Gunicorn, Nginx, Apache),
+your metadata database engine (MySQL, Postgres, MariaDB, ...),
+your message queue (Redis, RabbitMQ, SQS, ...),
+your results backend (S3, Redis, Memcached, ...), your caching layer
+(memcached, Redis, ...), works well with services like NewRelic, StatsD and
+DataDog, and has the ability to run analytic workloads against
+most popular database technologies.
+
+Superset is battle tested in large environments with hundreds
+of concurrent users. Airbnb's production environment runs inside
+Kubernetes and serves 600+ daily active users viewing over 100K charts a
+day.
+
+The Superset web server and the Superset Celery workers (optional)
+are stateless, so you can scale out by running on as many servers
+as needed.
 
 OS dependencies
 ---------------
@@ -107,10 +133,40 @@ the credential you entered while creating the admin account, and navigate to
 your datasources for Superset to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
 
-Please note that *gunicorn*, Superset default application server, does not
-work on Windows so you need to use the development web server.
-The development web server though is not intended to be used on production systems
-so better use a supported platform that can run *gunicorn*.
+A proper WSGI HTTP Server
+-------------------------
+
+While you can setup Superset to run on Nginx or Apache, many use
+Gunicorn, preferably in **async mode**, which allows for impressive
+concurrency even and is fairly easy to install and configure. Please
+refer to the
+documentation of your preferred technology to set up this Flask WSGI
+application in a way that works well in your environment.
+
+While the `superset runserver` command act as an quick wrapper
+around `gunicorn`, it doesn't expose all the options you may need,
+so you'll want to craft your own `gunicorn` command in your production
+environment. Here's an **async** setup known to work well: ::
+
+	gunicorn \
+		-w 10 \
+		-k gevent \
+		--timeout 120 \
+		-b  0.0.0.0:6666 \
+		--limit-request-line 0 \
+		--limit-request-field_size 0 \
+		--statsd-host localhost:8125 \
+		superset:app
+
+Refer to the
+[Gunicorn documentation](http://docs.gunicorn.org/en/stable/design.html)
+for more information.
+
+Note that *gunicorn* does not
+work on Windows so the `superser runserver` command is not expected to work
+in that context. Also note that the development web
+server (`superset runserver -d`) is not intended for production use.
+
 
 Configuration behind a load balancer
 ------------------------------------
