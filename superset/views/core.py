@@ -14,14 +14,12 @@ import time
 import traceback
 import os
 import pandas
-import pdb
 import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup,
-    abort, url_for, send_from_directory)
-from flask_appbuilder import (
-    ModelView, CompactCRUDMixin, BaseView, expose, SimpleFormView)
+    url_for, send_from_directory)
+from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
@@ -29,8 +27,6 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-
-from wtforms.validators import ValidationError
 
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
@@ -209,7 +205,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'changed_by',
         'changed_on',
     ]
-    list_widget = CsvListWidget
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
     base_order = ('changed_on', 'desc')
@@ -465,8 +460,8 @@ class CsvToDatabaseView(SimpleFormView):
                     .filter_by(sqlalchemy_uri=con)
                     .first()
         )
-        table.database_id = database.id 
-        table.user_id = g.user.id 
+        table.database_id = database.id
+        table.user_id = g.user.id
         table.database = database
         table.schema = schema
         db.session.add(table)
@@ -474,7 +469,7 @@ class CsvToDatabaseView(SimpleFormView):
         # Should I set this to g.user? The other tables don't have an owner.
         # table.owner = g.user.id
         # Do I need to set table.sql? None of the default tables have it set.
-        # table.sql = 
+        # table.sql =
 
     @staticmethod
     def allowed_file(filename):
@@ -2555,6 +2550,16 @@ appbuilder.add_link(
     category='SQL Lab',
     category_label=__("SQL Lab"),
 )
+
+appbuilder.add_link(
+    'Upload a CSV',
+    label=__("Upload a CSV"),
+    href='/csvtodatabaseview/form',
+    icon="fa-upload",
+    category='Sources',
+    category_label=__("Sources"),
+    category_icon='fa-wrench',)
+appbuilder.add_separator("Sources")
 
 
 @app.after_request
