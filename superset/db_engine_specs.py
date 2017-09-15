@@ -74,6 +74,17 @@ class BaseEngineSpec(object):
         """Returns engine-specific table metadata"""
         return {}
 
+    def upload_csv(self, **data):
+        # Use Pandas to convert superset dataframe to database
+        self.df_to_db(df=df,
+                      name=form.name.data,
+                      con=form.con.data,
+                      schema=form.schema.data,
+                      if_exists=form.if_exists.data,
+                      index=form.index.data,
+                      index_label=form.index_label.data,
+                      chunksize=10000)
+
     @classmethod
     def escape_sql(cls, sql):
         """Escapes the raw SQL"""
@@ -685,6 +696,11 @@ class HiveEngineSpec(PrestoEngineSpec):
     def fetch_result_sets(cls, db, datasource_type, force=False):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
+
+    def upload_csv(self):
+        from superset import csv_upload_backend
+        csv_upload_backend.set()
+        sql = """CREATE EXTERNAL TABNLE dlskjfaslkfdj s3://"""
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):

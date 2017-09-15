@@ -387,15 +387,10 @@ class CsvToDatabaseView(SimpleFormView):
                             error_bad_lines=form.error_bad_lines.data,
                             chunksize=10000)
 
-        # Use Pandas to convert superset dataframe to database
-        self.df_to_db(df=df,
-                      name=form.name.data,
-                      con=form.con.data,
-                      schema=form.schema.data,
-                      if_exists=form.if_exists.data,
-                      index=form.index.data,
-                      index_label=form.index_label.data,
-                      chunksize=10000)
+        # some of this stuff belongs in db_engine_spec
+        database = db.session.query(Database).filter_by(id=form.data.get('db_id'))
+        database.db_engine_spec.upload_csv(form)
+
 
         # Go back to welcome page / splash screen
         message = _('CSV file "{0}" uploaded to table "{1}" in '
