@@ -2126,13 +2126,13 @@ class Superset(BaseSupersetView):
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
             logging.info("Using pandas to convert to CSV")
-            csv = df.to_csv(index=False, encoding='utf-8')
+            csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         else:
             logging.info("Running a query to turn into CSV")
             sql = query.select_sql or query.executed_sql
             df = query.database.get_df(sql, query.schema)
             # TODO(bkyryliuk): add compression=gzip for big files.
-            csv = df.to_csv(index=False, encoding='utf-8')
+            csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
