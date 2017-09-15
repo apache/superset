@@ -157,6 +157,8 @@ of the parameters you can copy / paste in that configuration module: ::
 
     # Flask-WTF flag for CSRF
     WTF_CSRF_ENABLED = True
+    # Add endpoints that need to be exempt from CSRF protection
+    WTF_CSRF_EXEMPT_LIST = []
 
     # Set this API key to enable Mapbox visualizations
     MAPBOX_API_KEY = ''
@@ -171,6 +173,11 @@ Please make sure to change:
 
 * *SQLALCHEMY_DATABASE_URI*, by default it is stored at *~/.superset/superset.db*
 * *SECRET_KEY*, to a long random string
+
+In case you need to exempt endpoints from CSRF, e.g. you are running a custom
+auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
+
+     WTF_CSRF_EXEMPT_LIST = ['']
 
 Database dependencies
 ---------------------
