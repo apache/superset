@@ -1639,6 +1639,53 @@ class EventFlowViz(BaseViz):
     def get_data(self, df):
         return df.to_dict(orient="records")
 
+class PairedTTestViz(BaseViz):
+
+    """A table displaying paired t-test values"""
+
+    viz_type = 'paired_ttest'
+    verbose_name = _("Time Series - Paired t-test")
+    sort_series = False
+    is_timeseries = True
+
+    def get_data(self, df):
+        fd = self.form_data
+        groups = fd.get('groupby')
+        metrics = fd.get('metrics')
+        df.fillna(0)
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            columns=groups,
+            values=metrics)
+        cols = []
+        for col in df.columns:
+            if col == '':
+                cols.append('N/A')
+            elif col is None:
+                cols.append('NULL')
+            else:
+                cols.append(col)
+        df.columns = cols
+        data = {}
+        series = df.to_dict('series')
+        groupId = 0
+        for metric in metrics:
+            data[metric] = []
+        for nameSet in df.columns:
+            hasGroup = not isinstance(nameSet, string_types)
+            Y = series[nameSet]
+            d = {
+                'group': nameSet[1:] if hasGroup else 'All',
+                'id': groupId,
+                'values': [
+                    {'x': t, 'y': Y[t] if t in Y else None}
+                    for t in df.index
+                ],
+            }
+            groupId += 1
+            data[nameSet[0] if hasGroup else nameSet].append(d)
+        return data
+
 
 
 viz_types_list = [
@@ -1675,6 +1722,7 @@ viz_types_list = [
     HistogramViz,
     SeparatorViz,
     EventFlowViz,
+    PairedTTestViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
