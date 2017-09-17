@@ -143,6 +143,24 @@ To exclude specific slices from the timed refresh process, add the ``timed_refre
 In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will be automatically requeried on schedule.
 
 
+How to speed up/slow down dashboard loading?
+--------------------------------------------
+Dashboards stagger slice rendering by default over a period of 5 seconds. This reduces loads on
+some databases but slows down loading time. You can disable render staggering by setting the key
+``stagger_refresh`` in the ``JSON Metadata`` to ``false`` or alter the stagger period by setting
+``stagger_time`` to a value in milliseconds:
+
+..code::
+
+    {
+       "stagger_refresh": false,
+       "stagger_time": 2000
+    }
+
+Here, whenever the dashboard refreshes slices, all requests will be issued simultaneously. The
+stagger time of 2 seconds is ignored.
+
+
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
 -----------------------------------------------------------------------------------------
 By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
@@ -188,7 +206,7 @@ Please note that pretty much any databases that have a SqlAlchemy integration sh
 How can i configure OAuth authentication and authorization?
 -----------------------------------------------------------
 
-You can take a look at this Flask-AppBuilder `configuration example 
+You can take a look at this Flask-AppBuilder `configuration example
 <https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py>`_.
 
 How can I set a default filter on my dashboard?

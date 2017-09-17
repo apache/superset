@@ -255,25 +255,35 @@ export function dashboardContainer(dashboard, datasources, userid) {
         this.refreshTimer = null;
       }
     },
+    renderSlices(slices, interval = 0) {
+      const meta = this.metadata;
+      const refreshTime = Math.max(interval, meta.stagger_time || 5000);
+      // Delay is zero if not staggerring slice refresh
+      if (typeof meta.stagger_refresh !== 'boolean') {
+        meta.stagger_refresh = meta.stagger_refresh === undefined ?
+          true : meta.stagger_refresh === 'true';
+      }
+      const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
+      slices.forEach((slice, i) => {
+        // Caller may pass array of slices or { slice, force }
+        if (slice.slice) {
+          slice.slice.render(slice.force, delay * i);
+        } else {
+          slice.render(false, delay * i);
+        }
+      });
+    },
     startPeriodicRender(interval) {
       this.stopPeriodicRender();
       const dash = this;
       const immune = this.metadata.timed_refresh_immune_slices || [];
-      const maxRandomDelay = Math.max(interval * 0.2, 5000);
       const refreshAll = () => {
-        dash.sliceObjects.forEach((slice) => {
-          const force = !dash.firstLoad;
-          if (immune.indexOf(slice.data.slice_id) === -1) {
-            setTimeout(() => {
-              slice.render(force);
-            },
-            // Randomize to prevent all widgets refreshing at the same time
-            maxRandomDelay * Math.random());
-          }
-        });
+        const slices = dash.sliceObjects
+          .filter(slice => immune.indexOf(slice.data.slice_id) === -1 || dash.firstLoad)
+          .map(slice => ({ slice, force: !dash.firstLoad }));
         dash.firstLoad = false;
+        dash.renderSlices(slices, interval * 0.2);
       };
-
       const fetchAndRender = function () {
         refreshAll();
         if (interval > 0) {
@@ -286,16 +296,9 @@ export function dashboardContainer(dashboard, datasources, userid) {
     },
     refreshExcept(sliceId) {
       const immune = this.metadata.filter_immune_slices || [];
-      this.sliceObjects.forEach((slice) => {
-        if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1) {
-          slice.render();
-          const sliceSeletor = $(`#${slice.data.slice_id}-cell`);
-          sliceSeletor.addClass('slice-cell-highlight');
-          setTimeout(function () {
-            sliceSeletor.removeClass('slice-cell-highlight');
-          }, 1200);
-        }
-      });
+      const slices = this.sliceObjects.filter(slice =>
+        slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1);
+      this.renderSlices(slices);
     },
     clearFilters(sliceId) {
       delete this.filters[sliceId];
