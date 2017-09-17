@@ -153,7 +153,7 @@ class QuerySearch extends React.PureComponent {
               placeholder="Search Results"
             />
           </div>
-          <div className="col-sm-1">
+          <div className="col-sm-4 search-date-filter-container">
             <Select
               name="select-from"
               placeholder="[From]-"
@@ -163,8 +163,7 @@ class QuerySearch extends React.PureComponent {
               autosize={false}
               onChange={this.changeFrom.bind(this)}
             />
-          </div>
-          <div className="col-sm-1">
+
             <Select
               name="select-to"
               placeholder="[To]-"
@@ -173,8 +172,7 @@ class QuerySearch extends React.PureComponent {
               autosize={false}
               onChange={this.changeTo.bind(this)}
             />
-          </div>
-          <div className="col-sm-1">
+
             <Select
               name="select-status"
               placeholder="[Query Status]"
@@ -184,10 +182,11 @@ class QuerySearch extends React.PureComponent {
               autosize={false}
               onChange={this.changeStatus.bind(this)}
             />
+
+            <Button bsSize="small" bsStyle="success" onClick={this.refreshQueries.bind(this)}>
+              Search
+            </Button>
           </div>
-          <Button bsSize="small" bsStyle="success" onClick={this.refreshQueries.bind(this)}>
-            Search
-          </Button>
         </div>
         {this.state.queriesLoading ?
           (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)

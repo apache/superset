@@ -812,7 +812,8 @@ class DruidDatasource(Model, BaseDatasource):
             orderby=None,
             extras=None,  # noqa
             select=None,  # noqa
-            columns=None, phase=2, client=None, form_data=None):
+            columns=None, phase=2, client=None, form_data=None,
+            order_desc=True):
         """Runs a query against Druid and returns a dataframe.
         """
         # TODO refactor into using a TBD Query object
@@ -882,12 +883,12 @@ class DruidDatasource(Model, BaseDatasource):
         having_filters = self.get_having_filters(extras.get('having_druid'))
         if having_filters:
             qry['having'] = having_filters
-
+        order_direction = "descending" if order_desc else "ascending"
         orig_filters = filters
         if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
-        if not having_filters and len(groupby) == 1:
+        if not having_filters and len(groupby) == 1 and order_desc:
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
                 qry['threshold'] = row_limit
@@ -895,7 +896,7 @@ class DruidDatasource(Model, BaseDatasource):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        elif len(groupby) > 1 or having_filters:
+        elif len(groupby) > 1 or having_filters or not order_desc:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             if timeseries_limit and is_timeseries:
@@ -913,7 +914,7 @@ class DruidDatasource(Model, BaseDatasource):
                         inner_to_dttm.isoformat()),
                     "columns": [{
                         "dimension": order_by,
-                        "direction": "descending",
+                        "direction": order_direction,
                     }],
                 }
                 client.groupby(**pre_qry)
@@ -956,7 +957,7 @@ class DruidDatasource(Model, BaseDatasource):
                     "columns": [{
                         "dimension": (
                             metrics[0] if metrics else self.metrics[0]),
-                        "direction": "descending",
+                        "direction": order_direction,
                     }],
                 }
             client.groupby(**qry)

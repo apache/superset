@@ -137,24 +137,29 @@ class BaseViz(object):
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
 
+        # default order direction
+        order_desc = form_data.get("order_desc", True)
+
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
         # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or
-            form_data.get("since") or
-            config.get("SUPERSET_DEFAULT_SINCE", "1 year ago")
+            form_data.get("since") or ''
         )
 
+        # Backward compatibility hack
+        since_words = since.split(' ')
+        grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
+        if (len(since_words) == 2 and since_words[1] in grains):
+            since += ' ago'
+
         from_dttm = utils.parse_human_datetime(since)
-        now = datetime.now()
-        if from_dttm > now:
-            from_dttm = now - (from_dttm - now)
 
         until = extra_filters.get('__to') or form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
-        if from_dttm > to_dttm:
+        if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_("From date cannot be larger than to date"))
 
         # extras are used to query elements specific to a datasource type
@@ -192,6 +197,7 @@ class BaseViz(object):
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
+            'order_desc': order_desc
         }
         return d
 
@@ -304,7 +310,7 @@ class BaseViz(object):
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index, encoding="utf-8")
+        return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
         return []
@@ -345,11 +351,16 @@ class TableViz(BaseViz):
                 "Choose either fields to [Group By] and [Metrics] or "
                 "[Columns], not both"))
 
+        sort_by = fd.get('timeseries_limit_metric')
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
+        elif sort_by:
+            if sort_by not in d['metrics']:
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get("order_desc", True))]
 
         d['is_timeseries'] = self.should_be_timeseries()
         return d
@@ -883,18 +894,25 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dft = df.T
             df = (dft / dft.sum()).T
 
-        rolling_periods = fd.get("rolling_periods")
         rolling_type = fd.get("rolling_type")
+        rolling_periods = int(fd.get("rolling_periods") or 0)
+        min_periods = int(fd.get("min_periods") or 0)
 
         if rolling_type in ('mean', 'std', 'sum') and rolling_periods:
+            kwargs = dict(
+                arg=df,
+                window=rolling_periods,
+                min_periods=min_periods)
             if rolling_type == 'mean':
-                df = pd.rolling_mean(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_mean(**kwargs)
             elif rolling_type == 'std':
-                df = pd.rolling_std(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_std(**kwargs)
             elif rolling_type == 'sum':
-                df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
+                df = pd.rolling_sum(**kwargs)
         elif rolling_type == 'cumsum':
             df = df.cumsum()
+        if min_periods:
+            df = df[min_periods:]
 
         num_period_compare = fd.get("num_period_compare")
         if num_period_compare:
@@ -908,7 +926,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = df / df.shift(num_period_compare)
 
             df = df[num_period_compare:]
-
         return df
 
     def get_data(self, df):
@@ -1467,6 +1484,13 @@ class HeatmapViz(BaseViz):
             df.columns = ['x', 'y', 'v']
         norm = fd.get('normalize_across')
         overall = False
+        max_ = df.v.max()
+        min_ = df.v.min()
+        bounds = fd.get('y_axis_bounds')
+        if bounds and bounds[0]:
+            min_ = bounds[0]
+        if bounds and bounds[1]:
+            max_ = bounds[1]
         if norm == 'heatmap':
             overall = True
         else:
@@ -1479,10 +1503,11 @@ class HeatmapViz(BaseViz):
                         lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
                 )
         if overall:
-            v = df.v
-            min_ = v.min()
-            df['perc'] = (v - min_) / (v.max() - min_)
-        return df.to_dict(orient="records")
+            df['perc'] = (df.v - min_) / (max_ - min_)
+        return {
+            'records': df.to_dict(orient="records"),
+            'extents': [min_, max_],
+        }
 
 
 class HorizonViz(NVD3TimeSeriesViz):

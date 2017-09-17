@@ -20,7 +20,7 @@ import sys
 import zlib
 
 from builtins import object
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import celery
 from dateutil.parser import parse
@@ -198,6 +198,8 @@ def parse_human_datetime(s):
     >>> year_ago_1 == year_ago_2
     True
     """
+    if not s:
+        return None
     try:
         dttm = parse(s)
     except Exception:
@@ -275,6 +277,8 @@ def base_json_conv(obj):
     elif isinstance(obj, decimal.Decimal):
         return float(obj)
     elif isinstance(obj, uuid.UUID):
+        return str(obj)
+    elif isinstance(obj, timedelta):
         return str(obj)
 
 

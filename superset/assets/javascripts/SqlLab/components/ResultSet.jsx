@@ -27,7 +27,7 @@ const defaultProps = {
   cache: false,
 };
 
-const RESULT_SET_CONTROLS_HEIGHT = 46;
+const SEARCH_HEIGHT = 46;
 
 export default class ResultSet extends React.PureComponent {
   constructor(props) {
@@ -36,7 +36,6 @@ export default class ResultSet extends React.PureComponent {
       searchText: '',
       showModal: false,
       data: null,
-      height: props.search ? props.height - RESULT_SET_CONTROLS_HEIGHT : props.height,
     };
   }
   componentDidMount() {
@@ -144,6 +143,7 @@ export default class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
+    const height = this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height;
     let sql;
 
     if (this.props.showSql) {
@@ -190,7 +190,7 @@ export default class ResultSet extends React.PureComponent {
             <FilterableTable
               data={data}
               orderedColumnKeys={results.columns.map(col => col.name)}
-              height={this.state.height}
+              height={height}
               filterText={this.state.searchText}
             />
           </div>

@@ -157,6 +157,8 @@ of the parameters you can copy / paste in that configuration module: ::
 
     # Flask-WTF flag for CSRF
     WTF_CSRF_ENABLED = True
+    # Add endpoints that need to be exempt from CSRF protection
+    WTF_CSRF_EXEMPT_LIST = []
 
     # Set this API key to enable Mapbox visualizations
     MAPBOX_API_KEY = ''
@@ -171,6 +173,11 @@ Please make sure to change:
 
 * *SQLALCHEMY_DATABASE_URI*, by default it is stored at *~/.superset/superset.db*
 * *SECRET_KEY*, to a long random string
+
+In case you need to exempt endpoints from CSRF, e.g. you are running a custom
+auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
+
+     WTF_CSRF_EXEMPT_LIST = ['']
 
 Database dependencies
 ---------------------
@@ -282,6 +289,24 @@ Postgres and Redshift, as well as other database,
 use the concept of **schema** as a logical entity
 on top of the **database**. For Superset to connect to a specific schema,
 there's a **schema** parameter you can set in the table form.
+
+
+External Password store for SQLAlchemy connections
+--------------------------------------------------
+It is possible to use an external store for you database passwords. This is
+useful if you a running a custom secret distribution framework and do not wish
+to store secrets in Superset's meta database.
+
+Example:
+Write a function that takes a single argument of type ``sqla.engine.url`` and returns
+the password for the given connection string. Then set ``SQLALCHEMY_CUSTOM_PASSWORD_STORE``
+in your config file to point to that function. ::
+
+    def example_lookup_password(url):
+        secret = <<get password from external framework>>
+        return 'secret'
+
+    SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_lookup_password
 
 
 SSL Access to databases
