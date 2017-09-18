@@ -167,13 +167,11 @@ class BaseViz(object):
         extras = {
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
-            'having_druid': form_data.get('having_filters') \
-                if 'having_filters' in form_data else [],
+            'having_druid': form_data.get('having_filters', []),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
-        filters = form_data['filters'] if 'filters' in form_data \
-                else []
+        filters = form_data.get('filters', [])
         for col, vals in self.get_extra_filters().items():
             if not (col and vals) or col.startswith('__'):
                 continue
@@ -1315,7 +1313,6 @@ class CountryMapViz(BaseViz):
         return qry
 
     def get_data(self, df):
-        from superset.data import countries
         fd = self.form_data
         cols = [fd.get('entity')]
         metric = fd.get('metric')
