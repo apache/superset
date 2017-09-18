@@ -10,12 +10,12 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
 
-import superset
 from superset import db, utils, appbuilder, sm, security
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils import has_access
-from superset.views.base import BaseSupersetView
+from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
+    BaseSupersetView,
     SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
     DatasourceFilter, get_datasource_exist_error_mgs)
 
@@ -24,12 +24,18 @@ from . import models
 
 class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
+
+    list_title = _('List Druid Column')
+    show_title = _('Show Druid Column')
+    add_title = _('Add Druid Column')
+    edit_title = _('Edit Druid Column')
+
     edit_columns = [
         'column_name', 'description', 'dimension_spec_json', 'datasource',
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
     can_delete = False
     page_size = 500
@@ -70,6 +76,12 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
+
+    list_title = _('List Druid Metric')
+    show_title = _('Show Druid Metric')
+    add_title = _('Add Druid Metric')
+    edit_title = _('Edit Druid Metric')
+
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
@@ -112,6 +124,12 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
+
+    list_title = _('List Druid Cluster')
+    show_title = _('Show Druid Cluster')
+    add_title = _('Add Druid Cluster')
+    edit_title = _('Edit Druid Cluster')
+
     add_columns = [
         'verbose_name', 'coordinator_host', 'coordinator_port',
         'coordinator_endpoint', 'broker_host', 'broker_port',
@@ -119,6 +137,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
+    search_columns = ('cluster_name',)
     label_columns = {
         'cluster_name': _("Cluster"),
         'coordinator_host': _("Coordinator Host"),
@@ -135,6 +154,8 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, cluster):
         self.pre_add(cluster)
 
+    def _delete(self, pk):
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
     DruidClusterModelView,
@@ -146,19 +167,26 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
+class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
+
+    list_title = _('List Druid Datasource')
+    show_title = _('Show Druid Datasource')
+    add_title = _('Add Druid Datasource')
+    edit_title = _('Edit Druid Datasource')
+
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
-        'datasource_link', 'cluster', 'changed_by_', 'changed_on_', 'offset']
-    order_columns = [
-        'datasource_link', 'changed_on_', 'offset']
+        'datasource_link', 'cluster', 'changed_by_', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'slices', 'description', 'owner',
         'is_hidden',
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
+    search_columns = (
+        'datasource_name', 'cluster', 'description', 'owner'
+    )
     add_columns = edit_columns
     show_columns = add_columns + ['perm']
     page_size = 500
@@ -226,6 +254,9 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_update(self, datasource):
         self.post_add(datasource)
+
+    def _delete(self, pk):
+        DeleteMixin._delete(self, pk)
 
 appbuilder.add_view(
     DruidDatasourceModelView,

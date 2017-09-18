@@ -1,0 +1,36 @@
+.country_map svg {
+    background-color: #feffff;
+}
+
+.country_map {
+  position: relative;
+}
+
+.country_map .background {
+    fill: rgba(255,255,255,0);
+    pointer-events: all;
+}
+
+.country_map .map-layer {
+    fill: #fff;
+    stroke: #aaa;
+}
+
+.country_map .effect-layer {
+    pointer-events: none;
+}
+
+.country_map text {
+    font-weight: 300;
+    color: #333333;
+}
+
+.country_map text.big-text {
+    font-size: 30px;
+    font-weight: 400;
+    color: #333333;
+}
+
+.country_map path.region {
+    cursor: pointer;
+}

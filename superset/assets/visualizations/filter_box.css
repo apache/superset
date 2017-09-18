@@ -3,7 +3,7 @@
     border: 1px superset black;
 }
 
-.dashboard .filter_box .slice_container > div {
+.dashboard .filter_box .slice_container > div:not(.alert) {
     padding-top: 0;
 }
 

@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle, no-param-reassign */
 import d3 from 'd3';
-import { category21 } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../javascripts/modules/colors';
 import { wrapSvgText } from '../javascripts/modules/utils';
 
 require('./sunburst.css');
@@ -110,7 +110,9 @@ function sunburstVis(slice, payload) {
     entering.append('svg:polygon')
         .attr('points', breadcrumbPoints)
         .style('fill', function (d) {
-          return colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1);
+          return colorByCategory ?
+            getColorFromScheme(d.name, slice.formData.color_scheme) :
+            colorScale(d.m2 / d.m1);
         });
 
     entering.append('svg:text')
@@ -119,7 +121,9 @@ function sunburstVis(slice, payload) {
         .attr('dy', '0.35em')
         .style('fill', function (d) {
           // Make text white or black based on the lightness of the background
-          const col = d3.hsl(colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1));
+          const col = d3.hsl(colorByCategory ?
+            getColorFromScheme(d.name, slice.formData.color_scheme) :
+            colorScale(d.m2 / d.m1));
           return col.l < 0.5 ? 'white' : 'black';
         })
         .attr('class', 'step-label')
@@ -360,7 +364,9 @@ function sunburstVis(slice, payload) {
       })
       .attr('d', arc)
       .attr('fill-rule', 'evenodd')
-      .style('fill', d => colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1))
+      .style('fill', d => colorByCategory ?
+        getColorFromScheme(d.name, fd.color_scheme) :
+        colorScale(d.m2 / d.m1))
       .style('opacity', 1)
       .on('mouseenter', mouseenter);
 

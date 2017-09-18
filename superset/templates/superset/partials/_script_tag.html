@@ -1,4 +1,5 @@
-{% set VERSION_STRING = appbuilder.get_app.config.get("VERSION_STRING") %}
 {% block tail_js %}
-  <script src="/static/assets/dist/{{filename}}.{{VERSION_STRING}}.entry.js"></script>
+  <script
+    src="{{ js_manifest(filename + '.js') }}">
+  </script>
 {% endblock %}

@@ -18,6 +18,9 @@ If you are reporting a bug, please include:
     troubleshooting.
 -   Detailed steps to reproduce the bug.
 
+When you post python stack traces please quote them using
+[markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
+
 ### Fix Bugs
 
 Look through the GitHub issues for bugs. Anything tagged with "bug" is
@@ -26,7 +29,7 @@ open to whoever wants to implement it.
 ### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with
-"feature" is open to whoever wants to implement it.
+"feature" or "starter_task" is open to whoever wants to implement it.
 
 ### Documentation
 
@@ -47,9 +50,27 @@ If you are proposing a feature:
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
 
+## Pull Request Guidelines
+
+Before you submit a pull request from your forked repo, check that it
+meets these guidelines:
+
+1.  The pull request should include tests, either as doctests,
+    unit tests, or both.
+2.  If the pull request adds functionality, the docs should be updated
+    as part of the same PR. Doc string are often sufficient, make
+    sure to follow the sphinx compatible standards.
+3.  The pull request should work for Python 2.7, and ideally python 3.4+.
+    ``from __future__ import`` will be required in every `.py` file soon.
+4.  Code will be reviewed by re running the unittests, flake8 and syntax
+    should be as rigorous as the core Python project.
+5.  Please rebase and resolve all conflicts before submitting.
+6.  If you are asked to update your pull request with some changes there's
+    no need to create a new one. Push your changes to the same branch.
+
 ## Documentation
 
-The latest documentation and tutorial are available [here](http://airbnb.io/superset).
+The latest documentation and tutorial are available [here](https://superset.incubator.apache.org/).
 
 Contributing to the official documentation is relatively easy, once you've setup
 your environment and done an edit end-to-end. The docs can be found in the
@@ -64,7 +85,7 @@ Before you start changing the docs, you'll want to
 [fork the Superset project on Github](https://help.github.com/articles/fork-a-repo/).
 Once that new repository has been created, clone it on your local machine:
 
-    git clone git@github.com:your_username/superset.git
+    git clone git@github.com:your_username/incubator-superset.git
 
 At this point, you may also want to create a
 [Python virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
@@ -76,7 +97,7 @@ to manage the Python packages you're about to install:
 Finally, to make changes to the rst files and build the docs using Sphinx, 
 you'll need to install a handful of dependencies from the repo you cloned:
 
-    cd superset
+    cd incubator-superset
     pip install -r dev-reqs-for-docs.txt
 
 To get the feel for how to edit and build the docs, let's edit a file, build
@@ -123,7 +144,7 @@ referenced in the rst, e.g.
 
 aren't actually included in that directory. _Instead_, you'll want to add and commit
 images (and any other static assets) to the _superset/assets/images_ directory.
-When the docs are being pushed to [airbnb.io](http://airbnb.io/superset/), images
+When the docs are being pushed to [Apache Superset (incubating)](https://superset.incubator.apache.org/), images
 will be moved from there to the _\_static/img_ directory, just like they're referenced
 in the docs.
 
@@ -140,12 +161,12 @@ instead.
 
 ## Setting up a Python development environment
 
-Check the [OS dependencies](http://airbnb.io/superset/installation.html#os-dependencies) before follows these steps.
+Check the [OS dependencies](https://superset.incubator.apache.org/installation.html#os-dependencies) before follows these steps.
 
     # fork the repo on GitHub and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
-    # git clone git@github.com:airbnb/superset.git
+    # git clone git@github.com:apache/incubator-superset.git
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -202,8 +223,13 @@ To install third party libraries defined in `package.json`, run the
 following within the `superset/assets/` directory which will install them in a
 new `node_modules/` folder within `assets/`.
 
-```
-npm install
+```bash
+# from the root of the repository, move to where our JS package.json lives
+cd superset/assets/
+# install yarn, a replacement for `npm install` that is faster and more deterministic
+npm install -g yarn
+# run yarn to fetch all the dependencies
+yarn
 ```
 
 To parse and generate bundled files for superset, run either of the
@@ -230,6 +256,11 @@ npm run dev
 ```
 
 ## Testing
+
+Before running python unit tests, please setup local testing environment:
+```
+pip install -r dev-reqs.txt
+```
 
 Python tests can be run with:
 
@@ -292,23 +323,6 @@ The `variables.less` and `bootswatch.less` files that ship with Superset are der
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 
-## Pull Request Guidelines
-
-Before you submit a pull request from your forked repo, check that it
-meets these guidelines:
-
-1.  The pull request should include tests, either as doctests,
-    unit tests, or both.
-2.  If the pull request adds functionality, the docs should be updated
-    as part of the same PR. Doc string are often sufficient, make
-    sure to follow the sphinx compatible standards.
-3.  The pull request should work for Python 2.6, 2.7, and ideally python 3.3.
-    ``from __future__ import`` will be required in every `.py` file soon.
-4.  Code will be reviewed by re running the unittests, flake8 and syntax
-    should be as rigorous as the core Python project.
-5.  Please rebase and resolve all conflicts before submitting.
-
-
 ## Translations
 
 We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. The
@@ -333,7 +347,7 @@ new language dictionary, run the following command:
 
     pybabel init -i ./babel/messages.pot -d superset/translations -l es
 
-Then it's a matter of running the statement below to gather all stings that
+Then it's a matter of running the statement below to gather all strings that
 need translation
 
     fabmanager babel-extract --target superset/translations/
@@ -360,3 +374,39 @@ to take effect, they need to be compiled using this command:
     `ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}`
 
     This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.
+
+## Creating a new visualization type
+
+Here's an example as a Github PR with comments that describe what the
+different sections of the code do:
+https://github.com/apache/incubator-superset/pull/3013
+
+## Refresh documentation website
+
+  Every once in a while we want to compile the documentation and publish it.
+  Here's how to do it.
+
+  .. code::
+
+    # install doc dependencies
+    pip install -r dev-reqs-for-docs.txt
+
+    # build the docs
+    python setup.py build_sphinx
+
+    # copy html files to temp folder
+    cp -r docs/_build/html/ /tmp/tmp_superset_docs/
+
+    # clone the docs repo
+    cd ~/
+    git clone https://git-wip-us.apache.org/repos/asf/incubator-superset-site.git
+
+    # copy
+    cp -r /tmp/tmp_superset_docs/ ~/incubator-superset-site.git/
+ 
+    # commit and push to `asf-site` branch
+    cd ~/incubator-superset-site.git/
+    git checkout asf-site
+    git add .
+    git commit -a -m "New doc version"
+    git push origin master

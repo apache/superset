@@ -31,8 +31,9 @@ from flask_babel import lazy_gettext as _
 
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from superset import utils
-from superset import cache_util
+from superset import conf, cache_util, utils
+
+tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -50,7 +51,9 @@ class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     cursor_execute_kwargs = {}
     time_grains = tuple()
+    time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
+    time_secondary_columns = False
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -70,6 +73,11 @@ class BaseEngineSpec(object):
     def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
+
+    @classmethod
+    def escape_sql(cls, sql):
+        """Escapes the raw SQL"""
+        return sql
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -138,14 +146,6 @@ class BaseEngineSpec(object):
         return uri
 
     @classmethod
-    def sql_preprocessor(cls, sql):
-        """If the SQL needs to be altered prior to running it
-
-        For example Presto needs to double `%` characters
-        """
-        return sql
-
-    @classmethod
     def patch(cls):
         pass
 
@@ -160,24 +160,25 @@ class BaseEngineSpec(object):
 
     @classmethod
     def select_star(cls, my_db, table_name, schema=None, limit=100,
-                    show_cols=False, indent=True):
+                    show_cols=False, indent=True, latest_partition=True):
         fields = '*'
-        table = my_db.get_table(table_name, schema=schema)
+        cols = []
+        if show_cols or latest_partition:
+            cols = my_db.get_table(table_name, schema=schema).columns
+
         if show_cols:
-            fields = [my_db.get_quoter()(c.name) for c in table.columns]
+            fields = [my_db.get_quoter()(c.name) for c in cols]
         full_table_name = table_name
         if schema:
             full_table_name = schema + '.' + table_name
-        qry = select(fields)
+        qry = select(fields).select_from(text(full_table_name))
         if limit:
             qry = qry.limit(limit)
-        partition_query = cls.where_latest_partition(
-            table_name, schema, my_db, qry, columns=table.columns)
-        # if not partition_query condition fails.
-        if partition_query == False:  # noqa
-            qry = qry.select_from(text(full_table_name))
-        else:
-            qry = partition_query
+        if latest_partition:
+            partition_query = cls.where_latest_partition(
+                table_name, schema, my_db, qry, columns=cols)
+            if partition_query != False:  # noqa
+                qry = partition_query
         sql = my_db.compile_sqla_query(qry)
         if indent:
             sql = sqlparse.format(sql, reindent=True)
@@ -309,6 +310,7 @@ class SqliteEngineSpec(BaseEngineSpec):
 
 class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
+    cursor_execute_kwargs = {'args': {}}
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain("second", _('second'), "DATE_ADD(DATE({col}), "
@@ -349,9 +351,21 @@ class MySQLEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
+    @classmethod
+    def extract_error_message(cls, e):
+        """Extract error message for queries"""
+        message = str(e)
+        try:
+            if isinstance(e.args, tuple) and len(e.args) > 1:
+                message = e.args[1]
+        except:
+            pass
+        return message
+
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
+    cursor_execute_kwargs = {'parameters': None}
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
@@ -393,6 +407,10 @@ class PrestoEngineSpec(BaseEngineSpec):
                 database += '/' + selected_schema
             uri.database = database
         return uri
+
+    @classmethod
+    def escape_sql(cls, sql):
+        return re.sub(r'%%|%', "%%", sql)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -490,9 +508,9 @@ class PrestoEngineSpec(BaseEngineSpec):
                 isinstance(e.orig[0], dict)):
             error_dict = e.orig[0]
             return '{} at {}: {}'.format(
-                error_dict['errorName'],
-                error_dict['errorLocation'],
-                error_dict['message']
+                error_dict.get('errorName'),
+                error_dict.get('errorLocation'),
+                error_dict.get('message'),
             )
         return utils.error_msg_from_exception(e)
 
@@ -537,7 +555,9 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _latest_partition_from_df(cls, df):
-        return df.to_records(index=False)[0][0]
+        recs = df.to_records(index=False)
+        if recs:
+            return recs[0][0]
 
     @classmethod
     def latest_partition(cls, table_name, schema, database, show_first=False):
@@ -629,6 +649,21 @@ class HiveEngineSpec(PrestoEngineSpec):
     engine = 'hive'
     cursor_execute_kwargs = {'async': True}
 
+    # Scoping regex at class level to avoid recompiling
+    # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
+    jobs_stats_r = re.compile(
+        r'.*INFO.*Total jobs = (?P<max_jobs>[0-9]+)')
+    # 17/02/07 19:37:08 INFO ql.Driver: Launching Job 2 out of 5
+    launching_job_r = re.compile(
+        '.*INFO.*Launching Job (?P<job_number>[0-9]+) out of '
+        '(?P<max_jobs>[0-9]+)')
+    # 17/02/07 19:36:58 INFO exec.Task: 2017-02-07 19:36:58,152 Stage-18
+    # map = 0%,  reduce = 0%
+    stage_progress_r = re.compile(
+        r'.*INFO.*Stage-(?P<stage_number>[0-9]+).*'
+        r'map = (?P<map_progress>[0-9]+)%.*'
+        r'reduce = (?P<reduce_progress>[0-9]+)%.*')
+
     @classmethod
     def patch(cls):
         from pyhive import hive
@@ -652,47 +687,54 @@ class HiveEngineSpec(PrestoEngineSpec):
             db, datasource_type, force=force)
 
     @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+        elif tt == 'TIMESTAMP':
+            return "CAST('{}' AS TIMESTAMP)".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         if selected_schema:
             uri.database = selected_schema
         return uri
 
     @classmethod
-    def progress(cls, logs):
-        # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
-        jobs_stats_r = re.compile(
-            r'.*INFO.*Total jobs = (?P<max_jobs>[0-9]+)')
-        # 17/02/07 19:37:08 INFO ql.Driver: Launching Job 2 out of 5
-        launching_job_r = re.compile(
-            '.*INFO.*Launching Job (?P<job_number>[0-9]+) out of '
-            '(?P<max_jobs>[0-9]+)')
-        # 17/02/07 19:36:58 INFO exec.Task: 2017-02-07 19:36:58,152 Stage-18
-        # map = 0%,  reduce = 0%
-        stage_progress = re.compile(
-            r'.*INFO.*Stage-(?P<stage_number>[0-9]+).*'
-            r'map = (?P<map_progress>[0-9]+)%.*'
-            r'reduce = (?P<reduce_progress>[0-9]+)%.*')
-        total_jobs = None
-        current_job = None
+    def extract_error_message(cls, e):
+        try:
+            msg = e.message.status.errorMessage
+        except:
+            msg = str(e)
+        return msg
+
+    @classmethod
+    def progress(cls, log_lines):
+        total_jobs = 1  # assuming there's at least 1 job
+        current_job = 1
         stages = {}
-        lines = logs.splitlines()
-        for line in lines:
-            match = jobs_stats_r.match(line)
+        for line in log_lines:
+            match = cls.jobs_stats_r.match(line)
             if match:
-                total_jobs = int(match.groupdict()['max_jobs'])
-            match = launching_job_r.match(line)
+                total_jobs = int(match.groupdict()['max_jobs']) or 1
+            match = cls.launching_job_r.match(line)
             if match:
                 current_job = int(match.groupdict()['job_number'])
+                total_jobs = int(match.groupdict()['max_jobs']) or 1
                 stages = {}
-            match = stage_progress.match(line)
+            match = cls.stage_progress_r.match(line)
             if match:
                 stage_number = int(match.groupdict()['stage_number'])
                 map_progress = int(match.groupdict()['map_progress'])
                 reduce_progress = int(match.groupdict()['reduce_progress'])
                 stages[stage_number] = (map_progress + reduce_progress) / 2
+        logging.info(
+            "Progress detail: {}, "
+            "current job {}, "
+            "total jobs: {}".format(stages, current_job, total_jobs))
 
-        if not total_jobs or not current_job:
-            return 0
         stage_progress = sum(
             stages.values()) / len(stages.values()) if stages else 0
 
@@ -700,6 +742,13 @@ class HiveEngineSpec(PrestoEngineSpec):
             100 * (current_job - 1) / total_jobs + stage_progress / total_jobs
         )
         return int(progress)
+
+    @classmethod
+    def get_tracking_url(cls, log_lines):
+        lkp = "Tracking URL = "
+        for line in log_lines:
+            if lkp in line:
+                return line.split(lkp)[1]
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -710,18 +759,45 @@ class HiveEngineSpec(PrestoEngineSpec):
             hive.ttypes.TOperationState.RUNNING_STATE,
         )
         polled = cursor.poll()
+        last_log_line = 0
+        tracking_url = None
+        job_id = None
         while polled.operationState in unfinished_states:
             query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
 
-            resp = cursor.fetch_logs()
-            if resp and resp.log:
-                progress = cls.progress(resp.log)
+            log = cursor.fetch_logs() or ''
+            if log:
+                log_lines = log.splitlines()
+                progress = cls.progress(log_lines)
+                logging.info("Progress total: {}".format(progress))
+                needs_commit = False
                 if progress > query.progress:
                     query.progress = progress
-                session.commit()
+                    needs_commit = True
+                if not tracking_url:
+                    tracking_url = cls.get_tracking_url(log_lines)
+                    if tracking_url:
+                        job_id = tracking_url.split('/')[-2]
+                        logging.info(
+                            "Found the tracking url: {}".format(tracking_url))
+                        tracking_url = tracking_url_trans(tracking_url)
+                        logging.info(
+                            "Transformation applied: {}".format(tracking_url))
+                        query.tracking_url = tracking_url
+                        logging.info("Job id: {}".format(job_id))
+                        needs_commit = True
+                if job_id and len(log_lines) > last_log_line:
+                    # Wait for job id before logging things out
+                    # this allows for prefixing all log lines and becoming
+                    # searchable in something like Kibana
+                    for l in log_lines[last_log_line:]:
+                        logging.info("[{}] {}".format(job_id, l))
+                    last_log_line = len(log_lines)
+                if needs_commit:
+                    session.commit()
             time.sleep(5)
             polled = cursor.poll()
 
@@ -864,6 +940,97 @@ class AthenaEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
+
+
+class ClickHouseEngineSpec(BaseEngineSpec):
+    """Dialect for ClickHouse analytical DB."""
+
+    engine = 'clickhouse'
+
+    time_secondary_columns = True
+    time_groupby_inline = True
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('minute', _('minute'),
+              "toStartOfMinute(toDateTime({col}))"),
+        Grain('5 minute', _('5 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)"),
+        Grain('10 minute', _('10 minute'),
+              "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)"),
+        Grain('hour', _('hour'),
+              "toStartOfHour(toDateTime({col}))"),
+        Grain('day', _('day'),
+              "toStartOfDay(toDateTime({col}))"),
+        Grain('month', _('month'),
+              "toStartOfMonth(toDateTime({col}))"),
+        Grain('quarter', _('quarter'),
+              "toStartOfQuarter(toDateTime({col}))"),
+        Grain('year', _('year'),
+              "toStartOfYear(toDateTime({col}))"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "toDate('{}')".format(dttm.strftime('%Y-%m-%d'))
+        if tt == 'DATETIME':
+            return "toDateTime('{}')".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class BQEngineSpec(BaseEngineSpec):
+    """Engine spec for Google's BigQuery
+
+    As contributed by @mxmzdlv on issue #945"""
+    engine = 'bigquery'
+
+    time_grains = (
+        Grain("Time Column", _('Time Column'), "{col}"),
+        Grain("second", _('second'), "TIMESTAMP_TRUNC({col}, SECOND)"),
+        Grain("minute", _('minute'), "TIMESTAMP_TRUNC({col}, MINUTE)"),
+        Grain("hour", _('hour'), "TIMESTAMP_TRUNC({col}, HOUR)"),
+        Grain("day", _('day'), "TIMESTAMP_TRUNC({col}, DAY)"),
+        Grain("week", _('week'), "TIMESTAMP_TRUNC({col}, WEEK)"),
+        Grain("month", _('month'), "TIMESTAMP_TRUNC({col}, MONTH)"),
+        Grain("quarter", _('quarter'), "TIMESTAMP_TRUNC({col}, QUARTER)"),
+        Grain("year", _('year'), "TIMESTAMP_TRUNC({col}, YEAR)"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
+        else:
+            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class ImpalaEngineSpec(BaseEngineSpec):
+    """Engine spec for Cloudera's Impala"""
+
+    engine = 'impala'
+
+    time_grains = (
+        Grain("Time Column", _('Time Column'), "{col}"),
+        Grain("minute", _('minute'), "TRUNC({col}, 'MI')"),
+        Grain("hour", _('hour'), "TRUNC({col}, 'HH')"),
+        Grain("day", _('day'), "TRUNC({col}, 'DD')"),
+        Grain("week", _('week'), "TRUNC({col}, 'WW')"),
+        Grain("month", _('month'), "TRUNC({col}, 'MONTH')"),
+        Grain("quarter", _('quarter'), "TRUNC({col}, 'Q')"),
+        Grain("year", _('year'), "TRUNC({col}, 'YYYY')"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
+        else:
+            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
 
 engines = {
     o.engine: o for o in globals().values()

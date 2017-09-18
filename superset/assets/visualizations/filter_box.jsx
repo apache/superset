@@ -6,7 +6,6 @@ import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import '../stylesheets/react-select/select.less';
 import { TIME_CHOICES } from './constants';
 import './filter_box.css';
 
@@ -16,6 +15,7 @@ const propTypes = {
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
+  datasource: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -65,6 +65,7 @@ class FilterBox extends React.Component {
           <div className="m-b-5" key={field}>
             {field.replace('__', '')}
             <Select.Creatable
+              placeholder="Select"
               options={options}
               value={this.state.selectedValues[field]}
               onChange={this.changeFilter.bind(this, field)}
@@ -72,6 +73,24 @@ class FilterBox extends React.Component {
           </div>
         );
       });
+    }
+    // Add created options to filtersChoices, even though it doesn't exist,
+    // or these options will exist in query sql but invisible to end user.
+    if (this.state.selectedValues.hasOwnProperty()) {
+      for (const filterKey of this.state.selectedValues) {
+        const existValues = this.props.filtersChoices[filterKey].map(f => f.id);
+        for (const v of this.state.selectedValues[filterKey]) {
+          if (existValues.indexOf(v) === -1) {
+            const addChoice = {
+              filter: filterKey,
+              id: v,
+              text: v,
+              metric: 0,
+            };
+            this.props.filtersChoices[filterKey].push(addChoice);
+          }
+        }
+      }
     }
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
       const data = this.props.filtersChoices[filter];
@@ -81,8 +100,8 @@ class FilterBox extends React.Component {
       });
       return (
         <div key={filter} className="m-b-5">
-          {filter}
-          <Select
+          {this.props.datasource.verbose_map[filter] || filter}
+          <Select.Creatable
             placeholder={`Select [${filter}]`}
             key={filter}
             multi
@@ -143,6 +162,7 @@ function filterBox(slice, payload) {
       filtersChoices={filtersChoices}
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
+      datasource={slice.datasource}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
     />,

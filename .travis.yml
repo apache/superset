@@ -1,20 +1,16 @@
-
 language: python
+services:
+    - redis-server
 addons:
   code_climate:
     repo_token: 5f3a06c425eef7be4b43627d7d07a3e46c45bdc07155217825ff7c49cb6a470c
-  apt:
-    sources:
-      - deadsnakes
-    packages:
-      - python3.5
 cache:
   directories:
     - $HOME/.wheelhouse/
 env:
   global:
     - TRAVIS_CACHE=$HOME/.travis_cache/
-    - TRAVIS_NODE_VERSION="6.10.2"
+    - TRAVIS_NODE_VERSION="7.10.0"
   matrix:
     - TOX_ENV=javascript
     - TOX_ENV=pylint
@@ -23,7 +19,7 @@ env:
     - TOX_ENV=py27-mysql
     - TOX_ENV=py27-sqlite
 before_install:
-  - npm install -g npm@'>=4.5.0'
+  - npm install -g npm@'>=5.4.1'
 before_script:
   - mysql -e 'drop database if exists superset; create database superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"

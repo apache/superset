@@ -1,7 +1,9 @@
 import d3 from 'd3';
-import { formatDate } from '../javascripts/modules/dates';
+import d3tip from 'd3-tip';
+import { d3FormatPreset, d3TimeFormatPreset } from '../javascripts/modules/utils';
 
-require('./big_number.css');
+import './big_number.css';
+import '../stylesheets/d3tip.css';
 
 function bigNumberVis(slice, payload) {
   const div = d3.select(slice.selector);
@@ -10,8 +12,9 @@ function bigNumberVis(slice, payload) {
   const fd = slice.formData;
   const json = payload.data;
 
-  const f = d3.format(fd.y_axis_format);
+  const f = d3FormatPreset(fd.y_axis_format);
   const fp = d3.format('+.1%');
+  const formatDate = d3TimeFormatPreset('smart_date');
   const width = slice.width();
   const height = slice.height();
   const svg = div.append('svg');
@@ -39,9 +42,10 @@ function bigNumberVis(slice, payload) {
   const dateExt = d3.extent(data, d => d[0]);
   const valueExt = d3.extent(data, d => d[1]);
 
-  const margin = 20;
-  const scaleX = d3.time.scale.utc().domain(dateExt).range([margin, width - margin]);
-  const scaleY = d3.scale.linear().domain(valueExt).range([height - (margin), margin]);
+  const vMargin = 20;
+  const hMargin = 10;
+  const scaleX = d3.time.scale.utc().domain(dateExt).range([hMargin, width - hMargin]);
+  const scaleY = d3.scale.linear().domain(valueExt).range([height - (vMargin), vMargin]);
   const colorRange = [d3.hsl(0, 1, 0.3), d3.hsl(120, 1, 0.3)];
   const scaleColor = d3.scale
   .linear().domain([-1, 1])
@@ -126,17 +130,18 @@ function bigNumberVis(slice, payload) {
     const xAxis = d3.svg.axis()
     .scale(scaleX)
     .orient('bottom')
-    .ticks(4)
+    .ticks(Math.round(2 + (width / 150)))
     .tickFormat(formatDate);
     g.call(xAxis);
-    g.attr('transform', 'translate(0,' + (height - margin) + ')');
+    g.attr('transform', 'translate(0,' + (height - vMargin) + ')');
 
-    g = gAxis.append('g').attr('transform', 'translate(' + (width - margin) + ',0)');
+    g = gAxis.append('g').attr('transform', 'translate(' + (width - hMargin) + ',0)');
     const yAxis = d3.svg.axis()
     .scale(scaleY)
     .orient('left')
-    .tickFormat(d3.format(fd.y_axis_format))
+    .tickFormat(f)
     .tickValues(valueExt);
+
     g.call(yAxis);
     g.selectAll('text')
     .style('text-anchor', 'end')
@@ -146,25 +151,23 @@ function bigNumberVis(slice, payload) {
     g.selectAll('text')
     .style('font-size', '10px');
 
-    // Define the div for the tooltip
-    const tooltipEl =
-      d3.select('body')
-        .append('div')
-        .attr('class', 'line-tooltip')
-        .attr('width', 200)
-        .attr('height', 200)
-        .style('opacity', 0);
-
     const renderTooltip = (d) => {
       const date = formatDate(d[0]);
       const value = f(d[1]);
       return `
         <div>
-          <span style="float: left; margin-right: 20px;"><strong>${date}</strong></span>
-          <span style="float: right">${value}</span>
+          <span style="margin-right: 10px;">${date}: </span>
+          <strong>${value}</strong>
         </div>
       `;
     };
+
+    const tip = d3tip()
+      .attr('class', 'd3-tip')
+      .direction('n')
+      .offset([-5, 0])
+      .html(renderTooltip);
+    svg.call(tip);
 
     // Add the scatterplot and trigger the mouse events for the tooltips
     svg
@@ -172,18 +175,20 @@ function bigNumberVis(slice, payload) {
       .data(data)
       .enter()
       .append('circle')
-      .attr('r', 10)
+      .attr('r', 3)
+      .attr('stroke-width', 15)
+      .attr('stroke', 'transparent')
+      .attr('stroke-location', 'outside')
       .attr('cx', d => scaleX(d[0]))
       .attr('cy', d => scaleY(d[1]))
-      .attr('fill-opacity', '0')
-      .on('mouseover', (d) => {
-        tooltipEl.html(renderTooltip(d))
-          .style('left', (d3.event.pageX) + 'px')
-          .style('top', (d3.event.pageY) + 'px');
-        tooltipEl.transition().duration(200).style('opacity', 0.9);
+      .attr('fill-opacity', 0)
+      .on('mouseover', function (d) {
+        d3.select(this).attr('fill-opacity', 1);
+        tip.show(d);
       })
-      .on('mouseout', () => {
-        tooltipEl.transition().duration(500).style('opacity', 0);
+      .on('mouseout', function (d) {
+        d3.select(this).attr('fill-opacity', 0);
+        tip.hide(d);
       });
 
     div.on('mouseover', function () {

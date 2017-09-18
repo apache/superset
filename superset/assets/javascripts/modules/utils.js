@@ -1,6 +1,30 @@
 /* eslint camelcase: 0 */
-const d3 = require('d3');
-const $ = require('jquery');
+import d3 from 'd3';
+import $ from 'jquery';
+
+import { formatDate, UTC } from './dates';
+
+export function d3FormatPreset(format) {
+  // like d3.format, but with support for presets like 'smart_date'
+  if (format === 'smart_date') {
+    return formatDate;
+  }
+  if (format) {
+    return d3.format(format);
+  }
+  return d3.format('.3s');
+}
+export const d3TimeFormatPreset = function (format) {
+  const effFormat = format || 'smart_date';
+  if (effFormat === 'smart_date') {
+    return formatDate;
+  }
+  const f = d3.time.format(effFormat);
+  return function (dttm) {
+    const d = UTC(new Date(dttm));
+    return f(d);
+  };
+};
 
 /*
   Utility function that takes a d3 svg:text selection and a max width, and splits the
@@ -99,7 +123,11 @@ export function toggleCheckbox(apiUrlPrefix, selector) {
  */
 export const fixDataTableBodyHeight = function ($tableDom, height) {
   const headHeight = $tableDom.find('.dataTables_scrollHead').height();
-  $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight);
+  const filterHeight = $tableDom.find('.dataTables_filter').height() || 0;
+  const pageLengthHeight = $tableDom.find('.dataTables_length').height() || 0;
+  const paginationHeight = $tableDom.find('.dataTables_paginate').height() || 0;
+  const controlsHeight = (pageLengthHeight > filterHeight) ? pageLengthHeight : filterHeight;
+  $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight - controlsHeight - paginationHeight);
 };
 
 export function d3format(format, number) {
@@ -189,7 +217,7 @@ export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
   });
 }
 
-export function initJQueryAjaxCSRF() {
+export function initJQueryAjax() {
   // Works in conjunction with a Flask-WTF token as described here:
   // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests
   const token = $('input#csrf_token').val();
@@ -202,4 +230,13 @@ export function initJQueryAjaxCSRF() {
       },
     });
   }
+}
+
+export function tryNumify(s) {
+  // Attempts casting to Number, returns string when failing
+  const n = Number(s);
+  if (isNaN(n)) {
+    return s;
+  }
+  return n;
 }

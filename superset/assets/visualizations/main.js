@@ -10,6 +10,7 @@ const vizMap = {
   cal_heatmap: require('./cal_heatmap.js'),
   compare: require('./nvd3_vis.js'),
   directed_force: require('./directed_force.js'),
+  chord: require('./chord.jsx'),
   dist_bar: require('./nvd3_vis.js'),
   filter_box: require('./filter_box.jsx'),
   heatmap: require('./heatmap.js'),
@@ -27,8 +28,10 @@ const vizMap = {
   sunburst: require('./sunburst.js'),
   table: require('./table.js'),
   treemap: require('./treemap.js'),
+  country_map: require('./country_map.js'),
   word_cloud: require('./word_cloud.js'),
   world_map: require('./world_map.js'),
   dual_line: require('./nvd3_vis.js'),
+  event_flow: require('./EventFlow.jsx'),
 };
 export default vizMap;

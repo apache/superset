@@ -32,6 +32,36 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+#################################################################
+# Handling manifest file logic at app start
+#################################################################
+MANIFEST_FILE = APP_DIR + '/static/assets/dist/manifest.json'
+manifest = {}
+
+
+def parse_manifest_json():
+    global manifest
+    try:
+        with open(MANIFEST_FILE, 'r') as f:
+            manifest = json.load(f)
+    except Exception:
+        print("no manifest file found at " + MANIFEST_FILE)
+
+
+def get_manifest_file(filename):
+    if app.debug:
+        parse_manifest_json()
+    return '/static/assets/dist/' + manifest.get(filename, '')
+
+parse_manifest_json()
+
+@app.context_processor
+def get_js_manifest():
+    return dict(js_manifest=get_manifest_file)
+
+#################################################################
+
+
 for bp in conf.get('BLUEPRINTS'):
     try:
         print("Registering blueprint: '{}'".format(bp.name))
@@ -53,8 +83,11 @@ db = SQLA(app)
 
 if conf.get('WTF_CSRF_ENABLED'):
     csrf = CSRFProtect(app)
+    csrf_exempt_list = conf.get('WTF_CSRF_EXEMPT_LIST', [])
+    for ex in csrf_exempt_list:
+        csrf.exempt(ex)
 
-utils.pessimistic_connection_handling(db.engine.pool)
+utils.pessimistic_connection_handling(db.engine)
 
 cache = utils.setup_cache(app, conf.get('CACHE_CONFIG'))
 tables_cache = utils.setup_cache(app, conf.get('TABLE_NAMES_CACHE_CONFIG'))
@@ -79,6 +112,20 @@ if app.config.get('ENABLE_CORS'):
 
 if app.config.get('ENABLE_PROXY_FIX'):
     app.wsgi_app = ProxyFix(app.wsgi_app)
+
+if app.config.get('ENABLE_CHUNK_ENCODING'):
+    class ChunkedEncodingFix(object):
+
+        def __init__(self, app):
+            self.app = app
+
+        def __call__(self, environ, start_response):
+            # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
+            # content-length and read the stream till the end.
+            if 'chunked' == environ.get('HTTP_TRANSFER_ENCODING', '').lower():
+                environ['wsgi.input_terminated'] = True
+            return self.app(environ, start_response)
+    app.wsgi_app = ChunkedEncodingFix(app.wsgi_app)
 
 if app.config.get('UPLOAD_FOLDER'):
     try:

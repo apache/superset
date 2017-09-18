@@ -9,9 +9,9 @@ import VisualizeModal from './VisualizeModal';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
-import { STATE_BSSTYLE_MAP } from '../constants';
 import { fDuration } from '../../modules/dates';
 import { storeQuery } from '../../../utils/common';
+import QueryStateLabel from './QueryStateLabel';
 
 const propTypes = {
   columns: PropTypes.array,
@@ -164,9 +164,7 @@ class QueryTable extends React.PureComponent {
       }
       q.state = (
         <div>
-          <span className={'m-r-3 label label-' + STATE_BSSTYLE_MAP[q.state]}>
-            {q.state}
-          </span>
+          <QueryStateLabel query={query} />
           {errorTooltip}
         </div>
       );

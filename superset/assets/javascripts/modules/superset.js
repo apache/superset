@@ -2,14 +2,15 @@
 import $ from 'jquery';
 import Mustache from 'mustache';
 import vizMap from '../../visualizations/main';
-import { getExploreUrl } from '../explorev2/exploreUtils';
-import { applyDefaultFormData } from '../explorev2/stores/store';
+import { getExploreUrl } from '../explore/exploreUtils';
+import { applyDefaultFormData } from '../explore/stores/store';
 
 const utils = require('./utils');
 
-/* eslint wrap-iife: 0*/
-const px = function () {
+/* eslint wrap-iife: 0 */
+const px = function (state) {
   let slice;
+  const timeout = state.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
   function getParam(name) {
     /* eslint no-useless-escape: 0 */
     const formattedName = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -57,6 +58,7 @@ const px = function () {
   }
   const Slice = function (data, datasource, controller) {
     const token = $('#token_' + data.slice_id);
+    const controls = $('#controls_' + data.slice_id);
     const containerId = 'con_' + data.slice_id;
     const selector = '#' + containerId;
     const container = $(selector);
@@ -79,16 +81,11 @@ const px = function () {
         };
         return Mustache.render(s, context);
       },
-      jsonEndpoint() {
-        return this.endpoint('json');
+      jsonEndpoint(data) {
+        return this.endpoint(data, 'json');
       },
-      endpoint(endpointType = 'json') {
-        const formDataExtra = Object.assign({}, formData);
-        const flts = controller.effectiveExtraFilters(sliceId);
-        if (flts) {
-          formDataExtra.extra_filters = flts;
-        }
-        let endpoint = getExploreUrl(formDataExtra, endpointType, this.force);
+      endpoint(data, endpointType = 'json') {
+        let endpoint = getExploreUrl(data, endpointType, this.force);
         if (endpoint.charAt(0) !== '/') {
           // Known issue for IE <= 11:
           // https://connect.microsoft.com/IE/feedbackdetail/view/1002846/pathname-incorrect-for-out-of-document-elements
@@ -123,9 +120,6 @@ const px = function () {
         controller.done(this);
       },
       getErrorMsg(xhr) {
-        if (xhr.statusText === 'timeout') {
-          return 'The request timed out';
-        }
         let msg = '';
         if (!xhr.responseText) {
           const status = xhr.status;
@@ -158,9 +152,16 @@ const px = function () {
           errHtml += `<div class="alert alert-danger">${errorMsg}</div>`;
         }
         if (xhr) {
-          const extendedMsg = this.getErrorMsg(xhr);
-          if (extendedMsg) {
-            errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
+          if (xhr.statusText === 'timeout') {
+            errHtml += (
+              '<div class="alert alert-warning">' +
+              'Query timeout - visualization query are set to time out ' +
+              `at ${timeout} seconds.</div>`);
+          } else {
+            const extendedMsg = this.getErrorMsg(xhr);
+            if (extendedMsg) {
+              errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
+            }
           }
         }
         container.html(errHtml);
@@ -174,7 +175,7 @@ const px = function () {
         $(selector + ' div.alert').remove();
       },
       width() {
-        return token.width();
+        return container.width();
       },
       height() {
         let others = 0;
@@ -202,18 +203,28 @@ const px = function () {
         } else {
           this.force = force;
         }
+        const formDataExtra = Object.assign({}, formData);
+        const extraFilters = controller.effectiveExtraFilters(sliceId);
+        formDataExtra.filters = formDataExtra.filters.concat(extraFilters);
+        controls.find('a.exploreChart').attr('href', getExploreUrl(formDataExtra));
+        controls.find('a.exportCSV').attr('href', getExploreUrl(formDataExtra, 'csv'));
         token.find('img.loading').show();
         container.fadeTo(0.5, 0.25);
         container.css('height', this.height());
-        $.getJSON(this.jsonEndpoint(), (queryResponse) => {
-          try {
-            vizMap[formData.viz_type](this, queryResponse);
-            this.done(queryResponse);
-          } catch (e) {
-            this.error('An error occurred while rendering the visualization: ' + e);
-          }
-        }).fail((err) => {
-          this.error(err.responseText, err);
+        $.ajax({
+          url: this.jsonEndpoint(formDataExtra),
+          timeout: timeout * 1000,
+          success: (queryResponse) => {
+            try {
+              vizMap[formData.viz_type](this, queryResponse);
+              this.done(queryResponse);
+            } catch (e) {
+              this.error('An error occurred while rendering the visualization: ' + e);
+            }
+          },
+          error: (err) => {
+            this.error(err.responseText, err);
+          },
         });
       },
       resize() {
@@ -243,5 +254,5 @@ const px = function () {
     initFavStars,
     Slice,
   };
-}();
+};
 module.exports = px;

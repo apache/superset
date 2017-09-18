@@ -13,9 +13,11 @@ Feature Overview
   visualization capabilities
 - Browse database metadata: tables, columns, indexes, partitions
 - Support for long-running queries
+
   - uses the `Celery distributed queue <http://www.python.org/>`_
     to dispatch query handling to workers
   - supports defining a "results backend" to persist query results
+
 - A search engine to find queries executed in the past
 - Supports templating using the
   `Jinja templating language <http://jinja.pocoo.org/docs/dev/>`_

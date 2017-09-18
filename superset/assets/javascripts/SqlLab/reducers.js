@@ -216,6 +216,9 @@ export const sqlLabReducer = function (state, action) {
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
     },
+    [actions.QUERY_EDITOR_PERSIST_HEIGHT]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { height: action.currentHeight });
+    },
     [actions.ADD_ALERT]() {
       return addToArr(state, 'alerts', action.alert);
     },
@@ -233,11 +236,14 @@ export const sqlLabReducer = function (state, action) {
       let newQueries = Object.assign({}, state.queries);
       // Fetch the updates to the queries present in the store.
       let change = false;
+      let queriesLastUpdate = state.queriesLastUpdate;
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
         if (!state.queries.hasOwnProperty(id) ||
-            (state.queries[id].changedOn !== changedQuery.changedOn &&
-            state.queries[id].state !== 'stopped')) {
+            state.queries[id].state !== 'stopped') {
+          if (changedQuery.changedOn > queriesLastUpdate) {
+            queriesLastUpdate = changedQuery.changedOn;
+          }
           newQueries[id] = Object.assign({}, state.queries[id], changedQuery);
           change = true;
         }
@@ -245,8 +251,26 @@ export const sqlLabReducer = function (state, action) {
       if (!change) {
         newQueries = state.queries;
       }
-      const queriesLastUpdate = now();
       return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });
+    },
+    [actions.CREATE_DATASOURCE_STARTED]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: true,
+        errorMessage: null,
+      });
+    },
+    [actions.CREATE_DATASOURCE_SUCCESS]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: false,
+        errorMessage: null,
+        datasource: action.datasource,
+      });
+    },
+    [actions.CREATE_DATASOURCE_FAILED]() {
+      return Object.assign({}, state, {
+        isDatasourceLoading: false,
+        errorMessage: action.err,
+      });
     },
   };
   if (action.type in actionHandlers) {

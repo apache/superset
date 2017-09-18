@@ -20,6 +20,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import backref, relationship
 
+from superset import sm
 from superset.utils import QueryStatus
 from superset.models.helpers import AuditMixinNullable
 
@@ -64,9 +65,12 @@ class Query(Model):
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds
-    start_time = Column(Numeric(precision=3))
-    start_running_time = Column(Numeric(precision=3))
-    end_time = Column(Numeric(precision=3))
+    start_time = Column(Numeric(precision=20, scale=6))
+    start_running_time = Column(Numeric(precision=20, scale=6))
+    end_time = Column(Numeric(precision=20, scale=6))
+    end_result_backend_time = Column(Numeric(precision=20, scale=6))
+    tracking_url = Column(Text)
+
     changed_on = Column(
         DateTime,
         default=datetime.utcnow,
@@ -79,7 +83,7 @@ class Query(Model):
         backref=backref('queries', cascade='all, delete-orphan')
     )
     user = relationship(
-        'User',
+        sm.user_model,
         foreign_keys=[user_id])
 
     __table_args__ = (
@@ -116,6 +120,7 @@ class Query(Model):
             'user': self.user.username,
             'limit_reached': self.limit_reached,
             'resultsKey': self.results_key,
+            'trackingUrl': self.tracking_url,
         }
 
     @property
@@ -147,7 +152,7 @@ class SavedQuery(Model, AuditMixinNullable):
     description = Column(Text)
     sql = Column(Text)
     user = relationship(
-        'User',
+        sm.user_model,
         backref=backref('saved_queries', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
     database = relationship(

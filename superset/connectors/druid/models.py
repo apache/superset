@@ -33,7 +33,7 @@ from superset import conf, db, import_util, utils, sm, get_session
 from superset.utils import (
     flasher, MetricPermException, DimSelector, DTTM_ALIAS
 )
-from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
+from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
 
 DRUID_TZ = conf.get("DRUID_TZ")
@@ -50,6 +50,13 @@ class JavascriptPostAggregator(Postaggregator):
         self.name = name
 
 
+class CustomPostAggregator(Postaggregator):
+    """A way to allow users to specify completely custom PostAggregators"""
+    def __init__(self, name, post_aggregator):
+        self.name = name
+        self.post_aggregator = post_aggregator
+
+
 class DruidCluster(Model, AuditMixinNullable):
 
     """ORM object referencing the Druid clusters"""
@@ -62,11 +69,11 @@ class DruidCluster(Model, AuditMixinNullable):
     # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(255))
-    coordinator_port = Column(Integer)
+    coordinator_port = Column(Integer, default=8081)
     coordinator_endpoint = Column(
         String(255), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(255))
-    broker_port = Column(Integer)
+    broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
@@ -108,6 +115,9 @@ class DruidCluster(Model, AuditMixinNullable):
     def perm(self):
         return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
 
+    def get_perm(self):
+        return self.perm
+
     @property
     def name(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
@@ -140,6 +150,10 @@ class DruidColumn(Model, BaseColumn):
 
     def __repr__(self):
         return self.column_name
+
+    @property
+    def expression(self):
+        return self.dimension_spec_json
 
     @property
     def dimension_spec(self):
@@ -275,6 +289,10 @@ class DruidMetric(Model, BaseMetric):
     )
 
     @property
+    def expression(self):
+        return self.json
+
+    @property
     def json_obj(self):
         try:
             obj = json.loads(self.json)
@@ -323,7 +341,7 @@ class DruidDatasource(Model, BaseDatasource):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
-        'User',
+        sm.user_model,
         backref=backref('datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
 
@@ -331,15 +349,14 @@ class DruidDatasource(Model, BaseDatasource):
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params'
     )
-    slices = relationship(
-        'Slice',
-        primaryjoin=(
-            "DruidDatasource.id == foreign(Slice.datasource_id) and "
-            "Slice.datasource_type == 'druid'"))
 
     @property
     def database(self):
         return self.cluster
+
+    @property
+    def connection(self):
+        return str(self.database)
 
     @property
     def num_cols(self):
@@ -486,7 +503,7 @@ class DruidDatasource(Model, BaseDatasource):
             lbound = datetime(1901, 1, 1).isoformat()[:10]
             rbound = datetime(2050, 1, 1).isoformat()[:10]
             if not self.version_higher(self.cluster.druid_version, '0.8.2'):
-                rbound = datetime.now().isoformat()[:10]
+                rbound = datetime.now().isoformat()
             try:
                 segment_metadata = client.segment_metadata(
                     datasource=self.datasource_name,
@@ -600,6 +617,9 @@ class DruidDatasource(Model, BaseDatasource):
             logging.error("Failed at fetching the latest segment")
             return
         for col in cols:
+            # Skip the time column
+            if col == "__time":
+                continue
             col_obj = (
                 session
                 .query(DruidColumn)
@@ -615,6 +635,11 @@ class DruidDatasource(Model, BaseDatasource):
                 col_obj.filterable = True
             if datatype == "hyperUnique" or datatype == "thetaSketch":
                 col_obj.count_distinct = True
+            # If long or double, allow sum/min/max
+            if datatype == "LONG" or datatype == "DOUBLE":
+                col_obj.sum = True
+                col_obj.min = True
+                col_obj.max = True
             if col_obj:
                 col_obj.type = cols[col]['type']
             session.flush()
@@ -676,6 +701,75 @@ class DruidDatasource(Model, BaseDatasource):
                 period_name).total_seconds() * 1000
         return granularity
 
+    @staticmethod
+    def _metrics_and_post_aggs(metrics, metrics_dict):
+        all_metrics = []
+        post_aggs = {}
+
+        def recursive_get_fields(_conf):
+            _type = _conf.get('type')
+            _field = _conf.get('field')
+            _fields = _conf.get('fields')
+
+            field_names = []
+            if _type in ['fieldAccess', 'hyperUniqueCardinality',
+                         'quantile', 'quantiles']:
+                field_names.append(_conf.get('fieldName', ''))
+
+            if _field:
+                field_names += recursive_get_fields(_field)
+
+            if _fields:
+                for _f in _fields:
+                    field_names += recursive_get_fields(_f)
+
+            return list(set(field_names))
+
+        for metric_name in metrics:
+            metric = metrics_dict[metric_name]
+            if metric.metric_type != 'postagg':
+                all_metrics.append(metric_name)
+            else:
+                mconf = metric.json_obj
+                all_metrics += recursive_get_fields(mconf)
+                all_metrics += mconf.get('fieldNames', [])
+                if mconf.get('type') == 'javascript':
+                    post_aggs[metric_name] = JavascriptPostAggregator(
+                        name=mconf.get('name', ''),
+                        field_names=mconf.get('fieldNames', []),
+                        function=mconf.get('function', ''))
+                elif mconf.get('type') == 'quantile':
+                    post_aggs[metric_name] = Quantile(
+                        mconf.get('name', ''),
+                        mconf.get('probability', ''),
+                    )
+                elif mconf.get('type') == 'quantiles':
+                    post_aggs[metric_name] = Quantiles(
+                        mconf.get('name', ''),
+                        mconf.get('probabilities', ''),
+                    )
+                elif mconf.get('type') == 'fieldAccess':
+                    post_aggs[metric_name] = Field(mconf.get('name'))
+                elif mconf.get('type') == 'constant':
+                    post_aggs[metric_name] = Const(
+                        mconf.get('value'),
+                        output_name=mconf.get('name', '')
+                    )
+                elif mconf.get('type') == 'hyperUniqueCardinality':
+                    post_aggs[metric_name] = HyperUniqueCardinality(
+                        mconf.get('name')
+                    )
+                elif mconf.get('type') == 'arithmetic':
+                    post_aggs[metric_name] = Postaggregator(
+                        mconf.get('fn', "/"),
+                        mconf.get('fields', []),
+                        mconf.get('name', ''))
+                else:
+                    post_aggs[metric_name] = CustomPostAggregator(
+                        mconf.get('name', ''),
+                        mconf)
+        return all_metrics, post_aggs
+
     def values_for_column(self,
                           column_name,
                           limit=10000):
@@ -718,11 +812,13 @@ class DruidDatasource(Model, BaseDatasource):
             orderby=None,
             extras=None,  # noqa
             select=None,  # noqa
-            columns=None, phase=2, client=None, form_data=None):
+            columns=None, phase=2, client=None, form_data=None,
+            order_desc=True):
         """Runs a query against Druid and returns a dataframe.
         """
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
+
         if not is_timeseries:
             granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm
@@ -735,61 +831,10 @@ class DruidDatasource(Model, BaseDatasource):
 
         query_str = ""
         metrics_dict = {m.metric_name: m for m in self.metrics}
-        all_metrics = []
-        post_aggs = {}
 
         columns_dict = {c.column_name: c for c in self.columns}
 
-        def recursive_get_fields(_conf):
-            _fields = _conf.get('fields', [])
-            field_names = []
-            for _f in _fields:
-                _type = _f.get('type')
-                if _type in ['fieldAccess', 'hyperUniqueCardinality']:
-                    field_names.append(_f.get('fieldName'))
-                elif _type == 'arithmetic':
-                    field_names += recursive_get_fields(_f)
-            return list(set(field_names))
-
-        for metric_name in metrics:
-            metric = metrics_dict[metric_name]
-            if metric.metric_type != 'postagg':
-                all_metrics.append(metric_name)
-            else:
-                mconf = metric.json_obj
-                all_metrics += recursive_get_fields(mconf)
-                all_metrics += mconf.get('fieldNames', [])
-                if mconf.get('type') == 'javascript':
-                    post_aggs[metric_name] = JavascriptPostAggregator(
-                        name=mconf.get('name', ''),
-                        field_names=mconf.get('fieldNames', []),
-                        function=mconf.get('function', ''))
-                elif mconf.get('type') == 'quantile':
-                    post_aggs[metric_name] = Quantile(
-                        mconf.get('name', ''),
-                        mconf.get('probability', ''),
-                    )
-                elif mconf.get('type') == 'quantiles':
-                    post_aggs[metric_name] = Quantiles(
-                        mconf.get('name', ''),
-                        mconf.get('probabilities', ''),
-                    )
-                elif mconf.get('type') == 'fieldAccess':
-                    post_aggs[metric_name] = Field(mconf.get('name'))
-                elif mconf.get('type') == 'constant':
-                    post_aggs[metric_name] = Const(
-                        mconf.get('value'),
-                        output_name=mconf.get('name', '')
-                    )
-                elif mconf.get('type') == 'hyperUniqueCardinality':
-                    post_aggs[metric_name] = HyperUniqueCardinality(
-                        mconf.get('name')
-                    )
-                else:
-                    post_aggs[metric_name] = Postaggregator(
-                        mconf.get('fn', "/"),
-                        mconf.get('fields', []),
-                        mconf.get('name', ''))
+        all_metrics, post_aggs = self._metrics_and_post_aggs(metrics, metrics_dict)
 
         aggregations = OrderedDict()
         for m in self.metrics:
@@ -838,12 +883,12 @@ class DruidDatasource(Model, BaseDatasource):
         having_filters = self.get_having_filters(extras.get('having_druid'))
         if having_filters:
             qry['having'] = having_filters
-
+        order_direction = "descending" if order_desc else "ascending"
         orig_filters = filters
         if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
-        if not having_filters and len(groupby) == 1:
+        if not having_filters and len(groupby) == 1 and order_desc:
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
                 qry['threshold'] = row_limit
@@ -851,7 +896,7 @@ class DruidDatasource(Model, BaseDatasource):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        elif len(groupby) > 1 or having_filters:
+        elif len(groupby) > 1 or having_filters or not order_desc:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             if timeseries_limit and is_timeseries:
@@ -869,7 +914,7 @@ class DruidDatasource(Model, BaseDatasource):
                         inner_to_dttm.isoformat()),
                     "columns": [{
                         "dimension": order_by,
-                        "direction": "descending",
+                        "direction": order_direction,
                     }],
                 }
                 client.groupby(**pre_qry)
@@ -912,7 +957,7 @@ class DruidDatasource(Model, BaseDatasource):
                     "columns": [{
                         "dimension": (
                             metrics[0] if metrics else self.metrics[0]),
-                        "direction": "descending",
+                        "direction": order_direction,
                     }],
                 }
             client.groupby(**qry)
