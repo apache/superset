@@ -6,6 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from six import string_types
 
+import re
 import requests
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -772,7 +773,8 @@ class DruidDatasource(Model, BaseDatasource):
 
     def values_for_column(self,
                           column_name,
-                          limit=10000):
+                          limit=10000,
+                          search_string=None):
         """Retrieve some values for the given column"""
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         if self.fetch_values_from:
@@ -790,10 +792,27 @@ class DruidDatasource(Model, BaseDatasource):
             threshold=limit,
         )
 
+        if search_string:
+            # Druid can't make the regex case-insensitive :(
+            pattern = ''.join([
+                '[{0}{1}]'.format(c.upper(), c.lower())
+                if c.isalpha() else re.escape(c)
+                for c in search_string])
+
+            filter_params = {
+                'type': 'regex',
+                'dimension': column_name,
+                'pattern': ".*{}.*".format(pattern),
+            }
+            qry['filter'] = Filter(**filter_params)
+
         client = self.cluster.get_pydruid_client()
         client.topn(**qry)
         df = client.export_pandas()
-        return [row[column_name] for row in df.to_records(index=False)]
+        if (df.values.any()):
+            return [row[column_name] for row in df.to_records(index=False)]
+        else:
+            return []
 
     def get_query_str(self, query_obj, phase=1, client=None):
         return self.run_query(client=client, phase=phase, **query_obj)
@@ -834,7 +853,9 @@ class DruidDatasource(Model, BaseDatasource):
 
         columns_dict = {c.column_name: c for c in self.columns}
 
-        all_metrics, post_aggs = self._metrics_and_post_aggs(metrics, metrics_dict)
+        all_metrics, post_aggs = self._metrics_and_post_aggs(
+            metrics,
+            metrics_dict)
 
         aggregations = OrderedDict()
         for m in self.metrics:
@@ -1110,6 +1131,7 @@ class DruidDatasource(Model, BaseDatasource):
             .filter_by(datasource_name=datasource_name)
             .all()
         )
+
 
 sa.event.listen(DruidDatasource, 'after_insert', set_perm)
 sa.event.listen(DruidDatasource, 'after_update', set_perm)
