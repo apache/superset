@@ -999,8 +999,15 @@ export const controls = {
   date_filter: {
     type: 'CheckboxControl',
     label: 'Date Filter',
-    default: false,
+    default: true,
     description: 'Whether to include a time filter',
+  },
+
+  multi_select: {
+    type: 'CheckboxControl',
+    label: 'Multi Select',
+    default: true,
+    description: 'Enable or disable multi select choice',
   },
 
   show_datatable: {

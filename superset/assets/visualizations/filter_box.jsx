@@ -15,14 +15,18 @@ const propTypes = {
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
+  multiSelect: PropTypes.bool,
   datasource: PropTypes.object.isRequired,
+  groupBy: PropTypes.object,
 };
 
 const defaultProps = {
   origSelectedValues: {},
-  onChange: () => {},
+  onChange: () => { },
   showDateFilter: false,
+  multiSelect: true,
   instantFiltering: true,
+  groupBy: [],
 };
 
 class FilterBox extends React.Component {
@@ -48,6 +52,15 @@ class FilterBox extends React.Component {
     }
     const selectedValues = Object.assign({}, this.state.selectedValues);
     selectedValues[filter] = vals;
+
+    if (!this.props.multiSelect) {
+      this.props.groupBy.map(group => {
+        if (selectedValues !== undefined && selectedValues[group] !== undefined && !Array.isArray(selectedValues[group])) {
+          selectedValues[group] = [selectedValues[group]];
+        }
+      });
+      vals = [vals];
+    }
     this.setState({ selectedValues, hasChanged: true });
     this.props.onChange(filter, vals, false, this.props.instantFiltering);
   }
@@ -67,6 +80,7 @@ class FilterBox extends React.Component {
             <Select.Creatable
               placeholder="Select"
               options={options}
+              multi={this.props.multiSelect}
               value={this.state.selectedValues[field]}
               onChange={this.changeFilter.bind(this, field)}
             />
@@ -98,13 +112,16 @@ class FilterBox extends React.Component {
       maxes[filter] = d3.max(data, function (d) {
         return d.metric;
       });
+      if (!this.props.multiSelect && Array.isArray(this.state.selectedValues[filter])) {
+        this.state.selectedValues[filter] = this.state.selectedValues[filter][0];
+      }
       return (
         <div key={filter} className="m-b-5">
           {this.props.datasource.verbose_map[filter] || filter}
           <Select.Creatable
             placeholder={`Select [${filter}]`}
             key={filter}
-            multi
+            multi={this.props.multiSelect}
             value={this.state.selectedValues[filter]}
             options={data.map((opt) => {
               const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
@@ -151,20 +168,30 @@ function filterBox(slice, payload) {
   // filter box should ignore the dashboard's filters
   // const url = slice.jsonEndpoint({ extraFilters: false });
   const fd = slice.formData;
+  const filters = slice.getFilters();
   const filtersChoices = {};
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json
   fd.groupby.forEach((f) => {
     filtersChoices[f] = payload.data[f];
   });
+  if (!fd.multi_select) {
+    fd.groupby.map(group => {
+      if (filters !== undefined && filters[group] !== undefined && !Array.isArray(filters[group])) {
+        filters[group] = [filters[group][0]];
+      }
+    });
+  }
   ReactDOM.render(
     <FilterBox
       filtersChoices={filtersChoices}
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
+      multiSelect={fd.multi_select}
       datasource={slice.datasource}
-      origSelectedValues={slice.getFilters() || {}}
+      origSelectedValues={filters || {}}
       instantFiltering={fd.instant_filtering}
+      groupBy={fd.groupby}
     />,
     document.getElementById(slice.containerId),
   );

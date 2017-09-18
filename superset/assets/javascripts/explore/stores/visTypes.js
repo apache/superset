@@ -875,7 +875,7 @@ export const visTypes = {
       {
         label: 'Options',
         controlSetRows: [
-          ['date_filter', 'instant_filtering'],
+          ['date_filter', 'multi_select', 'instant_filtering'],
         ],
       },
     ],

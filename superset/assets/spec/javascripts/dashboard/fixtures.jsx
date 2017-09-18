@@ -13,6 +13,7 @@ export const slice = {
     granularity_sqla: 'year',
     standalone: null,
     date_filter: false,
+    multi_select: true,
     until: '2014-01-02',
     extra_filters: null,
     force: null,
