@@ -562,6 +562,7 @@ class Database(Model, AuditMixinNullable):
     """))
     perm = Column(String(1000))
     custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
+    impersonate_user = Column(Boolean, default=False)
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name
@@ -588,13 +589,15 @@ class Database(Model, AuditMixinNullable):
         conn.password = password_mask if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
-    def get_sqla_engine(self, schema=None, nullpool=False):
+    def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         uri = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
         if nullpool:
             params['poolclass'] = NullPool
         uri = self.db_engine_spec.adjust_database_uri(uri, schema)
+        if self.impersonate_user:
+            uri.username = user_name if user_name else g.user.username
         return create_engine(uri, **params)
 
     def get_reserved_words(self):

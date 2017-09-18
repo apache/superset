@@ -188,7 +188,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
-        'allow_ctas', 'allow_dml', 'force_ctas_schema']
+        'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user']
     search_exclude_columns = (
         'password', 'tables', 'created_by', 'changed_by', 'queries',
         'saved_queries', )
@@ -241,6 +241,9 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
             "gets unpacked into the [sqlalchemy.MetaData]"
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
             "#sqlalchemy.schema.MetaData) call. ", True),
+        'impersonate_user': _(
+            "All the queries in Sql Lab are going to be executed "
+            "on behalf of currently authorized user."),
     }
     label_columns = {
         'expose_in_sqllab': _("Expose in SQL Lab"),
@@ -255,6 +258,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'extra': _("Extra"),
         'allow_run_sync': _("Allow Run Sync"),
         'allow_run_async': _("Allow Run Async"),
+        'impersonate_user': _("Impersonate queries to the database"),
     }
 
     def pre_add(self, db):
@@ -2152,7 +2156,7 @@ class Superset(BaseSupersetView):
             try:
                 sql_lab.get_sql_results.delay(
                     query_id=query_id, return_results=False,
-                    store_results=not query.select_as_cta)
+                    store_results=not query.select_as_cta, user_name=g.user.username)
             except Exception as e:
                 logging.exception(e)
                 msg = (
