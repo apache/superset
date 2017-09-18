@@ -314,9 +314,10 @@ def uploaded_file(filename):
     #return send_from_directory(config['UPLOAD_FOLDER'],
     #                           filename)
 
-class CsvToDatabaseView(SimpleFormView):
+class CsvToDatabaseView(DatasourceModelView, SimpleFormView):
     form = CsvToDatabaseForm
     form_title = _('CSV to Database configuration')
+    add_columns = ['database', 'schema', 'table_name']
 
     def form_get(self, form):
         # pre process form
@@ -364,28 +365,6 @@ class CsvToDatabaseView(SimpleFormView):
 
         # Use Pandas to convert csv to dataframe
         datetime_flag = form.infer_datetime_format.data
-        df = self.csv_to_df(names=form.names.data,
-                            filepath_or_buffer=filename,
-                            sep=form.sep.data,
-                            header=form.header.data,
-                            index_col=form.index_col.data,
-                            squeeze=form.squeeze.data,
-                            prefix=form.prefix.data,
-                            mangle_dupe_cols=form.mangle_dupe_cols.data,
-                            skipinitialspace=form.skipinitialspace.data,
-                            skiprows=form.skiprows.data,
-                            nrows=form.nrows.data,
-                            skip_blank_lines=form.skip_blank_lines.data,
-                            parse_dates=form.parse_dates.data,
-                            infer_datetime_format=datetime_flag,
-                            dayfirst=form.dayfirst.data,
-                            thousands=form.thousands.data,
-                            decimal=form.decimal.data,
-                            quotechar=form.quotechar.data,
-                            escapechar=form.escapechar.data,
-                            comment=form.comment.data,
-                            error_bad_lines=form.error_bad_lines.data,
-                            chunksize=10000)
 
         # some of this stuff belongs in db_engine_spec
         database = db.session.query(Database).filter_by(id=form.data.get('db_id'))
@@ -401,85 +380,10 @@ class CsvToDatabaseView(SimpleFormView):
         return redirect('/tablemodelview/list/')
 
     @staticmethod
-    def csv_to_df(names, filepath_or_buffer, sep, header, index_col, squeeze,
-                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
-                  skip_blank_lines, parse_dates, infer_datetime_format,
-                  dayfirst, thousands, decimal, quotechar, escapechar, comment,
-                  error_bad_lines, chunksize):
-        # Use Pandas to parse csv file to a dataframe
-        upload_path = config['UPLOAD_FOLDER'] + filepath_or_buffer
-        # Expose this to api so can specify each field
-        chunks = pandas.read_csv(filepath_or_buffer=upload_path,
-                                 sep=sep,
-                                 header=header,
-                                 names=names,
-                                 index_col=index_col,
-                                 squeeze=squeeze,
-                                 prefix=prefix,
-                                 mangle_dupe_cols=mangle_dupe_cols,
-                                 skipinitialspace=skipinitialspace,
-                                 skiprows=skiprows,
-                                 nrows=nrows,
-                                 skip_blank_lines=skip_blank_lines,
-                                 parse_dates=parse_dates,
-                                 infer_datetime_format=infer_datetime_format,
-                                 dayfirst=dayfirst,
-                                 thousands=thousands,
-                                 decimal=decimal,
-                                 quotechar=quotechar,
-                                 escapechar=escapechar,
-                                 comment=comment,
-                                 encoding='utf-8',
-                                 error_bad_lines=error_bad_lines,
-                                 chunksize=chunksize,
-                                 iterator=True)
-        df = pandas.DataFrame()
-        df = pandas.concat(chunk for chunk in chunks)
-        return df
-
-    @staticmethod
-    def df_to_db(df, name, con, schema, if_exists, index,
-                 index_label, chunksize):
-
-        engine = create_engine(con, echo=False)
-
-        # Use Pandas to parse dataframe to database
-        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
-                  index=index, index_label=index_label, chunksize=chunksize)
-
-
-        table = SqlaTable(table_name=name)
-        database = (
-                    db.session
-                    .query(models.Database)
-                    .filter_by(sqlalchemy_uri=con)
-                    .first()
-        )
-        table.database_id = database.id
-        table.user_id = g.user.id
-        table.database = database
-        table.schema = schema
-        db.session.add(table)
-        db.session.commit()
-        # Should I set this to g.user? The other tables don't have an owner.
-        # table.owner = g.user.id
-        # Do I need to set table.sql? None of the default tables have it set.
-        # table.sql =
-
-    @staticmethod
     def allowed_file(filename):
         # Only allow specific file extensions as specified in the config
         return '.' in filename and \
                filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
-
-
-    def upload_file(self, form):
-        if form.csv_file.data and \
-                self.allowed_file(form.csv_file.data.filename):
-            filename = secure_filename(form.csv_file.data.filename)
-            form.csv_file.data.save(os.path.join(config['UPLOAD_FOLDER'],
-                                                 filename))
-            return filename
 
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
