@@ -1,5 +1,5 @@
-from colorama import Fore, Style
 import logging
+from colorama import Fore, Style
 
 
 class BaseStatsLogger(object):
@@ -39,8 +39,7 @@ class DummyStatsLogger(BaseStatsLogger):
     def gauge(self, key, value):
         logging.info((
             Fore.CYAN + "[stats_logger] (gauge) "
-            "{key} | {value}" + Style.RESET_ALL).format(**locals())
-        )
+            "{key} | {value}" + Style.RESET_ALL).format(**locals()))
 
 
 try:
@@ -48,10 +47,11 @@ try:
 
     class StatsdStatsLogger(BaseStatsLogger):
         def __init__(self, host, port, prefix='superset'):
+            super()
             self.client = StatsClient(
-                  host=host,
-                  port=port,
-                  prefix=prefix)
+                host=host,
+                port=port,
+                prefix=prefix)
 
         def incr(self, key):
             self.client.incr(key)

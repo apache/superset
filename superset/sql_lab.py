@@ -2,13 +2,13 @@ from time import sleep
 from datetime import datetime
 import json
 import logging
+import uuid
 import pandas as pd
 import sqlalchemy
-import uuid
 
-from celery.exceptions import SoftTimeLimitExceeded
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
+from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import (
     app, db, utils, dataframe, results_backend)
@@ -76,10 +76,9 @@ def get_session(nullpool):
         session_class = sessionmaker()
         session_class.configure(bind=engine)
         return session_class()
-    else:
-        session = db.session()
-        session.commit()  # HACK
-        return session
+    session = db.session()
+    session.commit()  # HACK
+    return session
 
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
@@ -168,7 +167,7 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
     logging.info("Set query to 'running'")
 
     engine = database.get_sqla_engine(
-            schema=query.schema, nullpool=not ctask.request.called_directly)
+        schema=query.schema, nullpool=not ctask.request.called_directly)
     try:
         engine = database.get_sqla_engine(
             schema=query.schema, nullpool=not ctask.request.called_directly)

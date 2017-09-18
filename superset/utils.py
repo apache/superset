@@ -8,16 +8,17 @@ import decimal
 import functools
 import json
 import logging
-import numpy
 import os
+import signal
+import smtplib
 import parsedatetime
 import pytz
-import smtplib
 import sqlalchemy as sa
-import signal
 import uuid
 import sys
 import zlib
+import numpy
+
 
 from builtins import object
 from datetime import date, datetime, time
@@ -34,9 +35,9 @@ from flask_appbuilder.const import (
     FLAMSG_ERR_SEC_ACCESS_DENIED,
     PERMISSION_PREFIX
 )
-from flask_cache import Cache
 from flask_appbuilder._compat import as_unicode
 from flask_babel import gettext as __
+from flask_cache import Cache
 import markdown as md
 from past.builtins import basestring
 from pydruid.utils.having import Having
@@ -78,8 +79,7 @@ def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
     if user.is_anonymous():
         return sm.is_item_public(permission_name, view_name)
-    else:
-        return sm._has_view_access(user, permission_name, view_name)
+    return sm._has_view_access(user, permission_name, view_name)
 
 
 def flasher(msg, severity=None):
@@ -349,7 +349,7 @@ def error_msg_from_exception(e):
     """
     msg = ''
     if hasattr(e, 'message'):
-        if type(e.message) is dict:
+        if isinstance(e.message, dict):
             msg = e.message.get('message')
         elif e.message:
             msg = "{}".format(e.message)

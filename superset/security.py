@@ -191,7 +191,7 @@ def create_missing_perms():
         metrics += list(db.session.query(datasource_class.metric_class).all())
 
     for metric in metrics:
-        if (metric.is_restricted):
+        if metric.is_restricted:
             merge_pv('metric_access', metric.perm)
 
 
