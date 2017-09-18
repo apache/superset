@@ -49,8 +49,8 @@ from superset.views.base import DatabaseFilter
 
 from .base import (
     api, SupersetModelView, BaseSupersetView, DeleteMixin,
-    SupersetFilter, get_user_roles, json_error_response, get_error_msg
-)
+    SupersetFilter, get_user_roles, json_error_response, get_error_msg,
+    CsvResponse)
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -1054,7 +1054,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
 
         if request.args.get("csv") == "true":
-            return Response(
+            return CsvResponse(
                 viz_obj.get_csv(),
                 status=200,
                 headers=generate_download_headers("csv"),
