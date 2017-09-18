@@ -1639,6 +1639,7 @@ class EventFlowViz(BaseViz):
     def get_data(self, df):
         return df.to_dict(orient="records")
 
+
 class PairedTTestViz(BaseViz):
 
     """A table displaying paired t-test values"""
@@ -1649,6 +1650,17 @@ class PairedTTestViz(BaseViz):
     is_timeseries = True
 
     def get_data(self, df):
+        """
+        Transform received data frame into an object of the form:
+        {
+            "metric1": [
+                {
+                    groups: ('groupA', ... ),
+                    values: [ {x, y}, ... ],
+                }, ...
+            ], ...
+        }
+        """
         fd = self.form_data
         groups = fd.get('groupby')
         metrics = fd.get('metrics')
@@ -1658,6 +1670,7 @@ class PairedTTestViz(BaseViz):
             columns=groups,
             values=metrics)
         cols = []
+        # Be rid of falsey keys
         for col in df.columns:
             if col == '':
                 cols.append('N/A')
@@ -1668,24 +1681,23 @@ class PairedTTestViz(BaseViz):
         df.columns = cols
         data = {}
         series = df.to_dict('series')
-        groupId = 0
-        for metric in metrics:
-            data[metric] = []
         for nameSet in df.columns:
+            # If no groups are defined, nameSet will be the metric name
             hasGroup = not isinstance(nameSet, string_types)
             Y = series[nameSet]
             d = {
                 'group': nameSet[1:] if hasGroup else 'All',
-                'id': groupId,
                 'values': [
                     {'x': t, 'y': Y[t] if t in Y else None}
                     for t in df.index
                 ],
             }
-            groupId += 1
-            data[nameSet[0] if hasGroup else nameSet].append(d)
+            key = nameSet[0] if hasGroup else nameSet
+            if key in data:
+                data[key].append(d)
+            else:
+                data[key] = [d]
         return data
-
 
 
 viz_types_list = [

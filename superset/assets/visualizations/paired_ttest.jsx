@@ -20,18 +20,19 @@ class TTestTable extends React.Component {
   }
 
   componentWillMount() {
-    this.computeTTest(this.state.control);
+    this.computeTTest(this.state.control); // initially populate table
   }
 
   getLiftStatus(row) {
+    // Get a css class name for coloring
     if (row === this.state.control) {
       return 'control';
     }
     const liftVal = this.state.liftValues[row];
     if (isNaN(liftVal) || !isFinite(liftVal)) {
-      return 'invalid';
+      return 'invalid'; // infinite or NaN values
     }
-    return liftVal >= 0 ? 'true' : 'false';
+    return liftVal >= 0 ? 'true' : 'false'; // green on true, red on false
   }
 
   getPValueStatus(row) {
@@ -42,17 +43,20 @@ class TTestTable extends React.Component {
     if (isNaN(pVal) || !isFinite(pVal)) {
       return 'invalid';
     }
-    return '';
+    return ''; // p-values won't normally be colored
   }
 
   getSignificance(row) {
+    // Color significant as green, else red
     if (row === this.state.control) {
       return 'control';
     }
+    // p-values significant below set threshold
     return this.state.pValues[row] <= this.props.alpha;
   }
 
   computeLift(values, control) {
+    // Compute the lift value between two time series
     let sumValues = 0;
     let sumControl = 0;
     for (let i = 0; i < values.length; i++) {
@@ -64,6 +68,8 @@ class TTestTable extends React.Component {
   }
 
   computePValue(values, control) {
+    // Compute the p-value from Student's t-test
+    // between two time series
     let diffSum = 0;
     let diffSqSum = 0;
     let finiteCount = 0;
@@ -80,13 +86,15 @@ class TTestTable extends React.Component {
       (finiteCount * diffSqSum - diffSum * diffSum)));
     try {
       return (2 * new dist.Studentt(finiteCount - 1).cdf(tvalue))
-        .toFixed(this.props.pValPrec);
+        .toFixed(this.props.pValPrec); // two-sided test
     } catch (err) {
       return NaN;
     }
   }
 
   computeTTest(control) {
+    // Compute lift and p-values for each row
+    // against the selected control
     const data = this.props.data;
     const pValues = [];
     const liftValues = [];
@@ -109,15 +117,17 @@ class TTestTable extends React.Component {
     const data = this.props.data;
     const metric = this.props.metric;
     const groups = this.props.groups;
+    // Render column header for each group
     const columns = groups.map((group, i) => (
       <Th key={i} column={group}>{group}</Th>
     ));
     const numGroups = groups.length;
+    // Columns for p-value, lift-value, and significance (true/false)
     columns.push(<Th key={numGroups + 1} column="pValue">p-value</Th>);
     columns.push(<Th key={numGroups + 2} column="liftValue">Lift %</Th>);
     columns.push(<Th key={numGroups + 3} column="significant">Significant</Th>);
     const rows = data.map((entry, i) => {
-      const values = groups.map((group, j) => (
+      const values = groups.map((group, j) => ( // group names
         <Td key={j} column={group} data={entry.group[j]} />
       ));
       values.push(
@@ -154,6 +164,7 @@ class TTestTable extends React.Component {
         </Tr>
       );
     });
+    // When sorted ascending, 'control' will always be at top
     const sortConfig = groups.concat([
       {
         column: 'pValue',
@@ -164,7 +175,7 @@ class TTestTable extends React.Component {
           if (b === 'control') {
             return 1;
           }
-          return a > b ? 1 : -1;
+          return a > b ? 1 : -1; // p-values ascending
         },
       },
       {
@@ -176,7 +187,7 @@ class TTestTable extends React.Component {
           if (b === 'control') {
             return 1;
           }
-          return parseFloat(a) > parseFloat(b) ? -1 : 1;
+          return parseFloat(a) > parseFloat(b) ? -1 : 1; // lift values descending
         },
       },
       {
@@ -188,7 +199,7 @@ class TTestTable extends React.Component {
           if (b === 'control') {
             return 1;
           }
-          return a > b ? -1 : 1;
+          return a > b ? -1 : 1; // significant values first
         },
       },
     ]);
@@ -236,7 +247,7 @@ function pairedTTestVis(slice, payload) {
   const alpha = fd.significance_level;
   const pValPrec = fd.pvalue_precision;
   const liftValPrec = fd.liftvalue_precision;
-  const tables = fd.metrics.map((metric, i) => (
+  const tables = fd.metrics.map((metric, i) => ( // create a table for each metric
     <TTestTable
       key={i}
       metric={metric}
