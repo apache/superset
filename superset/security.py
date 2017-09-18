@@ -11,7 +11,6 @@ from superset import conf, db, sm
 from superset.models import core as models
 from superset.connectors.connector_registry import ConnectorRegistry
 
-
 READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
     'DatabaseView',
@@ -87,11 +86,8 @@ def is_user_defined_permission(perm):
 
 def get_or_create_main_db():
     logging.info("Creating database reference")
-    dbobj = (
-        db.session.query(models.Database)
-        .filter_by(database_name='main')
-        .first()
-    )
+    dbobj = (db.session.query(models.Database).filter_by(database_name='main')
+             .first())
     if not dbobj:
         dbobj = models.Database(database_name="main")
     dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
@@ -104,16 +100,16 @@ def get_or_create_main_db():
 
 def is_admin_only(pvm):
     # not readonly operations on read only model views allowed only for admins
-    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS and
-            pvm.permission.name not in READ_ONLY_PERMISSION):
+    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
-    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS or
-            pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
+    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS
+            or pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
 
 
 def is_alpha_only(pvm):
-    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
-            pvm.permission.name not in READ_ONLY_PERMISSION):
+    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
     return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
 
@@ -127,18 +123,20 @@ def is_alpha_pvm(pvm):
 
 
 def is_gamma_pvm(pvm):
-    return not (is_user_defined_permission(pvm) or is_admin_only(pvm) or
-                is_alpha_only(pvm))
+    return not (is_user_defined_permission(pvm) or is_admin_only(pvm)
+                or is_alpha_only(pvm))
 
 
 def is_sql_lab_pvm(pvm):
     return pvm.view_menu.name in {'SQL Lab'} or pvm.permission.name in {
-        'can_sql_json', 'can_csv', 'can_search_queries'}
+        'can_sql_json', 'can_csv', 'can_search_queries'
+    }
 
 
 def is_granter_pvm(pvm):
-    return pvm.permission.name in {'can_override_role_permissions',
-                                   'can_approve'}
+    return pvm.permission.name in {
+        'can_override_role_permissions', 'can_approve'
+    }
 
 
 def set_role(role_name, pvm_check):

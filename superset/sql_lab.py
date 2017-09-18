@@ -10,8 +10,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 from celery.exceptions import SoftTimeLimitExceeded
 
-from superset import (
-    app, db, utils, dataframe, results_backend)
+from superset import (app, db, utils, dataframe, results_backend)
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
@@ -82,12 +81,10 @@ def get_session(nullpool):
 
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
-def get_sql_results(
-        ctask, query_id, return_results=True, store_results=False):
+def get_sql_results(ctask, query_id, return_results=True, store_results=False):
     """Executes the sql query returns the results."""
     try:
-        return execute_sql(
-            ctask, query_id, return_results, store_results)
+        return execute_sql(ctask, query_id, return_results, store_results)
     except Exception as e:
         logging.exception(e)
         stats_logger.incr('error_sqllab_unhandled')
@@ -141,13 +138,11 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
             query.tmp_table_name = 'tmp_{}_table_{}'.format(
-                query.user_id,
-                start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
+                query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    elif (
-            query.limit and superset_query.is_select() and
-            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+    elif (query.limit and superset_query.is_select()
+          and db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
     try:
@@ -175,8 +170,8 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         cursor = conn.cursor()
         logging.info("Running query: \n{}".format(executed_sql))
         logging.info(query.executed_sql)
-        cursor.execute(
-            query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
+        cursor.execute(query.executed_sql,
+                       **db_engine_spec.cursor_execute_kwargs)
         logging.info("Handling cursor")
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info("Fetching data: {}".format(query.to_dict()))
@@ -199,29 +194,31 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
     conn.close()
 
     if query.status == utils.QueryStatus.STOPPED:
-        return json.dumps({
-            'query_id': query.id,
-            'status': query.status,
-            'query': query.to_dict(),
-        }, default=utils.json_iso_dttm_ser)
+        return json.dumps(
+            {
+                'query_id': query.id,
+                'status': query.status,
+                'query': query.to_dict(),
+            },
+            default=utils.json_iso_dttm_ser)
 
-    column_names = (
-        [col[0] for col in cursor_description] if cursor_description else [])
+    column_names = ([col[0] for col in cursor_description]
+                    if cursor_description else [])
     column_names = dedup(column_names)
-    cdf = dataframe.SupersetDataFrame(pd.DataFrame(
-        list(data), columns=column_names))
+    cdf = dataframe.SupersetDataFrame(
+        pd.DataFrame(list(data), columns=column_names))
 
     query.rows = cdf.size
     query.progress = 100
     query.status = QueryStatus.SUCCESS
     if query.select_as_cta:
-        query.select_sql = '{}'.format(database.select_star(
-            query.tmp_table_name,
-            limit=query.limit,
-            schema=database.force_ctas_schema,
-            show_cols=False,
-            latest_partition=False,
-        ))
+        query.select_sql = '{}'.format(
+            database.select_star(
+                query.tmp_table_name,
+                limit=query.limit,
+                schema=database.force_ctas_schema,
+                show_cols=False,
+                latest_partition=False, ))
     query.end_time = utils.now_as_float()
     session.merge(query)
     session.flush()
