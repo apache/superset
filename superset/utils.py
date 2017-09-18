@@ -196,6 +196,8 @@ def parse_human_datetime(s):
     >>> year_ago_1 == year_ago_2
     True
     """
+    if not s:
+        return None
     try:
         dttm = parse(s)
     except Exception:
