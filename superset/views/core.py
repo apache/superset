@@ -43,7 +43,6 @@ from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-from superset.widgets import CsvListWidget
 from superset.forms import CsvToDatabaseForm
 from superset.views.base import DatabaseFilter
 
@@ -318,7 +317,8 @@ def uploaded_file(filename):
     #return send_from_directory(config['UPLOAD_FOLDER'],
     #                           filename)
 
-class CsvToDatabaseView(DatasourceModelView, SimpleFormView):
+class CsvToDatabaseView(SimpleFormView):
+    #DatasourceModelView,  add to ^ ?
     form = CsvToDatabaseForm
     form_title = _('CSV to Database configuration')
     add_columns = ['database', 'schema', 'table_name']
@@ -365,13 +365,15 @@ class CsvToDatabaseView(DatasourceModelView, SimpleFormView):
                 form.header.data = 0
 
         # Attempt to upload csv file
-        filename = self.upload_file(form)
+        #filename = self.upload_file(form)
 
         # Use Pandas to convert csv to dataframe
         datetime_flag = form.infer_datetime_format.data
 
         # some of this stuff belongs in db_engine_spec
-        database = db.session.query(Database).filter_by(id=form.data.get('db_id'))
+        print(form.data)
+        database = db.session.query(models.Database).filter_by(sqlalchemy_uri=form.data.get('con')).one()
+        print(dir(database))
         database.db_engine_spec.upload_csv(form)
 
 
