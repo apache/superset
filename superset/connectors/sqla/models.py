@@ -598,7 +598,7 @@ class SqlaTable(Model, BaseDatasource):
         db_dialect = self.database.get_sqla_engine().dialect
         for col in table.columns:
             try:
-                datatype = "{}".format(col.type).upper()
+                datatype = "{}".format(col.type.compile(dialect=db_dialect)).upper()
             except Exception as e:
                 datatype = "UNKNOWN"
                 logging.error(
