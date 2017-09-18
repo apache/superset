@@ -54,9 +54,11 @@ class FilterBox extends React.Component {
     selectedValues[filter] = vals;
 
     if (!this.props.multiSelect) {
-      this.props.groupBy.map(group => {
-        if (selectedValues !== undefined && selectedValues[group] !== undefined && !Array.isArray(selectedValues[group])) {
-          selectedValues[group] = [selectedValues[group]];
+      this.props.groupBy.forEach((group) => {
+        if (selectedValues !== undefined && selectedValues[group] !== undefined) {
+          if (!Array.isArray(selectedValues[group])) {
+            selectedValues[group] = [selectedValues[group]];
+          }
         }
       });
       vals = [vals];
@@ -176,9 +178,11 @@ function filterBox(slice, payload) {
     filtersChoices[f] = payload.data[f];
   });
   if (!fd.multi_select) {
-    fd.groupby.map(group => {
-      if (filters !== undefined && filters[group] !== undefined && !Array.isArray(filters[group])) {
-        filters[group] = [filters[group][0]];
+    fd.groupby.forEach((group) => {
+      if (filters !== undefined && filters[group] !== undefined) {
+        if (!Array.isArray(filters[group])) {
+          filters[group] = [filters[group][0]];
+        }
       }
     });
   }
