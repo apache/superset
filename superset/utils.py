@@ -8,16 +8,16 @@ import decimal
 import functools
 import json
 import logging
-import numpy
 import os
-import parsedatetime
-import pytz
-import smtplib
-import sqlalchemy as sa
 import signal
+import parsedatetime
+import smtplib
+import pytz
+import sqlalchemy as sa
 import uuid
 import sys
 import zlib
+import numpy
 
 from builtins import object
 from datetime import date, datetime, time, timedelta
@@ -28,15 +28,16 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.utils import formatdate
+
 from flask import flash, Markup, render_template, url_for, redirect, request
 from flask_appbuilder.const import (
     LOGMSG_ERR_SEC_ACCESS_DENIED,
     FLAMSG_ERR_SEC_ACCESS_DENIED,
     PERMISSION_PREFIX
 )
-from flask_cache import Cache
 from flask_appbuilder._compat import as_unicode
 from flask_babel import gettext as __
+from flask_cache import Cache
 import markdown as md
 from past.builtins import basestring
 from pydruid.utils.having import Having
@@ -78,8 +79,7 @@ def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
     if user.is_anonymous():
         return sm.is_item_public(permission_name, view_name)
-    else:
-        return sm._has_view_access(user, permission_name, view_name)
+    return sm._has_view_access(user, permission_name, view_name)
 
 
 def flasher(msg, severity=None):
@@ -94,7 +94,6 @@ def flasher(msg, severity=None):
 
 
 class memoized(object):  # noqa
-
     """Decorator that caches a function's return value each time it is called
 
     If called later with the same arguments, the cached value is returned, and
@@ -161,11 +160,13 @@ class DimSelector(Having):
         # Just a hack to prevent any exceptions
         Having.__init__(self, type='equalTo', aggregation=None, value=None)
 
-        self.having = {'having': {
-            'type': 'dimSelector',
-            'dimension': args['dimension'],
-            'value': args['value'],
-        }}
+        self.having = {
+            'having': {
+                'type': 'dimSelector',
+                'dimension': args['dimension'],
+                'value': args['value'],
+            }
+        }
 
 
 def list_minus(l, minus):
@@ -231,13 +232,11 @@ def parse_human_timedelta(s):
     cal = parsedatetime.Calendar()
     dttm = dttm_from_timtuple(datetime.now().timetuple())
     d = cal.parse(s, dttm)[0]
-    d = datetime(
-        d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
+    d = datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
     return d - dttm
 
 
 class JSONEncodedDict(TypeDecorator):
-
     """Represents an immutable structure as a json-encoded string."""
 
     impl = TEXT
@@ -301,8 +300,7 @@ def json_iso_dttm_ser(obj):
         obj = obj.isoformat()
     else:
         raise TypeError(
-            "Unserializable object {} of type {}".format(obj, type(obj))
-        )
+            "Unserializable object {} of type {}".format(obj, type(obj)))
     return obj
 
 
@@ -328,8 +326,7 @@ def json_int_dttm_ser(obj):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
         raise TypeError(
-            "Unserializable object {} of type {}".format(obj, type(obj))
-        )
+            "Unserializable object {} of type {}".format(obj, type(obj)))
     return obj
 
 
@@ -353,7 +350,7 @@ def error_msg_from_exception(e):
     """
     msg = ''
     if hasattr(e, 'message'):
-        if type(e.message) is dict:
+        if isinstance(e.message, dict):
             msg = e.message.get('message')
         elif e.message:
             msg = "{}".format(e.message)
@@ -382,9 +379,8 @@ def generic_find_constraint_name(table, columns, referenced, db):
     t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
 
     for fk in t.foreign_key_constraints:
-        if (
-                fk.referred_table.name == referenced and
-                set(fk.column_keys) == columns):
+        if (fk.referred_table.name == referenced
+                and set(fk.column_keys) == columns):
             return fk.name
 
 
@@ -421,6 +417,7 @@ class timeout(object):
     """
     To be used in a ``with`` block and timeout its content.
     """
+
     def __init__(self, seconds=1, error_message='Timeout'):
         self.seconds = seconds
         self.error_message = error_message
@@ -483,7 +480,6 @@ def pessimistic_connection_handling(some_engine):
 
 
 class QueryStatus(object):
-
     """Enum-type class for query statuses"""
 
     STOPPED = 'stopped'
@@ -539,11 +535,11 @@ def send_email_smtp(to, subject, html_content, config, files=None,
     for fname in files or []:
         basename = os.path.basename(fname)
         with open(fname, "rb") as f:
-            msg.attach(MIMEApplication(
-                f.read(),
-                Content_Disposition='attachment; filename="%s"' % basename,
-                Name=basename
-            ))
+            msg.attach(
+                MIMEApplication(
+                    f.read(),
+                    Content_Disposition='attachment; filename="%s"' % basename,
+                    Name=basename))
 
     send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
 
@@ -600,17 +596,20 @@ def has_access(f):
 
     def wraps(self, *args, **kwargs):
         permission_str = PERMISSION_PREFIX + f._permission_name
-        if self.appbuilder.sm.has_access(
-                permission_str, self.__class__.__name__):
+        if self.appbuilder.sm.has_access(permission_str,
+                                         self.__class__.__name__):
             return f(self, *args, **kwargs)
         else:
-            logging.warning(LOGMSG_ERR_SEC_ACCESS_DENIED.format(
-                permission_str, self.__class__.__name__))
+            logging.warning(
+                LOGMSG_ERR_SEC_ACCESS_DENIED.format(permission_str,
+                                                    self.__class__.__name__))
             flash(as_unicode(FLAMSG_ERR_SEC_ACCESS_DENIED), "danger")
         # adds next arg to forward to the original path once user is logged in.
-        return redirect(url_for(
-            self.appbuilder.sm.auth_view.__class__.__name__ + ".login",
-            next=request.path))
+        return redirect(
+            url_for(
+                self.appbuilder.sm.auth_view.__class__.__name__ + ".login",
+                next=request.path))
+
     f._permission_name = permission_str
     return functools.update_wrapper(wraps, f)
 
@@ -655,6 +654,7 @@ def zlib_decompress_to_string(blob):
             decompressed = zlib.decompress(bytes(blob, "utf-8"))
         return decompressed.decode("utf-8")
     return zlib.decompress(blob)
+
 
 _celery_app = None
 
