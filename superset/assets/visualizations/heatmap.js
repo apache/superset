@@ -62,7 +62,7 @@ function heatmapVis(slice, payload) {
       actualKeys[d[k]] = d[k];
     });
     // Not usgin object.keys() as it converts to strings
-    const keys = Object.keys(actualKeys).map(k => actualKeys[k]);
+    const keys = Object.keys(actualKeys).map(s => actualKeys[s]);
     if (sortMethod === 'alpha_asc') {
       domain = keys.sort(cmp);
     } else if (sortMethod === 'alpha_desc') {
