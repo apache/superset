@@ -46,7 +46,6 @@ try:
 
     class StatsdStatsLogger(BaseStatsLogger):
         def __init__(self, host, port, prefix='superset'):
-            super()
             self.client = StatsClient(host=host, port=port, prefix=prefix)
 
         def incr(self, key):
