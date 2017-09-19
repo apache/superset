@@ -8,12 +8,14 @@ const propTypes = {
   description: PropTypes.string,
   children: PropTypes.node.isRequired,
   startExpanded: PropTypes.bool,
+  hasErrors: PropTypes.bool,
 };
 
 const defaultProps = {
   label: null,
   description: null,
   startExpanded: false,
+  hasErrors: false,
 };
 
 export default class ControlPanelSection extends React.Component {
@@ -25,10 +27,9 @@ export default class ControlPanelSection extends React.Component {
     this.setState({ expanded: !this.state.expanded });
   }
   renderHeader() {
-    const { label, description } = this.props;
-    let header;
-    if (label) {
-      header = (
+    const { label, description, hasErrors } = this.props;
+    return (
+      label &&
         <div>
           <i
             className={`text-primary expander fa fa-caret-${this.state.expanded ? 'down' : 'right'}`}
@@ -38,10 +39,14 @@ export default class ControlPanelSection extends React.Component {
           <span onClick={this.toggleExpand.bind(this)}>{label}</span>
           {' '}
           {description && <InfoTooltipWithTrigger label={label} tooltip={description} />}
-        </div>
-      );
-    }
-    return header;
+          {hasErrors &&
+            <InfoTooltipWithTrigger
+              label="validation-errors"
+              bsStyle="danger"
+              tooltip="This section contains validation errors"
+            />
+          }
+        </div>);
   }
 
   render() {

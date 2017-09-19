@@ -1,10 +1,10 @@
 /* eslint-disable no-param-reassign */
+/* eslint-disable react/no-multi-comp */
 import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
-import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
@@ -22,7 +22,14 @@ import './mapbox.css';
 
 const NOOP = () => {};
 
-class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
+class ScatterPlotGlowOverlay extends React.Component {
+  componentDidMount() {
+    this.redraw();
+  }
+
+  componentDidUpdate() {
+    this.redraw();
+  }
   drawText(ctx, pixel, options = {}) {
     const IS_DARK_THRESHOLD = 110;
     const { fontHeight = 0, label = '', radius = 0, rgb = [0, 0, 0], shadow = false } = options;
@@ -52,7 +59,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
   }
 
   // Modified: https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
-  _redraw() {
+  redraw() {
     const props = this.props;
     const pixelRatio = window.devicePixelRatio || 1;
     const canvas = this.refs.overlay;
@@ -181,12 +188,60 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
 
     ctx.restore();
   }
+  render() {
+    let width = 0;
+    let height = 0;
+    if (this.context.viewport) {
+      width = this.context.viewport.width;
+      height = this.context.viewport.height;
+    }
+    const { globalOpacity } = this.props;
+    const pixelRatio = window.devicePixelRatio || 1;
+    return (
+      React.createElement('canvas', {
+        ref: 'overlay',
+        width: width * pixelRatio,
+        height: height * pixelRatio,
+        style: {
+          width: `${width}px`,
+          height: `${height}px`,
+          position: 'absolute',
+          pointerEvents: 'none',
+          opacity: globalOpacity,
+          left: 0,
+          top: 0,
+        },
+      })
+    );
+  }
 }
+ScatterPlotGlowOverlay.propTypes = {
+  locations: PropTypes.instanceOf(Immutable.List).isRequired,
+  lngLatAccessor: PropTypes.func,
+  renderWhileDragging: PropTypes.bool,
+  globalOpacity: PropTypes.number,
+  dotRadius: PropTypes.number,
+  dotFill: PropTypes.string,
+  compositeOperation: PropTypes.string,
+};
+
+ScatterPlotGlowOverlay.defaultProps = {
+  lngLatAccessor: location => [location.get(0), location.get(1)],
+  renderWhileDragging: true,
+  dotRadius: 4,
+  dotFill: '#1FBAD6',
+  globalOpacity: 1,
+  // Same as browser default.
+  compositeOperation: 'source-over',
+};
+ScatterPlotGlowOverlay.contextTypes = {
+  viewport: PropTypes.object,
+  isDragging: PropTypes.bool,
+};
 
 class MapboxViz extends React.Component {
   constructor(props) {
     super(props);
-
     const longitude = this.props.viewportLongitude || DEFAULT_LONGITUDE;
     const latitude = this.props.viewportLatitude || DEFAULT_LATITUDE;
 
@@ -198,11 +253,10 @@ class MapboxViz extends React.Component {
         startDragLngLat: [longitude, latitude],
       },
     };
-
-    this.onChangeViewport = this.onChangeViewport.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
   }
 
-  onChangeViewport(viewport) {
+  onViewportChange(viewport) {
     this.setState({ viewport });
     this.props.setControlValue('viewport_longitude', viewport.longitude);
     this.props.setControlValue('viewport_latitude', viewport.latitude);
@@ -230,7 +284,7 @@ class MapboxViz extends React.Component {
         width={this.props.sliceWidth}
         height={this.props.sliceHeight}
         mapboxApiAccessToken={this.props.mapboxApiKey}
-        onChangeViewport={this.onChangeViewport}
+        onViewportChange={this.onViewportChange}
       >
         <ScatterPlotGlowOverlay
           {...this.state.viewport}

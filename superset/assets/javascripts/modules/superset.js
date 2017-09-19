@@ -58,6 +58,7 @@ const px = function (state) {
   }
   const Slice = function (data, datasource, controller) {
     const token = $('#token_' + data.slice_id);
+    const controls = $('#controls_' + data.slice_id);
     const containerId = 'con_' + data.slice_id;
     const selector = '#' + containerId;
     const container = $(selector);
@@ -80,16 +81,11 @@ const px = function (state) {
         };
         return Mustache.render(s, context);
       },
-      jsonEndpoint() {
-        return this.endpoint('json');
+      jsonEndpoint(data) {
+        return this.endpoint(data, 'json');
       },
-      endpoint(endpointType = 'json') {
-        const formDataExtra = Object.assign({}, formData);
-        const flts = controller.effectiveExtraFilters(sliceId);
-        if (flts) {
-          formDataExtra.extra_filters = flts;
-        }
-        let endpoint = getExploreUrl(formDataExtra, endpointType, this.force);
+      endpoint(data, endpointType = 'json') {
+        let endpoint = getExploreUrl(data, endpointType, this.force);
         if (endpoint.charAt(0) !== '/') {
           // Known issue for IE <= 11:
           // https://connect.microsoft.com/IE/feedbackdetail/view/1002846/pathname-incorrect-for-out-of-document-elements
@@ -207,11 +203,16 @@ const px = function (state) {
         } else {
           this.force = force;
         }
+        const formDataExtra = Object.assign({}, formData);
+        const extraFilters = controller.effectiveExtraFilters(sliceId);
+        formDataExtra.filters = formDataExtra.filters.concat(extraFilters);
+        controls.find('a.exploreChart').attr('href', getExploreUrl(formDataExtra));
+        controls.find('a.exportCSV').attr('href', getExploreUrl(formDataExtra, 'csv'));
         token.find('img.loading').show();
         container.fadeTo(0.5, 0.25);
         container.css('height', this.height());
         $.ajax({
-          url: this.jsonEndpoint(),
+          url: this.jsonEndpoint(formDataExtra),
           timeout: timeout * 1000,
           success: (queryResponse) => {
             try {
