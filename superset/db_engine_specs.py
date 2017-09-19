@@ -687,6 +687,16 @@ class HiveEngineSpec(PrestoEngineSpec):
             db, datasource_type, force=force)
 
     @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+        elif tt == 'TIMESTAMP':
+            return "CAST('{}' AS TIMESTAMP)".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         if selected_schema:
             uri.database = selected_schema

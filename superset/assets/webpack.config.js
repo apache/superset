@@ -36,12 +36,10 @@ const config = {
     ],
     alias: {
       webworkify: 'webworkify-webpack',
-      'mapbox-gl$': path.join(__dirname, '/node_modules/mapbox-gl/dist/mapbox-gl.js'),
     },
 
   },
   module: {
-    noParse: /mapbox-gl\/dist/,
     loaders: [
       {
         test: /datatables\.net.*/,
@@ -58,12 +56,6 @@ const config = {
             'react',
           ],
         },
-      },
-      /* for mapbox-gl/js/geo/transform */
-      {
-        test: /\.js$/,
-        include: APP_DIR + '/node_modules/mapbox-gl/js',
-        loader: 'babel-loader',
       },
       // Extract css files
       {
@@ -105,16 +97,6 @@ const config = {
       {
         test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
         loader: 'file-loader',
-      },
-      /* for mapbox */
-      {
-        test: /\.json$/,
-        loader: 'json-loader',
-      },
-      {
-        test: /\.js$/,
-        include: APP_DIR + '/node_modules/mapbox-gl/js/render/painter/use_program.js',
-        loader: 'transform/cacheable?brfs',
       },
     ],
   },

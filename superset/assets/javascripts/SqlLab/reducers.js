@@ -216,6 +216,9 @@ export const sqlLabReducer = function (state, action) {
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
     },
+    [actions.QUERY_EDITOR_PERSIST_HEIGHT]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { height: action.currentHeight });
+    },
     [actions.ADD_ALERT]() {
       return addToArr(state, 'alerts', action.alert);
     },

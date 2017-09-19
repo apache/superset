@@ -83,6 +83,9 @@ db = SQLA(app)
 
 if conf.get('WTF_CSRF_ENABLED'):
     csrf = CSRFProtect(app)
+    csrf_exempt_list = conf.get('WTF_CSRF_EXEMPT_LIST', [])
+    for ex in csrf_exempt_list:
+        csrf.exempt(ex)
 
 utils.pessimistic_connection_handling(db.engine)
 

@@ -14,6 +14,8 @@ from datetime import datetime, date
 from past.builtins import basestring
 
 import pandas as pd
+from pandas.core.dtypes.dtypes import ExtensionDtype
+
 import numpy as np
 
 
@@ -52,6 +54,8 @@ class SupersetDataFrame(object):
     @classmethod
     def db_type(cls, dtype):
         """Given a numpy dtype, Returns a generic database type"""
+        if isinstance(dtype, ExtensionDtype):
+            return cls.type_map.get(dtype.kind)
         return cls.type_map.get(dtype.char)
 
     @classmethod
@@ -87,8 +91,10 @@ class SupersetDataFrame(object):
         # consider checking for key substring too.
         if cls.is_id(column_name):
             return 'count_distinct'
-        if np.issubdtype(dtype, np.number):
+        if (issubclass(dtype.type, np.generic) and
+                np.issubdtype(dtype, np.number)):
             return 'sum'
+        return None
 
     @property
     def columns(self):

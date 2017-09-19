@@ -139,10 +139,22 @@ function tableVis(slice, payload) {
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
-  if (metrics.length > 0) {
-    const mainMetric = metrics[0];
-    datatable.column(data.columns.indexOf(mainMetric)).order('desc').draw();
+  let sortBy;
+  if (fd.timeseries_limit_metric) {
+    // Sort by as specified
+    sortBy = fd.timeseries_limit_metric;
+  } else if (metrics.length > 0) {
+    // If not specified, use the first metric from the list
+    sortBy = metrics[0];
   }
+  if (sortBy) {
+    datatable.column(data.columns.indexOf(sortBy)).order(fd.order_desc ? 'desc' : 'asc');
+  }
+  if (fd.timeseries_limit_metric && metrics.indexOf(fd.timeseries_limit_metric) < 0) {
+    // Hiding the sortBy column if not in the metrics list
+    datatable.column(data.columns.indexOf(sortBy)).visible(false);
+  }
+  datatable.draw();
   container.parents('.widget').find('.tooltip').remove();
 }
 
