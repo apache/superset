@@ -166,9 +166,6 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
     session.merge(query)
     session.commit()
     logging.info("Set query to 'running'")
-
-    engine = database.get_sqla_engine(
-            schema=query.schema, nullpool=not ctask.request.called_directly)
     try:
         engine = database.get_sqla_engine(
             schema=query.schema, nullpool=not ctask.request.called_directly)
