@@ -4,6 +4,8 @@ import PropTypes from 'prop-types';
 
 import { getExploreUrl } from '../../explore/exploreUtils';
 
+import { exportSlice, hasSvg } from '../../components/ExportSlice';
+
 const propTypes = {
   slice: PropTypes.object.isRequired,
   removeSlice: PropTypes.func.isRequired,
@@ -51,6 +53,15 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
                 <i className="fa fa-table" />
               </a>
               <a
+                className="exportPNG"
+                onClick={() => { exportSlice(slice, 'png'); }}
+                title="Export PNG"
+                data-toggle="tooltip"
+                style={{ display: hasSvg(slice) ? 'inline' : 'none' }}
+              >
+                <i className="fa fa-download" />
+              </a>
+              <a
                 className="exploreChart"
                 href={getExploreUrl(slice.form_data)}
                 title="Explore chart"
@@ -76,7 +87,7 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
         className="slice_description bs-callout bs-callout-default"
         style={
           expandedSlices &&
-          expandedSlices[String(slice.slice_id)] ? {} : { display: 'none' }
+            expandedSlices[String(slice.slice_id)] ? {} : { display: 'none' }
         }
         dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
       />
