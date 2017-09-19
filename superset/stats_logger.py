@@ -28,16 +28,17 @@ class BaseStatsLogger(object):
 
 class DummyStatsLogger(BaseStatsLogger):
     def incr(self, key):
-        logging.info(Fore.CYAN + "[stats_logger] (incr) " + key +
-                     Style.RESET_ALL)
+        logging.info(
+            Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
 
     def decr(self, key):
         logging.info(Fore.CYAN + "[stats_logger] (decr) " + key +
                      Style.RESET_ALL)
 
     def gauge(self, key, value):
-        logging.info((Fore.CYAN + "[stats_logger] (gauge) "
-                      "{key} | {value}" + Style.RESET_ALL).format(**locals()))
+        logging.info((
+            Fore.CYAN + "[stats_logger] (gauge) "
+            "{key} | {value}" + Style.RESET_ALL).format(**locals()))
 
 
 try:

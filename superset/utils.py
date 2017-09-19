@@ -10,8 +10,8 @@ import json
 import logging
 import os
 import signal
-import smtplib
 import parsedatetime
+import smtplib
 import pytz
 import sqlalchemy as sa
 import uuid
@@ -28,10 +28,13 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.utils import formatdate
+
 from flask import flash, Markup, render_template, url_for, redirect, request
-from flask_appbuilder.const import (LOGMSG_ERR_SEC_ACCESS_DENIED,
-                                    FLAMSG_ERR_SEC_ACCESS_DENIED,
-                                    PERMISSION_PREFIX)
+from flask_appbuilder.const import (
+    LOGMSG_ERR_SEC_ACCESS_DENIED,
+    FLAMSG_ERR_SEC_ACCESS_DENIED,
+    PERMISSION_PREFIX
+)
 from flask_appbuilder._compat import as_unicode
 from flask_babel import gettext as __
 from flask_cache import Cache
@@ -215,8 +218,8 @@ def parse_human_datetime(s):
 
 
 def dttm_from_timtuple(d):
-    return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min,
-                    d.tm_sec)
+    return datetime(
+        d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
 
 def parse_human_timedelta(s):
@@ -486,32 +489,19 @@ class QueryStatus(object):
     TIMED_OUT = 'timed_out'
 
 
-def notify_user_about_perm_udate(granter, user, role, datasource, tpl_name,
-                                 config):
-    msg = render_template(
-        tpl_name, granter=granter, user=user, role=role, datasource=datasource)
+def notify_user_about_perm_udate(
+        granter, user, role, datasource, tpl_name, config):
+    msg = render_template(tpl_name, granter=granter, user=user, role=role,
+                          datasource=datasource)
     logging.info(msg)
-    subject = __(
-        '[Superset] Access to the datasource %(name)s was granted',
-        name=datasource.full_name)
-    send_email_smtp(
-        user.email,
-        subject,
-        msg,
-        config,
-        bcc=granter.email,
-        dryrun=not config.get('EMAIL_NOTIFICATIONS'))
+    subject = __('[Superset] Access to the datasource %(name)s was granted',
+                 name=datasource.full_name)
+    send_email_smtp(user.email, subject, msg, config, bcc=granter.email,
+                    dryrun=not config.get('EMAIL_NOTIFICATIONS'))
 
 
-def send_email_smtp(to,
-                    subject,
-                    html_content,
-                    config,
-                    files=None,
-                    dryrun=False,
-                    cc=None,
-                    bcc=None,
-                    mime_subtype='mixed'):
+def send_email_smtp(to, subject, html_content, config, files=None,
+                    dryrun=False, cc=None, bcc=None, mime_subtype='mixed'):
     """
     Send an email with html content, eg:
     send_email_smtp(

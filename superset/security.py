@@ -86,8 +86,11 @@ def is_user_defined_permission(perm):
 
 def get_or_create_main_db():
     logging.info("Creating database reference")
-    dbobj = (db.session.query(models.Database).filter_by(database_name='main')
-             .first())
+    dbobj = (
+        db.session.query(models.Database)
+        .filter_by(database_name='main')
+        .first()
+    )
     if not dbobj:
         dbobj = models.Database(database_name="main")
     dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
@@ -123,8 +126,8 @@ def is_alpha_pvm(pvm):
 
 
 def is_gamma_pvm(pvm):
-    return not (is_user_defined_permission(pvm) or is_admin_only(pvm)
-                or is_alpha_only(pvm))
+    return not (is_user_defined_permission(pvm) or is_admin_only(pvm) or
+                is_alpha_only(pvm))
 
 
 def is_sql_lab_pvm(pvm):

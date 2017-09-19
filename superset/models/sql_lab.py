@@ -15,14 +15,8 @@ from flask_appbuilder import Model
 
 import sqlalchemy as sqla
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
-    ForeignKey,
-    Text,
-    Boolean,
-    DateTime,
-    Numeric, )
+    Column, Integer, String, ForeignKey, Text, Boolean,
+    DateTime, Numeric, )
 from sqlalchemy.orm import backref, relationship
 
 from superset import sm
@@ -86,8 +80,9 @@ class Query(Model):
         backref=backref('queries', cascade='all, delete-orphan'))
     user = relationship(sm.user_model, foreign_keys=[user_id])
 
-    __table_args__ = (sqla.Index('ti_user_id_changed_on', user_id,
-                                 changed_on), )
+    __table_args__ = (
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on), 
+    )
 
     @property
     def limit_reached(self):
