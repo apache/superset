@@ -1,4 +1,3 @@
-import $ from 'jquery';
 import d3 from 'd3';
 
 // Color related utility functions go in this object
@@ -117,20 +116,20 @@ export const getColorFromScheme = (function () {
   };
 }());
 
-export const colorScalerFactory = function (colors, data, accessor) {
+export const colorScalerFactory = function (colors, data, accessor, extents) {
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */
     colors = spectrums[colors];
   }
   let ext = [0, 1];
-  if (data !== undefined) {
+  if (extents) {
+    ext = extents;
+  }
+  if (data) {
     ext = d3.extent(data, accessor);
   }
-  const points = [];
-  const chunkSize = (ext[1] - ext[0]) / colors.length;
-  $.each(colors, function (i) {
-    points.push(i * chunkSize);
-  });
-  return d3.scale.linear().domain(points).range(colors);
+  const chunkSize = (ext[1] - ext[0]) / (colors.length - 1);
+  const points = colors.map((col, i) => ext[0] + (i * chunkSize));
+  return d3.scale.linear().domain(points).range(colors).clamp(true);
 };

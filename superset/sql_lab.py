@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 from time import sleep
 from datetime import datetime
 import json
@@ -33,8 +35,8 @@ def dedup(l, suffix='__'):
     Always returns the same number of entries as provided, and always returns
     unique values.
 
-    >>> dedup(['foo', 'bar', 'bar', 'bar'])
-    ['foo', 'bar', 'bar__1', 'bar__2']
+    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
+    foo,bar,bar__1,bar__2
     """
     new_l = []
     seen = {}
@@ -81,10 +83,12 @@ def get_session(nullpool):
 
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
-def get_sql_results(ctask, query_id, return_results=True, store_results=False):
+def get_sql_results(
+        ctask, query_id, return_results=True, store_results=False, user_name=None):
     """Executes the sql query returns the results."""
     try:
-        return execute_sql(ctask, query_id, return_results, store_results)
+        return execute_sql(
+            ctask, query_id, return_results, store_results, user_name)
     except Exception as e:
         logging.exception(e)
         stats_logger.incr('error_sqllab_unhandled')
@@ -97,7 +101,8 @@ def get_sql_results(ctask, query_id, return_results=True, store_results=False):
         raise
 
 
-def execute_sql(ctask, query_id, return_results=True, store_results=False):
+def execute_sql(
+    ctask, query_id, return_results=True, store_results=False, user_name=None):
     """Executes the sql query returns the results."""
     session = get_session(not ctask.request.called_directly)
 
@@ -162,10 +167,10 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
     logging.info("Set query to 'running'")
 
     engine = database.get_sqla_engine(
-        schema=query.schema, nullpool=not ctask.request.called_directly)
+        schema=query.schema, nullpool=not ctask.request.called_directly, user_name=user_name)
     try:
         engine = database.get_sqla_engine(
-            schema=query.schema, nullpool=not ctask.request.called_directly)
+            schema=query.schema, nullpool=not ctask.request.called_directly, user_name=user_name)
         conn = engine.raw_connection()
         cursor = conn.cursor()
         logging.info("Running query: \n{}".format(executed_sql))

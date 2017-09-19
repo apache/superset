@@ -7,6 +7,7 @@ import { shallow } from 'enzyme';
 
 import CheckboxControl from '../../../../javascripts/explore/components/controls/CheckboxControl';
 import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+import Checkbox from '../../../../javascripts/components/Checkbox';
 
 const defaultProps = {
   name: 'show_legend',
@@ -27,6 +28,6 @@ describe('CheckboxControl', () => {
     expect(controlHeader).to.have.lengthOf(1);
 
     const headerWrapper = controlHeader.shallow();
-    expect(headerWrapper.find('i.fa-check')).to.have.length(1);
+    expect(headerWrapper.find(Checkbox)).to.have.length(1);
   });
 });

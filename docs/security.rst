@@ -36,7 +36,7 @@ own. Alpha users can add and alter data sources.
 Gamma
 """""
 Gamma have limited access. They can only consume data coming from data sources
-they have been giving access to through another complementary role.
+they have been given access to through another complementary role.
 They only have access to view the slices and
 dashboards made from data sources that they have access to. Currently Gamma
 users are not able to alter or add data sources. We assume that they are
