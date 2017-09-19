@@ -167,13 +167,11 @@ class BaseViz(object):
         extras = {
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
-            'having_druid': form_data.get('having_filters') \
-                if 'having_filters' in form_data else [],
+            'having_druid': form_data.get('having_filters', []),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
-        filters = form_data['filters'] if 'filters' in form_data \
-                else []
+        filters = form_data.get('filters', [])
         for col, vals in self.get_extra_filters().items():
             if not (col and vals) or col.startswith('__'):
                 continue
@@ -232,7 +230,7 @@ class BaseViz(object):
             payload = cache.get(cache_key)
 
         if payload:
-            stats_logger.incr('loaded_from_source')
+            stats_logger.incr('loaded_from_cache')
             is_cached = True
             try:
                 cached_data = zlib.decompress(payload)
@@ -246,7 +244,7 @@ class BaseViz(object):
             logging.info("Serving from cache")
 
         if not payload:
-            stats_logger.incr('loaded_from_cache')
+            stats_logger.incr('loaded_from_source')
             data = None
             is_cached = False
             cache_timeout = self.cache_timeout
@@ -310,7 +308,7 @@ class BaseViz(object):
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index, encoding="utf-8")
+        return df.to_csv(index=include_index, **config.get('CSV_EXPORT'))
 
     def get_data(self, df):
         return []
@@ -351,11 +349,16 @@ class TableViz(BaseViz):
                 "Choose either fields to [Group By] and [Metrics] or "
                 "[Columns], not both"))
 
+        sort_by = fd.get('timeseries_limit_metric')
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
+        elif sort_by:
+            if sort_by not in d['metrics']:
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get("order_desc", True))]
 
         d['is_timeseries'] = self.should_be_timeseries()
         return d
@@ -1310,7 +1313,6 @@ class CountryMapViz(BaseViz):
         return qry
 
     def get_data(self, df):
-        from superset.data import countries
         fd = self.form_data
         cols = [fd.get('entity')]
         metric = fd.get('metric')
@@ -1479,6 +1481,13 @@ class HeatmapViz(BaseViz):
             df.columns = ['x', 'y', 'v']
         norm = fd.get('normalize_across')
         overall = False
+        max_ = df.v.max()
+        min_ = df.v.min()
+        bounds = fd.get('y_axis_bounds')
+        if bounds and bounds[0] is not None:
+            min_ = bounds[0]
+        if bounds and bounds[1] is not None:
+            max_ = bounds[1]
         if norm == 'heatmap':
             overall = True
         else:
@@ -1491,10 +1500,11 @@ class HeatmapViz(BaseViz):
                         lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
                 )
         if overall:
-            v = df.v
-            min_ = v.min()
-            df['perc'] = (v - min_) / (v.max() - min_)
-        return df.to_dict(orient="records")
+            df['perc'] = (df.v - min_) / (max_ - min_)
+        return {
+            'records': df.to_dict(orient="records"),
+            'extents': [min_, max_],
+        }
 
 
 class HorizonViz(NVD3TimeSeriesViz):

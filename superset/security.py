@@ -11,7 +11,6 @@ from superset import conf, db, sm
 from superset.models import core as models
 from superset.connectors.connector_registry import ConnectorRegistry
 
-
 READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
     'DatabaseView',
@@ -104,16 +103,16 @@ def get_or_create_main_db():
 
 def is_admin_only(pvm):
     # not readonly operations on read only model views allowed only for admins
-    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS and
-            pvm.permission.name not in READ_ONLY_PERMISSION):
+    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
-    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS or
-            pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
+    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS
+            or pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
 
 
 def is_alpha_only(pvm):
-    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
-            pvm.permission.name not in READ_ONLY_PERMISSION):
+    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS
+            and pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
     return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
 
@@ -133,12 +132,14 @@ def is_gamma_pvm(pvm):
 
 def is_sql_lab_pvm(pvm):
     return pvm.view_menu.name in {'SQL Lab'} or pvm.permission.name in {
-        'can_sql_json', 'can_csv', 'can_search_queries'}
+        'can_sql_json', 'can_csv', 'can_search_queries'
+    }
 
 
 def is_granter_pvm(pvm):
-    return pvm.permission.name in {'can_override_role_permissions',
-                                   'can_approve'}
+    return pvm.permission.name in {
+        'can_override_role_permissions', 'can_approve'
+    }
 
 
 def set_role(role_name, pvm_check):
@@ -191,7 +192,7 @@ def create_missing_perms():
         metrics += list(db.session.query(datasource_class.metric_class).all())
 
     for metric in metrics:
-        if (metric.is_restricted):
+        if metric.is_restricted:
             merge_pv('metric_access', metric.perm)
 
 

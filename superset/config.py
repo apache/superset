@@ -60,11 +60,23 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
+# In order to hook up a custom password store for all SQLACHEMY connections
+# implement a function that takes a single argument of type 'sqla.engine.url',
+# returns a password and set SQLALCHEMY_CUSTOM_PASSWORD_STORE.
+#
+# e.g.:
+# def lookup_password(url):
+#     return 'secret'
+# SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
+
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
 # Flask-WTF flag for CSRF
 WTF_CSRF_ENABLED = True
+
+# Add endpoints that need to be exempt from CSRF protection
+WTF_CSRF_EXEMPT_LIST = []
 
 # Whether to run the web server in debug mode or not
 DEBUG = False
@@ -172,6 +184,11 @@ TABLE_NAMES_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 ENABLE_CORS = False
 CORS_OPTIONS = {}
 
+# CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv method
+# note: index option should not be overridden
+CSV_EXPORT = {
+    'encoding': 'utf-8',
+}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment

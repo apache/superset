@@ -13,6 +13,7 @@ import random
 import unittest
 
 from flask import escape
+import sqlalchemy as sqla
 
 from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.models import core as models
@@ -295,6 +296,19 @@ class CoreTests(SupersetTestCase):
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
         assert response.headers['Content-Type'] == 'application/json'
+
+    def test_custom_password_store(self):
+        database = self.get_main_database(db.session)
+        conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+
+        def custom_password_store(uri):
+            return "password_store_test"
+
+        database.custom_password_store = custom_password_store
+        conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+        if conn_pre.password:
+            assert conn.password == "password_store_test"
+            assert conn.password != conn_pre.password
 
     def test_databaseview_edit(self, username='admin'):
         # validate that sending a password-masked uri does not over-write the decrypted uri

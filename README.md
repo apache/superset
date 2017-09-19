@@ -182,6 +182,7 @@ the world know they are using Superset. Join our growing community!
  - [Konfío](http://konfio.mx)
  - [Maieutical Labs](https://cloudschooling.it)
  - [Qunar](https://www.qunar.com/)
+ - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
  - [Tails.com](https://tails.com)
  - [Tobii](http://www.tobii.com/)

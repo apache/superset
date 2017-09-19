@@ -20,7 +20,7 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
             <span>{slice.slice_name}</span>
           </div>
           <div className="col-md-12 chart-controls">
-            <div className="pull-right">
+            <div id={'controls_' + slice.slice_id} className="pull-right">
               <a title={t('Move chart')} data-toggle="tooltip">
                 <i className="fa fa-arrows drag" />
               </a>
@@ -43,10 +43,20 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
               >
                 <i className="fa fa-pencil" />
               </a>
-              <a href={getExploreUrl(slice.form_data, 'csv')} title={t('Export CSV')} data-toggle="tooltip">
+              <a
+                className="exportCSV"
+                href={getExploreUrl(slice.form_data, 'csv')}
+                title={t('Export CSV')}
+                data-toggle="tooltip"
+              >
                 <i className="fa fa-table" />
               </a>
-              <a href={getExploreUrl(slice.form_data)} title={t('Explore chart')} data-toggle="tooltip">
+              <a
+                className="exploreChart"
+                href={getExploreUrl(slice.form_data)}
+                title={t('Explore chart')}
+                data-toggle="tooltip"
+              >
                 <i className="fa fa-share" />
               </a>
               <a
