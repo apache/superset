@@ -151,7 +151,7 @@ class PandasDatasource(Model, BaseDatasource):
 
     __tablename__ = 'pandasdatasources'
     type = 'pandas'
-    baselink = None  # url portion pointing to ModelView endpoint
+    baselink = 'pandasdatasourcemodelview'  # url portion pointing to ModelView endpoint
     column_class = PandasColumn
     metric_class = PandasMetric
 
