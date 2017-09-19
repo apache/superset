@@ -37,10 +37,10 @@ const timeColumnOption = {
     'account'),
 };
 const sortAxisChoices = [
-  ['alpha_asc', 'Alphabetical ascending'],
-  ['alpha_desc', 'Alphabetical descending'],
-  ['value_asc', 'Value ascending'],
-  ['value_desc', 'Value descending'],
+  ['alpha_asc', 'Axis ascending'],
+  ['alpha_desc', 'Axis descending'],
+  ['value_asc', 'sum(value) ascending'],
+  ['value_desc', 'sum(value) descending'],
 ];
 
 const groupByControl = {

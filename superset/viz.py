@@ -1484,9 +1484,9 @@ class HeatmapViz(BaseViz):
         max_ = df.v.max()
         min_ = df.v.min()
         bounds = fd.get('y_axis_bounds')
-        if bounds and bounds[0]:
+        if bounds and bounds[0] is not None:
             min_ = bounds[0]
-        if bounds and bounds[1]:
+        if bounds and bounds[1] is not None:
             max_ = bounds[1]
         if norm == 'heatmap':
             overall = True
