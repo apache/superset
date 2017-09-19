@@ -211,7 +211,14 @@ export function dashboardContainer(dashboard, datasources, userid) {
           this.filters[sliceId] = {};
         }
         if (!(col in this.filters[sliceId]) || !merge) {
-          this.filters[sliceId][col] = vals;
+          if (vals.length == 0) {
+            delete this.filters[sliceId][col];
+            if (Object.keys(this.filters[sliceId]).length === 0 && this.filters[sliceId].constructor === Object) {
+              this.clearFilters(sliceId);
+            }
+          } else {
+            this.filters[sliceId][col] = vals;
+          }
 
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return
