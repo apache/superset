@@ -668,7 +668,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def patch(cls):
         from pyhive import hive
         from superset.db_engines import hive as patched_hive
-        from pythrifthiveapi.TCLIService import (
+        from TCLIService import (
             constants as patched_constants,
             ttypes as patched_ttypes,
             TCLIService as patched_TCLIService)
