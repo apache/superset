@@ -376,6 +376,30 @@ class CsvToDatabaseView(SimpleFormView):
         print(dir(database))
         database.db_engine_spec.upload_csv(form)
 
+        if(isinstance(database, HiveEngineSpec)):
+            
+            sql = "CREATE EXTERNAL TABLE" , table_name, " ( ", schema_definition, " ) ", \
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION ", s3_location
+            try:
+                engine = create_engine("hive://hive-server2-silver.synapse:3623/default?auth=NOSASL")
+                engine.exectute_statement(sql)
+            except Exception:
+                print("AN EXCEPTION WAS THROWN!")
+        else:
+            table = SqlaTable(table_name=name)
+            database = (
+                        db.session
+                        .query(models.Database)
+                        .filter_by(sqlalchemy_uri=con)
+                        .first()
+            )
+            table.database_id = database.id
+            table.user_id = g.user.id
+            table.database = database
+            table.schema = schema
+            db.session.add(table)
+            db.session.commit()
+
 
         # Go back to welcome page / splash screen
         message = _('CSV file "{0}" uploaded to table "{1}" in '

@@ -32,8 +32,11 @@ from flask_babel import lazy_gettext as _
 
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from superset import conf, cache_util, utils
+from superset import conf, cache_util, utils, app 
 
+import os
+
+config = app.config
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 
 Grain = namedtuple('Grain', 'name label function')
@@ -50,7 +53,7 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    cursor_execute_kwargs = {}
+    cursor_execute_kwargs = {}  
     time_grains = tuple()
     time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
@@ -75,10 +78,113 @@ class BaseEngineSpec(object):
         """Returns engine-specific table metadata"""
         return {}
 
-    def upload_csv(self, form):
-        #first go from CSV to df and then from df to hive?
+    @classmethod
+    def csv_to_df(cls, names, filepath_or_buffer, sep, header, index_col, squeeze,
+                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
+                  skip_blank_lines, parse_dates, infer_datetime_format,
+                  dayfirst, thousands, decimal, quotechar, escapechar, comment,
+                  error_bad_lines, chunksize):
+        # Use Pandas to parse csv file to a dataframe
+        upload_path = config['UPLOAD_FOLDER'] + filepath_or_buffer
+        # Expose this to api so can specify each field
+        chunks = pandas.read_csv(filepath_or_buffer=upload_path,
+                                 sep=sep,
+                                 header=header,
+                                 names=names,
+                                 index_col=index_col,
+                                 squeeze=squeeze,
+                                 prefix=prefix,
+                                 mangle_dupe_cols=mangle_dupe_cols,
+                                 skipinitialspace=skipinitialspace,
+                                 skiprows=skiprows,
+                                 nrows=nrows,
+                                 skip_blank_lines=skip_blank_lines,
+                                 parse_dates=parse_dates,
+                                 infer_datetime_format=infer_datetime_format,
+                                 dayfirst=dayfirst,
+                                 thousands=thousands,
+                                 decimal=decimal,
+                                 quotechar=quotechar,
+                                 escapechar=escapechar,
+                                 comment=comment,
+                                 encoding='utf-8',
+                                 error_bad_lines=error_bad_lines,
+                                 chunksize=chunksize,
+                                 iterator=True)
+        df = pandas.DataFrame()
+        df = pandas.concat(chunk for chunk in chunks)
+        return df
+
+    @staticmethod
+    def df_to_db(df, name, con, schema, if_exists, index,
+                 index_label, chunksize):
+
+        engine = create_engine(con, echo=False)
+
+        # Use Pandas to parse dataframe to database
+        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
+                  index=index, index_label=index_label, chunksize=chunksize)
+
+
+        table = SqlaTable(table_name=name)
+        database = (
+                    db.session
+                    .query(models.Database)
+                    .filter_by(sqlalchemy_uri=con)
+                    .first()
+        )
+        table.database_id = database.id
+        table.user_id = g.user.id
+        table.database = database
+        table.schema = schema
+        db.session.add(table)
+        db.session.commit()
+        # Should I set this to g.user? The other tables don't have an owner.
+        # table.owner = g.user.id
+        # Do I need to set table.sql? None of the default tables have it set.
+        # table.sql =
+
+    @staticmethod
+    def upload_csv(form):
+        # first go from CSV to df and then from df to hive?
         # Use Pandas to convert superset dataframe to database
-        self.df_to_db(df=df,
+        def allowed_file(filename):
+            # Only allow specific file extensions as specified in the config
+            return '.' in filename and \
+                   filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
+
+        def upload_file(csv_file):
+            if csv_file and csv_file.filename:
+                filename = secure_filename(csv_file.filename)
+                csv_file.save(os.path.join(config['UPLOAD_FOLDER'],
+                                                 filename))
+                return filename
+
+        filename = upload_file(form.csv_file.data)
+        BaseEngineSpec.csv_to_df(names=form.names.data,
+                            filepath_or_buffer=filename,
+                            sep=form.sep.data,
+                            header=form.header.data,
+                            index_col=form.index_col.data,
+                            squeeze=form.squeeze.data,
+                            prefix=form.prefix.data,
+                            mangle_dupe_cols=form.mangle_dupe_cols.data,
+                            skipinitialspace=form.skipinitialspace.data,
+                            skiprows=form.skiprows.data,
+                            nrows=form.nrows.data,
+                            skip_blank_lines=form.skip_blank_lines.data,
+                            parse_dates=form.parse_dates.data,
+                            infer_datetime_format=datetime_flag,
+                            dayfirst=form.dayfirst.data,
+                            thousands=form.thousands.data,
+                            decimal=form.decimal.data,
+                            quotechar=form.quotechar.data,
+                            escapechar=form.escapechar.data,
+                            comment=form.comment.data,
+                            error_bad_lines=form.error_bad_lines.data,
+                            chunksize=10000)
+
+        BaseEngineSpec.df_to_db(df=df,
                       name=form.name.data,
                       con=form.con.data,
                       schema=form.schema.data,
@@ -196,72 +302,6 @@ class BaseEngineSpec(object):
         if indent:
             sql = sqlparse.format(sql, reindent=True)
         return sql
-
-    @classmethod
-    def csv_to_df(names, filepath_or_buffer, sep, header, index_col, squeeze,
-                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
-                  skip_blank_lines, parse_dates, infer_datetime_format,
-                  dayfirst, thousands, decimal, quotechar, escapechar, comment,
-                  error_bad_lines, chunksize):
-        # Use Pandas to parse csv file to a dataframe
-        upload_path = config['UPLOAD_FOLDER'] + filepath_or_buffer
-        # Expose this to api so can specify each field
-        chunks = pandas.read_csv(filepath_or_buffer=upload_path,
-                                 sep=sep,
-                                 header=header,
-                                 names=names,
-                                 index_col=index_col,
-                                 squeeze=squeeze,
-                                 prefix=prefix,
-                                 mangle_dupe_cols=mangle_dupe_cols,
-                                 skipinitialspace=skipinitialspace,
-                                 skiprows=skiprows,
-                                 nrows=nrows,
-                                 skip_blank_lines=skip_blank_lines,
-                                 parse_dates=parse_dates,
-                                 infer_datetime_format=infer_datetime_format,
-                                 dayfirst=dayfirst,
-                                 thousands=thousands,
-                                 decimal=decimal,
-                                 quotechar=quotechar,
-                                 escapechar=escapechar,
-                                 comment=comment,
-                                 encoding='utf-8',
-                                 error_bad_lines=error_bad_lines,
-                                 chunksize=chunksize,
-                                 iterator=True)
-        df = pandas.DataFrame()
-        df = pandas.concat(chunk for chunk in chunks)
-        return df
-
-    @classmethod
-    def df_to_db(df, name, con, schema, if_exists, index,
-                 index_label, chunksize):
-
-        engine = create_engine(con, echo=False)
-
-        # Use Pandas to parse dataframe to database
-        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
-                  index=index, index_label=index_label, chunksize=chunksize)
-
-
-        table = SqlaTable(table_name=name)
-        database = (
-                    db.session
-                    .query(models.Database)
-                    .filter_by(sqlalchemy_uri=con)
-                    .first()
-        )
-        table.database_id = database.id
-        table.user_id = g.user.id
-        table.database = database
-        table.schema = schema
-        db.session.add(table)
-        db.session.commit()
-        # Should I set this to g.user? The other tables don't have an owner.
-        # table.owner = g.user.id
-        # Do I need to set table.sql? None of the default tables have it set.
-        # table.sql =
 
 
 class PostgresEngineSpec(BaseEngineSpec):
@@ -765,12 +805,14 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
 
-    def upload_csv(self, uri, table_name, filepath):
+    @staticmethod
+    def upload_csv(form):
         def get_column_names(filepath):
             import csv
             with open(filepath, "rb") as f:
                 return csv.reader(f).next()
 
+        uri, table_name, filepath
         #from superset import csv_upload_backend
         #csv_upload_backend.set() 
         #TODO(timifasubaa): replace the current approach with the results backend approach above.
@@ -785,14 +827,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         import boto3
         s3 = boto3.client('airpal')
         s3.upload_file("superset/tablename/"+source_filename, 'airpal', dest_filename)
-
-        sql = "CREATE EXTERNAL TABLE" , table_name, " ( ", schema_definition, " ) ", \
-            "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION ", s3_location
-        try:
-            engine = create_engine("hive://hive-server2-silver.synapse:3623/default?auth=NOSASL")
-            engine.exectute_statement(sql)
-        except Exception:
-            print("AN EXCEPTION WAS THROWN!")
+        return True
+        #return whether or not the upload was successful
+        
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
