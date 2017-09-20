@@ -173,7 +173,7 @@ Check the [OS dependencies](https://superset.incubator.apache.org/installation.h
     source env/bin/activate
 
     # install for development
-    python setup.py develop
+    pip install -e .
 
     # Create an admin user
     fabmanager create-admin --app superset
