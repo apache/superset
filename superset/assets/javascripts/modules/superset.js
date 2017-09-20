@@ -200,7 +200,7 @@ const px = function (state) {
           }, 500);
         });
       },
-      render(force, delay = 0) {
+      render(force) {
         if (force === undefined) {
           this.force = false;
         } else {
@@ -215,23 +215,21 @@ const px = function (state) {
         container.fadeTo(0.5, 0.25);
         sliceCell.addClass('slice-cell-highlight');
         container.css('height', this.height());
-        setTimeout(() => {
-          $.ajax({
-            url: this.jsonEndpoint(formDataExtra),
-            timeout: timeout * 1000,
-            success: (queryResponse) => {
-              try {
-                vizMap[formData.viz_type](this, queryResponse);
-                this.done(queryResponse);
-              } catch (e) {
-                this.error('An error occurred while rendering the visualization: ' + e);
-              }
-            },
-            error: (err) => {
-              this.error(err.responseText, err);
-            },
-          });
-        }, delay);
+        $.ajax({
+          url: this.jsonEndpoint(formDataExtra),
+          timeout: timeout * 1000,
+          success: (queryResponse) => {
+            try {
+              vizMap[formData.viz_type](this, queryResponse);
+              this.done(queryResponse);
+            } catch (e) {
+              this.error('An error occurred while rendering the visualization: ' + e);
+            }
+          },
+          error: (err) => {
+            this.error(err.responseText, err);
+          },
+        });
       },
       resize() {
         this.render();

@@ -126,7 +126,8 @@ export function dashboardContainer(dashboard, datasources, userid) {
         }
       });
       this.loadPreSelectFilters();
-      this.startPeriodicRender(0);
+      this.renderSlices(this.sliceObjects);
+      this.firstLoad = false;
       this.bindResizeToWindowResize();
     },
     onChange() {
@@ -255,22 +256,20 @@ export function dashboardContainer(dashboard, datasources, userid) {
         this.refreshTimer = null;
       }
     },
-    renderSlices(slices, interval = 0) {
+    renderSlices(slices, force = false, interval = 0) {
+      if (!interval) {
+        slices.forEach(slice => slice.render(force));
+        return;
+      }
       const meta = this.metadata;
-      const refreshTime = Math.max(interval, meta.stagger_time || 5000);
-      // Delay is zero if not staggerring slice refresh
+      const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
       if (typeof meta.stagger_refresh !== 'boolean') {
         meta.stagger_refresh = meta.stagger_refresh === undefined ?
           true : meta.stagger_refresh === 'true';
       }
       const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
       slices.forEach((slice, i) => {
-        // Caller may pass array of slices or { slice, force }
-        if (slice.slice) {
-          slice.slice.render(slice.force, delay * i);
-        } else {
-          slice.render(false, delay * i);
-        }
+        setTimeout(() => slice.render(force), delay * i);
       });
     },
     startPeriodicRender(interval) {
@@ -279,10 +278,8 @@ export function dashboardContainer(dashboard, datasources, userid) {
       const immune = this.metadata.timed_refresh_immune_slices || [];
       const refreshAll = () => {
         const slices = dash.sliceObjects
-          .filter(slice => immune.indexOf(slice.data.slice_id) === -1 || dash.firstLoad)
-          .map(slice => ({ slice, force: !dash.firstLoad }));
-        dash.firstLoad = false;
-        dash.renderSlices(slices, interval * 0.2);
+          .filter(slice => immune.indexOf(slice.data.slice_id) === -1);
+        dash.renderSlices(slices, true, interval * 0.2);
       };
       const fetchAndRender = function () {
         refreshAll();

@@ -34,8 +34,8 @@ class Controls extends React.PureComponent {
     });
   }
   refresh() {
-    const slices = this.props.dashboard.sliceObjects.map(slice => ({ slice, force: true }));
-    this.props.dashboard.renderSlices(slices);
+    // Force refresh all slices
+    this.props.dashboard.renderSlices(this.props.dashboard.sliceObjects, true);
   }
   changeCss(css) {
     this.setState({ css });

@@ -128,8 +128,11 @@ be applied, it's as simple as that.
 
 How to limit the timed refresh on a dashboard?
 ----------------------------------------------
-By default, the dashboard timed refresh feature allows you to automatically requery every slice on a dashboard according to a set schedule. Sometimes, however, you won't want all of the slices to be refreshed - especially if some data is slow moving, or run heavy queries.
-To exclude specific slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard ``JSON Metadata`` field:
+By default, the dashboard timed refresh feature allows you to automatically re-query every slice
+on a dashboard according to a set schedule. Sometimes, however, you won't want all of the slices
+to be refreshed - especially if some data is slow moving, or run heavy queries. To exclude specific
+slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard
+``JSON Metadata`` field:
 
 ..code::
 
@@ -140,26 +143,22 @@ To exclude specific slices from the timed refresh process, add the ``timed_refre
         "timed_refresh_immune_slices": [324]
     }
 
-In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will be automatically requeried on schedule.
+In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will
+be automatically re-queried on schedule.
 
-
-How to speed up/slow down dashboard loading?
---------------------------------------------
-Dashboards stagger slice rendering by default over a period of 5 seconds. This reduces loads on
-some databases but slows down loading time. You can disable render staggering by setting the key
-``stagger_refresh`` in the ``JSON Metadata`` to ``false`` or alter the stagger period by setting
-``stagger_time`` to a value in milliseconds:
+Slice refresh will also be staggered over the specified period. You can turn off this staggering
+by setting the ``stagger_refresh`` to ``false`` and modify the stagger period by setting
+``stagger_time`` to a value in milliseconds in the ``JSON Metadata`` field:
 
 ..code::
 
     {
-       "stagger_refresh": false,
-       "stagger_time": 2000
+        "stagger_refresh": false,
+        "stagger_time": 2500
     }
 
-Here, whenever the dashboard refreshes slices, all requests will be issued simultaneously. The
-stagger time of 2 seconds is ignored.
-
+Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of
+2.5 seconds is ignored.
 
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
 -----------------------------------------------------------------------------------------
