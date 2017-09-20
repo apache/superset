@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import { TIME_CHOICES } from './constants';
+import DateFilterControl from '../javascripts/explore/components/controls/DateFilterControl';
 import './filter_box.css';
 
 const propTypes = {
@@ -17,7 +17,6 @@ const propTypes = {
   showDateFilter: PropTypes.bool,
   datasource: PropTypes.object.isRequired,
 };
-
 const defaultProps = {
   origSelectedValues: {},
   onChange: () => {},
@@ -31,6 +30,8 @@ class FilterBox extends React.Component {
     this.state = {
       selectedValues: props.origSelectedValues,
       hasChanged: false,
+      timeColumnOptions: props.datasource.granularity_sqla,
+      timeGrainOptions: props.datasource.time_grain_sqla,
     };
   }
   clickApply() {
@@ -42,8 +43,10 @@ class FilterBox extends React.Component {
     if (options) {
       if (Array.isArray(options)) {
         vals = options.map(opt => opt.value);
-      } else {
+      } else if (options.value) {
         vals = options.value;
+      } else {
+        vals = options;
       }
     }
     const selectedValues = Object.assign({}, this.state.selectedValues);
@@ -51,28 +54,77 @@ class FilterBox extends React.Component {
     this.setState({ selectedValues, hasChanged: true });
     this.props.onChange(filter, vals, false, this.props.instantFiltering);
   }
+  newColumnOption(option) {
+    const newColumnOptions = this.state.timeColumnOptions.slice();
+    newColumnOptions.push(option.value);
+    this.setState({ timeColumnOptions: newColumnOptions });
+  }
+  newGrainOption(option) {
+    const newGrainOptions = this.state.timeGrainOptions.slice();
+    newGrainOptions.push(option.value);
+    this.setState({ timeGrainOptions: newGrainOptions });
+  }
   render() {
     let dateFilter;
+    let timeColumnFilter;
+    let timeGrainFilter;
+    const since = '__from';
+    const until = '__to';
+    const timeCol = '__time_col';
+    const timeGrain = '__time_grain';
     if (this.props.showDateFilter) {
-      dateFilter = ['__from', '__to'].map((field) => {
-        const val = this.state.selectedValues[field];
-        const choices = TIME_CHOICES.slice();
-        if (!choices.includes(val)) {
-          choices.push(val);
-        }
-        const options = choices.map(s => ({ value: s, label: s }));
-        return (
-          <div className="m-b-5" key={field}>
-            {field.replace('__', '')}
-            <Select.Creatable
-              placeholder="Select"
-              options={options}
-              value={this.state.selectedValues[field]}
-              onChange={this.changeFilter.bind(this, field)}
+      dateFilter = (
+        <div className="row space-1">
+          <div className="col-lg-6 col-xs-12">
+            <DateFilterControl
+              name={since}
+              label="Since"
+              description="Select starting date"
+              onChange={this.changeFilter.bind(this, since)}
+              value={this.state.selectedValues[since]}
             />
           </div>
-        );
-      });
+          <div className="col-lg-6 col-xs-12">
+            <DateFilterControl
+              name={until}
+              label="Until"
+              description="Select end date"
+              onChange={this.changeFilter.bind(this, until)}
+              value={this.state.selectedValues[until]}
+            />
+          </div>
+        </div>
+      );
+      timeColumnFilter = (
+        <div className="m-b-5">
+          Time Column
+          <Select.Creatable
+            placeholder={`Select (${this.state.timeColumnOptions.length})`}
+            key={timeCol}
+            options={this.state.timeColumnOptions.map(option =>
+              ({ value: option[0], label: option[0] }),
+            )}
+            onChange={this.changeFilter.bind(this, timeCol)}
+            value={this.state.selectedValues[timeCol]}
+            onNewOptionClick={this.newColumnOption.bind(this)}
+          />
+        </div>
+      );
+      timeGrainFilter = (
+        <div className="m-b-5">
+          Time Grain
+          <Select.Creatable
+            placeholder={`Select (${this.state.timeGrainOptions.length})`}
+            key={timeGrain}
+            options={this.state.timeGrainOptions.map(option =>
+              ({ value: option[0], label: option[0] }),
+            )}
+            onChange={this.changeFilter.bind(this, timeGrain)}
+            value={this.state.selectedValues[timeGrain]}
+            onNewOptionClick={this.newGrainOption.bind(this)}
+          />
+        </div>
+      );
     }
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
@@ -126,6 +178,8 @@ class FilterBox extends React.Component {
     return (
       <div>
         {dateFilter}
+        {timeColumnFilter}
+        {timeGrainFilter}
         {filters}
         {!this.props.instantFiltering &&
           <Button

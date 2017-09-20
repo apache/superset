@@ -1,12 +1,18 @@
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from superset.utils import (
-    json_int_dttm_ser, json_iso_dttm_ser, base_json_conv, parse_human_timedelta, zlib_compress, zlib_decompress_to_string
+    json_int_dttm_ser,
+    json_iso_dttm_ser,
+    base_json_conv,
+    parse_human_timedelta,
+    zlib_compress,
+    zlib_decompress_to_string,
+    merge_extra_filters,
 )
 import unittest
 import uuid
 
-from mock import Mock, patch
+from mock import patch
 import numpy
 
 
@@ -52,3 +58,53 @@ class UtilsTestCase(unittest.TestCase):
         got_str = zlib_decompress_to_string(blob)
         self.assertEquals(json_str, got_str)
 
+    def test_merge_extra_filters(self):
+        # does nothing if no extra filters
+        form_data = {'A': 1, 'B': 2, 'c': 'test'}
+        expected = {'A': 1, 'B': 2, 'c': 'test'}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # does nothing if empty extra_filters
+        form_data = {'A': 1, 'B': 2, 'c': 'test', 'extra_filters': []}
+        expected = {'A': 1, 'B': 2, 'c': 'test', 'extra_filters': []}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # copy over extra filters into empty filters
+        form_data = {'extra_filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+        ]}
+        expected = {'filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # adds extra filters to existing filters
+        form_data = {'extra_filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+        ], 'filters': [{'col': 'D', 'op': '!=', 'val': ['G1', 'g2']}]}
+        expected = {'filters': [
+            {'col': 'D', 'op': '!=', 'val': ['G1', 'g2']},
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # adds extra filters to existing filters and sets time options
+        form_data = {'extra_filters': [
+            {'col': '__from', 'op': 'in', 'val': '1 year ago'},
+            {'col': '__to', 'op': 'in', 'val': None},
+            {'col': '__time_col', 'op': 'in', 'val': 'birth_year'},
+            {'col': '__time_grain', 'op': 'in', 'val': 'years'},
+            {'col': 'A', 'op': 'like', 'val': 'hello'}
+        ]}
+        expected = {
+            'filters': [{'col': 'A', 'op': 'like', 'val': 'hello'}],
+            'since': '1 year ago',
+            'granularity_sqla': 'birth_year',
+            'time_grain_sqla': 'years',
+        }
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)

@@ -870,11 +870,6 @@ export const visTypes = {
         controlSetRows: [
           ['groupby'],
           ['metric'],
-        ],
-      },
-      {
-        label: 'Options',
-        controlSetRows: [
           ['date_filter', 'instant_filtering'],
         ],
       },

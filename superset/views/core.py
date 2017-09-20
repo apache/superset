@@ -35,7 +35,7 @@ from superset import (
     sm, sql_lab, results_backend, security,
 )
 from superset.legacy import cast_form_data
-from superset.utils import has_access, QueryStatus
+from superset.utils import has_access, QueryStatus, merge_extra_filters
 from superset.connectors.connector_registry import ConnectorRegistry
 import superset.models.core as models
 from superset.models.sql_lab import Query
@@ -1078,6 +1078,10 @@ class Superset(BaseSupersetView):
                 datasource_type)
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
+
+        # On explore, merge extra filters into the form data
+        merge_extra_filters(form_data)
+
         standalone = request.args.get("standalone") == "true"
         bootstrap_data = {
             "can_add": slice_add_perm,
