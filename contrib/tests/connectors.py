@@ -60,6 +60,9 @@ class BaseConnectorTestCase(SupersetTestCase):
         | Region 1 | District A | Project A | 2001-03-31 11:00:00 | 85     |
         | Region 1 | District B | Project B | 2001-03-31 12:00:00 |  5     |
         | Region 2 | District C | Project C | 2001-03-31 14:00:00 | 35     |
+        | Region 1 | District A | Project A | 2001-04-30 10:00:00 | 15     |
+        | Region 1 | District A | Project A | 2001-04-30 12:00:00 | 15     |
+        | Region 2 | District C | Project C | 2001-04-30 13:00:00 | 15     |
         """
 
     def assertFrameEqual(self, frame1, frame2, msg=None):
@@ -600,6 +603,34 @@ class BaseConnectorTestCase(SupersetTestCase):
         expected_df = expected_df.sort_values(['sum__value'], ascending=False)
         self.assertEqual(result.df, expected_df)
 
+    def test_groupby_ascending_order(self):
+        parameters = {
+            'groupby': ['project', 'region'],
+            'metrics': ['sum__value', 'avg__value'],
+            'granularity': 'received',
+            'from_dttm': datetime.datetime(2001, 1, 1),
+            'to_dttm': datetime.datetime(2001, 12, 31),
+            'filter': [],
+            'is_timeseries': False,
+            'timeseries_limit': 0,
+            'timeseries_limit_metric': None,
+            'row_limit': 5000,
+            'extras': {
+                'time_grain_sqla': None,
+            },
+            'order_desc': False,
+        }
+        result = self.datasource.query(parameters)
+        self.assertIsInstance(result, QueryResult)
+        self.assertEqual(result.error_message, None)
+        self.assertEqual(result.status, QueryStatus.SUCCESS)
+        expected_df = (self.df.groupby(parameters['groupby'])
+                           .aggregate({'value': ['sum', 'mean']})
+                           .reset_index())
+        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df = expected_df.sort_values(['sum__value'], ascending=True)
+        self.assertEqual(result.df, expected_df)
+
     def test_timeseries_single_metric(self):
         parameters = {
             'groupby': [],
@@ -617,6 +648,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 # See https://github.com/apache/incubator-superset/issues/617
                 'time_grain_sqla': 'day',
             },
+            'order_desc': True,
         }
         result = self.datasource.query(parameters)
         self.assertIsInstance(result, QueryResult)
@@ -632,7 +664,8 @@ class BaseConnectorTestCase(SupersetTestCase):
                                ['__timestamp'] +
                                parameters['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
-        expected_df = (expected_df.sort_values(['__timestamp'], ascending=True)
+        expected_df = (expected_df.sort_values(parameters['metrics'][0],
+                                               ascending=(not parameters['order_desc']))
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
@@ -653,6 +686,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 # See https://github.com/apache/incubator-superset/issues/617
                 'time_grain_sqla': 'day',
             },
+            'order_desc': True,
         }
         result = self.datasource.query(parameters)
         self.assertIsInstance(result, QueryResult)
@@ -668,9 +702,9 @@ class BaseConnectorTestCase(SupersetTestCase):
                                ['__timestamp'] +
                                parameters['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
-        expected_df = (expected_df.sort_values(['__timestamp'], ascending=True)
-                                  .reset_index(drop=True))
-        self.assertEqual(result.df.reset_index(drop=True), expected_df)
+        expected_df = (expected_df.sort_values(parameters['metrics'][0],
+                                               ascending=(not parameters['order_desc'])))
+        self.assertEqual(result.df, expected_df)
 
     def test_timeseries_groupby(self):
         parameters = {
@@ -725,6 +759,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 # See https://github.com/apache/incubator-superset/issues/617
                 'time_grain_sqla': 'day',
             },
+            'order_desc': True,
         }
         result = self.datasource.query(parameters)
         self.assertIsInstance(result, QueryResult)
@@ -733,7 +768,7 @@ class BaseConnectorTestCase(SupersetTestCase):
         time_grain = PandasDatasource.GRAINS[parameters['extras']['time_grain_sqla']]
         limit_df = (self.df.groupby(parameters['groupby'])
                            .aggregate({'value': 'mean'})
-                           .sort_values('value', ascending=False)
+                           .sort_values('value', ascending=(not parameters['order_desc']))
                            .iloc[:parameters['timeseries_limit']])
         source_df = self.df.set_index(parameters['groupby'])
         expected_df = (source_df[source_df.index.isin(limit_df.index)]
@@ -745,7 +780,51 @@ class BaseConnectorTestCase(SupersetTestCase):
                                ['__timestamp'] +
                                parameters['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
-        expected_df = (expected_df.sort_values(['sum__value'], ascending=False)
+        expected_df = (expected_df.sort_values(['sum__value'],
+                                               ascending=(not parameters['order_desc']))
+                                  .reset_index(drop=True))
+        self.assertEqual(result.df, expected_df)
+
+    def test_timeseries_limit_ascending_order(self):
+        parameters = {
+            'groupby': ['project', 'district'],
+            'metrics': ['sum__value'],
+            'granularity': 'received',
+            'from_dttm': datetime.datetime(2001, 1, 1),
+            'to_dttm': datetime.datetime(2001, 12, 31),
+            'filter': [],
+            'is_timeseries': True,
+            'timeseries_limit': 2,
+            'timeseries_limit_metric': 'avg__value',
+            'row_limit': 5000,
+            'extras': {
+                # Note that week and month don't work on SQLite
+                # See https://github.com/apache/incubator-superset/issues/617
+                'time_grain_sqla': 'day',
+            },
+            'order_desc': False,
+        }
+        result = self.datasource.query(parameters)
+        self.assertIsInstance(result, QueryResult)
+        self.assertEqual(result.error_message, None)
+        self.assertEqual(result.status, QueryStatus.SUCCESS)
+        time_grain = PandasDatasource.GRAINS[parameters['extras']['time_grain_sqla']]
+        limit_df = (self.df.groupby(parameters['groupby'])
+                           .aggregate({'value': 'mean'})
+                           .sort_values('value', ascending=(not parameters['order_desc']))
+                           .iloc[:parameters['timeseries_limit']])
+        source_df = self.df.set_index(parameters['groupby'])
+        expected_df = (source_df[source_df.index.isin(limit_df.index)]
+                       .groupby(parameters['groupby'] + [pd.Grouper(key=parameters['granularity'],
+                                freq=time_grain)])
+                       .aggregate({'value': ['sum']})
+                       .reset_index())
+        expected_df.columns = (parameters['groupby'] +
+                               ['__timestamp'] +
+                               parameters['metrics'])
+        expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
+        expected_df = (expected_df.sort_values(['sum__value'],
+                                               ascending=(not parameters['order_desc']))
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 

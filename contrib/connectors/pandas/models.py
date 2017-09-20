@@ -352,13 +352,15 @@ class PandasDatasource(Model, BaseDatasource):
             orderby=None,
             extras=None,
             columns=None,
-            form_data=None):
+            form_data=None,
+            order_desc=True):
         """Querying any dataframe table from this common interface"""
         if orderby:
             orderby, ascending = map(list, zip(*orderby))
         else:
             orderby = []
             ascending = []
+        metric_order_asc = not order_desc
         filter = filter or []
         query_str = 'df'
 
@@ -415,19 +417,21 @@ class PandasDatasource(Model, BaseDatasource):
                     df = (df[df.set_index(groupby).index.isin(
                               df.groupby(groupby)
                                 .aggregate(aggregates)
-                                .sort_values(metric.source, ascending=False)
+                                .sort_values(metric.source, ascending=metric_order_asc)
                                 .iloc[:timeseries_limit].index)])
 
                     query_str += ('[df.set_index({groupby}).index.isin('
                                   'df.groupby({groupby})'
                                   '.aggregate({aggregates})'
-                                  ".sort_values('{metric.source}', ascending=False)"
+                                  ".sort_values('{metric.source}', "
+                                  'ascending={metric_order_asc})'
                                   '.iloc[:{timeseries_limit}].index)]').format(
                         groupby=groupby,
                         timeseries_limit_metric=timeseries_limit_metric,
                         timeseries_limit=timeseries_limit,
                         aggregates=aggregates,
-                        metric=metric)
+                        metric=metric,
+                        metric_order_asc=metric_order_asc)
 
         # Additional filtering of rows prior to aggregation
         if filter:
@@ -502,10 +506,9 @@ class PandasDatasource(Model, BaseDatasource):
                     filter_str=filter_str)
 
             # Order by the first metric descending by default,
-            # or within the existing orderby, if we have a groupby
-            if groupby:
-                orderby.append((metrics + filtered_metrics)[0])
-                ascending.append(False)
+            # or within the existing orderby
+            orderby.append((metrics + filtered_metrics)[0])
+            ascending.append(metric_order_asc)
 
             # Use the groupby and __timestamp by as a tie breaker
             orderby = orderby + groupby + timestamp_cols
@@ -529,7 +532,7 @@ class PandasDatasource(Model, BaseDatasource):
             # order by the size descending by default, or within the
             # existing orderby
             orderby.append(0)
-            ascending.append(False)
+            ascending.append(not order_desc)
             # Use the group by as a tie breaker
             orderby = orderby + groupby
             ascending = ascending + ([True] * len(groupby))
