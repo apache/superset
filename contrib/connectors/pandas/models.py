@@ -31,11 +31,8 @@ from superset.utils import QueryStatus
 
 class PandasDatabase(object):
     """Non-ORM object for a Pandas Source"""
-    database_name = ''
 
-    cache_timeout = None
-
-    def __init__(self, database_name, cache_timeout):
+    def __init__(self, database_name, cache_timeout=None):
         self.database_name = database_name
         self.cache_timeout = cache_timeout
 
@@ -49,14 +46,14 @@ class PandasColumn(Model, BaseColumn):
 
     Each Pandas Datasource can have multiple columns"""
 
-    __tablename__ = 'pandascolumns'
+    __tablename__ = 'pandas_columns'
 
     id = Column(Integer, primary_key=True)
-    pandasdatasource_id = Column(Integer, ForeignKey('pandasdatasources.id'))
+    pandas_datasource_id = Column(Integer, ForeignKey('pandas_datasources.id'))
     datasource = relationship(
         'PandasDatasource',
         backref=backref('columns', cascade='all, delete-orphan'),
-        foreign_keys=[pandasdatasource_id])
+        foreign_keys=[pandas_datasource_id])
 
     @property
     def is_num(self):
@@ -100,14 +97,14 @@ class PandasMetric(Model, BaseMetric):
     Each Pandas Datasource can have multiple metrics
     """
 
-    __tablename__ = 'pandasmetrics'
+    __tablename__ = 'pandas_metrics'
 
     id = Column(Integer, primary_key=True)
-    pandasdatasource_id = Column(Integer, ForeignKey('pandasdatasources.id'))
+    pandas_datasource_id = Column(Integer, ForeignKey('pandas_datasources.id'))
     datasource = relationship(
         'PandasDatasource',
         backref=backref('metrics', cascade='all, delete-orphan'),
-        foreign_keys=[pandasdatasource_id])
+        foreign_keys=[pandas_datasource_id])
     source = Column(Text)
     expression = Column(Text)
 
@@ -149,7 +146,7 @@ class PandasDatasource(Model, BaseDatasource):
         ('year', 'A'),
     ])
 
-    __tablename__ = 'pandasdatasources'
+    __tablename__ = 'pandas_datasources'
     type = 'pandas'
     baselink = 'pandasdatasourcemodelview'  # url portion pointing to ModelView endpoint
     column_class = PandasColumn
@@ -163,7 +160,7 @@ class PandasDatasource(Model, BaseDatasource):
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
         sm.user_model,
-        backref='pandasdatasources',
+        backref='pandas_datasources',
         foreign_keys=[user_id])
 
     fetch_values_predicate = Column(String(1000))
@@ -252,6 +249,9 @@ class PandasDatasource(Model, BaseDatasource):
     @property
     def data(self):
         d = super(PandasDatasource, self).data
+        # Note that the front end uses `granularity_sqla` and
+        # `time_grain_sqla` as the parameters for selecting the
+        # column and time grain separately.
         d['granularity_sqla'] = utils.choicify(self.dttm_cols)
         d['time_grain_sqla'] = [(g, g) for g in self.GRAINS.keys()]
         logging.info(d)
@@ -364,6 +364,9 @@ class PandasDatasource(Model, BaseDatasource):
 
         # Build a dict of the metrics to include, including those that
         # are required for post-aggregation filtering
+        # Note that the front end uses `having_druid` as the parameter
+        # for post-aggregation filters, and we are reusing that
+        # interface component.
         filtered_metrics = [flt['col']
                             for flt in extras.get('having_druid', [])
                             if flt['col'] not in metrics]
@@ -397,6 +400,9 @@ class PandasDatasource(Model, BaseDatasource):
                                'val': to_dttm})
 
             if is_timeseries:
+                # Note that the front end uses `time_grain_sqla` as the parameter
+                # for setting the time grain when the granularity is being
+                # used to select the timetamp column
                 time_grain = self.GRAINS[extras.get('time_grain_sqla')]
                 timestamp_cols = ['__timestamp']
                 timestamp_exprs = [pd.Grouper(key=granularity,
@@ -486,6 +492,9 @@ class PandasDatasource(Model, BaseDatasource):
             df.columns = groupby + timestamp_cols + metrics + filtered_metrics
 
             # Filtering of rows post-aggregation based on metrics
+            # Note that the front end uses `having_druid` as the parameter
+            # for post-aggregation filters, and we are reusing that
+            # interface component.
             if extras.get('having_druid'):
                 filter_str = self.get_filter_query(extras.get('having_druid'))
                 df = df.query(filter_str)
@@ -576,21 +585,7 @@ class PandasDatasource(Model, BaseDatasource):
         query_obj is a dictionary representing Superset's query interface.
         Should return a ``superset.models.helpers.QueryResult``
         """
-        import json
-        from functools import singledispatch
-
-        @singledispatch
-        def to_serializable(val):
-            """Used by default."""
-            return str(val)
-
-        @to_serializable.register(datetime)
-        def ts_datetime(val):
-            """Used if *val* is an instance of datetime."""
-            return val.isoformat() + "Z"
-
-        logging.info(json.dumps(query_obj, indent=4, default=to_serializable))
-        print(json.dumps(query_obj, indent=4, default=to_serializable))
+        logging.debug('query_obj: %s', query_obj)
         qry_start_dttm = datetime.now()
         status = QueryStatus.SUCCESS
         error_message = None
@@ -599,9 +594,7 @@ class PandasDatasource(Model, BaseDatasource):
         try:
             df = self.get_dataframe()
             df, query_str = self.process_dataframe(df, **query_obj)
-            logging.info(query_str)
-            logging.info(df.shape)
-            logging.info(df)
+            logging.debug('query_str: %s', query_str)
         except Exception as e:
             status = QueryStatus.FAILED
             logging.exception(e)
@@ -712,7 +705,7 @@ class PandasDatasource(Model, BaseDatasource):
                 .filter(M.datasource == self)
                 .first()
             )
-            metric.pandasdatasource_id = self.id
+            metric.pandas_datasource_id = self.id
             if not m:
                 db.session.add(metric)
                 db.session.commit()

@@ -173,7 +173,8 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
             "The format of the raw data, e.g. csv"),
         'additional_parameters': _(
             "A JSON-formatted dictionary of additional parameters "
-            "to be used by Pandas when reading the raw data"),
+            "passed to the  Pandas read_* function, "
+            "see https://pandas.pydata.org/pandas-docs/stable/api.html#input-output"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
