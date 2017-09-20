@@ -14,6 +14,7 @@ import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
 import CachedLabel from '../../components/CachedLabel';
+import { t } from '../../locales';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -169,7 +170,7 @@ class ChartContainer extends React.PureComponent {
     if (this.props.slice) {
       title = this.props.slice.slice_name;
     } else {
-      title = `[${this.props.table_name}] - untitled`;
+      title = t('%s - untitled', this.props.table_name);
     }
     return title;
   }
@@ -276,7 +277,7 @@ class ChartContainer extends React.PureComponent {
 
                   <TooltipWrapper
                     label="edit-desc"
-                    tooltip="Edit slice properties"
+                    tooltip={t('Edit slice properties')}
                   >
                     <a
                       className="edit-desc-icon"
