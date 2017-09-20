@@ -561,22 +561,10 @@ class PandasDatasource(Model, BaseDatasource):
 
         This is used to be displayed to the user so that she/he can
         understand what is taking place behind the scene"""
-        import json
-        from functools import singledispatch
-
-        @singledispatch
-        def to_serializable(val):
-            """Used by default."""
-            return str(val)
-
-        @to_serializable.register(datetime)
-        def ts_datetime(val):
-            """Used if *val* is an instance of datetime."""
-            return val.isoformat() + "Z"
-
-        logging.info(json.dumps(query_obj, indent=4, default=to_serializable))
+        logging.debug('query_obj: %s', query_obj)
         df = self.get_empty_dataframe()
         df, query_str = self.process_dataframe(df, **query_obj)
+        logging.debug('query_str: %s', query_str)
         return query_str
 
     def query(self, query_obj):
