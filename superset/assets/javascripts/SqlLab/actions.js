@@ -1,6 +1,7 @@
 /* global notify */
 import shortid from 'shortid';
 import { now } from '../modules/dates';
+import { t } from '../locales';
 
 const $ = require('jquery');
 
@@ -53,8 +54,8 @@ export function saveQuery(query) {
     type: 'POST',
     url,
     data: query,
-    success: () => notify.success('Your query was saved'),
-    error: () => notify.error('Your query could not be saved'),
+    success: () => notify.success(t('Your query was saved')),
+    error: () => notify.error(t('Your query could not be saved')),
     dataType: 'json',
   });
   return { type: SAVE_QUERY };
@@ -107,7 +108,7 @@ export function fetchQueryResults(query) {
         dispatch(querySuccess(query, results));
       },
       error(err) {
-        let msg = 'Failed at retrieving results from the results backend';
+        let msg = t('Failed at retrieving results from the results backend');
         if (err.responseJSON && err.responseJSON.error) {
           msg = err.responseJSON.error;
         }
@@ -153,12 +154,12 @@ export function runQuery(query) {
           }
         }
         if (textStatus === 'error' && errorThrown === '') {
-          msg = 'Could not connect to server';
+          msg = t('Could not connect to server');
         } else if (msg === null) {
           msg = `[${textStatus}] ${errorThrown}`;
         }
         if (msg.indexOf('CSRF token') > 0) {
-          msg = 'Your session timed out, please refresh your page and try again.';
+          msg = t('Your session timed out, please refresh your page and try again.');
         }
         dispatch(queryFailed(query, msg));
       },
@@ -177,10 +178,10 @@ export function postStopQuery(query) {
       url: stopQueryUrl,
       data: stopQueryRequestData,
       success() {
-        notify.success('Query was stopped.');
+        notify.success(t('Query was stopped.'));
       },
       error() {
-        notify.error('Failed at stopping query.');
+        notify.error(t('Failed at stopping query.'));
       },
     });
   };
@@ -293,7 +294,7 @@ export function addTable(query, tableName, schemaName) {
         isMetadataLoading: false,
       });
       dispatch(mergeTable(newTable));
-      notify.error('Error occurred while fetching table metadata');
+      notify.error(t('Error occurred while fetching table metadata'));
     });
 
     url = `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`;
@@ -306,7 +307,7 @@ export function addTable(query, tableName, schemaName) {
         isExtraMetadataLoading: false,
       });
       dispatch(mergeTable(newTable));
-      notify.error('Error occurred while fetching table metadata');
+      notify.error(t('Error occurred while fetching table metadata'));
     });
   };
 }
@@ -360,7 +361,7 @@ export function popStoredQuery(urlId) {
       success: (data) => {
         const newQuery = JSON.parse(data);
         const queryEditorProps = {
-          title: newQuery.title ? newQuery.title : 'shared query',
+          title: newQuery.title ? newQuery.title : t('shared query'),
           dbId: newQuery.dbId ? parseInt(newQuery.dbId, 10) : null,
           schema: newQuery.schema ? newQuery.schema : null,
           autorun: newQuery.autorun ? newQuery.autorun : false,
@@ -368,7 +369,7 @@ export function popStoredQuery(urlId) {
         };
         dispatch(addQueryEditor(queryEditorProps));
       },
-      error: () => notify.error("The query couldn't be loaded"),
+      error: () => notify.error(t('The query couldn\'t be loaded')),
     });
   };
 }
@@ -388,7 +389,7 @@ export function popSavedQuery(saveQueryId) {
         };
         dispatch(addQueryEditor(queryEditorProps));
       },
-      error: () => notify.error("The query couldn't be loaded"),
+      error: () => notify.error(t('The query couldn\'t be loaded')),
     });
   };
 }
@@ -421,7 +422,7 @@ export function createDatasource(vizOptions, context) {
         dispatch(createDatasourceSuccess(resp));
       },
       error: () => {
-        dispatch(createDatasourceFailed('An error occurred while creating the data source'));
+        dispatch(createDatasourceFailed(t('An error occurred while creating the data source')));
       },
     });
   };

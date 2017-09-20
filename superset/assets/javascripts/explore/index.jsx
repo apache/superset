@@ -24,7 +24,8 @@ const exploreViewContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 const controls = getControlsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;
-
+delete bootstrapData.common.locale;
+delete bootstrapData.common.language_pack;
 
 // Initial state
 const bootstrappedState = Object.assign(
@@ -56,6 +57,7 @@ const initState = {
 const store = createStore(rootReducer, initState,
   compose(applyMiddleware(thunk), initEnhancer(false)),
 );
+
 ReactDOM.render(
   <Provider store={store}>
     <div>

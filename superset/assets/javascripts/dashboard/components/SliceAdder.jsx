@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
 
 import ModalTrigger from '../../components/ModalTrigger';
+import { t } from '../../locales';
 
 require('react-bootstrap-table/css/react-bootstrap-table.css');
 
@@ -138,13 +139,13 @@ class SliceAdder extends React.Component {
               dataField="sliceName"
               dataSort
             >
-              Name
+              {t('Name')}
             </TableHeaderColumn>
             <TableHeaderColumn
               dataField="vizType"
               dataSort
             >
-              Viz
+              {t('Viz')}
             </TableHeaderColumn>
             <TableHeaderColumn
               dataField="modified"
@@ -153,7 +154,7 @@ class SliceAdder extends React.Component {
               // Will cause react-bootstrap-table to interpret the HTML returned
               dataFormat={modified => modified}
             >
-              Modified
+              {t('Modified')}
             </TableHeaderColumn>
           </BootstrapTable>
           <button
@@ -163,7 +164,7 @@ class SliceAdder extends React.Component {
             onClick={this.addSlices}
             disabled={!enableAddSlice}
           >
-            Add Slices
+            {t('Add Slices')}
           </button>
         </div>
       </div>
@@ -172,12 +173,12 @@ class SliceAdder extends React.Component {
     return (
       <ModalTrigger
         triggerNode={this.props.triggerNode}
-        tooltip="Add a new slice to the dashboard"
+        tooltip={t('Add a new slice to the dashboard')}
         beforeOpen={this.onEnterModal.bind(this)}
         isButton
         modalBody={modalContent}
         bsSize="large"
-        modalTitle="Add Slices to Dashboard"
+        modalTitle={t('Add Slices to Dashboard')}
       />
     );
   }

@@ -2,6 +2,7 @@ import React from 'react';
 import { mount } from 'enzyme';
 import { describe, it, beforeEach } from 'mocha';
 import { expect } from 'chai';
+import sinon from 'sinon';
 
 import Timer from '../../../javascripts/components/Timer';
 import { now } from '../../../javascripts/modules/dates';
@@ -9,15 +10,20 @@ import { now } from '../../../javascripts/modules/dates';
 
 describe('Timer', () => {
   let wrapper;
+  let clock;
   const mockedProps = {
-    startTime: now(),
     endTime: null,
     isRunning: true,
     status: 'warning',
   };
 
   beforeEach(() => {
+    clock = sinon.useFakeTimers();
+    mockedProps.startTime = now() + 1;
     wrapper = mount(<Timer {...mockedProps} />);
+  });
+  afterEach(() => {
+    clock.restore();
   });
 
   it('is a valid element', () => {
@@ -26,9 +32,8 @@ describe('Timer', () => {
 
   it('componentWillMount starts timer after 30ms and sets state.clockStr', () => {
     expect(wrapper.state().clockStr).to.equal('');
-    setTimeout(() => {
-      expect(wrapper.state().clockStr).not.equal('');
-    }, 31);
+    clock.tick(31);
+    expect(wrapper.state().clockStr).not.equal('');
   });
 
   it('calls startTimer on mount', () => {

@@ -54,6 +54,8 @@
     "datamaps": "^0.5.8",
     "datatables.net-bs": "^1.10.15",
     "immutable": "^3.8.1",
+    "jed": "^1.1.1",
+    "po2json": "^0.4.5",
     "jquery": "3.1.1",
     "lodash.throttle": "^4.1.1",
     "moment": "^2.14.1",
@@ -85,6 +87,7 @@
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
     "shortid": "^2.2.6",
+    "sprintf-js": "^1.1.1",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "urijs": "^1.18.10",
     "viewport-mercator-project": "^2.1.0"

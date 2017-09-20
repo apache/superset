@@ -8,7 +8,7 @@ import GridLayout from './components/GridLayout';
 import Header from './components/Header';
 import { appSetup } from '../common';
 import AlertsWrapper from '../components/AlertsWrapper';
-
+import { t } from '../locales';
 import '../../stylesheets/dashboard.css';
 
 const superset = require('../modules/superset');
@@ -39,7 +39,7 @@ export function getInitialState(boostrapData) {
 }
 
 function unload() {
-  const message = 'You have unsaved changes.';
+  const message = t('You have unsaved changes.');
   window.event.returnValue = message; // Gecko + IE
   return message; // Gecko + Webkit, Safari, Chrome etc.
 }
@@ -56,9 +56,9 @@ function renderAlert() {
   render(
     <div className="container-fluid">
       <Alert bsStyle="warning">
-        <strong>You have unsaved changes.</strong> Click the&nbsp;
+        <strong>{t('You have unsaved changes.')}</strong> {t('Click the')} &nbsp;
         <i className="fa fa-save" />&nbsp;
-        button on the top right to save your changes.
+        {t('button on the top right to save your changes.')}
       </Alert>
     </div>,
     document.getElementById('alert-container'),
@@ -161,13 +161,12 @@ export function dashboardContainer(dashboard, datasources, userid) {
         .addClass('danger')
         .attr(
           'title',
-          `Served from data cached ${cachedWhen}. ` +
-          'Click to force refresh')
+          t('Served from data cached %s . Click to force refresh.', cachedWhen))
         .tooltip('fixTitle');
       } else {
         refresh
         .removeClass('danger')
-        .attr('title', 'Click to force refresh')
+        .attr('title', t('Click to force refresh'))
         .tooltip('fixTitle');
       }
     },
@@ -351,8 +350,8 @@ export function dashboardContainer(dashboard, datasources, userid) {
         error(error) {
           const errorMsg = getAjaxErrorMsg(error);
           utils.showModal({
-            title: 'Error',
-            body: 'Sorry, there was an error adding slices to this dashboard: ' + errorMsg,
+            title: t('Error'),
+            body: t('Sorry, there was an error adding slices to this dashboard: %s', errorMsg),
           });
         },
       });

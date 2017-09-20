@@ -7,6 +7,7 @@ import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
+import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object,
@@ -63,7 +64,7 @@ export default class ResultSet extends React.PureComponent {
       if (this.props.csv) {
         csvButton = (
           <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
-            <i className="fa fa-file-text-o" /> .CSV
+            <i className="fa fa-file-text-o" /> {t('.CSV')}
           </Button>
         );
       }
@@ -74,7 +75,7 @@ export default class ResultSet extends React.PureComponent {
             bsSize="small"
             onClick={this.showModal.bind(this)}
           >
-            <i className="fa fa-line-chart m-l-1" /> Visualize
+            <i className="fa fa-line-chart m-l-1" /> {t('Visualize')}
           </Button>
         );
       }
@@ -85,7 +86,7 @@ export default class ResultSet extends React.PureComponent {
             type="text"
             onChange={this.changeSearch.bind(this)}
             className="form-control input-sm"
-            placeholder="Search Results"
+            placeholder={t('Search Results')}
           />
         );
       }
@@ -158,14 +159,14 @@ export default class ResultSet extends React.PureComponent {
       return (
         <div>
           <Alert bsStyle="info">
-            Table [<strong>{query.tempTable}</strong>] was
-            created &nbsp;
+            {t('Table')} [<strong>{query.tempTable}</strong>] {t('was ' +
+            'created')} &nbsp;
             <Button
               bsSize="small"
               className="m-r-5"
               onClick={this.popSelectStar.bind(this)}
             >
-              Query in a new tab
+              {t('Query in a new tab')}
             </Button>
           </Alert>
         </div>);
@@ -206,7 +207,7 @@ export default class ResultSet extends React.PureComponent {
           bsStyle="primary"
           onClick={this.reFetchQueryResults.bind(this, query)}
         >
-          Fetch data preview
+          {t('Fetch data preview')}
         </Button>
       );
     }
@@ -226,13 +227,13 @@ export default class ResultSet extends React.PureComponent {
           bsSize="small"
           onClick={() => { window.open(query.trackingUrl); }}
         >
-            Track Job
+          {t('Track Job')}
         </Button>
       );
     }
     return (
       <div>
-        <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
+        <img className="loading" alt={t('Loading...')} src="/static/assets/images/loading.gif" />
         <QueryStateLabel query={query} />
         {progressBar}
         <div>

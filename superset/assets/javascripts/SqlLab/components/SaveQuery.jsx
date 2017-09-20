@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { FormControl, FormGroup, Overlay, Popover, Row, Col } from 'react-bootstrap';
 import Button from '../../components/Button';
+import { t } from '../../locales';
 
 const propTypes = {
   defaultLabel: PropTypes.string,
@@ -12,7 +13,7 @@ const propTypes = {
   onSave: PropTypes.func,
 };
 const defaultProps = {
-  defaultLabel: 'Undefined',
+  defaultLabel: t('Undefined'),
   animation: true,
   onSave: () => {},
 };
@@ -62,12 +63,12 @@ class SaveQuery extends React.PureComponent {
             <Col md={12}>
               <small>
                 <label className="control-label" htmlFor="embed-height">
-                  Label
+                  {t('Label')}
                 </label>
               </small>
               <FormControl
                 type="text"
-                placeholder="Label for your query"
+                placeholder={t('Label for your query')}
                 value={this.state.label}
                 onChange={this.onLabelChange}
               />
@@ -77,11 +78,11 @@ class SaveQuery extends React.PureComponent {
           <Row>
             <Col md={12}>
               <small>
-                <label className="control-label" htmlFor="embed-height">Description</label>
+                <label className="control-label" htmlFor="embed-height">{t('Description')}</label>
               </small>
               <FormControl
                 componentClass="textarea"
-                placeholder="Write a description for your query"
+                placeholder={t('Write a description for your query')}
                 value={this.state.description}
                 onChange={this.onDescriptionChange}
               />
@@ -95,10 +96,10 @@ class SaveQuery extends React.PureComponent {
                 onClick={this.onSave}
                 className="m-r-3"
               >
-                Save
+                {t('Save')}
               </Button>
               <Button onClick={this.onCancel} className="cancelQuery">
-                Cancel
+                {t('Cancel')}
               </Button>
             </Col>
           </Row>
@@ -119,7 +120,7 @@ class SaveQuery extends React.PureComponent {
           {this.renderPopover()}
         </Overlay>
         <Button bsSize="small" className="toggleSave" onClick={this.toggleSave}>
-          <i className="fa fa-save" /> Save Query
+          <i className="fa fa-save" /> {t('Save Query')}
         </Button>
       </span>
     );
