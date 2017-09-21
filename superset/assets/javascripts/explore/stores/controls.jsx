@@ -1063,6 +1063,15 @@ export const controls = {
     'point in time'),
   },
 
+  insert_zeros: {
+    type: 'CheckboxControl',
+    label: 'Insert Zeros',
+    renderTrigger: true,
+    default: false,
+    description: 'Insert zeros if there is no data for the selected ' +
+    'granularity',
+  },
+
   y_log_scale: {
     type: 'CheckboxControl',
     label: t('Y Log Scale'),

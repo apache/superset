@@ -159,6 +159,7 @@ export const visTypes = {
           ['show_brush', 'show_legend'],
           ['rich_tooltip', 'show_markers'],
           ['line_interpolation', 'contribution'],
+          ['insert_zeros'],
         ],
       },
       {

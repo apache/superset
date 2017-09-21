@@ -6,6 +6,7 @@ import nv from 'nvd3';
 
 import { getColorFromScheme } from '../javascripts/modules/colors';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
+import { granularityToEpoch } from '../javascripts/modules/dates';
 
 // CSS
 import '../node_modules/nvd3/build/nv.d3.min.css';
@@ -17,6 +18,7 @@ const animationTime = 1000;
 const BREAKPOINTS = {
   small: 340,
 };
+
 
 const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
   const format = d3.format(axisFormat || '.3s');
@@ -75,8 +77,53 @@ function getMaxLabelSize(container, axisClass) {
 
 function nvd3Vis(slice, payload) {
   let chart;
-  let colorKey = 'key';
+  const fd = slice.formData;
+  let colorKey = fd.colorKey ? fd.colorKey : 'key';
   const isExplore = $('#explore-container').length === 1;
+
+  // Make a local copy of the data
+  const data = payload.data.map(d => ({
+    ...d,
+    values: d.values.slice(),
+  }));
+
+  // This gets around that granularities are stored in different variables
+  // for duruid and SQL, the order here is important :(
+  const granularity = fd.time_grain_sqla || fd.granularity;
+  // insert zeros if there is no data for a given granularity
+  if (fd.insert_zeros) {
+    for (const d of data) {
+      if (d.values && d.values.length > 2) {
+        // We are trying to parse the granularity from the time series settings
+        // if that does not work we are guessing the expected granularity as
+        // the minimum delta X between two data points
+        const minDelta = granularityToEpoch(granularity) ||
+            Math.min(...d.values.slice(1).map((v, i) => v.x - d.values[i].x));
+        if (minDelta > 0) {
+          // This will generate a minimum number of zero data points, e.g.:
+          // your minDelta/granularity is 1 minute, but in a given time interval there was
+          // no data for 1 hour this will generate one data point with value 0
+          // 1 Minute after the left bound of the interval and 1 Minute before
+          // the right bound of the interval
+          const zeros = d.values.slice(1).reduce((z, v, i) => {
+            const delta = Math.round(v.x - d.values[i].x);
+            if (delta > minDelta * 1.4) {
+              z.push({ y: 0, x: d.values[i].x + minDelta });
+            }
+            if (delta > minDelta * 2.4) {
+              z.push({ y: 0, x: v.x - minDelta });
+            }
+            return z;
+          }, []);
+          // Add the zero data points to your time series.
+          if (zeros.length) {
+            d.values.push(...zeros);
+            d.values = d.values.sort((a, b) => a.x - b.x);
+          }
+        }
+      }
+    }
+  }
 
   slice.container.html('');
   slice.clearError();
@@ -97,14 +144,14 @@ function nvd3Vis(slice, payload) {
   }
 
   let width = slice.width();
-  const fd = slice.formData;
+
 
   const barchartWidth = function () {
     let bars;
     if (fd.bar_stacked) {
-      bars = d3.max(payload.data, function (d) { return d.values.length; });
+      bars = d3.max(data, function (d) { return d.values.length; });
     } else {
-      bars = d3.sum(payload.data, function (d) { return d.values.length; });
+      bars = d3.sum(data, function (d) { return d.values.length; });
     }
     if (bars * minBarWidth > width) {
       return bars * minBarWidth;
@@ -162,7 +209,7 @@ function nvd3Vis(slice, payload) {
 
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
+            addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         break;
@@ -179,13 +226,13 @@ function nvd3Vis(slice, payload) {
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
         if (fd.order_bars) {
-          payload.data.forEach((d) => {
+          data.forEach((d) => {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
+            addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         if (!reduceXTicks) {
@@ -208,7 +255,7 @@ function nvd3Vis(slice, payload) {
 
         if (fd.pie_label_type === 'percent') {
           let total = 0;
-          payload.data.forEach((d) => { total += d.y; });
+          data.forEach((d) => { total += d.y; });
           chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
         }
 
@@ -248,7 +295,7 @@ function nvd3Vis(slice, payload) {
           return s;
         });
         chart.pointRange([5, fd.max_bubble_size ** 2]);
-        chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
+        chart.pointDomain([0, d3.max(data, d => d3.max(d.values, v => v.size))]);
         break;
 
       case 'area':
@@ -395,7 +442,7 @@ function nvd3Vis(slice, payload) {
       chart.showLegend(width > BREAKPOINTS.small);
     }
     svg
-    .datum(payload.data)
+    .datum(data)
     .transition().duration(500)
     .attr('height', height)
     .attr('width', width)
@@ -471,7 +518,7 @@ function nvd3Vis(slice, payload) {
 
       // render chart
       svg
-      .datum(payload.data)
+      .datum(data)
       .transition().duration(500)
       .attr('height', height)
       .attr('width', width)
@@ -489,7 +536,7 @@ function nvd3Vis(slice, payload) {
   // this will clear them before rendering the chart again.
   hideTooltips();
 
-  nv.addGraph(drawGraph);
+  nv.addGraph(drawGraph());
 }
 
 module.exports = nvd3Vis;

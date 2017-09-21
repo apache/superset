@@ -98,3 +98,44 @@ export const epochTimeXYearsAgo = function (y) {
     .utc()
     .valueOf();
 };
+
+/**
+ * Converts all kinds of "durations" or "granularities" to milliseconds
+ * from Epoch
+ * @param granularity in all kinds of formats:
+ * integer (milliseconds), SQL granularities, strings of integer, period granularities ISO8601
+ * human readable ("1 hour", "5 years")
+ * @returns {number} milliseconds from Epoch, 0 if it couldn't parse the input.
+ */
+export function granularityToEpoch(granularity) {
+  let epoch = 0;
+  if (granularity) {
+    epoch = moment.duration(granularity).asMilliseconds();
+    if (!epoch && typeof granularity === 'string') {
+      const gran = granularity.trim();
+      if (gran.match(/^[0-9]*$/)) { // this covers strings containing only numbers
+        epoch = moment.duration(Number.parseInt(gran, 10)).asMilliseconds();
+      }
+      if (!epoch && gran) {
+        // this covers human readable stuff like like "1 year", "5 seconds"
+        const t = gran.match(/^[0-9]*\s*/);
+        if (t && t.length && t[0].length) {
+          const num = t[0];
+          const unit = gran.slice(num.length);
+          epoch = moment.duration(Number.parseInt(num, 10), unit).asMilliseconds();
+        }
+        if (!epoch) { // this covers SQL like granularities ["month", "week", ...]
+          epoch = moment.duration(1, gran).asMilliseconds();
+        }
+        if (!epoch) {
+          if (gran.toLowerCase() === 'fifteen_minute') {
+            epoch = moment.duration(15, 'minutes').asMilliseconds();
+          } else if (gran.toLowerCase() === 'thirty_minute') {
+            epoch = moment.duration(30, 'minutes').asMilliseconds();
+          }
+        }
+      }
+    }
+  }
+  return epoch;
+}
