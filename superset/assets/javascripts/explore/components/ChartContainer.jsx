@@ -162,7 +162,9 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.saveSlice(saveUrl)
       .then((data) => {
         if (isNewSlice) {
-          window.location = data;
+          this.props.actions.createNewSlice(
+              data.can_add, data.can_download, data.can_overwrite,
+              data.slice, data.form_data);
         } else {
           this.props.actions.updateChartTitle(newTitle);
         }
