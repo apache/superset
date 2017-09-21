@@ -2312,6 +2312,32 @@ class Superset(BaseSupersetView):
             entry='sqllab',
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
+
+    @api
+    @has_access_api
+    @expose("/slice/<slice_id>/query/")
+    def sliceQuery(self, slice_id):
+        """
+        This method exposes an API endpoint to
+        get the database query string for this slice
+        """
+        viz_obj = self.get_viz(slice_id)
+        if not self.datasource_access(viz_obj.datasource):
+            return json_error_response(DATASOURCE_ACCESS_ERR, status=401)
+        try:
+            query_obj = viz_obj.query_obj()
+            query = viz_obj.datasource.get_query_str(query_obj)
+        except Exception as e:
+            return json_error_response(e)
+        return Response(
+            json.dumps({
+                'query': query,
+                'language': viz_obj.datasource.query_language,
+            }),
+            status=200,
+            mimetype="application/json"
+        )
+
 appbuilder.add_view_no_menu(Superset)
 
 
