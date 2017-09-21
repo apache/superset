@@ -545,6 +545,7 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.granularity_sqla : [],
     }),
+    freeForm: true,
   },
 
   time_grain_sqla: {
@@ -1001,6 +1002,20 @@ export const controls = {
     label: 'Date Filter',
     default: false,
     description: 'Whether to include a time filter',
+  },
+
+  sqla_time_filters: {
+    type: 'CheckboxControl',
+    label: 'SQLAlchemy Time Options',
+    default: false,
+    description: 'Whether to include time controls for SQLAlchemy datasources',
+  },
+
+  druid_time_filters: {
+    type: 'CheckboxControl',
+    label: 'Druid Time Options',
+    default: false,
+    description: 'Whether to include time controls for Druid datasources',
   },
 
   show_datatable: {

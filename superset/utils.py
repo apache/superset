@@ -683,6 +683,8 @@ def merge_extra_filters(form_data):
             '__to': 'until',
             '__time_col': 'granularity_sqla',
             '__time_grain': 'time_grain_sqla',
+            '__time_origin': 'druid_time_origin',
+            '__granularity': 'granularity',
         }
         for filtr in form_data['extra_filters']:
             if date_options.get(filtr['col']):  # merge date options

@@ -871,6 +871,7 @@ export const visTypes = {
           ['groupby'],
           ['metric'],
           ['date_filter', 'instant_filtering'],
+          ['sqla_time_filters', 'druid_time_filters'],
         ],
       },
     ],

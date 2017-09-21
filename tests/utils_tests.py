@@ -98,13 +98,17 @@ class UtilsTestCase(unittest.TestCase):
             {'col': '__to', 'op': 'in', 'val': None},
             {'col': '__time_col', 'op': 'in', 'val': 'birth_year'},
             {'col': '__time_grain', 'op': 'in', 'val': 'years'},
-            {'col': 'A', 'op': 'like', 'val': 'hello'}
+            {'col': 'A', 'op': 'like', 'val': 'hello'},
+            {'col': '__time_origin', 'op': 'in', 'val': 'now'},
+            {'col': '__granularity', 'op': 'in', 'val': '90 seconds'},
         ]}
         expected = {
             'filters': [{'col': 'A', 'op': 'like', 'val': 'hello'}],
             'since': '1 year ago',
             'granularity_sqla': 'birth_year',
             'time_grain_sqla': 'years',
+            'granularity': '90 seconds',
+            'druid_time_origin': 'now',
         }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)

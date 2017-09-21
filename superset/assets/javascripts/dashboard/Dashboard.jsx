@@ -205,9 +205,13 @@ export function dashboardContainer(dashboard, datasources, userid) {
       return f;
     },
     addFilter(sliceId, col, vals, merge = true, refresh = true) {
-      if (this.getSlice(sliceId) &&
-          (col === '__from' || col === '__to' || col === '__time_col' || col === '__time_grain' ||
-          this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1)) {
+      if (
+        this.getSlice(sliceId) && (
+          ['__from', '__to', '__time_col', '__time_grain', '__time_origin', '__granularity']
+            .indexOf(col) >= 0 ||
+            this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1
+        )
+      ) {
         if (!(sliceId in this.filters)) {
           this.filters[sliceId] = {};
         }
