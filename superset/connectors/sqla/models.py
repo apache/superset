@@ -669,10 +669,10 @@ class SqlaTable(Model, BaseDatasource):
 
         dbmetrics = db.session.query(M).filter(M.table_id == self.id).filter(
             or_(M.metric_name == metric.metric_name for metric in metrics))
-        dbmetrics = {metric.expression: metric for metric in dbmetrics}
+        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics:
             metric.table_id = self.id
-            if not dbmetrics.get(metric.expression, None):
+            if not dbmetrics.get(metric.metric_name, None):
                 db.session.add(metric)
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
