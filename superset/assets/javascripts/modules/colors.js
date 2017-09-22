@@ -1,5 +1,7 @@
 import d3 from 'd3';
 
+export const brandColor = '#00A699';
+
 // Color related utility functions go in this object
 const bnbColors = [
   '#ff5a5f', // rausch

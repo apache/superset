@@ -5,6 +5,7 @@ import { ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
 import MetricOption from '../../components/MetricOption';
 import ColumnOption from '../../components/ColumnOption';
 import { t } from '../../locales';
+import controlMap from '../components/controls';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -1410,5 +1411,12 @@ export const controls = {
     default: 4,
     description: 'Number of decimal places with which to display lift values',
   },
+  column_collection: {
+    type: 'CollectionControl',
+    label: t('Time Series Columns'),
+    validators: [v.nonEmpty],
+    control: controlMap.TimeSeriesColumnControl,
+  },
+
 };
 export default controls;

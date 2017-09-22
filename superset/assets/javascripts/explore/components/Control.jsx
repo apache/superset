@@ -1,33 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import BoundsControl from './controls/BoundsControl';
-import CheckboxControl from './controls/CheckboxControl';
-import ColorSchemeControl from './controls/ColorSchemeControl';
-import DatasourceControl from './controls/DatasourceControl';
-import DateFilterControl from './controls/DateFilterControl';
-import FilterControl from './controls/FilterControl';
-import HiddenControl from './controls/HiddenControl';
-import SelectAsyncControl from './controls/SelectAsyncControl';
-import SelectControl from './controls/SelectControl';
-import TextAreaControl from './controls/TextAreaControl';
-import TextControl from './controls/TextControl';
-import VizTypeControl from './controls/VizTypeControl';
+import controlMap from './controls';
 
-const controlMap = {
-  BoundsControl,
-  CheckboxControl,
-  DatasourceControl,
-  DateFilterControl,
-  FilterControl,
-  HiddenControl,
-  SelectControl,
-  TextAreaControl,
-  TextControl,
-  VizTypeControl,
-  ColorSchemeControl,
-  SelectAsyncControl,
-};
 const controlTypes = Object.keys(controlMap);
 
 const propTypes = {

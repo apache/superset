@@ -5,7 +5,7 @@ import { slugify } from '../modules/utils';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
-  tooltip: PropTypes.string.isRequired,
+  tooltip: PropTypes.string,
   icon: PropTypes.string,
   className: PropTypes.string,
   onClick: PropTypes.func,
@@ -17,11 +17,21 @@ const defaultProps = {
   className: 'text-muted',
   placement: 'right',
 };
+const tooltipStyle = { wordWrap: 'break-word' };
 
 export default function InfoTooltipWithTrigger({
     label, tooltip, icon, className, onClick, placement, bsStyle }) {
   const iconClass = `fa fa-${icon} ${className} ${bsStyle ? 'text-' + bsStyle : ''}`;
-  const tooltipStyle = { wordWrap: 'break-word' };
+  const iconEl = (
+    <i
+      className={iconClass}
+      onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : null }}
+    />
+  );
+  if (!tooltip) {
+    return iconEl;
+  }
   return (
     <OverlayTrigger
       placement={placement}
@@ -31,11 +41,7 @@ export default function InfoTooltipWithTrigger({
         </Tooltip>
       }
     >
-      <i
-        className={iconClass}
-        onClick={onClick}
-        style={{ cursor: onClick ? 'pointer' : null }}
-      />
+      {iconEl}
     </OverlayTrigger>
   );
 }
