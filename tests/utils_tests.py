@@ -74,7 +74,9 @@ class UtilsTestCase(unittest.TestCase):
         obj = {'a': 5, 'b': ['a', 'g', 5]}
         val = '{"a": 5, "b": ["a", "g", 5]}'
         jsonObj = JSONEncodedDict()
-        self.assertEquals(jsonObj.process_bind_param(obj, 'dialect'), val)
+        resp = jsonObj.process_bind_param(obj, 'dialect')
+        self.assertIn('"a": 5', resp)
+        self.assertIn('"b": ["a", "g", 5]', resp)
         self.assertEquals(jsonObj.process_result_value(val, 'dialect'), obj)
 
     def test_validate_json(self):
