@@ -944,6 +944,20 @@ class Superset(BaseSupersetView):
             endpoint += '&standalone=true'
         return redirect(endpoint)
 
+    def get_query_string_response(self, viz_obj):
+        try:
+            query_obj = viz_obj.query_obj()
+            query = viz_obj.datasource.get_query_str(query_obj)
+        except Exception as e:
+            return json_error_response(e)
+        return Response(
+            json.dumps({
+                'query': query,
+                'language': viz_obj.datasource.query_language,
+            }),
+            status=200,
+            mimetype="application/json")
+
     @log_this
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
@@ -970,18 +984,7 @@ class Superset(BaseSupersetView):
                 mimetype="application/csv")
 
         if request.args.get("query") == "true":
-            try:
-                query_obj = viz_obj.query_obj()
-                query = viz_obj.datasource.get_query_str(query_obj)
-            except Exception as e:
-                return json_error_response(e)
-            return Response(
-                json.dumps({
-                    'query': query,
-                    'language': viz_obj.datasource.query_language,
-                }),
-                status=200,
-                mimetype="application/json")
+            return self.get_query_string_response(viz_obj)
 
         payload = {}
         try:
@@ -2324,19 +2327,7 @@ class Superset(BaseSupersetView):
         viz_obj = self.get_viz(slice_id)
         if not self.datasource_access(viz_obj.datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=401)
-        try:
-            query_obj = viz_obj.query_obj()
-            query = viz_obj.datasource.get_query_str(query_obj)
-        except Exception as e:
-            return json_error_response(e)
-        return Response(
-            json.dumps({
-                'query': query,
-                'language': viz_obj.datasource.query_language,
-            }),
-            status=200,
-            mimetype="application/json"
-        )
+        return self.get_query_string_response(viz_obj)
 
 appbuilder.add_view_no_menu(Superset)
 
