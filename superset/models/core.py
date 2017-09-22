@@ -751,8 +751,7 @@ class Database(Model, AuditMixinNullable):
 
     def get_dialect(self):
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
-        entrypoint = sqla_url._get_entrypoint()
-        return entrypoint.get_dialect_cls(sqla_url)()
+        return sqla_url.get_dialect()()
 
 
 sqla.event.listen(Database, 'after_insert', set_perm)
