@@ -85,7 +85,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
-        'datasource', 'd3format', 'is_restricted']
+        'datasource', 'd3format', 'is_restricted', 'warning_text']
     add_columns = edit_columns
     page_size = 500
     validators_columns = {
@@ -109,6 +109,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'metric_type': _("Type"),
         'json': _("JSON"),
         'datasource': _("Druid Datasource"),
+        'warning_text': _("Warning Message"),
     }
 
     def post_add(self, metric):
