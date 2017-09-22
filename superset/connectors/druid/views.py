@@ -234,17 +234,16 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, datasource):
-        number_of_existing_datasources = db.session.query(
-            sqla.func.count('*')).filter(
-            models.DruidDatasource.datasource_name ==
-                datasource.datasource_name,
-            models.DruidDatasource.cluster_name == datasource.cluster.id
-        ).scalar()
-
-        # table object is already added to the session
-        if number_of_existing_datasources > 1:
-            raise Exception(get_datasource_exist_error_mgs(
-                datasource.full_name))
+        with db.session.no_autoflush:
+            query = (
+                db.session.query(models.DruidDatasource)
+                .filter(models.DruidDatasource.datasource_name ==
+                    datasource.datasource_name,
+                    models.DruidDatasource.cluster_name == datasource.cluster.id)
+            )
+            if db.session.query(query.exists()).scalar():
+                raise Exception(get_datasource_exist_error_mgs(
+                    datasource.full_name))
 
     def post_add(self, datasource):
         datasource.generate_metrics()
