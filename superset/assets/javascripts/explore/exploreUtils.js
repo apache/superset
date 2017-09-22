@@ -1,12 +1,28 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 
+export function getChartKey(explore) {
+  const slice = explore.slice;
+  return slice ? ('slice_' + slice.slice_id) : 'slice';
+}
+
+export function getSliceJsonUrl(slice_id, form_data) {
+  if (slice_id === null || slice_id === undefined) {
+    return null;
+  }
+  const uri = URI(window.location.search);
+  return uri.pathname(`/superset/slice_json/${slice_id}`)
+    .search({
+      form_data: JSON.stringify(form_data,
+        (key, value) => value === null ? undefined : value),
+    }).toString();
+}
+
 export function getExploreUrl(form_data, endpointType = 'base', force = false,
   curUrl = null, requestParams = {}) {
   if (!form_data.datasource) {
     return null;
   }
-
 
   // The search params from the window.location are carried through,
   // but can be specified with curUrl (used for unit tests to spoof

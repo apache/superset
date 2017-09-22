@@ -7,6 +7,7 @@ import Chart from './Chart';
 function mapStateToProps({ charts }, ownProps) {
   const chart = charts[ownProps.chartKey];
   return {
+    annotationData: chart.annotationData,
     chartAlert: chart.chartAlert,
     chartStatus: chart.chartStatus,
     chartUpdateEndTime: chart.chartUpdateEndTime,

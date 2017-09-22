@@ -37,6 +37,8 @@ from superset.utils import DTTM_ALIAS, merge_extra_filters
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
 
+NATIVE_ANNOTATION_TYPE = 'NATIVE'
+
 
 class BaseViz(object):
 
@@ -62,6 +64,7 @@ class BaseViz(object):
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
         self.annotation_layers = []
+        self.time_shift = 0
 
         self.status = None
         self.error_message = None
@@ -121,6 +124,7 @@ class BaseViz(object):
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
+                df[DTTM_ALIAS] += self.time_shift
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
@@ -158,6 +162,7 @@ class BaseViz(object):
 
         since = form_data.get('since', '')
         until = form_data.get('until', 'now')
+        time_shift = form_data.get("time_shift", "")
 
         # Backward compatibility hack
         if since:
@@ -166,9 +171,10 @@ class BaseViz(object):
             if (len(since_words) == 2 and since_words[1] in grains):
                 since += ' ago'
 
-        from_dttm = utils.parse_human_datetime(since)
+        self.time_shift = utils.parse_human_timedelta(time_shift)
 
-        to_dttm = utils.parse_human_datetime(until)
+        from_dttm = utils.parse_human_datetime(since) - self.time_shift
+        to_dttm = utils.parse_human_datetime(until) - self.time_shift
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_('From date cannot be larger than to date'))
 
@@ -230,13 +236,16 @@ class BaseViz(object):
     def get_annotations(self):
         """Fetches the annotations for the specified layers and date range"""
         annotations = []
-        if self.annotation_layers:
+        annotations_layers = [a.get('value') for a in self.annotation_layers
+                              if a.get('annotationType') ==
+                              NATIVE_ANNOTATION_TYPE]
+        if annotations_layers:
             from superset.models.annotations import Annotation
             from superset import db
             qry = (
                 db.session
                 .query(Annotation)
-                .filter(Annotation.layer_id.in_(self.annotation_layers)))
+                .filter(Annotation.layer_id.in_(annotations_layers)))
             if self.from_dttm:
                 qry = qry.filter(Annotation.start_dttm >= self.from_dttm)
             if self.to_dttm:

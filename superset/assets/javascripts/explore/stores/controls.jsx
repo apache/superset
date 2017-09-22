@@ -135,30 +135,12 @@ export const controls = {
       choices: (state.datasource) ? state.datasource.order_by_choices : [],
     }),
   },
-
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
     type: 'ColorPickerControl',
     default: colorPrimary,
     renderTrigger: true,
-  },
-
-  annotation_layers: {
-    type: 'SelectAsyncControl',
-    multi: true,
-    label: t('Annotation Layers'),
-    default: [],
-    description: t('Annotation layers to overlay on the visualization'),
-    dataEndpoint: '/annotationlayermodelview/api/read?',
-    placeholder: t('Select a annotation layer'),
-    onAsyncErrorMessage: t('Error while fetching annotation layers'),
-    mutator: (data) => {
-      if (!data || !data.result) {
-        return [];
-      }
-      return data.result.map(layer => ({ value: layer.id, label: layer.name }));
-    },
   },
 
   metric: {
@@ -1559,6 +1541,14 @@ export const controls = {
     mapStateToProps: state => ({
       datasource: state.datasource,
     }),
+  },
+
+  annotation_layers: {
+    type: 'AnnotationLayerControl',
+    label: '',
+    default: [],
+    description: 'Annotation Layers',
+    renderTrigger: true,
   },
 
   having_filters: {
