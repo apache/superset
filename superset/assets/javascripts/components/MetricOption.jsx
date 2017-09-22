@@ -27,6 +27,14 @@ export default function MetricOption({ metric }) {
         tooltip={metric.expression}
         label={`expr-${metric.metric_name}`}
       />
+      {metric.warning_text &&
+        <InfoTooltipWithTrigger
+          className="m-r-5 text-danger"
+          icon="warning"
+          tooltip={metric.warning_text}
+          label={`warn-${metric.metric_name}`}
+        />
+      }
     </div>);
 }
 MetricOption.propTypes = propTypes;

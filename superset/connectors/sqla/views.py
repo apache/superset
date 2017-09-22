@@ -108,7 +108,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table', 'd3format', 'is_restricted']
+        'expression', 'table', 'd3format', 'is_restricted', 'warning_text']
     description_columns = {
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
@@ -135,7 +135,8 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression': _("SQL Expression"),
         'table': _("Table"),
         'd3format': _("D3 Format"),
-        'is_restricted': _('Is Restricted')
+        'is_restricted': _('Is Restricted'),
+        'warning_text': _('Warning Message'),
     }
 
     def post_add(self, metric):
@@ -151,7 +152,7 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
-        
+
     list_title = _('List Tables')
     show_title = _('Show Table')
     add_title = _('Add Table')
