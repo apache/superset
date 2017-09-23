@@ -561,6 +561,8 @@ class Database(Model, AuditMixinNullable):
     }
     """))
     perm = Column(String(1000))
+    custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
+    impersonate_user = Column(Boolean, default=False)
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name
@@ -581,19 +583,21 @@ class Database(Model, AuditMixinNullable):
     def set_sqlalchemy_uri(self, uri):
         password_mask = "X" * 10
         conn = sqla.engine.url.make_url(uri)
-        if conn.password != password_mask:
+        if conn.password != password_mask and not self.custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn.password = password_mask if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
-    def get_sqla_engine(self, schema=None, nullpool=False):
+    def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         uri = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
         if nullpool:
             params['poolclass'] = NullPool
         uri = self.db_engine_spec.adjust_database_uri(uri, schema)
+        if self.impersonate_user:
+            uri.username = user_name if user_name else g.user.username
         return create_engine(uri, **params)
 
     def get_reserved_words(self):
@@ -725,7 +729,10 @@ class Database(Model, AuditMixinNullable):
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
-        conn.password = self.password
+        if self.custom_password_store:
+            conn.password = self.custom_password_store(conn)
+        else:
+            conn.password = self.password
         return str(conn)
 
     @property
@@ -735,6 +742,7 @@ class Database(Model, AuditMixinNullable):
     def get_perm(self):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
+
 
 sqla.event.listen(Database, 'after_insert', set_perm)
 sqla.event.listen(Database, 'after_update', set_perm)

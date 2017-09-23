@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Badge, Label } from 'react-bootstrap';
+import { t } from '../../locales';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
@@ -10,7 +11,7 @@ export default function Security({ user }) {
     <div>
       <div className="roles">
         <h4>
-          Roles <Badge>{Object.keys(user.roles).length}</Badge>
+          {t('Roles')} <Badge>{Object.keys(user.roles).length}</Badge>
         </h4>
         {Object.keys(user.roles).map(role => <Label key={role}>{role}</Label>)}
         <hr />
@@ -19,7 +20,7 @@ export default function Security({ user }) {
         {user.permissions.database_access &&
           <div>
             <h4>
-              Databases <Badge>{user.permissions.database_access.length}</Badge>
+              {t('Databases')} <Badge>{user.permissions.database_access.length}</Badge>
             </h4>
             {user.permissions.database_access.map(role => <Label key={role}>{role}</Label>)}
             <hr />
@@ -30,7 +31,7 @@ export default function Security({ user }) {
         {user.permissions.datasource_access &&
           <div>
             <h4>
-              Datasources <Badge>{user.permissions.datasource_access.length}</Badge>
+              {t('Datasources')} <Badge>{user.permissions.datasource_access.length}</Badge>
             </h4>
             {user.permissions.datasource_access.map(role => <Label key={role}>{role}</Label>)}
           </div>

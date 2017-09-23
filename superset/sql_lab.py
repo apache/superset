@@ -1,17 +1,21 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from time import sleep
 from datetime import datetime
 import json
 import logging
+import uuid
 import pandas as pd
 import sqlalchemy
-import uuid
 
-from celery.exceptions import SoftTimeLimitExceeded
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
+from celery.exceptions import SoftTimeLimitExceeded
 
-from superset import (
-    app, db, utils, dataframe, results_backend)
+from superset import (app, db, utils, dataframe, results_backend)
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
@@ -34,8 +38,8 @@ def dedup(l, suffix='__'):
     Always returns the same number of entries as provided, and always returns
     unique values.
 
-    >>> dedup(['foo', 'bar', 'bar', 'bar'])
-    ['foo', 'bar', 'bar__1', 'bar__2']
+    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
+    foo,bar,bar__1,bar__2
     """
     new_l = []
     seen = {}
@@ -76,19 +80,18 @@ def get_session(nullpool):
         session_class = sessionmaker()
         session_class.configure(bind=engine)
         return session_class()
-    else:
-        session = db.session()
-        session.commit()  # HACK
-        return session
+    session = db.session()
+    session.commit()  # HACK
+    return session
 
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
-        ctask, query_id, return_results=True, store_results=False):
+        ctask, query_id, return_results=True, store_results=False, user_name=None):
     """Executes the sql query returns the results."""
     try:
         return execute_sql(
-            ctask, query_id, return_results, store_results)
+            ctask, query_id, return_results, store_results, user_name)
     except Exception as e:
         logging.exception(e)
         stats_logger.incr('error_sqllab_unhandled')
@@ -101,7 +104,8 @@ def get_sql_results(
         raise
 
 
-def execute_sql(ctask, query_id, return_results=True, store_results=False):
+def execute_sql(
+    ctask, query_id, return_results=True, store_results=False, user_name=None):
     """Executes the sql query returns the results."""
     session = get_session(not ctask.request.called_directly)
 
@@ -142,13 +146,11 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
             query.tmp_table_name = 'tmp_{}_table_{}'.format(
-                query.user_id,
-                start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
+                query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    elif (
-            query.limit and superset_query.is_select() and
-            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+    elif (query.limit and superset_query.is_select()
+          and db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
     try:
@@ -166,18 +168,15 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
     session.merge(query)
     session.commit()
     logging.info("Set query to 'running'")
-
-    engine = database.get_sqla_engine(
-            schema=query.schema, nullpool=not ctask.request.called_directly)
     try:
         engine = database.get_sqla_engine(
-            schema=query.schema, nullpool=not ctask.request.called_directly)
+            schema=query.schema, nullpool=not ctask.request.called_directly, user_name=user_name)
         conn = engine.raw_connection()
         cursor = conn.cursor()
         logging.info("Running query: \n{}".format(executed_sql))
         logging.info(query.executed_sql)
-        cursor.execute(
-            query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
+        cursor.execute(query.executed_sql,
+                       **db_engine_spec.cursor_execute_kwargs)
         logging.info("Handling cursor")
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info("Fetching data: {}".format(query.to_dict()))
@@ -200,29 +199,31 @@ def execute_sql(ctask, query_id, return_results=True, store_results=False):
     conn.close()
 
     if query.status == utils.QueryStatus.STOPPED:
-        return json.dumps({
-            'query_id': query.id,
-            'status': query.status,
-            'query': query.to_dict(),
-        }, default=utils.json_iso_dttm_ser)
+        return json.dumps(
+            {
+                'query_id': query.id,
+                'status': query.status,
+                'query': query.to_dict(),
+            },
+            default=utils.json_iso_dttm_ser)
 
     column_names = (
         [col[0] for col in cursor_description] if cursor_description else [])
     column_names = dedup(column_names)
-    cdf = dataframe.SupersetDataFrame(pd.DataFrame(
-        list(data), columns=column_names))
+    cdf = dataframe.SupersetDataFrame(
+        pd.DataFrame(list(data), columns=column_names))
 
     query.rows = cdf.size
     query.progress = 100
     query.status = QueryStatus.SUCCESS
     if query.select_as_cta:
-        query.select_sql = '{}'.format(database.select_star(
-            query.tmp_table_name,
-            limit=query.limit,
-            schema=database.force_ctas_schema,
-            show_cols=False,
-            latest_partition=False,
-        ))
+        query.select_sql = '{}'.format(
+            database.select_star(
+                query.tmp_table_name,
+                limit=query.limit,
+                schema=database.force_ctas_schema,
+                show_cols=False,
+                latest_partition=False, ))
     query.end_time = utils.now_as_float()
     session.merge(query)
     session.flush()

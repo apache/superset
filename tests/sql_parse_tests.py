@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -26,6 +27,10 @@ class SupersetTestCase(unittest.TestCase):
         # quotes
         query = 'SELECT * FROM "tbname"'
         self.assertEquals({"tbname"}, self.extract_tables(query))
+
+        # unicode encoding
+        query = 'SELECT * FROM "tb_name" WHERE city = "Lübeck"'
+        self.assertEquals({"tb_name"}, self.extract_tables(query))
 
         # schema
         self.assertEquals(

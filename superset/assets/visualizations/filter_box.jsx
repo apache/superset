@@ -8,6 +8,7 @@ import { Button } from 'react-bootstrap';
 
 import { TIME_CHOICES } from './constants';
 import './filter_box.css';
+import { t } from '../javascripts/locales';
 
 const propTypes = {
   origSelectedValues: PropTypes.object,
@@ -102,7 +103,7 @@ class FilterBox extends React.Component {
         <div key={filter} className="m-b-5">
           {this.props.datasource.verbose_map[filter] || filter}
           <Select.Creatable
-            placeholder={`Select [${filter}]`}
+            placeholder={t('Select [%s]', filter)}
             key={filter}
             multi
             value={this.state.selectedValues[filter]}

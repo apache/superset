@@ -22,6 +22,7 @@ import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import RunQueryActionButton from './RunQueryActionButton';
+import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -67,11 +68,18 @@ class SqlEditor extends React.PureComponent {
       southPaneHeight: height - this.refs.ace.clientHeight,
       height,
     });
+
+    if (this.refs.ace.clientHeight) {
+      this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
+    }
   }
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
   runQuery(runAsync = false) {
+    if (!this.props.queryEditor.sql) {
+      return;
+    }
     let effectiveRunAsync = runAsync;
     if (!this.props.database.allow_run_sync) {
       effectiveRunAsync = true;
@@ -112,7 +120,7 @@ class SqlEditor extends React.PureComponent {
   renderEditorBottomBar() {
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
-      const ctasToolTip = 'Create table as with query results';
+      const ctasToolTip = t('Create table as with query results');
       ctasControls = (
         <FormGroup>
           <InputGroup>
@@ -120,7 +128,7 @@ class SqlEditor extends React.PureComponent {
               type="text"
               bsSize="small"
               className="input-sm"
-              placeholder="new table name"
+              placeholder={t('new table name')}
               onChange={this.ctasChanged.bind(this)}
             />
             <InputGroup.Button>
@@ -191,7 +199,7 @@ class SqlEditor extends React.PureComponent {
   }
   render() {
     const height = this.sqlEditorHeight();
-    const defaultNorthHeight = 200;
+    const defaultNorthHeight = this.props.queryEditor.height || 200;
     return (
       <div
         className="SqlEditor"

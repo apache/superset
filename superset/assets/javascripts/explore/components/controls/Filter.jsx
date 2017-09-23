@@ -3,8 +3,7 @@ import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
-
-const $ = window.$ = require('jquery');
+import { t } from '../../../locales';
 
 const operatorsArr = [
   { val: 'in', type: 'array', useSelect: true, multi: true },
@@ -29,6 +28,8 @@ const propTypes = {
   filter: PropTypes.object.isRequired,
   datasource: PropTypes.object,
   having: PropTypes.bool,
+  valuesLoading: PropTypes.bool,
+  valueChoices: PropTypes.array,
 };
 
 const defaultProps = {
@@ -36,61 +37,57 @@ const defaultProps = {
   removeFilter: () => {},
   datasource: null,
   having: false,
+  valuesLoading: false,
+  valueChoices: [],
 };
 
 export default class Filter extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      valuesLoading: false,
-    };
-  }
-  componentDidMount() {
-    this.fetchFilterValues(this.props.filter.col);
-  }
-  fetchFilterValues(col) {
-    const datasource = this.props.datasource;
-    if (col && this.props.datasource && this.props.datasource.filter_select && !this.props.having) {
-      this.setState({ valuesLoading: true });
-      $.ajax({
-        type: 'GET',
-        url: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
-        success: (data) => {
-          this.setState({ valuesLoading: false, valueChoices: data });
-        },
-      });
-    }
-  }
+
   switchFilterValue(prevOp, nextOp) {
     if (operators[prevOp].type !== operators[nextOp].type) {
-      const val = this.props.filter.value;
+      // Switch from array to string or vice versa
+      const val = this.props.filter.val;
       let newVal;
-      // switch from array to string
-      if (operators[nextOp].type === 'string' && val && val.length > 0) {
-        newVal = val[0];
-      } else if (operators[nextOp].type === 'string' && val) {
-        newVal = [val];
+      if (operators[nextOp].type === 'string') {
+        if (!val || !val.length) {
+          newVal = '';
+        } else {
+          newVal = val[0];
+        }
+      } else if (operators[nextOp].type === 'array') {
+        if (!val || !val.length) {
+          newVal = [];
+        } else {
+          newVal = [val];
+        }
       }
-      this.props.changeFilter('val', newVal);
+      this.props.changeFilter(['val', 'op'], [newVal, nextOp]);
+    } else {
+      // No value type change
+      this.props.changeFilter('op', nextOp);
     }
   }
+
   changeText(event) {
     this.props.changeFilter('val', event.target.value);
   }
+
   changeSelect(value) {
     this.props.changeFilter('val', value);
   }
+
   changeColumn(event) {
     this.props.changeFilter('col', event.value);
-    this.fetchFilterValues(event.value);
   }
+
   changeOp(event) {
     this.switchFilterValue(this.props.filter.op, event.value);
-    this.props.changeFilter('op', event.value);
   }
+
   removeFilter(filter) {
     this.props.removeFilter(filter);
   }
+
   renderFilterFormControl(filter) {
     const operator = operators[filter.op];
     if (operator.useSelect && !this.props.having) {
@@ -101,8 +98,8 @@ export default class Filter extends React.Component {
           freeForm
           name="filter-value"
           value={filter.val}
-          isLoading={this.state.valuesLoading}
-          choices={this.state.valueChoices}
+          isLoading={this.props.valuesLoading}
+          choices={this.props.valueChoices}
           onChange={this.changeSelect.bind(this)}
           showHeader={false}
         />
@@ -114,7 +111,7 @@ export default class Filter extends React.Component {
         onChange={this.changeText.bind(this)}
         value={filter.val}
         className="form-control input-sm"
-        placeholder="Filter value"
+        placeholder={t('Filter value')}
       />
     );
   }
@@ -143,7 +140,7 @@ export default class Filter extends React.Component {
           <Col md={12}>
             <Select
               id="select-col"
-              placeholder={this.props.having ? 'Select metric' : 'Select column'}
+              placeholder={this.props.having ? t('Select metric') : t('Select column')}
               clearable={false}
               options={colChoices}
               value={filter.col}
@@ -155,7 +152,7 @@ export default class Filter extends React.Component {
           <Col md={3}>
             <Select
               id="select-op"
-              placeholder="Select operator"
+              placeholder={t('Select operator')}
               options={opsChoices}
               clearable={false}
               value={filter.op}

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import TooltipWrapper from './TooltipWrapper';
+import { t } from '../locales';
 
 const propTypes = {
   title: PropTypes.string,
@@ -8,7 +9,7 @@ const propTypes = {
   onSaveTitle: PropTypes.func.isRequired,
 };
 const defaultProps = {
-  title: 'Title',
+  title: t('Title'),
   canEdit: false,
 };
 
@@ -71,7 +72,7 @@ class EditableTitle extends React.PureComponent {
       <span className="editable-title">
         <TooltipWrapper
           label="title"
-          tooltip={this.props.canEdit ? 'click to edit title' : 'You don\'t have the rights to alter this title.'}
+          tooltip={this.props.canEdit ? t('click to edit title') : t('You don\'t have the rights to alter this title.')}
         >
           <input
             required
