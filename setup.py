@@ -3,8 +3,6 @@ import subprocess
 import json
 from setuptools import setup, find_packages
 
-setup_requires=['nose>=1.0']
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')

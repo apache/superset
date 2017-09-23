@@ -37,6 +37,8 @@ from superset.utils import (
 from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
 
+from time import time # TODO REMOVE
+
 DRUID_TZ = conf.get("DRUID_TZ")
 
 
@@ -121,7 +123,7 @@ class DruidCluster(Model, AuditMixinNullable):
         blacklist = conf.get('DRUID_DATA_SOURCE_BLACKLIST', [])
         ds_refresh = []
         if not datasource_name:
-            ds_refresh = filter(lambda ds: ds not in blacklist, ds_list)
+            ds_refresh = list(filter(lambda ds: ds not in blacklist, ds_list))
         elif datasource_name not in blacklist and datasource_name in ds_list:
             ds_refresh.append(datasource_name)
         else:
@@ -133,18 +135,27 @@ class DruidCluster(Model, AuditMixinNullable):
         Fetches metadata for the specified datasources andm
         merges to the Superset database
         """
+        logging.info("<START> REFRESH ASYNC")
+        l1_start = time()
+
+        l2_start = time()
         session = db.session
         ds_list = (
             session.query(DruidDatasource)
             .filter(or_(DruidDatasource.datasource_name == name
                     for name in datasource_names))
         )
+        l2_end = time()
+        logging.info("L2 DATASOURCE LIST QUERY TIME: {} ms".format((l2_end - l2_start) * 1000))
+
+        l3_start = time()
         ds_map = {ds.name: ds for ds in ds_list}
         for ds_name in datasource_names:
             datasource = ds_map.get(ds_name, None)
             if not datasource:
                 datasource = DruidDatasource(datasource_name=ds_name)
-                session.add(datasource)
+                with session.no_autoflush:
+                    session.add(datasource)
                 flasher(
                     "Adding new datasource [{}]".format(ds_name), 'success')
                 ds_map[ds_name] = datasource
@@ -157,12 +168,20 @@ class DruidCluster(Model, AuditMixinNullable):
             datasource.cluster = self
             datasource.merge_flag = merge_flag
         session.flush()
+        l3_end = time()
+        logging.info("L3 CHECKING DATASOURCES TIME: {} ms".format((l3_end - l3_start) * 1000))
+
         # Prepare multithreaded executation
+        l4_start = time()
         pool = Pool()
         ds_refresh = list(ds_map.values())
         metadata = pool.map(_fetch_metadata_for, ds_refresh)
         pool.close()
         pool.join()
+        l4_end = time()
+        logging.info("L4 METADATA UPDATE TIME: {} ms".format((l4_end - l4_start) * 1000))
+
+        l5_start = time()
         for i in range(0, len(ds_refresh)):
             datasource = ds_refresh[i]
             cols = metadata[i]
@@ -180,7 +199,8 @@ class DruidCluster(Model, AuditMixinNullable):
                     col_obj = DruidColumn(
                         datasource_name=datasource.datasource_name,
                         column_name=col)
-                    session.add(col_obj)
+                    with session.no_autoflush:
+                        session.add(col_obj)
                 datatype = cols[col]['type']
                 if datatype == 'STRING':
                     col_obj.groupby = True
@@ -196,6 +216,17 @@ class DruidCluster(Model, AuditMixinNullable):
                 col_obj.datasource = datasource
             datasource.generate_metrics_for(col_objs_list)
         session.commit()
+        l5_end = time()
+        l1_end = time()
+        logging.info("L5 COLUMN TOTAL UPDATE TIME: {} ms".format((l5_end - l5_start) * 1000))
+        logging.info("L1 <FINISH> TIME ELAPSED: {} ms".format((l1_end - l1_start) * 1000))
+        logging.info("\n{}\n{}\n{}\n{}\n{}\n".format(
+            (l1_end - l1_start) * 1000,
+            (l2_end - l2_start) * 1000,
+            (l3_end - l3_start) * 1000,
+            (l4_end - l4_start) * 1000,
+            (l5_end - l5_start) * 1000,
+        ))
 
     @property
     def perm(self):
@@ -401,6 +432,7 @@ class DruidMetric(Model, BaseMetric):
                 DruidMetric.datasource_name == lookup_metric.datasource_name,
                 DruidMetric.metric_name == lookup_metric.metric_name).first()
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
+
 
 class DruidDatasource(Model, BaseDatasource):
 
@@ -615,13 +647,15 @@ class DruidDatasource(Model, BaseDatasource):
             db.session.query(DruidMetric)
             .filter(DruidCluster.cluster_name == self.cluster_name)
             .filter(DruidMetric.datasource_name == self.datasource_name)
-            .filter(or_(DruidMetric.metric_name == m.metric_name for m in metrics))
+            .filter(or_(DruidMetric.metric_name ==
+                    m.metric_name for m in metrics))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics:
             metric.datasource_name = self.datasource_name
             if not dbmetrics.get(metric.metric_name, None):
-                db.session.add(metric)
+                with db.session.no_autoflush:
+                    db.session.add(metric)
 
     @classmethod
     def sync_to_db_from_config(
