@@ -39,6 +39,7 @@ from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
 
 DRUID_TZ = conf.get("DRUID_TZ")
 
+
 # Function wrapper because bound methods cannot
 # be passed to processes
 def _fetch_metadata_for(datasource):
@@ -107,7 +108,11 @@ class DruidCluster(Model, AuditMixinNullable):
         ).format(obj=self)
         return json.loads(requests.get(endpoint).text)['version']
 
-    def refresh_datasources(self, datasource_name=None, merge_flag=True, refreshAll=True):
+    def refresh_datasources(
+            self,
+            datasource_name=None,
+            merge_flag=True,
+            refreshAll=True):
         """Refresh metadata of all datasources in the cluster
         If ``datasource_name`` is specified, only that datasource is updated
         """
@@ -118,7 +123,7 @@ class DruidCluster(Model, AuditMixinNullable):
         if not datasource_name:
             ds_refresh = filter(lambda ds: ds not in blacklist, ds_list)
         elif datasource_name not in blacklist and datasource_name in ds_list:
-            ds_refresh.push(datasource_name)
+            ds_refresh.append(datasource_name)
         else:
             return
         self.refresh_async(ds_refresh, merge_flag, refreshAll)
@@ -132,7 +137,7 @@ class DruidCluster(Model, AuditMixinNullable):
         ds_list = (
             session.query(DruidDatasource)
             .filter(or_(DruidDatasource.datasource_name == name
-                for name in datasource_names))
+                    for name in datasource_names))
         )
         ds_map = {ds.name: ds for ds in ds_list}
         for ds_name in datasource_names:
@@ -140,10 +145,12 @@ class DruidCluster(Model, AuditMixinNullable):
             if not datasource:
                 datasource = DruidDatasource(datasource_name=ds_name)
                 session.add(datasource)
-                flasher("Adding new datasource [{}]".format(ds_name), 'success')
+                flasher(
+                    "Adding new datasource [{}]".format(ds_name), 'success')
                 ds_map[ds_name] = datasource
             elif refreshAll:
-                flasher("Refreshing datasource [{}]".format(ds_name), 'info')
+                flasher(
+                    "Refreshing datasource [{}]".format(ds_name), 'info')
             else:
                 del ds_map[ds_name]
                 continue
@@ -170,7 +177,9 @@ class DruidCluster(Model, AuditMixinNullable):
                     continue
                 col_obj = col_objs.get(col, None)
                 if not col_obj:
-                    col_obj = DruidColumn(datasource_name=datasource.datasource_name, column_name=col)
+                    col_obj = DruidColumn(
+                        datasource_name=datasource.datasource_name,
+                        column_name=col)
                     session.add(col_obj)
                 datatype = cols[col]['type']
                 if datatype == 'STRING':
@@ -320,12 +329,14 @@ class DruidColumn(Model, BaseColumn):
 
     def generate_metrics(self):
         """Generate metrics based on the column metadata"""
-        metrics = self.get_metrics();
+        metrics = self.get_metrics()
         dbmetrics = (
             db.session.query(DruidMetric)
             .filter(DruidCluster.cluster_name == self.datasource.cluster_name)
             .filter(DruidMetric.datasource_name == self.datasource_name)
-            .filter(or_(DruidMetric.metric_name == m.metric_name for m in metrics))
+            .filter(or_(
+                DruidMetric.metric_name == m.metric_name for m in metrics
+            ))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics:
@@ -613,7 +624,12 @@ class DruidDatasource(Model, BaseDatasource):
                 db.session.add(metric)
 
     @classmethod
-    def sync_to_db_from_config(cls, druid_config, user, cluster, refresh = True):
+    def sync_to_db_from_config(
+            cls,
+            druid_config,
+            user,
+            cluster,
+            refresh=True):
         """Merges the ds config from druid_config into one stored in the db."""
         session = db.session
         datasource = (
@@ -659,7 +675,7 @@ class DruidDatasource(Model, BaseDatasource):
             session.query(DruidMetric)
             .filter(DruidMetric.datasource_name == druid_config['name'])
             .filter(or_(DruidMetric.metric_name == spec['name']
-                for spec in druid_config["metrics_spec"]))
+                    for spec in druid_config["metrics_spec"]))
         )
         metric_objs = {metric.metric_name: metric for metric in metric_objs}
         for metric_spec in druid_config["metrics_spec"]:

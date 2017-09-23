@@ -238,8 +238,8 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
             query = (
                 db.session.query(models.DruidDatasource)
                 .filter(models.DruidDatasource.datasource_name ==
-                    datasource.datasource_name,
-                    models.DruidDatasource.cluster_name == datasource.cluster.id)
+                        datasource.datasource_name,
+                        models.DruidDatasource.cluster_name == datasource.cluster.id)
             )
             if db.session.query(query.exists()).scalar():
                 raise Exception(get_datasource_exist_error_mgs(
