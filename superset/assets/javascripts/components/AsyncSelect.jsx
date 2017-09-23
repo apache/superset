@@ -10,7 +10,10 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   mutator: PropTypes.func.isRequired,
   onAsyncError: PropTypes.func,
-  value: PropTypes.number,
+  value: PropTypes.oneOfType([
+    PropTypes.number,
+    PropTypes.arrayOf(PropTypes.number),
+  ]),
   valueRenderer: PropTypes.func,
   placeholder: PropTypes.string,
   autoSelect: PropTypes.bool,
@@ -63,6 +66,7 @@ class AsyncSelect extends React.PureComponent {
           isLoading={this.state.isLoading}
           onChange={this.onChange.bind(this)}
           valueRenderer={this.props.valueRenderer}
+          {...this.props}
         />
       </div>
     );

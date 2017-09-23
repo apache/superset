@@ -21,7 +21,7 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
 
 class AnnotationLayerModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(AnnotationLayer)
-    list_columns = ['name']
+    list_columns = ['id', 'name']
     edit_columns = ['name', 'descr']
     add_columns = edit_columns
 

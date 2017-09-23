@@ -28,9 +28,12 @@
 }
 
 .control-panel-section {
-  margin-bottom: 0px;
+  margin-bottom: 0;
   box-shadow: none;
 }
+.control-panel-section:last-child {
+  padding-bottom: 40px;
+ }
 
 .control-panel-section .Select-multi-value-wrapper .Select-input > input {
   width: 100px;

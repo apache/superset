@@ -57,6 +57,7 @@ class BaseViz(object):
             'token', 'token_' + uuid.uuid4().hex[:8])
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
+        self.annotation_layers = []
 
         self.status = None
         self.error_message = None
@@ -111,6 +112,7 @@ class BaseViz(object):
 
     def query_obj(self):
         """Building a query object"""
+        print("running query_obj============================")
         form_data = self.form_data
         gb = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or []
