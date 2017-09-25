@@ -53,6 +53,14 @@ class EditableTitle extends React.PureComponent {
       isEditing: false,
     });
 
+    if (!this.state.title.length) {
+      this.setState({
+        title: this.state.lastTitle,
+      });
+
+      return;
+    }
+
     if (this.state.lastTitle !== this.state.title) {
       this.setState({
         lastTitle: this.state.title,

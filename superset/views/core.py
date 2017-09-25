@@ -1067,6 +1067,8 @@ class Superset(BaseSupersetView):
         slice_overwrite_perm = is_owner(slc, g.user)
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
+        form_data['datasource'] = str(datasource_id) + '__' + datasource_type
+
         # handle save or overwrite
         action = request.args.get('action')
 
@@ -1078,10 +1080,10 @@ class Superset(BaseSupersetView):
                 request.args,
                 slc, slice_add_perm,
                 slice_overwrite_perm,
+                slice_download_perm,
                 datasource_id,
                 datasource_type)
 
-        form_data['datasource'] = str(datasource_id) + '__' + datasource_type
         standalone = request.args.get("standalone") == "true"
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -1137,7 +1139,7 @@ class Superset(BaseSupersetView):
         return json_success(payload)
 
     def save_or_overwrite_slice(
-            self, args, slc, slice_add_perm, slice_overwrite_perm,
+            self, args, slc, slice_add_perm, slice_overwrite_perm, slice_download_perm,
             datasource_id, datasource_type):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
@@ -1192,7 +1194,13 @@ class Superset(BaseSupersetView):
         if request.args.get('goto_dash') == 'true':
             return dash.url
         else:
-            return slc.slice_url
+            return json_success(json.dumps({
+                "can_add": slice_add_perm,
+                "can_download": slice_download_perm,
+                "can_overwrite": is_owner(slc, g.user),
+                'form_data': form_data,
+                'slice': slc.data,
+            }))
 
     def save_slice(self, slc):
         session = db.session()
