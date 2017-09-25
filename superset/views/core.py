@@ -1069,6 +1069,10 @@ class Superset(BaseSupersetView):
 
         # handle save or overwrite
         action = request.args.get('action')
+
+        if action == 'overwrite' and not slice_overwrite_perm:
+            return json_error_response("You don't have the rights to alter this slice", status=400)
+
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
                 request.args,
