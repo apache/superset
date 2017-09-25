@@ -25,7 +25,7 @@ from flask_appbuilder.models.decorators import renders
 
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, Date, Table, Index,
+    DateTime, Date, Table,
     create_engine, MetaData, select
 )
 from sqlalchemy.orm import relationship

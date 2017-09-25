@@ -125,6 +125,15 @@ export const controls = {
     label: t('Annotation Layers'),
     default: [],
     description: t('Annotation layers to overlay on the visualization'),
+    dataEndpoint: '/annotationlayermodelview/api/read?',
+    placeholder: t('Select a annotation layer'),
+    onAsyncErrorMessage: t('Error while fetching annotation layers'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(layer => ({ value: layer.id, label: layer.name }));
+    },
   },
 
   metric: {

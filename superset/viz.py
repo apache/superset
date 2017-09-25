@@ -112,7 +112,6 @@ class BaseViz(object):
 
     def query_obj(self):
         """Building a query object"""
-        print("running query_obj============================")
         form_data = self.form_data
         gb = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or []

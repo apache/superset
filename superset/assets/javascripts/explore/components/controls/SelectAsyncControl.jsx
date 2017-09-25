@@ -5,7 +5,12 @@ import Select from '../../../components/AsyncSelect';
 import { t } from '../../../locales';
 
 const propTypes = {
+  dataEndpoint: PropTypes.string.isRequired,
+  multi: PropTypes.bool,
+  mutator: PropTypes.func,
+  onAsyncErrorMessage: PropTypes.string,
   onChange: PropTypes.func,
+  placeholder: PropTypes.string,
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
@@ -15,46 +20,32 @@ const propTypes = {
 };
 
 const defaultProps = {
+  multi: true,
+  onAsyncErrorMessage: t('Error while fetching data'),
   onChange: () => {},
+  placeholder: t('Select ...'),
 };
 
-class SelectAsyncControl extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      value: this.props.value,
-    };
-  }
-
-  onChange(options) {
+const SelectAsyncControl = ({ value, onChange, dataEndpoint,
+                              multi, mutator, placeholder, onAsyncErrorMessage }) => {
+  const onSelectionChange = (options) => {
     const optionValues = options.map(option => option.value);
-    this.setState({ value: optionValues });
-    this.props.onChange(optionValues);
-  }
+    onChange(optionValues);
+  };
 
-  mutator(data) {
-    if (!data || !data.result) {
-      return [];
-    }
-
-    return data.result.map(layer => ({ value: layer.id, label: layer.name }));
-  }
-
-  render() {
-    return (
-      <Select
-        dataEndpoint={'/annotationlayermodelview/api/read?'}
-        onChange={this.onChange.bind(this)}
-        onAsyncError={() => notify.error(t('Error while fetching annotation layers'))}
-        mutator={this.mutator}
-        multi
-        value={this.state.value}
-        placeholder={t('Select a annotation layer')}
-        valueRenderer={v => (<div>{v.label}</div>)}
-      />
-    );
-  }
-}
+  return (
+    <Select
+      dataEndpoint={dataEndpoint}
+      onChange={onSelectionChange}
+      onAsyncError={() => notify.error(onAsyncErrorMessage)}
+      mutator={mutator}
+      multi={multi}
+      value={value}
+      placeholder={placeholder}
+      valueRenderer={v => (<div>{v.label}</div>)}
+    />
+  );
+};
 
 SelectAsyncControl.propTypes = propTypes;
 SelectAsyncControl.defaultProps = defaultProps;

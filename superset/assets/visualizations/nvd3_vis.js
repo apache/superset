@@ -484,7 +484,18 @@ function nvd3Vis(slice, payload) {
           .attr('class', 'd3-tip')
           .direction('n')
           .offset([-5, 0])
-          .html(d => (d && d.layer ? d.layer : ''));
+          .html((d) => {
+            if (!d || !d.layer) {
+              return '';
+            }
+
+            const title = d.short_descr ?
+              d.short_descr + ' - ' + d.layer :
+              d.layer;
+            const body = d.long_descr;
+            return '<div><strong>' + title + '</strong></div><br/>' +
+            '<div>' + body + '</div>';
+          });
 
         const hh = chart.yAxis.scale().range()[0];
 
@@ -517,7 +528,6 @@ function nvd3Vis(slice, payload) {
           .attr('height', 10)
           .attr('patternTransform', 'rotate(45 50 50)')
           .append('line')
-          .attr('stroke', '#00A699')
           .attr('stroke-width', 7)
           .attr('y2', 10);
 
@@ -534,9 +544,6 @@ function nvd3Vis(slice, payload) {
           })
           .attr('height', hh)
           .attr('fill', 'url(#diagonal)')
-          .attr('fill-opacity', 0.1)
-          .attr('stroke-width', 1)
-          .attr('stroke', '#00A699')
           .on('mouseover', tip.show)
           .on('mouseout', tip.hide);
 

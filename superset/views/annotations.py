@@ -18,6 +18,21 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
         'layer', 'short_descr', 'long_descr', 'start_dttm', 'end_dttm']
     add_columns = edit_columns
 
+    def pre_add(self, obj):
+        if not obj.layer:
+            raise Exception("Annotation layer is required.")
+        if not obj.start_dttm and not obj.end_dttm:
+            raise Exception("Annotation start time or end time is required.")
+        elif not obj.start_dttm:
+            obj.start_dttm = obj.end_dttm
+        elif not obj.end_dttm:
+            obj.end_dttm = obj.start_dttm
+        elif obj.end_dttm < obj.start_dttm:
+            raise Exception("Annotation end time must be no earlier than start time.")
+
+    def pre_update(self, obj):
+        self.pre_add(obj)
+
 
 class AnnotationLayerModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(AnnotationLayer)
