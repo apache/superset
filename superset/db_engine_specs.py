@@ -35,10 +35,8 @@ import os
 
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from superset import conf, cache_util, utils, app
+from superset import conf, cache_util, utils, app, results_backend
 import pandas 
-
-#from superset.connectors.sqla.models import SqlaTable
 
 config = app.config
 
@@ -131,11 +129,29 @@ class BaseEngineSpec(object):
         df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
                   index=index, index_label=index_label, chunksize=chunksize)
 
+        database = (
+            db.session
+                .query(models.Database)
+                .filter_by(sqlalchemy_uri=form.con.data)
+                .first()
+        )
+        table.database_id = database.id
+        table.user_id = g.user.id
+        table.database = database
+        table.schema = form.schema.data
+        db.session.add(table)
+        db.session.commit()
+
+        #post_add
+        table.fetch_metadata()
+        security.merge_perm(sm, 'datasource_access', table.get_perm())
+        if table.schema:
+            security.merge_perm(sm, 'schema_access', table.schema_perm)
+
 
     @staticmethod
-    def upload_csv(form):
-        # first go from CSV to df and then from df to hive?
-        # Use Pandas to convert superset dataframe to database
+    def upload_csv(form, table):
+        print(results_backend)
         def allowed_file(filename):
             # Only allow specific file extensions as specified in the config
             return '.' in filename and \
@@ -148,9 +164,7 @@ class BaseEngineSpec(object):
                                                  filename))
                 return filename
 
-
-
-        filename = secure_filename(form.csv_file.data)
+        filename = secure_filename(form.csv_file.data.filename)
         df = BaseEngineSpec.csv_to_df(names=form.names.data,
                             filepath_or_buffer=filename,
                             sep=form.sep.data,
@@ -796,44 +810,34 @@ class HiveEngineSpec(PrestoEngineSpec):
             db, datasource_type, force=force)
 
     @staticmethod
-    def upload_csv(form):
+    def upload_csv(form, table):
         def get_column_names(filepath):
             import csv
             with open(filepath, "rb") as f:
                 return csv.reader(f).next()
-                
-        #uri=
+
         table_name=form.name.data
         file_name = form.csv_file.data.filename
-        upload_path = config['UPLOAD_FOLDER'] + secure_filename(form.csv_file.data.filename)
+        print(results_backend)
 
         #from superset import csv_upload_backend
-        #csv_upload_backend.set() 
+        #csv_upload_backend.set("k", "v")
         #TODO(timifasubaa): replace the current approach with the results backend approach above.
 
-        #first upload file to server 
-
-
-        bucket_path = 's3a://airbnb-superset/' 
+        bucket_path = config["HIVE_CSV_BUCKET_PATH"] 
         s3_dir = "hive_csv/"+table_name+"/"
-        
+
+        upload_path = config['UPLOAD_FOLDER'] + secure_filename(form.csv_file.data.filename)
         column_names = get_column_names(upload_path)
         schema_definition = ", ".join([col_name + " STRING " for col_name in column_names])
 
-
         import boto3
         s3 = boto3.client('s3')
-        s3r = boto3.resource("s3")
-        airpal = s3r.Bucket("airbnb-superset")
-        #for item in airpal.objects.all():
-        #  print(item)
-
         s3.upload_file(upload_path, 'airbnb-superset', s3_dir+file_name)
         sql = "CREATE EXTERNAL TABLE " + str(table_name) + " ( " + str(schema_definition) + " ) " +\
             "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE " + "LOCATION '" + str(bucket_path) + str(s3_dir) + "'"
         try:
             engine = create_engine(form.con.data)
-            print("first statement done")
             engine.execute(sql)
         except Exception as e:
             print(e)

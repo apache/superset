@@ -355,9 +355,6 @@ class CsvToDatabaseView(SimpleFormView):
         form.index_label.data = None
 
     def form_post(self, form):
-        # post process form
-
-        # Turn into list of strings
         def upload_file(csv_file):
             if csv_file and csv_file.filename:
                 filename = secure_filename(csv_file.filename)
@@ -376,8 +373,6 @@ class CsvToDatabaseView(SimpleFormView):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
         filename = upload_file(form.csv_file.data)
 
-        # some of this stuff belongs in db_engine_spec
-        #print(form.data)
         database = db.session.query(models.Database).filter_by(sqlalchemy_uri=form.data.get('con')).one()
         database.db_engine_spec.upload_csv(form)
         if not isinstance(database.db_engine_spec, db_engine_spec.HiveEngineSpec):
@@ -394,17 +389,20 @@ class CsvToDatabaseView(SimpleFormView):
             table.schema = form.schema.data
             db.session.add(table)
             db.session.commit()
-        # Should I set this to g.user? The other tables don't have an owner.
-        # table.owner = g.user.id
-        # Do I need to set table.sql? None of the default tables have it set.
-        # table.sql =
 
+            #post_add
+            table.fetch_metadata()
+            security.merge_perm(sm, 'datasource_access', table.get_perm())
+            if table.schema:
+                security.merge_perm(sm, 'schema_access', table.schema_perm)
 
         # Go back to welcome page / splash screen
+        db_name = db.session.query(models.Database.database_name).filter_by(sqlalchemy_uri=form.data.get('con')).one()
+
         message = _('CSV file "{0}" uploaded to table "{1}" in '
                     'database "{2}"'.format(form.csv_file.data.filename,
                                             form.name.data,
-                                            form.con.data))
+                                            db_name))
         flash(message, 'info')
         return redirect('/tablemodelview/list/')
 

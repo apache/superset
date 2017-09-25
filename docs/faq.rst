@@ -48,10 +48,8 @@ https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed
 Can I upload and visualize csv data?
 -------------------------------------
 
-Yes, using the ``Add CSV Table to Database`` button on the ``Sources -> Database``
-page. This brings up a wizard allowing you to configure the csv to dataframe
-conversion, and to select which database to add the csv table to. The table can
-then be loaded like any other on the ``Sources -> Tables`` page.
+Yes, using the ``Upload a CSV`` button under the ``Sources``
+menu item. This brings up a form that allows you specify required information. After creating the table from CSV, it can then be loadede like any other on the ``Sources -> Tables``page.
 
 
 Why are my queries timing out?
