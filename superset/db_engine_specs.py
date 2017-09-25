@@ -30,13 +30,18 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
 
-from superset.utils import SupersetTemplateException
-from superset.utils import QueryStatus
-from superset import conf, cache_util, utils, app 
-
+from werkzeug.utils import secure_filename
 import os
 
+from superset.utils import SupersetTemplateException
+from superset.utils import QueryStatus
+from superset import conf, cache_util, utils, app
+import pandas 
+
+#from superset.connectors.sqla.models import SqlaTable
+
 config = app.config
+
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 
 Grain = namedtuple('Grain', 'name label function')
@@ -53,7 +58,7 @@ class BaseEngineSpec(object):
     """Abstract class for database engine specific configurations"""
 
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    cursor_execute_kwargs = {}  
+    cursor_execute_kwargs = {}
     time_grains = tuple()
     time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
@@ -78,8 +83,8 @@ class BaseEngineSpec(object):
         """Returns engine-specific table metadata"""
         return {}
 
-    @classmethod
-    def csv_to_df(cls, names, filepath_or_buffer, sep, header, index_col, squeeze,
+    @staticmethod
+    def csv_to_df(names, filepath_or_buffer, sep, header, index_col, squeeze,
                   prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
                   skip_blank_lines, parse_dates, infer_datetime_format,
                   dayfirst, thousands, decimal, quotechar, escapechar, comment,
@@ -113,6 +118,7 @@ class BaseEngineSpec(object):
                                  iterator=True)
         df = pandas.DataFrame()
         df = pandas.concat(chunk for chunk in chunks)
+        print(df)
         return df
 
     @staticmethod
@@ -125,24 +131,6 @@ class BaseEngineSpec(object):
         df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
                   index=index, index_label=index_label, chunksize=chunksize)
 
-
-        table = SqlaTable(table_name=name)
-        database = (
-                    db.session
-                    .query(models.Database)
-                    .filter_by(sqlalchemy_uri=con)
-                    .first()
-        )
-        table.database_id = database.id
-        table.user_id = g.user.id
-        table.database = database
-        table.schema = schema
-        db.session.add(table)
-        db.session.commit()
-        # Should I set this to g.user? The other tables don't have an owner.
-        # table.owner = g.user.id
-        # Do I need to set table.sql? None of the default tables have it set.
-        # table.sql =
 
     @staticmethod
     def upload_csv(form):
@@ -160,8 +148,10 @@ class BaseEngineSpec(object):
                                                  filename))
                 return filename
 
-        filename = upload_file(form.csv_file.data)
-        BaseEngineSpec.csv_to_df(names=form.names.data,
+
+
+        filename = secure_filename(form.csv_file.data)
+        df = BaseEngineSpec.csv_to_df(names=form.names.data,
                             filepath_or_buffer=filename,
                             sep=form.sep.data,
                             header=form.header.data,
@@ -174,7 +164,7 @@ class BaseEngineSpec(object):
                             nrows=form.nrows.data,
                             skip_blank_lines=form.skip_blank_lines.data,
                             parse_dates=form.parse_dates.data,
-                            infer_datetime_format=datetime_flag,
+                            infer_datetime_format=form.infer_datetime_format.data,
                             dayfirst=form.dayfirst.data,
                             thousands=form.thousands.data,
                             decimal=form.decimal.data,
@@ -811,25 +801,44 @@ class HiveEngineSpec(PrestoEngineSpec):
             import csv
             with open(filepath, "rb") as f:
                 return csv.reader(f).next()
+                
+        #uri=
+        table_name=form.name.data
+        file_name = form.csv_file.data.filename
+        upload_path = config['UPLOAD_FOLDER'] + secure_filename(form.csv_file.data.filename)
 
-        uri, table_name, filepath
         #from superset import csv_upload_backend
         #csv_upload_backend.set() 
         #TODO(timifasubaa): replace the current approach with the results backend approach above.
 
+        #first upload file to server 
 
-        s3_location = 's3a://airpal/superset/' + tablename
+
+        bucket_path = 's3a://airbnb-superset/' 
+        s3_dir = "hive_csv/"+table_name+"/"
         
-        column_names = get_column_names(filepath)
+        column_names = get_column_names(upload_path)
         schema_definition = ", ".join([col_name + " STRING " for col_name in column_names])
 
 
         import boto3
-        s3 = boto3.client('airpal')
-        s3.upload_file("superset/tablename/"+source_filename, 'airpal', dest_filename)
-        return True
-        #return whether or not the upload was successful
-        
+        s3 = boto3.client('s3')
+        s3r = boto3.resource("s3")
+        airpal = s3r.Bucket("airbnb-superset")
+        #for item in airpal.objects.all():
+        #  print(item)
+
+        s3.upload_file(upload_path, 'airbnb-superset', s3_dir+file_name)
+        sql = "CREATE EXTERNAL TABLE " + str(table_name) + " ( " + str(schema_definition) + " ) " +\
+            "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE " + "LOCATION '" + str(bucket_path) + str(s3_dir) + "'"
+        try:
+            engine = create_engine(form.con.data)
+            print("first statement done")
+            engine.execute(sql)
+        except Exception as e:
+            print(e)
+            print(sql)
+            print("AN EXCEPTION WAS THROWN!")
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):

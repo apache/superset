@@ -358,52 +358,51 @@ class CsvToDatabaseView(SimpleFormView):
         # post process form
 
         # Turn into list of strings
+        def upload_file(csv_file):
+            if csv_file and csv_file.filename:
+                filename = secure_filename(csv_file.filename)
+                csv_file.save(os.path.join(config['UPLOAD_FOLDER'],
+                                                 filename))
+                return filename
+
+
         if form.names.data is not None:
             form.names.data = form.names.data.split(",")
         else:
             if form.header.data is None:
                 form.header.data = 0
 
-        # Attempt to upload csv file
-        #filename = self.upload_file(form)
 
-        # Use Pandas to convert csv to dataframe
-        datetime_flag = form.infer_datetime_format.data
+        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        filename = upload_file(form.csv_file.data)
 
         # some of this stuff belongs in db_engine_spec
-        print(form.data)
+        #print(form.data)
         database = db.session.query(models.Database).filter_by(sqlalchemy_uri=form.data.get('con')).one()
-        print(dir(database))
         database.db_engine_spec.upload_csv(form)
-
-        if(isinstance(database, HiveEngineSpec)):
-            
-            sql = "CREATE EXTERNAL TABLE" , table_name, " ( ", schema_definition, " ) ", \
-                "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' LOCATION ", s3_location
-            try:
-                engine = create_engine("hive://hive-server2-silver.synapse:3623/default?auth=NOSASL")
-                engine.exectute_statement(sql)
-            except Exception:
-                print("AN EXCEPTION WAS THROWN!")
-        else:
-            table = SqlaTable(table_name=name)
+        if not isinstance(database.db_engine_spec, db_engine_spec.HiveEngineSpec):
+            table = SqlaTable(table_name=form.name.data)
             database = (
                         db.session
                         .query(models.Database)
-                        .filter_by(sqlalchemy_uri=con)
+                        .filter_by(sqlalchemy_uri=form.con.data)
                         .first()
             )
             table.database_id = database.id
             table.user_id = g.user.id
             table.database = database
-            table.schema = schema
+            table.schema = form.schema.data
             db.session.add(table)
             db.session.commit()
+        # Should I set this to g.user? The other tables don't have an owner.
+        # table.owner = g.user.id
+        # Do I need to set table.sql? None of the default tables have it set.
+        # table.sql =
 
 
         # Go back to welcome page / splash screen
         message = _('CSV file "{0}" uploaded to table "{1}" in '
-                    'database "{2}"'.format(filename,
+                    'database "{2}"'.format(form.csv_file.data.filename,
                                             form.name.data,
                                             form.con.data))
         flash(message, 'info')

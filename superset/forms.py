@@ -22,7 +22,9 @@ from wtforms import (
 from wtforms import validators, widgets
 from wtforms.validators import DataRequired, Optional, NumberRange
 
-from superset import app
+from superset import app, db
+import superset.models.core as models
+
 
 config = app.config
 
@@ -1202,11 +1204,13 @@ class CsvToDatabaseForm(DynamicForm):
                                      FileAllowed(['csv'],
                                                  _('CSV Files '
                                                    'Only!'))])
-    con = StringField(_('Database URI'),
+    all_datasources = db.session.query(models.Database.sqlalchemy_uri, models.Database.database_name).all()
+    con = SelectField(_('Database URI'),
                      description=_('URI of database in which to '
                                     'add above table.'),
                      validators=[DataRequired()],
-                     widget=BS3TextFieldWidget())
+                     choices=all_datasources
+                       )
     if_exists = SelectField(_('Table Exists'),
                             description=_('If table exists do one '
                                           'of the following: '
