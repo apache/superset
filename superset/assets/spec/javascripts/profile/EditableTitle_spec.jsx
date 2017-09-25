@@ -81,5 +81,12 @@ describe('EditableTitle', () => {
       // no change
       expect(callback.callCount).to.equal(0);
     });
+    it('should not save empty title', () => {
+      editableWrapper.setState({ title: '' });
+      editableWrapper.find('input').simulate('blur');
+      expect(editableWrapper.find('input').props().type).to.equal('button');
+      expect(editableWrapper.find('input').props().value).to.equal('my title');
+      expect(callback.callCount).to.equal(0);
+    });
   });
 });
