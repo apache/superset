@@ -37,8 +37,6 @@ from superset.utils import (
 from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
 
-from time import time # TODO REMOVE
-
 DRUID_TZ = conf.get("DRUID_TZ")
 
 
@@ -135,20 +133,13 @@ class DruidCluster(Model, AuditMixinNullable):
         Fetches metadata for the specified datasources andm
         merges to the Superset database
         """
-        logging.info("<START> REFRESH ASYNC")
-        l1_start = time()
-
-        l2_start = time()
         session = db.session
         ds_list = (
             session.query(DruidDatasource)
             .filter(or_(DruidDatasource.datasource_name == name
                     for name in datasource_names))
         )
-        l2_end = time()
-        logging.info("L2 DATASOURCE LIST QUERY TIME: {} ms".format((l2_end - l2_start) * 1000))
 
-        l3_start = time()
         ds_map = {ds.name: ds for ds in ds_list}
         for ds_name in datasource_names:
             datasource = ds_map.get(ds_name, None)
@@ -168,20 +159,14 @@ class DruidCluster(Model, AuditMixinNullable):
             datasource.cluster = self
             datasource.merge_flag = merge_flag
         session.flush()
-        l3_end = time()
-        logging.info("L3 CHECKING DATASOURCES TIME: {} ms".format((l3_end - l3_start) * 1000))
 
         # Prepare multithreaded executation
-        l4_start = time()
         pool = Pool()
         ds_refresh = list(ds_map.values())
         metadata = pool.map(_fetch_metadata_for, ds_refresh)
         pool.close()
         pool.join()
-        l4_end = time()
-        logging.info("L4 METADATA UPDATE TIME: {} ms".format((l4_end - l4_start) * 1000))
 
-        l5_start = time()
         for i in range(0, len(ds_refresh)):
             datasource = ds_refresh[i]
             cols = metadata[i]
@@ -216,17 +201,6 @@ class DruidCluster(Model, AuditMixinNullable):
                 col_obj.datasource = datasource
             datasource.generate_metrics_for(col_objs_list)
         session.commit()
-        l5_end = time()
-        l1_end = time()
-        logging.info("L5 COLUMN TOTAL UPDATE TIME: {} ms".format((l5_end - l5_start) * 1000))
-        logging.info("L1 <FINISH> TIME ELAPSED: {} ms".format((l1_end - l1_start) * 1000))
-        logging.info("\n{}\n{}\n{}\n{}\n{}\n".format(
-            (l1_end - l1_start) * 1000,
-            (l2_end - l2_start) * 1000,
-            (l3_end - l3_start) * 1000,
-            (l4_end - l4_start) * 1000,
-            (l5_end - l5_start) * 1000,
-        ))
 
     @property
     def perm(self):
@@ -278,13 +252,13 @@ class DruidColumn(Model, BaseColumn):
             return json.loads(self.dimension_spec_json)
 
     def get_metrics(self):
-        metrics = []
-        metrics.append(DruidMetric(
+        metrics = {}
+        metrics['count'] = DruidMetric(
             metric_name='count',
             verbose_name='COUNT(*)',
             metric_type='count',
             json=json.dumps({'type': 'count', 'name': 'count'})
-        ))
+        )
         # Somehow we need to reassign this for UDAFs
         if self.type in ('DOUBLE', 'FLOAT'):
             corrected_type = 'DOUBLE'
@@ -294,49 +268,49 @@ class DruidColumn(Model, BaseColumn):
         if self.sum and self.is_num:
             mt = corrected_type.lower() + 'Sum'
             name = 'sum__' + self.column_name
-            metrics.append(DruidMetric(
+            metrics[name] = DruidMetric(
                 metric_name=name,
                 metric_type='sum',
                 verbose_name='SUM({})'.format(self.column_name),
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
-            ))
+            )
 
         if self.avg and self.is_num:
             mt = corrected_type.lower() + 'Avg'
             name = 'avg__' + self.column_name
-            metrics.append(DruidMetric(
+            metrics[name] = DruidMetric(
                 metric_name=name,
                 metric_type='avg',
                 verbose_name='AVG({})'.format(self.column_name),
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
-            ))
+            )
 
         if self.min and self.is_num:
             mt = corrected_type.lower() + 'Min'
             name = 'min__' + self.column_name
-            metrics.append(DruidMetric(
+            metrics[name] = DruidMetric(
                 metric_name=name,
                 metric_type='min',
                 verbose_name='MIN({})'.format(self.column_name),
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
-            ))
+            )
         if self.max and self.is_num:
             mt = corrected_type.lower() + 'Max'
             name = 'max__' + self.column_name
-            metrics.append(DruidMetric(
+            metrics[name] = DruidMetric(
                 metric_name=name,
                 metric_type='max',
                 verbose_name='MAX({})'.format(self.column_name),
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
-            ))
+            )
         if self.count_distinct:
             name = 'count_distinct__' + self.column_name
             if self.type == 'hyperUnique' or self.type == 'thetaSketch':
-                metrics.append(DruidMetric(
+                metrics[name] = DruidMetric(
                     metric_name=name,
                     verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
                     metric_type=self.type,
@@ -345,9 +319,9 @@ class DruidColumn(Model, BaseColumn):
                         'name': name,
                         'fieldName': self.column_name
                     })
-                ))
+                )
             else:
-                metrics.append(DruidMetric(
+                metrics[name] = DruidMetric(
                     metric_name=name,
                     verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
                     metric_type='count_distinct',
@@ -355,7 +329,7 @@ class DruidColumn(Model, BaseColumn):
                         'type': 'cardinality',
                         'name': name,
                         'fieldNames': [self.column_name]})
-                ))
+                )
         return metrics
 
     def generate_metrics(self):
@@ -366,11 +340,11 @@ class DruidColumn(Model, BaseColumn):
             .filter(DruidCluster.cluster_name == self.datasource.cluster_name)
             .filter(DruidMetric.datasource_name == self.datasource_name)
             .filter(or_(
-                DruidMetric.metric_name == m.metric_name for m in metrics
+                DruidMetric.metric_name == m for m in metrics
             ))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
-        for metric in metrics:
+        for metric in metrics.values():
             metric.datasource_name = self.datasource_name
             if not dbmetrics.get(metric.metric_name, None):
                 db.session.add(metric)
@@ -640,18 +614,17 @@ class DruidDatasource(Model, BaseDatasource):
         self.generate_metrics_for(self.columns)
 
     def generate_metrics_for(self, columns):
-        metrics = []
+        metrics = {}
         for col in columns:
-            metrics += col.get_metrics()
+            metrics.update(col.get_metrics())
         dbmetrics = (
             db.session.query(DruidMetric)
             .filter(DruidCluster.cluster_name == self.cluster_name)
             .filter(DruidMetric.datasource_name == self.datasource_name)
-            .filter(or_(DruidMetric.metric_name ==
-                    m.metric_name for m in metrics))
+            .filter(or_(DruidMetric.metric_name == m for m in metrics))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
-        for metric in metrics:
+        for metric in metrics.values():
             metric.datasource_name = self.datasource_name
             if not dbmetrics.get(metric.metric_name, None):
                 with db.session.no_autoflush:
