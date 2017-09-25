@@ -10,7 +10,7 @@ from sqlalchemy import (
     DateTime,
 )
 import sqlalchemy as sa
-from sqlalchemy import asc, and_, desc, select
+from sqlalchemy import asc, and_, desc, select, or_
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import table, literal_column, text, column
@@ -588,30 +588,29 @@ class SqlaTable(Model, BaseDatasource):
             table = self.get_sqla_table_object()
         except Exception:
             raise Exception(_(
-                "Table doesn't seem to exist in the specified database, "
-                "couldn't fetch column information"))
+                "Table [{}] doesn't seem to exist in the specified database, "
+                "couldn't fetch column information").format(self.table_name))
 
-        TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa
         metrics = []
         any_date_col = None
-        db_dialect = self.database.get_sqla_engine().dialect
+        db_dialect = self.database.get_dialect()
+        dbcols = (
+            db.session.query(TableColumn)
+            .filter(TableColumn.table == self)
+            .filter(or_(TableColumn.column_name == col.name
+                        for col in table.columns)))
+        dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
+
         for col in table.columns:
             try:
-                datatype = "{}".format(col.type.compile(dialect=db_dialect)).upper()
+                datatype = col.type.compile(dialect=db_dialect).upper()
             except Exception as e:
                 datatype = "UNKNOWN"
                 logging.error(
                     "Unrecognized data type in {}.{}".format(table, col.name))
                 logging.exception(e)
-            dbcol = (
-                db.session
-                .query(TC)
-                .filter(TC.table == self)
-                .filter(TC.column_name == col.name)
-                .first()
-            )
-            db.session.flush()
+            dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype)
                 dbcol.groupby = dbcol.is_string
@@ -619,14 +618,11 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
-
-            db.session.merge(self)
             self.columns.append(dbcol)
-
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
 
-            quoted = "{}".format(col.compile(dialect=db_dialect))
+            quoted = str(col.compile(dialect=db_dialect))
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,
@@ -663,8 +659,6 @@ class SqlaTable(Model, BaseDatasource):
                     expression="COUNT(DISTINCT {})".format(quoted)
                 ))
             dbcol.type = datatype
-            db.session.merge(self)
-            db.session.commit()
 
         metrics.append(M(
             metric_name='count',
@@ -672,19 +666,18 @@ class SqlaTable(Model, BaseDatasource):
             metric_type='count',
             expression="COUNT(*)"
         ))
+
+        dbmetrics = db.session.query(M).filter(M.table_id == self.id).filter(
+            or_(M.metric_name == metric.metric_name for metric in metrics))
+        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics:
-            m = (
-                db.session.query(M)
-                .filter(M.metric_name == metric.metric_name)
-                .filter(M.table_id == self.id)
-                .first()
-            )
             metric.table_id = self.id
-            if not m:
+            if not dbmetrics.get(metric.metric_name, None):
                 db.session.add(metric)
-                db.session.commit()
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
+        db.session.merge(self)
+        db.session.commit()
 
     @classmethod
     def import_obj(cls, i_datasource, import_time=None):
