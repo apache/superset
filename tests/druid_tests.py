@@ -311,6 +311,9 @@ class DruidTests(SupersetTestCase):
 
         cluster.refresh_datasources()
         datasource_id = cluster.datasources[0].id
+        cluster.datasources[0].merge_flag = True
+        metadata = cluster.datasources[0].latest_metadata()
+        self.assertEqual(len(metadata), 4)
         db.session.commit()
 
         view_menu_name = cluster.datasources[0].get_perm()
