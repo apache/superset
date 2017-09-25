@@ -4,22 +4,35 @@ import PropTypes from 'prop-types';
 
 import { t } from '../../locales';
 import { getExploreUrl } from '../../explore/exploreUtils';
+import EditableTitle from '../../components/EditableTitle';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
   removeSlice: PropTypes.func.isRequired,
+  updateSliceName: PropTypes.func,
   expandedSlices: PropTypes.object,
 };
 
-function SliceCell({ expandedSlices, removeSlice, slice }) {
+const SliceCell = ({ expandedSlices, removeSlice, slice, updateSliceName }) => {
+  const onSaveTitle = (newTitle) => {
+    if (updateSliceName) {
+      updateSliceName(slice.slice_id, newTitle);
+    }
+  };
+
   return (
     <div className="slice-cell" id={`${slice.slice_id}-cell`}>
-      <div className="chart-header">
-        <div className="row">
-          <div className="col-md-12 header">
-            <span>{slice.slice_name}</span>
+      <div className="row chart-header">
+        <div className="col-md-12">
+          <div className="header">
+            <EditableTitle
+              title={slice.slice_name}
+              canEdit={!!updateSliceName}
+              onSaveTitle={onSaveTitle}
+              noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
+            />
           </div>
-          <div className="col-md-12 chart-controls">
+          <div className="chart-controls">
             <div id={'controls_' + slice.slice_id} className="pull-right">
               <a title={t('Move chart')} data-toggle="tooltip">
                 <i className="fa fa-arrows drag" />
@@ -97,7 +110,7 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
       </div>
     </div>
   );
-}
+};
 
 SliceCell.propTypes = propTypes;
 
