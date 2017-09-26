@@ -133,6 +133,7 @@ class _memoized(object):  # noqa
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
 
+
 def memoized(func=None, watch=None):
     if func:
         return _memoized(func)
@@ -140,6 +141,7 @@ def memoized(func=None, watch=None):
         def wrapper(f):
             return _memoized(f, watch)
         return wrapper
+
 
 def js_string_to_python(item):
     return None if item in ('null', 'undefined') else item

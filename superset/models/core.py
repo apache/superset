@@ -629,7 +629,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 effective_username = g.user.username
         return effective_username
 
-    @utils.memoized(watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
+    @utils.memoized(
+        watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
     def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)

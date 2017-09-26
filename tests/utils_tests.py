@@ -8,7 +8,7 @@ import numpy
 
 from superset.utils import (
     base_json_conv, datetime_f, json_int_dttm_ser, json_iso_dttm_ser,
-    JSONEncodedDict, merge_extra_filters, parse_human_timedelta, memoized,
+    JSONEncodedDict, memoized, merge_extra_filters, parse_human_timedelta,
     SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
 )
 
