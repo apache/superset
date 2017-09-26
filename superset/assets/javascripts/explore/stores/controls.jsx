@@ -568,17 +568,28 @@ export const controls = {
   granularity_sqla: {
     type: 'SelectControl',
     label: t('Time Column'),
-    default: control =>
-      control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
     description: t('The time column for the visualization. Note that you ' +
     'can define arbitrary expression that return a DATETIME ' +
-    'column in the table or. Also note that the ' +
+    'column in the table. Also note that the ' +
     'filter below is applied against this column or ' +
     'expression'),
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.granularity_sqla : [],
-    }),
-    freeForm: true,
+    default: (c) => {
+      if (c.options && c.options.length > 0) {
+        return c.options[0].column_name;
+      }
+      return null;
+    },
+    clearable: false,
+    optionRenderer: c => <ColumnOption column={c} />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    mapStateToProps: (state) => {
+      const newState = {};
+      if (state.datasource) {
+        newState.options = state.datasource.columns.filter(c => c.is_dttm);
+      }
+      return newState;
+    },
   },
 
   time_grain_sqla: {
