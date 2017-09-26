@@ -2318,7 +2318,7 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/slice/<slice_id>/query/")
+    @expose("/slice_query/<slice_id>/")
     def sliceQuery(self, slice_id):
         """
         This method exposes an API endpoint to

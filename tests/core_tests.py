@@ -762,7 +762,7 @@ class CoreTests(SupersetTestCase):
         # API endpoint for query string
         self.login(username="admin")
         slc = self.get_slice("Girls", db.session)
-        resp = self.get_resp('/superset/slice/{}/query/'.format(slc.id))
+        resp = self.get_resp('/superset/slice_query/{}/'.format(slc.id))
         assert 'query' in resp
         assert 'language' in resp
         self.logout();
