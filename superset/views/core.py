@@ -41,6 +41,8 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 
+from superset.tasks.refresh import views
+
 from .base import (
     api, SupersetModelView, BaseSupersetView, DeleteMixin,
     SupersetFilter, get_user_roles, json_error_response, get_error_msg,
