@@ -1101,6 +1101,24 @@ export const visTypes = {
       },
     },
   },
+
+  paired_ttest: {
+    label: 'Time Series - Paired t-test',
+    showOnExplore: true,
+    requiresTime: true,
+    controlPanelSections: [
+      sections.NVD3TimeSeries[0],
+      {
+        label: 'Paired t-test',
+        expanded: false,
+        controlSetRows: [
+          ['significance_level'],
+          ['pvalue_precision'],
+          ['liftvalue_precision'],
+        ],
+      },
+    ],
+  },
 };
 
 export default visTypes;

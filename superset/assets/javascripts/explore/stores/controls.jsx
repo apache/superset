@@ -1370,5 +1370,26 @@ export const controls = {
     description: t('The color scheme for rendering chart'),
     schemes: ALL_COLOR_SCHEMES,
   },
+
+  significance_level: {
+    type: 'TextControl',
+    label: 'Significance Level',
+    default: 0.05,
+    description: 'Threshold alpha level for determining significance',
+  },
+
+  pvalue_precision: {
+    type: 'TextControl',
+    label: 'p-value precision',
+    default: 6,
+    description: 'Number of decimal places with which to display p-values',
+  },
+
+  liftvalue_precision: {
+    type: 'TextControl',
+    label: 'Lift % precision',
+    default: 4,
+    description: 'Number of decimal places with which to display lift values',
+  },
 };
 export default controls;
