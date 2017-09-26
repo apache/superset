@@ -53,6 +53,7 @@
     "d3-tip": "^0.6.7",
     "datamaps": "^0.5.8",
     "datatables.net-bs": "^1.10.15",
+    "distributions": "^1.0.0",
     "immutable": "^3.8.1",
     "jed": "^1.1.1",
     "po2json": "^0.4.5",
