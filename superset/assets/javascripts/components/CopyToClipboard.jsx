@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Tooltip, OverlayTrigger, MenuItem } from 'react-bootstrap';
+import { t } from '../locales';
 
 const propTypes = {
   copyNode: PropTypes.node,
@@ -17,7 +18,7 @@ const defaultProps = {
   onCopyEnd: () => {},
   shouldShowText: true,
   inMenu: false,
-  tooltipText: 'Copy to clipboard',
+  tooltipText: t('Copy to clipboard'),
 };
 
 export default class CopyToClipboard extends React.Component {
@@ -61,10 +62,10 @@ export default class CopyToClipboard extends React.Component {
     textArea.select();
     try {
       if (!document.execCommand('copy')) {
-        throw new Error('Not successful');
+        throw new Error(t('Not successful'));
       }
     } catch (err) {
-      window.alert('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'); // eslint-disable-line
+      window.alert(t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!')); // eslint-disable-line
     }
 
     document.body.removeChild(textArea);
@@ -75,7 +76,7 @@ export default class CopyToClipboard extends React.Component {
 
   tooltipText() {
     if (this.state.hasCopied) {
-      return 'Copied!';
+      return t('Copied!');
     }
     return this.props.tooltipText;
   }

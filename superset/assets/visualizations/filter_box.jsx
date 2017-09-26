@@ -11,6 +11,7 @@ import ControlRow from '../javascripts/explore/components/ControlRow';
 import Control from '../javascripts/explore/components/Control';
 import controls from '../javascripts/explore/stores/controls';
 import './filter_box.css';
+import { t } from '../javascripts/locales';
 
 // maps control names to their key in extra_filters
 const timeFilterMap = {
@@ -163,7 +164,7 @@ class FilterBox extends React.Component {
         <div key={filter} className="m-b-5">
           {this.props.datasource.verbose_map[filter] || filter}
           <Select.Creatable
-            placeholder={`Select [${filter}]`}
+            placeholder={t('Select [%s]', filter)}
             key={filter}
             multi
             value={this.state.selectedValues[filter]}

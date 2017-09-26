@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ControlLabel, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import { t } from '../../locales';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
@@ -28,7 +29,7 @@ export default class ControlHeader extends React.Component {
           {this.props.description &&
             <span>
               <InfoTooltipWithTrigger
-                label="descr"
+                label={t('description')}
                 tooltip={this.props.description}
                 placement="top"
               />
@@ -38,7 +39,7 @@ export default class ControlHeader extends React.Component {
           {this.props.renderTrigger &&
             <span>
               <InfoTooltipWithTrigger
-                label="bolt"
+                label={t('bolt')}
                 tooltip={this.props.description}
                 placement="top"
                 icon="bolt"

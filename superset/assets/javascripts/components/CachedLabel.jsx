@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Label } from 'react-bootstrap';
 import moment from 'moment';
 import TooltipWrapper from './TooltipWrapper';
+import { t } from '../locales';
 
 const propTypes = {
   onClick: PropTypes.func,
@@ -22,14 +23,14 @@ class CacheLabel extends React.PureComponent {
   updateTooltipContent() {
     const cachedText = this.props.cachedTimestamp ? (
       <span>
-        Loaded data cached <b>{moment.utc(this.props.cachedTimestamp).fromNow()}</b>
+        t('Loaded data cached') <b>{moment.utc(this.props.cachedTimestamp).fromNow()}</b>
       </span>) :
-      'Loaded from cache';
+      t('Loaded from cache');
 
     const tooltipContent = (
       <span>
         {cachedText}.
-        Click to force-refresh
+        {t('Click to force-refresh')}
       </span>
     );
     this.setState({ tooltipContent });

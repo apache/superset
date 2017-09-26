@@ -8,6 +8,10 @@ from superset.utils import (
     zlib_compress,
     zlib_decompress_to_string,
     merge_extra_filters,
+    datetime_f,
+    JSONEncodedDict,
+    validate_json,
+    SupersetException,
 )
 import unittest
 import uuid
@@ -112,3 +116,26 @@ class UtilsTestCase(unittest.TestCase):
         }
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
+
+    def test_datetime_f(self):
+        self.assertEquals(datetime_f(datetime(1990, 9, 21, 19, 11, 19, 626096)),
+            '<nobr>1990-09-21T19:11:19.626096</nobr>')
+        self.assertEquals(len(datetime_f(datetime.now())), 28)
+        self.assertEquals(datetime_f(None), '<nobr>None</nobr>')
+        iso = datetime.now().isoformat()[:10].split('-')
+        [a, b, c] = [int(v) for v in iso]
+        self.assertEquals(datetime_f(datetime(a, b, c)), '<nobr>00:00:00</nobr>')
+
+    def test_json_encoded_obj(self):
+        obj = {'a': 5, 'b': ['a', 'g', 5]}
+        val = '{"a": 5, "b": ["a", "g", 5]}'
+        jsonObj = JSONEncodedDict()
+        resp = jsonObj.process_bind_param(obj, 'dialect')
+        self.assertIn('"a": 5', resp)
+        self.assertIn('"b": ["a", "g", 5]', resp)
+        self.assertEquals(jsonObj.process_result_value(val, 'dialect'), obj)
+
+    def test_validate_json(self):
+        invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
+        with self.assertRaises(SupersetException):
+            validate_json(invalid)

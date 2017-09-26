@@ -944,6 +944,20 @@ class Superset(BaseSupersetView):
             endpoint += '&standalone=true'
         return redirect(endpoint)
 
+    def get_query_string_response(self, viz_obj):
+        try:
+            query_obj = viz_obj.query_obj()
+            query = viz_obj.datasource.get_query_str(query_obj)
+        except Exception as e:
+            return json_error_response(e)
+        return Response(
+            json.dumps({
+                'query': query,
+                'language': viz_obj.datasource.query_language,
+            }),
+            status=200,
+            mimetype="application/json")
+
     @log_this
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
@@ -970,18 +984,7 @@ class Superset(BaseSupersetView):
                 mimetype="application/csv")
 
         if request.args.get("query") == "true":
-            try:
-                query_obj = viz_obj.query_obj()
-                query = viz_obj.datasource.get_query_str(query_obj)
-            except Exception as e:
-                return json_error_response(e)
-            return Response(
-                json.dumps({
-                    'query': query,
-                    'language': viz_obj.datasource.query_language,
-                }),
-                status=200,
-                mimetype="application/json")
+            return self.get_query_string_response(viz_obj)
 
         payload = {}
         try:
@@ -1067,13 +1070,20 @@ class Superset(BaseSupersetView):
         slice_overwrite_perm = is_owner(slc, g.user)
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
+        form_data['datasource'] = str(datasource_id) + '__' + datasource_type
+
         # handle save or overwrite
         action = request.args.get('action')
+
+        if action == 'overwrite' and not slice_overwrite_perm:
+            return json_error_response("You don't have the rights to alter this slice", status=400)
+
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
                 request.args,
                 slc, slice_add_perm,
                 slice_overwrite_perm,
+                slice_download_perm,
                 datasource_id,
                 datasource_type)
 
@@ -1137,7 +1147,7 @@ class Superset(BaseSupersetView):
         return json_success(payload)
 
     def save_or_overwrite_slice(
-            self, args, slc, slice_add_perm, slice_overwrite_perm,
+            self, args, slc, slice_add_perm, slice_overwrite_perm, slice_download_perm,
             datasource_id, datasource_type):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
@@ -1192,7 +1202,13 @@ class Superset(BaseSupersetView):
         if request.args.get('goto_dash') == 'true':
             return dash.url
         else:
-            return slc.slice_url
+            return json_success(json.dumps({
+                "can_add": slice_add_perm,
+                "can_download": slice_download_perm,
+                "can_overwrite": is_owner(slc, g.user),
+                'form_data': form_data,
+                'slice': slc.data,
+            }))
 
     def save_slice(self, slc):
         session = db.session()
@@ -2316,6 +2332,20 @@ class Superset(BaseSupersetView):
             entry='sqllab',
             bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
         )
+
+    @api
+    @has_access_api
+    @expose("/slice_query/<slice_id>/")
+    def sliceQuery(self, slice_id):
+        """
+        This method exposes an API endpoint to
+        get the database query string for this slice
+        """
+        viz_obj = self.get_viz(slice_id)
+        if not self.datasource_access(viz_obj.datasource):
+            return json_error_response(DATASOURCE_ACCESS_ERR, status=401)
+        return self.get_query_string_response(viz_obj)
+
 appbuilder.add_view_no_menu(Superset)
 
 
