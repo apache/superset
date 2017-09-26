@@ -24,7 +24,11 @@ export default function InfoTooltipWithTrigger({
   return (
     <OverlayTrigger
       placement={placement}
-      overlay={<Tooltip id={`${slugify(label)}-tooltip`}>{tooltip}</Tooltip>}
+      overlay={
+        <Tooltip id={`${slugify(label)}-tooltip`} style={{ wordWrap: 'break-word' }}>
+          {tooltip}
+        </Tooltip>
+      }
     >
       <i
         className={iconClass}
