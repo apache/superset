@@ -3,20 +3,21 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
 from superset import appbuilder
-from superset.utils import validate_json
 from superset.views.base import SupersetModelView, DeleteMixin
 
-#from .manager import task_manager
-from .models import RefreshTask
-from .utils import is_valid_crontab_str
+from .manager import task_manager
+from .models import CronTask
+from .utils import is_valid_crontab_str, is_valid_task_config
 
-class RefreshTaskModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(RefreshTask)
 
-    list_title = _('List Refresh Tasks')
-    show_title = _('Show Refresh Task')
-    add_title = _('Create Refresh Task')
-    edit_title = _('Edit Refresh Task')
+class CronTaskModelView(SupersetModelView, DeleteMixin):
+    """Model view for all cron tasks"""
+    datamodel = SQLAInterface(CronTask)
+
+    list_title = _('List Cron Tasks')
+    show_title = _('Show Cron Task')
+    add_title = _('Create Cron Task')
+    edit_title = _('Edit Cron Task')
 
     list_columns = [
         'next_execution_date',
@@ -52,8 +53,7 @@ class RefreshTaskModelView(SupersetModelView, DeleteMixin):
         'crontab_str': _(
             'The crontab expression describing when this task should run'),
         'config': _(
-            'Configuration describing the datasources or clusters that'
-            'are to be refreshed'),
+            'Configuration describing the `type` of task and its options'),
     }
 
     def pre_add(self, task):
@@ -63,19 +63,18 @@ class RefreshTaskModelView(SupersetModelView, DeleteMixin):
                 "Task has invalid crontab expression: {}"
                 .format(task.crontab_str)
             )
-        if not validate_json(task.config):
+        if not is_valid_task_config(task.config):
             raise ValueError(
                 "Task has invalid configuration json"
             )
 
     def post_add(self, task):
-        #task_manager.enqueue_task(task)
-        a = 5
+        # After adding the task, immediately enqueue it
+        task_manager.enqueue_task(task)
 
     def pre_delete(self, task):
         # cancel the task before it is deleted
-        #task_manager.cancel_task(task.id)
-        a = 5
+        task_manager.cancel_task(task.id)
 
     def pre_update(self, task):
         self.pre_add(task)
@@ -88,10 +87,9 @@ class RefreshTaskModelView(SupersetModelView, DeleteMixin):
 
 
 appbuilder.add_view(
-    RefreshTaskModelView,
-    "Refresh Tasks",
-    label=__("Refresh Tasks"),
+    CronTaskModelView,
+    "Cron Tasks",
+    label=__("Cron Tasks"),
     icon="fa-list-ul",
-    category="Tasks",
-    category_label=__("Tasks"),
-    category_icon='fa-tasks',)
+    category="",
+    category_icon='')

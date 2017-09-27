@@ -1,14 +1,15 @@
-"""create refresh tasks table
+"""create tasks table
 
-Revision ID: 1da4addb294a
+Revision ID: 9fb37232bbff
 Revises: 472d2f73dfd4
-Create Date: 2017-09-26 18:01:00.314870
+Create Date: 2017-10-02 16:33:12.945687
 
 """
 
 # revision identifiers, used by Alembic.
-revision = '1da4addb294a'
+revision = '9fb37232bbff'
 down_revision = '472d2f73dfd4'
+
 
 from alembic import op
 from datetime import datetime

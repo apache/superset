@@ -3,8 +3,7 @@ import json
 from flask_appbuilder import Model
 
 from sqlalchemy import (
-    Column, String, Text, Integer,
-    DateTime
+    Column, String, Text, Integer
 )
 
 from superset.utils import memoized
@@ -17,12 +16,14 @@ from crontab import CronTab
 from .utils import round_time
 
 
-class RefreshTask(Model, AuditMixinNullable):
-    """Represents a scheduled refresh task for a datasource"""
+class CronTask(Model, AuditMixinNullable):
+    """An scheduled and repeating task"""
 
     __tablename__ = 'refresh_tasks'
     id = Column(Integer, primary_key=True)
+    # crontab expression string
     crontab_str = Column(String(120), nullable=False)
+    # JSON config for this task
     config = Column(Text, nullable=False)
     description = Column(String(250), nullable=True)
 
@@ -33,8 +34,12 @@ class RefreshTask(Model, AuditMixinNullable):
         return True
 
     @memoized
+    def get_perm(self):
+        return "[Task].(id:{})".format(self.id)
+
+    @memoized
     def config_json(self):
-        return json.loads(config)
+        return json.loads(self.config)
 
     @memoized
     def crontab_obj(self):
@@ -49,7 +54,7 @@ class RefreshTask(Model, AuditMixinNullable):
         return round(self.time_to_execution())
 
     def abs_execution_time(self):
-        # rounded to nearest second
+        # execution time since epoch, rounded to nearest second
         return round(self.time_to_execution() + time())
 
     def next_execution_date(self):
@@ -57,10 +62,3 @@ class RefreshTask(Model, AuditMixinNullable):
         timestamp = self.time_to_execution() + time()
         date = datetime.fromtimestamp(timestamp)
         return round_time(date)
-
-    def __cmp__(self, other):
-        return cmp(other.abs_execution_time(), self.abs_execution_time())
-
-    def run_task(self):
-        print("THE TIME IS {}".format(str(round_time(datetime.now()))))
-        print("RUNNING TASK {} SCHEDULED WITH {}".format(str(self.id), self.crontab_str))
