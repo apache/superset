@@ -376,17 +376,18 @@ class CsvToDatabaseView(SimpleFormView):
         table = SqlaTable(table_name=form.name.data)
 
         database = db.session.query(models.Database).filter_by(sqlalchemy_uri=form.data.get('con')).one()
-        database.db_engine_spec.upload_csv(form, table)
+        successful = database.db_engine_spec.upload_csv(form, table)
 
-        # Go back to welcome page / splash screen
-        db_name = db.session.query(models.Database.database_name).filter_by(sqlalchemy_uri=form.data.get('con')).one()
+        if successful:
+            # Go back to welcome page / splash screen
+            db_name = db.session.query(models.Database.database_name).filter_by(sqlalchemy_uri=form.data.get('con')).one()
 
-        message = _('CSV file "{0}" uploaded to table "{1}" in '
-                    'database "{2}"'.format(form.csv_file.data.filename,
-                                            form.name.data,
-                                            db_name))
-        flash(message, 'info')
-        return redirect('/tablemodelview/list/')
+            message = _('CSV file "{0}" uploaded to table "{1}" in '
+                        'database "{2}"'.format(form.csv_file.data.filename,
+                                                form.name.data,
+                                                db_name))
+            flash(message, 'info')
+            return redirect('/tablemodelview/list/')
 
     @staticmethod
     def allowed_file(filename):

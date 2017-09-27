@@ -29,6 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
+from flask import flash
 
 from werkzeug.utils import secure_filename
 import os
@@ -809,13 +810,15 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @staticmethod
     def upload_csv(form, table):
+        "uploads a cv file and creates a superset table in the right databse"
+        "returns true if it was siccessful. False otherwise"
         def get_column_names(filepath):
             import csv
             with open(filepath, "rb") as f:
                 return csv.reader(f).next()
 
         table_name=form.name.data
-        file_name = form.csv_file.data.filename
+        filename = form.csv_file.data.filename
 
         bucket_path = config["CSV_TO_HIVE_UPLOAD_BUCKET"] 
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
@@ -829,7 +832,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         from superset import csv_upload_backend
         if not csv_upload_backend:
             logging.info("No upload backend specified")
-            return
+            flash("No upload backend specified. This can be set in the config file.", 'info')
+            return False
             #raise this error to the UI
         csv_upload_backend.set(dest_path, upload_path)
 
@@ -842,11 +846,11 @@ class HiveEngineSpec(PrestoEngineSpec):
             engine = create_engine(form.con.data)
             engine.execute(sql)
         except Exception as e:
-            print(e)
-            print(sql)
-            # bubble up the error to the user
-            print("AN EXCEPTION WAS THROWN!")
-
+            logging.exception(e)
+            logging.info(sql)
+            flash(extract_error_message(e), "info")
+            return False
+            
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
