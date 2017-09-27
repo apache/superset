@@ -92,8 +92,8 @@ export default class DisplayQueryButton extends React.PureComponent {
       <ModalTrigger
         animation={this.props.animation}
         isButton
-        triggerNode={<span>Query</span>}
-        modalTitle="View Query"
+        triggerNode={<span>View Query</span>}
+        modalTitle="Query"
         bsSize="large"
         beforeOpen={this.beforeOpen}
         modalBody={this.renderModalBody()}
