@@ -116,7 +116,6 @@ class BaseEngineSpec(object):
                                  iterator=True)
         df = pandas.DataFrame()
         df = pandas.concat(chunk for chunk in chunks)
-        print(df)
         return df
 
     @staticmethod
@@ -151,11 +150,10 @@ class BaseEngineSpec(object):
 
     @staticmethod
     def upload_csv(form, table):
-        print(results_backend)
         def allowed_file(filename):
             # Only allow specific file extensions as specified in the config
-            return '.' in filename and \
-                   filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
+            extension = os.path.splitext(filename)[1]
+            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
 
         def upload_file(csv_file):
             if csv_file and csv_file.filename:
@@ -818,30 +816,35 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         table_name=form.name.data
         file_name = form.csv_file.data.filename
-        print(results_backend)
 
-        #from superset import csv_upload_backend
-        #csv_upload_backend.set("k", "v")
-        #TODO(timifasubaa): replace the current approach with the results backend approach above.
-
-        bucket_path = config["HIVE_CSV_BUCKET_PATH"] 
-        s3_dir = "hive_csv/"+table_name+"/"
+        bucket_path = config["CSV_TO_HIVE_UPLOAD_BUCKET"] 
+        upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
+        dest_path = os.path.join(upload_prefix, table_name, filename)
 
         upload_path = config['UPLOAD_FOLDER'] + secure_filename(form.csv_file.data.filename)
         column_names = get_column_names(upload_path)
         schema_definition = ", ".join([col_name + " STRING " for col_name in column_names])
 
-        import boto3
-        s3 = boto3.client('s3')
-        s3.upload_file(upload_path, 'airbnb-superset', s3_dir+file_name)
-        sql = "CREATE EXTERNAL TABLE " + str(table_name) + " ( " + str(schema_definition) + " ) " +\
-            "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE " + "LOCATION '" + str(bucket_path) + str(s3_dir) + "'"
+
+        from superset import csv_upload_backend
+        if not csv_upload_backend:
+            logging.info("No upload backend specified")
+            return
+            #raise this error to the UI
+        csv_upload_backend.set(dest_path, upload_path)
+
+        #import boto3
+        #s3 = boto3.client('s3')
+        #s3.upload_file(upload_path, 'airbnb-superset', s3_dir+file_name)
+        sql = "CREATE EXTERNAL TABLE {} ( {} ) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE " + "LOCATION '{}'"
+            .format(table_name, schema_definition, os.path.join(upload_prefix, table_name))
         try:
             engine = create_engine(form.con.data)
             engine.execute(sql)
         except Exception as e:
             print(e)
             print(sql)
+            # bubble up the error to the user
             print("AN EXCEPTION WAS THROWN!")
 
     @classmethod

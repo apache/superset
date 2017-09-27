@@ -293,20 +293,22 @@ SQLLAB_DEFAULT_DBID = None
 # by celery.
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 
-#The bucket where you want to store your external hive tables created 
-#from CSV files
-CSV_TO_HIVE_UPLOAD_BUCKET = None
-
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
 
+#The bucket where you want to store your external hive tables created 
+#from CSV files. For example, 'companyname-superset'
+CSV_TO_HIVE_UPLOAD_BUCKET = None 
+
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store external Hive tables on the
 # S3 location specified in CSV_UPLOAD_BUCKET
 #from S3Cache.s3cache import S3Cache
-CSV_UPLOAD_BACKEND = None #if not CSV_TO_HIVE_UPLOAD_BUCKET else S3Cache(CSV_TO_HIVE_UPLOAD_BUCKET, "EXTERNAL_HIVE_TABLES")
+CSV_UPLOAD_BACKEND = 
+    S3Cache(CSV_TO_HIVE_UPLOAD_BUCKET, "EXTERNAL_HIVE_TABLES") 
+        if CSV_TO_HIVE_UPLOAD_BUCKET else None
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
