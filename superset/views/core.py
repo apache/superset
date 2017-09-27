@@ -373,28 +373,10 @@ class CsvToDatabaseView(SimpleFormView):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
         filename = upload_file(form.csv_file.data)
 
-        database = db.session.query(models.Database).filter_by(sqlalchemy_uri=form.data.get('con')).one()
-        database.db_engine_spec.upload_csv(form)
-        if not isinstance(database.db_engine_spec, db_engine_spec.HiveEngineSpec):
-            table = SqlaTable(table_name=form.name.data)
-            database = (
-                        db.session
-                        .query(models.Database)
-                        .filter_by(sqlalchemy_uri=form.con.data)
-                        .first()
-            )
-            table.database_id = database.id
-            table.user_id = g.user.id
-            table.database = database
-            table.schema = form.schema.data
-            db.session.add(table)
-            db.session.commit()
+        table = SqlaTable(table_name=form.name.data)
 
-            #post_add
-            table.fetch_metadata()
-            security.merge_perm(sm, 'datasource_access', table.get_perm())
-            if table.schema:
-                security.merge_perm(sm, 'schema_access', table.schema_perm)
+        database = db.session.query(models.Database).filter_by(sqlalchemy_uri=form.data.get('con')).one()
+        database.db_engine_spec.upload_csv(form, table)
 
         # Go back to welcome page / splash screen
         db_name = db.session.query(models.Database.database_name).filter_by(sqlalchemy_uri=form.data.get('con')).one()

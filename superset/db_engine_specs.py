@@ -819,7 +819,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         bucket_path = config["CSV_TO_HIVE_UPLOAD_BUCKET"] 
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
-        dest_path = os.path.join(upload_prefix, table_name, filename)
+        dest_path = os.path.join(table_name, filename)
 
         upload_path = config['UPLOAD_FOLDER'] + secure_filename(form.csv_file.data.filename)
         column_names = get_column_names(upload_path)
