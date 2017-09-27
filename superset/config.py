@@ -303,7 +303,7 @@ RESULTS_BACKEND = None
 CSV_TO_HIVE_UPLOAD_BUCKET = None 
 
 #The directory within the bucket specified that will contain all the external tables
-CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES"
+CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store external Hive tables on the

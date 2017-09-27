@@ -832,23 +832,26 @@ class HiveEngineSpec(PrestoEngineSpec):
         from superset import csv_upload_backend
         if not csv_upload_backend:
             logging.info("No upload backend specified")
-            flash("No upload backend specified. This can be set in the config file.", 'info')
+            flash("No upload backend specified. This can be set in the config file.", 'alert')
             return False
             #raise this error to the UI
-        csv_upload_backend.set(dest_path, upload_path)
+        #file_contents="".join(list(open(upload_path)))
+        #need to compress?
+        #csv_upload_backend.set(dest_path, file_contents)
 
-        #import boto3
-        #s3 = boto3.client('s3')
-        #s3.upload_file(upload_path, 'airbnb-superset', s3_dir+file_name)
-        sql = "CREATE EXTERNAL TABLE {} ( {} ) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE " + "LOCATION '{}'"
-            .format(table_name, schema_definition, os.path.join(upload_prefix, table_name))
+        import boto3
+        s3 = boto3.client('s3')
+        s3.upload_file(upload_path, 'airbnb-superset', os.path.join(upload_prefix, table_name, file_name))
+        sql = "CREATE EXTERNAL TABLE {} ( {} ) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE LOCATION '{}'"\
+            .format(table_name, schema_definition, os.path.join("s3a://", bucket_path, upload_prefix, table_name))
         try:
+            logging.info(form.con.data)
             engine = create_engine(form.con.data)
             engine.execute(sql)
         except Exception as e:
             logging.exception(e)
             logging.info(sql)
-            flash(extract_error_message(e), "info")
+            flash(BaseEngineSpec.extract_error_message(e), "alert")
             return False
             
     @classmethod
