@@ -60,9 +60,9 @@ There are many reasons may cause long query timing out.
 
   ``superset runserver -t 300``
 
-- If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response from Superset server (which is processing long queries), these web servers will send 504 status code to clients directly. Superset has a client-side timeout limit to address this issue. If query didn't come back within clint-side timeout (45 seconds by default), Superset will display warning message to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change client-side timeout limit settings from ``/superset/superset/assets/javascripts/constants.js`` file and rebuild js package:
+- If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response from Superset server (which is processing long queries), these web servers will send 504 status code to clients directly. Superset has a client-side timeout limit to address this issue. If query didn't come back within clint-side timeout (60 seconds by default), Superset will display warning message to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change the timeout settings in ``superset_config.py``:
 
-  ``export const QUERY_TIMEOUT_THRESHOLD = 45000;``
+  ``SUPERSET_WEBSERVER_TIMEOUT = 60``
 
 
 Why is the map not visible in the mapbox visualization?
