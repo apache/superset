@@ -7,6 +7,10 @@ import { colorScalerFactory } from '../javascripts/modules/colors';
 import '../stylesheets/d3tip.css';
 import './heatmap.css';
 
+function cmp(a, b) {
+  return a > b ? 1 : -1;
+}
+
 // Inspired from http://bl.ocks.org/mbostock/3074470
 // https://jsfiddle.net/cyril123/h0reyumq/
 function heatmapVis(slice, payload) {
@@ -52,17 +56,21 @@ function heatmapVis(slice, payload) {
 
   function ordScale(k, rangeBands, sortMethod) {
     let domain = {};
+    const actualKeys = {};  // hack to preserve type of keys when number
     data.forEach((d) => {
-      domain[d[k]] = domain[d[k]] || 0 + d.v;
+      domain[d[k]] = (domain[d[k]] || 0) + d.v;
+      actualKeys[d[k]] = d[k];
     });
+    // Not usgin object.keys() as it converts to strings
+    const keys = Object.keys(actualKeys).map(s => actualKeys[s]);
     if (sortMethod === 'alpha_asc') {
-      domain = Object.keys(domain).sort();
+      domain = keys.sort(cmp);
     } else if (sortMethod === 'alpha_desc') {
-      domain = Object.keys(domain).sort().reverse();
+      domain = keys.sort(cmp).reverse();
     } else if (sortMethod === 'value_desc') {
-      domain = Object.keys(domain).sort((d1, d2) => domain[d2] - domain[d1]);
+      domain = Object.keys(domain).sort((a, b) => domain[a] > domain[b] ? -1 : 1);
     } else if (sortMethod === 'value_asc') {
-      domain = Object.keys(domain).sort((d1, d2) => domain[d1] - domain[d2]);
+      domain = Object.keys(domain).sort((a, b) => domain[b] > domain[a] ? -1 : 1);
     }
 
     if (k === 'y' && rangeBands) {

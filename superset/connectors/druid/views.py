@@ -85,7 +85,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
-        'datasource', 'd3format', 'is_restricted']
+        'datasource', 'd3format', 'is_restricted', 'warning_text']
     add_columns = edit_columns
     page_size = 500
     validators_columns = {
@@ -109,6 +109,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'metric_type': _("Type"),
         'json': _("JSON"),
         'datasource': _("Druid Datasource"),
+        'warning_text': _("Warning Message"),
     }
 
     def post_add(self, metric):
@@ -234,17 +235,17 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, datasource):
-        number_of_existing_datasources = db.session.query(
-            sqla.func.count('*')).filter(
-            models.DruidDatasource.datasource_name ==
-                datasource.datasource_name,
-            models.DruidDatasource.cluster_name == datasource.cluster.id
-        ).scalar()
-
-        # table object is already added to the session
-        if number_of_existing_datasources > 1:
-            raise Exception(get_datasource_exist_error_mgs(
-                datasource.full_name))
+        with db.session.no_autoflush:
+            query = (
+                db.session.query(models.DruidDatasource)
+                .filter(models.DruidDatasource.datasource_name ==
+                        datasource.datasource_name,
+                        models.DruidDatasource.cluster_name ==
+                        datasource.cluster.id)
+            )
+            if db.session.query(query.exists()).scalar():
+                raise Exception(get_datasource_exist_error_mgs(
+                    datasource.full_name))
 
     def post_add(self, datasource):
         datasource.generate_metrics()
@@ -272,14 +273,14 @@ class Druid(BaseSupersetView):
 
     @has_access
     @expose("/refresh_datasources/")
-    def refresh_datasources(self):
+    def refresh_datasources(self, refreshAll=True):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         DruidCluster = ConnectorRegistry.sources['druid'].cluster_class
         for cluster in session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
             try:
-                cluster.refresh_datasources()
+                cluster.refresh_datasources(refreshAll=refreshAll)
             except Exception as e:
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
@@ -295,8 +296,25 @@ class Druid(BaseSupersetView):
         session.commit()
         return redirect("/druiddatasourcemodelview/list/")
 
+    @has_access
+    @expose("/scan_new_datasources/")
+    def scan_new_datasources(self):
+        """
+        Calling this endpoint will cause a scan for new
+        datasources only and add them.
+        """
+        return self.refresh_datasources(refreshAll=False)
+
 appbuilder.add_view_no_menu(Druid)
 
+appbuilder.add_link(
+    "Scan New Datasources",
+    label=__("Scan New Datasources"),
+    href='/druid/scan_new_datasources/',
+    category='Sources',
+    category_label=__("Sources"),
+    category_icon='fa-database',
+    icon="fa-refresh")
 appbuilder.add_link(
     "Refresh Druid Metadata",
     label=__("Refresh Druid Metadata"),

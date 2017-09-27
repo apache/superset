@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select, { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
+import { t } from '../../../locales';
 
 const propTypes = {
   choices: PropTypes.array,
@@ -102,7 +103,7 @@ export default class SelectControl extends React.PureComponent {
     const selectProps = {
       multi: this.props.multi,
       name: `select-${this.props.name}`,
-      placeholder: `Select (${this.state.options.length})`,
+      placeholder: t('Select %s', this.state.options.length),
       options: this.state.options,
       value: this.props.value,
       valueKey: this.props.valueKey,

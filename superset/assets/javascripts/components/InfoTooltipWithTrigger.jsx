@@ -21,10 +21,15 @@ const defaultProps = {
 export default function InfoTooltipWithTrigger({
     label, tooltip, icon, className, onClick, placement, bsStyle }) {
   const iconClass = `fa fa-${icon} ${className} ${bsStyle ? 'text-' + bsStyle : ''}`;
+  const tooltipStyle = { wordWrap: 'break-word' };
   return (
     <OverlayTrigger
       placement={placement}
-      overlay={<Tooltip id={`${slugify(label)}-tooltip`}>{tooltip}</Tooltip>}
+      overlay={
+        <Tooltip id={`${slugify(label)}-tooltip`} style={tooltipStyle}>
+          {tooltip}
+        </Tooltip>
+      }
     >
       <i
         className={iconClass}

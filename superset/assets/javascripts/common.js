@@ -10,6 +10,17 @@ $(document).ready(function () {
     const id = $this.attr('id');
     utils.toggleCheckbox(prefix, '#' + id);
   });
+
+  // for language picker dropdown
+  $('#language-picker a').click(function (ev) {
+    ev.preventDefault();
+
+    const targetUrl = ev.currentTarget.href;
+    $.ajax(targetUrl)
+      .then(() => {
+        location.reload();
+      });
+  });
 });
 
 export function appSetup() {

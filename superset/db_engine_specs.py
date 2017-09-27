@@ -439,7 +439,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         result_set_df = db.get_df(
             """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
                ORDER BY concat(table_schema, '.', table_name)""".format(
-                datasource_type.upper()), None)
+                   datasource_type.upper()), None)
         result_sets = defaultdict(list)
         for unused, row in result_set_df.iterrows():
             result_sets[row['table_schema']].append(row['table_name'])
@@ -668,7 +668,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def patch(cls):
         from pyhive import hive
         from superset.db_engines import hive as patched_hive
-        from pythrifthiveapi.TCLIService import (
+        from TCLIService import (
             constants as patched_constants,
             ttypes as patched_ttypes,
             TCLIService as patched_TCLIService)
@@ -1003,8 +1003,7 @@ class BQEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == 'DATE':
             return "'{}'".format(dttm.strftime('%Y-%m-%d'))
-        else:
-            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
@@ -1028,8 +1027,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == 'DATE':
             return "'{}'".format(dttm.strftime('%Y-%m-%d'))
-        else:
-            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 engines = {

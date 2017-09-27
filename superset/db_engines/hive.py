@@ -1,5 +1,5 @@
 from pyhive import hive
-from pythrifthiveapi.TCLIService import ttypes
+from TCLIService import ttypes
 from thrift import Thrift
 
 

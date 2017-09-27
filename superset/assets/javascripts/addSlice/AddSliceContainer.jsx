@@ -50,30 +50,30 @@ export default class AddSliceContainer extends React.PureComponent {
   render() {
     return (
       <div className="container">
-        <Panel header={<h3>Create a new slice</h3>}>
+        <Panel header={<h3>{('Create a new slice')}</h3>}>
           <Grid>
             <Row>
               <Col xs={12} sm={6}>
                 <div>
-                  <p>Choose a datasource</p>
+                  <p>{('Choose a datasource')}</p>
                   <Select
                     clearable={false}
                     name="select-datasource"
                     onChange={this.changeDatasource.bind(this)}
                     options={this.props.datasources}
-                    placeholder="Choose a datasource"
+                    placeholder={('Choose a datasource')}
                     value={this.state.datasourceValue}
                   />
                 </div>
                 <br />
                 <div>
-                  <p>Choose a visualization type</p>
+                  <p>{('Choose a visualization type')}</p>
                   <Select
                     clearable={false}
                     name="select-vis-type"
                     onChange={this.changeVisType.bind(this)}
                     options={this.vizTypeOptions}
-                    placeholder="Choose a visualization type"
+                    placeholder={('Choose a visualization type')}
                     value={this.state.visType}
                   />
                 </div>
@@ -83,7 +83,7 @@ export default class AddSliceContainer extends React.PureComponent {
                   disabled={this.isBtnDisabled()}
                   onClick={this.gotoSlice.bind(this)}
                 >
-                  Create new slice
+                  {('Create new slice')}
                 </Button>
                 <br /><br />
               </Col>
