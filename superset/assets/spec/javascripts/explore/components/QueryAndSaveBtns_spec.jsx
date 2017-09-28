@@ -31,7 +31,7 @@ describe('QueryAndSaveButtons', () => {
     });
 
     it('renders buttons with correct text', () => {
-      expect(wrapper.find(Button).contains(' Query')).to.eql(true);
+      expect(wrapper.find(Button).contains(' Run Query')).to.eql(true);
       expect(wrapper.find(Button).contains(' Save')).to.eql(true);
     });
 
