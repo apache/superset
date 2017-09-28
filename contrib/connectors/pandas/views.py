@@ -19,11 +19,11 @@ from superset.views.base import (
     get_datasource_exist_error_mgs,
 )
 
-from . import models
+from .models import PandasDatasource, PandasColumn, PandasMetric
 
 
 class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.PandasColumn)
+    datamodel = SQLAInterface(PandasColumn)
 
     list_title = _('List Columns')
     show_title = _('Show Column')
@@ -74,7 +74,7 @@ appbuilder.add_view_no_menu(PandasColumnInlineView)
 
 
 class PandasMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.PandasMetric)
+    datamodel = SQLAInterface(PandasMetric)
 
     list_title = _('List Metrics')
     show_title = _('Show Metric')
@@ -84,7 +84,8 @@ class PandasMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'source', 'expression', 'datasource', 'd3format', 'is_restricted']
+        'source', 'expression', 'datasource', 'd3format', 'is_restricted',
+        'warning_text']
     description_columns = {
         'source': utils.markdown(
             "a comma-separated list of column(s) used to calculate "
@@ -115,7 +116,8 @@ class PandasMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression': _("Pandas Expression"),
         'datasource': _("Datasource"),
         'd3format': _("D3 Format"),
-        'is_restricted': _('Is Restricted')
+        'is_restricted': _('Is Restricted'),
+        'warning_text': _("Warning Message"),
     }
 
     def post_add(self, metric):
@@ -131,7 +133,7 @@ appbuilder.add_view_no_menu(PandasMetricInlineView)
 
 
 class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
-    datamodel = SQLAInterface(models.PandasDatasource)
+    datamodel = SQLAInterface(PandasDatasource)
 
     list_title = _('List Pandas Datasources')
     show_title = _('Show Pandas Datasource')
@@ -174,7 +176,7 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         'additional_parameters': _(
             "A JSON-formatted dictionary of additional parameters "
             "passed to the  Pandas read_* function, "
-            "see https://pandas.pydata.org/pandas-docs/stable/api.html#input-output"),
+            "see https://pandas.pydata.org/pandas-docs/stable/api.html#input-output"),  # NOQA
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
@@ -216,7 +218,7 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         number_of_existing_datasources = (
             db.session
               .query(sa.func.count('*'))
-              .filter(models.PandasDatasource.source_url == datasource.source_url)
+              .filter(PandasDatasource.source_url == datasource.source_url)
               .scalar())
         # datasource object is already added to the session
         if number_of_existing_datasources > 1:

@@ -80,6 +80,7 @@ def upgrade():
     sa.Column('verbose_name', sa.String(length=1024), nullable=True),
     sa.Column('metric_type', sa.String(length=32), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('warning_text', sa.Text(), nullable=True),
     sa.Column('is_restricted', sa.Boolean(), nullable=True),
     sa.Column('d3format', sa.String(length=128), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
