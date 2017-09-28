@@ -30,6 +30,7 @@ class Header extends React.PureComponent {
               title={dashboard.dashboard_title}
               canEdit={dashboard.dash_save_perm}
               onSaveTitle={this.handleSaveTitle}
+              noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
             />
             <span is class="favstar" class_name="Dashboard" obj_id={dashboard.id} />
           </h1>

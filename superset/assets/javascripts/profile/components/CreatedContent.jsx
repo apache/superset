@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
 import TableLoader from './TableLoader';
+import { t } from '../../locales';
 
 const propTypes = {
   user: PropTypes.object.isRequired,
@@ -29,7 +30,7 @@ class CreatedContent extends React.PureComponent {
         className="table table-condensed"
         columns={['slice', 'favorited']}
         mutator={mutator}
-        noDataText="No slices"
+        noDataText={t('No slices')}
         sortable
       />
     );
@@ -45,7 +46,7 @@ class CreatedContent extends React.PureComponent {
         className="table table-condensed"
         mutator={mutator}
         dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
-        noDataText="No dashboards"
+        noDataText={t('No dashboards')}
         columns={['dashboard', 'favorited']}
         sortable
       />
@@ -54,10 +55,10 @@ class CreatedContent extends React.PureComponent {
   render() {
     return (
       <div>
-        <h3>Dashboards</h3>
+        <h3>{t('Dashboards')}</h3>
         {this.renderDashboardTable()}
         <hr />
-        <h3>Slices</h3>
+        <h3>{t('Slices')}</h3>
         {this.renderSliceTable()}
       </div>
     );

@@ -33,6 +33,7 @@ from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.engine import url
 from sqlalchemy_utils import EncryptedType
 
 from superset import app, db, db_engine_specs, utils, sm
@@ -742,6 +743,15 @@ class Database(Model, AuditMixinNullable):
     def get_perm(self):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
+
+    def has_table(self, table):
+        engine = self.get_sqla_engine()
+        return engine.dialect.has_table(
+            engine, table.table_name, table.schema or None)
+
+    def get_dialect(self):
+        sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
+        return sqla_url.get_dialect()()
 
 
 sqla.event.listen(Database, 'after_insert', set_perm)

@@ -16,6 +16,9 @@ from superset.connectors.druid.models import PyDruid, Quantile, Postaggregator
 
 from .base_tests import SupersetTestCase
 
+class PickableMock(Mock):
+    def __reduce__(self):
+        return (Mock, ())
 
 SEGMENT_METADATA = [{
   "id": "some_id",
@@ -98,8 +101,8 @@ class DruidTests(SupersetTestCase):
             metadata_last_refreshed=datetime.now())
 
         db.session.add(cluster)
-        cluster.get_datasources = Mock(return_value=['test_datasource'])
-        cluster.get_druid_version = Mock(return_value='0.9.1')
+        cluster.get_datasources = PickableMock(return_value=['test_datasource'])
+        cluster.get_druid_version = PickableMock(return_value='0.9.1')
         cluster.refresh_datasources()
         cluster.refresh_datasources(merge_flag=True)
         datasource_id = cluster.datasources[0].id
@@ -303,11 +306,14 @@ class DruidTests(SupersetTestCase):
             metadata_last_refreshed=datetime.now())
 
         db.session.add(cluster)
-        cluster.get_datasources = Mock(return_value=['test_datasource'])
-        cluster.get_druid_version = Mock(return_value='0.9.1')
+        cluster.get_datasources = PickableMock(return_value=['test_datasource'])
+        cluster.get_druid_version = PickableMock(return_value='0.9.1')
 
         cluster.refresh_datasources()
         datasource_id = cluster.datasources[0].id
+        cluster.datasources[0].merge_flag = True
+        metadata = cluster.datasources[0].latest_metadata()
+        self.assertEqual(len(metadata), 4)
         db.session.commit()
 
         view_menu_name = cluster.datasources[0].get_perm()

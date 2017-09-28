@@ -265,6 +265,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
+    warning_text = Column(Text)
 
     """
     The interface should also declare a datasource relationship pointing
@@ -289,5 +290,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
 
     @property
     def data(self):
-        attrs = ('metric_name', 'verbose_name', 'description', 'expression')
+        attrs = (
+            'metric_name', 'verbose_name', 'description', 'expression',
+            'warning_text')
         return {s: getattr(self, s) for s in attrs}

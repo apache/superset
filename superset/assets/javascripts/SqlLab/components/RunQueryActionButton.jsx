@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from '../../components/Button';
+import { t } from '../../locales';
 
 const propTypes = {
   allowAsync: PropTypes.bool.isRequired,
@@ -15,10 +16,10 @@ const defaultProps = {
 };
 
 export default function RunQueryActionButton(props) {
-  const runBtnText = props.selectedText ? 'Run Selected Query' : 'Run Query';
+  const runBtnText = props.selectedText ? t('Run Selected Query') : t('Run Query');
   const btnStyle = props.selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn = ['running', 'pending'].indexOf(props.queryState) > -1;
-  const tooltip = 'shortcut: [alt+enter]';
+  const asyncToolTip = t('Run query asynchronously');
 
   const commonBtnProps = {
     bsSize: 'small',
@@ -31,7 +32,7 @@ export default function RunQueryActionButton(props) {
       {...commonBtnProps}
       onClick={() => props.runQuery(false)}
       key="run-btn"
-      tooltip={tooltip}
+      tooltip={asyncToolTip}
     >
       <i className="fa fa-refresh" /> {runBtnText}
     </Button>
@@ -42,7 +43,7 @@ export default function RunQueryActionButton(props) {
       {...commonBtnProps}
       onClick={() => props.runQuery(true)}
       key="run-async-btn"
-      tooltip={tooltip}
+      tooltip={asyncToolTip}
     >
       <i className="fa fa-table" /> {runBtnText}
     </Button>
@@ -53,7 +54,7 @@ export default function RunQueryActionButton(props) {
       {...commonBtnProps}
       onClick={props.stopQuery}
     >
-      <i className="fa fa-stop" /> Stop
+      <i className="fa fa-stop" /> {t('Stop')}
     </Button>
   );
 
