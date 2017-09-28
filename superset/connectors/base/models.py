@@ -65,6 +65,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return sorted([c.column_name for c in self.columns])
 
     @property
+    def columns_types(self):
+        return {c.column_name: c.type for c in self.columns}
+
+    @property
     def main_dttm_col(self):
         return "timestamp"
 
