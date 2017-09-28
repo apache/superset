@@ -1,3 +1,5 @@
+@import './less/index.less';
+
 body {
     margin: 0px !important;
 }
@@ -367,4 +369,16 @@ iframe {
 }
 .float-right {
   float: right;
+}
+
+g.annotation-container {
+  line {
+    stroke: @stroke-primary;
+  }
+
+  rect.annotation {
+    stroke: @stroke-primary;
+    fill-opacity: 0.1;
+    stroke-width: 1;
+  }
 }

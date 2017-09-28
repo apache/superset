@@ -3,6 +3,7 @@ import $ from 'jquery';
 import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
+import d3tip from 'd3-tip';
 
 import { getColorFromScheme } from '../javascripts/modules/colors';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
@@ -503,6 +504,78 @@ function nvd3Vis(slice, payload) {
       .attr('height', height)
       .attr('width', width)
       .call(chart);
+
+      // add annotation_layer
+      if (isTimeSeries && payload.annotations.length) {
+        const tip = d3tip()
+          .attr('class', 'd3-tip')
+          .direction('n')
+          .offset([-5, 0])
+          .html((d) => {
+            if (!d || !d.layer) {
+              return '';
+            }
+
+            const title = d.short_descr ?
+              d.short_descr + ' - ' + d.layer :
+              d.layer;
+            const body = d.long_descr;
+            return '<div><strong>' + title + '</strong></div><br/>' +
+            '<div>' + body + '</div>';
+          });
+
+        const hh = chart.yAxis.scale().range()[0];
+
+        let annotationLayer;
+        let xScale;
+        let minStep;
+        if (vizType === 'bar') {
+          const xMax = d3.max(payload.data[0].values, d => (d.x));
+          const xMin = d3.min(payload.data[0].values, d => (d.x));
+          minStep = chart.xAxis.range()[1] - chart.xAxis.range()[0];
+          annotationLayer = svg.select('.nv-barsWrap')
+            .insert('g', ':first-child');
+          xScale = d3.scale.quantile()
+            .domain([xMin, xMax])
+            .range(chart.xAxis.range());
+        } else {
+          minStep = 1;
+          annotationLayer = svg.select('.nv-background')
+            .append('g');
+          xScale = chart.xScale();
+        }
+
+        annotationLayer
+          .attr('class', 'annotation-container')
+          .append('defs')
+          .append('pattern')
+          .attr('id', 'diagonal')
+          .attr('patternUnits', 'userSpaceOnUse')
+          .attr('width', 8)
+          .attr('height', 10)
+          .attr('patternTransform', 'rotate(45 50 50)')
+          .append('line')
+          .attr('stroke-width', 7)
+          .attr('y2', 10);
+
+        annotationLayer.selectAll('rect')
+          .data(payload.annotations)
+          .enter()
+          .append('rect')
+          .attr('class', 'annotation')
+          .attr('x', d => (xScale(d.start_dttm)))
+          .attr('y', 0)
+          .attr('width', (d) => {
+            const w = xScale(d.end_dttm) - xScale(d.start_dttm);
+            return w === 0 ? minStep : w;
+          })
+          .attr('height', hh)
+          .attr('fill', 'url(#diagonal)')
+          .on('mouseover', tip.show)
+          .on('mouseout', tip.hide);
+
+        annotationLayer.selectAll('rect').call(tip);
+      }
     }
 
     // on scroll, hide tooltips. throttle to only 4x/second.

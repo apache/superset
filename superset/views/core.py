@@ -2468,6 +2468,7 @@ appbuilder.add_view(
     category_label=__("Manage"),
     category_icon='')
 
+
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
 appbuilder.add_link(
