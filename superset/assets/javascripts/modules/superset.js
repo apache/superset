@@ -4,6 +4,7 @@ import Mustache from 'mustache';
 import vizMap from '../../visualizations/main';
 import { getExploreUrl } from '../explore/exploreUtils';
 import { applyDefaultFormData } from '../explore/stores/store';
+import { t } from '../locales';
 
 const utils = require('./utils');
 
@@ -29,7 +30,7 @@ const px = function (state) {
       }
     }
     $('.favstar')
-    .attr('title', 'Click to favorite/unfavorite')
+    .attr('title', t('Click to favorite/unfavorite'))
     .css('cursor', 'pointer')
     .each(show)
     .each(function () {
@@ -126,10 +127,10 @@ const px = function (state) {
           if (status === 0) {
             // This may happen when the worker in gunicorn times out
             msg += (
-              'The server could not be reached. You may want to ' +
-              'verify your connection and try again.');
+              t('The server could not be reached. You may want to ' +
+              'verify your connection and try again.'));
           } else {
-            msg += 'An unknown error occurred. (Status: ' + status + ')';
+            msg += (t('An unknown error occurred. (Status: %s )', status));
           }
         }
         return msg;
@@ -219,7 +220,7 @@ const px = function (state) {
               vizMap[formData.viz_type](this, queryResponse);
               this.done(queryResponse);
             } catch (e) {
-              this.error('An error occurred while rendering the visualization: ' + e);
+              this.error(t('An error occurred while rendering the visualization: %s', e));
             }
           },
           error: (err) => {

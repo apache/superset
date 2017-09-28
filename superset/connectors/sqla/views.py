@@ -1,6 +1,5 @@
 """Views used by the SqlAlchemy connector"""
 import logging
-
 from past.builtins import basestring
 
 from flask import Markup, flash, redirect
@@ -108,7 +107,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table', 'd3format', 'is_restricted']
+        'expression', 'table', 'd3format', 'is_restricted', 'warning_text']
     description_columns = {
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
@@ -135,7 +134,8 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression': _("SQL Expression"),
         'table': _("Table"),
         'd3format': _("D3 Format"),
-        'is_restricted': _('Is Restricted')
+        'is_restricted': _('Is Restricted'),
+        'warning_text': _('Warning Message'),
     }
 
     def post_add(self, metric):
@@ -151,7 +151,7 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
-        
+
     list_title = _('List Tables')
     show_title = _('Show Table')
     add_title = _('Add Table')
@@ -228,21 +228,17 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, table):
-        number_of_existing_tables = db.session.query(
-            sa.func.count('*')).filter(
-            models.SqlaTable.table_name == table.table_name,
-            models.SqlaTable.schema == table.schema,
-            models.SqlaTable.database_id == table.database.id
-        ).scalar()
-        # table object is already added to the session
-        if number_of_existing_tables > 1:
-            raise Exception(get_datasource_exist_error_mgs(table.full_name))
+        with db.session.no_autoflush:
+            table_query = db.session.query(models.SqlaTable).filter(
+                models.SqlaTable.table_name == table.table_name,
+                models.SqlaTable.schema == table.schema,
+                models.SqlaTable.database_id == table.database.id)
+            if db.session.query(table_query.exists()).scalar():
+                raise Exception(
+                    get_datasource_exist_error_mgs(table.full_name))
 
         # Fail before adding if the table can't be found
-        try:
-            table.get_sqla_table_object()
-        except Exception as e:
-            logging.exception(e)
+        if not table.database.has_table(table):
             raise Exception(_(
                 "Table [{}] could not be found, "
                 "please double check your "

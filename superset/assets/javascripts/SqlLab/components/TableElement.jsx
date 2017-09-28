@@ -9,6 +9,7 @@ import Link from './Link';
 import ColumnElement from './ColumnElement';
 import ModalTrigger from '../../components/ModalTrigger';
 import Loading from '../../components/Loading';
+import { t } from '../../locales';
 
 const propTypes = {
   table: PropTypes.object,
@@ -71,7 +72,7 @@ class TableElement extends React.PureComponent {
       let partitionClipBoard;
       if (table.partitions.partitionQuery) {
         partitionQuery = table.partitions.partitionQuery;
-        const tt = 'Copy partition query to clipboard';
+        const tt = t('Copy partition query to clipboard');
         partitionClipBoard = (
           <CopyToClipboard
             text={partitionQuery}
@@ -90,7 +91,7 @@ class TableElement extends React.PureComponent {
         <Well bsSize="small">
           <div>
             <small>
-              latest partition: {latest}
+              {t('latest partition:')} {latest}
             </small> {partitionClipBoard}
           </div>
         </Well>
@@ -106,7 +107,7 @@ class TableElement extends React.PureComponent {
         <ModalTrigger
           modalTitle={
             <div>
-              Keys for table <strong>{table.name}</strong>
+              {t('Keys for table')} <strong>{table.name}</strong>
             </div>
           }
           modalBody={table.indexes.map((ix, i) => (
@@ -115,7 +116,7 @@ class TableElement extends React.PureComponent {
           triggerNode={
             <Link
               className="fa fa-key pull-left m-l-2"
-              tooltip={`View keys & indexes (${table.indexes.length})`}
+              tooltip={t('View keys & indexes (%s)', table.indexes.length)}
             />
           }
         />
@@ -131,8 +132,8 @@ class TableElement extends React.PureComponent {
           onClick={this.toggleSortColumns.bind(this)}
           tooltip={
             !this.state.sortColumns ?
-            'Sort columns alphabetically' :
-            'Original table column order'}
+            t('Sort columns alphabetically') :
+            t('Original table column order')}
           href="#"
         />
         {table.selectStar &&
@@ -142,13 +143,13 @@ class TableElement extends React.PureComponent {
             }
             text={table.selectStar}
             shouldShowText={false}
-            tooltipText="Copy SELECT statement to clipboard"
+            tooltipText={t('Copy SELECT statement to clipboard')}
           />
         }
         <Link
           className="fa fa-times table-remove pull-left m-l-2"
           onClick={this.removeTable.bind(this)}
-          tooltip="Remove table preview"
+          tooltip={t('Remove table preview')}
           href="#"
         />
       </ButtonGroup>

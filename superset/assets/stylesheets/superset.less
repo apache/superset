@@ -1,3 +1,5 @@
+@import './less/index.less';
+
 body {
     margin: 0px !important;
 }
@@ -152,9 +154,6 @@ img.viz-thumb-option {
 }
 
 
-div.header {
-  font-weight: bold;
-}
 li.widget:hover {
   z-index: 1000;
 }
@@ -370,4 +369,16 @@ iframe {
 }
 .float-right {
   float: right;
+}
+
+g.annotation-container {
+  line {
+    stroke: @stroke-primary;
+  }
+
+  rect.annotation {
+    stroke: @stroke-primary;
+    fill-opacity: 0.1;
+    stroke-width: 1;
+  }
 }

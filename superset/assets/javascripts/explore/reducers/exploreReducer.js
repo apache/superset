@@ -72,6 +72,15 @@ export default function exploreReducer(state = {}, action) {
     [actions.RENDER_TRIGGERED]() {
       return Object.assign({}, state, { triggerRender: false });
     },
+    [actions.CREATE_NEW_SLICE]() {
+      return Object.assign({}, state, {
+        slice: action.slice,
+        controls: getControlsState(state, action.form_data),
+        can_add: action.can_add,
+        can_download: action.can_download,
+        can_overwrite: action.can_overwrite,
+      });
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();

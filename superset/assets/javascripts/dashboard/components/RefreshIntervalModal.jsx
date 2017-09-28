@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 import ModalTrigger from '../../components/ModalTrigger';
+import { t } from '../../locales';
 
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,
@@ -15,11 +16,11 @@ const defaultProps = {
 };
 
 const options = [
-  [0, "Don't refresh"],
-  [10, '10 seconds'],
-  [30, '30 seconds'],
-  [60, '1 minute'],
-  [300, '5 minutes'],
+  [0, t('Don\'t refresh')],
+  [10, t('10 seconds')],
+  [30, t('30 seconds')],
+  [60, t('1 minute')],
+  [300, t('5 minutes')],
 ].map(o => ({ value: o[0], label: o[1] }));
 
 class RefreshIntervalModal extends React.PureComponent {
@@ -34,10 +35,10 @@ class RefreshIntervalModal extends React.PureComponent {
       <ModalTrigger
         triggerNode={this.props.triggerNode}
         isButton
-        modalTitle="Refresh Interval"
+        modalTitle={t('Refresh Interval')}
         modalBody={
           <div>
-            Choose the refresh frequency for this dashboard
+            {t('Choose the refresh frequency for this dashboard')}
             <Select
               options={options}
               value={this.state.refreshFrequency}

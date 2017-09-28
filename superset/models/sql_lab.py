@@ -16,8 +16,7 @@ from flask_appbuilder import Model
 import sqlalchemy as sqla
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, Numeric,
-)
+    DateTime, Numeric, )
 from sqlalchemy.orm import backref, relationship
 
 from superset import sm
@@ -28,7 +27,6 @@ install_aliases()
 
 
 class Query(Model):
-
     """ORM model for SQL query"""
 
     __tablename__ = 'query'
@@ -39,8 +37,7 @@ class Query(Model):
 
     # Store the tmp table into the DB only if the user asks for it.
     tmp_table_name = Column(String(256))
-    user_id = Column(
-        Integer, ForeignKey('ab_user.id'), nullable=True)
+    user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
@@ -80,14 +77,11 @@ class Query(Model):
     database = relationship(
         'Database',
         foreign_keys=[database_id],
-        backref=backref('queries', cascade='all, delete-orphan')
-    )
-    user = relationship(
-        sm.user_model,
-        foreign_keys=[user_id])
+        backref=backref('queries', cascade='all, delete-orphan'))
+    user = relationship(sm.user_model, foreign_keys=[user_id])
 
     __table_args__ = (
-        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on), 
     )
 
     @property
@@ -128,25 +122,19 @@ class Query(Model):
         """Name property"""
         ts = datetime.now().isoformat()
         ts = ts.replace('-', '').replace(':', '').split('.')[0]
-        tab = (
-            self.tab_name.replace(' ', '_').lower()
-            if self.tab_name
-            else 'notab'
-        )
+        tab = (self.tab_name.replace(' ', '_').lower()
+               if self.tab_name else 'notab')
         tab = re.sub(r'\W+', '', tab)
         return "sqllab_{tab}_{ts}".format(**locals())
 
 
 class SavedQuery(Model, AuditMixinNullable):
-
     """ORM model for SQL query"""
 
     __tablename__ = 'saved_query'
     id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer, ForeignKey('ab_user.id'), nullable=True)
-    db_id = Column(
-       Integer, ForeignKey('dbs.id'), nullable=True)
+    user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
+    db_id = Column(Integer, ForeignKey('dbs.id'), nullable=True)
     schema = Column(String(128))
     label = Column(String(256))
     description = Column(Text)
@@ -158,8 +146,7 @@ class SavedQuery(Model, AuditMixinNullable):
     database = relationship(
         'Database',
         foreign_keys=[db_id],
-        backref=backref('saved_queries', cascade='all, delete-orphan')
-    )
+        backref=backref('saved_queries', cascade='all, delete-orphan'))
 
     @property
     def pop_tab_link(self):

@@ -13,6 +13,7 @@ describe('MetricOption', () => {
       verbose_name: 'Foo',
       expression: 'SUM(foo)',
       description: 'Foo is the greatest metric of all',
+      warning_text: 'Be careful when using foo',
     },
   };
 
@@ -31,17 +32,22 @@ describe('MetricOption', () => {
     expect(lbl).to.have.length(1);
     expect(lbl.first().text()).to.equal('Foo');
   });
-  it('shows 2 InfoTooltipWithTrigger', () => {
-    expect(wrapper.find(InfoTooltipWithTrigger)).to.have.length(2);
+  it('shows 3 InfoTooltipWithTrigger', () => {
+    expect(wrapper.find(InfoTooltipWithTrigger)).to.have.length(3);
   });
-  it('shows only 1 InfoTooltipWithTrigger when no descr', () => {
+  it('shows only 2 InfoTooltipWithTrigger when no descr', () => {
     props.metric.description = null;
     wrapper = shallow(factory(props));
-    expect(wrapper.find(InfoTooltipWithTrigger)).to.have.length(1);
+    expect(wrapper.find(InfoTooltipWithTrigger)).to.have.length(2);
   });
   it('shows a label with metric_name when no verbose_name', () => {
     props.metric.verbose_name = null;
     wrapper = shallow(factory(props));
     expect(wrapper.find('.option-label').first().text()).to.equal('foo');
+  });
+  it('shows only 1 InfoTooltipWithTrigger when no descr and no warning', () => {
+    props.metric.warning_text = null;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(InfoTooltipWithTrigger)).to.have.length(1);
   });
 });

@@ -16,7 +16,6 @@ div.widget .chart-controls {
   position: absolute;
   z-index: 100;
   right: 0;
-  left: 0;
   top: 5px;
   padding: 5px 5px;
   opacity: 0.75;
@@ -117,6 +116,7 @@ div.widget .chart-controls {
 
 .chart-header .header {
   font-size: 16px;
+  margin: 0 -10px;
 }
 .ace_gutter {
     z-index: 0;
