@@ -12,7 +12,7 @@ from pandas.api.types import (
     is_string_dtype, is_numeric_dtype, is_datetime64_any_dtype)
 
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text
+    Column, Integer, String, ForeignKey, Text, or_
 )
 import sqlalchemy as sa
 from sqlalchemy.orm import backref, relationship
@@ -148,7 +148,7 @@ class PandasDatasource(Model, BaseDatasource):
 
     __tablename__ = 'pandas_datasources'
     type = 'pandas'
-    baselink = 'pandasdatasourcemodelview'  # url portion pointing to ModelView endpoint
+    baselink = 'pandasdatasourcemodelview'  # url portion pointing to ModelView
     column_class = PandasColumn
     metric_class = PandasMetric
 
@@ -402,9 +402,9 @@ class PandasDatasource(Model, BaseDatasource):
                                'val': to_dttm})
 
             if is_timeseries:
-                # Note that the front end uses `time_grain_sqla` as the parameter
-                # for setting the time grain when the granularity is being
-                # used to select the timetamp column
+                # Note that the front end uses `time_grain_sqla` as
+                # the parameter for setting the time grain when the
+                # granularity is being used to select the timetamp column
                 time_grain = self.GRAINS[extras.get('time_grain_sqla')]
                 timestamp_cols = ['__timestamp']
                 timestamp_exprs = [pd.Grouper(key=granularity,
@@ -417,7 +417,8 @@ class PandasDatasource(Model, BaseDatasource):
                     df = (df[df.set_index(groupby).index.isin(
                               df.groupby(groupby)
                                 .aggregate(aggregates)
-                                .sort_values(metric.source, ascending=metric_order_asc)
+                                .sort_values(metric.source,
+                                             ascending=metric_order_asc)
                                 .iloc[:timeseries_limit].index)])
 
                     query_str += ('[df.set_index({groupby}).index.isin('
@@ -612,34 +613,29 @@ class PandasDatasource(Model, BaseDatasource):
         """Build the metadata for the table and merge it in"""
         df = self.get_dataframe()
 
-        C = PandasColumn  # noqa shortcut to class
-        M = PandasMetric  # noqa
         metrics = []
         any_date_col = None
+        dbcols = (
+            db.session.query(PandasColumn)
+            .filter(PandasColumn.datasource == self)
+            .filter(or_(PandasColumn.column_name == col.name
+                        for col in df.columns)))
+        dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
         for col in df.columns:
-            dbcol = (
-                db.session
-                .query(C)
-                .filter(C.datasource == self)
-                .filter(C.column_name == col)
-                .first()
-            )
-            db.session.flush()
+            dbcol = dbcols.get(col.name, None)
             if not dbcol:
-                dbcol = C(column_name=col, type=df.dtypes[col].name)
+                dbcol = PandasColumn(column_name=col, type=df.dtypes[col].name)
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
-
-            db.session.merge(self)
             self.columns.append(dbcol)
 
             if not any_date_col and dbcol.is_time:
                 any_date_col = col
 
             if dbcol.sum:
-                metrics.append(M(
+                metrics.append(PandasMetric(
                     metric_name='sum__' + dbcol.column_name,
                     verbose_name='sum__' + dbcol.column_name,
                     metric_type='sum',
@@ -647,7 +643,7 @@ class PandasDatasource(Model, BaseDatasource):
                     expression='sum'
                 ))
             if dbcol.avg:
-                metrics.append(M(
+                metrics.append(PandasMetric(
                     metric_name='avg__' + dbcol.column_name,
                     verbose_name='avg__' + dbcol.column_name,
                     metric_type='avg',
@@ -655,7 +651,7 @@ class PandasDatasource(Model, BaseDatasource):
                     expression='mean'
                 ))
             if dbcol.max:
-                metrics.append(M(
+                metrics.append(PandasMetric(
                     metric_name='max__' + dbcol.column_name,
                     verbose_name='max__' + dbcol.column_name,
                     metric_type='max',
@@ -663,7 +659,7 @@ class PandasDatasource(Model, BaseDatasource):
                     expression='max'
                 ))
             if dbcol.min:
-                metrics.append(M(
+                metrics.append(PandasMetric(
                     metric_name='min__' + dbcol.column_name,
                     verbose_name='min__' + dbcol.column_name,
                     metric_type='min',
@@ -671,7 +667,7 @@ class PandasDatasource(Model, BaseDatasource):
                     expression='min'
                 ))
             if dbcol.count_distinct:
-                metrics.append(M(
+                metrics.append(PandasMetric(
                     metric_name='count_distinct__' + dbcol.column_name,
                     verbose_name='count_distinct__' + dbcol.column_name,
                     metric_type='count_distinct',
@@ -679,29 +675,28 @@ class PandasDatasource(Model, BaseDatasource):
                     expression='nunique'
                 ))
             dbcol.type = df.dtypes[col].name
-            db.session.merge(self)
-            db.session.commit()
 
-        metrics.append(M(
+        metrics.append(PandasMetric(
             metric_name='count',
             verbose_name='count',
             metric_type='count',
             source=None,
             expression="count"
         ))
+        dbmetrics = (
+            db.session.query(PandasMetric)
+            .filter(PandasMetric.datasource == self)
+            .filter(or_(PandasMetric.metric_name == metric.metric_name
+                        for metric in metrics)))
+        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics:
-            m = (
-                db.session.query(M)
-                .filter(M.metric_name == metric.metric_name)
-                .filter(M.datasource == self)
-                .first()
-            )
             metric.pandas_datasource_id = self.id
-            if not m:
+            if not dbmetrics.get(metric.metric_name, None):
                 db.session.add(metric)
-                db.session.commit()
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
+        db.session.merge(self)
+        db.session.commit()
 
 
 sa.event.listen(PandasDatasource, 'after_insert', set_perm)
