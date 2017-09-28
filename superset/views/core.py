@@ -17,7 +17,7 @@ import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup,
-    abort, url_for)
+    url_for)
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -2366,6 +2366,7 @@ appbuilder.add_view(
     category="Manage",
     category_label=__("Manage"),
     category_icon='')
+
 
 appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
