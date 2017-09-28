@@ -43,6 +43,7 @@ class BaseViz(object):
     verbose_name = "Base Viz"
     credits = ""
     is_timeseries = False
+    default_fillna = 0
 
     def __init__(self, datasource, form_data):
         if not datasource:
@@ -60,6 +61,21 @@ class BaseViz(object):
 
         self.status = None
         self.error_message = None
+
+    def get_fillna_for_type(self, col_type):
+        """Returns the value for use as filler for a specific Column.type"""
+        if col_type:
+            if col_type == 'TEXT' or col_type.startswith('VARCHAR'):
+                return ' NULL'
+        return self.default_fillna
+
+    def get_fillna_for_columns(self, columns=None):
+        """Returns a dict or scalar that can be passed to DataFrame.fillna"""
+        if columns is None:
+            return self.default_fillna
+        columns_types = self.datasource.columns_types
+        fillna = {c: self.get_fillna_for_type(columns_types.get(c)) for c in columns}
+        return fillna
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -102,7 +118,8 @@ class BaseViz(object):
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
-            df = df.fillna(0)
+            fillna = self.get_fillna_for_columns(df.columns)
+            df = df.fillna(fillna)
         return df
 
     def get_extra_filters(self):
