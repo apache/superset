@@ -33,7 +33,9 @@ const colTypeOptions = [
 export default class TimeSeriesColumnControl extends React.Component {
   constructor(props) {
     super(props);
-    this.state = props;
+    const state = Object.assign({}, props);
+    delete state.onChange;
+    this.state = state;
     this.onChange = this.onChange.bind(this);
   }
   onChange() {

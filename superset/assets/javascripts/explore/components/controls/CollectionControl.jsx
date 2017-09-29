@@ -2,6 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ListGroup, ListGroupItem } from 'react-bootstrap';
 import shortid from 'shortid';
+import {
+  SortableContainer, SortableHandle, SortableElement, arrayMove,
+} from 'react-sortable-hoc';
 
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import ControlHeader from '../ControlHeader';
@@ -33,19 +36,25 @@ const defaultProps = {
   value: [],
   addTooltip: 'Add an item',
 };
+const SortableListGroupItem = SortableElement(ListGroupItem);
+const SortableListGroup = SortableContainer(ListGroup);
+const SortableDragger = SortableHandle(() => (
+  <i className="fa fa-bars text-primary" style={{ cursor: 'ns-resize' }} />));
 
 export default class CollectionControl extends React.Component {
   constructor(props) {
     super(props);
-    this.onChange = this.onChange.bind(this);
     this.onAdd = this.onAdd.bind(this);
   }
   onChange(i, value) {
-    this.props.value[i] = value;
+    Object.assign(this.props.value[i], value);
     this.props.onChange(this.props.value);
   }
   onAdd() {
     this.props.onChange(this.props.value.concat([this.props.itemGenerator()]));
+  }
+  onSortEnd({ oldIndex, newIndex }) {
+    this.props.onChange(arrayMove(this.props.value, oldIndex, newIndex));
   }
   removeItem(i) {
     this.props.onChange(this.props.value.filter((o, ix) => i !== ix));
@@ -55,9 +64,20 @@ export default class CollectionControl extends React.Component {
       return <div className="text-muted">{this.props.placeholder}</div>;
     }
     return (
-      <ListGroup>
+      <SortableListGroup
+        useDragHandle
+        lockAxis="y"
+        onSortEnd={this.onSortEnd.bind(this)}
+      >
         {this.props.value.map((o, i) => (
-          <ListGroupItem className="clearfix" key={this.props.keyAccessor(o)}>
+          <SortableListGroupItem
+            className="clearfix"
+            key={this.props.keyAccessor(o)}
+            index={i}
+          >
+            <div className="pull-left m-r-5">
+              <SortableDragger />
+            </div>
             <div className="pull-left">
               <this.props.control
                 {...o}
@@ -73,8 +93,8 @@ export default class CollectionControl extends React.Component {
                 onClick={this.removeItem.bind(this, i)}
               />
             </div>
-          </ListGroupItem>))}
-      </ListGroup>
+          </SortableListGroupItem>))}
+      </SortableListGroup>
     );
   }
   render() {
