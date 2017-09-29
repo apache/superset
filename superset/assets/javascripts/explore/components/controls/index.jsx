@@ -6,7 +6,7 @@ import DatasourceControl from './DatasourceControl';
 import DateFilterControl from './DateFilterControl';
 import FilterControl from './FilterControl';
 import HiddenControl from './HiddenControl';
-import SelectAsyncControl from './controls/SelectAsyncControl';
+import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';

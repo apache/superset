@@ -167,7 +167,13 @@ export default class TimeSeriesColumnControl extends React.Component {
           )}
           {this.state.colType !== 'spark' && this.formRow(
             'Bounds',
-            'Number bounds used for color coding from red to green',
+            (
+              'Number bounds used for color coding from red to green. ' +
+              'Reverse the number for green to red. To get boolean ' +
+              'red or green without spectrum, you can use either only ' +
+              'min, or max, depending on whether small or big should be ' +
+              'green or red.'
+            ),
             'bounds',
             <BoundsControl
               value={this.state.bounds}
