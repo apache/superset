@@ -280,7 +280,17 @@ export const visTypes = {
         controlSetRows: [
           ['color_scheme'],
           ['x_axis_format', 'y_axis_format'],
+          ['show_brush', 'show_legend'],
+          ['show_markers', 'contribution'],
+          ['contribution'],
+          ['line_interpolation'],
         ],
+        /*
+        {
+          label: t('Chart Options'),
+          controlSetRows: [
+          ],
+        },*/
       },
       sections.NVD3TimeSeries[1],
       sections.annotations,

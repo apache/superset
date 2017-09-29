@@ -8,6 +8,8 @@ import d3tip from 'd3-tip';
 import { getColorFromScheme } from '../javascripts/modules/colors';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
 
+import cumulativeLineWithFocusChart from './custom_nvd3';
+
 // CSS
 import '../node_modules/nvd3/build/nv.d3.min.css';
 import './nvd3_vis.css';
@@ -157,6 +159,7 @@ function nvd3Vis(slice, payload) {
           chart = nv.models.lineWithFocusChart();
           chart.focus.xScale(d3.time.scale.utc());
           chart.x2Axis.staggerLabels(false);
+          chart.duration(0);
         } else {
           chart = nv.models.lineChart();
         }
@@ -249,12 +252,20 @@ function nvd3Vis(slice, payload) {
         break;
 
       case 'compare':
-        chart = nv.models.cumulativeLineChart();
+        if (fd.show_brush) {
+          chart = cumulativeLineWithFocusChart();
+          chart.focus.xScale(d3.time.scale.utc());
+          chart.x2Axis.staggerLabels(false);
+          chart.duration(0);
+        } else {
+          chart = nv.models.cumulativeLineChart();
+        }
         chart.xScale(d3.time.scale.utc());
         chart.useInteractiveGuideline(true);
         chart.xAxis
         .showMaxMin(false)
         .staggerLabels(true);
+        chart.interpolate(fd.line_interpolation);
         break;
 
       case 'bubble':
@@ -431,8 +442,16 @@ function nvd3Vis(slice, payload) {
 
     if (fd.show_markers) {
       svg.selectAll('.nv-point')
-      .style('stroke-opacity', 1)
-      .style('fill-opacity', 1);
+        .style('stroke-opacity', 1)
+        .style('fill-opacity', 1);
+      if (chart.focusEnable && chart.focusEnable()) {
+        // Update the markers when changing focus
+        chart.dispatch.on('renderEnd', () =>
+          svg.selectAll('.nv-point')
+            .style('stroke-opacity', 1)
+            .style('fill-opacity', 1),
+        );
+      }
     }
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
