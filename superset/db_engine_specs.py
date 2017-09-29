@@ -834,10 +834,6 @@ class HiveEngineSpec(PrestoEngineSpec):
             logging.info("No upload backend specified")
             flash("No upload backend specified. This can be set in the config file.", 'alert')
             return False
-            #raise this error to the UI
-        #file_contents="".join(list(open(upload_path)))
-        #need to compress?
-        #csv_upload_backend.set(dest_path, file_contents)
 
         import boto3
         s3 = boto3.client('s3')
