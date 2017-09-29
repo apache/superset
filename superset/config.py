@@ -159,8 +159,8 @@ BABEL_DEFAULT_FOLDER = 'babel/translations'
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
     'it': {'flag': 'it', 'name': 'Italian'},
-    # 'fr': {'flag': 'fr', 'name': 'French'},
-    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'fr': {'flag': 'fr', 'name': 'French'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -304,14 +304,6 @@ CSV_TO_HIVE_UPLOAD_BUCKET = None
 
 #The directory within the bucket specified that will contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
-
-# An instantiated derivative of werkzeug.contrib.cache.BaseCache
-# if enabled, it can be used to store external Hive tables on the
-# S3 location specified in CSV_UPLOAD_BUCKET
-from s3cache.s3cache import S3Cache
-CSV_UPLOAD_BACKEND = \
-    S3Cache(CSV_TO_HIVE_UPLOAD_BUCKET, CSV_TO_HIVE_UPLOAD_DIRECTORY) \
-    if CSV_TO_HIVE_UPLOAD_BUCKET else None
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,

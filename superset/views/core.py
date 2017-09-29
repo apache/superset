@@ -314,9 +314,6 @@ def uploaded_file(filename):
                 return
             f.write(chunk)
 
-    #return send_from_directory(config['UPLOAD_FOLDER'],
-    #                           filename)
-
 class CsvToDatabaseView(SimpleFormView):
     #DatasourceModelView,  add to ^ ?
     form = CsvToDatabaseForm
@@ -363,14 +360,9 @@ class CsvToDatabaseView(SimpleFormView):
                 return filename
 
 
-        if form.names.data is not None:
-            form.names.data = form.names.data.split(",")
-        else:
-            if form.header.data is None:
-                form.header.data = 0
+        form.names.data = form.names.data.split(",") if form.names.data else 0
 
-
-        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        #datasources = ConnectorRegistry.get_all_datasources(db.session)
         filename = upload_file(form.csv_file.data)
 
         table = SqlaTable(table_name=form.name.data)
@@ -388,6 +380,7 @@ class CsvToDatabaseView(SimpleFormView):
                                                 db_name))
             flash(message, 'info')
             return redirect('/tablemodelview/list/')
+
 
     @staticmethod
     def allowed_file(filename):

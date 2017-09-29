@@ -29,7 +29,7 @@ from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
-from flask import flash
+from flask import g, flash
 
 from werkzeug.utils import secure_filename
 import os
@@ -38,6 +38,8 @@ from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
 from superset import conf, cache_util, utils, app, results_backend
 import pandas 
+#from superset.models.core import Database
+
 
 config = app.config
 
@@ -122,17 +124,15 @@ class BaseEngineSpec(object):
     @staticmethod
     def df_to_db(df, name, con, schema, if_exists, index,
                  index_label, chunksize):
-
         engine = create_engine(con, echo=False)
-
         # Use Pandas to parse dataframe to database
         df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
                   index=index, index_label=index_label, chunksize=chunksize)
 
         database = (
             db.session
-                .query(models.Database)
-                .filter_by(sqlalchemy_uri=form.con.data)
+                .query(type(query)) #Database
+                .filter_by(sqlalchemy_uri=con)
                 .first()
         )
         table.database_id = database.id
@@ -156,14 +156,10 @@ class BaseEngineSpec(object):
             extension = os.path.splitext(filename)[1]
             return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
 
-        def upload_file(csv_file):
-            if csv_file and csv_file.filename:
-                filename = secure_filename(csv_file.filename)
-                csv_file.save(os.path.join(config['UPLOAD_FOLDER'],
-                                                 filename))
-                return filename
-
         filename = secure_filename(form.csv_file.data.filename)
+        if not allowed_file(filename):
+            flash("Invalid file trype selected.", 'alert')
+            return False
         df = BaseEngineSpec.csv_to_df(names=form.names.data,
                             filepath_or_buffer=filename,
                             sep=form.sep.data,
@@ -195,6 +191,7 @@ class BaseEngineSpec(object):
                       index=form.index.data,
                       index_label=form.index_label.data,
                       chunksize=10000)
+        return True
 
     @classmethod
     def escape_sql(cls, sql):
@@ -820,7 +817,13 @@ class HiveEngineSpec(PrestoEngineSpec):
         table_name=form.name.data
         filename = form.csv_file.data.filename
 
-        bucket_path = config["CSV_TO_HIVE_UPLOAD_BUCKET"] 
+        bucket_path = config["CSV_TO_HIVE_UPLOAD_BUCKET"]
+
+        if not bucket_path:
+            logging.info("No upload bucket specified")
+            flash("No upload bucket specified. This can be set in the config file.", 'alert')
+            return False
+
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
         dest_path = os.path.join(table_name, filename)
 
@@ -828,28 +831,24 @@ class HiveEngineSpec(PrestoEngineSpec):
         column_names = get_column_names(upload_path)
         schema_definition = ", ".join([col_name + " STRING " for col_name in column_names])
 
-
-        from superset import csv_upload_backend
-        if not csv_upload_backend:
-            logging.info("No upload backend specified")
-            flash("No upload backend specified. This can be set in the config file.", 'alert')
-            return False
+        
 
         import boto3
         s3 = boto3.client('s3')
-        s3.upload_file(upload_path, 'airbnb-superset', os.path.join(upload_prefix, table_name, file_name))
+        s3.upload_file(upload_path, 'airbnb-superset', os.path.join(upload_prefix, table_name, filename))
         sql = "CREATE EXTERNAL TABLE {} ( {} ) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE LOCATION '{}'"\
             .format(table_name, schema_definition, os.path.join("s3a://", bucket_path, upload_prefix, table_name))
         try:
             logging.info(form.con.data)
             engine = create_engine(form.con.data)
             engine.execute(sql)
+            return True
         except Exception as e:
             logging.exception(e)
             logging.info(sql)
             flash(BaseEngineSpec.extract_error_message(e), "alert")
             return False
-            
+
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
