@@ -6,7 +6,8 @@ import { t } from '../locales';
 const propTypes = {
   title: PropTypes.string,
   canEdit: PropTypes.bool,
-  onSaveTitle: PropTypes.func.isRequired,
+  onSaveTitle: PropTypes.func,
+  noPermitTooltip: PropTypes.string,
 };
 const defaultProps = {
   title: t('Title'),
@@ -26,6 +27,14 @@ class EditableTitle extends React.PureComponent {
     this.handleChange = this.handleChange.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
   }
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.title !== this.state.title) {
+      this.setState({
+        lastTitle: this.state.title,
+        title: nextProps.title,
+      });
+    }
+  }
   handleClick() {
     if (!this.props.canEdit) {
       return;
@@ -43,6 +52,14 @@ class EditableTitle extends React.PureComponent {
     this.setState({
       isEditing: false,
     });
+
+    if (!this.state.title.length) {
+      this.setState({
+        title: this.state.lastTitle,
+      });
+
+      return;
+    }
 
     if (this.state.lastTitle !== this.state.title) {
       this.setState({
@@ -72,7 +89,8 @@ class EditableTitle extends React.PureComponent {
       <span className="editable-title">
         <TooltipWrapper
           label="title"
-          tooltip={this.props.canEdit ? t('click to edit title') : t('You don\'t have the rights to alter this title.')}
+          tooltip={this.props.canEdit ? t('click to edit title') :
+              this.props.noPermitTooltip || t('You don\'t have the rights to alter this title.')}
         >
           <input
             required

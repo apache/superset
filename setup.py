@@ -60,7 +60,7 @@ setup(
         'gunicorn==19.7.1',
         'idna==2.5',
         'markdown==2.6.8',
-        'pandas==0.20.2',
+        'pandas==0.20.3',
         'parsedatetime==2.0.0',
         'pydruid==0.3.1',
         'PyHive>=0.4.0',

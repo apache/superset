@@ -44,6 +44,13 @@ export const sections = {
     ],
     description: t('This section exposes ways to include snippets of SQL in your query'),
   },
+  annotations: {
+    label: t('Annotations'),
+    expanded: true,
+    controlSetRows: [
+      ['annotation_layers'],
+    ],
+  },
   NVD3TimeSeries: [
     {
       label: t('Query'),
@@ -177,6 +184,7 @@ export const visTypes = {
         ],
       },
       sections.NVD3TimeSeries[1],
+      sections.annotations,
     ],
     controlOverrides: {
       x_axis_format: {
@@ -209,6 +217,7 @@ export const visTypes = {
           ['metric_2', 'y_axis_2_format'],
         ],
       },
+      sections.annotations,
     ],
     controlOverrides: {
       metric: {
@@ -251,6 +260,7 @@ export const visTypes = {
         ],
       },
       sections.NVD3TimeSeries[1],
+      sections.annotations,
     ],
     controlOverrides: {
       x_axis_format: {
@@ -273,6 +283,7 @@ export const visTypes = {
         ],
       },
       sections.NVD3TimeSeries[1],
+      sections.annotations,
     ],
     controlOverrides: {
       x_axis_format: {
@@ -306,6 +317,7 @@ export const visTypes = {
         ],
       },
       sections.NVD3TimeSeries[1],
+      sections.annotations,
     ],
     controlOverrides: {
       x_axis_format: {
@@ -1100,6 +1112,24 @@ export const visTypes = {
         description: t('Select any columns for meta data inspection'),
       },
     },
+  },
+
+  paired_ttest: {
+    label: 'Time Series - Paired t-test',
+    showOnExplore: true,
+    requiresTime: true,
+    controlPanelSections: [
+      sections.NVD3TimeSeries[0],
+      {
+        label: 'Paired t-test',
+        expanded: false,
+        controlSetRows: [
+          ['significance_level'],
+          ['pvalue_precision'],
+          ['liftvalue_precision'],
+        ],
+      },
+    ],
   },
 };
 

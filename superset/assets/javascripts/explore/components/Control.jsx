@@ -3,15 +3,16 @@ import PropTypes from 'prop-types';
 
 import BoundsControl from './controls/BoundsControl';
 import CheckboxControl from './controls/CheckboxControl';
+import ColorSchemeControl from './controls/ColorSchemeControl';
 import DatasourceControl from './controls/DatasourceControl';
 import DateFilterControl from './controls/DateFilterControl';
 import FilterControl from './controls/FilterControl';
 import HiddenControl from './controls/HiddenControl';
+import SelectAsyncControl from './controls/SelectAsyncControl';
 import SelectControl from './controls/SelectControl';
 import TextAreaControl from './controls/TextAreaControl';
 import TextControl from './controls/TextControl';
 import VizTypeControl from './controls/VizTypeControl';
-import ColorSchemeControl from './controls/ColorSchemeControl';
 
 const controlMap = {
   BoundsControl,
@@ -25,6 +26,7 @@ const controlMap = {
   TextControl,
   VizTypeControl,
   ColorSchemeControl,
+  SelectAsyncControl,
 };
 const controlTypes = Object.keys(controlMap);
 

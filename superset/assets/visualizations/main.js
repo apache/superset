@@ -33,5 +33,6 @@ const vizMap = {
   world_map: require('./world_map.js'),
   dual_line: require('./nvd3_vis.js'),
   event_flow: require('./EventFlow.jsx'),
+  paired_ttest: require('./paired_ttest.jsx'),
 };
 export default vizMap;

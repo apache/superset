@@ -758,6 +758,25 @@ class CoreTests(SupersetTestCase):
         self.get_json_resp(slc_url)
         self.assertEqual(1, qry.count())
 
+    def test_slice_query_endpoint(self):
+        # API endpoint for query string
+        self.login(username="admin")
+        slc = self.get_slice("Girls", db.session)
+        resp = self.get_resp('/superset/slice_query/{}/'.format(slc.id))
+        assert 'query' in resp
+        assert 'language' in resp
+        self.logout();
+
+    def test_viz_get_fillna_for_columns(self):
+        slc = self.get_slice("Girls", db.session)
+        q = slc.viz.query_obj()
+        results = slc.viz.datasource.query(q)
+        fillna_columns = slc.viz.get_fillna_for_columns(results.df.columns)
+        self.assertDictEqual(
+            fillna_columns,
+            {'name': ' NULL', 'sum__num': 0}
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

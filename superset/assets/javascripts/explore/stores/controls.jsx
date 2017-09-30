@@ -119,6 +119,23 @@ export const controls = {
     }),
   },
 
+  annotation_layers: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('Annotation Layers'),
+    default: [],
+    description: t('Annotation layers to overlay on the visualization'),
+    dataEndpoint: '/annotationlayermodelview/api/read?',
+    placeholder: t('Select a annotation layer'),
+    onAsyncErrorMessage: t('Error while fetching annotation layers'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(layer => ({ value: layer.id, label: layer.name }));
+    },
+  },
+
   metric: {
     type: 'SelectControl',
     label: t('Metric'),
@@ -1369,6 +1386,27 @@ export const controls = {
     choices: Object.keys(ALL_COLOR_SCHEMES).map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
     schemes: ALL_COLOR_SCHEMES,
+  },
+
+  significance_level: {
+    type: 'TextControl',
+    label: 'Significance Level',
+    default: 0.05,
+    description: 'Threshold alpha level for determining significance',
+  },
+
+  pvalue_precision: {
+    type: 'TextControl',
+    label: 'p-value precision',
+    default: 6,
+    description: 'Number of decimal places with which to display p-values',
+  },
+
+  liftvalue_precision: {
+    type: 'TextControl',
+    label: 'Lift % precision',
+    default: 4,
+    description: 'Number of decimal places with which to display lift values',
   },
 };
 export default controls;

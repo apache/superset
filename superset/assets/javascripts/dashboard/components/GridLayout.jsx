@@ -1,9 +1,11 @@
+/* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 import $ from 'jquery';
 
 import SliceCell from './SliceCell';
+import { getExploreUrl } from '../../explore/exploreUtils';
 
 require('react-grid-layout/css/styles.css');
 require('react-resizable/css/styles.css');
@@ -72,6 +74,42 @@ class GridLayout extends React.Component {
     this.props.dashboard.onChange();
   }
 
+  updateSliceName(sliceId, sliceName) {
+    const index = this.state.slices.map(slice => (slice.slice_id)).indexOf(sliceId);
+    if (index === -1) {
+      return;
+    }
+
+    // update slice_name first
+    const oldSlices = this.state.slices;
+    const currentSlice = this.state.slices[index];
+    const updated = Object.assign({},
+        this.state.slices[index], { slice_name: sliceName });
+    const updatedSlices = this.state.slices.slice();
+    updatedSlices[index] = updated;
+    this.setState({ slices: updatedSlices });
+
+    const sliceParams = {};
+    sliceParams.slice_id = currentSlice.slice_id;
+    sliceParams.action = 'overwrite';
+    sliceParams.slice_name = sliceName;
+    const saveUrl = getExploreUrl(currentSlice.form_data, 'base', false, null, sliceParams);
+
+    $.ajax({
+      url: saveUrl,
+      type: 'GET',
+      success: () => {
+        notify.success('This slice name was saved successfully.');
+      },
+      error: () => {
+        // if server-side reject the overwrite action,
+        // revert to old state
+        this.setState({ slices: oldSlices });
+        notify.error('You don\'t have the rights to alter this slice');
+      },
+    });
+  }
+
   serialize() {
     return this.state.layout.map(reactPos => ({
       slice_id: reactPos.i,
@@ -107,6 +145,8 @@ class GridLayout extends React.Component {
               slice={slice}
               removeSlice={this.removeSlice.bind(this, slice.slice_id)}
               expandedSlices={this.props.dashboard.metadata.expanded_slices}
+              updateSliceName={this.props.dashboard.dash_edit_perm ?
+                this.updateSliceName.bind(this) : null}
             />
           </div>
         ))}
