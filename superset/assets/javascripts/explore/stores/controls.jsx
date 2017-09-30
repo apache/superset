@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import * as v from '../validators';
-import { ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
+import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
 import MetricOption from '../../components/MetricOption';
 import ColumnOption from '../../components/ColumnOption';
 import OptionDescription from '../../components/OptionDescription';
@@ -133,6 +133,14 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.order_by_choices : [],
     }),
+  },
+
+  color_picker: {
+    label: t('Fixed Color'),
+    description: t('Use this to define a static color for all circles'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
   },
 
   annotation_layers: {
@@ -424,6 +432,12 @@ export const controls = {
   },
 
   groupby: groupByControl,
+  dimension: Object.assign({}, groupByControl, {
+    label: t('Dimension'),
+    description: t('Select a dimension'),
+    multi: false,
+    default: null,
+  }),
 
   columns: Object.assign({}, groupByControl, {
     label: t('Columns'),
@@ -719,12 +733,29 @@ export const controls = {
     'with the [Periods] text box'),
   },
 
+  multiplier: {
+    type: 'TextControl',
+    label: t('Multiplier'),
+    isFloat: true,
+    default: 1,
+    description: t('Factor to multiply the metric by'),
+  },
+
   rolling_periods: {
     type: 'TextControl',
     label: t('Periods'),
     isInt: true,
     description: t('Defines the size of the rolling window function, ' +
     'relative to the time granularity selected'),
+  },
+
+  grid_size: {
+    type: 'TextControl',
+    label: t('Grid Size'),
+    renderTrigger: true,
+    default: 20,
+    isInt: true,
+    description: t('Defines the grid size in pixels'),
   },
 
   min_periods: {
@@ -1032,6 +1063,14 @@ export const controls = {
     ),
   },
 
+  extruded: {
+    type: 'CheckboxControl',
+    label: t('Extruded'),
+    renderTrigger: true,
+    default: true,
+    description: ('Whether to make the grid 3D'),
+  },
+
   show_brush: {
     type: 'CheckboxControl',
     label: t('Range Filter'),
@@ -1244,6 +1283,7 @@ export const controls = {
   mapbox_style: {
     type: 'SelectControl',
     label: t('Map Style'),
+    renderTrigger: true,
     choices: [
       ['mapbox://styles/mapbox/streets-v9', 'Streets'],
       ['mapbox://styles/mapbox/dark-v9', 'Dark'],
@@ -1277,6 +1317,15 @@ export const controls = {
     'number of points (>1000) will cause lag.'),
   },
 
+  point_radius_fixed: {
+    type: 'FixedOrMetricControl',
+    label: t('Point Size'),
+    description: t('Fixed point radius'),
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
+  },
+
   point_radius: {
     type: 'SelectControl',
     label: t('Point Radius'),
@@ -1297,6 +1346,22 @@ export const controls = {
     description: t('The unit of measure for the specified point radius'),
   },
 
+  point_unit: {
+    type: 'SelectControl',
+    label: t('Point Unit'),
+    default: 'square_m',
+    clearable: false,
+    choices: [
+      ['square_m', 'Square meters'],
+      ['square_km', 'Square kilometers'],
+      ['square_miles', 'Square miles'],
+      ['radius_m', 'Radius in meters'],
+      ['radius_km', 'Radius in kilometers'],
+      ['radius_miles', 'Radius in miles'],
+    ],
+    description: t('The unit of measure for the specified point radius'),
+  },
+
   global_opacity: {
     type: 'TextControl',
     label: t('Opacity'),
@@ -1304,6 +1369,20 @@ export const controls = {
     isFloat: true,
     description: t('Opacity of all clusters, points, and labels. ' +
     'Between 0 and 1.'),
+  },
+
+  viewport: {
+    type: 'ViewportControl',
+    label: t('Viewport'),
+    renderTrigger: true,
+    description: t('Parameters related to the view and perspective on the map'),
+    default: {
+      longitude: 6.85236157047845,
+      latitude: 31.222656842808707,
+      zoom: 1,
+      bearing: 0,
+      pitch: 0,
+    },
   },
 
   viewport_zoom: {
