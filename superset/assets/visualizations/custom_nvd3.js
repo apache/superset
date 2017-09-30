@@ -4,7 +4,7 @@
 import d3 from 'd3';
 import nv from 'nvd3';
 
-export default function cumulativeLineWithFocusChart() {
+export function cumulativeLineWithFocusChart() {
   // Public variables with default settings
   const lines = nv.models.line();
   const xAxis = nv.models.axis();

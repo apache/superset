@@ -285,12 +285,6 @@ export const visTypes = {
           ['contribution'],
           ['line_interpolation'],
         ],
-        /*
-        {
-          label: t('Chart Options'),
-          controlSetRows: [
-          ],
-        },*/
       },
       sections.NVD3TimeSeries[1],
       sections.annotations,
@@ -311,9 +305,9 @@ export const visTypes = {
       {
         label: t('Chart Options'),
         controlSetRows: [
-          ['show_brush', 'show_legend'],
-          ['line_interpolation', 'stacked_style'],
           ['color_scheme'],
+          ['line_interpolation', 'stacked_style'],
+          ['show_brush', 'show_legend'],
           ['rich_tooltip', 'contribution'],
           ['show_controls', null],
         ],
