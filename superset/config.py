@@ -35,8 +35,6 @@ if not os.path.exists(DATA_DIR):
 # Superset specific config
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, 'static', 'assets')
-
-
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     VERSION_STRING = json.load(package_file)['version']
@@ -160,8 +158,8 @@ BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
-    # 'it': {'flag': 'it', 'name': 'Italian'},
-    # 'fr': {'flag': 'fr', 'name': 'French'},
+    'it': {'flag': 'it', 'name': 'Italian'},
+    'fr': {'flag': 'fr', 'name': 'French'},
     'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------

@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import TooltipWrapper from './TooltipWrapper';
+import { t } from '../locales';
 
 const propTypes = {
   sliceId: PropTypes.number.isRequired,
@@ -28,7 +29,7 @@ export default class FaveStar extends React.Component {
     return (
       <TooltipWrapper
         label="fave-unfave"
-        tooltip="Click to favorite/unfavorite"
+        tooltip={t('Click to favorite/unfavorite')}
       >
         <a
           href="#"
