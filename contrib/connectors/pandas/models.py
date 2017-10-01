@@ -266,7 +266,12 @@ class PandasDatasource(Model, BaseDatasource):
 
     @property
     def pandas_read_method(self):
-        return getattr(pd, 'read_{obj.format.code}'.format(obj=self))
+        try:
+            # The format is a Choice object
+            format = self.format.code
+        except AttributeError:
+            format = self.format
+        return getattr(pd, 'read_{format}'.format(format=format))
 
     @property
     def pandas_read_parameters(self):
