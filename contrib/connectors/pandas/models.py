@@ -127,8 +127,10 @@ class PandasDatasource(Model, BaseDatasource):
     """A datasource based on a Pandas DataFrame"""
 
     FORMATS = [
-        ('csv', 'CSV'),
-        ('html', 'HTML')
+        ('csv', 'csv'),
+        ('html', 'html'),
+        ('json', 'json'),
+        ('excel', 'Microsoft Excel'),
     ]
 
     # See http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases # NOQA
@@ -159,7 +161,7 @@ class PandasDatasource(Model, BaseDatasource):
 
     name = Column(String(100), nullable=False)
     source_url = Column(String(1000), nullable=False)
-    format = Column(String(20), nullable=False)
+    format = Column(ChoiceType(FORMATS), nullable=False)
     additional_parameters = Column(JSONType)
 
     user_id = Column(Integer, ForeignKey('ab_user.id'))
@@ -260,12 +262,11 @@ class PandasDatasource(Model, BaseDatasource):
         d['granularity_sqla'] = utils.choicify(self.dttm_cols)
         d['time_grain_sqla'] = [(g, g) for g in self.GRAINS.keys()]
         logging.info(d)
-        print(d)
         return d
 
     @property
     def pandas_read_method(self):
-        return getattr(pd, 'read_{obj.format}'.format(obj=self))
+        return getattr(pd, 'read_{obj.format.code}'.format(obj=self))
 
     @property
     def pandas_read_parameters(self):

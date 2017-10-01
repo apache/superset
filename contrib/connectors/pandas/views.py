@@ -10,6 +10,7 @@ import sqlalchemy as sa
 
 from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
+from wtforms import SelectField
 
 from superset import appbuilder, db, utils, security, sm
 from superset.utils import has_access
@@ -20,6 +21,17 @@ from superset.views.base import (
 )
 
 from .models import PandasDatasource, PandasColumn, PandasMetric
+
+
+class ChoiceTypeSelectField(SelectField):
+    """A SelectField based on a ChoiceType model field."""
+
+    def process_data(self, value):
+        """Use the code rather than the str() representation as data"""
+        try:
+            self.data = value.code
+        except AttributeError:
+            super(ChoiceTypeSelectField, self).process_data(value)
 
 
 class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
@@ -145,12 +157,20 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     order_columns = [
         'link', 'changed_on_']
     add_columns = ['name', 'source_url', 'format']
+    add_form_extra_fields = {
+        'format': ChoiceTypeSelectField(_('Format'),
+                                        choices=PandasDatasource.FORMATS)
+    }
     edit_columns = [
         'name', 'source_url', 'format',
         'filter_select_enabled', 'slices',
         'fetch_values_predicate',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
+    edit_form_extra_fields = {
+        'format': ChoiceTypeSelectField(_('Format'),
+                                        choices=PandasDatasource.FORMATS)
+    }
     show_columns = edit_columns + ['perm']
     related_views = [PandasColumnInlineView, PandasMetricInlineView]
     base_order = ('changed_on', 'desc')

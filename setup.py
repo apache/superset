@@ -42,6 +42,7 @@ setup(
     zip_safe=False,
     scripts=['superset/bin/superset'],
     install_requires=[
+        'beautifulsoup4==4.6.0',
         'boto3==1.4.4',
         'celery==3.1.25',
         'colorama==0.3.9',
@@ -56,9 +57,11 @@ setup(
         'flask-wtf==0.14.2',
         'flower==0.9.1',
         'future>=0.16.0, <0.17',
+        'html5lib==0.999999999',
         'humanize==0.5.1',
         'gunicorn==19.7.1',
         'idna==2.5',
+        'lxml==3.8.0',
         'markdown==2.6.8',
         'pandas==0.20.3',
         'parsedatetime==2.0.0',
@@ -73,6 +76,7 @@ setup(
         'sqlparse==0.2.3',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
+        'xlrd==1.1.0',
     ],
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],

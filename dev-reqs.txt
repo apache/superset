@@ -1,9 +1,7 @@
-beautifulsoup4==4.6.0
 codeclimate-test-reporter
 coveralls
 flake8
 flask_cors
-lxml==3.8.0
 mock
 mysqlclient
 nose
