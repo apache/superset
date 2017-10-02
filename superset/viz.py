@@ -884,9 +884,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df[name].dtype.kind not in "biufc":
                 continue
             series_title = name
+            if (
+                    isinstance(series_title, (list, tuple)) and
+                    len(series_title) > 1 and
+                    len(self.metrics) == 1):
+                # Removing metric from series name if only one metric
+                series_title = series_title[1:]
             if isinstance(series_title, string_types):
                 series_title += title_suffix
-            elif title_suffix and isinstance(series_title, list):
+            elif title_suffix and isinstance(series_title, (list, tuple)):
                 series_title.append(title_suffix)
 
             d = {
