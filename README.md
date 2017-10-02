@@ -181,6 +181,7 @@ the world know they are using Superset. Join our growing community!
  - [GfK Data Lab](http://datalab.gfk.com)
  - [Konfío](http://konfio.mx)
  - [Maieutical Labs](https://cloudschooling.it)
+ - [Pronto Tools](http://www.prontotools.io)
  - [Qunar](https://www.qunar.com/)
  - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
