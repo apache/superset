@@ -15,7 +15,7 @@
     "prod": "NODE_ENV=production node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
     "build": "NODE_ENV=production webpack --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
-    "sync-backend": "babel-node --presets es2015 javascripts/syncBackend.js"
+    "sync-backend": "babel-node --presets env javascripts/syncBackend.js"
   },
   "repository": {
     "type": "git",
@@ -101,7 +101,7 @@
     "babel-plugin-css-modules-transform": "^1.1.0",
     "babel-polyfill": "^6.23.0",
     "babel-preset-airbnb": "^2.1.1",
-    "babel-preset-es2015": "^6.14.0",
+    "babel-preset-env": "^1.6.0",
     "babel-preset-react": "^6.11.1",
     "chai": "^4.0.2",
     "clean-webpack-plugin": "^0.1.16",
@@ -128,7 +128,7 @@
     "react-addons-test-utils": "^15.5.1",
     "react-test-renderer": "^15.5.1",
     "redux-mock-store": "^1.2.3",
-    "sinon": "^3.2.1",
+    "sinon": "^4.0.0",
     "style-loader": "^0.18.2",
     "transform-loader": "^0.2.3",
     "uglifyjs-webpack-plugin": "^0.4.6",
