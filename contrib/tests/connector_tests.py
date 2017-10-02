@@ -47,22 +47,22 @@ class BaseConnectorTestCase(SupersetTestCase):
         super(BaseConnectorTestCase, cls).setUpClass()
 
     data = """
-        | region   | district   | project   | received            | value  |
-        |----------|------------|-----------|---------------------|--------|
-        | Region 1 | District A | Project A | 2001-01-31 10:00:00 | 33     |
-        | Region 1 | District A | Project A | 2001-01-31 12:00:00 | 32     |
-        | Region 1 | District B | Project B | 2001-01-31 13:00:00 | 35     |
-        | Region 2 | District C | Project C | 2001-01-31 09:00:00 | 12     |
-        | Region 1 | District A | Project A | 2001-02-28 09:00:00 | 66     |
-        | Region 1 | District B | Project B | 2001-02-28 08:00:00 | 15     |
-        | Region 1 | District B | Project B | 2001-02-28 10:00:00 | 25     |
-        | Region 2 | District C | Project C | 2001-02-28 08:00:00 | 18     |
-        | Region 1 | District A | Project A | 2001-03-31 11:00:00 | 85     |
-        | Region 1 | District B | Project B | 2001-03-31 12:00:00 |  5     |
-        | Region 2 | District C | Project C | 2001-03-31 14:00:00 | 35     |
-        | Region 1 | District A | Project A | 2001-04-30 10:00:00 | 15     |
-        | Region 1 | District A | Project A | 2001-04-30 12:00:00 | 15     |
-        | Region 2 | District C | Project C | 2001-04-30 13:00:00 | 15     |
+        | region   | district   | project   | received            | value  | value2 | category  |
+        |----------|------------|-----------|---------------------|--------|--------|-----------|
+        | Region 1 | District A | Project A | 2001-01-31 10:00:00 | 33     |  12.30 | CategoryA |
+        | Region 1 | District A | Project A | 2001-01-31 12:00:00 | 32     |  13.60 | CategoryB |
+        | Region 1 | District B | Project B | 2001-01-31 13:00:00 | 35     |  15.50 | CategoryA |
+        | Region 2 | District C | Project C | 2001-01-31 09:00:00 | 12     |  17.80 | CategoryB |
+        | Region 1 | District A | Project A | 2001-02-28 09:00:00 | 66     |  11.30 | CategoryB |
+        | Region 1 | District B | Project B | 2001-02-28 08:00:00 | 15     |  19.90 | CategoryB |
+        | Region 1 | District B | Project B | 2001-02-28 10:00:00 | 25     |  15.30 | CategoryA |
+        | Region 2 | District C | Project C | 2001-02-28 08:00:00 | 18     |  13.80 | CategoryA |
+        | Region 1 | District A | Project A | 2001-03-31 11:00:00 | 85     |  45.10 | CategoryB |
+        | Region 1 | District B | Project B | 2001-03-31 12:00:00 |  5     |  28.10 | CategoryA |
+        | Region 2 | District C | Project C | 2001-03-31 14:00:00 | 35     |  22.60 | CategoryB |
+        | Region 1 | District A | Project A | 2001-04-30 10:00:00 | 15     |  11.00 | CategoryA |
+        | Region 1 | District A | Project A | 2001-04-30 12:00:00 | 15     |  16.10 | CategoryB |
+        | Region 2 | District C | Project C | 2001-04-30 13:00:00 | 15     |  18.50 | CategoryA |
         """
 
     def assertFrameEqual(self, frame1, frame2, msg=None):
@@ -162,7 +162,7 @@ class BaseConnectorTestCase(SupersetTestCase):
     def test_summary_multiple_metrics(self):
         parameters = {
             'groupby': [],
-            'metrics': ['sum__value', 'avg__value'],
+            'metrics': ['sum__value', 'avg__value', 'value_percentage'],
             'granularity': 'received',
             'from_dttm': datetime.datetime(2001, 1, 1),
             'to_dttm': datetime.datetime(2001, 12, 31),
@@ -182,6 +182,8 @@ class BaseConnectorTestCase(SupersetTestCase):
         expected_df = pd.DataFrame(OrderedDict([
             ('sum__value', [self.df['value'].sum()]),
             ('avg__value', [self.df['value'].mean()]),
+            ('value_percentage', [sum(self.df['value']) /
+                                  sum(self.df['value'] + self.df['value2'])]),
         ]))
         self.assertEqual(result.df, expected_df)
 
@@ -603,6 +605,90 @@ class BaseConnectorTestCase(SupersetTestCase):
         expected_df = expected_df.sort_values(['sum__value'], ascending=False)
         self.assertEqual(result.df, expected_df)
 
+    def test_groupby_ratio_metric(self):
+        parameters = {
+            'groupby': ['project', 'region'],
+            'metrics': ['ratio'],
+            'granularity': 'received',
+            'from_dttm': datetime.datetime(2001, 1, 1),
+            'to_dttm': datetime.datetime(2001, 12, 31),
+            'filter': [],
+            'is_timeseries': False,
+            'timeseries_limit': 0,
+            'timeseries_limit_metric': None,
+            'row_limit': 5000,
+            'extras': {
+                'time_grain_sqla': None,
+            },
+        }
+        self.df['ratio'] = self.df['value'] / self.df['value2']
+        result = self.datasource.query(parameters)
+        self.assertIsInstance(result, QueryResult)
+        self.assertEqual(result.error_message, None)
+        self.assertEqual(result.status, QueryStatus.SUCCESS)
+        expected_df = (self.df.groupby(parameters['groupby'])['ratio']
+                              .mean()
+                              .reset_index()
+                              .sort_values(['ratio'], ascending=False))
+        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        self.assertEqual(result.df, expected_df)
+
+    def test_groupby_value_percentage_metric(self):
+        parameters = {
+            'groupby': ['project', 'region'],
+            'metrics': ['value_percentage'],
+            'granularity': 'received',
+            'from_dttm': datetime.datetime(2001, 1, 1),
+            'to_dttm': datetime.datetime(2001, 12, 31),
+            'filter': [],
+            'is_timeseries': False,
+            'timeseries_limit': 0,
+            'timeseries_limit_metric': None,
+            'row_limit': 5000,
+            'extras': {
+                'time_grain_sqla': None,
+            },
+        }
+        result = self.datasource.query(parameters)
+        self.assertIsInstance(result, QueryResult)
+        self.assertEqual(result.error_message, None)
+        self.assertEqual(result.status, QueryStatus.SUCCESS)
+        expected_df = (self.df.groupby(parameters['groupby'])
+                              .apply(lambda x: sum(x['value'])/sum(x['value'] + x['value2']))
+                              .reset_index()
+                              .sort_values([0], ascending=False))
+        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        self.assertEqual(result.df, expected_df)
+
+    def test_groupby_category_percentage_metric(self):
+        parameters = {
+            'groupby': ['project', 'region'],
+            'metrics': ['category_percentage'],
+            'granularity': 'received',
+            'from_dttm': datetime.datetime(2001, 1, 1),
+            'to_dttm': datetime.datetime(2001, 12, 31),
+            'filter': [],
+            'is_timeseries': False,
+            'timeseries_limit': 0,
+            'timeseries_limit_metric': None,
+            'row_limit': 5000,
+            'extras': {
+                'time_grain_sqla': None,
+            },
+        }
+        result = self.datasource.query(parameters)
+        self.assertIsInstance(result, QueryResult)
+        self.assertEqual(result.error_message, None)
+        self.assertEqual(result.status, QueryStatus.SUCCESS)
+        expected_df = (self.df.groupby(parameters['groupby'])['category']
+                              .value_counts(normalize=True)
+                              .reset_index(parameters['groupby'])
+                              .loc['CategoryA']
+                              .reset_index(drop=True)
+                              .sort_values(['category'], ascending=False))
+        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        self.assertEqual(result.df, expected_df)
+
     def test_groupby_ascending_order(self):
         parameters = {
             'groupby': ['project', 'region'],
@@ -844,6 +930,12 @@ class SqlaConnectorTestCase(BaseConnectorTestCase):
                   expression='SUM(value)'),
         SqlMetric(metric_name='avg__value', metric_type='avg',
                   expression='AVG(value)'),
+        SqlMetric(metric_name='ratio', metric_type='avg',
+                  expression='AVG(value/value2)'),
+        SqlMetric(metric_name='value_percentage', metric_type='custom',
+                  expression="SUM(value)/SUM(value + value2)"),
+        SqlMetric(metric_name='category_percentage', metric_type='custom',
+                  expression="SUM(CASE WHEN category='CategoryA' THEN 1 ELSE 0 END)/CAST(COUNT(*) AS REAL)"),
     ]
 
     def setUp(self):
@@ -873,6 +965,10 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
         PandasColumn(column_name='project', type='object'),
         PandasColumn(column_name='received', type='datetime64[D]'),
         PandasColumn(column_name='value', type='int64'),
+        PandasColumn(column_name='ratio', type='float64',
+                     expression="value / value2"),
+        PandasColumn(column_name='inverse_ratio', type='float64',
+                     expression="value2 / value"),
     ]
 
     metrics = [
@@ -880,6 +976,12 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
                      source='value', expression='sum'),
         PandasMetric(metric_name='avg__value', metric_type='avg',
                      source='value', expression='mean'),
+        PandasMetric(metric_name='ratio', metric_type='avg',
+                     source='ratio', expression='mean'),
+        PandasMetric(metric_name='value_percentage', metric_type='custom',
+                     source=None, expression='calc_value_percentage'),
+        PandasMetric(metric_name='category_percentage', metric_type='custom',
+                     source='category', expression="calc_category_percentage"),
     ]
 
     def setUp(self):
@@ -889,6 +991,16 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
                                            format='html',
                                            columns=self.columns,
                                            metrics=self.metrics)
+
+        def calc_value_percentage(group):
+            return sum(group['value'])/sum(group['value'] + group['value2'])
+
+        self.datasource.calc_value_percentage = calc_value_percentage
+
+        def calc_category_percentage(group):
+            return group.value_counts(normalize=True).loc['CategoryA']
+
+        self.datasource.calc_category_percentage = calc_category_percentage
 
     def test_post_aggregation_filter(self):
         parameters = {

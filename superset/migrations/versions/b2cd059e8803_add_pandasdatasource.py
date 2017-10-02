@@ -64,6 +64,7 @@ def upgrade():
     sa.Column('min', sa.Boolean(), nullable=True),
     sa.Column('filterable', sa.Boolean(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('expression', sa.Text(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('pandas_datasource_id', sa.Integer(), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), nullable=True),
