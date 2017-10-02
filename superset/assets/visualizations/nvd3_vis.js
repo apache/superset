@@ -230,14 +230,21 @@ function nvd3Vis(slice, payload) {
           chart.donut(true);
         }
         chart.labelsOutside(fd.labels_outside);
-        chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
-          .labelType(fd.pie_label_type);
+        chart.labelThreshold(0.05);  // Configure the minimum slice size for labels to show up
+        if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
+          chart.labelType(fd.pie_label_type);
+        } else if (fd.pie_label_type === 'key_value') {
+          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
+        }
         chart.cornerRadius(true);
 
-        if (fd.pie_label_type === 'percent') {
+        if (fd.pie_label_type === 'percent' || fd.pie_label_type === 'key_percent') {
           let total = 0;
           data.forEach((d) => { total += d.y; });
           chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
+          if (fd.pie_label_type === 'key_percent') {
+            chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
+          }
         }
 
         break;

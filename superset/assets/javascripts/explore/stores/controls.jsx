@@ -943,6 +943,8 @@ export const controls = {
       ['key', 'Category Name'],
       ['value', 'Value'],
       ['percent', 'Percentage'],
+      ['key_value', 'Category and Value'],
+      ['key_percent', 'Category and Percentage'],
     ],
     description: t('What should be shown on the label?'),
   },
