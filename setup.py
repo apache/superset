@@ -44,6 +44,7 @@ setup(
     install_requires=[
         'beautifulsoup4==4.6.0',
         'boto3==1.4.4',
+        'bottleneck==1.2.1',
         'celery==3.1.25',
         'colorama==0.3.9',
         'cryptography==1.9',
@@ -63,6 +64,7 @@ setup(
         'idna==2.5',
         'lxml==3.8.0',
         'markdown==2.6.8',
+        'numexpr==2.6.4',
         'pandas==0.20.3',
         'parsedatetime==2.0.0',
         'pydruid==0.3.1',

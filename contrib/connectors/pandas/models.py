@@ -34,6 +34,27 @@ from superset.models.helpers import QueryResult, set_perm
 from superset.utils import QueryStatus
 
 
+FORMATS = [
+    ('csv', 'csv'),
+    ('html', 'html'),
+    ('json', 'json'),
+    ('excel', 'Microsoft Excel'),
+    ('stata', 'Stata'),
+]
+
+try:
+    import tables  # NOQA
+    FORMATS.append(('hdf', 'HDF5'))
+except ImportError:
+    pass
+
+try:
+    import feather  # NOQA
+    FORMATS.append(('feather', 'Feather'))
+except ImportError:
+    pass
+
+
 class PandasDatabase(object):
     """Non-ORM object for a Pandas Source"""
 
@@ -122,13 +143,6 @@ class PandasMetric(Model, BaseMetric):
 
 class PandasDatasource(Model, BaseDatasource):
     """A datasource based on a Pandas DataFrame"""
-
-    FORMATS = [
-        ('csv', 'csv'),
-        ('html', 'html'),
-        ('json', 'json'),
-        ('excel', 'Microsoft Excel'),
-    ]
 
     # See http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases # NOQA
     GRAINS = OrderedDict([
@@ -577,7 +591,7 @@ class PandasDatasource(Model, BaseDatasource):
             # If there is more than one DataFrame in the list then
             # concatenate them along the index
             if len(dfs) > 1:
-                df = pd.concat(dfs, axis=1)
+                df = pd.concat(dfs, axis=0)
                 query_str = 'pd.concat([{}])'.format(', '.join(query_strs))
             else:
                 df = dfs[0]
@@ -627,9 +641,10 @@ class PandasDatasource(Model, BaseDatasource):
                     ascending=ascending)
 
             # Remove metrics only added for post-aggregation filtering
-            df = df.drop(filtered_metrics, axis=1)
-            query_str += '.drop({filtered_metrics}, axis=1)'.format(
-                filtered_metrics=filtered_metrics)
+            if filtered_metrics:
+                df = df.drop(filtered_metrics, axis=1)
+                query_str += '.drop({filtered_metrics}, axis=1)'.format(
+                    filtered_metrics=filtered_metrics)
 
         elif groupby:
             # Group by without any metrics is equivalent to SELECT DISTINCT,

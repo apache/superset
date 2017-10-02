@@ -20,7 +20,7 @@ from superset.views.base import (
     get_datasource_exist_error_mgs,
 )
 
-from .models import PandasDatasource, PandasColumn, PandasMetric
+from .models import FORMATS, PandasDatasource, PandasColumn, PandasMetric
 
 
 class ChoiceTypeSelectField(SelectField):
@@ -158,8 +158,7 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         'link', 'changed_on_']
     add_columns = ['name', 'source_url', 'format']
     add_form_extra_fields = {
-        'format': ChoiceTypeSelectField(_('Format'),
-                                        choices=PandasDatasource.FORMATS)
+        'format': ChoiceTypeSelectField(_('Format'), choices=FORMATS)
     }
     edit_columns = [
         'name', 'source_url', 'format',
@@ -168,8 +167,7 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     edit_form_extra_fields = {
-        'format': ChoiceTypeSelectField(_('Format'),
-                                        choices=PandasDatasource.FORMATS)
+        'format': ChoiceTypeSelectField(_('Format'), choices=FORMATS)
     }
     show_columns = edit_columns + ['perm']
     related_views = [PandasColumnInlineView, PandasMetricInlineView]
