@@ -654,7 +654,8 @@ class BaseConnectorTestCase(SupersetTestCase):
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df.groupby(parameters['groupby'])
-                              .apply(lambda x: sum(x['value'])/sum(x['value'] + x['value2']))
+                              .apply(lambda x: sum(x['value']) /
+                                     sum(x['value'] + x['value2']))
                               .reset_index()
                               .sort_values([0], ascending=False))
         expected_df.columns = parameters['groupby'] + parameters['metrics']
@@ -935,7 +936,8 @@ class SqlaConnectorTestCase(BaseConnectorTestCase):
         SqlMetric(metric_name='value_percentage', metric_type='custom',
                   expression="SUM(value)/SUM(value + value2)"),
         SqlMetric(metric_name='category_percentage', metric_type='custom',
-                  expression="SUM(CASE WHEN category='CategoryA' THEN 1 ELSE 0 END)/CAST(COUNT(*) AS REAL)"),
+                  expression="SUM(CASE WHEN category='CategoryA' THEN 1 ELSE 0 END)/"
+                             "CAST(COUNT(*) AS REAL)"),
     ]
 
     def setUp(self):
@@ -993,7 +995,7 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
                                            metrics=self.metrics)
 
         def calc_value_percentage(group):
-            return sum(group['value'])/sum(group['value'] + group['value2'])
+            return sum(group['value']) / sum(group['value'] + group['value2'])
 
         self.datasource.calc_value_percentage = calc_value_percentage
 

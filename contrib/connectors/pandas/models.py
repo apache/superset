@@ -98,13 +98,6 @@ class PandasColumn(Model, BaseColumn):
     def is_string(self):
         return self.type and is_string_dtype(self.type)
 
-    num_types = (
-        'DOUBLE', 'FLOAT', 'INT', 'BIGINT',
-        'LONG', 'REAL', 'NUMERIC', 'DECIMAL'
-    )
-    date_types = ('DATE', 'TIME', 'DATETIME')
-    str_types = ('VARCHAR', 'STRING', 'CHAR')
-
     @property
     def data(self):
         attrs = (
@@ -366,8 +359,8 @@ class PandasDatasource(Model, BaseDatasource):
                 # Rely on Pandas partial string indexing for datetime fields,
                 # see https://pandas.pydata.org/pandas-docs/stable/timeseries.html#partial-string-indexing  # NOQA
                 try:
-                    if ((col_obj.is_string or col_obj.is_dttm)
-                            and not isinstance(eq, list)):
+                    if ((col_obj.is_string or col_obj.is_dttm) and
+                            not isinstance(eq, list)):
                         eq = "'{}'".format(eq)
                 except AttributeError:
                     # col_obj is None, probably because the col is a metric,
@@ -472,12 +465,13 @@ class PandasDatasource(Model, BaseDatasource):
                     metric = metrics_dict[timeseries_limit_metric]
                     assert isinstance(metric.source, basestring)
                     aggregates = {metric.source: metric.expression}
-                    df = (df[df.set_index(groupby).index.isin(
-                              df.groupby(groupby, sort=False)
-                                .aggregate(aggregates)
-                                .sort_values(metric.source,
-                                             ascending=metric_order_asc)
-                                .iloc[:timeseries_limit].index)])
+                    df = (df[df.set_index(groupby)
+                               .index.isin(
+                                   df.groupby(groupby, sort=False)
+                                   .aggregate(aggregates)
+                                   .sort_values(metric.source,
+                                                ascending=metric_order_asc)
+                                   .iloc[:timeseries_limit].index)])
 
                     query_str += ('[df.set_index({groupby}).index.isin('
                                   'df.groupby({groupby}, sort=False)'
