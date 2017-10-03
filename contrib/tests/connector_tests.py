@@ -162,7 +162,7 @@ class BaseConnectorTestCase(SupersetTestCase):
     def test_summary_multiple_metrics(self):
         parameters = {
             'groupby': [],
-            'metrics': ['sum__value', 'avg__value', 'value_percentage'],
+            'metrics': ['sum__value', 'avg__value', 'value_percentage', 'ratio'],
             'granularity': 'received',
             'from_dttm': datetime.datetime(2001, 1, 1),
             'to_dttm': datetime.datetime(2001, 12, 31),
@@ -175,6 +175,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
+        self.df['ratio'] = self.df['value'] / self.df['value2']
         result = self.datasource.query(parameters)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
@@ -184,6 +185,7 @@ class BaseConnectorTestCase(SupersetTestCase):
             ('avg__value', [self.df['value'].mean()]),
             ('value_percentage', [sum(self.df['value']) /
                                   sum(self.df['value'] + self.df['value2'])]),
+            ('ratio', [self.df['ratio'].mean()]),
         ]))
         self.assertEqual(result.df, expected_df)
 
@@ -581,7 +583,7 @@ class BaseConnectorTestCase(SupersetTestCase):
     def test_groupby_multiple_metrics(self):
         parameters = {
             'groupby': ['project', 'region'],
-            'metrics': ['sum__value', 'avg__value'],
+            'metrics': ['sum__value', 'avg__value', 'value_percentage', 'ratio'],
             'granularity': 'received',
             'from_dttm': datetime.datetime(2001, 1, 1),
             'to_dttm': datetime.datetime(2001, 12, 31),
@@ -594,15 +596,22 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
+        self.df['ratio'] = self.df['value'] / self.df['value2']
         result = self.datasource.query(parameters)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df.groupby(parameters['groupby'])
-                           .aggregate({'value': ['sum', 'mean']})
-                           .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
-        expected_df = expected_df.sort_values(['sum__value'], ascending=False)
+                           .aggregate(OrderedDict([('value', ['sum', 'mean']),
+                                                   ('ratio', ['mean'])])))
+        expected_df['value_percentage'] = (self.df.groupby(parameters['groupby'])
+                                                  .apply(lambda x: sum(x['value']) /
+                                                         sum(x['value'] + x['value2'])))
+        expected_df = expected_df.reset_index()
+        expected_df.columns = (parameters['groupby'] +
+                               ['sum__value', 'avg__value', 'ratio', 'value_percentage'])
+        expected_df = (expected_df[parameters['groupby'] + parameters['metrics']]
+                       .sort_values(['sum__value'], ascending=False))
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_ratio_metric(self):

@@ -552,41 +552,63 @@ class PandasDatasource(Model, BaseDatasource):
                 df = df.groupby(groupby + timestamp_exprs, sort=False)
                 query_str += '.groupby({}, sort=False)'.format(groupby + timestamp_exprs)
 
-                for sources, expr, func in apply_functions:
-                    if sources:
-                        dfs.append(df[sources].apply(func))
-                        query_strs.append(query_str +
-                                          '[{}].apply({})'.format(sources, expr))
-                    else:
-                        dfs.append(df.apply(func))
-                        query_strs.append(query_str + '.apply({})'.format(expr))
-            else:
-                # Multi-column aggregates need to be passed the DataFrame,
-                # whereas if we call DataFrame.apply() without a groupby
-                # the func is called on each column individually
-                for sources, expr, func in apply_functions:
-                    if sources:
-                        dfs.append(pd.Series(func(df[sources])))
-                        query_strs.append('pd.Series({expr}({df}[{sources}]))'.format(
-                            expr=expr,
-                            df=query_str,
-                            sources=sources))
-                    else:
-                        dfs.append(pd.Series(func(df)))
-                        query_strs.append('pd.Series({expr}({df}))'.format(
-                            expr=expr,
-                            df=query_str))
+            for sources, expr, func in apply_functions:
+                apply_df = df
+                apply_str = query_str
+
+                if sources:
+                    apply_df = df[sources]
+                    apply_str = query_str + '[{}]'.format(sources)
+
+                if groupby or timestamp_exprs:
+                    apply_df = df.apply(func)
+                    apply_str += '.apply({})'.format(expr)
+                else:
+                    # If we call DataFrame.apply() without a groupby then the func is
+                    # called on each column individually. Therefore, if we have a
+                    # summary with multi-column aggregates we need to pass the whole
+                    # DataFrame to the function.
+                    apply_df = pd.Series(func(apply_df)).to_frame()
+                    apply_str = 'pd.Series({expr}({df})).to_frame()'.format(
+                        expr=expr,
+                        df=apply_str)
+
+                    # Superset expects a DataFrame with single Row and
+                    # the metrics as columns, rather than with the metrics as the
+                    # index, so if we have a summary then we need to pivot it.
+                    apply_df = apply_df.unstack().to_frame().T
+                    apply_str += '.unstack().to_frame().T'
+
+                dfs.append(apply_df)
+                query_strs.append(apply_str)
 
             if aggregates:
-                dfs.append(df.aggregate(aggregates))
-                query_strs.append(query_str +
-                                  '.aggregate({})'.format(aggregates))
+                if groupby or timestamp_exprs:
+                    dfs.append(df.aggregate(aggregates))
+                    query_strs.append(query_str +
+                                      '.aggregate({})'.format(aggregates))
+                else:
+                    # For a summary table we need to preserve the metric order
+                    # so we can set the correct column names, so process aggregates
+                    # for each dataframe column in turn
+                    for col, col_agg in aggregates.items():
+                        agg_df = df.aggregate({col: col_agg})
+                        agg_str = query_str + '.aggregate({}: {})'.format(col, col_agg)
+
+                        # Superset expects a DataFrame with single Row and
+                        # the metrics as columns, rather than with the metrics as the
+                        # index, so if we have a summary then we need to pivot it.
+                        agg_df = agg_df.unstack().to_frame().T
+                        agg_str += '.unstack().to_frame().T'
+
+                        dfs.append(agg_df)
+                        query_strs.append(agg_str)
 
             # If there is more than one DataFrame in the list then
             # concatenate them along the index
             if len(dfs) > 1:
-                df = pd.concat(dfs, axis=0)
-                query_str = 'pd.concat([{}])'.format(', '.join(query_strs))
+                df = pd.concat(dfs, axis=1)
+                query_str = 'pd.concat([{}], axis=1)'.format(', '.join(query_strs))
             else:
                 df = dfs[0]
                 query_str = query_strs[0]
@@ -594,13 +616,6 @@ class PandasDatasource(Model, BaseDatasource):
             if groupby or timestamp_exprs:
                 df = df.reset_index()
                 query_str += '.reset_index()'
-            else:
-                # Note that Superset expects a DataFrame with single Row and
-                # the metrics as columns, rather than with the metrics
-                # as the index, so if we have a summary then we need to
-                # reindex it
-                df = df.bfill(axis=1).T.reset_index(drop=True).head(n=1)
-                query_str += '.bfill(axis=1).T.reset_index(drop=True).head(n=1)'
 
             # Set the correct columns names and then reorder the columns
             # to match the requested order
