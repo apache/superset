@@ -2285,14 +2285,16 @@ class Superset(BaseSupersetView):
         for role in user.roles:
             perms = set()
             for perm in role.permissions:
-                perms.add(
-                    (perm.permission.name, perm.view_menu.name)
-                )
-                if perm.permission.name in ('datasource_access', 'database_access'):
-                    permissions[perm.permission.name].add(perm.view_menu.name)
+                if perm.permission and perm.view_menu:
+                    perms.add(
+                        (perm.permission.name, perm.view_menu.name)
+                    )
+                    if perm.permission.name in ('datasource_access', 'database_access'):
+                        permissions[perm.permission.name].add(perm.view_menu.name)
             roles[role.name] = [
                 [perm.permission.name, perm.view_menu.name]
                 for perm in role.permissions
+                if perm.permission and perm.view_menu
             ]
         payload = {
             'user': {
