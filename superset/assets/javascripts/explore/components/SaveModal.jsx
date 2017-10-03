@@ -108,7 +108,11 @@ class SaveModal extends React.Component {
     this.props.actions.saveSlice(saveUrl)
       .then((data) => {
         // Go to new slice url or dashboard url
-        window.location = data.slice.slice_url;
+        if (gotodash) {
+          window.location = data.dashboard;
+        } else {
+          window.location = data.slice.slice_url;
+        }
       });
     this.props.onHide();
   }

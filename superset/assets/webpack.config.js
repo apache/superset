@@ -52,7 +52,7 @@ const config = {
         query: {
           presets: [
             'airbnb',
-            'es2015',
+            'env',
             'react',
           ],
         },

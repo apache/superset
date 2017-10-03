@@ -382,10 +382,10 @@ Druid
 -----
 
 * From the UI, enter the information about your clusters in the
-  ``Admin->Clusters`` menu by hitting the + sign.
+  `Sources -> Druid Clusters` menu by hitting the + sign.
 
 * Once the Druid cluster connection information is entered, hit the
-  ``Admin->Refresh Metadata`` menu item to populate
+  `Sources -> Refresh Druid Metadata` menu item to populate
 
 * Navigate to your datasources
 
