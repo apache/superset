@@ -1001,18 +1001,32 @@ export const controls = {
     description: t('Whether to include a time filter'),
   },
 
-  sqla_time_filters: {
+  show_sqla_time_granularity: {
     type: 'CheckboxControl',
-    label: 'SQLAlchemy Time Options',
+    label: 'Show SQL Granularity Dropdown',
     default: false,
-    description: 'Whether to include time controls for SQLAlchemy datasources',
+    description: 'Check to include SQL Granularity dropdown',
   },
 
-  druid_time_filters: {
+  show_sqla_time_column: {
     type: 'CheckboxControl',
-    label: 'Druid Time Options',
+    label: 'Show SQL Time Column',
     default: false,
-    description: 'Whether to include time controls for Druid datasources',
+    description: 'Check to include Time Column dropdown',
+  },
+
+  show_druid_time_granularity: {
+    type: 'CheckboxControl',
+    label: 'Show Druid Granularity Dropdown',
+    default: false,
+    description: 'Check to include Druid Granularity dropdown',
+  },
+
+  show_druid_time_origin: {
+    type: 'CheckboxControl',
+    label: 'Show Druid Time Origin',
+    default: false,
+    description: 'Check to include Time Origin dropdown',
   },
 
   show_datatable: {

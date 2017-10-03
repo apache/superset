@@ -28,16 +28,20 @@ const propTypes = {
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
-  showSqlaFilters: PropTypes.bool,
-  showDruidFilters: PropTypes.bool,
+  showSqlaTimeGrain: PropTypes.bool,
+  showSqlaTimeColumn: PropTypes.bool,
+  showDruidTimeGrain: PropTypes.bool,
+  showDruidTimeOrigin: PropTypes.bool,
   datasource: PropTypes.object.isRequired,
 };
 const defaultProps = {
   origSelectedValues: {},
   onChange: () => {},
   showDateFilter: false,
-  showSqlaFilters: false,
-  showDruidFilters: false,
+  showSqlaTimeGrain: false,
+  showSqlaTimeColumn: false,
+  showDruidTimeGrain: false,
+  showDruidTimeOrigin: false,
   instantFiltering: true,
 };
 
@@ -114,23 +118,29 @@ class FilterBox extends React.Component {
       );
     }
     const datasourceFilters = [];
-    if (this.props.showSqlaFilters) {
+    const sqlaFilters = [];
+    const druidFilters = [];
+    if (this.props.showSqlaTimeGrain) sqlaFilters.push('time_grain_sqla');
+    if (this.props.showSqlaTimeColumn) sqlaFilters.push('granularity_sqla');
+    if (this.props.showDruidTimeGrain) druidFilters.push('granularity');
+    if (this.props.showDruidTimeOrigin) druidFilters.push('druid_time_origin');
+    if (sqlaFilters.length) {
       datasourceFilters.push(
         <ControlRow
           key="sqla-filters"
           className="control-row"
-          controls={['granularity_sqla', 'time_grain_sqla'].map(control => (
+          controls={sqlaFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}
         />,
       );
     }
-    if (this.props.showDruidFilters) {
+    if (druidFilters.length) {
       datasourceFilters.push(
         <ControlRow
           key="druid-filters"
           className="control-row"
-          controls={['druid_time_origin', 'granularity'].map(control => (
+          controls={druidFilters.map(control => (
             <Control {...this.getControlData(control)} />
           ))}
         />,
@@ -227,8 +237,10 @@ function filterBox(slice, payload) {
       filtersChoices={filtersChoices}
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
-      showSqlaFilters={fd.sqla_time_filters}
-      showDruidFilters={fd.druid_time_filters}
+      showSqlaTimeGrain={fd.show_sqla_time_granularity}
+      showSqlaTimeColumn={fd.show_sqla_time_column}
+      showDruidTimeGrain={fd.show_druid_time_granularity}
+      showDruidTimeOrigin={fd.show_druid_time_origin}
       datasource={slice.datasource}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}
