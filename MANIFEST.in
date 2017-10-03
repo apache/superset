@@ -6,3 +6,5 @@ recursive-exclude superset/static/assets/node_modules *
 recursive-exclude tests *
 recursive-include superset/data *
 recursive-include superset/migrations *
+recursive-include superset/translations *
+
