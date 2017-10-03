@@ -1194,16 +1194,18 @@ class Superset(BaseSupersetView):
             dash.slices.append(slc)
             db.session.commit()
 
+        response = {
+            "can_add": slice_add_perm,
+            "can_download": slice_download_perm,
+            "can_overwrite": is_owner(slc, g.user),
+            'form_data': form_data,
+            'slice': slc.data,
+        }
+
         if request.args.get('goto_dash') == 'true':
-            return dash.url
-        else:
-            return json_success(json.dumps({
-                "can_add": slice_add_perm,
-                "can_download": slice_download_perm,
-                "can_overwrite": is_owner(slc, g.user),
-                'form_data': form_data,
-                'slice': slc.data,
-            }))
+            response.update({'dashboard': dash.url})
+
+        return json_success(json.dumps(response))
 
     def save_slice(self, slc):
         session = db.session()
