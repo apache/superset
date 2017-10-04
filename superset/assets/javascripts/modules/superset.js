@@ -65,6 +65,7 @@ const px = function (state) {
     const container = $(selector);
     const sliceId = data.slice_id;
     const formData = applyDefaultFormData(data.form_data);
+    const sliceCell = $(`#${data.slice_id}-cell`);
     slice = {
       data,
       formData,
@@ -114,6 +115,7 @@ const px = function (state) {
 
         token.find('img.loading').hide();
         container.fadeTo(0.5, 1);
+        sliceCell.removeClass('slice-cell-highlight');
         container.show();
 
         $('.query-and-save button').removeAttr('disabled');
@@ -139,6 +141,7 @@ const px = function (state) {
         let errorMsg = msg;
         token.find('img.loading').hide();
         container.fadeTo(0.5, 1);
+        sliceCell.removeClass('slice-cell-highlight');
         let errHtml = '';
         let o;
         try {
@@ -211,6 +214,7 @@ const px = function (state) {
         controls.find('a.exportCSV').attr('href', getExploreUrl(formDataExtra, 'csv'));
         token.find('img.loading').show();
         container.fadeTo(0.5, 0.25);
+        sliceCell.addClass('slice-cell-highlight');
         container.css('height', this.height());
         $.ajax({
           url: this.jsonEndpoint(formDataExtra),
