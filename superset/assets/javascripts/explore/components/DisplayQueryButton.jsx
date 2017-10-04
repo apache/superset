@@ -65,7 +65,10 @@ export default class DisplayQueryButton extends React.PureComponent {
     });
   }
   beforeOpen() {
-    if (['loading', null].indexOf(this.props.chartStatus) >= 0 || !this.props.queryResponse) {
+    if (
+      ['loading', null].indexOf(this.props.chartStatus) >= 0
+      || !this.props.queryResponse || !this.props.queryResponse.query
+    ) {
       this.fetchQuery();
     } else {
       this.setStateFromQueryResponse();
