@@ -85,7 +85,7 @@
     "react-syntax-highlighter": "^5.7.0",
     "react-virtualized": "^9.3.0",
     "react-virtualized-select": "^2.4.0",
-    "reactable": "^0.14.0",
+    "reactable": "^0.14.1",
     "redux": "^3.5.2",
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",

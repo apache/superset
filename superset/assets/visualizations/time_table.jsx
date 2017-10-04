@@ -23,8 +23,8 @@ function FormattedNumber({ num, format }) {
   return <span>{num}</span>;
 }
 FormattedNumber.propTypes = {
-  num: propTypes.number.isRequired,
-  format: propTypes.string.isRequired,
+  num: propTypes.number,
+  format: propTypes.string,
 };
 
 function viz(slice, payload) {
