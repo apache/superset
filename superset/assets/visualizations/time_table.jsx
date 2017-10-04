@@ -3,7 +3,7 @@ import React from 'react';
 import propTypes from 'prop-types';
 import { Table, Thead, Th } from 'reactable';
 import d3 from 'd3';
-import { Sparkline, LineSeries, PointSeries } from '@data-ui/sparkline';
+import { Sparkline, LineSeries } from '@data-ui/sparkline';
 
 import MetricOption from '../javascripts/components/MetricOption';
 import TooltipWrapper from '../javascripts/components/TooltipWrapper';
