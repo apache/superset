@@ -529,11 +529,7 @@ class SqlaTable(Model, BaseDatasource):
             inner_select_exprs += [inner_main_metric_expr]
             subq = select(inner_select_exprs)
             subq = subq.select_from(tbl)
-            inner_time_filter = dttm_col.get_time_filter(
-                inner_from_dttm or from_dttm,
-                inner_to_dttm or to_dttm,
-            )
-            subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
+            subq = subq.where(and_(*(time_filters + where_clause_and)))
             subq = subq.group_by(*inner_groupby_exprs)
 
             ob = inner_main_metric_expr
