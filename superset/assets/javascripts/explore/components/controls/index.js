@@ -29,5 +29,4 @@ const controlMap = {
   TimeSeriesColumnControl,
   VizTypeControl,
 };
-
 export default controlMap;
