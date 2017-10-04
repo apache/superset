@@ -369,6 +369,25 @@ export const visTypes = {
     },
   },
 
+  time_table: {
+    label: t('Time Series Table'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['groupby', 'metrics'],
+          ['column_collection'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      groupby: {
+        multiple: false,
+      },
+    },
+  },
+
   markup: {
     label: t('Markup'),
     controlPanelSections: [

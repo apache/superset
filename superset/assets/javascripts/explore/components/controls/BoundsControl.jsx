@@ -5,16 +5,11 @@ import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
-  label: PropTypes.string,
-  description: PropTypes.string,
   onChange: PropTypes.func,
   value: PropTypes.array,
 };
 
 const defaultProps = {
-  label: null,
-  description: null,
   onChange: () => {},
   value: [null, null],
 };

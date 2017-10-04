@@ -1,4 +1,5 @@
 @import './less/index.less';
+@import "./less/cosmo/variables.less";
 
 body {
     margin: 0px !important;
@@ -364,6 +365,9 @@ iframe {
 .PopoverSection {
   padding-bottom: 10px;
 }
+.popover {
+  max-width: 500px !important;
+}
 .float-left {
   float: left;
 }
@@ -381,4 +385,7 @@ g.annotation-container {
     fill-opacity: 0.1;
     stroke-width: 1;
   }
+}
+.stroke-primary {
+  stroke: @brand-primary;
 }
