@@ -344,10 +344,6 @@ navigation bar.
         'zh': {'flag': 'cn', 'name': 'Chinese'},
     }
 
-We need to extract the string to be translated, run the following command:
-
-    pybabel extract -F ./babel/babel.cfg -k _ -k __ -k t -k tn -k tct -o ./babel/messages.pot .
-
 As per the [Flask AppBuilder documentation] about translation, to create a
 new language dictionary, run the following command:
 
@@ -356,7 +352,7 @@ new language dictionary, run the following command:
 Then it's a matter of running the statement below to gather all strings that
 need translation
 
-    fabmanager babel-extract --target superset/translations/
+    fabmanager babel-extract --target superset/translations/ -k _ -k __ -k t -k tn -k tct
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
