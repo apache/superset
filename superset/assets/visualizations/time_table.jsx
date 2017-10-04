@@ -110,9 +110,9 @@ function viz(slice, payload) {
           if (c.comparisonType === 'diff') {
             v -= recent;
           } else if (c.comparisonType === 'perc') {
-            v /= recent;
+            v = recent / v;
           } else if (c.comparisonType === 'perc_change') {
-            v = (v / recent) - 1;
+            v = (recent / v) - 1;
           }
         } else if (c.colType === 'contrib') {
           // contribution to column total
