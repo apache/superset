@@ -26,6 +26,7 @@ from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types, PY3
+from six.moves import reduce
 from dateutil import relativedelta as rdelta
 
 from superset import app, utils, cache, get_manifest_file
@@ -405,10 +406,10 @@ class TableViz(BaseViz):
 
         # Add all percent metrics that are not already in the list
         if 'percent_metrics' in fd:
-            d['metrics'] = d['metrics'] + filter(
+            d['metrics'] = d['metrics'] + list(filter(
                 lambda m: m not in d['metrics'],
                 fd['percent_metrics']
-            )
+            ))
 
         d['is_timeseries'] = self.should_be_timeseries()
         return d
