@@ -8,6 +8,7 @@ import {
 
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import ControlHeader from '../ControlHeader';
+import controlMap from './';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -63,6 +64,7 @@ export default class CollectionControl extends React.Component {
     if (this.props.value.length === 0) {
       return <div className="text-muted">{this.props.placeholder}</div>;
     }
+    const control = controlMap[this.props.control];
     return (
       <SortableListGroup
         useDragHandle
@@ -79,7 +81,7 @@ export default class CollectionControl extends React.Component {
               <SortableDragger />
             </div>
             <div className="pull-left">
-              <this.props.control
+              <control
                 {...o}
                 onChange={this.onChange.bind(this, i)}
               />

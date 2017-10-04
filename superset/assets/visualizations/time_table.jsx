@@ -94,10 +94,6 @@ function viz(slice, payload) {
                   showArea={false}
                   stroke={brandColor}
                 />
-                <PointSeries
-                  points={['min', 'max', 'last']}
-                  fill={brandColor}
-                />
               </Sparkline>
             </div>
           </TooltipWrapper>);
