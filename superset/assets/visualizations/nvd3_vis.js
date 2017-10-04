@@ -75,19 +75,22 @@ function getMaxLabelSize(container, axisClass) {
 }
 
 /* eslint-disable camelcase */
-function formatLabel(column, verbose_map) {
+function formatLabel(column, verbose_map, removeMostSignificant) {
   let label;
-  if (verbose_map) {
-    if (Array.isArray(column) && column.length) {
-      label = verbose_map[column[0]];
-      if (column.length > 1) {
-        label += `, ${column.slice(1).join(', ')}`;
-      }
+  if (Array.isArray(column) && column.length) {
+    if (removeMostSignificant && column.length > 1) {
+      label = '';
     } else {
-      label = verbose_map[column];
+      label = verbose_map[column[0]] || column[0];
+      if (column.length > 1) {
+        label += ', ';
+      }
     }
+    label += column.slice(1).join(', ');
+  } else {
+    label = verbose_map[column] || column;
   }
-  return label || column;
+  return label;
 }
 /* eslint-enable camelcase */
 
@@ -97,9 +100,22 @@ function nvd3Vis(slice, payload) {
   const isExplore = $('#explore-container').length === 1;
 
   let data;
+  // Get the most significant part of the series name (key)
+  const mostSignificant = payload.data
+    .filter(x => Array.isArray(x.key) && x.key.length > 1)
+    .map(x => x.key[0]);
+  // # of distinct most significant keys
+  const distinctMostSignificant = mostSignificant
+    .reduce((distinct, v) => distinct.add(v), new Set()).size;
+  // remove the msg key from the label if these conditions are true
+  const removeMostSignificant = mostSignificant.length === payload.data.length &&
+    distinctMostSignificant === 1;
   if (payload.data) {
     data = payload.data.map(x => ({
-      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+      ...x,
+      key: formatLabel(x.key,
+        slice.datasource.verbose_map || {},
+        removeMostSignificant),
     }));
   } else {
     data = [];
