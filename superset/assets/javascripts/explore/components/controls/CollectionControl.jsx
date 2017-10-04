@@ -24,7 +24,7 @@ const propTypes = {
   ]),
   isFloat: PropTypes.bool,
   isInt: PropTypes.bool,
-  control: PropTypes.func,
+  controlName: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
@@ -64,7 +64,7 @@ export default class CollectionControl extends React.Component {
     if (this.props.value.length === 0) {
       return <div className="text-muted">{this.props.placeholder}</div>;
     }
-    const control = controlMap[this.props.control];
+    const Control = controlMap[this.props.controlName];
     return (
       <SortableListGroup
         useDragHandle
@@ -81,7 +81,7 @@ export default class CollectionControl extends React.Component {
               <SortableDragger />
             </div>
             <div className="pull-left">
-              <control
+              <Control
                 {...o}
                 onChange={this.onChange.bind(this, i)}
               />

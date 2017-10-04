@@ -1443,7 +1443,7 @@ export const controls = {
     type: 'CollectionControl',
     label: t('Time Series Columns'),
     validators: [v.nonEmpty],
-    control: 'TimeSeriesColumnControl',
+    controlName: 'TimeSeriesColumnControl',
   },
 
 };
