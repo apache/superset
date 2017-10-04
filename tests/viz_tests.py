@@ -21,7 +21,7 @@ class BaseVizTestCase(unittest.TestCase):
         }
         datasource = {'type': 'table'}
         test_viz = viz.BaseViz(datasource, form_data);
-        self.assertEquals(
+        self.assertEqual(
             test_viz.default_fillna,
             test_viz.get_fillna_for_columns()
         )
@@ -324,7 +324,7 @@ class PairedTTestTestCase(unittest.TestCase):
                 },
             ],
         }
-        self.assertEquals(data, expected)
+        self.assertEqual(data, expected)
 
     def test_get_data_empty_null_keys(self):
         form_data = {
@@ -362,4 +362,4 @@ class PairedTTestTestCase(unittest.TestCase):
                 },
             ],
         }
-        self.assertEquals(data, expected)
+        self.assertEqual(data, expected)

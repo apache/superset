@@ -428,7 +428,7 @@ class TableViz(BaseViz):
                 for m in percent_metrics
             }
             metric_percents = {
-                m: map(lambda a: a / metric_sums[m], df[m])
+                m: list(map(lambda a: a / metric_sums[m], df[m]))
                 for m in percent_metrics
             }
             for m in percent_metrics:
