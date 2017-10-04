@@ -52,6 +52,10 @@ export default class CopyToClipboard extends React.Component {
   }
 
   copyToClipboard(textToCopy) {
+    const selection = document.getSelection();
+    selection.removeAllRanges();
+    document.activeElement.blur();
+    const range = document.createRange();
     const textArea = document.createElement('textarea');
 
     textArea.style.position = 'fixed';
@@ -59,7 +63,8 @@ export default class CopyToClipboard extends React.Component {
     textArea.value = textToCopy;
 
     document.body.appendChild(textArea);
-    textArea.select();
+    range.selectNode(textArea);
+    selection.addRange(range);
     try {
       if (!document.execCommand('copy')) {
         throw new Error(t('Not successful'));
@@ -69,6 +74,11 @@ export default class CopyToClipboard extends React.Component {
     }
 
     document.body.removeChild(textArea);
+    if (selection.removeRange) {
+      selection.removeRange(range);
+    } else {
+      selection.removeAllRanges();
+    }
 
     this.setState({ hasCopied: true });
     this.props.onCopyEnd();

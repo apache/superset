@@ -4,8 +4,10 @@ import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/di
 import html from 'react-syntax-highlighter/dist/languages/htmlbars';
 import markdown from 'react-syntax-highlighter/dist/languages/markdown';
 import github from 'react-syntax-highlighter/dist/styles/github';
+import CopyToClipboard from './../../components/CopyToClipboard';
 
 import ModalTrigger from './../../components/ModalTrigger';
+import Button from '../../components/Button';
 import { t } from '../../locales';
 
 registerLanguage('markdown', markdown);
@@ -85,9 +87,21 @@ export default class DisplayQueryButton extends React.PureComponent {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.query) {
       return (
-        <SyntaxHighlighter language={this.state.language} style={github}>
-          {this.state.query}
-        </SyntaxHighlighter>);
+        <div>
+          <CopyToClipboard
+            text={this.state.query}
+            shouldShowText={false}
+            copyNode={
+              <Button style={{ position: 'absolute', right: 20 }}>
+                <i className="fa fa-clipboard" />
+              </Button>
+            }
+          />
+          <SyntaxHighlighter language={this.state.language} style={github}>
+            {this.state.query}
+          </SyntaxHighlighter>
+        </div>
+      );
     }
     return null;
   }
