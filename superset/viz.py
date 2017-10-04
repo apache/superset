@@ -30,7 +30,7 @@ from six import string_types, PY3
 from dateutil import relativedelta as rdelta
 
 from superset import app, utils, cache, get_manifest_file
-from superset.utils import DTTM_ALIAS
+from superset.utils import DTTM_ALIAS, merge_extra_filters
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -124,10 +124,6 @@ class BaseViz(object):
             df = df.fillna(fillna)
         return df
 
-    def get_extra_filters(self):
-        extra_filters = self.form_data.get('extra_filters', [])
-        return {f['col']: f['val'] for f in extra_filters}
-
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
@@ -144,29 +140,22 @@ class BaseViz(object):
             groupby.remove(DTTM_ALIAS)
             is_timeseries = True
 
-        # extra_filters are temporary/contextual filters that are external
-        # to the slice definition. We use those for dynamic interactive
-        # filters like the ones emitted by the "Filter Box" visualization
-        extra_filters = self.get_extra_filters()
+        # Add extra filters into the query form data
+        merge_extra_filters(form_data)
+
         granularity = (
-            form_data.get("granularity") or form_data.get("granularity_sqla")
+            form_data.get("granularity") or
+            form_data.get("granularity_sqla")
         )
         limit = int(form_data.get("limit") or 0)
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
-        row_limit = int(
-            form_data.get("row_limit") or config.get("ROW_LIMIT"))
+        row_limit = int(form_data.get("row_limit") or config.get("ROW_LIMIT"))
 
         # default order direction
         order_desc = form_data.get("order_desc", True)
 
-        # __form and __to are special extra_filters that target time
-        # boundaries. The rest of extra_filters are simple
-        # [column_name in list_of_values]. `__` prefix is there to avoid
-        # potential conflicts with column that would be named `from` or `to`
-        since = (
-            extra_filters.get('__from') or
-            form_data.get("since") or ''
-        )
+        since = form_data.get("since", "")
+        until = form_data.get("until", "now")
 
         # Backward compatibility hack
         since_words = since.split(' ')
@@ -176,7 +165,6 @@ class BaseViz(object):
 
         from_dttm = utils.parse_human_datetime(since)
 
-        until = extra_filters.get('__to') or form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_("From date cannot be larger than to date"))
@@ -195,16 +183,6 @@ class BaseViz(object):
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
         filters = form_data.get('filters', [])
-        for col, vals in self.get_extra_filters().items():
-            if not (col and vals) or col.startswith('__'):
-                continue
-            elif col in self.datasource.filterable_column_names:
-                # Quote values with comma to avoid conflict
-                filters += [{
-                    'col': col,
-                    'op': 'in',
-                    'val': vals,
-                }]
         d = {
             'granularity': granularity,
             'from_dttm': from_dttm,

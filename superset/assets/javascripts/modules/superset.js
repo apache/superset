@@ -208,8 +208,7 @@ const px = function (state) {
           this.force = force;
         }
         const formDataExtra = Object.assign({}, formData);
-        const extraFilters = controller.effectiveExtraFilters(sliceId);
-        formDataExtra.filters = formDataExtra.filters.concat(extraFilters);
+        formDataExtra.extra_filters = controller.effectiveExtraFilters(sliceId);
         controls.find('a.exploreChart').attr('href', getExploreUrl(formDataExtra));
         controls.find('a.exportCSV').attr('href', getExploreUrl(formDataExtra, 'csv'));
         token.find('img.loading').show();

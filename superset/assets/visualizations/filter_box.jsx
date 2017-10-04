@@ -6,23 +6,42 @@ import ReactDOM from 'react-dom';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import { TIME_CHOICES } from './constants';
+import DateFilterControl from '../javascripts/explore/components/controls/DateFilterControl';
+import ControlRow from '../javascripts/explore/components/ControlRow';
+import Control from '../javascripts/explore/components/Control';
+import controls from '../javascripts/explore/stores/controls';
 import './filter_box.css';
 import { t } from '../javascripts/locales';
 
+// maps control names to their key in extra_filters
+const timeFilterMap = {
+  since: '__from',
+  until: '__to',
+  granularity_sqla: '__time_col',
+  time_grain_sqla: '__time_grain',
+  druid_time_origin: '__time_origin',
+  granularity: '__granularity',
+};
 const propTypes = {
   origSelectedValues: PropTypes.object,
   instantFiltering: PropTypes.bool,
   filtersChoices: PropTypes.object,
   onChange: PropTypes.func,
   showDateFilter: PropTypes.bool,
+  showSqlaTimeGrain: PropTypes.bool,
+  showSqlaTimeColumn: PropTypes.bool,
+  showDruidTimeGrain: PropTypes.bool,
+  showDruidTimeOrigin: PropTypes.bool,
   datasource: PropTypes.object.isRequired,
 };
-
 const defaultProps = {
   origSelectedValues: {},
   onChange: () => {},
   showDateFilter: false,
+  showSqlaTimeGrain: false,
+  showSqlaTimeColumn: false,
+  showDruidTimeGrain: false,
+  showDruidTimeOrigin: false,
   instantFiltering: true,
 };
 
@@ -34,46 +53,98 @@ class FilterBox extends React.Component {
       hasChanged: false,
     };
   }
+  getControlData(controlName) {
+    const control = Object.assign({}, controls[controlName]);
+    const controlData = {
+      name: controlName,
+      key: `control-${controlName}`,
+      value: this.state.selectedValues[timeFilterMap[controlName]],
+      actions: { setControlValue: this.changeFilter.bind(this) },
+    };
+    Object.assign(control, controlData);
+    const mapFunc = control.mapStateToProps;
+    if (mapFunc) {
+      return Object.assign({}, control, mapFunc(this.props));
+    }
+    return control;
+  }
   clickApply() {
     this.props.onChange(Object.keys(this.state.selectedValues)[0], [], true, true);
     this.setState({ hasChanged: false });
   }
   changeFilter(filter, options) {
+    const fltr = timeFilterMap[filter] || filter;
     let vals = null;
-    if (options) {
+    if (options !== null) {
       if (Array.isArray(options)) {
         vals = options.map(opt => opt.value);
-      } else {
+      } else if (options.value) {
         vals = options.value;
+      } else {
+        vals = options;
       }
     }
     const selectedValues = Object.assign({}, this.state.selectedValues);
-    selectedValues[filter] = vals;
+    selectedValues[fltr] = vals;
     this.setState({ selectedValues, hasChanged: true });
-    this.props.onChange(filter, vals, false, this.props.instantFiltering);
+    this.props.onChange(fltr, vals, false, this.props.instantFiltering);
   }
   render() {
     let dateFilter;
+    const since = '__from';
+    const until = '__to';
     if (this.props.showDateFilter) {
-      dateFilter = ['__from', '__to'].map((field) => {
-        const val = this.state.selectedValues[field];
-        const choices = TIME_CHOICES.slice();
-        if (!choices.includes(val)) {
-          choices.push(val);
-        }
-        const options = choices.map(s => ({ value: s, label: s }));
-        return (
-          <div className="m-b-5" key={field}>
-            {field.replace('__', '')}
-            <Select.Creatable
-              placeholder="Select"
-              options={options}
-              value={this.state.selectedValues[field]}
-              onChange={this.changeFilter.bind(this, field)}
+      dateFilter = (
+        <div className="row space-1">
+          <div className="col-lg-6 col-xs-12">
+            <DateFilterControl
+              name={since}
+              label="Since"
+              description="Select starting date"
+              onChange={this.changeFilter.bind(this, since)}
+              value={this.state.selectedValues[since]}
             />
           </div>
-        );
-      });
+          <div className="col-lg-6 col-xs-12">
+            <DateFilterControl
+              name={until}
+              label="Until"
+              description="Select end date"
+              onChange={this.changeFilter.bind(this, until)}
+              value={this.state.selectedValues[until]}
+            />
+          </div>
+        </div>
+      );
+    }
+    const datasourceFilters = [];
+    const sqlaFilters = [];
+    const druidFilters = [];
+    if (this.props.showSqlaTimeGrain) sqlaFilters.push('time_grain_sqla');
+    if (this.props.showSqlaTimeColumn) sqlaFilters.push('granularity_sqla');
+    if (this.props.showDruidTimeGrain) druidFilters.push('granularity');
+    if (this.props.showDruidTimeOrigin) druidFilters.push('druid_time_origin');
+    if (sqlaFilters.length) {
+      datasourceFilters.push(
+        <ControlRow
+          key="sqla-filters"
+          className="control-row"
+          controls={sqlaFilters.map(control => (
+            <Control {...this.getControlData(control)} />
+          ))}
+        />,
+      );
+    }
+    if (druidFilters.length) {
+      datasourceFilters.push(
+        <ControlRow
+          key="druid-filters"
+          className="control-row"
+          controls={druidFilters.map(control => (
+            <Control {...this.getControlData(control)} />
+          ))}
+        />,
+      );
     }
     // Add created options to filtersChoices, even though it doesn't exist,
     // or these options will exist in query sql but invisible to end user.
@@ -126,19 +197,22 @@ class FilterBox extends React.Component {
       );
     });
     return (
-      <div>
-        {dateFilter}
-        {filters}
-        {!this.props.instantFiltering &&
-          <Button
-            bsSize="small"
-            bsStyle="primary"
-            onClick={this.clickApply.bind(this)}
-            disabled={!this.state.hasChanged}
-          >
-            Apply
-          </Button>
-        }
+      <div className="scrollbar-container">
+        <div className="scrollbar-content">
+          {dateFilter}
+          {datasourceFilters}
+          {filters}
+          {!this.props.instantFiltering &&
+            <Button
+              bsSize="small"
+              bsStyle="primary"
+              onClick={this.clickApply.bind(this)}
+              disabled={!this.state.hasChanged}
+            >
+              Apply
+            </Button>
+          }
+        </div>
       </div>
     );
   }
@@ -164,6 +238,10 @@ function filterBox(slice, payload) {
       filtersChoices={filtersChoices}
       onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
+      showSqlaTimeGrain={fd.show_sqla_time_granularity}
+      showSqlaTimeColumn={fd.show_sqla_time_column}
+      showDruidTimeGrain={fd.show_druid_time_granularity}
+      showDruidTimeOrigin={fd.show_druid_time_origin}
       datasource={slice.datasource}
       origSelectedValues={slice.getFilters() || {}}
       instantFiltering={fd.instant_filtering}

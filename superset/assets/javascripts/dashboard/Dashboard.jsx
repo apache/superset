@@ -175,7 +175,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
       const f = [];
       const immuneSlices = this.metadata.filter_immune_slices || [];
       if (sliceId && immuneSlices.includes(sliceId)) {
-        // The slice is immune to dashboard fiterls
+        // The slice is immune to dashboard filters
         return f;
       }
 
@@ -205,8 +205,13 @@ export function dashboardContainer(dashboard, datasources, userid) {
       return f;
     },
     addFilter(sliceId, col, vals, merge = true, refresh = true) {
-      if (this.getSlice(sliceId) && (col === '__from' || col === '__to' ||
-          this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1)) {
+      if (
+        this.getSlice(sliceId) && (
+          ['__from', '__to', '__time_col', '__time_grain', '__time_origin', '__granularity']
+            .indexOf(col) >= 0 ||
+            this.getSlice(sliceId).formData.groupby.indexOf(col) !== -1
+        )
+      ) {
         if (!(sliceId in this.filters)) {
           this.filters[sliceId] = {};
         }
