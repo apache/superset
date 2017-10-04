@@ -6,7 +6,7 @@ import { t } from '../../locales';
 const propTypes = {
   allowAsync: PropTypes.bool.isRequired,
   dbId: PropTypes.number,
-  queryState: PropTypes.string.isRequired,
+  queryState: PropTypes.string,
   runQuery: PropTypes.func.isRequired,
   selectedText: PropTypes.string,
   stopQuery: PropTypes.func.isRequired,
