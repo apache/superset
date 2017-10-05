@@ -23,23 +23,23 @@ import logging
 import re
 import textwrap
 import time
+import os
 
+import csv
+import boto3
+import pandas
 import sqlparse
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
 from flask import g, flash
-
 from werkzeug.utils import secure_filename
-import os
+
 
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from superset import conf, cache_util, utils, app, results_backend
-import pandas 
-#from superset.models.core import Database
-
+from superset import conf, cache_util, db, utils, app
 
 config = app.config
 
@@ -85,69 +85,29 @@ class BaseEngineSpec(object):
         return {}
 
     @staticmethod
-    def csv_to_df(names, filepath_or_buffer, sep, header, index_col, squeeze,
-                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows,
-                  skip_blank_lines, parse_dates, infer_datetime_format,
-                  dayfirst, thousands, decimal, quotechar, escapechar, comment,
-                  error_bad_lines, chunksize):
-        # Use Pandas to parse csv file to a dataframe
-        upload_path = config['UPLOAD_FOLDER'] + filepath_or_buffer
-        # Expose this to api so can specify each field
-        chunks = pandas.read_csv(filepath_or_buffer=upload_path,
-                                 sep=sep,
-                                 header=header,
-                                 names=names,
-                                 index_col=index_col,
-                                 squeeze=squeeze,
-                                 prefix=prefix,
-                                 mangle_dupe_cols=mangle_dupe_cols,
-                                 skipinitialspace=skipinitialspace,
-                                 skiprows=skiprows,
-                                 nrows=nrows,
-                                 skip_blank_lines=skip_blank_lines,
-                                 parse_dates=parse_dates,
-                                 infer_datetime_format=infer_datetime_format,
-                                 dayfirst=dayfirst,
-                                 thousands=thousands,
-                                 decimal=decimal,
-                                 quotechar=quotechar,
-                                 escapechar=escapechar,
-                                 comment=comment,
-                                 encoding='utf-8',
-                                 error_bad_lines=error_bad_lines,
-                                 chunksize=chunksize,
-                                 iterator=True)
+    def csv_to_df(**kwargs):
+        kwargs['filepath_or_buffer'] = \
+            config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
+        kwargs['encoding'] = 'utf-8'
+        kwargs['iterator'] = True
+        chunks = pandas.read_csv(**kwargs)
         df = pandas.DataFrame()
         df = pandas.concat(chunk for chunk in chunks)
         return df
 
     @staticmethod
-    def df_to_db(df, name, con, schema, if_exists, index,
-                 index_label, chunksize):
-        engine = create_engine(con, echo=False)
-        # Use Pandas to parse dataframe to database
-        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists,
-                  index=index, index_label=index_label, chunksize=chunksize)
+    def df_to_db(**kwargs):
+        df = kwargs['df']
+        table = kwargs['table']
+        del kwargs['df']
+        del kwargs['table']
+        kwargs['con'] = create_engine(kwargs['con'], echo=False)
+        df.to_sql(**kwargs)
 
-        database = (
-            db.session
-                .query(type(query)) #Database
-                .filter_by(sqlalchemy_uri=con)
-                .first()
-        )
-        table.database_id = database.id
         table.user_id = g.user.id
-        table.database = database
-        table.schema = form.schema.data
+        table.schema = kwargs['schema']
         db.session.add(table)
         db.session.commit()
-
-        #post_add
-        table.fetch_metadata()
-        security.merge_perm(sm, 'datasource_access', table.get_perm())
-        if table.schema:
-            security.merge_perm(sm, 'schema_access', table.schema_perm)
-
 
     @staticmethod
     def upload_csv(form, table):
@@ -158,39 +118,46 @@ class BaseEngineSpec(object):
 
         filename = secure_filename(form.csv_file.data.filename)
         if not allowed_file(filename):
-            flash("Invalid file trype selected.", 'alert')
+            flash("Invalid file type selected.", 'alert')
             return False
-        df = BaseEngineSpec.csv_to_df(names=form.names.data,
-                            filepath_or_buffer=filename,
-                            sep=form.sep.data,
-                            header=form.header.data,
-                            index_col=form.index_col.data,
-                            squeeze=form.squeeze.data,
-                            prefix=form.prefix.data,
-                            mangle_dupe_cols=form.mangle_dupe_cols.data,
-                            skipinitialspace=form.skipinitialspace.data,
-                            skiprows=form.skiprows.data,
-                            nrows=form.nrows.data,
-                            skip_blank_lines=form.skip_blank_lines.data,
-                            parse_dates=form.parse_dates.data,
-                            infer_datetime_format=form.infer_datetime_format.data,
-                            dayfirst=form.dayfirst.data,
-                            thousands=form.thousands.data,
-                            decimal=form.decimal.data,
-                            quotechar=form.quotechar.data,
-                            escapechar=form.escapechar.data,
-                            comment=form.comment.data,
-                            error_bad_lines=form.error_bad_lines.data,
-                            chunksize=10000)
+        kwargs = {
+            'names': form.names.data if form.names.data else None,
+            'filepath_or_buffer': filename,
+            'sep': form.sep.data,
+            'header': form.header.data,
+            'index_col': form.index_col.data,
+            'squeeze': form.squeeze.data,
+            'prefix': form.prefix.data,
+            'mangle_dupe_cols': form.mangle_dupe_cols.data,
+            'skipinitialspace': form.skipinitialspace.data,
+            'skiprows': form.skiprows.data,
+            'nrows': form.nrows.data,
+            'skip_blank_lines': form.skip_blank_lines.data,
+            'parse_dates': form.parse_dates.data,
+            'infer_datetime_format': form.infer_datetime_format.data,
+            'dayfirst': form.dayfirst.data,
+            'thousands': form.thousands.data,
+            'decimal': form.decimal.data,
+            'quotechar': form.quotechar.data,
+            'escapechar': form.escapechar.data,
+            'comment': form.comment.data,
+            'error_bad_lines': form.error_bad_lines.data,
+            'chunksize': 10000,
+        }
+        df = BaseEngineSpec.csv_to_df(**kwargs)
 
-        BaseEngineSpec.df_to_db(df=df,
-                      name=form.name.data,
-                      con=form.con.data,
-                      schema=form.schema.data,
-                      if_exists=form.if_exists.data,
-                      index=form.index.data,
-                      index_label=form.index_label.data,
-                      chunksize=10000)
+        df_to_db_kwargs = {
+            'table': table,
+            'df': df,
+            'name': form.name.data,
+            'con': form.con.data,
+            'schema': form.schema.data,
+            'if_exists': form.if_exists.data,
+            'index': form.index.data,
+            'index_label': form.index_label.data,
+            'chunksize': 10000,
+        }
+        BaseEngineSpec.df_to_db(**df_to_db_kwargs)
         return True
 
     @classmethod
@@ -807,37 +774,43 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @staticmethod
     def upload_csv(form, table):
-        "uploads a cv file and creates a superset table in the right databse"
-        "returns true if it was siccessful. False otherwise"
+        """Uploads a csv file and creates a superset datasource in Hive."""
         def get_column_names(filepath):
-            import csv
             with open(filepath, "rb") as f:
                 return csv.reader(f).next()
 
-        table_name=form.name.data
+        table_name = form.name.data
         filename = form.csv_file.data.filename
 
         bucket_path = config["CSV_TO_HIVE_UPLOAD_BUCKET"]
 
         if not bucket_path:
             logging.info("No upload bucket specified")
-            flash("No upload bucket specified. This can be set in the config file.", 'alert')
+            flash(
+                "No upload bucket specified. "
+                "You can specify one in the config file.",
+                "alert")
             return False
 
         upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
         dest_path = os.path.join(table_name, filename)
 
-        upload_path = config['UPLOAD_FOLDER'] + secure_filename(form.csv_file.data.filename)
+        upload_path = config['UPLOAD_FOLDER'] + secure_filename(
+            form.csv_file.data.filename)
         column_names = get_column_names(upload_path)
-        schema_definition = ", ".join([col_name + " STRING " for col_name in column_names])
+        schema_definition = ", ".join(
+            [s + " STRING " for s in column_names])
 
-        
-
-        import boto3
         s3 = boto3.client('s3')
-        s3.upload_file(upload_path, 'airbnb-superset', os.path.join(upload_prefix, table_name, filename))
-        sql = "CREATE EXTERNAL TABLE {} ( {} ) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE LOCATION '{}'"\
-            .format(table_name, schema_definition, os.path.join("s3a://", bucket_path, upload_prefix, table_name))
+        location =\
+            os.path.join("s3a://", bucket_path, upload_prefix, table_name)
+        s3.upload_file(
+            upload_path,
+            'airbnb-superset',
+            os.path.join(upload_prefix, table_name, filename))
+        sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
+            ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS 
+            "TEXTFILE LOCATION '{location}'""".format(**locals())
         try:
             logging.info(form.con.data)
             engine = create_engine(form.con.data)
