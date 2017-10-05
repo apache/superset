@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 from collections import OrderedDict
 from datetime import datetime
+import hashlib
 import logging
 from past.builtins import basestring
 try:
@@ -33,6 +34,7 @@ from superset.connectors.base.models import (
 from superset.models.helpers import QueryResult, set_perm
 from superset.utils import QueryStatus
 
+from .cache import dataframe_cache
 
 FORMATS = [
     ('csv', 'csv'),
@@ -196,8 +198,11 @@ class PandasDatasource(Model, BaseDatasource):
 
     @property
     def database(self):
-        uri = urlparse(self.source_url)
-        return PandasDatabase(database_name=uri.netloc,
+        try:
+            database_name = urlparse(self.source_url).netloc
+        except AttributeError:
+            database_name = 'memory'
+        return PandasDatabase(database_name=database_name,
                               cache_timeout=None)
 
     @property
@@ -291,6 +296,13 @@ class PandasDatasource(Model, BaseDatasource):
             columns.append((col.column_name, type))
         return pd.DataFrame({k: pd.Series(dtype=t) for k, t in columns})
 
+    @property
+    def cache_key(self):
+        source = {'source_url': self.source_url}
+        source.update(self.pandas_read_parameters)
+        s = str([(k, source[k]) for k in sorted(source.keys())])
+        return hashlib.md5(s.encode('utf-8')).hexdigest()
+
     def get_dataframe(self):
         """
         Read the source_url and return a Pandas DataFrame.
@@ -298,14 +310,24 @@ class PandasDatasource(Model, BaseDatasource):
         Use the PandasColumns to coerce columns into the correct dtype,
         and add any calculated columns to the DataFrame.
         """
-        calculated_columns = []
         if self.df is None:
-            self.df = self.pandas_read_method(self.source_url,
-                                              **self.pandas_read_parameters)
-            # read_html returns a list of DataFrames
-            if (isinstance(self.df, list) and
-                    isinstance(self.df[0], pd.DataFrame)):
-                self.df = self.df[0]
+            cache_key = self.cache_key
+            self.df = dataframe_cache.get(cache_key)
+            if not isinstance(self.df, pd.DataFrame):
+                self.df = self.pandas_read_method(self.source_url, **self.pandas_read_parameters)
+
+                # read_html returns a list of DataFrames
+                if (isinstance(self.df, list) and
+                        isinstance(self.df[0], pd.DataFrame)):
+                    self.df = self.df[0]
+
+                # Our column names are always strings
+                self.df.columns = [str(col) for col in self.df.columns]
+
+                timeout = self.cache_timeout or self.database.cache_timeout
+                dataframe_cache.set(cache_key, self.df, timeout)
+
+        calculated_columns = []
         for col in self.columns:
             name = col.column_name
             type = col.type
@@ -379,7 +401,7 @@ class PandasDatasource(Model, BaseDatasource):
         The function can be defined on the Connector, or on the DataFrame,
         in the local scope
         """
-        if expr in ['sum', 'mean', 'std', 'sem', 'count']:
+        if expr in ['sum', 'mean', 'std', 'sem', 'count', 'min', 'max']:
             return expr
         if hasattr(self, expr):
             return getattr(self, expr)
@@ -746,17 +768,19 @@ class PandasDatasource(Model, BaseDatasource):
         dbcols = (
             db.session.query(PandasColumn)
             .filter(PandasColumn.datasource == self)
-            .filter(or_(PandasColumn.column_name == col.name
+            .filter(or_(PandasColumn.column_name == col
                         for col in df.columns)))
         dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
         for col in df.columns:
-            dbcol = dbcols.get(col.name, None)
+            dbcol = dbcols.get(col, None)
             if not dbcol:
-                dbcol = PandasColumn(column_name=col, type=df.dtypes[col].name)
+                dbcol = PandasColumn(column_name=str(col), type=df.dtypes[col].name)
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
+                dbcol.min = dbcol.is_num or dbcol.is_dttm
+                dbcol.max = dbcol.is_num or dbcol.is_dttm
             self.columns.append(dbcol)
 
             if not any_date_col and dbcol.is_time:
