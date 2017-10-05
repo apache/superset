@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 from io import open
 import json
@@ -13,6 +14,7 @@ except ImportError:  # pragma: no cover
     import pickle
 
 import pandas as pd
+from six import u
 
 from werkzeug.contrib.cache import FileSystemCache
 from werkzeug.posixemulation import rename
@@ -55,7 +57,7 @@ class DataFrameCache(FileSystemCache):
             for idx, cname in enumerate(entries):
                 mname = os.path.splitext(cname)[0] + self._fs_metadata_suffix
                 try:
-                    with open(mname, 'r') as f:
+                    with open(mname, 'r', encoding='utf-8') as f:
                         metadata = json.load(f)
                 except (IOError, OSError):
                     metadata = {'expires': -1}
@@ -83,7 +85,7 @@ class DataFrameCache(FileSystemCache):
         cname = filename + self._fs_cache_suffix
         mname = filename + self._fs_metadata_suffix
         try:
-            with open(mname, 'r') as f:
+            with open(mname, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
         except (IOError, OSError):
             metadata = {'expires': -1}
@@ -133,8 +135,8 @@ class DataFrameCache(FileSystemCache):
                         metadata['format'] = 'pickle'
             rename(tmp, cname)
             os.chmod(cname, self._mode)
-            with open(mname, 'w') as f:
-                json.dump(metadata, f)
+            with open(mname, 'w', encoding='utf-8') as f:
+                f.write(u(json.dumps(metadata)))
             os.chmod(mname, self._mode)
         except (IOError, OSError):
             return False
@@ -158,7 +160,7 @@ class DataFrameCache(FileSystemCache):
         cname = filename + self._fs_cache_suffix
         mname = filename + self._fs_metadata_suffix
         try:
-            with open(mname, 'r') as f:
+            with open(mname, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
         except (IOError, OSError):
             metadata = {'expires': -1}
