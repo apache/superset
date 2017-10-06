@@ -97,7 +97,8 @@ export const visTypes = {
     showOnExplore: true,
     controlPanelSections: [
       {
-        label: t('Chart Options'),
+        label: t('Query'),
+        expanded: true,
         controlSetRows: [
           ['metrics'],
           ['groupby'],
