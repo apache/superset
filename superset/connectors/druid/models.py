@@ -11,7 +11,7 @@ import requests
 import sqlalchemy as sa
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, or_, and_,
+    DateTime, or_,
 )
 from sqlalchemy.orm import backref, relationship
 from dateutil.parser import parse as dparse
@@ -30,7 +30,7 @@ from flask_appbuilder import Model
 
 from flask_babel import lazy_gettext as _
 
-from superset import conf, db, import_util, utils, sm, get_session
+from superset import conf, db, import_util, utils, sm
 from superset.utils import (
     flasher, MetricPermException, DimSelector, DTTM_ALIAS
 )
