@@ -34,7 +34,7 @@ from superset import (
     sm, sql_lab, results_backend, security,
 )
 from superset.legacy import cast_form_data
-from superset.utils import has_access, QueryStatus
+from superset.utils import has_access, QueryStatus, merge_extra_filters
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
@@ -1146,6 +1146,11 @@ class Superset(BaseSupersetView):
                 slice_download_perm,
                 datasource_id,
                 datasource_type)
+
+        form_data['datasource'] = str(datasource_id) + '__' + datasource_type
+
+        # On explore, merge extra filters into the form data
+        merge_extra_filters(form_data)
 
         standalone = request.args.get("standalone") == "true"
         bootstrap_data = {
@@ -2345,14 +2350,16 @@ class Superset(BaseSupersetView):
         for role in user.roles:
             perms = set()
             for perm in role.permissions:
-                perms.add(
-                    (perm.permission.name, perm.view_menu.name)
-                )
-                if perm.permission.name in ('datasource_access', 'database_access'):
-                    permissions[perm.permission.name].add(perm.view_menu.name)
+                if perm.permission and perm.view_menu:
+                    perms.add(
+                        (perm.permission.name, perm.view_menu.name)
+                    )
+                    if perm.permission.name in ('datasource_access', 'database_access'):
+                        permissions[perm.permission.name].add(perm.view_menu.name)
             roles[role.name] = [
                 [perm.permission.name, perm.view_menu.name]
                 for perm in role.permissions
+                if perm.permission and perm.view_menu
             ]
         payload = {
             'user': {

@@ -77,17 +77,16 @@ function getMaxLabelSize(container, axisClass) {
 /* eslint-disable camelcase */
 function formatLabel(column, verbose_map) {
   let label;
-  if (verbose_map) {
-    if (Array.isArray(column) && column.length) {
-      label = verbose_map[column[0]];
-      if (column.length > 1) {
-        label += `, ${column.slice(1).join(', ')}`;
-      }
-    } else {
-      label = verbose_map[column];
+  if (Array.isArray(column) && column.length) {
+    label = verbose_map[column[0]] || column[0];
+    if (column.length > 1) {
+      label += ', ';
     }
+    label += column.slice(1).join(', ');
+  } else {
+    label = verbose_map[column] || column;
   }
-  return label || column;
+  return label;
 }
 /* eslint-enable camelcase */
 

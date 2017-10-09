@@ -561,6 +561,7 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.granularity_sqla : [],
     }),
+    freeForm: true,
   },
 
   time_grain_sqla: {
@@ -1019,6 +1020,34 @@ export const controls = {
     description: t('Whether to include a time filter'),
   },
 
+  show_sqla_time_granularity: {
+    type: 'CheckboxControl',
+    label: 'Show SQL Granularity Dropdown',
+    default: false,
+    description: 'Check to include SQL Granularity dropdown',
+  },
+
+  show_sqla_time_column: {
+    type: 'CheckboxControl',
+    label: 'Show SQL Time Column',
+    default: false,
+    description: 'Check to include Time Column dropdown',
+  },
+
+  show_druid_time_granularity: {
+    type: 'CheckboxControl',
+    label: 'Show Druid Granularity Dropdown',
+    default: false,
+    description: 'Check to include Druid Granularity dropdown',
+  },
+
+  show_druid_time_origin: {
+    type: 'CheckboxControl',
+    label: 'Show Druid Time Origin',
+    default: false,
+    description: 'Check to include Time Origin dropdown',
+  },
+
   show_datatable: {
     type: 'CheckboxControl',
     label: t('Data Table'),
@@ -1410,5 +1439,12 @@ export const controls = {
     default: 4,
     description: 'Number of decimal places with which to display lift values',
   },
+  column_collection: {
+    type: 'CollectionControl',
+    label: t('Time Series Columns'),
+    validators: [v.nonEmpty],
+    controlName: 'TimeSeriesColumnControl',
+  },
+
 };
 export default controls;
