@@ -7,28 +7,27 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import json
 import logging
-import pandas as pd
+import os
 import pickle
 import re
 import time
 import traceback
 
+import pandas as pd
 import sqlalchemy as sqla
-
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup,
     url_for)
-from flask_appbuilder import expose
+from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
-
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
+from werkzeug.utils import secure_filename
 
 from superset import (
     appbuilder, cache, db, viz, utils, app,
@@ -37,9 +36,11 @@ from superset import (
 from superset.legacy import cast_form_data
 from superset.utils import has_access, QueryStatus, merge_extra_filters
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
+from superset.forms import CsvToDatabaseForm
 
 from .base import (
     api, SupersetModelView, BaseSupersetView, DeleteMixin,
@@ -296,6 +297,65 @@ class DatabaseAsync(DatabaseView):
     ]
 
 appbuilder.add_view_no_menu(DatabaseAsync)
+
+
+class CsvToDatabaseView(SimpleFormView):
+    form = CsvToDatabaseForm
+    form_title = _('CSV to Database configuration')
+    add_columns = ['database', 'schema', 'table_name']
+
+    def form_get(self, form):
+        form.sep.data = ','
+        form.header.data = 0
+        form.squeeze.data = False
+        form.names.data = None
+        form.mangle_dupe_cols.data = True
+        form.skipinitialspace.data = False
+        form.skip_blank_lines.data = True
+        form.parse_dates.data = True
+        form.infer_datetime_format.data = True
+        form.dayfirst.data = False
+        form.decimal.data = '.'
+        form.error_bad_lines.data = False
+        form.if_exists.data = 'append'
+        all_datasources = db.session.query(
+            models.Database.sqlalchemy_uri, 
+            models.Database.database_name)\
+            .all()
+        form.con.choices = all_datasources
+
+
+    def form_post(self, form):
+        def upload_file(csv_file):
+            if csv_file and csv_file.filename:
+                filename = secure_filename(csv_file.filename)
+                csv_file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
+                return filename
+
+        form.names.data = form.names.data.split(",") if form.names.data else None
+        database = (
+            db.session.query(models.Database)
+            .filter_by(sqlalchemy_uri=form.data.get('con'))
+            .one()
+        )
+        upload_file(form.csv_file.data)
+        table = SqlaTable(table_name=form.name.data)
+        table.database_id = database.id
+        table.database = database
+        successful = database.db_engine_spec.upload_csv(form, table)
+        if successful:
+            # Go back to welcome page / splash screen
+            db_name = db.session.query(models.Database.database_name)\
+                .filter_by(sqlalchemy_uri=form.data.get('con')).one()
+
+            message = _('CSV file "{0}" uploaded to table "{1}" in '
+                        'database "{2}"'.format(form.csv_file.data.filename,
+                                                form.name.data,
+                                                db_name[0]))
+            flash(message, 'info')
+            return redirect('/tablemodelview/list/')
+
+appbuilder.add_view_no_menu(CsvToDatabaseView)
 
 
 class DatabaseTablesAsync(DatabaseView):
@@ -2397,6 +2457,16 @@ appbuilder.add_link(
     category='SQL Lab',
     category_label=__("SQL Lab"),
 )
+
+appbuilder.add_link(
+    'Upload a CSV',
+    label=__("Upload a CSV"),
+    href='/csvtodatabaseview/form',
+    icon="fa-upload",
+    category='Sources',
+    category_label=__("Sources"),
+    category_icon='fa-wrench',)
+appbuilder.add_separator("Sources")
 
 
 @app.after_request
