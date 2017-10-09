@@ -2465,6 +2465,16 @@ appbuilder.add_link(
     category_label=__('SQL Lab'),
 )
 
+appbuilder.add_link(
+    'Upload a CSV',
+    label=__("Upload a CSV"),
+    href='/csvtodatabaseview/form',
+    icon="fa-upload",
+    category='Sources',
+    category_label=__("Sources"),
+    category_icon='fa-wrench',)
+appbuilder.add_separator("Sources")
+
 
 @app.after_request
 def apply_caching(response):
