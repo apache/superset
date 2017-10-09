@@ -23,15 +23,25 @@ import logging
 import re
 import textwrap
 import time
+import os
 
+import csv
+import boto3
+import pandas
 import sqlparse
 from sqlalchemy import select
+from sqlalchemy.engine import create_engine
 from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
+from flask import g, flash
+from werkzeug.utils import secure_filename
+
 
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
-from superset import conf, cache_util, utils
+from superset import conf, cache_util, db, utils, app
+
+config = app.config
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 
@@ -73,6 +83,82 @@ class BaseEngineSpec(object):
     def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
+
+    @staticmethod
+    def csv_to_df(**kwargs):
+        kwargs['filepath_or_buffer'] = \
+            config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
+        kwargs['encoding'] = 'utf-8'
+        kwargs['iterator'] = True
+        chunks = pandas.read_csv(**kwargs)
+        df = pandas.DataFrame()
+        df = pandas.concat(chunk for chunk in chunks)
+        return df
+
+    @staticmethod
+    def df_to_db(**kwargs):
+        df = kwargs['df']
+        table = kwargs['table']
+        del kwargs['df']
+        del kwargs['table']
+        kwargs['con'] = create_engine(kwargs['con'], echo=False)
+        df.to_sql(**kwargs)
+
+        table.user_id = g.user.id
+        table.schema = kwargs['schema']
+        db.session.add(table)
+        db.session.commit()
+
+    @staticmethod
+    def upload_csv(form, table):
+        def allowed_file(filename):
+            # Only allow specific file extensions as specified in the config
+            extension = os.path.splitext(filename)[1]
+            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
+
+        filename = secure_filename(form.csv_file.data.filename)
+        if not allowed_file(filename):
+            flash("Invalid file type selected.", 'alert')
+            return False
+        kwargs = {
+            'names': form.names.data if form.names.data else None,
+            'filepath_or_buffer': filename,
+            'sep': form.sep.data,
+            'header': form.header.data,
+            'index_col': form.index_col.data,
+            'squeeze': form.squeeze.data,
+            'prefix': form.prefix.data,
+            'mangle_dupe_cols': form.mangle_dupe_cols.data,
+            'skipinitialspace': form.skipinitialspace.data,
+            'skiprows': form.skiprows.data,
+            'nrows': form.nrows.data,
+            'skip_blank_lines': form.skip_blank_lines.data,
+            'parse_dates': form.parse_dates.data,
+            'infer_datetime_format': form.infer_datetime_format.data,
+            'dayfirst': form.dayfirst.data,
+            'thousands': form.thousands.data,
+            'decimal': form.decimal.data,
+            'quotechar': form.quotechar.data,
+            'escapechar': form.escapechar.data,
+            'comment': form.comment.data,
+            'error_bad_lines': form.error_bad_lines.data,
+            'chunksize': 10000,
+        }
+        df = BaseEngineSpec.csv_to_df(**kwargs)
+
+        df_to_db_kwargs = {
+            'table': table,
+            'df': df,
+            'name': form.name.data,
+            'con': form.con.data,
+            'schema': form.schema.data,
+            'if_exists': form.if_exists.data,
+            'index': form.index.data,
+            'index_label': form.index_label.data,
+            'chunksize': 10000,
+        }
+        BaseEngineSpec.df_to_db(**df_to_db_kwargs)
+        return True
 
     @classmethod
     def escape_sql(cls, sql):
@@ -685,6 +771,56 @@ class HiveEngineSpec(PrestoEngineSpec):
     def fetch_result_sets(cls, db, datasource_type, force=False):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
+
+    @staticmethod
+    def upload_csv(form, table):
+        """Uploads a csv file and creates a superset datasource in Hive."""
+        def get_column_names(filepath):
+            with open(filepath, "rb") as f:
+                return csv.reader(f).next()
+
+        table_name = form.name.data
+        filename = form.csv_file.data.filename
+
+        bucket_path = config["CSV_TO_HIVE_UPLOAD_BUCKET"]
+
+        if not bucket_path:
+            logging.info("No upload bucket specified")
+            flash(
+                "No upload bucket specified. "
+                "You can specify one in the config file.",
+                "alert")
+            return False
+
+        upload_prefix = config["CSV_TO_HIVE_UPLOAD_DIRECTORY"]
+        dest_path = os.path.join(table_name, filename)
+
+        upload_path = config['UPLOAD_FOLDER'] + secure_filename(
+            form.csv_file.data.filename)
+        column_names = get_column_names(upload_path)
+        schema_definition = ", ".join(
+            [s + " STRING " for s in column_names])
+
+        s3 = boto3.client('s3')
+        location =\
+            os.path.join("s3a://", bucket_path, upload_prefix, table_name)
+        s3.upload_file(
+            upload_path,
+            'airbnb-superset',
+            os.path.join(upload_prefix, table_name, filename))
+        sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
+            ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS 
+            "TEXTFILE LOCATION '{location}'""".format(**locals())
+        try:
+            logging.info(form.con.data)
+            engine = create_engine(form.con.data)
+            engine.execute(sql)
+            return True
+        except Exception as e:
+            logging.exception(e)
+            logging.info(sql)
+            flash(BaseEngineSpec.extract_error_message(e), "alert")
+            return False
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
