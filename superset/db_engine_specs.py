@@ -22,14 +22,19 @@ import logging
 import re
 import textwrap
 import time
+import os
 
+import pandas
 from flask_babel import lazy_gettext as _
+from flask import g, flash
 from sqlalchemy import select
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import text
 import sqlparse
+from werkzeug.utils import secure_filename
 
-from superset import cache_util, conf, utils
+from superset import app, cache_util, conf, db, utils
 from superset.utils import QueryStatus, SupersetTemplateException
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
@@ -72,6 +77,82 @@ class BaseEngineSpec(object):
     def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
+
+    @staticmethod
+    def csv_to_df(**kwargs):
+        kwargs['filepath_or_buffer'] = \
+            app.config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
+        kwargs['encoding'] = 'utf-8'
+        kwargs['iterator'] = True
+        chunks = pandas.read_csv(**kwargs)
+        df = pandas.DataFrame()
+        df = pandas.concat(chunk for chunk in chunks)
+        return df
+
+    @staticmethod
+    def df_to_db(**kwargs):
+        df = kwargs['df']
+        table = kwargs['table']
+        del kwargs['df']
+        del kwargs['table']
+        kwargs['con'] = create_engine(kwargs['con'], echo=False)
+        df.to_sql(**kwargs)
+
+        table.user_id = g.user.id
+        table.schema = kwargs['schema']
+        db.session.add(table)
+        db.session.commit()
+
+    @staticmethod
+    def upload_csv(form, table):
+        def allowed_file(filename):
+            # Only allow specific file extensions as specified in the config
+            extension = os.path.splitext(filename)[1]
+            return extension and extension[1:] in app.config['ALLOWED_EXTENSIONS']
+
+        filename = secure_filename(form.csv_file.data.filename)
+        if not allowed_file(filename):
+            flash("Invalid file type selected.", 'alert')
+            return False
+        kwargs = {
+            'names': form.names.data if form.names.data else None,
+            'filepath_or_buffer': filename,
+            'sep': form.sep.data,
+            'header': form.header.data,
+            'index_col': form.index_col.data,
+            'squeeze': form.squeeze.data,
+            'prefix': form.prefix.data,
+            'mangle_dupe_cols': form.mangle_dupe_cols.data,
+            'skipinitialspace': form.skipinitialspace.data,
+            'skiprows': form.skiprows.data,
+            'nrows': form.nrows.data,
+            'skip_blank_lines': form.skip_blank_lines.data,
+            'parse_dates': form.parse_dates.data,
+            'infer_datetime_format': form.infer_datetime_format.data,
+            'dayfirst': form.dayfirst.data,
+            'thousands': form.thousands.data,
+            'decimal': form.decimal.data,
+            'quotechar': form.quotechar.data,
+            'escapechar': form.escapechar.data,
+            'comment': form.comment.data,
+            'error_bad_lines': form.error_bad_lines.data,
+            'chunksize': 10000,
+        }
+        df = BaseEngineSpec.csv_to_df(**kwargs)
+
+        df_to_db_kwargs = {
+            'table': table,
+            'df': df,
+            'name': form.name.data,
+            'con': form.con.data,
+            'schema': form.schema.data,
+            'if_exists': form.if_exists.data,
+            'index': form.index.data,
+            'index_label': form.index_label.data,
+            'chunksize': 10000,
+        }
+        BaseEngineSpec.df_to_db(**df_to_db_kwargs)
+        return True
 
     @classmethod
     def escape_sql(cls, sql):
