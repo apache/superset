@@ -91,7 +91,7 @@ class ExploreViewContainer extends React.Component {
 
   triggerQueryIfNeeded() {
     if (this.props.triggerQuery && !this.hasErrors()) {
-      this.props.actions.runQuery(this.props.form_data, false, this.props.timeout);
+      this.props.actions.runQuery(this.props.form_data, true, this.props.timeout);
     }
   }
 
