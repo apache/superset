@@ -35,7 +35,8 @@ ADMIN_ONLY_VIEW_MENUS = {
     'ResetPasswordView',
     'RoleModelView',
     'Security',
-    'UserDBModelView',
+    'UserDBModelView' if not conf.get('ENABLE_MULTI_TENANCY')\
+        else 'MultiTenantUserDBModelView',
 }
 
 ADMIN_ONLY_PERMISSIONS = {

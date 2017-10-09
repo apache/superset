@@ -48,6 +48,9 @@ SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
 SUPERSET_WEBSERVER_PORT = 8088
 SUPERSET_WEBSERVER_TIMEOUT = 60
 EMAIL_NOTIFICATIONS = False
+ENABLE_MULTI_TENANCY = False
+# CUSTOM_SECURITY_MANAGER will not be used if ENABLE_MULTI_TENANCY
+# is True and it is not a subclass of MultiTenantSecurityManager class.
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------

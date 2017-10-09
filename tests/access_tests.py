@@ -562,8 +562,12 @@ class RequestAccessTests(SupersetTestCase):
             follow_redirects=True
         )
         update_role = sm.find_role(update_role_str)
+        update_role_users = []
+        # Convert the User model to sm.user_model
+        for user in update_role.user:
+            update_role_users.append(sm.find_user(username=user.username))
         self.assertEquals(
-            update_role.user, [sm.find_user(username='gamma')])
+            update_role_users, [sm.find_user(username='gamma')])
         self.assertEquals(resp.status_code, 201)
 
         resp = self.client.post(
@@ -586,8 +590,12 @@ class RequestAccessTests(SupersetTestCase):
         )
         self.assertEquals(resp.status_code, 201)
         update_role = sm.find_role(update_role_str)
+        update_role_users = []
+        # Convert the User model to sm.user_model
+        for user in update_role.user:
+            update_role_users.append(sm.find_user(username=user.username))
         self.assertEquals(
-            update_role.user, [
+            update_role_users, [
                 sm.find_user(username='alpha'),
                 sm.find_user(username='unknown'),
             ])

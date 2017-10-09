@@ -701,7 +701,13 @@ class Superset(BaseSupersetView):
 
         role_name = data['role_name']
         role = sm.find_role(role_name)
-        role.user = existing_users
+        # This will fetch the User objects instead of sm.user_model as role.user
+        # expect the User object.
+        role_users = []
+        for user in existing_users:
+            role_users.append(db.session.query(ab_models.User).filter(
+                ab_models.User.username == user.username).first())
+        role.user = role_users
         sm.get_session.commit()
         return self.json_response({
             'role': role_name,

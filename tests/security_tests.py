@@ -80,7 +80,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_write('AccessRequestsModelView', perm_set)
         self.assert_cannot_write('Queries', perm_set)
         self.assert_cannot_write('RoleModelView', perm_set)
-        self.assert_cannot_write('UserDBModelView', perm_set)
+        self.assert_cannot_write(sm.userdbmodelview.__name__, perm_set)
 
     def assert_can_admin(self, perm_set):
         self.assert_can_all('DatabaseAsync', perm_set)
@@ -88,7 +88,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_all('DruidClusterModelView', perm_set)
         self.assert_can_all('AccessRequestsModelView', perm_set)
         self.assert_can_all('RoleModelView', perm_set)
-        self.assert_can_all('UserDBModelView', perm_set)
+        self.assert_can_all(sm.userdbmodelview.__name__, perm_set)
 
         self.assertIn(('all_database_access', 'all_database_access'), perm_set)
         self.assertIn(('can_override_role_permissions', 'Superset'), perm_set)
@@ -111,7 +111,7 @@ class RolePermissionTests(SupersetTestCase):
                 'can_show', 'AccessRequestsModelView')))
         self.assertTrue(security.is_admin_only(
             sm.find_permission_view_menu(
-                'can_edit', 'UserDBModelView')))
+                'can_edit', sm.userdbmodelview.__name__)))
         self.assertTrue(security.is_admin_only(
             sm.find_permission_view_menu(
                 'can_approve', 'Superset')))

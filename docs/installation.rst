@@ -196,6 +196,7 @@ of the parameters you can copy / paste in that configuration module: ::
     SUPERSET_WORKERS = 4
 
     SUPERSET_WEBSERVER_PORT = 8088
+    ENABLE_MULTI_TENANCY = False
     #---------------------------------------------------------
 
     #---------------------------------------------------------
@@ -234,6 +235,16 @@ In case you need to exempt endpoints from CSRF, e.g. you are running a custom
 auth postback endpoint, you can add them to *WTF_CSRF_EXEMPT_LIST*
 
      WTF_CSRF_EXEMPT_LIST = ['']
+
+Enable Multi Tenancy
+---------------------
+
+To achieve multi-tenancy follow following steps:
+
+* set *ENABLE_MULTI_TENANCY = True* in superset_config file.
+* add column *tenant_id StringDataType(256)* in the tables or views in which you want multi-tenancy. This tenant_id is the same tenant_id as in ab_user table.
+* Make sure that ab_user table have the column *tenant_id* else alter the table to add column tenant_id.
+* if you want to enable multi-tenancy with *CUSTOM_SECURITY_MANAGER*, then your custom security manager class should be a subclass of *MultiTenantSecurityManager* class.
 
 Database dependencies
 ---------------------

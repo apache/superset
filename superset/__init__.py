@@ -19,6 +19,7 @@ from werkzeug.contrib.fixers import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset import utils, config  # noqa
+from superset.multi_tenant import MultiTenantSecurityManager
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -144,13 +145,22 @@ class MyIndexView(IndexView):
     def index(self):
         return redirect('/superset/welcome')
 
+security_manager_classs = app.config.get("CUSTOM_SECURITY_MANAGER")
+if app.config.get("ENABLE_MULTI_TENANCY"):
+    if security_manager_classs is not None and \
+        not issubclass(security_manager_classs, MultiTenantSecurityManager):
+        print("Not using the configured CUSTOM_SECURITY_MANAGER \
+            as ENABLE_MULTI_TENANCY is True and CUSTOM_SECURITY_MANAGER \
+            is not subclass of MultiTenantSecurityManager.")
+    print("Using MultiTenantSecurityManager as AppBuilder security_manager_class.")
+    security_manager_classs = MultiTenantSecurityManager
 
 appbuilder = AppBuilder(
     app,
     db.session,
     base_template='superset/base.html',
     indexview=MyIndexView,
-    security_manager_class=app.config.get("CUSTOM_SECURITY_MANAGER"))
+    security_manager_class=security_manager_classs)
 
 sm = appbuilder.sm
 

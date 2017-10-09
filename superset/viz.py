@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import numpy as np
-from flask import request
+from flask import request, g
 from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
@@ -125,6 +125,23 @@ class BaseViz(object):
             df = df.fillna(fillna)
         return df
 
+    def append_tenant_filter(self, extras):
+        try:
+            current_user = g.user
+        except Exception as e:
+            return extras
+        if not (current_user and current_user.is_authenticated()):
+            return extras
+        # Add custom filter for non admin role only.
+        if not any([r.name in ['Admin'] for r in current_user.roles]):
+            # Fetch the custom filter from ab_user table
+            if self.datasource.get_col('tenant_id') is not None:
+                tenant_id = current_user.tenant_id or ''
+                multi_tenant_filter = "tenant_id='{}'".format(tenant_id)
+                extras['where'] = (multi_tenant_filter if extras['where'] == '' \
+                    else extras['where'] + ' AND ' + multi_tenant_filter)
+        return extras
+
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
@@ -185,6 +202,9 @@ class BaseViz(object):
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
         filters = form_data.get('filters', [])
+        # Added custom filter to support multi-tenanacy
+        if config.get('ENABLE_MULTI_TENANCY'):
+            extras = self.append_tenant_filter(extras)
         d = {
             'granularity': granularity,
             'from_dttm': from_dttm,
