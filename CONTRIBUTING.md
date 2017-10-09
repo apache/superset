@@ -173,7 +173,7 @@ Check the [OS dependencies](https://superset.incubator.apache.org/installation.h
     source env/bin/activate
 
     # install for development
-    python setup.py develop
+    pip install -e .
 
     # Create an admin user
     fabmanager create-admin --app superset
@@ -331,6 +331,8 @@ key is to instrument the strings that need translation using
 a module, all you have to do is to `_("Wrap your strings")` using the
 underscore `_` "function".
 
+We use `import {t, tn, TCT} from locales;` in js, JSX file, locales is in `./superset/assets/javascripts/` directory.
+
 To enable changing language in your environment, you can simply add the
 `LANGUAGES` parameter to your `superset_config.py`. Having more than one
 options here will add a language selection dropdown on the right side of the
@@ -350,7 +352,7 @@ new language dictionary, run the following command:
 Then it's a matter of running the statement below to gather all strings that
 need translation
 
-    fabmanager babel-extract --target superset/translations/
+    fabmanager babel-extract --target superset/translations/ -k _ -k __ -k t -k tn -k tct
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
@@ -358,6 +360,14 @@ to take effect, they need to be compiled using this command:
 
     fabmanager babel-compile --target superset/translations/
 
+In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
+We need to be compiled using this command:
+
+    npm install po2json -g
+
+Execute this command to convert the en PO file into a json file:
+
+    po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
 
 ## Adding new datasources
 

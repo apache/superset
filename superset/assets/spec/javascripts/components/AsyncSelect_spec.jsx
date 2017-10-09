@@ -1,6 +1,6 @@
 import React from 'react';
 import Select from 'react-select';
-import { mount, shallow } from 'enzyme';
+import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
@@ -11,10 +11,12 @@ describe('AsyncSelect', () => {
   const mockedProps = {
     dataEndpoint: '/slicemodelview/api/read',
     onChange: sinon.spy(),
+    placeholder: 'Select...',
     mutator: () => [
       { value: 1, label: 'main' },
       { value: 2, label: 'another' },
     ],
+    valueRenderer: opt => opt.label,
   };
   it('is valid element', () => {
     expect(
@@ -49,34 +51,34 @@ describe('AsyncSelect', () => {
       server.restore();
     });
     it('should be off by default', () => {
-      const wrapper = mount(
+      const wrapper = shallow(
         <AsyncSelect {...mockedProps} />,
       );
+      wrapper.instance().fetchOptions();
       const spy = sinon.spy(wrapper.instance(), 'onChange');
       expect(spy.callCount).to.equal(0);
     });
     it('should auto select first option', () => {
-      const wrapper = mount(
+      const wrapper = shallow(
         <AsyncSelect {...mockedProps} autoSelect />,
       );
       const spy = sinon.spy(wrapper.instance(), 'onChange');
-
+      wrapper.instance().fetchOptions();
       server.respond();
 
       expect(spy.callCount).to.equal(1);
       expect(spy.calledWith(wrapper.instance().state.options[0])).to.equal(true);
     });
     it('should not auto select when value prop is set', () => {
-      const wrapper = mount(
+      const wrapper = shallow(
         <AsyncSelect {...mockedProps} value={2} autoSelect />,
       );
       const spy = sinon.spy(wrapper.instance(), 'onChange');
-
+      wrapper.instance().fetchOptions();
       server.respond();
 
       expect(spy.callCount).to.equal(0);
       expect(wrapper.find(Select)).to.have.length(1);
-      expect(wrapper.find('.Select-value-label').children().first().text()).to.equal('another');
     });
   });
 });

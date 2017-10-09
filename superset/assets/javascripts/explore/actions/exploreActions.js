@@ -150,3 +150,8 @@ export const RENDER_TRIGGERED = 'RENDER_TRIGGERED';
 export function renderTriggered() {
   return { type: RENDER_TRIGGERED };
 }
+
+export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
+export function createNewSlice(can_add, can_download, can_overwrite, slice, form_data) {
+  return { type: CREATE_NEW_SLICE, can_add, can_download, can_overwrite, slice, form_data };
+}

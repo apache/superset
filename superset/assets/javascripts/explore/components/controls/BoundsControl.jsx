@@ -2,18 +2,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Col, Row, FormGroup, FormControl } from 'react-bootstrap';
 import ControlHeader from '../ControlHeader';
+import { t } from '../../../locales';
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
-  label: PropTypes.string,
-  description: PropTypes.string,
   onChange: PropTypes.func,
   value: PropTypes.array,
 };
 
 const defaultProps = {
-  label: null,
-  description: null,
   onChange: () => {},
   value: [null, null],
 };
@@ -51,10 +47,10 @@ export default class BoundsControl extends React.Component {
     const mm = this.state.minMax;
     const errors = [];
     if (mm[0] && isNaN(mm[0])) {
-      errors.push('`Min` value should be numeric or empty');
+      errors.push(t('`Min` value should be numeric or empty'));
     }
     if (mm[1] && isNaN(mm[1])) {
-      errors.push('`Max` value should be numeric or empty');
+      errors.push(t('`Max` value should be numeric or empty'));
     }
     if (errors.length === 0) {
       this.props.onChange([parseFloat(mm[0]), parseFloat(mm[1])], errors);
@@ -71,7 +67,7 @@ export default class BoundsControl extends React.Component {
             <Col xs={6}>
               <FormControl
                 type="text"
-                placeholder="Min"
+                placeholder={t('Min')}
                 onChange={this.onMinChange}
                 value={this.state.minMax[0]}
               />
@@ -79,7 +75,7 @@ export default class BoundsControl extends React.Component {
             <Col xs={6}>
               <FormControl
                 type="text"
-                placeholder="Max"
+                placeholder={t('Max')}
                 onChange={this.onMaxChange}
                 value={this.state.minMax[1]}
               />

@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
+import { t } from '../locales';
 
 const $ = window.$ = require('jquery');
 
@@ -9,14 +10,17 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   mutator: PropTypes.func.isRequired,
   onAsyncError: PropTypes.func,
-  value: PropTypes.number,
+  value: PropTypes.oneOfType([
+    PropTypes.number,
+    PropTypes.arrayOf(PropTypes.number),
+  ]),
   valueRenderer: PropTypes.func,
   placeholder: PropTypes.string,
   autoSelect: PropTypes.bool,
 };
 
 const defaultProps = {
-  placeholder: 'Select ...',
+  placeholder: t('Select ...'),
   valueRenderer: o => (<div>{o.label}</div>),
   onAsyncError: () => {},
 };
@@ -62,6 +66,7 @@ class AsyncSelect extends React.PureComponent {
           isLoading={this.state.isLoading}
           onChange={this.onChange.bind(this)}
           valueRenderer={this.props.valueRenderer}
+          {...this.props}
         />
       </div>
     );

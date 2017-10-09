@@ -33,6 +33,7 @@ from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.engine import url
 from sqlalchemy_utils import EncryptedType
 
 from superset import app, db, db_engine_specs, utils, sm
@@ -562,6 +563,7 @@ class Database(Model, AuditMixinNullable):
     """))
     perm = Column(String(1000))
     custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
+    impersonate_user = Column(Boolean, default=False)
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name
@@ -588,13 +590,15 @@ class Database(Model, AuditMixinNullable):
         conn.password = password_mask if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
-    def get_sqla_engine(self, schema=None, nullpool=False):
+    def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         uri = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
         if nullpool:
             params['poolclass'] = NullPool
         uri = self.db_engine_spec.adjust_database_uri(uri, schema)
+        if self.impersonate_user:
+            uri.username = user_name if user_name else g.user.username
         return create_engine(uri, **params)
 
     def get_reserved_words(self):
@@ -739,6 +743,15 @@ class Database(Model, AuditMixinNullable):
     def get_perm(self):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
+
+    def has_table(self, table):
+        engine = self.get_sqla_engine()
+        return engine.dialect.has_table(
+            engine, table.table_name, table.schema or None)
+
+    def get_dialect(self):
+        sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
+        return sqla_url.get_dialect()()
 
 
 sqla.event.listen(Database, 'after_insert', set_perm)

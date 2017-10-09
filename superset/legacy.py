@@ -4,8 +4,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from superset import frontend_config
 import re
+from superset import frontend_config
 
 FORM_DATA_KEY_WHITELIST = list(frontend_config.get('controls').keys()) + ['slice_id']
 
@@ -79,5 +79,3 @@ def cast_form_data(form_data):
         if k not in FORM_DATA_KEY_WHITELIST:
             del d[k]
     return d
-
-

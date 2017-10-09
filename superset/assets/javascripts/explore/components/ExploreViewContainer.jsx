@@ -24,6 +24,7 @@ const propTypes = {
   standalone: PropTypes.bool.isRequired,
   triggerQuery: PropTypes.bool.isRequired,
   queryRequest: PropTypes.object,
+  timeout: PropTypes.number,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -90,7 +91,7 @@ class ExploreViewContainer extends React.Component {
 
   triggerQueryIfNeeded() {
     if (this.props.triggerQuery && !this.hasErrors()) {
-      this.props.actions.runQuery(this.props.form_data);
+      this.props.actions.runQuery(this.props.form_data, false, this.props.timeout);
     }
   }
 
@@ -202,6 +203,7 @@ function mapStateToProps({ explore, chart }) {
     forcedHeight: explore.forced_height,
     queryRequest: chart.queryRequest,
     chartStatus: chart.chartStatus,
+    timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
   };
 }
 

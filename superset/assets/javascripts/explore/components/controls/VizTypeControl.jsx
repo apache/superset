@@ -5,6 +5,7 @@ import {
   Tooltip } from 'react-bootstrap';
 import visTypes from '../../stores/visTypes';
 import ControlHeader from '../ControlHeader';
+import { t } from '../../../locales';
 
 const propTypes = {
   description: PropTypes.string,
@@ -106,7 +107,7 @@ export default class VizTypeControl extends React.PureComponent {
           bsSize="lg"
         >
           <Modal.Header closeButton>
-            <Modal.Title>Select a visualization type</Modal.Title>
+            <Modal.Title>{t('Select a visualization type')}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <div>
@@ -116,7 +117,7 @@ export default class VizTypeControl extends React.PureComponent {
                 type="text"
                 bsSize="sm"
                 value={this.state.filter}
-                placeholder="Search / Filter"
+                placeholder={t('Search / Filter')}
                 onChange={this.changeSearch}
               />
             </div>

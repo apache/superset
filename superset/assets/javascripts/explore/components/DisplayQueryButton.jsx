@@ -4,8 +4,11 @@ import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/di
 import html from 'react-syntax-highlighter/dist/languages/htmlbars';
 import markdown from 'react-syntax-highlighter/dist/languages/markdown';
 import github from 'react-syntax-highlighter/dist/styles/github';
+import CopyToClipboard from './../../components/CopyToClipboard';
 
 import ModalTrigger from './../../components/ModalTrigger';
+import Button from '../../components/Button';
+import { t } from '../../locales';
 
 registerLanguage('markdown', markdown);
 registerLanguage('html', html);
@@ -57,14 +60,17 @@ export default class DisplayQueryButton extends React.PureComponent {
       },
       error: (data) => {
         this.setState({
-          error: data.responseJSON ? data.responseJSON.error : 'Error...',
+          error: data.responseJSON ? data.responseJSON.error : t('Error...'),
           isLoading: false,
         });
       },
     });
   }
   beforeOpen() {
-    if (['loading', null].indexOf(this.props.chartStatus) >= 0 || !this.props.queryResponse) {
+    if (
+      ['loading', null].indexOf(this.props.chartStatus) >= 0
+      || !this.props.queryResponse || !this.props.queryResponse.query
+    ) {
       this.fetchQuery();
     } else {
       this.setStateFromQueryResponse();
@@ -81,9 +87,21 @@ export default class DisplayQueryButton extends React.PureComponent {
       return <pre>{this.state.error}</pre>;
     } else if (this.state.query) {
       return (
-        <SyntaxHighlighter language={this.state.language} style={github}>
-          {this.state.query}
-        </SyntaxHighlighter>);
+        <div>
+          <CopyToClipboard
+            text={this.state.query}
+            shouldShowText={false}
+            copyNode={
+              <Button style={{ position: 'absolute', right: 20 }}>
+                <i className="fa fa-clipboard" />
+              </Button>
+            }
+          />
+          <SyntaxHighlighter language={this.state.language} style={github}>
+            {this.state.query}
+          </SyntaxHighlighter>
+        </div>
+      );
     }
     return null;
   }
@@ -92,8 +110,8 @@ export default class DisplayQueryButton extends React.PureComponent {
       <ModalTrigger
         animation={this.props.animation}
         isButton
-        triggerNode={<span>Query</span>}
-        modalTitle="Query"
+        triggerNode={<span>View Query</span>}
+        modalTitle={t('Query')}
         bsSize="large"
         beforeOpen={this.beforeOpen}
         modalBody={this.renderModalBody()}
