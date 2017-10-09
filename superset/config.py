@@ -300,11 +300,12 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
 
-#The S3 bucket where you want to store your external hive tables created 
-#from CSV files. For example, 'companyname-superset'
-CSV_TO_HIVE_UPLOAD_S3_BUCKET = None 
+# The S3 bucket where you want to store your external hive tables created
+# from CSV files. For example, 'companyname-superset'
+CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 
-#The directory within the bucket specified that will contain all the external tables
+# The directory within the bucket specified above that will
+# contain all the external tables
 CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 
 # A dictionary of items that gets merged into the Jinja context for

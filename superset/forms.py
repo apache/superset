@@ -10,7 +10,7 @@ from flask_appbuilder.forms import DynamicForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import (
     BooleanField, SelectField, IntegerField, StringField)
-from wtforms.validators import DataRequired, Optional, NumberRange
+from wtforms.validators import DataRequired, InputRequired, Optional, NumberRange
 
 from superset import app
 
@@ -30,8 +30,8 @@ class CsvToDatabaseForm(DynamicForm):
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
 
     con = SelectField(
-        _('Database URI'),
-        description=_('URI of database in which to add above table.'),
+        _('Database'),
+        description=_('database in which to add above table.'),
         validators=[DataRequired()],
         choices=[])
     if_exists = SelectField(

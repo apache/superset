@@ -94,12 +94,7 @@ class BaseEngineSpec(object):
         return df
 
     @staticmethod
-    def df_to_db(**kwargs):
-        df = kwargs['df']
-        table = kwargs['table']
-        del kwargs['df']
-        del kwargs['table']
-        kwargs['con'] = create_engine(kwargs['con'], echo=False)
+    def df_to_db(df, table, **kwargs):
         df.to_sql(**kwargs)
 
         table.user_id = g.user.id
@@ -148,7 +143,7 @@ class BaseEngineSpec(object):
             'table': table,
             'df': df,
             'name': form.name.data,
-            'con': form.con.data,
+            'con': create_engine(form.con.data, echo=False),
             'schema': form.schema.data,
             'if_exists': form.if_exists.data,
             'index': form.index.data,
@@ -816,9 +811,9 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         if not bucket_path:
             logging.info("No upload bucket specified")
-            flash(
+            flash(_(
                 "No upload bucket specified. "
-                "You can specify one in the config file.",
+                "You can specify one in the config file."),
                 "alert")
             return False
 

@@ -342,7 +342,7 @@ class CsvToDatabaseView(SimpleFormView):
             models.Database.sqlalchemy_uri,
             models.Database.database_name)\
             .all()
-        form.con.choices = all_datasources
+        form.con.choices += all_datasources
 
     def form_post(self, form):
         def upload_file(csv_file):
@@ -351,7 +351,8 @@ class CsvToDatabaseView(SimpleFormView):
                 csv_file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
                 return filename
 
-        form.names.data = form.names.data.split(",") if form.names.data else None
+        form.names.data =\
+            form.names.data.split(",") if form.names.data else None
         database = (
             db.session.query(models.Database)
             .filter_by(sqlalchemy_uri=form.data.get('con'))
