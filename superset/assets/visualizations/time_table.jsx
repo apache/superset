@@ -73,8 +73,9 @@ function viz(slice, payload) {
             sparkData.push(data[i][metric] / data[i - c.timeRatio][metric]);
           }
         }
-        const extent = d3.extent(data, d => d[metric]);
-        const tooltip = `min: ${extent[0]}, max: ${extent[1]}`;
+        const extent = d3.extent(sparkData);
+        const tooltip = `min: ${d3format(c.d3format, extent[0])}, \
+          max: ${d3format(c.d3format, extent[1])}`;
         row[c.key] = (
           <TooltipWrapper label="tt-spark" tooltip={tooltip}>
             <div>
