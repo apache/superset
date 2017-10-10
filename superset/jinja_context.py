@@ -43,7 +43,7 @@ def url_param(param, default=None):
 
 def current_user_id():
     """The id of the user who is currently logged in"""
-    if g.user:
+    if hasattr(g, 'user') and g.user:
         return g.user.id
 
 
