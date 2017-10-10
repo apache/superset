@@ -379,12 +379,18 @@ export const visTypes = {
         controlSetRows: [
           ['groupby', 'metrics'],
           ['column_collection'],
+          ['url'],
         ],
       },
     ],
     controlOverrides: {
       groupby: {
         multiple: false,
+      },
+      url: {
+        label: t(
+          "Templated link, it's possible to include {{ metric }} " +
+          'or other values coming from the controls.'),
       },
     },
   },
