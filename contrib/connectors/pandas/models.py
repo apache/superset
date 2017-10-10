@@ -28,13 +28,11 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 
-from superset import db, utils, sm
+from superset import dataframe_cache, db, utils, sm
 from superset.connectors.base.models import (
     BaseDatasource, BaseColumn, BaseMetric)
 from superset.models.helpers import QueryResult, set_perm
 from superset.utils import QueryStatus
-
-from .cache import dataframe_cache
 
 FORMATS = [
     ('csv', 'csv'),
@@ -311,8 +309,9 @@ class PandasDatasource(Model, BaseDatasource):
         and add any calculated columns to the DataFrame.
         """
         if self.df is None:
-            cache_key = self.cache_key
-            self.df = dataframe_cache.get(cache_key)
+            if dataframe_cache:
+                cache_key = self.cache_key
+                self.df = dataframe_cache.get(cache_key)
             if not isinstance(self.df, pd.DataFrame):
                 self.df = self.pandas_read_method(self.source_url, **self.pandas_read_parameters)
 
@@ -324,8 +323,9 @@ class PandasDatasource(Model, BaseDatasource):
                 # Our column names are always strings
                 self.df.columns = [str(col) for col in self.df.columns]
 
-                timeout = self.cache_timeout or self.database.cache_timeout
-                dataframe_cache.set(cache_key, self.df, timeout)
+                if dataframe_cache:
+                    timeout = self.cache_timeout or self.database.cache_timeout
+                    dataframe_cache.set(cache_key, self.df, timeout)
 
         calculated_columns = []
         for col in self.columns:

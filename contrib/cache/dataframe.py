@@ -182,8 +182,8 @@ class DataFrameCache(FileSystemCache):
         raise NotImplementedError()
 
 
-dataframe_cache = DataFrameCache(
-    cache_dir='/tmp/pandasdatasource_cache',
-    threshold=200,
-    default_timeout=24 * 60 * 60,
-)
+def dataframe(app, config, args, kwargs):
+    """Return a DataFrameCache for use by Flask-Cache."""
+    args.insert(0, config['CACHE_DIR'])
+    kwargs.update(dict(threshold=config['CACHE_THRESHOLD']))
+    return DataFrameCache(*args, **kwargs)
