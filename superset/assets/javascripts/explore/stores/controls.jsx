@@ -202,7 +202,7 @@ export const controls = {
       ['blue_white_yellow', 'blue/white/yellow'],
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
-      ['dark_blue', 'light/dark blue']
+      ['dark_blue', 'light/dark blue'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
