@@ -1833,7 +1833,7 @@ class PartitionViz(NVD3TimeSeriesViz):
         Compute the partition at each `level` from the dataframe.
         """
         levels = {}
-        for i in xrange(0, len(groups) + 1):
+        for i in range(0, len(groups) + 1):
             agg_df = df.groupby(groups[:i]) if i else df
             levels[i] = (
                 agg_df.mean() if time_op == 'agg_mean'
@@ -1865,7 +1865,7 @@ class PartitionViz(NVD3TimeSeriesViz):
         levels = {0: pd.Series({
             m: func[1](agg_df[m][until], agg_df[m][since], 0)
             for m in agg_df.columns})}
-        for i in xrange(1, len(groups) + 1):
+        for i in range(1, len(groups) + 1):
             agg_df = df.groupby([DTTM_ALIAS] + groups[:i]).sum()
             levels[i] = pd.DataFrame({
                 m: func[0](agg_df[m][until], agg_df[m][since], fill_value=0)
@@ -1874,7 +1874,7 @@ class PartitionViz(NVD3TimeSeriesViz):
 
     def levels_for_time(self, groups, df):
         procs = {}
-        for i in xrange(0, len(groups) + 1):
+        for i in range(0, len(groups) + 1):
             self.form_data['groupby'] = groups[:i]
             df_drop = df.drop(groups[i:], 1)
             procs[i] = self.process_data(df_drop, aggregate=True).fillna(0)

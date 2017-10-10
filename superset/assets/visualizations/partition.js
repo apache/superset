@@ -157,9 +157,7 @@ function partitionVis(slice, payload) {
     if (fd.partition_limit && fd.partition_limit >= 0) {
       root.each((n) => {
         if (n.children && n.children.length > fd.partition_limit) {
-          if (hasDateNode(n)) {
-            /* TODO */
-          } else {
+          if (!hasDateNode(n)) {
             n.children = n.children.slice(0, fd.partition_limit);
           }
         }
@@ -232,8 +230,8 @@ function partitionVis(slice, payload) {
       }
       t += '</tbody></table>';
       tip.html(t)
-        .style('left', (d3.event.pageX + 28) + 'px')
-        .style('top', (d3.event.pageY) + 'px');
+        .style('left', (d3.event.pageX + 13) + 'px')
+        .style('top', (d3.event.pageY - 10) + 'px');
     }
 
     const g = viz
