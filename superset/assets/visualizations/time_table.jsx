@@ -70,11 +70,12 @@ function viz(slice, payload) {
           // Period ratio sparkline
           sparkData = [];
           for (let i = c.timeRatio; i < data.length; i++) {
-            sparkData.push(d3.round(data[i][metric] / data[i - c.timeRatio][metric], 2));
+            sparkData.push(data[i][metric] / data[i - c.timeRatio][metric]);
           }
         }
         const extent = d3.extent(sparkData);
-        const tooltip = `min: ${extent[0]}, max: ${extent[1]}`;
+        const tooltip = `min: ${d3format(c.d3format, extent[0])}, \
+          max: ${d3format(c.d3format, extent[1])}`;
         row[c.key] = (
           <TooltipWrapper label="tt-spark" tooltip={tooltip}>
             <div>
