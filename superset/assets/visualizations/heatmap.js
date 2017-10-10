@@ -130,6 +130,25 @@ function heatmapVis(slice, payload) {
     .attr('height', height)
     .style('position', 'relative');
 
+  if (fd.show_annotation) {
+  var cells = svg.selectAll("rect")
+      .data(data)
+      .enter()
+      .append('g')
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+  cells.append('text')
+    .attr('transform',
+    function(d) {return 'translate(' + xRbScale(d.x) + ',' + yRbScale(d.y) + ')';})
+    .attr('y', function(d, i) { return yRbScale.rangeBand() / 2; })
+    .attr('x', function(d, i) { return xRbScale.rangeBand() / 2; })
+    .attr("text-anchor", "middle")
+    .attr("dy", ".35em")
+    .text(function(d, i) { return valueFormatter(d.v); })
+    .attr("font-size", Math.min(yRbScale.rangeBand(), xRbScale.rangeBand()) / 3 + "px")
+    .attr("fill", function(d, i) { return d.v >= payload.data.extents[1] / 2 ? 'white' : 'black';});
+  }
+
   if (fd.show_legend) {
     const legendScaler = colorScalerFactory(
       fd.linear_color_scheme, null, null, payload.data.extents);

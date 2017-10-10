@@ -975,6 +975,7 @@ export const visTypes = {
           ['left_margin', 'bottom_margin'],
           ['y_axis_bounds', 'y_axis_format'],
           ['show_legend', 'show_perc'],
+          ['show_annotation'],
           ['sort_x_axis', 'sort_y_axis'],
         ],
       },

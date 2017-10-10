@@ -94,6 +94,13 @@ export const spectrums = {
     'black',
     'white',
   ],
+  dark_blue: [
+    '#EBF5F8',
+    '#6BB1CC',
+    '#357E9B',
+    '#1B4150',
+    '#092935',
+  ],
 };
 
 export const getColorFromScheme = (function () {
