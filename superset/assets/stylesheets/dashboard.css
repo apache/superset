@@ -90,6 +90,10 @@ div.widget .chart-controls {
   box-shadow: 0px 0px 20px 5px rgba(0,0,0,0.2);
 }
 
+.slice-cell .editable-title input[type="button"] {
+  font-weight: bold;
+}
+
 .dashboard .separator.widget .slice_container {
   padding: 0px;
   overflow: visible;
