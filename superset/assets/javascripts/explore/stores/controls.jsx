@@ -202,6 +202,7 @@ export const controls = {
       ['blue_white_yellow', 'blue/white/yellow'],
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
+      ['dark_blue', 'light/dark blue'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
@@ -1084,6 +1085,14 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to display the legend (toggles)'),
+  },
+
+  show_values: {
+    type: 'CheckboxControl',
+    label: t('Show Values'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to display the numerical values within the cells'),
   },
 
   x_axis_showminmax: {
