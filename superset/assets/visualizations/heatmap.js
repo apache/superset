@@ -130,7 +130,7 @@ function heatmapVis(slice, payload) {
     .attr('height', height)
     .style('position', 'relative');
 
-  if (fd.show_annotation) {
+  if (fd.show_values) {
     const cells = svg.selectAll('rect')
       .data(data)
       .enter()
@@ -138,15 +138,14 @@ function heatmapVis(slice, payload) {
       .attr('transform', `translate(${margin.left}, ${margin.top})`);
 
     cells.append('text')
-      .attr('transform',
-        function (d) { return 'translate(' + xRbScale(d.x) + ',' + yRbScale(d.y) + ')'; })
+      .attr('transform', d => `translate(${xRbScale(d.x)}, ${yRbScale(d.y)})`)
       .attr('y', yRbScale.rangeBand() / 2)
       .attr('x', xRbScale.rangeBand() / 2)
       .attr('text-anchor', 'middle')
       .attr('dy', '.35em')
-      .text(function (d) { return valueFormatter(d.v); })
+      .text(d => valueFormatter(d.v))
       .attr('font-size', Math.min(yRbScale.rangeBand(), xRbScale.rangeBand()) / 3 + 'px')
-      .attr('fill', function (d) { return d.v >= payload.data.extents[1] / 2 ? 'white' : 'black'; });
+      .attr('fill', d => d.v >= payload.data.extents[1] / 2 ? 'white' : 'black');
   }
 
   if (fd.show_legend) {

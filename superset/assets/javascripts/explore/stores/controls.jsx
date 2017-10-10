@@ -1087,12 +1087,12 @@ export const controls = {
     description: t('Whether to display the legend (toggles)'),
   },
 
-  show_annotation: {
+  show_values: {
     type: 'CheckboxControl',
-    label: t('Annotation'),
+    label: t('Show Values'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to display the annotation (toggles)'),
+    description: t('Whether to display the numerical values within the cells'),
   },
 
   x_axis_showminmax: {
