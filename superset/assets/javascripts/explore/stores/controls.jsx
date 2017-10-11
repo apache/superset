@@ -180,7 +180,7 @@ export const controls = {
 
   sort_x_axis: {
     type: 'SelectControl',
-    label: 'Sort X Axis',
+    label: t('Sort X Axis'),
     choices: sortAxisChoices,
     clearable: false,
     default: 'alpha_asc',
@@ -188,7 +188,7 @@ export const controls = {
 
   sort_y_axis: {
     type: 'SelectControl',
-    label: 'Sort Y Axis',
+    label: t('Sort Y Axis'),
     choices: sortAxisChoices,
     clearable: false,
     default: 'alpha_asc',
@@ -278,9 +278,9 @@ export const controls = {
 
   show_perc: {
     type: 'CheckboxControl',
-    label: 'Show percentage',
+    label: t('Show percentage'),
     renderTrigger: true,
-    description: 'Whether to include the percentage in the tooltip',
+    description: t('Whether to include the percentage in the tooltip'),
     default: true,
   },
 
@@ -689,9 +689,9 @@ export const controls = {
 
   order_desc: {
     type: 'CheckboxControl',
-    label: 'Sort Descending',
+    label: t('Sort Descending'),
     default: true,
-    description: 'Whether to sort descending or ascending',
+    description: t('Whether to sort descending or ascending'),
   },
 
   rolling_type: {
@@ -1023,30 +1023,30 @@ export const controls = {
 
   show_sqla_time_granularity: {
     type: 'CheckboxControl',
-    label: 'Show SQL Granularity Dropdown',
+    label: t('Show SQL Granularity Dropdown'),
     default: false,
-    description: 'Check to include SQL Granularity dropdown',
+    description: t('Check to include SQL Granularity dropdown'),
   },
 
   show_sqla_time_column: {
     type: 'CheckboxControl',
-    label: 'Show SQL Time Column',
+    label: t('Show SQL Time Column'),
     default: false,
-    description: 'Check to include Time Column dropdown',
+    description: t('Check to include Time Column dropdown'),
   },
 
   show_druid_time_granularity: {
     type: 'CheckboxControl',
-    label: 'Show Druid Granularity Dropdown',
+    label: t('Show Druid Granularity Dropdown'),
     default: false,
-    description: 'Check to include Druid Granularity dropdown',
+    description: t('Check to include Druid Granularity dropdown'),
   },
 
   show_druid_time_origin: {
     type: 'CheckboxControl',
-    label: 'Show Druid Time Origin',
+    label: t('Show Druid Time Origin'),
     default: false,
-    description: 'Check to include Time Origin dropdown',
+    description: t('Check to include Time Origin dropdown'),
   },
 
   show_datatable: {
@@ -1430,24 +1430,25 @@ export const controls = {
 
   significance_level: {
     type: 'TextControl',
-    label: 'Significance Level',
+    label: t('Significance Level'),
     default: 0.05,
-    description: 'Threshold alpha level for determining significance',
+    description: t('Threshold alpha level for determining significance'),
   },
 
   pvalue_precision: {
     type: 'TextControl',
-    label: 'p-value precision',
+    label: t('p-value precision'),
     default: 6,
-    description: 'Number of decimal places with which to display p-values',
+    description: t('Number of decimal places with which to display p-values'),
   },
 
   liftvalue_precision: {
     type: 'TextControl',
-    label: 'Lift % precision',
+    label: t('Lift percent precision'),
     default: 4,
-    description: 'Number of decimal places with which to display lift values',
+    description: t('Number of decimal places with which to display lift values'),
   },
+
   column_collection: {
     type: 'CollectionControl',
     label: t('Time Series Columns'),
