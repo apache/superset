@@ -1,8 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
-import Select from 'react-select';
-import { Creatable } from 'react-select';
+import Select, { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 import VirtualizedRendererWrap from '../../../components/VirtualizedRendererWrap';
@@ -119,7 +118,6 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer: VirtualizedRendererWrap(this.props.optionRenderer),
       valueRenderer: this.props.valueRenderer,
       selectComponent: this.props.freeForm ? Creatable : Select,
-      freeForm: this.props.freeForm,
     };
     return (
       <div>

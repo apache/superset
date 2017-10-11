@@ -1,20 +1,18 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 export default function VirtualizedRendererWrap(renderer) {
-  function wrapperRenderer({
+  function WrapperRenderer({
     focusedOption,
-    focusedOptionIndex,
     focusOption,
     key,
-    labelKey,
     option,
-    options,
     selectValue,
     style,
     valueArray,
   }) {
     if (!option) {
-      return;
+      return null;
     }
     const className = ['VirtualizedSelectOption'];
     if (option === focusedOption) {
@@ -43,7 +41,16 @@ export default function VirtualizedRendererWrap(renderer) {
       >
         {renderer(option)}
       </div>
-    )
+    );
   }
-  return wrapperRenderer;
+  WrapperRenderer.propTypes = {
+    focusedOption: PropTypes.object.isRequired,
+    focusOption: PropTypes.func.isRequired,
+    key: PropTypes.string,
+    option: PropTypes.object,
+    selectValue: PropTypes.func.isRequired,
+    style: PropTypes.object,
+    valueArray: PropTypes.array,
+  };
+  return WrapperRenderer;
 }

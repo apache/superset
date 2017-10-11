@@ -30,7 +30,7 @@ export default class OnPasteSelect extends React.Component {
       .filter((v) => {
         const notExists = !existing[v];
         existing[v] = 1;
-        return (validator ? validator({ [this.props.labelKey]: v }) : !!v) && notExists;
+        return notExists && (validator ? validator({ [this.props.labelKey]: v }) : !!v);
       })
       .map((v) => {
         const opt = { [this.props.labelKey]: v, [this.props.valueKey]: v };
@@ -38,19 +38,11 @@ export default class OnPasteSelect extends React.Component {
           this.props.options.unshift(opt);
         }
         return opt;
-      })
+      }),
     );
     if (options.length) {
       if (this.props.onChange) {
         this.props.onChange(options);
-      } else if (this.pasteInput.selectValue) {
-        this.pasteInput.selectValue(options);
-      } else if (
-        this.pasteInput._selectRef &&
-        this.pasteInput._selectRef.select &&
-        this.pasteInput._selectRef.select.selectValue
-      ) {
-        this.pasteInput._selectRef.select.selectValue(options);
       }
     }
   }
@@ -61,23 +53,35 @@ export default class OnPasteSelect extends React.Component {
         this.props.ref(ref);
       }
       this.pasteInput = ref;
-    }
-    const inputProps = { onPaste: this.onPaste.bind(this) }
+    };
+    const inputProps = { onPaste: this.onPaste.bind(this) };
     return (
       <SelectComponent
         {...this.props}
         ref={refFunc}
         inputProps={inputProps}
       />
-    )
+    );
   }
 }
 
 OnPasteSelect.propTypes = {
   separator: PropTypes.string.isRequired,
   selectWrap: PropTypes.func.isRequired,
+  ref: PropTypes.func,
+  onChange: PropTypes.func.isRequired,
+  valueKey: PropTypes.string.isRequired,
+  labelKey: PropTypes.string.isRequired,
+  options: PropTypes.array,
+  multi: PropTypes.bool.isRequired,
+  value: PropTypes.any,
+  isValidNewOption: PropTypes.func,
 };
 OnPasteSelect.defaultProps = {
   separator: ',',
   selectWrap: Select,
+  valueKey: 'value',
+  labelKey: 'label',
+  options: [],
+  multi: false,
 };
