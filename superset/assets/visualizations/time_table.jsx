@@ -44,16 +44,7 @@ function viz(slice, payload) {
     metricMap[m.metric_name] = m;
   });
 
-  let metrics;
-  if (payload.data.is_group_by) {
-    // Sorting by first column desc
-    metrics = payload.data.columns.sort((m1, m2) => (
-      reversedData[0][m1] > reversedData[0][m2] ? -1 : 1
-    ));
-  } else {
-    // Using ordering specified in Metrics dropdown
-    metrics = payload.data.columns;
-  }
+  const metrics = payload.data.columns;
   const defaultSort = { column: fd.column_collection[0].key, direction: 'desc' };
   const tableData = metrics.map((metric) => {
     let leftCell;
