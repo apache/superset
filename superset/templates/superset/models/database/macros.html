@@ -20,6 +20,7 @@
         data = JSON.stringify({
           uri: $("#sqlalchemy_uri").val(),
           name: $('#database_name').val(),
+          impersonate_user: $('#impersonate_user').is(':checked'),
           extras: JSON.parse($("#extra").val()),
         })
       } catch(parse_error){
