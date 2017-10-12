@@ -179,6 +179,10 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     list_columns = [
         'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
         'allow_dml', 'creator', 'modified']
+    order_columns = [
+        'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
+        'modified'
+    ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
@@ -309,7 +313,7 @@ class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     list_columns = [
         'username', 'user_roles', 'datasource_link',
         'roles_with_datasource', 'created_on']
-    order_columns = ['username', 'datasource_link']
+    order_columns = ['created_on']
     base_order = ('changed_on', 'desc')
     label_columns = {
         'username': _("User"),
@@ -346,6 +350,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     )
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
+    order_columns = ['viz_type', 'datasource_link', 'modified']
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'owners', 'dashboards',
         'params', 'cache_timeout']
@@ -440,6 +445,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     edit_title = _('Edit Dashboard')
 
     list_columns = ['dashboard_link', 'creator', 'modified']
+    order_columns = ['modified']
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
         'json_metadata']
