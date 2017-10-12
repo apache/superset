@@ -158,10 +158,11 @@ class BaseViz(object):
         until = form_data.get("until", "now")
 
         # Backward compatibility hack
-        since_words = since.split(' ')
-        grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
-        if (len(since_words) == 2 and since_words[1] in grains):
-            since += ' ago'
+        if since:
+            since_words = since.split(' ')
+            grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
+            if (len(since_words) == 2 and since_words[1] in grains):
+                since += ' ago'
 
         from_dttm = utils.parse_human_datetime(since)
 

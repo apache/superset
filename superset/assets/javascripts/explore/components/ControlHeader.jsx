@@ -40,7 +40,7 @@ export default class ControlHeader extends React.Component {
             <span>
               <InfoTooltipWithTrigger
                 label={t('bolt')}
-                tooltip={this.props.description}
+                tooltip={t('Changing this control takes effect instantly')}
                 placement="top"
                 icon="bolt"
               />

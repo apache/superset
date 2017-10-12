@@ -4,6 +4,7 @@ import propTypes from 'prop-types';
 import { Table, Thead, Th } from 'reactable';
 import d3 from 'd3';
 import { Sparkline, LineSeries } from '@data-ui/sparkline';
+import Mustache from 'mustache';
 
 import MetricOption from '../javascripts/components/MetricOption';
 import TooltipWrapper from '../javascripts/components/TooltipWrapper';
@@ -55,10 +56,13 @@ function viz(slice, payload) {
   }
   const tableData = metrics.map((metric) => {
     let leftCell;
+    const context = Object.assign({}, fd, { metric });
+    const url = fd.url ? Mustache.render(fd.url, context) : null;
+
     if (!payload.data.is_group_by) {
-      leftCell = <MetricOption metric={metricMap[metric]} showFormula={false} />;
+      leftCell = <MetricOption metric={metricMap[metric]} url={url}showFormula={false} />;
     } else {
-      leftCell = metric;
+      leftCell = url ? <a href={url}>{metric}</a> : metric;
     }
     const row = { metric: leftCell };
     fd.column_collection.forEach((c) => {
@@ -73,8 +77,9 @@ function viz(slice, payload) {
             sparkData.push(data[i][metric] / data[i - c.timeRatio][metric]);
           }
         }
-        const extent = d3.extent(data, d => d[metric]);
-        const tooltip = `min: ${extent[0]}, max: ${extent[1]}`;
+        const extent = d3.extent(sparkData);
+        const tooltip = `min: ${d3format(c.d3format, extent[0])}, \
+          max: ${d3format(c.d3format, extent[1])}`;
         row[c.key] = (
           <TooltipWrapper label="tt-spark" tooltip={tooltip}>
             <div>

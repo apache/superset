@@ -1,8 +1,6 @@
 from datetime import datetime
 import logging
 
-import sqlalchemy as sqla
-
 from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
