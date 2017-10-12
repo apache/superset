@@ -44,8 +44,14 @@ function viz(slice, payload) {
     metricMap[m.metric_name] = m;
   });
 
-  const metrics = payload.data.columns;
-  const defaultSort = { column: fd.column_collection[0].key, direction: 'desc' };
+  let metrics;
+  let defaultSort = null;
+  if (payload.data.is_group_by) {
+    metrics = payload.data.columns;
+    defaultSort = { column: fd.column_collection[0].key, direction: 'desc' };
+  } else {
+    metrics = fd.metrics;
+  }
   const tableData = metrics.map((metric) => {
     let leftCell;
     const context = Object.assign({}, fd, { metric });
