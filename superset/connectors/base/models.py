@@ -33,6 +33,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     # Columns
     id = Column(Integer, primary_key=True)
+    verbose_name = Column(String(64))
     description = Column(Text)
     default_endpoint = Column(Text)
     is_featured = Column(Boolean, default=False)  # TODO deprecating
@@ -130,6 +131,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'uid': self.uid,
             'schema': self.schema,
             'name': self.name,
+            'verbose_name': self.verbose_name,
             'type': self.type,
             'connection': self.connection,
             'creator': str(self.created_by),
@@ -161,6 +163,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'id': self.id,
             'metrics_combo': self.metrics_combo,
             'name': self.name,
+            'verbose_name': self.verbose_name or self.name,
             'order_by_choices': order_by_choices,
             'type': self.type,
             'metrics': [o.data for o in self.metrics],

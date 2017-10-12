@@ -33,8 +33,8 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'groupby', 'filterable', 'count_distinct', 'sum', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max']
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable',
+        'count_distinct', 'sum', 'min', 'max']
     can_delete = False
     page_size = 500
     label_columns = {
@@ -176,15 +176,14 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
 
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
-        'datasource_link', 'cluster', 'changed_by_', 'modified']
+        'datasource_link', 'verbose_name', 'cluster', 'changed_by_', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'slices', 'description', 'owner',
-        'is_hidden',
-        'filter_select_enabled', 'fetch_values_from',
+        'datasource_name', 'verbose_name', 'cluster', 'slices', 'description',
+        'owner', 'is_hidden', 'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     search_columns = (
-        'datasource_name', 'cluster', 'description', 'owner'
+        'datasource_name', 'verbose_name', 'cluster', 'description', 'owner'
     )
     add_columns = edit_columns
     show_columns = add_columns + ['perm']
@@ -222,6 +221,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     label_columns = {
         'slices': _("Associated Slices"),
         'datasource_link': _("Data Source"),
+        'verbose_name': _("Verbose Name"),
         'cluster': _("Cluster"),
         'description': _("Description"),
         'owner': _("Owner"),
