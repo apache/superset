@@ -109,7 +109,7 @@ function viz(slice, payload) {
           // Time lag ratio
           v = reversedData[parseInt(c.timeLag, 10)][metric];
           if (c.comparisonType === 'diff') {
-            v -= recent;
+            v = recent - v;
           } else if (c.comparisonType === 'perc') {
             v = recent / v;
           } else if (c.comparisonType === 'perc_change') {
