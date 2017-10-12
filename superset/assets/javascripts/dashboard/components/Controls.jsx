@@ -14,6 +14,13 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  user_id: PropTypes.string.isRequired,
+  addSlicesToDashboard: PropTypes.func,
+  onSave: PropTypes.func,
+  readFilters: PropTypes.func,
+  renderSlices: PropTypes.func,
+  serialize: PropTypes.func,
+  startPeriodicRender: PropTypes.func,
 };
 
 class Controls extends React.PureComponent {
@@ -36,7 +43,7 @@ class Controls extends React.PureComponent {
   }
   refresh() {
     // Force refresh all slices
-    this.props.dashboard.renderSlices(this.props.dashboard.sliceObjects, true);
+    this.props.renderSlices(this.props.dashboard.slices, true);
   }
   changeCss(css) {
     this.setState({ css });
@@ -57,18 +64,20 @@ class Controls extends React.PureComponent {
         </Button>
         <SliceAdder
           dashboard={dashboard}
+          addSlicesToDashboard={this.props.addSlicesToDashboard}
+          user_id={this.props.user_id}
           triggerNode={
             <i className="fa fa-plus" />
           }
         />
         <RefreshIntervalModal
-          onChange={refreshInterval => dashboard.startPeriodicRender(refreshInterval * 1000)}
+          onChange={refreshInterval => this.props.startPeriodicRender(refreshInterval * 1000)}
           triggerNode={
             <i className="fa fa-clock-o" />
           }
         />
         <CodeModal
-          codeCallback={dashboard.readFilters.bind(dashboard)}
+          codeCallback={this.props.readFilters}
           triggerNode={<i className="fa fa-filter" />}
         />
         <CssEditor
@@ -96,6 +105,9 @@ class Controls extends React.PureComponent {
         </Button>
         <SaveModal
           dashboard={dashboard}
+          readFilters={this.props.readFilters}
+          serialize={this.props.serialize}
+          onSave={this.props.onSave}
           css={this.state.css}
           triggerNode={
             <Button disabled={!dashboard.dash_save_perm}>

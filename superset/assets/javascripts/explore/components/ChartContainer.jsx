@@ -1,15 +1,17 @@
+/* eslint camelcase: 0 */
 import $ from 'jquery';
 import React from 'react';
 import PropTypes from 'prop-types';
-import Mustache from 'mustache';
 import { connect } from 'react-redux';
-import { Alert, Collapse, Panel } from 'react-bootstrap';
+
+import { Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
-import { d3format } from '../../modules/utils';
+import Slice from '../../dashboard/components/Slice';
 import ExploreActionButtons from './ExploreActionButtons';
 import EditableTitle from '../../components/EditableTitle';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
+import StackTraceMessage from '../../components/StackTraceMessage';
 import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
@@ -27,6 +29,7 @@ const propTypes = {
   alert: PropTypes.string,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
+  datasource: PropTypes.object,
   chartStatus: PropTypes.string,
   chartUpdateEndTime: PropTypes.number,
   chartUpdateStartTime: PropTypes.number.isRequired,
@@ -74,83 +77,10 @@ class ChartContainer extends React.PureComponent {
     }
   }
 
-  getMockedSliceObject() {
-    const props = this.props;
-    const getHeight = () => {
-      const headerHeight = props.standalone ? 0 : 100;
-      return parseInt(props.height, 10) - headerHeight;
-    };
-    return {
-      viewSqlQuery: props.queryResponse.query,
-      containerId: props.containerId,
-      datasource: props.datasource,
-      selector: this.state.selector,
-      formData: props.formData,
-      container: {
-        html: (data) => {
-          // this should be a callback to clear the contents of the slice container
-          $(this.state.selector).html(data);
-        },
-        css: (property, value) => {
-          $(this.state.selector).css(property, value);
-        },
-        height: getHeight,
-        show: () => { },
-        get: n => ($(this.state.selector).get(n)),
-        find: classname => ($(this.state.selector).find(classname)),
-      },
-
-      width: () => this.chartContainerRef.getBoundingClientRect().width,
-
-      height: getHeight,
-
-      render_template: (s) => {
-        const context = {
-          width: this.width,
-          height: this.height,
-        };
-        return Mustache.render(s, context);
-      },
-
-      setFilter: () => {},
-
-      getFilters: () => (
-        // return filter objects from viz.formData
-        {}
-      ),
-
-      addFilter: () => {},
-
-      removeFilter: () => {},
-
-      done: () => {},
-      clearError: () => {
-        // no need to do anything here since Alert is closable
-        // query button will also remove Alert
-      },
-      error() {},
-
-      d3format: (col, number) => {
-        // mock d3format function in Slice object in superset.js
-        const format = props.column_formats[col];
-        return d3format(format, number);
-      },
-
-      data: {
-        csv_endpoint: getExploreUrl(props.formData, 'csv'),
-        json_endpoint: getExploreUrl(props.formData, 'json'),
-        standalone_endpoint: getExploreUrl(props.formData, 'standalone'),
-      },
-
-    };
-  }
-
-  removeAlert() {
-    this.props.actions.removeChartAlert();
-  }
-
-  runQuery() {
-    this.props.actions.runQuery(this.props.formData, true, this.props.timeout);
+  // start sub-component callbacks
+  getHeight() {
+    const headerHeight = this.props.standalone ? 0 : 100;
+    return parseInt(this.props.height, 10) - headerHeight;
   }
 
   updateChartTitleOrSaveSlice(newTitle) {
@@ -164,12 +94,20 @@ class ChartContainer extends React.PureComponent {
       .then((data) => {
         if (isNewSlice) {
           this.props.actions.createNewSlice(
-              data.can_add, data.can_download, data.can_overwrite,
-              data.slice, data.form_data);
+            data.can_add, data.can_download, data.can_overwrite,
+            data.slice, data.form_data);
         } else {
           this.props.actions.updateChartTitle(newTitle);
         }
       });
+  }
+
+  removeAlert() {
+    this.props.actions.removeChartAlert();
+  }
+
+  runQuery() {
+    this.props.actions.runQuery(this.props.formData, true, this.props.timeout);
   }
 
   renderChartTitle() {
@@ -181,55 +119,34 @@ class ChartContainer extends React.PureComponent {
     }
     return title;
   }
+  // end slice callbacks
 
   renderViz() {
     this.props.actions.renderTriggered();
-    const mockSlice = this.getMockedSliceObject();
-    this.setState({ mockSlice });
+
     const viz = visMap[this.props.viz_type];
     try {
-      viz(mockSlice, this.props.queryResponse, this.props.actions.setControlValue);
+      viz(this.sliceEl, this.props.queryResponse, this.props.actions.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }
   }
 
-  renderAlert() {
-    /* eslint-disable react/no-danger */
-    const msg = (
-      <div>
-        <i
-          className="fa fa-close pull-right"
-          onClick={this.removeAlert.bind(this)}
-          style={{ cursor: 'pointer' }}
-        />
-        <p
-          dangerouslySetInnerHTML={{ __html: this.props.alert }}
-        />
-      </div>);
-    return (
-      <div>
-        <Alert
-          bsStyle="warning"
-          onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
-        >
-          {msg}
-        </Alert>
-        {this.props.queryResponse && this.props.queryResponse.stacktrace &&
-          <Collapse in={this.state.showStackTrace}>
-            <pre>
-              {this.props.queryResponse.stacktrace}
-            </pre>
-          </Collapse>
-        }
-      </div>);
-  }
-
   renderChart() {
     if (this.props.alert) {
-      return this.renderAlert();
+      return (
+        <StackTraceMessage
+          message={this.props.alert}
+          queryResponse={this.props.queryResponse}
+          removeAlert={this.removeAlert.bind(this)}
+        />
+      );
     }
+
     const loading = this.props.chartStatus === 'loading';
+    const containerId = this.props.slice ?
+      `slice-container-${this.props.slice.slice_id}` :
+      'slice-container';
     return (
       <div>
         {loading &&
@@ -240,13 +157,12 @@ class ChartContainer extends React.PureComponent {
             style={{ position: 'absolute' }}
           />
         }
-        <div
-          id={this.props.containerId}
-          ref={(ref) => { this.chartContainerRef = ref; }}
-          className={this.props.viz_type}
-          style={{
-            opacity: loading ? '0.25' : '1',
-          }}
+        <Slice
+          containerId={containerId}
+          datasource={this.props.datasource}
+          formData={this.props.formData}
+          height={this.getHeight.bind(this)}
+          ref={(sliceEl) => { this.sliceEl = sliceEl; }}
         />
       </div>
     );
@@ -259,6 +175,11 @@ class ChartContainer extends React.PureComponent {
       return this.renderChart();
     }
     const queryResponse = this.props.queryResponse;
+    const data = {
+      csv_endpoint: getExploreUrl(this.props.formData, 'csv'),
+      json_endpoint: getExploreUrl(this.props.formData, 'json'),
+      standalone_endpoint: getExploreUrl(this.props.formData, 'standalone'),
+    };
     return (
       <div className="chart-container">
         <Panel
@@ -277,8 +198,9 @@ class ChartContainer extends React.PureComponent {
               {this.props.slice &&
                 <span>
                   <FaveStar
-                    sliceId={this.props.slice.slice_id}
-                    actions={this.props.actions}
+                    itemId={this.props.slice.slice_id}
+                    fetchFaveStar={this.props.actions.fetchFaveStar}
+                    saveFaveStar={this.props.actions.saveFaveStar}
                     isStarred={this.props.isStarred}
                   />
 
@@ -313,7 +235,7 @@ class ChartContainer extends React.PureComponent {
                   style={{ fontSize: '10px', marginRight: '5px' }}
                 />
                 <ExploreActionButtons
-                  slice={this.state.mockSlice}
+                  slice={Object.assign({}, this.props.slice, { data })}
                   canDownload={this.props.can_download}
                   chartStatus={this.props.chartStatus}
                   queryResponse={queryResponse}
