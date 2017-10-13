@@ -4,6 +4,7 @@ import * as v from '../validators';
 import { ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
 import MetricOption from '../../components/MetricOption';
 import ColumnOption from '../../components/ColumnOption';
+import OptionDescription from '../../components/OptionDescription';
 import { t } from '../../locales';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
@@ -98,6 +99,7 @@ export const controls = {
     }),
     description: t('One or many metrics to display'),
   },
+
   y_axis_bounds: {
     type: 'BoundsControl',
     label: t('Y Axis Bounds'),
@@ -108,6 +110,7 @@ export const controls = {
     "this feature will only expand the axis range. It won't " +
     "narrow the data's extent."),
   },
+
   order_by_cols: {
     type: 'SelectControl',
     multi: true,
@@ -909,6 +912,16 @@ export const controls = {
     description: D3_FORMAT_DOCS,
   },
 
+  date_time_format: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Date Time Format'),
+    renderTrigger: true,
+    default: 'smart_date',
+    choices: D3_TIME_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+  },
+
   markup_type: {
     type: 'SelectControl',
     label: t('Markup Type'),
@@ -1134,6 +1147,14 @@ export const controls = {
     default: false,
     renderTrigger: true,
     description: t('Use a log scale for the X axis'),
+  },
+
+  log_scale: {
+    type: 'CheckboxControl',
+    label: t('Log Scale'),
+    default: false,
+    renderTrigger: true,
+    description: t('Use a log scale'),
   },
 
   donut: {
@@ -1456,5 +1477,85 @@ export const controls = {
     controlName: 'TimeSeriesColumnControl',
   },
 
+  time_series_option: {
+    type: 'SelectControl',
+    label: t('Options'),
+    validators: [v.nonEmpty],
+    default: 'not_time',
+    valueKey: 'value',
+    options: [
+      {
+        label: t('Not Time Series'),
+        value: 'not_time',
+        description: t('Ignore time'),
+      },
+      {
+        label: t('Time Series'),
+        value: 'time_series',
+        description: t('Standard time series'),
+      },
+      {
+        label: t('Aggregate Mean'),
+        value: 'agg_mean',
+        description: t('Mean of values over specified period'),
+      },
+      {
+        label: t('Aggregate Sum'),
+        value: 'agg_sum',
+        description: t('Sum of values over specified period'),
+      },
+      {
+        label: t('Difference'),
+        value: 'point_diff',
+        description: t('Metric change in value from `since` to `until`'),
+      },
+      {
+        label: t('Percent Change'),
+        value: 'point_percent',
+        description: t('Metric percent change in value from `since` to `until`'),
+      },
+      {
+        label: t('Factor'),
+        value: 'point_factor',
+        description: t('Metric factor change from `since` to `until`'),
+      },
+      {
+        label: t('Advanced Analytics'),
+        value: 'adv_anal',
+        description: t('Use the Advanced Analytics options below'),
+      },
+    ],
+    optionRenderer: op => <OptionDescription option={op} />,
+    valueRenderer: op => <OptionDescription option={op} />,
+    description: t('Settings for time series'),
+  },
+
+  equal_date_size: {
+    type: 'CheckboxControl',
+    label: t('Equal Date Sizes'),
+    default: true,
+    renderTrigger: true,
+    description: t('Check to force date partitions to have the same height'),
+  },
+
+  partition_limit: {
+    type: 'TextControl',
+    label: t('Partition Limit'),
+    isInt: true,
+    default: '5',
+    description:
+      t('The maximum number of subdivisions of each group; ' +
+      'lower values are pruned first'),
+  },
+
+  partition_threshold: {
+    type: 'TextControl',
+    label: t('Partition Threshold'),
+    isFloat: true,
+    default: '0.05',
+    description:
+      t('Partitions whose height to parent height proportions are ' +
+      'below this value are pruned'),
+  },
 };
 export default controls;
