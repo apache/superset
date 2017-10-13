@@ -686,10 +686,35 @@ def merge_extra_filters(form_data):
             '__time_origin': 'druid_time_origin',
             '__granularity': 'granularity',
         }
+        # Grab list of existing filters 'keyed' on the column and operator
+        existing_filters = {}
+        for existing in form_data['filters']:
+            existing_filters[existing['col'] + '__' + existing['op']] = existing['val']
         for filtr in form_data['extra_filters']:
-            if date_options.get(filtr['col']):  # merge date options
+            # Pull out time filters/options and merge into form data
+            if date_options.get(filtr['col']):
                 if filtr.get('val'):
                     form_data[date_options[filtr['col']]] = filtr['val']
-            else:
-                form_data['filters'] += [filtr]  # merge col filters
+            elif filtr['val'] and len(filtr['val']):
+                # Merge column filters
+                filter_key = filtr['col'] + '__' + filtr['op']
+                if filter_key in existing_filters:
+                    # Check if the filter already exists
+                    if isinstance(filtr['val'], list):
+                        if isinstance(existing_filters[filter_key], list):
+                            if (
+                                sorted(existing_filters[filter_key]) !=
+                                sorted(filtr['val'])
+                            ):
+                                form_data['filters'] += [filtr]
+                        else:
+                            form_data['filters'] += [filtr]
+                    else:
+                        # Do not add filter if same value already exists
+                        if filtr['val'] != existing_filters[filter_key]:
+                            form_data['filters'] += [filtr]
+                else:
+                    # Filter not found, add it
+                    form_data['filters'] += [filtr]
+        # Remove extra filters from the form data since no longer needed
         del form_data['extra_filters']

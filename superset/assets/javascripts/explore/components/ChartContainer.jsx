@@ -8,6 +8,7 @@ import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from './ExploreActionButtons';
 import EditableTitle from '../../components/EditableTitle';
+import AlteredSliceTag from '../../components/AlteredSliceTag';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
@@ -72,6 +73,25 @@ class ChartContainer extends React.PureComponent {
       ) {
       this.renderViz();
     }
+  }
+
+  isAltered() {
+    // Returns all properties that differ in the
+    // current form data and the base form data
+    const fd = this.props.formData || {};
+    const bfd = (this.props.slice && this.props.slice.form_data) || {};
+    const fdKeys = new Set(Object.keys(fd).concat(Object.keys(bfd)));
+    const differing = {};
+    for (const fdKey of fdKeys) {
+      // Ignore values that are undefined/nonexisting in either
+      if (!fd[fdKey] && !bfd[fdKey]) {
+        continue;
+      }
+      if (JSON.stringify(fd[fdKey]) !== JSON.stringify(bfd[fdKey])) {
+        differing[fdKey] = { before: bfd[fdKey], after: fd[fdKey] };
+      }
+    }
+    return differing;
   }
 
   getMockedSliceObject() {
@@ -225,6 +245,12 @@ class ChartContainer extends React.PureComponent {
       </div>);
   }
 
+  renderAlteredTag() {
+    const altered = this.isAltered();
+    return Object.keys(altered).length ?
+      <AlteredSliceTag altered={altered} /> : null;
+  }
+
   renderChart() {
     if (this.props.alert) {
       return this.renderAlert();
@@ -295,6 +321,8 @@ class ChartContainer extends React.PureComponent {
                   </TooltipWrapper>
                 </span>
               }
+
+              {this.renderAlteredTag()}
 
               <div className="pull-right">
                 {this.props.chartStatus === 'success' &&

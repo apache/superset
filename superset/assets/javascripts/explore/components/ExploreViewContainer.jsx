@@ -21,6 +21,7 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
+  baseFormData: PropTypes.object,
   standalone: PropTypes.bool.isRequired,
   triggerQuery: PropTypes.bool.isRequired,
   queryRequest: PropTypes.object,
@@ -28,6 +29,7 @@ const propTypes = {
 };
 
 class ExploreViewContainer extends React.Component {
+
   constructor(props) {
     super(props);
     this.state = {
@@ -105,11 +107,13 @@ class ExploreViewContainer extends React.Component {
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
   }
+
   hasErrors() {
     const ctrls = this.props.controls;
     return Object.keys(ctrls).some(
       k => ctrls[k].validationErrors && ctrls[k].validationErrors.length > 0);
   }
+
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
     const errors = [];
@@ -132,6 +136,7 @@ class ExploreViewContainer extends React.Component {
     }
     return errorMessage;
   }
+
   renderChartContainer() {
     return (
       <ChartContainer
