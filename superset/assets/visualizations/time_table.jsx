@@ -29,7 +29,6 @@ FormattedNumber.propTypes = {
 };
 
 function viz(slice, payload) {
-  slice.container.css('overflow', 'auto');
   slice.container.css('height', slice.height());
   const recs = payload.data.records;
   const fd = payload.form_data;
