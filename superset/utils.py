@@ -687,9 +687,12 @@ def merge_extra_filters(form_data):
             '__granularity': 'granularity',
         }
         # Grab list of existing filters 'keyed' on the column and operator
+
+        def get_filter_key(f):
+            return f['col'] + '__' + f['op']
         existing_filters = {}
         for existing in form_data['filters']:
-            existing_filters[existing['col'] + '__' + existing['op']] = existing['val']
+            existing_filters[get_filter_key(existing)] = existing['val']
         for filtr in form_data['extra_filters']:
             # Pull out time filters/options and merge into form data
             if date_options.get(filtr['col']):
@@ -697,11 +700,13 @@ def merge_extra_filters(form_data):
                     form_data[date_options[filtr['col']]] = filtr['val']
             elif filtr['val'] and len(filtr['val']):
                 # Merge column filters
-                filter_key = filtr['col'] + '__' + filtr['op']
+                filter_key = get_filter_key(filtr)
                 if filter_key in existing_filters:
                     # Check if the filter already exists
                     if isinstance(filtr['val'], list):
                         if isinstance(existing_filters[filter_key], list):
+                            # Add filters for unequal lists
+                            # order doesn't matter
                             if (
                                 sorted(existing_filters[filter_key]) !=
                                 sorted(filtr['val'])

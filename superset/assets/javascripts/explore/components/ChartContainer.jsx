@@ -75,25 +75,6 @@ class ChartContainer extends React.PureComponent {
     }
   }
 
-  isAltered() {
-    // Returns all properties that differ in the
-    // current form data and the base form data
-    const fd = this.props.formData || {};
-    const bfd = (this.props.slice && this.props.slice.form_data) || {};
-    const fdKeys = new Set(Object.keys(fd).concat(Object.keys(bfd)));
-    const differing = {};
-    for (const fdKey of fdKeys) {
-      // Ignore values that are undefined/nonexisting in either
-      if (!fd[fdKey] && !bfd[fdKey]) {
-        continue;
-      }
-      if (JSON.stringify(fd[fdKey]) !== JSON.stringify(bfd[fdKey])) {
-        differing[fdKey] = { before: bfd[fdKey], after: fd[fdKey] };
-      }
-    }
-    return differing;
-  }
-
   getMockedSliceObject() {
     const props = this.props;
     const getHeight = () => {
@@ -163,6 +144,25 @@ class ChartContainer extends React.PureComponent {
       },
 
     };
+  }
+
+  isAltered() {
+    // Returns all properties that differ in the
+    // current form data and the base form data
+    const fd = this.props.formData || {};
+    const bfd = (this.props.slice && this.props.slice.form_data) || {};
+    const fdKeys = new Set(Object.keys(fd).concat(Object.keys(bfd)));
+    const differing = {};
+    for (const fdKey of fdKeys) {
+      // Ignore values that are undefined/nonexisting in either
+      if (!fd[fdKey] && !bfd[fdKey]) {
+        continue;
+      }
+      if (JSON.stringify(fd[fdKey]) !== JSON.stringify(bfd[fdKey])) {
+        differing[fdKey] = { before: bfd[fdKey], after: fd[fdKey] };
+      }
+    }
+    return differing;
   }
 
   removeAlert() {

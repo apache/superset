@@ -3,13 +3,14 @@ import PropTypes from 'prop-types';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
 import TooltipWrapper from './TooltipWrapper';
 import { controls } from '../explore/stores/controls';
-import Button from './Button';
 import ModalTrigger from './ModalTrigger';
 import { t } from '../locales';
 
 export default class AlteredSliceTag extends React.Component {
 
   formatValue(value, key) {
+    // Format display value based on the control type
+    // or the value type
     if (value === undefined) {
       return 'N/A';
     } else if (value === null) {
@@ -23,7 +24,7 @@ export default class AlteredSliceTag extends React.Component {
         return `${v.col} ${v.op} ${filterVal}`;
       }).join(', ');
     } else if (controls[key] && controls[key].type === 'BoundsControl') {
-      return `Min: ${value[0]}, Max; ${value[1]}`;
+      return `Min: ${value[0]}, Max: ${value[1]}`;
     } else if (controls[key] && controls[key].type === 'CollectionControl') {
       return value.map(v => JSON.stringify(v)).join(', ');
     } else if (typeof value === 'boolean') {
@@ -32,9 +33,8 @@ export default class AlteredSliceTag extends React.Component {
       return value.length ? value.join(', ') : '[]';
     } else if (value.constructor === Object) {
       return JSON.stringify(value);
-    } else {
-      return value;
     }
+    return value;
   }
 
   renderRows() {
@@ -46,14 +46,13 @@ export default class AlteredSliceTag extends React.Component {
           <Td column="control" data={(controls[key] && controls[key].label) || key} />
           <Td column="before">{this.formatValue(altered[key].before, key)}</Td>
           <Td column="after">{this.formatValue(altered[key].after, key)}</Td>
-        </Tr>
+        </Tr>,
       );
     }
     return rows;
   }
 
   renderModalBody() {
-    const alteredRows = this.renderRows();
     return (
       <Table className="table" sortable>
         <Thead>
@@ -83,9 +82,12 @@ export default class AlteredSliceTag extends React.Component {
   }
 
   render() {
+    // Render the label-warning 'Altered' tag which the user may
+    // click to open a modal containing a table summarizing the
+    // differences in the slice
     return (
       <ModalTrigger
-        animation={true}
+        animation
         triggerNode={this.renderTriggerNode()}
         modalTitle={t('Slice changes')}
         bsSize="large"
@@ -97,4 +99,4 @@ export default class AlteredSliceTag extends React.Component {
 
 AlteredSliceTag.propTypes = {
   altered: PropTypes.object.isRequired,
-}
+};
