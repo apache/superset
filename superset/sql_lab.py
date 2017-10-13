@@ -118,7 +118,7 @@ def execute_sql(
 
     def handle_error(msg):
         """Local method handling error while processing the SQL"""
-        query.error_message = msg
+        query.error_message = msg 
         query.status = QueryStatus.FAILED
         query.tmp_table_name = None
         session.commit()

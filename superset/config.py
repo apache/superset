@@ -325,6 +325,10 @@ if not CACHE_DEFAULT_TIMEOUT:
 # permission management
 SILENCE_FAB = True
 
+#The link containing common errors and theirbresolutions 
+TROUBLESHOOTING_LINK = \
+"https://airbnb.quip.com/ov7yA6KHyL25/Common-Superset-Error-Resolutions"
+
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
