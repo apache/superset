@@ -11,6 +11,7 @@ const propTypes = {
   isStarred: PropTypes.bool,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
+  onChange: PropTypes.func,
   fetchFaveStar: PropTypes.func,
   readFilters: PropTypes.func,
   renderSlices: PropTypes.func,
@@ -58,6 +59,7 @@ class Header extends React.PureComponent {
             user_id={this.props.user_id}
             addSlicesToDashboard={this.props.addSlicesToDashboard}
             onSave={this.props.onSave}
+            onChange={this.props.onChange}
             readFilters={this.props.readFilters}
             renderSlices={this.props.renderSlices}
             serialize={this.props.serialize}

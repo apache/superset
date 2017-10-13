@@ -98,7 +98,7 @@ export function areObjectsEqual(obj1, obj2) {
   if (!obj1 || !obj2) {
     return false;
   }
-  if (!Object.keys(obj1).length !== Object.keys(obj2).length) {
+  if (Object.keys(obj1).length !== Object.keys(obj2).length) {
     return false;
   }
   for (const id in obj1) {
@@ -108,10 +108,8 @@ export function areObjectsEqual(obj1, obj2) {
     if (Array.isArray(obj2[id]) && Array.isArray(obj1[id]) &&
       obj2[id].some(value => (obj1[id] !== value))) {
       return false;
-    } else {
-      if (obj1[id] !== obj2[id]) {
-        return false;
-      }
+    } else if (obj1[id] !== obj2[id]) {
+      return false;
     }
   }
   return true;

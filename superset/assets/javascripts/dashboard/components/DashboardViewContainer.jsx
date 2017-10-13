@@ -9,10 +9,8 @@ import GridLayout from './GridLayout';
 import Header from './Header';
 import DashboardAlert from './DashboardAlert';
 import * as Actions from '../actions';
-import { getParam } from '../../modules/utils';
 import { getExploreUrl } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
-import { applyDefaultFormData } from '../../explore/stores/store';
 import { t } from '../../locales';
 
 import '../../../stylesheets/dashboard.css';
@@ -58,10 +56,14 @@ class DashboardViewContainer extends React.PureComponent {
     this.bindResizeToWindowResize();
   }
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(prevProps) {
     // check filters is changed
-    if (areObjectsEqual(prevProps.filters, this.state.filters)) {
+    if (!areObjectsEqual(prevProps.filters, this.props.filters)) {
       this.updateFilterParamsInUrl();
+
+      if (this.props.refresh) {
+        Object.keys(this.props.filters).forEach(sliceId => (this.refreshExcept(sliceId)));
+      }
     }
   }
 
@@ -86,15 +88,10 @@ class DashboardViewContainer extends React.PureComponent {
   }
 
   getFormDataExtra(slice) {
-    const formData = applyDefaultFormData(slice.form_data);
-    const formDataExtra = Object.assign({}, formData);
+    const formDataExtra = Object.assign({}, slice.formData);
     const extraFilters = this.effectiveExtraFilters(slice.slice_id);
     formDataExtra.filters = formDataExtra.filters.concat(extraFilters);
     return formDataExtra;
-  }
-
-  setFilter(sliceId, col, vals, refresh) {
-    this.props.actions.addFilter(sliceId, col, vals, false, refresh);
   }
 
   readFilters() {
@@ -164,21 +161,17 @@ class DashboardViewContainer extends React.PureComponent {
   }
 
   loadPreSelectFilters() {
-    try {
-      const filters = JSON.parse(getParam('preselect_filters') || '{}');
-      for (const sliceId in filters) {
-        for (const col in filters[sliceId]) {
-          this.setFilter(sliceId, col, filters[sliceId][col], false, false);
-        }
+    for (const sliceId in this.props.filters) {
+      for (const col in this.props.filters[sliceId]) {
+        this.props.actions.addFilter(sliceId, col,
+          this.props.filters[sliceId][col], false, false);
       }
-    } catch (e) {
-      // console.error(e);
     }
   }
 
   refreshExcept(sliceId) {
     const immune = this.props.dashboard.metadata.filter_immune_slices || [];
-    const slices = this.props.dashboard.dashboard.slices
+    const slices = this.props.dashboard.slices
       .filter(slice => slice.slice_id !== sliceId && immune.indexOf(slice.slice_id) === -1);
     this.renderSlices(slices);
   }
@@ -287,6 +280,7 @@ class DashboardViewContainer extends React.PureComponent {
             addSlicesToDashboard={this.addSlicesToDashboard.bind(this)}
             fetchFaveStar={this.props.actions.fetchFaveStar}
             onSave={this.onSave.bind(this)}
+            onChange={this.onChange.bind(this)}
             readFilters={this.readFilters.bind(this)}
             renderSlices={this.renderSlices.bind(this)}
             saveFaveStar={this.props.actions.saveFaveStar}

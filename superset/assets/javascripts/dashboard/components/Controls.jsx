@@ -17,6 +17,7 @@ const propTypes = {
   user_id: PropTypes.string.isRequired,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
+  onChange: PropTypes.func,
   readFilters: PropTypes.func,
   renderSlices: PropTypes.func,
   serialize: PropTypes.func,
@@ -47,7 +48,7 @@ class Controls extends React.PureComponent {
   }
   changeCss(css) {
     this.setState({ css });
-    this.props.dashboard.onChange();
+    this.props.onChange();
   }
   render() {
     const dashboard = this.props.dashboard;

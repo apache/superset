@@ -71,7 +71,7 @@ export function saveSlice(slice, sliceName) {
         // if server-side reject the overwrite action,
         // revert to old state
         dispatch(updateSliceName(slice, oldName));
-        notify.error('You don\'t have the rights to alter this slice');
+        notify.error("You don't have the rights to alter this slice");
       },
     });
   };

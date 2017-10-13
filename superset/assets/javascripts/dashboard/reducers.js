@@ -1,5 +1,6 @@
 import d3 from 'd3';
 import * as actions from './actions';
+import { getParam } from '../modules/utils';
 import { alterInArr, removeFromArr } from '../reduxUtils';
 import { applyDefaultFormData } from '../explore/stores/store';
 
@@ -8,7 +9,18 @@ export function getInitialState(bootstrapData) {
   delete common.locale;
   delete common.language_pack;
 
+  // parse preselected filter from url
   const filters = {};
+  try {
+    const fileterData = JSON.parse(getParam('preselect_filters') || '{}');
+    for (const key in fileterData) {
+      const sliceId = parseInt(key, 10);
+      filters[sliceId] = fileterData[key];
+    }
+  } catch (e) {
+    //
+  }
+
   const dashboard = Object.assign({}, bootstrapData.dashboard_data);
   dashboard.posDict = {};
   dashboard.layout = [];
@@ -17,10 +29,10 @@ export function getInitialState(bootstrapData) {
       dashboard.posDict[position.slice_id] = position;
     });
   }
+  dashboard.slices = dashboard.slices.map(slice =>
+    (Object.assign({}, slice, { formData: applyDefaultFormData(slice.form_data) })));
   dashboard.slices.forEach((slice, index) => {
     const sliceId = slice.slice_id;
-    slice.formData = applyDefaultFormData(slice.form_data);
-
     let pos = dashboard.posDict[sliceId];
     if (!pos) {
       pos = {
@@ -82,32 +94,34 @@ export const dashboardReducer = function (state, action) {
     // filters
     [actions.ADD_FILTER]() {
       const selectedSlice = state.dashboard.slices
-        .find(slice => (''+slice.slice_id === action.sliceId));
+        .find(slice => (slice.slice_id === action.sliceId));
       if (!selectedSlice) {
         return state;
       }
 
-      const newFilters = Object.assign({}, state.filters);
+      let filters = Object.assign({}, state.filters);
       const { sliceId, col, vals, merge, refresh } = action;
       const filterKeys = ['__from', '__to', '__time_col',
         '__time_grain', '__time_origin', '__granularity'];
       if (filterKeys.indexOf(col) >= 0 ||
         selectedSlice.formData.groupby.indexOf(col) !== -1) {
         if (!(sliceId in state.filters)) {
-          newFilters[sliceId] = {};
+          filters = Object.assign({}, filters, { [sliceId]: {} });
         }
-        if (state.filters[sliceId] && !(col in state.filters[sliceId]) || !merge) {
-          newFilters[sliceId][col] = vals;
 
+        let newFilter = {};
+        if (filters[sliceId] && !(col in filters[sliceId]) || !merge) {
+          newFilter = Object.assign({}, filters[sliceId], { [col]: vals });
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return
-        } else if (state.filters[sliceId][col] instanceof Array) {
-          newFilters[sliceId][col] = d3.merge([state.filters[sliceId][col], vals]);
+        } else if (filters[sliceId][col] instanceof Array) {
+          newFilter = d3.merge([filters[sliceId][col], vals]);
         } else {
-          newFilters[sliceId][col] = d3.merge([[this.filters[sliceId][col]], vals])[0] || '';
+          newFilter = d3.merge([[filters[sliceId][col]], vals])[0] || '';
         }
+        filters = Object.assign({}, filters, { [sliceId]: newFilter });
       }
-      return Object.assign({}, state, { filters: newFilters, refresh });
+      return Object.assign({}, state, { filters, refresh });
     },
     [actions.CLEAR_FILTER]() {
       const newFilters = Object.assign({}, state.filters);
@@ -151,21 +165,28 @@ export const dashboardReducer = function (state, action) {
     [actions.FETCH_SLICE_STARTED]() {
       const newDashboard = alterInArr(
         state.dashboard, 'slices',
-        action.slice, { status: 'fetching' },
+        action.slice,
+        { status: 'fetching' },
         'slice_id');
       return Object.assign({}, state, { dashboard: newDashboard });
     },
     [actions.FETCH_SLICE_SUCCESS]() {
       const newDashboard = alterInArr(
         state.dashboard, 'slices',
-        action.slice, action.queryResponse,
+        action.slice,
+        Object.assign({}, action.queryResponse, {
+          lastUpdated: new Date().getTime(),
+        }),
         'slice_id');
       return Object.assign({}, state, { dashboard: newDashboard });
     },
     [actions.FETCH_SLICE_FAIL]() {
       const newDashboard = alterInArr(
         state.dashboard, 'slices',
-        action.slice, action.errorResponse,
+        action.slice,
+        Object.assign({}, action.errorResponse, {
+          lastUpdated: new Date().getTime(),
+        }),
         'slice_id');
       return Object.assign({}, state, { dashboard: newDashboard });
     },
@@ -173,7 +194,8 @@ export const dashboardReducer = function (state, action) {
       const newDashboard = alterInArr(
         state.dashboard, 'slices',
         action.slice,
-        { status: 'timeout',
+        { lastUpdated: new Date().getTime(),
+          status: 'timeout',
           error: `Query timeout - 
           visualization query are set to time out at ${action.timeout} seconds.` },
         'slice_id');

@@ -51,16 +51,16 @@ class Slice extends React.PureComponent {
     return this.props.getFilters();
   }
 
-  addFilter(sliceId, col, vals, merge = true, refresh = true) {
-    this.props.addFilter(sliceId, col, vals, merge, refresh);
+  addFilter(col, vals, merge = true, refresh = true) {
+    this.props.addFilter(col, vals, merge, refresh);
   }
 
-  clearFilter(sliceId) {
-    this.props.clearFilter(sliceId);
+  clearFilter() {
+    this.props.clearFilter();
   }
 
-  removeFilter(sliceId, col, vals) {
-    this.props.removeFilter(sliceId, col, vals);
+  removeFilter(col, vals) {
+    this.props.removeFilter(col, vals);
   }
 
   clearError() {

@@ -52,12 +52,14 @@ class SliceContainer extends React.PureComponent {
 
   componentDidUpdate(prevProps, prevState) {
     if (this.props.slice.data && (
+      (this.props.slice.status === 'success' && prevProps.slice.lastUpdated !== this.props.slice.lastUpdated) ||
       prevProps.widgetHeight !== this.props.widgetHeight ||
       prevProps.widgetWidth !== this.props.widgetWidth ||
       prevProps.isExpanded !== this.props.isExpanded ||
       prevState.errorMsg !== this.state.errorMsg)
     ) {
-      // re-render viz when: widget size changed, or set/clear error
+      // re-render viz when: widget size changed, ajax fetch new response, or set/clear error
+      // console.log('re render');
       this.renderViz();
     }
   }
@@ -159,10 +161,10 @@ class SliceContainer extends React.PureComponent {
               formData={this.props.formData}
               height={this.height.bind(this, slice)}
               width={this.width.bind(this)}
-              addFilter={this.props.actions.addFilter}
-              getFilters={() => (this.props.filters)}
-              clearFilter={this.props.actions.clearFilter}
-              removeFilter={this.props.actions.removeFilter}
+              addFilter={this.props.actions.addFilter.bind(null, slice.slice_id)}
+              getFilters={() => (this.props.filters[slice.slice_id])}
+              clearFilter={() => this.props.actions.clearFilter(slice.slice_id)}
+              removeFilter={() => this.props.actions.removeFilter.bind(null, slice.slice_id)}
               ref="sliceEl"
             />
           </div>
