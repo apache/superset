@@ -45,6 +45,13 @@ visualizations.
 https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed
 
 
+Can I upload and visualize csv data?
+-------------------------------------
+
+Yes, using the ``Upload a CSV`` button under the ``Sources``
+menu item. This brings up a form that allows you specify required information. After creating the table from CSV, it can then be loadede like any other on the ``Sources -> Tables``page.
+
+
 Why are my queries timing out?
 ------------------------------
 
