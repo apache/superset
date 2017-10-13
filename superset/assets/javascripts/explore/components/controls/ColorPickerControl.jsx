@@ -32,7 +32,6 @@ const styles = {
     position: 'relative',
     padding: '5px',
     borderRadius: '1px',
-    boxShadow: '0 0 0 1px rgba(0,0,0,.1)',
     display: 'inline-block',
     cursor: 'pointer',
     boxShadow: 'rgba(0, 0, 0, 0.15) 0px 0px 0px 1px inset, rgba(0, 0, 0, 0.25) 0px 0px 4px inset',
@@ -65,7 +64,7 @@ export default class ColorPickerControl extends React.Component {
       </Popover>);
   }
   render() {
-    const c = this.props.value || { r: 0, g: 0, b:0, a: 0 };
+    const c = this.props.value || { r: 0, g: 0, b: 0, a: 0 };
     const colStyle = Object.assign(
       {}, styles.color, { background: `rgba(${c.r}, ${c.g}, ${c.b}, ${c.a})` });
     return (
