@@ -108,9 +108,9 @@ class TableColumn(Model, BaseColumn):
         if self.database_expression:
             return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
         elif tf == 'epoch_s':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds())
+            return str((dttm - datetime.fromtimestamp(0)).total_seconds())
         elif tf == 'epoch_ms':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
+            return str((dttm - datetime.fromtimestamp(0)).total_seconds() * 1000.0)
         else:
             s = self.table.database.db_engine_spec.convert_dttm(
                 self.type or '', dttm)
