@@ -15,7 +15,7 @@ from pandas.testing import assert_frame_equal
 
 from tests.base_tests import SupersetTestCase
 
-from contrib.connectors.pandas.cache import DataFrameCache
+from contrib.cache.dataframe import DataFrameCache
 
 
 class DataFrameCacheTestCase(SupersetTestCase):
