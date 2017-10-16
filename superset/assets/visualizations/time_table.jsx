@@ -72,7 +72,12 @@ function viz(slice, payload) {
           // Period ratio sparkline
           sparkData = [];
           for (let i = c.timeRatio; i < data.length; i++) {
-            sparkData.push(data[i][metric] / data[i - c.timeRatio][metric]);
+            const prevData = data[i - c.timeRatio][metric];
+            if (prevData && prevData !== 0) {
+              sparkData.push(data[i][metric] / prevData);
+            } else {
+              sparkData.push(null);
+            }
           }
         }
         const extent = d3.extent(sparkData);
