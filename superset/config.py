@@ -325,9 +325,9 @@ if not CACHE_DEFAULT_TIMEOUT:
 # permission management
 SILENCE_FAB = True
 
-#The link containing common errors and theirbresolutions 
-TROUBLESHOOTING_LINK = \
-"https://airbnb.quip.com/ov7yA6KHyL25/Common-Superset-Error-Resolutions"
+# The link to a page containing common errors and their resolutions
+# It will be appended at the bottom of sql_lab errors.
+TROUBLESHOOTING_LINK = ""
 
 
 # Integrate external Blueprints to the app by passing them to your

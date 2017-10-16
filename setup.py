@@ -63,7 +63,7 @@ setup(
         'pandas==0.20.3',
         'parsedatetime==2.0.0',
         'pydruid==0.3.1',
-        'PyHive==0.4.0',
+        'PyHive>=0.4.0',
         'python-dateutil==2.6.0',
         'requests==2.17.3',
         'simplejson==3.10.0',
