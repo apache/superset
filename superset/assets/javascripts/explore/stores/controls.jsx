@@ -1343,6 +1343,12 @@ export const controls = {
     description: t('The color for points and clusters in RGB'),
   },
 
+  color: {
+    type: 'ColorPickerControl',
+    label: t('Color'),
+    description: t('Pick a color'),
+  },
+
   ranges: {
     type: 'TextControl',
     label: t('Ranges'),
