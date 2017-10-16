@@ -1,8 +1,6 @@
 from datetime import datetime
 import logging
 
-import sqlalchemy as sqla
-
 from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -179,6 +177,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
         'datasource_link', 'cluster', 'changed_by_', 'modified']
+    order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'slices', 'description', 'owner',

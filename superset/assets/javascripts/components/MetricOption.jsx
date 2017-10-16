@@ -5,14 +5,19 @@ import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 const propTypes = {
   metric: PropTypes.object.isRequired,
+  showFormula: PropTypes.bool,
+  url: PropTypes.string,
+};
+const defaultProps = {
+  showFormula: true,
 };
 
-export default function MetricOption({ metric }) {
+export default function MetricOption({ metric, showFormula, url }) {
+  const verbose = metric.verbose_name || metric.metric_name;
+  const link = url ? <a href={url}>{verbose}</a> : verbose;
   return (
     <div>
-      <span className="m-r-5 option-label">
-        {metric.verbose_name || metric.metric_name}
-      </span>
+      <span className="m-r-5 option-label">{link}</span>
       {metric.description &&
         <InfoTooltipWithTrigger
           className="m-r-5 text-muted"
@@ -21,12 +26,14 @@ export default function MetricOption({ metric }) {
           label={`descr-${metric.metric_name}`}
         />
       }
-      <InfoTooltipWithTrigger
-        className="m-r-5 text-muted"
-        icon="question-circle-o"
-        tooltip={metric.expression}
-        label={`expr-${metric.metric_name}`}
-      />
+      {showFormula &&
+        <InfoTooltipWithTrigger
+          className="m-r-5 text-muted"
+          icon="question-circle-o"
+          tooltip={metric.expression}
+          label={`expr-${metric.metric_name}`}
+        />
+      }
       {metric.warning_text &&
         <InfoTooltipWithTrigger
           className="m-r-5 text-danger"
@@ -38,3 +45,4 @@ export default function MetricOption({ metric }) {
     </div>);
 }
 MetricOption.propTypes = propTypes;
+MetricOption.defaultProps = defaultProps;

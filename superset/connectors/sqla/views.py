@@ -1,11 +1,9 @@
 """Views used by the SqlAlchemy connector"""
-import logging
 from past.builtins import basestring
 
 from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-import sqlalchemy as sa
 
 from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
@@ -160,6 +158,7 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     list_columns = [
         'link', 'database',
         'changed_by_', 'modified']
+    order_columns = ['modified']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
         'table_name', 'sql', 'filter_select_enabled', 'slices',

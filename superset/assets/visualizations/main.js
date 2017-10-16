@@ -27,6 +27,7 @@ const vizMap = {
   separator: require('./markup.js'),
   sunburst: require('./sunburst.js'),
   table: require('./table.js'),
+  time_table: require('./time_table.jsx'),
   treemap: require('./treemap.js'),
   country_map: require('./country_map.js'),
   word_cloud: require('./word_cloud.js'),
@@ -34,5 +35,6 @@ const vizMap = {
   dual_line: require('./nvd3_vis.js'),
   event_flow: require('./EventFlow.jsx'),
   paired_ttest: require('./paired_ttest.jsx'),
+  partition: require('./partition.js'),
 };
 export default vizMap;

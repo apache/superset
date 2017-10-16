@@ -37,7 +37,7 @@ const SelectAsyncControl = ({ value, onChange, dataEndpoint,
     <Select
       dataEndpoint={dataEndpoint}
       onChange={onSelectionChange}
-      onAsyncError={() => notify.error(onAsyncErrorMessage)}
+      onAsyncError={errorMsg => notify.error(onAsyncErrorMessage + ': ' + errorMsg)}
       mutator={mutator}
       multi={multi}
       value={value}

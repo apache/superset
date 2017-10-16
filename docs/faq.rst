@@ -128,8 +128,11 @@ be applied, it's as simple as that.
 
 How to limit the timed refresh on a dashboard?
 ----------------------------------------------
-By default, the dashboard timed refresh feature allows you to automatically requery every slice on a dashboard according to a set schedule. Sometimes, however, you won't want all of the slices to be refreshed - especially if some data is slow moving, or run heavy queries.
-To exclude specific slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard ``JSON Metadata`` field:
+By default, the dashboard timed refresh feature allows you to automatically re-query every slice
+on a dashboard according to a set schedule. Sometimes, however, you won't want all of the slices
+to be refreshed - especially if some data is slow moving, or run heavy queries. To exclude specific
+slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard
+``JSON Metadata`` field:
 
 ..code::
 
@@ -140,8 +143,22 @@ To exclude specific slices from the timed refresh process, add the ``timed_refre
         "timed_refresh_immune_slices": [324]
     }
 
-In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will be automatically requeried on schedule.
+In the example above, if a timed refresh is set for the dashboard, then every slice except 324 will
+be automatically re-queried on schedule.
 
+Slice refresh will also be staggered over the specified period. You can turn off this staggering
+by setting the ``stagger_refresh`` to ``false`` and modify the stagger period by setting
+``stagger_time`` to a value in milliseconds in the ``JSON Metadata`` field:
+
+..code::
+
+    {
+        "stagger_refresh": false,
+        "stagger_time": 2500
+    }
+
+Here, the entire dashboard will refresh at once if periodic refresh is on. The stagger time of
+2.5 seconds is ignored.
 
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
 -----------------------------------------------------------------------------------------
@@ -188,7 +205,7 @@ Please note that pretty much any databases that have a SqlAlchemy integration sh
 How can i configure OAuth authentication and authorization?
 -----------------------------------------------------------
 
-You can take a look at this Flask-AppBuilder `configuration example 
+You can take a look at this Flask-AppBuilder `configuration example
 <https://github.com/dpgaspar/Flask-AppBuilder/blob/master/examples/oauth/config.py>`_.
 
 How can I set a default filter on my dashboard?

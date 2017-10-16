@@ -4,6 +4,7 @@ import * as v from '../validators';
 import { ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
 import MetricOption from '../../components/MetricOption';
 import ColumnOption from '../../components/ColumnOption';
+import OptionDescription from '../../components/OptionDescription';
 import { t } from '../../locales';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
@@ -195,7 +196,7 @@ export const controls = {
 
   sort_x_axis: {
     type: 'SelectControl',
-    label: 'Sort X Axis',
+    label: t('Sort X Axis'),
     choices: sortAxisChoices,
     clearable: false,
     default: 'alpha_asc',
@@ -203,7 +204,7 @@ export const controls = {
 
   sort_y_axis: {
     type: 'SelectControl',
-    label: 'Sort Y Axis',
+    label: t('Sort Y Axis'),
     choices: sortAxisChoices,
     clearable: false,
     default: 'alpha_asc',
@@ -217,6 +218,7 @@ export const controls = {
       ['blue_white_yellow', 'blue/white/yellow'],
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
+      ['dark_blue', 'light/dark blue'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
@@ -292,9 +294,9 @@ export const controls = {
 
   show_perc: {
     type: 'CheckboxControl',
-    label: 'Show percentage',
+    label: t('Show percentage'),
     renderTrigger: true,
-    description: 'Whether to include the percentage in the tooltip',
+    description: t('Whether to include the percentage in the tooltip'),
     default: true,
   },
 
@@ -576,6 +578,7 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.granularity_sqla : [],
     }),
+    freeForm: true,
   },
 
   time_grain_sqla: {
@@ -702,9 +705,9 @@ export const controls = {
 
   order_desc: {
     type: 'CheckboxControl',
-    label: 'Sort Descending',
+    label: t('Sort Descending'),
     default: true,
-    description: 'Whether to sort descending or ascending',
+    description: t('Whether to sort descending or ascending'),
   },
 
   rolling_type: {
@@ -922,6 +925,16 @@ export const controls = {
     description: D3_FORMAT_DOCS,
   },
 
+  date_time_format: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Date Time Format'),
+    renderTrigger: true,
+    default: 'smart_date',
+    choices: D3_TIME_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+  },
+
   markup_type: {
     type: 'SelectControl',
     label: t('Markup Type'),
@@ -1034,6 +1047,34 @@ export const controls = {
     description: t('Whether to include a time filter'),
   },
 
+  show_sqla_time_granularity: {
+    type: 'CheckboxControl',
+    label: t('Show SQL Granularity Dropdown'),
+    default: false,
+    description: t('Check to include SQL Granularity dropdown'),
+  },
+
+  show_sqla_time_column: {
+    type: 'CheckboxControl',
+    label: t('Show SQL Time Column'),
+    default: false,
+    description: t('Check to include Time Column dropdown'),
+  },
+
+  show_druid_time_granularity: {
+    type: 'CheckboxControl',
+    label: t('Show Druid Granularity Dropdown'),
+    default: false,
+    description: t('Check to include Druid Granularity dropdown'),
+  },
+
+  show_druid_time_origin: {
+    type: 'CheckboxControl',
+    label: t('Show Druid Time Origin'),
+    default: false,
+    description: t('Check to include Time Origin dropdown'),
+  },
+
   show_datatable: {
     type: 'CheckboxControl',
     label: t('Data Table'),
@@ -1070,6 +1111,14 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to display the legend (toggles)'),
+  },
+
+  show_values: {
+    type: 'CheckboxControl',
+    label: t('Show Values'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to display the numerical values within the cells'),
   },
 
   x_axis_showminmax: {
@@ -1111,6 +1160,14 @@ export const controls = {
     default: false,
     renderTrigger: true,
     description: t('Use a log scale for the X axis'),
+  },
+
+  log_scale: {
+    type: 'CheckboxControl',
+    label: t('Log Scale'),
+    default: false,
+    renderTrigger: true,
+    description: t('Use a log scale'),
   },
 
   donut: {
@@ -1299,6 +1356,12 @@ export const controls = {
     description: t('The color for points and clusters in RGB'),
   },
 
+  color: {
+    type: 'ColorPickerControl',
+    label: t('Color'),
+    description: t('Pick a color'),
+  },
+
   ranges: {
     type: 'TextControl',
     label: t('Ranges'),
@@ -1407,23 +1470,111 @@ export const controls = {
 
   significance_level: {
     type: 'TextControl',
-    label: 'Significance Level',
+    label: t('Significance Level'),
     default: 0.05,
-    description: 'Threshold alpha level for determining significance',
+    description: t('Threshold alpha level for determining significance'),
   },
 
   pvalue_precision: {
     type: 'TextControl',
-    label: 'p-value precision',
+    label: t('p-value precision'),
     default: 6,
-    description: 'Number of decimal places with which to display p-values',
+    description: t('Number of decimal places with which to display p-values'),
   },
 
   liftvalue_precision: {
     type: 'TextControl',
-    label: 'Lift % precision',
+    label: t('Lift percent precision'),
     default: 4,
-    description: 'Number of decimal places with which to display lift values',
+    description: t('Number of decimal places with which to display lift values'),
+  },
+
+  column_collection: {
+    type: 'CollectionControl',
+    label: t('Time Series Columns'),
+    validators: [v.nonEmpty],
+    controlName: 'TimeSeriesColumnControl',
+  },
+
+  time_series_option: {
+    type: 'SelectControl',
+    label: t('Options'),
+    validators: [v.nonEmpty],
+    default: 'not_time',
+    valueKey: 'value',
+    options: [
+      {
+        label: t('Not Time Series'),
+        value: 'not_time',
+        description: t('Ignore time'),
+      },
+      {
+        label: t('Time Series'),
+        value: 'time_series',
+        description: t('Standard time series'),
+      },
+      {
+        label: t('Aggregate Mean'),
+        value: 'agg_mean',
+        description: t('Mean of values over specified period'),
+      },
+      {
+        label: t('Aggregate Sum'),
+        value: 'agg_sum',
+        description: t('Sum of values over specified period'),
+      },
+      {
+        label: t('Difference'),
+        value: 'point_diff',
+        description: t('Metric change in value from `since` to `until`'),
+      },
+      {
+        label: t('Percent Change'),
+        value: 'point_percent',
+        description: t('Metric percent change in value from `since` to `until`'),
+      },
+      {
+        label: t('Factor'),
+        value: 'point_factor',
+        description: t('Metric factor change from `since` to `until`'),
+      },
+      {
+        label: t('Advanced Analytics'),
+        value: 'adv_anal',
+        description: t('Use the Advanced Analytics options below'),
+      },
+    ],
+    optionRenderer: op => <OptionDescription option={op} />,
+    valueRenderer: op => <OptionDescription option={op} />,
+    description: t('Settings for time series'),
+  },
+
+  equal_date_size: {
+    type: 'CheckboxControl',
+    label: t('Equal Date Sizes'),
+    default: true,
+    renderTrigger: true,
+    description: t('Check to force date partitions to have the same height'),
+  },
+
+  partition_limit: {
+    type: 'TextControl',
+    label: t('Partition Limit'),
+    isInt: true,
+    default: '5',
+    description:
+      t('The maximum number of subdivisions of each group; ' +
+      'lower values are pruned first'),
+  },
+
+  partition_threshold: {
+    type: 'TextControl',
+    label: t('Partition Threshold'),
+    isFloat: true,
+    default: '0.05',
+    description:
+      t('Partitions whose height to parent height proportions are ' +
+      'below this value are pruned'),
   },
 };
 export default controls;

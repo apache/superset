@@ -5,7 +5,6 @@ npm --version
 node --version
 npm install -g yarn
 yarn
-npm run sync-backend
 npm run lint
 npm run test
 npm run build

@@ -262,9 +262,15 @@ Before running python unit tests, please setup local testing environment:
 pip install -r dev-reqs.txt
 ```
 
-Python tests can be run with:
+All python tests can be run with:
 
     ./run_tests.sh
+    
+Alternatively, you can run a specific test with:
+
+    ./run_specific_test.sh tests.core_tests:CoreTests.test_function_name
+    
+Note that before running specific tests, you have to both setup the local testing environment and run all tests.
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
@@ -344,10 +350,6 @@ navigation bar.
         'zh': {'flag': 'cn', 'name': 'Chinese'},
     }
 
-We need to extract the string to be translated, run the following command:
-
-    pybabel extract -F ./babel/babel.cfg -k _ -k __ -k t -k tn -k tct -o ./babel/messages.pot .
-
 As per the [Flask AppBuilder documentation] about translation, to create a
 new language dictionary, run the following command:
 
@@ -356,7 +358,7 @@ new language dictionary, run the following command:
 Then it's a matter of running the statement below to gather all strings that
 need translation
 
-    fabmanager babel-extract --target superset/translations/
+    fabmanager babel-extract --target superset/translations/ -k _ -k __ -k t -k tn -k tct
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
