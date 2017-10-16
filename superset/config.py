@@ -325,6 +325,10 @@ if not CACHE_DEFAULT_TIMEOUT:
 # permission management
 SILENCE_FAB = True
 
+# The link to a page containing common errors and their resolutions
+# It will be appended at the bottom of sql_lab errors.
+TROUBLESHOOTING_LINK = ""
+
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
