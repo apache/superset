@@ -28,6 +28,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
 from sqlalchemy import create_engine
+from sqlalchemy.engine.url import make_url
 from werkzeug.routing import BaseConverter
 
 from superset import (
@@ -240,8 +241,10 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
             "#sqlalchemy.schema.MetaData) call. ", True),
         'impersonate_user': _(
-            "All the queries in Sql Lab are going to be executed "
-            "on behalf of currently authorized user."),
+            "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user "
+            "who must have permission to run them.<br/>"
+            "If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, "
+            "but impersonate the currently logged on user via hive.server2.proxy.user property."),
     }
     label_columns = {
         'expose_in_sqllab': _("Expose in SQL Lab"),
@@ -256,7 +259,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'extra': _("Extra"),
         'allow_run_sync': _("Allow Run Sync"),
         'allow_run_async': _("Allow Run Async"),
-        'impersonate_user': _("Impersonate queries to the database"),
+        'impersonate_user': _("Impersonate the logged on user")
     }
 
     def pre_add(self, db):
@@ -1421,8 +1424,10 @@ class Superset(BaseSupersetView):
     def testconn(self):
         """Tests a sqla connection"""
         try:
+            username = g.user.username if g.user is not None else None
             uri = request.json.get('uri')
             db_name = request.json.get('name')
+            impersonate_user = request.json.get('impersonate_user')
             if db_name:
                 database = (
                     db.session
@@ -1434,6 +1439,15 @@ class Superset(BaseSupersetView):
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
+            
+            url = make_url(uri)
+            db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
+            db_engine.patch()
+            uri = db_engine.get_uri_for_impersonation(uri, impersonate_user, username)
+            masked_url = database.get_password_masked_url_from_uri(uri)
+
+            logging.info("Superset.testconn(). Masked URL: {0}".format(masked_url))
+
             connect_args = (
                 request.json
                 .get('extras', {})

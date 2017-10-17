@@ -172,6 +172,7 @@ def execute_sql(
     session.merge(query)
     session.commit()
     logging.info("Set query to 'running'")
+    conn = None
     try:
         engine = database.get_sqla_engine(
             schema=query.schema, nullpool=not ctask.request.called_directly, user_name=user_name)
@@ -187,20 +188,23 @@ def execute_sql(
         data = db_engine_spec.fetch_data(cursor, query.limit)
     except SoftTimeLimitExceeded as e:
         logging.exception(e)
-        conn.close()
+        if conn is not None:
+            conn.close()
         return handle_error(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT))
     except Exception as e:
         logging.exception(e)
-        conn.close()
+        if conn is not None:
+            conn.close()
         return handle_error(db_engine_spec.extract_error_message(e))
 
     logging.info("Fetching cursor description")
     cursor_description = cursor.description
 
-    conn.commit()
-    conn.close()
+    if conn is not None:
+        conn.commit()
+        conn.close()
 
     if query.status == utils.QueryStatus.STOPPED:
         return json.dumps(
