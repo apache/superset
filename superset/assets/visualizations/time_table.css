@@ -1,3 +1,4 @@
-.time-table {
+.time_table .chart-container{
   overflow: auto;
+  padding: 10px;
 }
