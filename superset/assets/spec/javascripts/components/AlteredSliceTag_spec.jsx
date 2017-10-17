@@ -10,39 +10,56 @@ import ModalTrigger from '../../../javascripts/components/ModalTrigger';
 import TooltipWrapper from '../../../javascripts/components/TooltipWrapper';
 
 const defaultProps = {
-  altered: {
-    filters: {
-      before: [{ col: 'a', op: '==', val: 'hello' }],
-      after: [{ col: 'b', op: 'in', val: ['hello', 'my', 'name'] }],
-    },
-    y_axis_bounds: {
-      before: [10, 20],
-      after: [15, 16],
-    },
-    column_collection: {
-      before: [{ 1: 'a', b: ['6', 'g'] }],
-      after: [{ 1: 'a', b: [9, '15'], t: 'gggg' }],
-    },
-    bool: {
-      before: false,
-      after: true,
-    },
-    alpha: {
-      before: undefined,
-      after: null,
-    },
-    gucci: {
-      before: [1, 2, 3, 4],
-      after: ['a', 'b', 'c', 'd'],
-    },
-    never: {
-      before: 5,
-      after: 10,
-    },
-    ever: {
-      before: { a: 'b', c: 'd' },
-      after: { x: 'y', z: 'z' },
-    },
+  origFormData: {
+    filters: [{ col: 'a', op: '==', val: 'hello' }],
+    y_axis_bounds: [10, 20],
+    column_collection: [{ 1: 'a', b: ['6', 'g'] }],
+    bool: false,
+    alpha: undefined,
+    gucci: [1, 2, 3, 4],
+    never: 5,
+    ever: { a: 'b', c: 'd' },
+  },
+  currentFormData: {
+    filters: [{ col: 'b', op: 'in', val: ['hello', 'my', 'name'] }],
+    y_axis_bounds: [15, 16],
+    column_collection: [{ 1: 'a', b: [9, '15'], t: 'gggg' }],
+    bool: true,
+    alpha: null,
+    gucci: ['a', 'b', 'c', 'd'],
+    never: 10,
+    ever: { x: 'y', z: 'z' },
+  },
+};
+
+const expectedDiffs = {
+  filters: {
+    before: [{ col: 'a', op: '==', val: 'hello' }],
+    after: [{ col: 'b', op: 'in', val: ['hello', 'my', 'name'] }],
+  },
+  y_axis_bounds: {
+    before: [10, 20],
+    after: [15, 16],
+  },
+  column_collection: {
+    before: [{ 1: 'a', b: ['6', 'g'] }],
+    after: [{ 1: 'a', b: [9, '15'], t: 'gggg' }],
+  },
+  bool: {
+    before: false,
+    after: true,
+  },
+  gucci: {
+    before: [1, 2, 3, 4],
+    after: ['a', 'b', 'c', 'd'],
+  },
+  never: {
+    before: 5,
+    after: 10,
+  },
+  ever: {
+    before: { a: 'b', c: 'd' },
+    after: { x: 'y', z: 'z' },
   },
 };
 
@@ -53,6 +70,44 @@ describe('AlteredSliceTag', () => {
   beforeEach(() => {
     props = Object.assign({}, defaultProps);
     wrapper = shallow(<AlteredSliceTag {...props} />);
+  });
+
+  it('correctly determines form data differences', () => {
+    const diffs = wrapper.instance().getDiffs(props);
+    expect(diffs).to.deep.equal(expectedDiffs);
+    expect(wrapper.instance().state.diffs).to.deep.equal(expectedDiffs);
+    expect(wrapper.instance().state.hasDiffs).to.equal(true);
+  });
+
+  it('does not run when there are no differences', () => {
+    props = {
+      origFormData: props.origFormData,
+      currentFormData: props.origFormData,
+    };
+    wrapper = shallow(<AlteredSliceTag {...props} />);
+    expect(wrapper.instance().state.diffs).to.deep.equal({});
+    expect(wrapper.instance().state.hasDiffs).to.equal(false);
+    expect(wrapper.instance().render()).to.equal(null);
+  });
+
+  it('sets new diffs when receiving new props', () => {
+    const newProps = {
+      currentFormData: Object.assign({}, props.currentFormData),
+      origFormData: Object.assign({}, props.origFormData),
+    };
+    newProps.currentFormData.beta = 10;
+    wrapper = shallow(<AlteredSliceTag {...props} />);
+    wrapper.instance().componentWillReceiveProps(newProps);
+    const newDiffs = wrapper.instance().state.diffs;
+    const expectedBeta = { before: undefined, after: 10 };
+    expect(newDiffs.beta).to.deep.equal(expectedBeta);
+  });
+
+  it('does not set new state when props are the same', () => {
+    const currentDiff = wrapper.instance().state.diffs;
+    wrapper.instance().componentWillReceiveProps(props);
+    // Check equal references
+    expect(wrapper.instance().state.diffs).to.equal(currentDiff);
   });
 
   it('renders a ModalTrigger', () => {
@@ -89,13 +144,13 @@ describe('AlteredSliceTag', () => {
     it('renders the correct number of Tr', () => {
       const modalBody = shallow(<div>{wrapper.instance().renderModalBody()}</div>);
       const tr = modalBody.find(Tr);
-      expect(tr).to.have.lengthOf(8);
+      expect(tr).to.have.lengthOf(7);
     });
 
     it('renders the correct number of Td', () => {
       const modalBody = shallow(<div>{wrapper.instance().renderModalBody()}</div>);
       const td = modalBody.find(Td);
-      expect(td).to.have.lengthOf(24);
+      expect(td).to.have.lengthOf(21);
       ['control', 'before', 'after'].forEach((v, i) => {
         expect(td.get(i).props.column).to.equal(v);
       });
@@ -105,7 +160,7 @@ describe('AlteredSliceTag', () => {
   describe('renderRows', () => {
     it('returns an array of rows with one Tr and three Td', () => {
       const rows = wrapper.instance().renderRows();
-      expect(rows).to.have.lengthOf(8);
+      expect(rows).to.have.lengthOf(7);
       const fakeRow = shallow(<div>{rows[0]}</div>);
       expect(fakeRow.find(Tr)).to.have.lengthOf(1);
       expect(fakeRow.find(Td)).to.have.lengthOf(3);
