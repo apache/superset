@@ -384,12 +384,42 @@ class TableViz(BaseViz):
                 d['metrics'] += [sort_by]
             d['orderby'] = [(sort_by, not fd.get("order_desc", True))]
 
+        # Add all percent metrics that are not already in the list
+        if 'percent_metrics' in fd:
+            d['metrics'] = d['metrics'] + list(filter(
+                lambda m: m not in d['metrics'],
+                fd['percent_metrics']
+            ))
+
         d['is_timeseries'] = self.should_be_timeseries()
         return d
 
     def get_data(self, df):
+        fd = self.form_data
         if not self.should_be_timeseries() and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
+
+        # Sum up and compute percentages for all percent metrics
+        percent_metrics = fd.get('percent_metrics', [])
+        if len(percent_metrics):
+            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
+            metric_sums = {
+                m: reduce(lambda a, b: a + b, df[m])
+                for m in percent_metrics
+            }
+            metric_percents = {
+                m: list(map(lambda a: a / metric_sums[m], df[m]))
+                for m in percent_metrics
+            }
+            for m in percent_metrics:
+                m_name = '%' + m
+                df[m_name] = pd.Series(metric_percents[m], name=m_name)
+            # Remove metrics that are not in the main metrics list
+            for m in filter(
+                lambda m: m not in fd['metrics'] and m in df.columns,
+                percent_metrics
+            ):
+                del df[m]
 
         return dict(
             records=df.to_dict(orient="records"),
