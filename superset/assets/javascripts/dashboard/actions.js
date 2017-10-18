@@ -35,12 +35,12 @@ export function addSlicesToDashboard(dashboardId, sliceIds) {
       data: {
         data: JSON.stringify({ slice_ids: sliceIds }),
       },
-    }))
-    .done(() => {
-      // Refresh page to allow for slices to re-render
-      window.location.reload();
     })
-    .fail(error => (error));
+      .done(() => {
+        // Refresh page to allow for slices to re-render
+        window.location.reload();
+      })
+  );
 }
 
 export const REMOVE_SLICE = 'REMOVE_SLICE';
@@ -74,65 +74,6 @@ export function saveSlice(slice, sliceName) {
         notify.error("You don't have the rights to alter this slice");
       },
     });
-  };
-}
-
-export const UPDATE_SLICE_SQLQUERYVIEW = 'UPDATE_SLICE_SQLQUERYVIEW';
-export function updateSliceSqlQueryView(slice) {
-  return { type: UPDATE_SLICE_SQLQUERYVIEW, slice };
-}
-
-export const FETCH_SLICE_STARTED = 'FETCH_SLICE_STARTED';
-export function fetchSliceStarted(slice) {
-  return { type: FETCH_SLICE_STARTED, slice };
-}
-export const FETCH_SLICE_SUCCESS = 'FETCH_SLICE_SUCCESS';
-export function fetchSliceSuccess(slice, queryResponse) {
-  return { type: FETCH_SLICE_SUCCESS, slice, queryResponse };
-}
-export const FETCH_SLICE_FAIL = 'FETCH_SLICE_FAIL';
-export function fetchSliceFail(slice, errorResponse) {
-  return { type: FETCH_SLICE_FAIL, slice, errorResponse };
-}
-export const FETCH_SLICE_TIMEOUT = 'FETCH_SLICE_TIMEOUT';
-export function fetchSliceTimeout(slice, timeout) {
-  return { type: FETCH_SLICE_TIMEOUT, slice, timeout };
-}
-
-export function fetchSlice(slice, sliceUrl, timeout) {
-  return (dispatch) => {
-    dispatch(fetchSliceStarted(slice));
-    return $.ajax({
-      url: sliceUrl,
-      timeout: timeout * 1000,
-    })
-      .done((queryResponse) => {
-        dispatch(fetchSliceSuccess(slice, queryResponse));
-      })
-      .fail((xhr) => {
-        if (xhr.statusText === 'timeout') {
-          dispatch(fetchSliceTimeout(slice, timeout));
-        } else {
-          let error = '';
-          if (!xhr.responseText) {
-            const status = xhr.status;
-            if (status === 0) {
-              // This may happen when the worker in gunicorn times out
-              error += (
-                t('The server could not be reached. You may want to ' +
-                  'verify your connection and try again.'));
-            } else {
-              error += (t('An unknown error occurred. (Status: %s )', status));
-            }
-          }
-
-          const errorResponse = Object.assign({}, xhr.responseJSON, error);
-          dispatch(fetchSliceFail(slice, errorResponse));
-        }
-      })
-      .always(() => {
-        dispatch(updateSliceSqlQueryView(slice));
-      });
   };
 }
 

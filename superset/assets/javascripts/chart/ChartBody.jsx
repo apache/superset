@@ -9,7 +9,7 @@ const propTypes = {
   width: PropTypes.func,
 };
 
-class SliceInner extends React.PureComponent {
+class ChartBody extends React.PureComponent {
   html(data) {
     this.el.innerHTML = data;
   }
@@ -27,7 +27,7 @@ class SliceInner extends React.PureComponent {
   }
 
   show() {
-    //
+    return $(this.el).show();
   }
 
   height() {
@@ -49,6 +49,6 @@ class SliceInner extends React.PureComponent {
   }
 }
 
-SliceInner.propTypes = propTypes;
+ChartBody.propTypes = propTypes;
 
-export default SliceInner;
+export default ChartBody;

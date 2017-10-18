@@ -8,7 +8,7 @@ import { initEnhancer } from '../reduxUtils';
 import { appSetup } from '../common';
 import { initJQueryAjax } from '../modules/utils';
 import DashboardContainer from './components/DashboardViewContainer';
-import { getInitialState, dashboardReducer } from './reducers';
+import rootReducer, { getInitialState } from './reducers';
 
 appSetup();
 initJQueryAjax();
@@ -18,7 +18,7 @@ const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 const initState = Object.assign({}, getInitialState(bootstrapData));
 
 const store = createStore(
-  dashboardReducer, initState, compose(applyMiddleware(thunk), initEnhancer(false)));
+  rootReducer, initState, compose(applyMiddleware(thunk), initEnhancer(false)));
 
 ReactDOM.render(
   <Provider store={store}>

@@ -3,15 +3,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 
-import { d3format } from '../../modules/utils';
-import SliceInner from './SliceInner';
+import { d3format } from '../modules/utils';
+import ChartBody from './ChartBody';
 
 const propTypes = {
   containerId: PropTypes.string.isRequired,
   datasource: PropTypes.object.isRequired,
   formData: PropTypes.object.isRequired,
-  height: PropTypes.func,
-  width: PropTypes.func,
+  height: PropTypes.number,
+  width: PropTypes.number,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
@@ -25,7 +25,7 @@ const defaultProps = {
   removeFilter: () => {},
 };
 
-class Slice extends React.PureComponent {
+class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
 
@@ -71,12 +71,14 @@ class Slice extends React.PureComponent {
 
   width() {
     return this.props.width ?
-      this.props.width() :
+      this.props.width :
       this.container.el.offsetWidth;
   }
 
   height() {
-    return this.props.height();
+    return this.props.height ?
+      this.props.height :
+      this.container.el.offsetHeight;
   }
 
   d3format(col, number) {
@@ -88,15 +90,15 @@ class Slice extends React.PureComponent {
 
   render_template(s) {
     const context = {
-      width: this.width,
-      height: this.height,
+      width: this.width(),
+      height: this.height(),
     };
     return Mustache.render(s, context);
   }
 
   render() {
     return (
-      <SliceInner
+      <ChartBody
         containerId={this.containerId}
         vizType={this.props.formData.viz_type}
         height={this.height.bind(this)}
@@ -107,7 +109,7 @@ class Slice extends React.PureComponent {
   }
 }
 
-Slice.propTypes = propTypes;
-Slice.defaultProps = defaultProps;
+Chart.propTypes = propTypes;
+Chart.defaultProps = defaultProps;
 
-export default Slice;
+export default Chart;

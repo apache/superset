@@ -22,7 +22,7 @@ function markupWidget(slice, payload) {
   jqdiv.html(`
     <iframe id="${iframeId}"
       frameborder="0"
-      height="${slice.height()}"
+      height="${slice.height() - 20}"
       sandbox="allow-scripts">
     </iframe>`);
   $('#' + iframeId)[0].srcdoc = html;

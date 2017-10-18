@@ -14,6 +14,7 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  slices: PropTypes.array,
   user_id: PropTypes.string.isRequired,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
@@ -44,7 +45,7 @@ class Controls extends React.PureComponent {
   }
   refresh() {
     // Force refresh all slices
-    this.props.renderSlices(this.props.dashboard.slices, true);
+    this.props.renderSlices(true);
   }
   changeCss(css) {
     this.setState({ css });

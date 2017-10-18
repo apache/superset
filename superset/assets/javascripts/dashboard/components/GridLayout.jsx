@@ -2,7 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 
-import SliceContainer from './SliceContainer';
+import GridCell from './GridCell';
+import { getExploreUrl } from '../../explore/exploreUtils';
 
 require('react-grid-layout/css/styles.css');
 require('react-resizable/css/styles.css');
@@ -11,20 +12,31 @@ const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
-  actions: PropTypes.object,
-  fetchSlice: PropTypes.func,
+  datasources: PropTypes.object,
+  charts: PropTypes.object.isRequired,
+  filters: PropTypes.object,
+  timeout: PropTypes.number,
   onChange: PropTypes.func,
   getFormDataExtra: PropTypes.func,
+  fetchSlice: PropTypes.func,
+  saveSlice: PropTypes.func,
+  removeSlice: PropTypes.func,
+  removeChart: PropTypes.func,
+  updateDashboardLayout: PropTypes.func,
+  toggleExpandSlice: PropTypes.func,
+  addFilter: PropTypes.func,
+  clearFilter: PropTypes.func,
+  removeFilter: PropTypes.func,
 };
 
 class GridLayout extends React.Component {
   onResizeStop(layout) {
-    this.props.actions.updateDashboardLayout(layout);
+    this.props.updateDashboardLayout(layout);
     this.props.onChange();
   }
 
   onDragStop(layout) {
-    this.props.actions.updateDashboardLayout(layout);
+    this.props.updateDashboardLayout(layout);
     this.props.onChange();
   }
 
@@ -53,13 +65,14 @@ class GridLayout extends React.Component {
       .map(slice => (slice.slice_id)).indexOf(sliceId);
   }
 
-  removeSlice(sliceId) {
-    const index = this.findSliceIndexById(sliceId);
-    if (index === -1) {
+  removeSlice(slice, chart) {
+    if (!slice || !chart) {
       return;
     }
 
-    this.props.actions.removeSlice(this.props.dashboard.slices[index]);
+    // remove slice dashbaord and charts
+    this.props.removeSlice(slice);
+    this.props.removeChart(chart.chartKey);
     this.props.onChange();
   }
 
@@ -74,7 +87,12 @@ class GridLayout extends React.Component {
       return;
     }
 
-    this.props.actions.saveSlice(currentSlice, sliceName);
+    this.props.saveSlice(currentSlice, sliceName);
+  }
+
+  isExpanded(slice) {
+    return this.props.dashboard.metadata.expanded_slices &&
+      this.props.dashboard.metadata.expanded_slices[slice.slice_id];
   }
 
   render() {
@@ -99,15 +117,29 @@ class GridLayout extends React.Component {
             className={`widget ${slice.form_data.viz_type}`}
             ref={this.getWidgetId(slice)}
           >
-            <SliceContainer
+            <GridCell
               slice={slice}
+              chartKey={'slice_' + slice.slice_id}
+              datasource={this.props.datasources[slice.form_data.datasource]}
+              filters={this.props.filters}
+              formData={this.props.getFormDataExtra(slice)}
+              timeout={this.props.timeout}
               widgetHeight={this.getWidgetHeight(slice)}
               widgetWidth={this.getWidgetWidth(slice)}
-              getFormDataExtra={this.props.getFormDataExtra}
-              fetchSlice={this.props.fetchSlice}
-              removeSlice={this.removeSlice.bind(this, slice.slice_id)}
+              exploreChartUrl={getExploreUrl(this.props.getFormDataExtra(slice))}
+              exportCSVUrl={getExploreUrl(this.props.getFormDataExtra(slice), 'csv')}
+              isExpanded={!!this.isExpanded(slice)}
+              isLoading={[undefined, 'loading']
+                .indexOf(this.props.charts['slice_' + slice.slice_id].chartStatus) !== -1}
+              toggleExpandSlice={this.props.toggleExpandSlice
+                .bind(this, slice, !!this.isExpanded(slice))}
+              fetchSlice={this.props.fetchSlice.bind(this, this.props.charts['slice_' + slice.slice_id])}
+              removeSlice={this.removeSlice.bind(this, slice, this.props.charts['slice_' + slice.slice_id])}
               updateSliceName={this.props.dashboard.dash_edit_perm ?
                 this.updateSliceName.bind(this) : null}
+              addFilter={this.props.addFilter}
+              clearFilter={this.props.clearFilter}
+              removeFilter={this.props.removeFilter}
             />
           </div>
         ))}

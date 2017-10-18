@@ -4,21 +4,17 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import urlLib from 'url';
 
-import AlertsWrapper from '../../components/AlertsWrapper';
-import GridLayout from './GridLayout';
-import Header from './Header';
-import DashboardAlert from './DashboardAlert';
-import * as Actions from '../actions';
+import * as dashboardActions from '../actions';
+import * as chartActions from '../../chart/chartAction';
+import Dashboard from './Dashboard';
 import { getExploreUrl } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
-import { t } from '../../locales';
-
-import '../../../stylesheets/dashboard.css';
 
 const propTypes = {
-  actions: PropTypes.object.isRequired,
+  actions: PropTypes.object,
   initMessages: PropTypes.array,
   dashboard: PropTypes.object.isRequired,
+  slices: PropTypes.object,
   datasources: PropTypes.object,
   filters: PropTypes.object,
   refresh: PropTypes.bool,
@@ -26,28 +22,12 @@ const propTypes = {
   user_id: PropTypes.string,
   isStarred: PropTypes.bool,
 };
-const defaultProps = {
-  actions: {},
-  initMessages: [],
-  dashboard: {},
-  datasources: {},
-  filters: {},
-  refresh: false,
-  timeout: 60,
-  user_id: '',
-  isStarred: false,
-};
 
 class DashboardViewContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.refreshTimer = null;
     this.firstLoad = true;
-
-    // alert for unsaved changes
-    this.state = {
-      alert: null,
-    };
   }
 
   componentDidMount() {
@@ -67,24 +47,9 @@ class DashboardViewContainer extends React.PureComponent {
     }
   }
 
-  onBeforeUnload(hasChanged) {
-    if (hasChanged) {
-      window.addEventListener('beforeunload', this.unload);
-    } else {
-      window.removeEventListener('beforeunload', this.unload);
-    }
-  }
-
-  onChange() {
-    this.onBeforeUnload(true);
-    this.renderUnsavedChangeAlert();
-  }
-
-  onSave() {
-    this.onBeforeUnload(false);
-    this.setState({
-      alert: '',
-    });
+  // return charts in array
+  getAllSlices() {
+    return Object.keys(this.props.slices).map(key => (this.props.slices[key]));
   }
 
   getFormDataExtra(slice) {
@@ -94,18 +59,9 @@ class DashboardViewContainer extends React.PureComponent {
     return formDataExtra;
   }
 
-  readFilters() {
-    // Returns a list of human readable active filters
-    return JSON.stringify(this.props.filters, null, '  ');
-  }
-
-  addSlicesToDashboard(sliceIds) {
-    return this.props.actions.addSlicesToDashboard(this.props.dashboard.id, sliceIds);
-  }
-
   fetchSlice(slice, force = false) {
-    const sliceUrl = this.jsonEndpoint(this.getFormDataExtra(slice), force);
-    return this.props.actions.fetchSlice(slice, sliceUrl, this.props.timeout);
+    return this.props.actions.runQuery(
+      this.getFormDataExtra(slice), force, this.props.timeout, slice.chartKey);
   }
 
   effectiveExtraFilters(sliceId) {
@@ -154,24 +110,19 @@ class DashboardViewContainer extends React.PureComponent {
     return endpoint;
   }
 
-  unload() {
-    const message = t('You have unsaved changes.');
-    window.event.returnValue = message; // Gecko + IE
-    return message; // Gecko + Webkit, Safari, Chrome etc.
-  }
-
   loadPreSelectFilters() {
-    for (const sliceId in this.props.filters) {
-      for (const col in this.props.filters[sliceId]) {
+    for (const key in this.props.filters) {
+      for (const col in this.props.filters[key]) {
+        const sliceId = parseInt(key, 10);
         this.props.actions.addFilter(sliceId, col,
-          this.props.filters[sliceId][col], false, false);
+          this.props.filters[key][col], false, false);
       }
     }
   }
 
   refreshExcept(sliceId) {
     const immune = this.props.dashboard.metadata.filter_immune_slices || [];
-    const slices = this.props.dashboard.slices
+    const slices = this.getAllSlices()
       .filter(slice => slice.slice_id !== sliceId && immune.indexOf(slice.slice_id) === -1);
     this.renderSlices(slices);
   }
@@ -196,7 +147,7 @@ class DashboardViewContainer extends React.PureComponent {
     const dash = this;
     const immune = this.props.dashboard.metadata.timed_refresh_immune_slices || [];
     const refreshAll = () => {
-      const affectedSlices = this.props.dashboard.slices
+      const affectedSlices = this.getAllSlices()
         .filter(slice => immune.indexOf(slice.slice_id) === -1);
       dash.renderSlices(affectedSlices, true, interval * 0.2);
     };
@@ -210,36 +161,75 @@ class DashboardViewContainer extends React.PureComponent {
     fetchAndRender();
   }
 
+  readFilters() {
+    // Returns a list of human readable active filters
+    return JSON.stringify(this.props.filters, null, '  ');
+  }
+
+  updateDashboardTitle(title) {
+    this.props.actions.updateDashboardTitle(title);
+  }
+
+  fetchFaveStar(id) {
+    this.props.actions.fetchFaveStar(id);
+  }
+
+  saveFaveStar(id, isStarred) {
+    this.props.actions.saveFaveStar(id, isStarred);
+  }
+
+  saveSlice(currentSlice, sliceName) {
+    this.props.actions.saveSlice(currentSlice, sliceName);
+  }
+
+  removeSlice(slice) {
+    this.props.actions.removeSlice(slice);
+  }
+
+  removeChart(chartKey) {
+    this.props.actions.removeChart(chartKey);
+  }
+
+  updateDashboardLayout(layout) {
+    this.props.actions.updateDashboardLayout(layout);
+  }
+
+  addSlicesToDashboard(sliceIds) {
+    return this.props.actions.addSlicesToDashboard(this.props.dashboard.id, sliceIds);
+  }
+
+  toggleExpandSlice(slice, isExpanded) {
+    this.props.actions.toggleExpandSlice(slice, !isExpanded);
+  }
+
+  addFilter(sliceId, col, vals, merge, refresh) {
+    this.props.actions.addFilter(sliceId, col, vals, merge, refresh);
+  }
+
+  clearFilter(sliceId) {
+    this.props.actions.clearFilter(sliceId);
+  }
+
+  removeFilter(sliceId, col, vals) {
+    this.props.actions.removeFilter(sliceId, col, vals);
+  }
+
   bindResizeToWindowResize() {
     let resizeTimer;
     const dash = this;
-    const allSlices = this.props.dashboard.slices;
+    const allSlices = this.getAllSlices();
     $(window).on('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(dash.renderSlices(allSlices), 500);
     });
   }
 
-  updateDashboardTitle(title) {
-    this.props.actions.updateDashboardTitle(title);
-    this.onChange();
-  }
-
-  serialize() {
-    return this.props.dashboard.layout.map(reactPos => ({
-      slice_id: reactPos.i,
-      col: reactPos.x + 1,
-      row: reactPos.y,
-      size_x: reactPos.w,
-      size_y: reactPos.h,
-    }));
-  }
-
+  // render an list of slices
   renderSlices(slc, force = false, interval = 0) {
     const dash = this;
-    const slices = slc || this.props.dashboard.slices;
+    const slices = slc || this.getAllSlices();
     if (!interval) {
-      slices.forEach(slice => (dash.fetchSlice(slice, false)));
+      slices.forEach(slice => (dash.fetchSlice(slice, force)));
       return;
     }
 
@@ -251,79 +241,65 @@ class DashboardViewContainer extends React.PureComponent {
     }
     const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
     slices.forEach((slice, i) => {
-      setTimeout(() => dash.fetchSlice(slice), delay * i);
-    });
-  }
-
-  renderUnsavedChangeAlert() {
-    this.setState({
-      alert: (
-        <span>
-          <strong>{t('You have unsaved changes.')}</strong> {t('Click the')} &nbsp;
-          <i className="fa fa-save" />&nbsp;
-          {t('button on the top right to save your changes.')}
-        </span>
-      ),
+      setTimeout(() => dash.fetchSlice(slice, force), delay * i);
     });
   }
 
   render() {
     return (
-      <div id="dashboard-container">
-        {this.state.alert && <DashboardAlert alertContent={this.state.alert} />}
-        <div id="dashboard-header">
-          <AlertsWrapper initMessages={this.props.initMessages} />
-          <Header
-            dashboard={this.props.dashboard}
-            user_id={this.props.user_id}
-            isStarred={this.props.isStarred}
-            addSlicesToDashboard={this.addSlicesToDashboard.bind(this)}
-            fetchFaveStar={this.props.actions.fetchFaveStar}
-            onSave={this.onSave.bind(this)}
-            onChange={this.onChange.bind(this)}
-            readFilters={this.readFilters.bind(this)}
-            renderSlices={this.renderSlices.bind(this)}
-            saveFaveStar={this.props.actions.saveFaveStar}
-            serialize={this.serialize.bind(this)}
-            startPeriodicRender={this.startPeriodicRender.bind(this)}
-            updateDashboardTitle={this.updateDashboardTitle.bind(this)}
-          />
-        </div>
-        <div id="grid-container" className="slice-grid gridster">
-          <GridLayout
-            dashboard={this.props.dashboard}
-            onChange={this.onChange.bind(this)}
-            actions={this.props.actions}
-            getFormDataExtra={this.getFormDataExtra.bind(this)}
-            fetchSlice={this.fetchSlice.bind(this)}
-          />
-        </div>
-      </div>
+      <Dashboard
+        initMessages={this.props.initMessages}
+        dashboard={this.props.dashboard}
+        slices={this.props.slices}
+        datasources={this.props.datasources}
+        filters={this.props.filters}
+        refresh={this.props.refresh}
+        timeout={this.props.timeout}
+        user_id={this.props.user_id}
+        isStarred={this.props.isStarred}
+        getFormDataExtra={this.getFormDataExtra.bind(this)}
+        fetchSlice={this.fetchSlice.bind(this)}
+        renderSlices={this.renderSlices.bind(this, this.getAllSlices())}
+        startPeriodicRender={this.startPeriodicRender.bind(this)}
+        updateDashboardTitle={this.updateDashboardTitle.bind(this)}
+        readFilters={this.readFilters.bind(this)}
+        fetchFaveStar={this.fetchFaveStar.bind(this)}
+        saveFaveStar={this.saveFaveStar.bind(this)}
+        saveSlice={this.saveSlice.bind(this)}
+        removeSlice={this.removeSlice.bind(this)}
+        removeChart={this.removeChart.bind(this)}
+        updateDashboardLayout={this.updateDashboardLayout.bind(this)}
+        addSlicesToDashboard={this.addSlicesToDashboard.bind(this)}
+        toggleExpandSlice={this.toggleExpandSlice.bind(this)}
+        addFilter={this.addFilter.bind(this)}
+        clearFilter={this.clearFilter.bind(this)}
+        removeFilter={this.removeFilter.bind(this)}
+      />
     );
   }
 }
 
 DashboardViewContainer.propTypes = propTypes;
-DashboardViewContainer.defaultProps = defaultProps;
 
-function mapStateToProps(state) {
+function mapStateToProps({ charts, dashboard }) {
   return {
-    initMessages: state.common.flash_messages,
-    timeout: state.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    dashboard: state.dashboard,
-    datasources: state.datasources,
-    filters: state.filters,
-    refresh: state.refresh,
-    user_id: state.user_id,
-    isStarred: !!state.isStarred,
+    initMessages: dashboard.common.flash_messages,
+    timeout: dashboard.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    dashboard: dashboard.dashboard,
+    slices: charts,
+    datasources: dashboard.datasources,
+    filters: dashboard.filters,
+    refresh: dashboard.refresh,
+    user_id: dashboard.user_id,
+    isStarred: !!dashboard.isStarred,
   };
 }
 
 function mapDispatchToProps(dispatch) {
+  const actions = Object.assign({}, chartActions, dashboardActions);
   return {
-    actions: bindActionCreators(Actions, dispatch),
+    actions: bindActionCreators(actions, dispatch),
   };
 }
 
-export { DashboardViewContainer };
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardViewContainer);

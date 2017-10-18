@@ -1,4 +1,7 @@
+import { combineReducers } from 'redux';
 import d3 from 'd3';
+
+import charts, { chart } from '../chart/chartReducer';
 import * as actions from './actions';
 import { getParam } from '../modules/utils';
 import { alterInArr, removeFromArr } from '../reduxUtils';
@@ -29,8 +32,6 @@ export function getInitialState(bootstrapData) {
       dashboard.posDict[position.slice_id] = position;
     });
   }
-  dashboard.slices = dashboard.slices.map(slice =>
-    (Object.assign({}, slice, { formData: applyDefaultFormData(slice.form_data) })));
   dashboard.slices.forEach((slice, index) => {
     const sliceId = slice.slice_id;
     let pos = dashboard.posDict[sliceId];
@@ -53,10 +54,31 @@ export function getInitialState(bootstrapData) {
     });
   });
 
-  return Object.assign({}, { filters, dashboard, user_id, datasources, common });
+  // will use charts action/reducers to handle chart render
+  const initCharts = {};
+  dashboard.slices.forEach((slice) => {
+    const chartKey = 'slice_' + slice.slice_id;
+    initCharts[chartKey] =
+      Object.assign({}, chart, {
+        chartKey,
+        slice_id: slice.slice_id,
+        form_data: slice.form_data,
+        formData: applyDefaultFormData(slice.form_data),
+      });
+  });
+
+  // also need to add formData for dashboard.slices
+  dashboard.slices = dashboard.slices.map(
+    slice => (Object.assign({}, slice,
+      { formData: applyDefaultFormData(slice.form_data) })));
+
+  return {
+    charts: initCharts,
+    dashboard: Object.assign({}, { filters, dashboard, user_id, datasources, common }),
+  };
 }
 
-export const dashboardReducer = function (state, action) {
+const dashboard = function (state = {}, action) {
   const actionHandlers = {
     [actions.UPDATE_DASHBOARD_TITLE]() {
       const newDashboard = Object.assign({}, state.dashboard, { dashboard_title: action.title });
@@ -87,8 +109,10 @@ export const dashboardReducer = function (state, action) {
       }
       const metadata = Object.assign({}, state.dashboard.metadata,
         { expanded_slices: updatedExpandedSlices });
-      const dashboard = Object.assign({}, state.dashboard, { metadata });
-      return Object.assign({}, state, { dashboard });
+
+      return Object.assign({}, state, {
+        dashboard: Object.assign({}, state.dashboard, { metadata }),
+      });
     },
 
     // filters
@@ -155,52 +179,6 @@ export const dashboardReducer = function (state, action) {
         'slice_id');
       return Object.assign({}, state, { dashboard: newDashboard });
     },
-    [actions.UPDATE_SLICE_SQLQUERYVIEW]() {
-      const newDashboard = alterInArr(
-        state.dashboard, 'slices',
-        action.slice, { viewSqlQuery: action.slice.query },
-        'slice_id');
-      return Object.assign({}, state, { dashboard: newDashboard });
-    },
-    [actions.FETCH_SLICE_STARTED]() {
-      const newDashboard = alterInArr(
-        state.dashboard, 'slices',
-        action.slice,
-        { status: 'fetching' },
-        'slice_id');
-      return Object.assign({}, state, { dashboard: newDashboard });
-    },
-    [actions.FETCH_SLICE_SUCCESS]() {
-      const newDashboard = alterInArr(
-        state.dashboard, 'slices',
-        action.slice,
-        Object.assign({}, action.queryResponse, {
-          lastUpdated: new Date().getTime(),
-        }),
-        'slice_id');
-      return Object.assign({}, state, { dashboard: newDashboard });
-    },
-    [actions.FETCH_SLICE_FAIL]() {
-      const newDashboard = alterInArr(
-        state.dashboard, 'slices',
-        action.slice,
-        Object.assign({}, action.errorResponse, {
-          lastUpdated: new Date().getTime(),
-        }),
-        'slice_id');
-      return Object.assign({}, state, { dashboard: newDashboard });
-    },
-    [actions.FETCH_SLICE_TIMEOUT]() {
-      const newDashboard = alterInArr(
-        state.dashboard, 'slices',
-        action.slice,
-        { lastUpdated: new Date().getTime(),
-          status: 'timeout',
-          error: `Query timeout - 
-          visualization query are set to time out at ${action.timeout} seconds.` },
-        'slice_id');
-      return Object.assign({}, state, { dashboard: newDashboard });
-    },
   };
 
   if (action.type in actionHandlers) {
@@ -208,3 +186,8 @@ export const dashboardReducer = function (state, action) {
   }
   return state;
 };
+
+export default combineReducers({
+  charts,
+  dashboard,
+});
