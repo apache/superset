@@ -2478,13 +2478,13 @@ msgid "Choose a target"
 msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:828
-msgid "ISO 3166-1 codes of region/province/department"
+msgid "ISO 3166-2 codes of region/province/department"
 msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:829
 msgid ""
-"It's ISO 3166-1 of your region/province/department in your table. (see "
-"documentation for list of ISO 3166-1)"
+"It's ISO 3166-2 of your region/province/department in your table. (see "
+"documentation for list of ISO 3166-2)"
 msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:863
