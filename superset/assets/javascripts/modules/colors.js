@@ -3,7 +3,7 @@ import d3 from 'd3';
 export const brandColor = '#00A699';
 
 // Color related utility functions go in this object
-const bnbColors = [
+export const bnbColors = [
   '#ff5a5f', // rausch
   '#7b0051', // hackb
   '#007A87', // kazan

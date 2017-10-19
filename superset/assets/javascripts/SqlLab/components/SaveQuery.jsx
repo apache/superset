@@ -112,7 +112,6 @@ class SaveQuery extends React.PureComponent {
       <span className="SaveQuery">
         <Overlay
           trigger="click"
-          target={this.state.target}
           show={this.state.showSave}
           placement="bottom"
           animation={this.props.animation}

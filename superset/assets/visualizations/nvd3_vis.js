@@ -512,7 +512,7 @@ function nvd3Vis(slice, payload) {
       .call(chart);
 
       // add annotation_layer
-      if (isTimeSeries && payload.annotations.length) {
+      if (isTimeSeries && payload.annotations && payload.annotations.length) {
         const tip = d3tip()
           .attr('class', 'd3-tip')
           .direction('n')

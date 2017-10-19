@@ -42,19 +42,20 @@ class AsyncSelect extends React.PureComponent {
   fetchOptions() {
     this.setState({ isLoading: true });
     const mutator = this.props.mutator;
-    $.get(this.props.dataEndpoint, (data) => {
-      this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
+    $.get(this.props.dataEndpoint)
+      .done((data) => {
+        this.setState({ options: mutator ? mutator(data) : data, isLoading: false });
 
-      if (!this.props.value && this.props.autoSelect && this.state.options.length) {
-        this.onChange(this.state.options[0]);
-      }
-    })
-    .fail(() => {
-      this.props.onAsyncError();
-    })
-    .always(() => {
-      this.setState({ isLoading: false });
-    });
+        if (!this.props.value && this.props.autoSelect && this.state.options.length) {
+          this.onChange(this.state.options[0]);
+        }
+      })
+      .fail((xhr) => {
+        this.props.onAsyncError(xhr.responseText);
+      })
+      .always(() => {
+        this.setState({ isLoading: false });
+      });
   }
   render() {
     return (

@@ -262,9 +262,15 @@ Before running python unit tests, please setup local testing environment:
 pip install -r dev-reqs.txt
 ```
 
-Python tests can be run with:
+All python tests can be run with:
 
     ./run_tests.sh
+    
+Alternatively, you can run a specific test with:
+
+    ./run_specific_test.sh tests.core_tests:CoreTests.test_function_name
+    
+Note that before running specific tests, you have to both setup the local testing environment and run all tests.
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 

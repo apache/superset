@@ -1,9 +1,10 @@
 import ReactDOM from 'react-dom';
 import React from 'react';
 import propTypes from 'prop-types';
-import { Table, Thead, Th } from 'reactable';
+import { Table, Thead, Th, Tr, Td } from 'reactable';
 import d3 from 'd3';
 import { Sparkline, LineSeries } from '@data-ui/sparkline';
+import Mustache from 'mustache';
 
 import MetricOption from '../javascripts/components/MetricOption';
 import TooltipWrapper from '../javascripts/components/TooltipWrapper';
@@ -28,7 +29,6 @@ FormattedNumber.propTypes = {
 };
 
 function viz(slice, payload) {
-  slice.container.css('overflow', 'auto');
   slice.container.css('height', slice.height());
   const recs = payload.data.records;
   const fd = payload.form_data;
@@ -44,21 +44,22 @@ function viz(slice, payload) {
   });
 
   let metrics;
+  let defaultSort = null;
   if (payload.data.is_group_by) {
-    // Sorting by first column desc
-    metrics = payload.data.columns.sort((m1, m2) => (
-      reversedData[0][m1] > reversedData[0][m2] ? -1 : 1
-    ));
-  } else {
-    // Using ordering specified in Metrics dropdown
     metrics = payload.data.columns;
+    defaultSort = { column: fd.column_collection[0].key, direction: 'desc' };
+  } else {
+    metrics = fd.metrics;
   }
   const tableData = metrics.map((metric) => {
     let leftCell;
+    const context = Object.assign({}, fd, { metric });
+    const url = fd.url ? Mustache.render(fd.url, context) : null;
+
     if (!payload.data.is_group_by) {
-      leftCell = <MetricOption metric={metricMap[metric]} showFormula={false} />;
+      leftCell = <MetricOption metric={metricMap[metric]} url={url}showFormula={false} />;
     } else {
-      leftCell = metric;
+      leftCell = url ? <a href={url}>{metric}</a> : metric;
     }
     const row = { metric: leftCell };
     fd.column_collection.forEach((c) => {
@@ -70,33 +71,42 @@ function viz(slice, payload) {
           // Period ratio sparkline
           sparkData = [];
           for (let i = c.timeRatio; i < data.length; i++) {
-            sparkData.push(data[i][metric] / data[i - c.timeRatio][metric]);
+            const prevData = data[i - c.timeRatio][metric];
+            if (prevData && prevData !== 0) {
+              sparkData.push(data[i][metric] / prevData);
+            } else {
+              sparkData.push(null);
+            }
           }
         }
-        const extent = d3.extent(data, d => d[metric]);
-        const tooltip = `min: ${extent[0]}, max: ${extent[1]}`;
-        row[c.key] = (
-          <TooltipWrapper label="tt-spark" tooltip={tooltip}>
-            <div>
-              <Sparkline
-                ariaLabel={`spark-${metric}`}
-                width={parseInt(c.width, 10) || 300}
-                height={parseInt(c.height, 10) || 50}
-                margin={{
-                  top: SPARK_MARGIN,
-                  bottom: SPARK_MARGIN,
-                  left: SPARK_MARGIN,
-                  right: SPARK_MARGIN,
-                }}
-                data={sparkData}
-              >
-                <LineSeries
-                  showArea={false}
-                  stroke={brandColor}
-                />
-              </Sparkline>
-            </div>
-          </TooltipWrapper>);
+        const extent = d3.extent(sparkData);
+        const tooltip = `min: ${d3format(c.d3format, extent[0])}, \
+          max: ${d3format(c.d3format, extent[1])}`;
+        row[c.key] = {
+          data: sparkData[sparkData.length - 1],
+          display: (
+            <TooltipWrapper label="tt-spark" tooltip={tooltip}>
+              <div>
+                <Sparkline
+                  ariaLabel={`spark-${metric}`}
+                  width={parseInt(c.width, 10) || 300}
+                  height={parseInt(c.height, 10) || 50}
+                  margin={{
+                    top: SPARK_MARGIN,
+                    bottom: SPARK_MARGIN,
+                    left: SPARK_MARGIN,
+                    right: SPARK_MARGIN,
+                  }}
+                  data={sparkData}
+                >
+                  <LineSeries
+                    showArea={false}
+                    stroke={brandColor}
+                  />
+                </Sparkline>
+              </div>
+            </TooltipWrapper>),
+        };
       } else {
         const recent = reversedData[0][metric];
         let v;
@@ -104,7 +114,7 @@ function viz(slice, payload) {
           // Time lag ratio
           v = reversedData[parseInt(c.timeLag, 10)][metric];
           if (c.comparisonType === 'diff') {
-            v -= recent;
+            v = recent - v;
           } else if (c.comparisonType === 'perc') {
             v = recent / v;
           } else if (c.comparisonType === 'perc_change') {
@@ -135,10 +145,13 @@ function viz(slice, payload) {
         } else if (c.bounds && c.bounds[1] !== null) {
           color = v < c.bounds[1] ? ACCESSIBLE_COLOR_BOUNDS[1] : ACCESSIBLE_COLOR_BOUNDS[0];
         }
-        row[c.key] = (
-          <span style={{ color }}>
-            <FormattedNumber num={v} format={c.d3format} />
-          </span>);
+        row[c.key] = {
+          data: v,
+          display: (
+            <span style={{ color }}>
+              <FormattedNumber num={v} format={c.d3format} />
+            </span>),
+        };
       }
     });
     return row;
@@ -146,7 +159,9 @@ function viz(slice, payload) {
   ReactDOM.render(
     <Table
       className="table table-condensed"
-      data={tableData}
+      defaultSort={defaultSort}
+      sortBy={defaultSort}
+      sortable={fd.column_collection.map(c => c.key)}
     >
       <Thead>
         <Th column="metric">Metric</Th>
@@ -161,6 +176,18 @@ function viz(slice, payload) {
             )}
           </Th>))}
       </Thead>
+      {tableData.map(row => (
+        <Tr key={row.metric}>
+          <Td column="metric" data={row.metric}>{row.metric}</Td>
+          {fd.column_collection.map(c => (
+            <Td
+              column={c.key}
+              key={c.key}
+              value={row[c.key].data}
+            >
+              {row[c.key].display}
+            </Td>))}
+        </Tr>))}
     </Table>,
     document.getElementById(slice.containerId),
   );
