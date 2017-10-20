@@ -176,18 +176,18 @@ class FilterBox extends React.Component {
         return d.metric;
       });
       const options = data.map((opt) => {
-              const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
-              const backgroundImage = (
-                'linear-gradient(to right, lightgrey, ' +
-                `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-              );
-              const style = {
-                backgroundImage,
-                padding: '2px 5px',
-              };
-              return { value: opt.id, label: opt.id, style, searchable: true};
-            })
-      const filterOptions = createFilterOptions({ options })
+        const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
+        const backgroundImage = (
+          'linear-gradient(to right, lightgrey, ' +
+          `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
+        );
+        const style = {
+          backgroundImage,
+          padding: '2px 5px',
+        };
+        return { value: opt.id, label: opt.id, style, searchable: true };
+      });
+      const filterOptions = createFilterOptions({ options });
       return (
         <div key={filter} className="m-b-5">
           {this.props.datasource.verbose_map[filter] || filter}
