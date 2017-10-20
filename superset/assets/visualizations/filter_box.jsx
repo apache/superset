@@ -4,6 +4,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
 import Select from 'react-select';
+import createFilterOptions from 'react-select-fast-filter-options';
 import { Button } from 'react-bootstrap';
 
 import DateFilterControl from '../javascripts/explore/components/controls/DateFilterControl';
@@ -174,15 +175,7 @@ class FilterBox extends React.Component {
       maxes[filter] = d3.max(data, function (d) {
         return d.metric;
       });
-      return (
-        <div key={filter} className="m-b-5">
-          {this.props.datasource.verbose_map[filter] || filter}
-          <Select.Creatable
-            placeholder={t('Select [%s]', filter)}
-            key={filter}
-            multi
-            value={this.state.selectedValues[filter]}
-            options={data.map((opt) => {
+      const options = data.map((opt) => {
               const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
               const backgroundImage = (
                 'linear-gradient(to right, lightgrey, ' +
@@ -192,8 +185,19 @@ class FilterBox extends React.Component {
                 backgroundImage,
                 padding: '2px 5px',
               };
-              return { value: opt.id, label: opt.id, style };
-            })}
+              return { value: opt.id, label: opt.id, style, searchable: true};
+            })
+      const filterOptions = createFilterOptions({ options })
+      return (
+        <div key={filter} className="m-b-5">
+          {this.props.datasource.verbose_map[filter] || filter}
+          <Select.Creatable
+            placeholder={t('Select [%s]', filter)}
+            key={filter}
+            multi
+            value={this.state.selectedValues[filter]}
+            filterOptions={filterOptions}
+            options={options}
             onChange={this.changeFilter.bind(this, filter)}
           />
         </div>
