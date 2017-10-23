@@ -44,7 +44,7 @@ function viz(slice, payload) {
   });
 
   let metrics;
-  let defaultSort = null;
+  let defaultSort = false;
   if (payload.data.is_group_by) {
     metrics = payload.data.columns;
     defaultSort = { column: fd.column_collection[0].key, direction: 'desc' };
