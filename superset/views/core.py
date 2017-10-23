@@ -2171,6 +2171,8 @@ class Superset(BaseSupersetView):
             obj = json.loads(json_payload)
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
+            for dt_col in [c['name'] for c in obj['columns'] if c['type']=='DATETIME']:
+                df[dt_col] = pd.to_datetime(df[dt_col], errors='ignore', infer_datetime_format=True)
             logging.info("Using pandas to convert to CSV")
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         else:
