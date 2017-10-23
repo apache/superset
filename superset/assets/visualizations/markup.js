@@ -1,4 +1,3 @@
-const $ = require('jquery');
 const srcdoc = require('srcdoc-polyfill');
 
 require('./markup.css');
@@ -25,9 +24,10 @@ function markupWidget(slice, payload) {
       frameborder="0"
       height="${slice.height()}"
       sandbox="allow-same-origin allow-scripts allow-top-navigation allow-popups">
-    </iframe>`);
+    </iframe>
+  `);
 
-  const iframe = $('#' + iframeId)[0];
+  const iframe = document.getElementById(iframeId);
   srcdoc.set(iframe, html);
 }
 
