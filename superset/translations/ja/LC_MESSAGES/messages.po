@@ -3639,6 +3639,3 @@ msgstr "変更日"
 msgid "Saved Queries"
 msgstr "保存されたクエリ"
 
-#~ msgid "Y軸の範囲"
-#~ msgstr ""
-
