@@ -2291,8 +2291,11 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
-        return self.render_template(
-            'superset/welcome.html', entry='welcome', utils=utils)
+        else:
+            username = g.user.username
+            return redirect('/superset/profile/{}/'.format(username))
+        #return self.render_template(
+        #    'superset/welcome.html', entry='welcome', utils=utils)
 
     @has_access
     @expose("/profile/<username>/")
