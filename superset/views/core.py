@@ -12,6 +12,7 @@ import pickle
 import re
 import time
 import traceback
+from urllib import parse
 
 import sqlalchemy as sqla
 
@@ -946,7 +947,7 @@ class Superset(BaseSupersetView):
             .format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
-                json.dumps(viz_obj.form_data)
+                parse.quote(json.dumps(viz_obj.form_data)),
             )
         )
         if request.args.get("standalone") == "true":
