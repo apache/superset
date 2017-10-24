@@ -387,8 +387,15 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'slice_name': _("Name"),
         'table': _("Table"),
         'viz_type': _("Visualization Type"),
+        'datasource_name': _("Datasource Name"),
+        'datasource_type': _("Datasource Type"),
+        'datasource_id': _("Datasource Id"),
+        'perm': _("perm"),
+        'created_on': _("Created On"),
+        'created_by': _("Created By"),
+        'changed_on': _('Changed On'),
+        'changed_by': _('Changed By'),
     }
-
     def pre_update(self, obj):
         check_ownership(obj)
 
