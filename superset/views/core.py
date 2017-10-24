@@ -1213,7 +1213,7 @@ class Superset(BaseSupersetView):
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
             "can_overwrite": is_owner(slc, g.user),
-            'form_data': form_data,
+            'form_data': slc.form_data,
             'slice': slc.data,
         }
 
