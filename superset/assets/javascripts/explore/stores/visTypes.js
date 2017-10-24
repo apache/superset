@@ -389,7 +389,7 @@ export const visTypes = {
         multiple: false,
       },
       url: {
-        label: t(
+        description: t(
           "Templated link, it's possible to include {{ metric }} " +
           'or other values coming from the controls.'),
       },
