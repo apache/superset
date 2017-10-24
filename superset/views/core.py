@@ -397,7 +397,6 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'changed_on': _('Changed On'),
         'changed_by': _('Changed By'),
     }
-
     def pre_update(self, obj):
         check_ownership(obj)
 
