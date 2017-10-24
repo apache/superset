@@ -340,6 +340,8 @@ describe('VisualizeModal', () => {
       wrapper.setProps({ actions: { createDatasource: datasourceSpy } });
 
       wrapper.instance().visualize();
+      expect(exploreUtils.getExploreUrl.callCount).to.equal(1);
+      expect(exploreUtils.getExploreUrl.getCall(0).args[0].datasource).to.equal('107__table');
       expect(window.open.callCount).to.equal(1);
     });
     it('should notify error', () => {
