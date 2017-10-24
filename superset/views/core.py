@@ -266,6 +266,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'created_on': _("Created On"),
         'changed_by': _("Changed by"),
         'changed_on': _("Changed On"),
+        'modified': _("Modified"),
         'impersonate_user': _("Impersonate the logged on user")
     }
 
