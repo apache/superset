@@ -259,6 +259,12 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'extra': _("Extra"),
         'allow_run_sync': _("Allow Run Sync"),
         'allow_run_async': _("Allow Run Async"),
+        'tables': _("Tables"),
+        'backend': _("Backend"),
+        'created_by': _("Created by"),
+        'created_on': _("Created On"),
+        'changed_by': _("Changed by"),
+        'changed_on': _("Changed On"),
         'impersonate_user': _("Impersonate the logged on user")
     }
 
@@ -1446,7 +1452,7 @@ class Superset(BaseSupersetView):
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
-            
+
             url = make_url(uri)
             db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
             db_engine.patch()
