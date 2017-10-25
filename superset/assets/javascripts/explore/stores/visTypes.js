@@ -852,8 +852,8 @@ export const visTypes = {
     ],
     controlOverrides: {
       entity: {
-        label: t('ISO 3166-1 codes of region/province/department'),
-        description: t('It\'s ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)'),
+        label: t('ISO 3166-2 codes of region/province/department'),
+        description: t('It\'s ISO 3166-2 of your region/province/department in your table. (see documentation for list of ISO 3166-2)'),
       },
       metric: {
         label: t('Metric'),
