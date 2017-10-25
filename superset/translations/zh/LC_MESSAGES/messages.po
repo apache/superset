@@ -1818,7 +1818,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:850
 msgid "Timestamp Format"
-msgstr ""
+msgstr "時間戳記格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:856
 msgid "Series Height"
@@ -1839,27 +1839,27 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/controls.jsx:874
 #: superset/assets/javascripts/explore/stores/controls.jsx:884
 msgid "X Axis Format"
-msgstr ""
+msgstr "X 軸格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:894
 msgid "Y Axis Format"
-msgstr ""
+msgstr "Y 軸格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:904
 msgid "Right Axis Format"
-msgstr ""
+msgstr "右軸格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:912
 msgid "Markup Type"
-msgstr ""
+msgstr "Markup 格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:917
 msgid "Pick your favorite markup language"
-msgstr ""
+msgstr "選擇你喜愛的markup語言"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:922
 msgid "Rotation"
-msgstr ""
+msgstr "迴轉"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:925
 msgid "Rotation to apply to words in the cloud"
@@ -1885,11 +1885,11 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:376
 #: superset/assets/javascripts/explore/stores/visTypes.js:414
 msgid "Code"
-msgstr ""
+msgstr "代碼"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:955
 msgid "Put your code here"
-msgstr ""
+msgstr "請放入你的代碼"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:964
 msgid "Aggregation function"
@@ -1903,7 +1903,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:983
 msgid "Font Size From"
-msgstr ""
+msgstr "字型大小從"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:985
 msgid "Font size for the smallest value in the list"
@@ -2035,7 +2035,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1119
 msgid "Contribution"
-msgstr ""
+msgstr "貢獻"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1121
 msgid "Compute the contribution to the total"
