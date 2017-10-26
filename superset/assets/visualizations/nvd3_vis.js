@@ -296,9 +296,7 @@ function nvd3Vis(slice, payload) {
       case 'box_plot':
         colorKey = 'label';
         chart = nv.models.boxPlotChart();
-        chart.x(function (d) {
-          return d.label;
-        });
+        chart.x(d => d.label);
         chart.staggerLabels(true);
         chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
         break;
@@ -353,7 +351,8 @@ function nvd3Vis(slice, payload) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (vizType !== 'dist_bar' && chart.xAxis && chart.xAxis.tickFormat) {
+    const isXAxisString = ['dist_bar', 'box_plot'].includes(vizType) >= 0;
+    if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
