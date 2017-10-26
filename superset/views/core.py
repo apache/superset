@@ -390,7 +390,11 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'viz_type': _("Visualization Type"),
     }
 
+    def pre_add(self, obj):
+        utils.validate_json(obj.params)
+
     def pre_update(self, obj):
+        utils.validate_json(obj.params)
         check_ownership(obj)
 
     def pre_delete(self, obj):
