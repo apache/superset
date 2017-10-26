@@ -3,6 +3,7 @@ from past.builtins import basestring
 
 from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
+from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from flask_babel import lazy_gettext as _
@@ -271,6 +272,20 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
         if isinstance(resp, basestring):
             return resp
         return redirect('/superset/explore/table/{}/'.format(pk))
+
+    @action(
+        "refresh",
+        __("Refresh Metadata"),
+        __("Refresh column metadata"),
+        "fa-refresh")
+    def refresh(self, tables):
+        for t in tables:
+            t.fetch_metadata()
+        msg = _(
+            "Metadata refreshed for the following table(s): %(tables)s",
+            tables=", ".join([t.table_name for t in tables]))
+        flash(msg, 'info')
+        return redirect('/tablemodelview/list/')
 
 appbuilder.add_view(
     TableModelView,
