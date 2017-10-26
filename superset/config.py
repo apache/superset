@@ -161,6 +161,7 @@ LANGUAGES = {
     'it': {'flag': 'it', 'name': 'Italian'},
     'fr': {'flag': 'fr', 'name': 'French'},
     'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'tw': {'flag': 'tw', 'name': 'Chinese-tw'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
 }
 # ---------------------------------------------------
