@@ -213,3 +213,11 @@ How can I set a default filter on my dashboard?
 
 Easy. Simply apply the filter and save the dashboard while the filter
 is active.
+
+How do I get Superset to refresh the schema of my table?
+--------------------------------------------------------
+
+When adding columns to a table, you can have Superset detect and merge the
+new columns in by using the "Refresh Metadata" action in the
+``Source -> Tables`` page. Simply check the box next to the tables
+you want the schema refreshed, and click ``Actions -> Refresh Metadata``.
