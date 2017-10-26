@@ -195,7 +195,12 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def form_data(self):
-        form_data = json.loads(self.params)
+        form_data = {}
+        try:
+            form_data = json.loads(self.params)
+        except Exception as e:
+            logging.error("Malformed json in slice's params")
+            logging.exception(e)
         form_data.update({
             'slice_id': self.id,
             'viz_type': self.viz_type,
