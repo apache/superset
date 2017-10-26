@@ -18,7 +18,7 @@ from dateutil.parser import parse as dparse
 
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
-from pydruid.utils.filters import Dimension, Filter
+from pydruid.utils.filters import Dimension, Filter, Bound
 from pydruid.utils.postaggregator import (
     Postaggregator, Quantile, Quantiles, Field, Const, HyperUniqueCardinality,
 )
@@ -966,7 +966,7 @@ class DruidDatasource(Model, BaseDatasource):
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
 
-        filters = self.get_filters(filter)
+        filters = DruidDatasource.get_filters(filter, self.num_cols)
         if filters:
             qry['filter'] = filters
 
@@ -1103,11 +1103,13 @@ class DruidDatasource(Model, BaseDatasource):
             query=query_str,
             duration=datetime.now() - qry_start_dttm)
 
-    def get_filters(self, raw_filters):  # noqa
+    @staticmethod
+    def get_filters(raw_filters, num_cols):  # noqa
         filters = None
         for flt in raw_filters:
             if not all(f in flt for f in ['col', 'op', 'val']):
                 continue
+
             col = flt['col']
             op = flt['op']
             eq = flt['val']
@@ -1119,36 +1121,52 @@ class DruidDatasource(Model, BaseDatasource):
                     else types
                     for types in eq]
             elif not isinstance(flt['val'], string_types):
-                eq = eq[0] if len(eq) > 0 else ''
-            if col in self.num_cols:
+                eq = eq[0] if eq and len(eq) > 0 else ''
+
+            is_numeric_col = col in num_cols
+            if is_numeric_col:
                 if op in ('in', 'not in'):
                     eq = [utils.string_to_num(v) for v in eq]
                 else:
                     eq = utils.string_to_num(eq)
+
             if op == '==':
                 cond = Dimension(col) == eq
             elif op == '!=':
-                cond = ~(Dimension(col) == eq)
+                cond = Dimension(col) != eq
             elif op in ('in', 'not in'):
                 fields = []
-                if len(eq) > 1:
+
+                # ignore the filter if it has no value
+                if not len(eq):
+                    continue
+                elif len(eq) == 1:
+                    cond = Dimension(col) == eq[0]
+                else:
                     for s in eq:
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
-                elif len(eq) == 1:
-                    cond = Dimension(col) == eq[0]
+
                 if op == 'not in':
                     cond = ~cond
+
             elif op == 'regex':
                 cond = Filter(type="regex", pattern=eq, dimension=col)
             elif op == '>=':
-                cond = Dimension(col) >= eq
+                cond = Bound(col, eq, None, alphaNumeric=is_numeric_col)
             elif op == '<=':
-                cond = Dimension(col) <= eq
+                cond = Bound(col, None, eq, alphaNumeric=is_numeric_col)
             elif op == '>':
-                cond = Dimension(col) > eq
+                cond = Bound(
+                    col, eq, None,
+                    lowerStrict=True, alphaNumeric=is_numeric_col
+                )
             elif op == '<':
-                cond = Dimension(col) < eq
+                cond = Bound(
+                    col, None, eq,
+                    upperStrict=True, alphaNumeric=is_numeric_col
+                )
+
             if filters:
                 filters = Filter(type="and", fields=[
                     cond,
@@ -1156,6 +1174,7 @@ class DruidDatasource(Model, BaseDatasource):
                 ])
             else:
                 filters = cond
+
         return filters
 
     def _get_having_obj(self, col, op, eq):

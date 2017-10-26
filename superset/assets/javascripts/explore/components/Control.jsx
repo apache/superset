@@ -22,7 +22,8 @@ const propTypes = {
     PropTypes.string,
     PropTypes.number,
     PropTypes.bool,
-    PropTypes.array]),
+    PropTypes.array,
+    PropTypes.func]),
 };
 
 const defaultProps = {

@@ -177,6 +177,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
         'datasource_link', 'cluster', 'changed_by_', 'modified']
+    order_columns = ['datasource_link', 'modified']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'slices', 'description', 'owner',
