@@ -351,7 +351,7 @@ function nvd3Vis(slice, payload) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    const isXAxisString = ['dist_bar', 'box_plot'].includes(vizType) >= 0;
+    const isXAxisString = ['dist_bar', 'box_plot'].indexOf(vizType) >= 0;
     if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
