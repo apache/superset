@@ -251,8 +251,8 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     @property
     def data(self):
         attrs = (
-            'column_name', 'verbose_name', 'description', 'expression', 'type',
-            'filterable', 'groupby')
+            'column_name', 'verbose_name', 'description', 'expression',
+            'filterable', 'groupby', 'type')
         return {s: getattr(self, s) for s in attrs}
 
 

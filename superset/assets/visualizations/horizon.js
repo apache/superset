@@ -32,8 +32,12 @@ const horizonChart = function () {
     const horizon = d3.select(this);
     const step = width / data.length;
 
-    horizon.append('span').text(title);
-    horizon.append('span').attr('class', 'value');
+    horizon.append('span')
+    .attr('class', 'title')
+    .text(title);
+
+    horizon.append('span')
+    .attr('class', 'value');
 
     canvas = horizon.append('canvas');
 
@@ -189,7 +193,6 @@ const horizonChart = function () {
 function horizonViz(slice, payload) {
   const fd = slice.formData;
   const div = d3.select(slice.selector);
-  div.classed('main', true).style('height', slice.height());
   div.selectAll('*').remove();
   let extent;
   if (fd.horizon_color_scale === 'overall') {

@@ -12,6 +12,6 @@
     text-shadow: 1px 1px rgba(255, 255, 255, 0.75);
 }
 
-.horizon.main {
+.horizon .slice_container {
     overflow: auto;
 }

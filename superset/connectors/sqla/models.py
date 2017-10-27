@@ -441,9 +441,6 @@ class SqlaTable(Model, BaseDatasource):
             metrics_exprs.append(self.get_sqla_metric(m))
 
         metrics_dict = {m.metric_name: m for m in self.metrics}
-        for m in metrics:
-            if m not in metrics_dict:
-                raise Exception(_("Metric '{}' is not valid".format(m)))
 
         timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
         if metrics_exprs:
