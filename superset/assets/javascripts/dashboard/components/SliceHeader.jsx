@@ -28,7 +28,7 @@ class SliceHeader extends React.PureComponent {
   render() {
     const slice = this.props.slice;
     const isCached = slice.is_cached;
-    const isExpanded = this.props.isExpanded;
+    const isExpanded = !!this.props.isExpanded;
     const cachedWhen = moment.utc(slice.cached_dttm).fromNow();
     const refreshTooltip = isCached ?
       t('Served from data cached %s . Click to force refresh.', cachedWhen) :
@@ -69,7 +69,7 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               {slice.description &&
-              <a onClick={() => (this.props.toggleExpandSlice(slice, !isExpanded))}>
+              <a onClick={() => this.props.toggleExpandSlice(slice, !isExpanded)}>
                 <TooltipWrapper
                   placement="top"
                   label="description"

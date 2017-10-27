@@ -7,7 +7,7 @@ import FaveStar from '../../components/FaveStar';
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
-  user_id: PropTypes.string.isRequired,
+  userId: PropTypes.string.isRequired,
   isStarred: PropTypes.bool,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
@@ -56,7 +56,7 @@ class Header extends React.PureComponent {
           {!this.props.dashboard.standalone_mode &&
           <Controls
             dashboard={dashboard}
-            user_id={this.props.user_id}
+            userId={this.props.userId}
             addSlicesToDashboard={this.props.addSlicesToDashboard}
             onSave={this.props.onSave}
             onChange={this.props.onChange}

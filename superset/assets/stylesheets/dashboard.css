@@ -93,10 +93,12 @@ div.widget:hover .chart-controls {
 .slice-cell {
   box-shadow: 0px 0px 20px 5px rgba(0,0,0,0);
   transition: box-shadow 1s ease-in;
+  height: 100%;
 }
 
 .slice-cell-highlight {
   box-shadow: 0px 0px 20px 5px rgba(0,0,0,0.2);
+  height: 100%;
 }
 
 .slice-cell .editable-title input[type="button"] {

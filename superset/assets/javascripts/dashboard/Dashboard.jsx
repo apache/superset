@@ -375,7 +375,7 @@ $(document).ready(() => {
 
   const state = getInitialState(dashboardData);
   px = superset(state);
-  const dashboard = dashboardContainer(state.dashboard, state.datasources, state.user_id);
+  const dashboard = dashboardContainer(state.dashboard, state.datasources, state.userId);
   initDashboardView(dashboard);
   dashboard.init();
 });

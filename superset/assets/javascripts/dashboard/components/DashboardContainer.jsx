@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import urlLib from 'url';
 
 import * as dashboardActions from '../actions';
 import * as chartActions from '../../chart/chartAction';
@@ -19,15 +18,18 @@ const propTypes = {
   filters: PropTypes.object,
   refresh: PropTypes.bool,
   timeout: PropTypes.number,
-  user_id: PropTypes.string,
+  userId: PropTypes.string,
   isStarred: PropTypes.bool,
 };
 
-class DashboardViewContainer extends React.PureComponent {
+class DashboardContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.refreshTimer = null;
     this.firstLoad = true;
+    this.state = {
+      isFiltersChanged: false,
+    };
   }
 
   componentDidMount() {
@@ -36,14 +38,16 @@ class DashboardViewContainer extends React.PureComponent {
     this.bindResizeToWindowResize();
   }
 
-  componentDidUpdate(prevProps) {
+  componentWillReceiveProps(nextProps) {
     // check filters is changed
-    if (!areObjectsEqual(prevProps.filters, this.props.filters)) {
-      this.updateFilterParamsInUrl();
+    this.setState({
+      isFiltersChanged: !areObjectsEqual(nextProps.filters, this.props.filters),
+    });
+  }
 
-      if (this.props.refresh) {
-        Object.keys(this.props.filters).forEach(sliceId => (this.refreshExcept(sliceId)));
-      }
+  componentDidUpdate(prevProps) {
+    if (!areObjectsEqual(prevProps.filters, this.props.filters) && this.props.refresh) {
+      Object.keys(this.props.filters).forEach(sliceId => (this.refreshExcept(sliceId)));
     }
   }
 
@@ -127,14 +131,6 @@ class DashboardViewContainer extends React.PureComponent {
     this.renderSlices(slices);
   }
 
-  updateFilterParamsInUrl() {
-    const urlObj = urlLib.parse(location.href, true);
-    urlObj.query = urlObj.query || {};
-    urlObj.query.preselect_filters = this.readFilters();
-    urlObj.search = null;
-    history.pushState(urlObj.query, window.title, urlLib.format(urlObj));
-  }
-
   stopPeriodicRender() {
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
@@ -164,54 +160,6 @@ class DashboardViewContainer extends React.PureComponent {
   readFilters() {
     // Returns a list of human readable active filters
     return JSON.stringify(this.props.filters, null, '  ');
-  }
-
-  updateDashboardTitle(title) {
-    this.props.actions.updateDashboardTitle(title);
-  }
-
-  fetchFaveStar(id) {
-    this.props.actions.fetchFaveStar(id);
-  }
-
-  saveFaveStar(id, isStarred) {
-    this.props.actions.saveFaveStar(id, isStarred);
-  }
-
-  saveSlice(currentSlice, sliceName) {
-    this.props.actions.saveSlice(currentSlice, sliceName);
-  }
-
-  removeSlice(slice) {
-    this.props.actions.removeSlice(slice);
-  }
-
-  removeChart(chartKey) {
-    this.props.actions.removeChart(chartKey);
-  }
-
-  updateDashboardLayout(layout) {
-    this.props.actions.updateDashboardLayout(layout);
-  }
-
-  addSlicesToDashboard(sliceIds) {
-    return this.props.actions.addSlicesToDashboard(this.props.dashboard.id, sliceIds);
-  }
-
-  toggleExpandSlice(slice, isExpanded) {
-    this.props.actions.toggleExpandSlice(slice, !isExpanded);
-  }
-
-  addFilter(sliceId, col, vals, merge, refresh) {
-    this.props.actions.addFilter(sliceId, col, vals, merge, refresh);
-  }
-
-  clearFilter(sliceId) {
-    this.props.actions.clearFilter(sliceId);
-  }
-
-  removeFilter(sliceId, col, vals) {
-    this.props.actions.removeFilter(sliceId, col, vals);
   }
 
   bindResizeToWindowResize() {
@@ -253,33 +201,33 @@ class DashboardViewContainer extends React.PureComponent {
         slices={this.props.slices}
         datasources={this.props.datasources}
         filters={this.props.filters}
-        refresh={this.props.refresh}
         timeout={this.props.timeout}
-        user_id={this.props.user_id}
+        userId={this.props.userId}
         isStarred={this.props.isStarred}
+        isFiltersChanged={this.state.isFiltersChanged}
         getFormDataExtra={this.getFormDataExtra.bind(this)}
         fetchSlice={this.fetchSlice.bind(this)}
         renderSlices={this.renderSlices.bind(this, this.getAllSlices())}
         startPeriodicRender={this.startPeriodicRender.bind(this)}
-        updateDashboardTitle={this.updateDashboardTitle.bind(this)}
+        updateDashboardTitle={this.props.actions.updateDashboardTitle.bind(this)}
         readFilters={this.readFilters.bind(this)}
-        fetchFaveStar={this.fetchFaveStar.bind(this)}
-        saveFaveStar={this.saveFaveStar.bind(this)}
-        saveSlice={this.saveSlice.bind(this)}
-        removeSlice={this.removeSlice.bind(this)}
-        removeChart={this.removeChart.bind(this)}
-        updateDashboardLayout={this.updateDashboardLayout.bind(this)}
-        addSlicesToDashboard={this.addSlicesToDashboard.bind(this)}
-        toggleExpandSlice={this.toggleExpandSlice.bind(this)}
-        addFilter={this.addFilter.bind(this)}
-        clearFilter={this.clearFilter.bind(this)}
-        removeFilter={this.removeFilter.bind(this)}
+        fetchFaveStar={this.props.actions.fetchFaveStar.bind(this)}
+        saveFaveStar={this.props.actions.saveFaveStar.bind(this)}
+        saveSlice={this.props.actions.saveSlice.bind(this)}
+        removeSlice={this.props.actions.removeSlice.bind(this)}
+        removeChart={this.props.actions.removeChart.bind(this)}
+        updateDashboardLayout={this.props.actions.updateDashboardLayout.bind(this)}
+        addSlicesToDashboard={this.props.actions.addSlicesToDashboard.bind(this)}
+        toggleExpandSlice={this.props.actions.toggleExpandSlice.bind(this)}
+        addFilter={this.props.actions.addFilter.bind(this)}
+        clearFilter={this.props.actions.clearFilter.bind(this)}
+        removeFilter={this.props.actions.removeFilter.bind(this)}
       />
     );
   }
 }
 
-DashboardViewContainer.propTypes = propTypes;
+DashboardContainer.propTypes = propTypes;
 
 function mapStateToProps({ charts, dashboard }) {
   return {
@@ -290,7 +238,7 @@ function mapStateToProps({ charts, dashboard }) {
     datasources: dashboard.datasources,
     filters: dashboard.filters,
     refresh: dashboard.refresh,
-    user_id: dashboard.user_id,
+    userId: dashboard.userId,
     isStarred: !!dashboard.isStarred,
   };
 }
@@ -302,4 +250,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardViewContainer);
+export default connect(mapStateToProps, mapDispatchToProps)(DashboardContainer);

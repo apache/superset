@@ -62,10 +62,6 @@ class ChartContainer extends React.PureComponent {
     }
   }
 
-  removeAlert() {
-    this.props.actions.removeChartAlert(this.props.chartKey);
-  }
-
   runQuery() {
     this.props.actions.runQuery(this.props.formData, true,
       this.props.timeout,
@@ -90,36 +86,25 @@ class ChartContainer extends React.PureComponent {
         <StackTraceMessage
           message={this.props.chartAlert}
           queryResponse={this.props.queryResponse}
-          removeAlert={this.removeAlert.bind(this)}
         />
       );
     }
 
-    const loading = this.props.chartStatus === 'loading';
     const containerId = this.props.containerId;
     return (
-      <div>
-        {loading &&
-        <img
-          alt="loading"
-          width="25"
-          src="/static/assets/images/loading.gif"
-          style={{ position: 'absolute' }}
-        />
-        }
-        <Chart
-          containerId={containerId}
-          datasource={this.props.datasource}
-          formData={this.props.formData}
-          height={this.props.height}
-          width={this.props.width}
-          addFilter={this.props.addFilter}
-          getFilters={this.props.getFilters}
-          clearFilter={this.props.clearFilter}
-          removeFilter={this.props.removeFilter}
-          ref={(sliceEl) => { this.sliceEl = sliceEl; }}
-        />
-      </div>
+      <Chart
+        containerId={containerId}
+        datasource={this.props.datasource}
+        formData={this.props.formData}
+        height={this.props.height}
+        width={this.props.width}
+        isLoading={this.props.chartStatus === 'loading'}
+        addFilter={this.props.addFilter}
+        getFilters={this.props.getFilters}
+        clearFilter={this.props.clearFilter}
+        removeFilter={this.props.removeFilter}
+        ref={(sliceEl) => { this.sliceEl = sliceEl; }}
+      />
     );
   }
 }

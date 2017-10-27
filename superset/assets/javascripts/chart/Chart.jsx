@@ -12,6 +12,7 @@ const propTypes = {
   formData: PropTypes.object.isRequired,
   height: PropTypes.number,
   width: PropTypes.number,
+  isLoading: PropTypes.bool,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
@@ -98,13 +99,22 @@ class Chart extends React.PureComponent {
 
   render() {
     return (
-      <ChartBody
-        containerId={this.containerId}
-        vizType={this.props.formData.viz_type}
-        height={this.height.bind(this)}
-        width={this.width.bind(this)}
-        ref={(inner) => { this.container = inner; }}
-      />
+      <div className={`chart-body${this.props.isLoading ? ' isloading' : ''}`}>
+        {this.props.isLoading && <img
+          alt="loading"
+          width="25"
+          src="/static/assets/images/loading.gif"
+          style={{ position: 'absolute' }}
+        />
+        }
+        <ChartBody
+          containerId={this.containerId}
+          vizType={this.props.formData.viz_type}
+          height={this.height.bind(this)}
+          width={this.width.bind(this)}
+          ref={(inner) => { this.container = inner; }}
+        />
+      </div>
     );
   }
 }

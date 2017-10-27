@@ -131,8 +131,7 @@ class GridLayout extends React.Component {
               isExpanded={!!this.isExpanded(slice)}
               isLoading={[undefined, 'loading']
                 .indexOf(this.props.charts['slice_' + slice.slice_id].chartStatus) !== -1}
-              toggleExpandSlice={this.props.toggleExpandSlice
-                .bind(this, slice, !!this.isExpanded(slice))}
+              toggleExpandSlice={this.props.toggleExpandSlice}
               fetchSlice={this.props.fetchSlice.bind(this, this.props.charts['slice_' + slice.slice_id])}
               removeSlice={this.removeSlice.bind(this, slice, this.props.charts['slice_' + slice.slice_id])}
               updateSliceName={this.props.dashboard.dash_edit_perm ?

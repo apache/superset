@@ -84,12 +84,6 @@ export default function chartReducer(charts = {}, action) {
         queryResponse: action.queryResponse,
       });
     },
-    [actions.REMOVE_CHART_ALERT](state) {
-      if (state.chartAlert !== null) {
-        return Object.assign({}, state, { chartAlert: null });
-      }
-      return state;
-    },
     [actions.TRIGGER_QUERY](state) {
       return Object.assign({}, state, { triggerQuery: action.value });
     },

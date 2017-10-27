@@ -15,10 +15,10 @@ const propTypes = {
   slices: PropTypes.object,
   datasources: PropTypes.object,
   filters: PropTypes.object,
-  refresh: PropTypes.bool,
   timeout: PropTypes.number,
-  user_id: PropTypes.string,
+  userId: PropTypes.string,
   isStarred: PropTypes.bool,
+  isFiltersChanged: PropTypes.bool,
   updateDashboardTitle: PropTypes.func,
   readFilters: PropTypes.func,
   fetchFaveStar: PropTypes.func,
@@ -44,10 +44,10 @@ const defaultProps = {
   slices: {},
   datasources: {},
   filters: {},
-  refresh: false,
   timeout: 60,
-  user_id: '',
+  userId: '',
   isStarred: false,
+  isFiltersChanged: false,
 };
 
 class Dashboard extends React.PureComponent {
@@ -58,6 +58,12 @@ class Dashboard extends React.PureComponent {
     this.state = {
       alert: null,
     };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.isFiltersChanged) {
+      this.renderUnsavedChangeAlert();
+    }
   }
 
   onBeforeUnload(hasChanged) {
@@ -121,7 +127,7 @@ class Dashboard extends React.PureComponent {
           <AlertsWrapper initMessages={this.props.initMessages} />
           <Header
             dashboard={this.props.dashboard}
-            user_id={this.props.user_id}
+            userId={this.props.userId}
             isStarred={this.props.isStarred}
             updateDashboardTitle={this.updateDashboardTitle.bind(this)}
             onSave={this.onSave.bind(this)}

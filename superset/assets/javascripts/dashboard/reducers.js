@@ -12,19 +12,19 @@ export function getInitialState(bootstrapData) {
   delete common.locale;
   delete common.language_pack;
 
-  // parse preselected filter from url
+  const dashboard = Object.assign({}, bootstrapData.dashboard_data);
   const filters = {};
   try {
-    const fileterData = JSON.parse(getParam('preselect_filters') || '{}');
-    for (const key in fileterData) {
+    // allow request parameter overwrite dashboard metadata
+    const filterData = JSON.parse(getParam('preselect_filters') || dashboard.metadata.default_filters);
+    for (const key in filterData) {
       const sliceId = parseInt(key, 10);
-      filters[sliceId] = fileterData[key];
+      filters[sliceId] = filterData[key];
     }
   } catch (e) {
     //
   }
 
-  const dashboard = Object.assign({}, bootstrapData.dashboard_data);
   dashboard.posDict = {};
   dashboard.layout = [];
   if (dashboard.position_json) {
@@ -74,7 +74,7 @@ export function getInitialState(bootstrapData) {
 
   return {
     charts: initCharts,
-    dashboard: Object.assign({}, { filters, dashboard, user_id, datasources, common }),
+    dashboard: Object.assign({}, { filters, dashboard, userId: user_id, datasources, common }),
   };
 }
 

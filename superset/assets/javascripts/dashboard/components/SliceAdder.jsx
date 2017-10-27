@@ -11,7 +11,7 @@ require('react-bootstrap-table/css/react-bootstrap-table.css');
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
   triggerNode: PropTypes.node.isRequired,
-  user_id: PropTypes.string.isRequired,
+  userId: PropTypes.string.isRequired,
   addSlicesToDashboard: PropTypes.func,
 };
 
@@ -45,7 +45,7 @@ class SliceAdder extends React.Component {
   }
 
   onEnterModal() {
-    const uri = '/sliceaddview/api/read?_flt_0_created_by=' + this.props.user_id;
+    const uri = '/sliceaddview/api/read?_flt_0_created_by=' + this.props.userId;
     this.slicesRequest = $.ajax({
       url: uri,
       type: 'GET',

@@ -7,7 +7,6 @@ const propTypes = {
   message: PropTypes.string,
   queryResponse: PropTypes.object,
   showStackTrace: PropTypes.bool,
-  removeAlert: PropTypes.func,
 };
 const defaultProps = {
   showStackTrace: false,
@@ -18,44 +17,31 @@ class StackTraceMessage extends React.PureComponent {
     super(props);
 
     this.state = {
-      hidden: false,
       showStackTrace: props.showStackTrace,
     };
   }
 
-  removeAlert() {
-    if (this.props.removeAlert) {
-      this.props.removeAlert();
-    }
-
-    this.setState({
-      hidden: true,
-      showStackTrace: false,
-    });
+  hasTrace() {
+    return this.props.queryResponse && this.props.queryResponse.stacktrace;
   }
 
   render() {
     const msg = (
       <div>
-        <i
-          className="fa fa-close pull-right"
-          onClick={this.removeAlert.bind(this)}
-          style={{ cursor: 'pointer' }}
-        />
         <p
           dangerouslySetInnerHTML={{ __html: this.props.message }}
         />
       </div>);
 
     return (
-      <div style={{ display: this.state.hidden ? 'none' : 'block' }}>
+      <div className={`stack-trace-container${this.hasTrace() ? ' has-trace' : ''}`}>
         <Alert
           bsStyle="warning"
           onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
         >
           {msg}
         </Alert>
-        {this.props.queryResponse && this.props.queryResponse.stacktrace &&
+        {this.hasTrace() &&
         <Collapse in={this.state.showStackTrace}>
           <pre>
             {this.props.queryResponse.stacktrace}

@@ -185,8 +185,14 @@ div.widget .chart-header a {
   display: none;
 }
 
-div.widget .slice_container {
-  overflow: hidden;
+div.widget {
+  .slice_container {
+    overflow: hidden;
+  }
+
+  .isloading .slice_container {
+    opacity: 0.5;
+  }
 }
 
 .navbar .alert {
@@ -390,4 +396,10 @@ g.annotation-container {
 }
 .stroke-primary {
   stroke: @brand-primary;
+}
+
+.stack-trace-container.has-trace {
+  .alert-warning:hover {
+    cursor: pointer;
+  }
 }

@@ -63,8 +63,6 @@ class ExploreViewContainer extends React.Component {
   onQuery() {
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
-    this.props.actions.removeChartAlert(this.props.chart.chartKey);
-
     this.props.actions.triggerQuery(true, this.props.chart.chartKey);
 
     history.pushState(

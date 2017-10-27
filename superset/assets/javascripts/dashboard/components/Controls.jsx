@@ -15,7 +15,7 @@ const $ = window.$ = require('jquery');
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
   slices: PropTypes.array,
-  user_id: PropTypes.string.isRequired,
+  userId: PropTypes.string.isRequired,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
@@ -67,7 +67,7 @@ class Controls extends React.PureComponent {
         <SliceAdder
           dashboard={dashboard}
           addSlicesToDashboard={this.props.addSlicesToDashboard}
-          user_id={this.props.user_id}
+          userId={this.props.userId}
           triggerNode={
             <i className="fa fa-plus" />
           }

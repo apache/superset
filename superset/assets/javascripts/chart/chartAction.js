@@ -36,11 +36,6 @@ export function chartRenderingFailed(error, key) {
   return { type: CHART_RENDERING_FAILED, error, key };
 }
 
-export const REMOVE_CHART_ALERT = 'REMOVE_CHART_ALERT';
-export function removeChartAlert(key) {
-  return { type: REMOVE_CHART_ALERT, key };
-}
-
 export const REMOVE_CHART = 'REMOVE_CHART';
 export function removeChart(key) {
   return { type: REMOVE_CHART, key };

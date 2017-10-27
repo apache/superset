@@ -57,7 +57,10 @@ class GridCell extends React.PureComponent {
   render() {
     const slice = this.props.slice;
     return (
-      <div className="slice-cell" id={`${slice.slice_id}-cell`}>
+      <div
+        className={this.props.isLoading ? 'slice-cell-highlight' : 'slice-cell'}
+        id={`${slice.slice_id}-cell`}
+      >
         <div ref={this.getHeaderId(slice)}>
           <SliceHeader
             slice={slice}
