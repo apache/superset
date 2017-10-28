@@ -109,7 +109,7 @@ export default class Filter extends React.Component {
       <input
         type="text"
         onChange={this.changeText.bind(this)}
-        value={filter.val}
+        value={filter.val || ''}
         className="form-control input-sm"
         placeholder={t('Filter value')}
       />

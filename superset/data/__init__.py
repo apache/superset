@@ -688,7 +688,7 @@ def load_birth_names():
     <h1>Birth Names Dashboard</h1>
     <p>
         The source dataset came from
-        <a href="https://github.com/hadley/babynames">[here]</a>
+        <a href="https://github.com/hadley/babynames" target="_blank">[here]</a>
     </p>
     <img src="/static/assets/images/babytux.jpg">
 </div>
