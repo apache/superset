@@ -5,4 +5,5 @@ recursive-exclude superset/static/docs *
 recursive-exclude superset/static/spec *
 recursive-exclude superset/static/assets/node_modules *
 recursive-include superset/templates *
+recursive-include superset/translations *
 recursive-exclude tests *
