@@ -5,16 +5,20 @@ import AlertsWrapper from '../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
 import Header from './Header';
 import DashboardAlert from './DashboardAlert';
+import { getExploreUrl } from '../../explore/exploreUtils';
+import { areObjectsEqual } from '../../reduxUtils';
 import { t } from '../../locales';
 
 import '../../../stylesheets/dashboard.css';
 
 const propTypes = {
+  actions: PropTypes.object,
   initMessages: PropTypes.array,
   dashboard: PropTypes.object.isRequired,
   slices: PropTypes.object,
   datasources: PropTypes.object,
   filters: PropTypes.object,
+  refresh: PropTypes.bool,
   timeout: PropTypes.number,
   userId: PropTypes.string,
   isStarred: PropTypes.bool,
@@ -53,6 +57,8 @@ const defaultProps = {
 class Dashboard extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.refreshTimer = null;
+    this.firstLoad = true;
 
     // alert for unsaved changes
     this.state = {
@@ -60,9 +66,22 @@ class Dashboard extends React.PureComponent {
     };
   }
 
+  componentDidMount() {
+    this.loadPreSelectFilters();
+    this.firstLoad = false;
+    this.bindResizeToWindowResize();
+  }
+
   componentWillReceiveProps(nextProps) {
-    if (nextProps.isFiltersChanged) {
+    // check filters is changed
+    if (!areObjectsEqual(nextProps.filters, this.props.filters)) {
       this.renderUnsavedChangeAlert();
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    if (!areObjectsEqual(prevProps.filters, this.props.filters) && this.props.refresh) {
+      Object.keys(this.props.filters).forEach(sliceId => (this.refreshExcept(sliceId)));
     }
   }
 
@@ -86,10 +105,131 @@ class Dashboard extends React.PureComponent {
     });
   }
 
+  // return charts in array
+  getAllSlices() {
+    return Object.keys(this.props.slices).map(key => (this.props.slices[key]));
+  }
+
+  getFormDataExtra(slice) {
+    const formDataExtra = Object.assign({}, slice.formData);
+    const extraFilters = this.effectiveExtraFilters(slice.slice_id);
+    formDataExtra.filters = formDataExtra.filters.concat(extraFilters);
+    return formDataExtra;
+  }
+
   unload() {
     const message = t('You have unsaved changes.');
     window.event.returnValue = message; // Gecko + IE
     return message; // Gecko + Webkit, Safari, Chrome etc.
+  }
+
+  fetchSlice(slice, force = false) {
+    return this.props.actions.runQuery(
+      this.getFormDataExtra(slice), force, this.props.timeout, slice.chartKey);
+  }
+
+  effectiveExtraFilters(sliceId) {
+    const metadata = this.props.dashboard.metadata;
+    const filters = this.props.filters;
+    const f = [];
+    const immuneSlices = metadata.filter_immune_slices || [];
+    if (sliceId && immuneSlices.includes(sliceId)) {
+      // The slice is immune to dashboard filters
+      return f;
+    }
+
+    // Building a list of fields the slice is immune to filters on
+    let immuneToFields = [];
+    if (
+      sliceId &&
+      metadata.filter_immune_slice_fields &&
+      metadata.filter_immune_slice_fields[sliceId]) {
+      immuneToFields = metadata.filter_immune_slice_fields[sliceId];
+    }
+    for (const filteringSliceId in filters) {
+      if (filteringSliceId === sliceId.toString()) {
+        // Filters applied by the slice don't apply to itself
+        continue;
+      }
+      for (const field in filters[filteringSliceId]) {
+        if (!immuneToFields.includes(field)) {
+          f.push({
+            col: field,
+            op: 'in',
+            val: filters[filteringSliceId][field],
+          });
+        }
+      }
+    }
+    return f;
+  }
+
+  jsonEndpoint(data, force = false) {
+    let endpoint = getExploreUrl(data, 'json', force);
+    if (endpoint.charAt(0) !== '/') {
+      // Known issue for IE <= 11:
+      // https://connect.microsoft.com/IE/feedbackdetail/view/1002846/pathname-incorrect-for-out-of-document-elements
+      endpoint = '/' + endpoint;
+    }
+    return endpoint;
+  }
+
+  loadPreSelectFilters() {
+    for (const key in this.props.filters) {
+      for (const col in this.props.filters[key]) {
+        const sliceId = parseInt(key, 10);
+        this.props.actions.addFilter(sliceId, col,
+          this.props.filters[key][col], false, false);
+      }
+    }
+  }
+
+  refreshExcept(sliceId) {
+    const immune = this.props.dashboard.metadata.filter_immune_slices || [];
+    const slices = this.getAllSlices()
+      .filter(slice => slice.slice_id !== sliceId && immune.indexOf(slice.slice_id) === -1);
+    this.renderSlices(slices);
+  }
+
+  stopPeriodicRender() {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  startPeriodicRender(interval) {
+    this.stopPeriodicRender();
+    const dash = this;
+    const immune = this.props.dashboard.metadata.timed_refresh_immune_slices || [];
+    const refreshAll = () => {
+      const affectedSlices = this.getAllSlices()
+        .filter(slice => immune.indexOf(slice.slice_id) === -1);
+      dash.renderSlices(affectedSlices, true, interval * 0.2);
+    };
+    const fetchAndRender = function () {
+      refreshAll();
+      if (interval > 0) {
+        dash.refreshTimer = setTimeout(fetchAndRender, interval);
+      }
+    };
+
+    fetchAndRender();
+  }
+
+  readFilters() {
+    // Returns a list of human readable active filters
+    return JSON.stringify(this.props.filters, null, '  ');
+  }
+
+  bindResizeToWindowResize() {
+    let resizeTimer;
+    const dash = this;
+    const allSlices = this.getAllSlices();
+    $(window).on('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(dash.renderSlices(allSlices), 500);
+    });
   }
 
   updateDashboardTitle(title) {
@@ -119,6 +259,27 @@ class Dashboard extends React.PureComponent {
     });
   }
 
+  // render an list of slices
+  renderSlices(slc, force = false, interval = 0) {
+    const dash = this;
+    const slices = slc || this.getAllSlices();
+    if (!interval) {
+      slices.forEach(slice => (dash.fetchSlice(slice, force)));
+      return;
+    }
+
+    const meta = this.props.dashboard.metadata;
+    const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
+    if (typeof meta.stagger_refresh !== 'boolean') {
+      meta.stagger_refresh = meta.stagger_refresh === undefined ?
+        true : meta.stagger_refresh === 'true';
+    }
+    const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
+    slices.forEach((slice, i) => {
+      setTimeout(() => dash.fetchSlice(slice, force), delay * i);
+    });
+  }
+
   render() {
     return (
       <div id="dashboard-container">
@@ -133,12 +294,13 @@ class Dashboard extends React.PureComponent {
             onSave={this.onSave.bind(this)}
             onChange={this.onChange.bind(this)}
             serialize={this.serialize.bind(this)}
-            readFilters={this.props.readFilters.bind(this)}
-            fetchFaveStar={this.props.fetchFaveStar}
-            saveFaveStar={this.props.saveFaveStar}
-            renderSlices={this.props.renderSlices}
-            startPeriodicRender={this.props.startPeriodicRender}
-            addSlicesToDashboard={this.props.addSlicesToDashboard}
+            readFilters={this.readFilters.bind(this)}
+            fetchFaveStar={this.props.actions.fetchFaveStar.bind(this)}
+            saveFaveStar={this.props.actions.saveFaveStar.bind(this)}
+            renderSlices={this.renderSlices.bind(this, this.getAllSlices())}
+            startPeriodicRender={this.startPeriodicRender.bind(this)}
+            addSlicesToDashboard={this.props.actions.addSlicesToDashboard
+              .bind(this, this.props.dashboard.id)}
           />
         </div>
         <div id="grid-container" className="slice-grid gridster">
@@ -149,16 +311,16 @@ class Dashboard extends React.PureComponent {
             charts={this.props.slices}
             timeout={this.props.timeout}
             onChange={this.onChange.bind(this)}
-            getFormDataExtra={this.props.getFormDataExtra}
-            fetchSlice={this.props.fetchSlice}
-            saveSlice={this.props.saveSlice}
-            removeSlice={this.props.removeSlice}
-            removeChart={this.props.removeChart}
-            updateDashboardLayout={this.props.updateDashboardLayout}
-            toggleExpandSlice={this.props.toggleExpandSlice}
-            addFilter={this.props.addFilter}
-            clearFilter={this.props.clearFilter}
-            removeFilter={this.props.removeFilter}
+            getFormDataExtra={this.getFormDataExtra.bind(this)}
+            fetchSlice={this.fetchSlice.bind(this)}
+            saveSlice={this.props.actions.saveSlice.bind(this)}
+            removeSlice={this.props.actions.removeSlice.bind(this)}
+            removeChart={this.props.actions.removeChart.bind(this)}
+            updateDashboardLayout={this.props.actions.updateDashboardLayout.bind(this)}
+            toggleExpandSlice={this.props.actions.toggleExpandSlice.bind(this)}
+            addFilter={this.props.actions.addFilter.bind(this)}
+            clearFilter={this.props.actions.clearFilter.bind(this)}
+            removeFilter={this.props.actions.removeFilter.bind(this)}
           />
         </div>
       </div>

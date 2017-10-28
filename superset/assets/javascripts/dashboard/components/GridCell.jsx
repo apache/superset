@@ -81,25 +81,20 @@ class GridCell extends React.PureComponent {
         />
         <div className="row chart-container">
           <input type="hidden" value="false" />
-          <div
-            id={'token_' + slice.slice_id}
-            className={`token col-md-12 ${this.props.isLoading ? 'is-loading' : ''}`}
-          >
-            <ChartContainer
-              containerId={`slice-container-${slice.slice_id}`}
-              chartKey={this.props.chartKey}
-              datasource={this.props.datasource}
-              formData={this.props.formData}
-              height={this.height(slice)}
-              width={this.width()}
-              timeout={this.props.timeout}
-              viz_type={slice.formData.viz_type}
-              addFilter={this.props.addFilter.bind(this, slice.slice_id)}
-              getFilters={() => (this.props.filters[slice.slice_id])}
-              clearFilter={() => this.props.clearFilter.bind(this, slice.slice_id)}
-              removeFilter={() => this.props.removeFilter.bind(this, slice.slice_id)}
-            />
-          </div>
+          <ChartContainer
+            containerId={`slice-container-${slice.slice_id}`}
+            chartKey={this.props.chartKey}
+            datasource={this.props.datasource}
+            formData={this.props.formData}
+            height={this.height(slice)}
+            width={this.width()}
+            timeout={this.props.timeout}
+            viz_type={slice.formData.viz_type}
+            addFilter={this.props.addFilter.bind(this, slice.slice_id)}
+            getFilters={() => (this.props.filters[slice.slice_id])}
+            clearFilter={() => this.props.clearFilter.bind(this, slice.slice_id)}
+            removeFilter={() => this.props.removeFilter.bind(this, slice.slice_id)}
+          />
         </div>
       </div>
     );

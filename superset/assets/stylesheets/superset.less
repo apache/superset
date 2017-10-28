@@ -190,8 +190,17 @@ div.widget {
     overflow: hidden;
   }
 
-  .isloading .slice_container {
-    opacity: 0.5;
+  .stack-trace-container.has-trace {
+    .alert-warning:hover {
+      cursor: pointer;
+    }
+  }
+
+  .is-loading {
+    .stack-trace-container,
+    .slice_container {
+      opacity: 0.5;
+    }
   }
 }
 
@@ -396,10 +405,4 @@ g.annotation-container {
 }
 .stroke-primary {
   stroke: @brand-primary;
-}
-
-.stack-trace-container.has-trace {
-  .alert-warning:hover {
-    cursor: pointer;
-  }
 }
