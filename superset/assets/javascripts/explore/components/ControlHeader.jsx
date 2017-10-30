@@ -2,9 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { ControlLabel, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import { t } from '../../locales';
 
 const propTypes = {
-  label: PropTypes.string.isRequired,
+  label: PropTypes.string,
   description: PropTypes.string,
   validationErrors: PropTypes.array,
   renderTrigger: PropTypes.bool,
@@ -28,7 +29,7 @@ export default class ControlHeader extends React.Component {
           {this.props.description &&
             <span>
               <InfoTooltipWithTrigger
-                label="descr"
+                label={t('description')}
                 tooltip={this.props.description}
                 placement="top"
               />
@@ -38,8 +39,8 @@ export default class ControlHeader extends React.Component {
           {this.props.renderTrigger &&
             <span>
               <InfoTooltipWithTrigger
-                label="bolt"
-                tooltip={this.props.description}
+                label={t('bolt')}
+                tooltip={t('Changing this control takes effect instantly')}
                 placement="top"
                 icon="bolt"
               />
@@ -51,6 +52,9 @@ export default class ControlHeader extends React.Component {
     return null;
   }
   render() {
+    if (!this.props.label) {
+      return null;
+    }
     const labelClass = (this.props.validationErrors.length > 0) ? 'text-danger' : '';
     return (
       <div

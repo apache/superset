@@ -28,8 +28,15 @@
 }
 
 .control-panel-section {
-  margin-bottom: 0px;
+  margin-bottom: 0;
   box-shadow: none;
+}
+.control-panel-section:last-child {
+  padding-bottom: 40px;
+ }
+
+.control-panel-section .Select-multi-value-wrapper .Select-input > input {
+  width: 100px;
 }
 
 .background-transparent {
@@ -99,4 +106,18 @@
   position: absolute;
   right: 0;
   top: 12px;
+}
+.save-modal-selector {
+  margin: 10px 0;
+}
+.list-group {
+  margin-bottom: 10px;
+}
+.color-popover.popover {
+  border: none;
+  background-color: transparent;
+}
+.color-popover .popover-content {
+  padding: 0;
+  background-color: transparent;
 }

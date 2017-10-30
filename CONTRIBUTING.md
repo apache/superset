@@ -85,7 +85,7 @@ Before you start changing the docs, you'll want to
 [fork the Superset project on Github](https://help.github.com/articles/fork-a-repo/).
 Once that new repository has been created, clone it on your local machine:
 
-    git clone git@github.com:your_username/superset.git
+    git clone git@github.com:your_username/incubator-superset.git
 
 At this point, you may also want to create a
 [Python virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)
@@ -97,7 +97,7 @@ to manage the Python packages you're about to install:
 Finally, to make changes to the rst files and build the docs using Sphinx, 
 you'll need to install a handful of dependencies from the repo you cloned:
 
-    cd superset
+    cd incubator-superset
     pip install -r dev-reqs-for-docs.txt
 
 To get the feel for how to edit and build the docs, let's edit a file, build
@@ -173,7 +173,7 @@ Check the [OS dependencies](https://superset.incubator.apache.org/installation.h
     source env/bin/activate
 
     # install for development
-    python setup.py develop
+    pip install -e .
 
     # Create an admin user
     fabmanager create-admin --app superset
@@ -262,9 +262,15 @@ Before running python unit tests, please setup local testing environment:
 pip install -r dev-reqs.txt
 ```
 
-Python tests can be run with:
+All python tests can be run with:
 
     ./run_tests.sh
+    
+Alternatively, you can run a specific test with:
+
+    ./run_specific_test.sh tests.core_tests:CoreTests.test_function_name
+    
+Note that before running specific tests, you have to both setup the local testing environment and run all tests.
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
@@ -331,6 +337,8 @@ key is to instrument the strings that need translation using
 a module, all you have to do is to `_("Wrap your strings")` using the
 underscore `_` "function".
 
+We use `import {t, tn, TCT} from locales;` in js, JSX file, locales is in `./superset/assets/javascripts/` directory.
+
 To enable changing language in your environment, you can simply add the
 `LANGUAGES` parameter to your `superset_config.py`. Having more than one
 options here will add a language selection dropdown on the right side of the
@@ -350,7 +358,7 @@ new language dictionary, run the following command:
 Then it's a matter of running the statement below to gather all strings that
 need translation
 
-    fabmanager babel-extract --target superset/translations/
+    fabmanager babel-extract --target superset/translations/ -k _ -k __ -k t -k tn -k tct
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
@@ -358,6 +366,14 @@ to take effect, they need to be compiled using this command:
 
     fabmanager babel-compile --target superset/translations/
 
+In the case of JS translation, we need to convert the PO file into a JSON file, and we need the global download of the npm package po2json.
+We need to be compiled using this command:
+
+    npm install po2json -g
+
+Execute this command to convert the en PO file into a json file:
+
+    po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
 
 ## Adding new datasources
 

@@ -7,6 +7,7 @@ import { now, epochTimeXHoursAgo,
   epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 import AsyncSelect from '../../components/AsyncSelect';
+import { t } from '../../locales';
 
 const $ = window.$ = require('jquery');
 
@@ -102,7 +103,7 @@ class QuerySearch extends React.PureComponent {
     if (data.result.length === 0) {
       this.props.actions.addAlert({
         bsStyle: 'danger',
-        msg: "It seems you don't have access to any database",
+        msg: t('It seems you don\'t have access to any database'),
       });
     }
     return options;
@@ -150,44 +151,43 @@ class QuerySearch extends React.PureComponent {
               type="text"
               onChange={this.changeSearch.bind(this)}
               className="form-control input-sm"
-              placeholder="Search Results"
+              placeholder={t('Search Results')}
             />
           </div>
-          <div className="col-sm-1">
+          <div className="col-sm-4 search-date-filter-container">
             <Select
               name="select-from"
-              placeholder="[From]-"
+              placeholder={t('[From]-')}
               options={TIME_OPTIONS
-                .slice(1, TIME_OPTIONS.length).map(t => ({ value: t, label: t }))}
+                .slice(1, TIME_OPTIONS.length).map(xt => ({ value: xt, label: xt }))}
               value={this.state.from}
               autosize={false}
               onChange={this.changeFrom.bind(this)}
             />
-          </div>
-          <div className="col-sm-1">
+
             <Select
               name="select-to"
-              placeholder="[To]-"
-              options={TIME_OPTIONS.map(t => ({ value: t, label: t }))}
+              placeholder={t('[To]-')}
+              options={TIME_OPTIONS.map(xt => ({ value: xt, label: xt }))}
               value={this.state.to}
               autosize={false}
               onChange={this.changeTo.bind(this)}
             />
-          </div>
-          <div className="col-sm-1">
+
             <Select
               name="select-status"
-              placeholder="[Query Status]"
+              placeholder={t('[Query Status]')}
               options={STATUS_OPTIONS.map(s => ({ value: s, label: s }))}
               value={this.state.status}
               isLoading={false}
               autosize={false}
               onChange={this.changeStatus.bind(this)}
             />
+
+            <Button bsSize="small" bsStyle="success" onClick={this.refreshQueries.bind(this)}>
+              {t('Search')}
+            </Button>
           </div>
-          <Button bsSize="small" bsStyle="success" onClick={this.refreshQueries.bind(this)}>
-            Search
-          </Button>
         </div>
         {this.state.queriesLoading ?
           (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)

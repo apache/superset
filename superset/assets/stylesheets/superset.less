@@ -1,3 +1,6 @@
+@import './less/index.less';
+@import "./less/cosmo/variables.less";
+
 body {
     margin: 0px !important;
 }
@@ -152,9 +155,6 @@ img.viz-thumb-option {
 }
 
 
-div.header {
-  font-weight: bold;
-}
 li.widget:hover {
   z-index: 1000;
 }
@@ -210,6 +210,8 @@ div.widget .slice_container {
 .editable-title input[type="button"] {
     border-color: transparent;
     background: inherit;
+    white-space: normal;
+    text-align: left;
 }
 
 .editable-title input[type="button"]:hover {
@@ -340,13 +342,22 @@ iframe {
 }
 
 // overwrite react-select css
-.Select-multi-value-wrapper .Select-input {
-  display: inline-block;
-  width: 100px;
+.Select--multi {
+  .Select-multi-value-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    padding-bottom: 3px;
+  }
+
+  .Select-value {
+    line-height: 1.2;
+  }
+
+  .Select-input > input {
+    width: 100px;
+  }
 }
-.Select--multi .Select-value {
-  line-height: 1.2;
-}
+
 .dimmed {
   opacity: 0.5;
 }
@@ -356,9 +367,27 @@ iframe {
 .PopoverSection {
   padding-bottom: 10px;
 }
+.popover {
+  max-width: 500px !important;
+}
 .float-left {
   float: left;
 }
 .float-right {
   float: right;
+}
+
+g.annotation-container {
+  line {
+    stroke: @stroke-primary;
+  }
+
+  rect.annotation {
+    stroke: @stroke-primary;
+    fill-opacity: 0.1;
+    stroke-width: 1;
+  }
+}
+.stroke-primary {
+  stroke: @brand-primary;
 }

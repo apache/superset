@@ -82,7 +82,7 @@ export default class FilterableTable extends PureComponent {
       const newRow = {};
       for (const k in row) {
         const val = row[k];
-        if (typeof (val) === 'string') {
+        if (['string', 'number'].indexOf(typeof (val)) >= 0) {
           newRow[k] = val;
         } else {
           newRow[k] = JSON.stringify(val);
@@ -150,7 +150,6 @@ export default class FilterableTable extends PureComponent {
     }
 
     const rowGetter = ({ index }) => this.getDatum(sortedAndFilteredList, index);
-
     return (
       <div
         style={{ height }}

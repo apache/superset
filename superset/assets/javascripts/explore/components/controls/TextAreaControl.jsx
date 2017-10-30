@@ -12,6 +12,7 @@ import 'brace/theme/textmate';
 
 import ControlHeader from '../ControlHeader';
 import ModalTrigger from '../../../components/ModalTrigger';
+import { t } from '../../../locales';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -59,7 +60,7 @@ export default class TextAreaControl extends React.Component {
       <FormGroup controlId="formControlsTextarea">
         <FormControl
           componentClass="textarea"
-          placeholder="textarea"
+          placeholder={t('textarea')}
           onChange={this.onControlChange.bind(this)}
           value={this.props.value}
           style={{ height: this.props.height }}
@@ -77,7 +78,7 @@ export default class TextAreaControl extends React.Component {
           modalTitle={controlHeader}
           triggerNode={
             <Button bsSize="small" className="m-t-5">
-              Edit <strong>{this.props.language}</strong> in modal
+              {t('Edit')} <strong>{this.props.language}</strong> {t('in modal')}
             </Button>
           }
           modalBody={this.renderEditor(true)}

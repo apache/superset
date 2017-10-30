@@ -41,7 +41,7 @@ export default function QueryAndSaveBtns(
       bsStyle={qryButtonStyle}
       disabled={!!errorMessage}
     >
-      <i className="fa fa-bolt" /> Query
+      <i className="fa fa-bolt" /> Run Query
     </Button>
   );
 

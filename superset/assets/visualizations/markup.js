@@ -1,4 +1,4 @@
-const $ = require('jquery');
+const srcdoc = require('srcdoc-polyfill');
 
 require('./markup.css');
 
@@ -23,9 +23,12 @@ function markupWidget(slice, payload) {
     <iframe id="${iframeId}"
       frameborder="0"
       height="${slice.height()}"
-      sandbox="allow-scripts">
-    </iframe>`);
-  $('#' + iframeId)[0].srcdoc = html;
+      sandbox="allow-same-origin allow-scripts allow-top-navigation allow-popups">
+    </iframe>
+  `);
+
+  const iframe = document.getElementById(iframeId);
+  srcdoc.set(iframe, html);
 }
 
 module.exports = markupWidget;

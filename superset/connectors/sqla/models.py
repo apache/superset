@@ -10,7 +10,7 @@ from sqlalchemy import (
     DateTime,
 )
 import sqlalchemy as sa
-from sqlalchemy import asc, and_, desc, select
+from sqlalchemy import asc, and_, desc, select, or_
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import table, literal_column, text, column
@@ -364,7 +364,8 @@ class SqlaTable(Model, BaseDatasource):
             orderby=None,
             extras=None,
             columns=None,
-            form_data=None):
+            form_data=None,
+            order_desc=True):
         """Querying any sqla table from this common interface"""
         template_kwargs = {
             'from_dttm': from_dttm,
@@ -376,6 +377,8 @@ class SqlaTable(Model, BaseDatasource):
         }
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
+
+        orderby = orderby or []
 
         # For backward compatibility
         if granularity not in self.dttm_cols:
@@ -391,15 +394,12 @@ class SqlaTable(Model, BaseDatasource):
             raise Exception(_(
                 "Datetime column not provided as part table configuration "
                 "and is required by this type of chart"))
+        if not groupby and not metrics and not columns:
+            raise Exception(_("Empty query?"))
         for m in metrics:
             if m not in metrics_dict:
                 raise Exception(_("Metric '{}' is not valid".format(m)))
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
-        timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
-        timeseries_limit_metric_expr = None
-        if timeseries_limit_metric:
-            timeseries_limit_metric_expr = \
-                timeseries_limit_metric.sqla_col
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -511,12 +511,13 @@ class SqlaTable(Model, BaseDatasource):
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
-        if groupby:
-            qry = qry.order_by(desc(main_metric_expr))
-        elif orderby:
-            for col, ascending in orderby:
-                direction = asc if ascending else desc
-                qry = qry.order_by(direction(col))
+
+        if not orderby and not columns:
+            orderby = [(main_metric_expr, not order_desc)]
+
+        for col, ascending in orderby:
+            direction = asc if ascending else desc
+            qry = qry.order_by(direction(col))
 
         if row_limit:
             qry = qry.limit(row_limit)
@@ -536,11 +537,15 @@ class SqlaTable(Model, BaseDatasource):
             )
             subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
             subq = subq.group_by(*inner_groupby_exprs)
+
             ob = inner_main_metric_expr
-            if timeseries_limit_metric_expr is not None:
-                ob = timeseries_limit_metric_expr
-            subq = subq.order_by(desc(ob))
+            if timeseries_limit_metric:
+                timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
+                ob = timeseries_limit_metric.sqla_col
+            direction = desc if order_desc else asc
+            subq = subq.order_by(direction(ob))
             subq = subq.limit(timeseries_limit)
+
             on_clause = []
             for i, gb in enumerate(groupby):
                 on_clause.append(
@@ -580,30 +585,29 @@ class SqlaTable(Model, BaseDatasource):
             table = self.get_sqla_table_object()
         except Exception:
             raise Exception(_(
-                "Table doesn't seem to exist in the specified database, "
-                "couldn't fetch column information"))
+                "Table [{}] doesn't seem to exist in the specified database, "
+                "couldn't fetch column information").format(self.table_name))
 
-        TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa
         metrics = []
         any_date_col = None
-        db_dialect = self.database.get_sqla_engine().dialect
+        db_dialect = self.database.get_dialect()
+        dbcols = (
+            db.session.query(TableColumn)
+            .filter(TableColumn.table == self)
+            .filter(or_(TableColumn.column_name == col.name
+                        for col in table.columns)))
+        dbcols = {dbcol.column_name: dbcol for dbcol in dbcols}
+
         for col in table.columns:
             try:
-                datatype = "{}".format(col.type).upper()
+                datatype = col.type.compile(dialect=db_dialect).upper()
             except Exception as e:
                 datatype = "UNKNOWN"
                 logging.error(
                     "Unrecognized data type in {}.{}".format(table, col.name))
                 logging.exception(e)
-            dbcol = (
-                db.session
-                .query(TC)
-                .filter(TC.table == self)
-                .filter(TC.column_name == col.name)
-                .first()
-            )
-            db.session.flush()
+            dbcol = dbcols.get(col.name, None)
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name, type=datatype)
                 dbcol.groupby = dbcol.is_string
@@ -611,14 +615,11 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
-
-            db.session.merge(self)
             self.columns.append(dbcol)
-
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
 
-            quoted = "{}".format(col.compile(dialect=db_dialect))
+            quoted = str(col.compile(dialect=db_dialect))
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,
@@ -655,8 +656,6 @@ class SqlaTable(Model, BaseDatasource):
                     expression="COUNT(DISTINCT {})".format(quoted)
                 ))
             dbcol.type = datatype
-            db.session.merge(self)
-            db.session.commit()
 
         metrics.append(M(
             metric_name='count',
@@ -664,19 +663,18 @@ class SqlaTable(Model, BaseDatasource):
             metric_type='count',
             expression="COUNT(*)"
         ))
+
+        dbmetrics = db.session.query(M).filter(M.table_id == self.id).filter(
+            or_(M.metric_name == metric.metric_name for metric in metrics))
+        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics:
-            m = (
-                db.session.query(M)
-                .filter(M.metric_name == metric.metric_name)
-                .filter(M.table_id == self.id)
-                .first()
-            )
             metric.table_id = self.id
-            if not m:
+            if not dbmetrics.get(metric.metric_name, None):
                 db.session.add(metric)
-                db.session.commit()
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
+        db.session.merge(self)
+        db.session.commit()
 
     @classmethod
     def import_obj(cls, i_datasource, import_time=None):

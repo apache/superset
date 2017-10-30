@@ -29,6 +29,8 @@ from sqlalchemy import select
 from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
 
+from sqlalchemy.engine.url import make_url
+
 from superset.utils import SupersetTemplateException
 from superset.utils import QueryStatus
 from superset import conf, cache_util, utils
@@ -183,6 +185,28 @@ class BaseEngineSpec(object):
         if indent:
             sql = sqlparse.format(sql, reindent=True)
         return sql
+
+    @classmethod
+    def modify_url_for_impersonation(cls, url, impersonate_user, username):
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        if impersonate_user is not None and username is not None:
+            url.username = username
+
+    @classmethod
+    def get_uri_for_impersonation(cls, uri, impersonate_user, username):
+        """
+        Return a new URI string that allows for user impersonation.
+        :param uri: URI string
+        :param impersonate_user:  Bool indicating if impersonation is enabled
+        :param username: Effective username
+        :return: New URI string
+        """
+        return uri
 
 
 class PostgresEngineSpec(BaseEngineSpec):
@@ -439,7 +463,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         result_set_df = db.get_df(
             """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
                ORDER BY concat(table_schema, '.', table_name)""".format(
-                datasource_type.upper()), None)
+                   datasource_type.upper()), None)
         result_sets = defaultdict(list)
         for unused, row in result_set_df.iterrows():
             result_sets[row['table_schema']].append(row['table_name'])
@@ -668,7 +692,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def patch(cls):
         from pyhive import hive
         from superset.db_engines import hive as patched_hive
-        from pythrifthiveapi.TCLIService import (
+        from TCLIService import (
             constants as patched_constants,
             ttypes as patched_ttypes,
             TCLIService as patched_TCLIService)
@@ -677,6 +701,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.constants = patched_constants
         hive.ttypes = patched_ttypes
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
+        hive.Connection = patched_hive.ConnectionProxyUser
 
     @classmethod
     @cache_util.memoized_func(
@@ -830,6 +855,35 @@ class HiveEngineSpec(PrestoEngineSpec):
             cls, table_name, limit=0, order_by=None, filters=None):
         return "SHOW PARTITIONS {table_name}".format(**locals())
 
+    @classmethod
+    def modify_url_for_impersonation(cls, url, impersonate_user, username):
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        if impersonate_user is not None and "auth" in url.query.keys() and username is not None:
+            url.query["hive_server2_proxy_user"] = username
+
+    @classmethod
+    def get_uri_for_impersonation(cls, uri, impersonate_user, username):
+        """
+        Return a new URI string that allows for user impersonation.
+        :param uri: URI string
+        :param impersonate_user:  Bool indicating if impersonation is enabled
+        :param username: Effective username
+        :return: New URI string
+        """
+        new_uri = uri
+        url = make_url(uri)
+        backend_name = url.get_backend_name()
+
+        # Must be Hive connection, enable impersonation, and set param auth=LDAP|KERBEROS
+        if backend_name == "hive" and "auth" in url.query.keys() and\
+                        impersonate_user is True and username is not None:
+            new_uri += "&hive_server2_proxy_user={0}".format(username)
+        return new_uri
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
@@ -1003,8 +1057,7 @@ class BQEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == 'DATE':
             return "'{}'".format(dttm.strftime('%Y-%m-%d'))
-        else:
-            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
@@ -1028,8 +1081,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         tt = target_type.upper()
         if tt == 'DATE':
             return "'{}'".format(dttm.strftime('%Y-%m-%d'))
-        else:
-            return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 engines = {

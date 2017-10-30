@@ -5,30 +5,43 @@ import { slugify } from '../modules/utils';
 
 const propTypes = {
   label: PropTypes.string.isRequired,
-  tooltip: PropTypes.string.isRequired,
+  tooltip: PropTypes.string,
   icon: PropTypes.string,
   className: PropTypes.string,
   onClick: PropTypes.func,
   placement: PropTypes.string,
+  bsStyle: PropTypes.string,
 };
 const defaultProps = {
   icon: 'info-circle',
   className: 'text-muted',
   placement: 'right',
 };
+const tooltipStyle = { wordWrap: 'break-word' };
 
 export default function InfoTooltipWithTrigger({
-    label, tooltip, icon, className, onClick, placement }) {
+    label, tooltip, icon, className, onClick, placement, bsStyle }) {
+  const iconClass = `fa fa-${icon} ${className} ${bsStyle ? 'text-' + bsStyle : ''}`;
+  const iconEl = (
+    <i
+      className={iconClass}
+      onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : null }}
+    />
+  );
+  if (!tooltip) {
+    return iconEl;
+  }
   return (
     <OverlayTrigger
       placement={placement}
-      overlay={<Tooltip id={`${slugify(label)}-tooltip`}>{tooltip}</Tooltip>}
+      overlay={
+        <Tooltip id={`${slugify(label)}-tooltip`} style={tooltipStyle}>
+          {tooltip}
+        </Tooltip>
+      }
     >
-      <i
-        className={`fa fa-${icon} ${className}`}
-        onClick={onClick}
-        style={{ cursor: onClick ? 'pointer' : null }}
-      />
+      {iconEl}
     </OverlayTrigger>
   );
 }

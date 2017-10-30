@@ -14,6 +14,7 @@ import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
 import CachedLabel from '../../components/CachedLabel';
+import { t } from '../../locales';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -152,15 +153,22 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.runQuery(this.props.formData, true, this.props.timeout);
   }
 
-  updateChartTitle(newTitle) {
+  updateChartTitleOrSaveSlice(newTitle) {
+    const isNewSlice = !this.props.slice;
     const params = {
       slice_name: newTitle,
-      action: 'overwrite',
+      action: isNewSlice ? 'saveas' : 'overwrite',
     };
     const saveUrl = getExploreUrl(this.props.formData, 'base', false, null, params);
     this.props.actions.saveSlice(saveUrl)
-      .then(() => {
-        this.props.actions.updateChartTitle(newTitle);
+      .then((data) => {
+        if (isNewSlice) {
+          this.props.actions.createNewSlice(
+              data.can_add, data.can_download, data.can_overwrite,
+              data.slice, data.form_data);
+        } else {
+          this.props.actions.updateChartTitle(newTitle);
+        }
       });
   }
 
@@ -169,7 +177,7 @@ class ChartContainer extends React.PureComponent {
     if (this.props.slice) {
       title = this.props.slice.slice_name;
     } else {
-      title = `[${this.props.table_name}] - untitled`;
+      title = t('%s - untitled', this.props.table_name);
     }
     return title;
   }
@@ -178,8 +186,8 @@ class ChartContainer extends React.PureComponent {
     this.props.actions.renderTriggered();
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
+    const viz = visMap[this.props.viz_type];
     try {
-      const viz = visMap[this.props.viz_type];
       viz(mockSlice, this.props.queryResponse, this.props.actions.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
@@ -262,8 +270,8 @@ class ChartContainer extends React.PureComponent {
             >
               <EditableTitle
                 title={this.renderChartTitle()}
-                canEdit={this.props.can_overwrite}
-                onSaveTitle={this.updateChartTitle.bind(this)}
+                canEdit={!this.props.slice || this.props.can_overwrite}
+                onSaveTitle={this.updateChartTitleOrSaveSlice.bind(this)}
               />
 
               {this.props.slice &&
@@ -276,7 +284,7 @@ class ChartContainer extends React.PureComponent {
 
                   <TooltipWrapper
                     label="edit-desc"
-                    tooltip="Edit slice properties"
+                    tooltip={t('Edit slice properties')}
                   >
                     <a
                       className="edit-desc-icon"
