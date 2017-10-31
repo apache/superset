@@ -24,6 +24,14 @@ export function getExploreUrl(form_data, endpointType = 'base', force = false,
   const [datasource_id, datasource_type] = form_data.datasource.split('__');
   directory += `${datasource_type}/${datasource_id}/`;
 
+  // Removing empty filters
+  if ('filters' in form_data) {
+    // eslint-disable-next-line no-param-reassign
+    form_data.filters = form_data.filters.filter(filter => (
+      Array.isArray(filter.val) ? filter.val.length : filter.val
+    ));
+  }
+
   // Building the querystring (search) part of the URI
   const search = uri.search(true);
   search.form_data = JSON.stringify(form_data);
