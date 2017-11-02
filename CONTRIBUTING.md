@@ -351,14 +351,15 @@ navigation bar.
     }
 
 As per the [Flask AppBuilder documentation] about translation, to create a
-new language dictionary, run the following command:
+new language dictionary, run the following command (where `es` is replaced with
+the language code for your target language):
 
-    pybabel init -i ./babel/messages.pot -d superset/translations -l es
+    pybabel init -i superset/translations/messages.pot -d superset/translations -l es
 
 Then it's a matter of running the statement below to gather all strings that
 need translation
 
-    fabmanager babel-extract --target superset/translations/ -k _ -k __ -k t -k tn -k tct
+    fabmanager babel-extract --target superset/translations/ --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
@@ -374,6 +375,11 @@ We need to be compiled using this command:
 Execute this command to convert the en PO file into a json file:
 
     po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+
+If you get errors running `po2json`, you might be running the ubuntu package with the same
+name rather than the nodejs package (they have a different format for the arguments). You
+need to be running the nodejs version, and so if there is a conflict you may need to point
+directly at `/usr/local/bin/po2json` rather than just `po2json`.
 
 ## Adding new datasources
 
