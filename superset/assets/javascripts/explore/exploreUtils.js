@@ -28,7 +28,8 @@ export function getExploreUrl(form_data, endpointType = 'base', force = false,
   if ('filters' in form_data) {
     // eslint-disable-next-line no-param-reassign
     form_data.filters = form_data.filters.filter(filter => (
-      Array.isArray(filter.val) ? filter.val.length : filter.val
+      // Filter empty strings or arrays
+      !((typeof filter.val === 'string' || Array.isArray(filter.val)) && filter.val.length === 0)
     ));
   }
 
