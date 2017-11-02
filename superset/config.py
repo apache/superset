@@ -161,6 +161,7 @@ LANGUAGES = {
     'it': {'flag': 'it', 'name': 'Italian'},
     'fr': {'flag': 'fr', 'name': 'French'},
     'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'ja': {'flag': 'jp', 'name': 'Japanese'},
 }
 # ---------------------------------------------------
 # Image and file configuration

@@ -12,6 +12,7 @@ import pickle
 import re
 import time
 import traceback
+from urllib import parse
 
 import sqlalchemy as sqla
 
@@ -389,7 +390,11 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'viz_type': _("Visualization Type"),
     }
 
+    def pre_add(self, obj):
+        utils.validate_json(obj.params)
+
     def pre_update(self, obj):
+        utils.validate_json(obj.params)
         check_ownership(obj)
 
     def pre_delete(self, obj):
@@ -946,7 +951,7 @@ class Superset(BaseSupersetView):
             .format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
-                json.dumps(viz_obj.form_data)
+                parse.quote(json.dumps(viz_obj.form_data)),
             )
         )
         if request.args.get("standalone") == "true":
@@ -1212,7 +1217,7 @@ class Superset(BaseSupersetView):
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
             "can_overwrite": is_owner(slc, g.user),
-            'form_data': form_data,
+            'form_data': slc.form_data,
             'slice': slc.data,
         }
 

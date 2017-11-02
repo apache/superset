@@ -190,6 +190,7 @@ the world know they are using Superset. Join our growing community!
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
  - [Udemy](https://www.udemy.com/)
+ - [VIPKID](https://www.vipkid.com.cn/)
  - [Yahoo!](https://yahoo.com/)
  - [Zalando](https://www.zalando.com)
 

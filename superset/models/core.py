@@ -195,7 +195,12 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def form_data(self):
-        form_data = json.loads(self.params)
+        form_data = {}
+        try:
+            form_data = json.loads(self.params)
+        except Exception as e:
+            logging.error("Malformed json in slice's params")
+            logging.exception(e)
         form_data.update({
             'slice_id': self.id,
             'viz_type': self.viz_type,
@@ -783,8 +788,8 @@ class Database(Model, AuditMixinNullable):
 
     def has_table(self, table):
         engine = self.get_sqla_engine()
-        return engine.dialect.has_table(
-            engine, table.table_name, table.schema or None)
+        return engine.has_table(
+            table.table_name, table.schema or None)
 
     def get_dialect(self):
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
