@@ -1049,7 +1049,7 @@ class Superset(BaseSupersetView):
             status=200,
             mimetype='application/json')
 
-#   @has_access_api # remove until we figure out auth
+    #@has_access_api # remove until we figure out auth
     @log_this
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
     def explore_json(self, datasource_type, datasource_id):
@@ -1064,7 +1064,7 @@ class Superset(BaseSupersetView):
                 utils.error_msg_from_exception(e),
                 stacktrace=traceback.format_exc())
 
-        if not self.datasource_access(viz_obj.datasource):
+        if not self.datasource_access(viz_obj.datasource) and request.args.get("restful") != "true":
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
 
         if request.args.get('csv') == 'true':
