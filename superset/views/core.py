@@ -1049,9 +1049,9 @@ class Superset(BaseSupersetView):
             status=200,
             mimetype='application/json')
 
+#   @has_access_api # remove until we figure out auth
     @log_this
-    @has_access_api
-    @expose('/explore_json/<datasource_type>/<datasource_id>/')
+    @expose("/explore_json/<datasource_type>/<datasource_id>/")
     def explore_json(self, datasource_type, datasource_id):
         try:
             viz_obj = self.get_viz(
@@ -1840,6 +1840,7 @@ class Superset(BaseSupersetView):
     @expose('/dashboard/<dashboard_id>/')
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
+        logging.info("in dashboard")
         session = db.session()
         qry = session.query(models.Dashboard)
         if dashboard_id.isdigit():
@@ -1896,6 +1897,61 @@ class Superset(BaseSupersetView):
             title='[dashboard] ' + dash.dashboard_title,
             bootstrap_data=json.dumps(bootstrap_data),
         )
+
+    @expose("/dashboard_json/<dashboard_id>/")
+    def dashboard_json(self, dashboard_id):
+        """Server side rendering for a dashboard"""
+        session = db.session()
+        qry = session.query(models.Dashboard)
+        if dashboard_id.isdigit():
+            qry = qry.filter_by(id=int(dashboard_id))
+        else:
+            qry = qry.filter_by(slug=dashboard_id)
+
+        dash = qry.one()
+        datasources = set()
+        for slc in dash.slices:
+            datasource = slc.datasource
+            if datasource:
+                datasources.add(datasource)
+
+        # Commenting until we figure out Authentication from a service
+        # for datasource in datasources:
+        #     if datasource and not self.datasource_access(datasource):
+        #         flash(
+        #             __(get_datasource_access_error_msg(datasource.name)),
+        #             "danger")
+        #         return redirect(
+        #             'superset/request_access/?'
+        #             'dashboard_id={dash.id}&'.format(**locals()))
+
+        # Hack to log the dashboard_id properly, even when getting a slug
+        @log_this
+        def dashboard(**kwargs):  # noqa
+            pass
+        dashboard(dashboard_id=dash.id)
+
+        dash_edit_perm = check_ownership(dash, raise_if_false=False)
+        dash_save_perm = \
+            dash_edit_perm and self.can_access('can_save_dash', 'Superset')
+
+        standalone_mode = request.args.get("standalone") == "true"
+
+        dashboard_data = dash.data
+        dashboard_data.update({
+            'standalone_mode': standalone_mode,
+            'dash_save_perm': dash_save_perm,
+            'dash_edit_perm': dash_edit_perm,
+        })
+
+        bootstrap_data = {
+            'user_id': g.user.get_id(),
+            'dashboard_data': dashboard_data,
+            'datasources': {ds.uid: ds.data for ds in datasources},
+            'common': self.common_bootsrap_payload(),
+        }
+
+        return json_success(json.dumps(bootstrap_data))
 
     @has_access
     @expose('/sync_druid/', methods=['POST'])
