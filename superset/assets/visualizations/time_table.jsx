@@ -3,6 +3,7 @@ import React from 'react';
 import propTypes from 'prop-types';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
 import d3 from 'd3';
+import Mustache from 'mustache';
 import { Sparkline, LineSeries, PointSeries, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
 
 import MetricOption from '../javascripts/components/MetricOption';
@@ -54,12 +55,14 @@ function viz(slice, payload) {
   }
   const tableData = metrics.map((metric) => {
     let leftCell;
+    const context = { ...fd, metric };
+    const url = fd.url ? Mustache.render(fd.url, context) : null;
     if (!payload.data.is_group_by) {
       leftCell = (
-        <MetricOption metric={metricMap[metric]} url={fd.url} showFormula={false} openInNewWindow />
+        <MetricOption metric={metricMap[metric]} url={url} showFormula={false} openInNewWindow />
       );
     } else {
-      leftCell = fd.url ? <a href={fd.url} target="_blank">{metric}</a> : metric;
+      leftCell = url ? <a href={url} target="_blank">{metric}</a> : metric;
     }
     const row = { metric: leftCell };
     fd.column_collection.forEach((c) => {
