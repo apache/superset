@@ -12,8 +12,7 @@ from mock import Mock, patch
 
 from superset import db, security, sm
 from superset.connectors.druid.models import (
-    DruidCluster, DruidDatasource, DruidMetric, Postaggregator, PyDruid,
-    Quantile,
+    DruidCluster, DruidDatasource, DruidMetric,
 )
 from .base_tests import SupersetTestCase
 
@@ -75,7 +74,7 @@ class DruidTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)
 
-    @patch('superset.connectors.druid.models.PyDruid')  # noqa ignore: F811
+    @patch('superset.connectors.druid.models.PyDruid')
     def test_client(self, PyDruid):
         self.login(username='admin')
         instance = PyDruid.return_value
@@ -280,7 +279,7 @@ class DruidTests(SupersetTestCase):
         self.assertIn('datasource_for_gamma', resp)
         self.assertNotIn('datasource_not_for_gamma', resp)
 
-    @patch('superset.connectors.druid.models.PyDruid')  # noqa ignore: F811
+    @patch('superset.connectors.druid.models.PyDruid')
     def test_sync_druid_perm(self, PyDruid):
         self.login(username='admin')
         instance = PyDruid.return_value
