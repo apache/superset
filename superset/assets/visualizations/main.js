@@ -14,7 +14,7 @@ const vizMap = {
   dist_bar: require('./nvd3_vis.js'),
   filter_box: require('./filter_box.jsx'),
   heatmap: require('./heatmap.js'),
-  histogram: require('./histogram.js'),
+  histogram: require('./nvd3_vis.js'),
   horizon: require('./horizon.js'),
   iframe: require('./iframe.js'),
   line: require('./nvd3_vis.js'),

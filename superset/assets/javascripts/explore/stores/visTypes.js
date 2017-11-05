@@ -678,6 +678,11 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['all_columns_x'],
+          ['color_scheme'],
+          ['show_legend', 'show_bar_value'],
+          ['bar_stacked', 'reduce_x_ticks'],
+          ['y_axis_format', 'bottom_margin'],
+          ['x_axis_label', 'y_axis_label'],
           ['row_limit'],
         ],
       },

@@ -195,6 +195,7 @@ function nvd3Vis(slice, payload) {
         break;
 
       case 'dist_bar':
+      case 'histogram':
         chart = nv.models.multiBarChart()
         .showControls(fd.show_controls)
         .reduceXTicks(reduceXTicks)

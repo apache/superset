@@ -1172,16 +1172,14 @@ class DistributionPieViz(NVD3Viz):
         return df.to_dict(orient="records")
 
 
-class HistogramViz(BaseViz):
+class HistogramViz(NVD3Viz):
 
     """Histogram"""
 
     viz_type = "histogram"
     verbose_name = _("Histogram")
-    is_timeseries = False
 
     def query_obj(self):
-        """Returns the query object for this visualization"""
         d = super(HistogramViz, self).query_obj()
         d['row_limit'] = self.form_data.get(
             'row_limit', int(config.get('VIZ_ROW_LIMIT')))
@@ -1192,9 +1190,16 @@ class HistogramViz(BaseViz):
         return d
 
     def get_data(self, df):
-        """Returns the chart data"""
-        chart_data = df[df.columns[0]].values.tolist()
-        return chart_data
+        num_bins = int(self.form_data['link_length'])
+        num_column = self.form_data['all_columns_x']
+        binned_data = df[df.columns[0]].value_counts(bins=num_bins)
+        nvd3_chart_data = []
+        for x_interval, v in binned_data.iteritems():
+            nvd3_chart_data.append({
+                "x": str(round(x_interval.left)),
+                "y": v
+            })
+        return [{"key": num_column, "values": nvd3_chart_data}]
 
 
 class DistributionBarViz(DistributionPieViz):
