@@ -150,7 +150,7 @@ class CoreTests(SupersetTestCase):
             'slice_id': slice_id,
         }
         # Changing name and save as a new slice
-        resp = self.get_resp(
+        self.get_resp(
             url.format(
                 tbl_id,
                 copy_name,
@@ -172,7 +172,7 @@ class CoreTests(SupersetTestCase):
             'slice_id': new_slice_id,
         }
         # Setting the name back to its original name by overwriting new slice
-        resp = self.get_resp(
+        self.get_resp(
             url.format(
                 tbl_id,
                 new_slice_name,
@@ -355,7 +355,7 @@ class CoreTests(SupersetTestCase):
 
         try:
             resp = self.client.post('/kv/store/', data=dict())
-        except Exception as e:
+        except Exception:
             self.assertRaises(TypeError)
 
         value = json.dumps({'data': 'this is a test'})
@@ -372,7 +372,7 @@ class CoreTests(SupersetTestCase):
 
         try:
             resp = self.client.get('/kv/10001/')
-        except Exception as e:
+        except Exception:
             self.assertRaises(TypeError)
 
     def test_save_dash(self, username='admin'):
@@ -458,7 +458,7 @@ class CoreTests(SupersetTestCase):
             'dashboard_title': 'new title'
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
-        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = (
             db.session.query(models.Dashboard)
                 .filter_by(slug="births")
