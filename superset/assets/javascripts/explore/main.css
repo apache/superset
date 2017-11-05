@@ -121,3 +121,9 @@
   padding: 0;
   background-color: transparent;
 }
+#popover-positioned-right {
+  width: 400px;
+}
+.popover {
+  max-width: 100%;
+}

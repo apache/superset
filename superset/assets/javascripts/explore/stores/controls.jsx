@@ -85,21 +85,6 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  metrics: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Metrics'),
-    validators: [v.nonEmpty],
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? [c.options[0].metric_name] : null,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
-    description: t('One or many metrics to display'),
-  },
-
   percent_metrics: {
     type: 'SelectControl',
     multi: true,
@@ -153,32 +138,35 @@ export const controls = {
   },
 
   metric: {
-    type: 'SelectControl',
-    label: t('Metric'),
-    clearable: false,
-    description: t('Choose the metric'),
+    type: 'MetricControl',
+    label: 'Metric',
+    description: 'Choose a metric',
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? c.options[0].metric_name : null,
-    valueKey: 'metric_name',
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      datasource: state.datasource,
     }),
   },
 
-  metric_2: {
-    type: 'SelectControl',
-    label: t('Right Axis Metric'),
-    default: null,
+  metrics: {
+    type: 'MetricListControl',
+    multi: true,
+    label: 'Metrics',
     validators: [v.nonEmpty],
-    clearable: true,
-    description: t('Choose a metric for right axis'),
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      datasource: state.datasource,
+    }),
+    default: [],
+    description: 'One or many metrics to display',
+  },
+
+  metric_2: {
+    type: 'MetricControl',
+    label: 'Right Axis Metric',
+    description: 'Choose a metric for right axis',
+    validators: [v.nonEmpty],
+    clearable: false,
+    mapStateToProps: state => ({
+      datasource: state.datasource,
     }),
   },
 
@@ -378,12 +366,12 @@ export const controls = {
   },
 
   secondary_metric: {
-    type: 'SelectControl',
-    label: t('Color Metric'),
-    default: null,
-    description: t('A metric to use for color'),
+    type: 'MetricControl',
+    label: 'Color Metric',
+    description: 'A metric to use for color',
+    validators: [v.nonEmpty],
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      datasource: state.datasource,
     }),
   },
   select_country: {
@@ -767,38 +755,27 @@ export const controls = {
     description: t('Metric assigned to the [X] axis'),
     default: null,
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      datasource: state.datasource,
     }),
   },
 
   y: {
-    type: 'SelectControl',
+    type: 'MetricControl',
     label: t('Y Axis'),
-    default: null,
-    validators: [v.nonEmpty],
     description: t('Metric assigned to the [Y] axis'),
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
+    validators: [v.nonEmpty],
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      datasource: state.datasource,
     }),
   },
 
   size: {
-    type: 'SelectControl',
+    type: 'MetricControl',
     label: t('Bubble Size'),
-    default: null,
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      datasource: state.datasource,
     }),
   },
 

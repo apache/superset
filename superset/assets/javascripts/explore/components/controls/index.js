@@ -7,6 +7,8 @@ import DatasourceControl from './DatasourceControl';
 import DateFilterControl from './DateFilterControl';
 import FilterControl from './FilterControl';
 import HiddenControl from './HiddenControl';
+import MetricControl from './MetricControl';
+import MetricListControl from './MetricListControl';
 import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
 import TextAreaControl from './TextAreaControl';
@@ -24,6 +26,8 @@ const controlMap = {
   DateFilterControl,
   FilterControl,
   HiddenControl,
+  MetricControl,
+  MetricListControl,
   SelectAsyncControl,
   SelectControl,
   TextAreaControl,

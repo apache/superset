@@ -58,7 +58,16 @@ class BaseViz(object):
         self.query = ""
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
-        self.metrics = self.form_data.get('metrics') or []
+
+        metrics = self.form_data.get('metrics') or []
+        self.metrics = []
+        for m in metrics:
+            if isinstance(m, dict):
+                metric_label = m.get('label')
+            else:
+                metric_label = m
+            self.metrics.append(metric_label)
+
         self.groupby = self.form_data.get('groupby') or []
         self.annotation_layers = []
 
@@ -511,7 +520,7 @@ class PivotTableViz(BaseViz):
         df = df.pivot_table(
             index=self.form_data.get('groupby'),
             columns=self.form_data.get('columns'),
-            values=self.form_data.get('metrics'),
+            values=self.metrics,
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=self.form_data.get('pivot_margins'),
         )
@@ -576,7 +585,10 @@ class WordCloudViz(BaseViz):
 
     def get_data(self, df):
         # Ordering the columns
-        df = df[[self.form_data.get('series'), self.form_data.get('metric')]]
+        df = df[[
+            self.form_data.get('series'),
+            self.form_data.get('metric').get('label')
+        ]]
         # Labeling the columns for uniform json schema
         df.columns = ['text', 'size']
         return df.to_dict(orient="records")
@@ -771,9 +783,9 @@ class BubbleViz(NVD3Viz):
         ]
         if form_data.get('series'):
             d['groupby'].append(form_data.get('series'))
-        self.x_metric = form_data.get('x')
-        self.y_metric = form_data.get('y')
-        self.z_metric = form_data.get('size')
+        self.x_metric = form_data.get('x').get('label')
+        self.y_metric = form_data.get('y').get('label')
+        self.z_metric = form_data.get('size').get('label')
         self.entity = form_data.get('entity')
         self.series = form_data.get('series') or self.entity
         d['row_limit'] = form_data.get('limit')
@@ -969,12 +981,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=fd.get('metrics'))
+                values=self.metrics)
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=fd.get('metrics'),
+                values=self.metrics,
                 fill_value=0,
                 aggfunc=sum)
 
@@ -1090,8 +1102,8 @@ class NVD3DualLineViz(NVD3Viz):
         series = df.to_dict('series')
         chart_data = []
         metrics = [
-            self.form_data.get('metric'),
-            self.form_data.get('metric_2')
+            self.form_data.get('metric').get('label'),
+            self.form_data.get('metric_2').get('label')
         ]
         for i, m in enumerate(metrics):
             ys = series[m]
@@ -1118,8 +1130,8 @@ class NVD3DualLineViz(NVD3Viz):
         if self.form_data.get("granularity") == "all":
             raise Exception(_("Pick a time granularity for your time series"))
 
-        metric = fd.get('metric')
-        metric_2 = fd.get('metric_2')
+        metric = fd.get('metric').get('label')
+        metric_2 = fd.get('metric_2').get('label')
         df = df.pivot_table(
             index=DTTM_ALIAS,
             values=[metric, metric_2])
@@ -1280,21 +1292,20 @@ class SunburstViz(BaseViz):
 
         # if m1 == m2 duplicate the metric column
         cols = self.form_data.get('groupby')
-        metric = self.form_data.get('metric')
-        secondary_metric = self.form_data.get('secondary_metric')
-        if metric == secondary_metric:
+        if self.metric == self.secondary_metric:
             ndf = df
             ndf.columns = [cols + ['m1', 'm2']]
         else:
-            cols += [
-                self.form_data['metric'], self.form_data['secondary_metric']]
+            cols += [self.metric, self.secondary_metric]
             ndf = df[cols]
         return json.loads(ndf.to_json(orient="values"))  # TODO fix this nonsense
 
     def query_obj(self):
         qry = super(SunburstViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric'], self.form_data['secondary_metric']]
+        self.metric = self.form_data.get('metric').get('label')
+        self.secondary_metric = \
+            self.form_data.get('secondary_metric').get('label')
+        qry['metrics'] = [self.metric, self.secondary_metric]
         return qry
 
 
@@ -1412,16 +1423,14 @@ class CountryMapViz(BaseViz):
 
     def query_obj(self):
         qry = super(CountryMapViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric']]
+        qry['metrics'] = [self.form_data['metric']]
         qry['groupby'] = [self.form_data['entity']]
         return qry
 
     def get_data(self, df):
         fd = self.form_data
         cols = [fd.get('entity')]
-        metric = fd.get('metric')
-        cols += [metric]
+        cols += [fd.get('metric').get('label')]
         ndf = df[cols]
         df = ndf
         df.columns = ['country_id', 'metric']
@@ -1449,8 +1458,8 @@ class WorldMapViz(BaseViz):
         from superset.data import countries
         fd = self.form_data
         cols = [fd.get('entity')]
-        metric = fd.get('metric')
-        secondary_metric = fd.get('secondary_metric')
+        metric = fd.get('metric').get('label')
+        secondary_metric = fd.get('secondary_metric').get('label')
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -1578,7 +1587,7 @@ class HeatmapViz(BaseViz):
         fd = self.form_data
         x = fd.get('all_columns_x')
         y = fd.get('all_columns_y')
-        v = fd.get('metric')
+        v = fd.get('metric').get('label')
         if x == y:
             df.columns = ['x', 'y', 'v']
         else:
