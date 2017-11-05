@@ -206,7 +206,7 @@ function nvd3Vis(slice, payload) {
 
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
-        if (fd.order_bars) {
+        if (fd.order_bars || vizType == 'histogram') {
           data.forEach((d) => {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
