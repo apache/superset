@@ -12,6 +12,7 @@ env:
     - TRAVIS_CACHE=$HOME/.travis_cache/
     - TRAVIS_NODE_VERSION="7.10.0"
   matrix:
+    - TOX_ENV=flake8
     - TOX_ENV=javascript
     - TOX_ENV=pylint
     - TOX_ENV=py34-postgres
@@ -30,5 +31,6 @@ before_script:
 install:
   - pip install --upgrade pip
   - pip install tox tox-travis
+  - pip install --upgrade flake8
   - rm -rf ~/.nvm && git clone https://github.com/creationix/nvm.git ~/.nvm && (cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`) && source ~/.nvm/nvm.sh && nvm install $TRAVIS_NODE_VERSION
 script: tox -e $TOX_ENV
