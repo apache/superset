@@ -209,6 +209,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
     description = Column(Text)
+    is_dttm = None
 
     # [optional] Set this to support import/export functionality
     export_fields = []
@@ -252,7 +253,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     def data(self):
         attrs = (
             'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby')
+            'filterable', 'groupby', 'is_dttm')
         return {s: getattr(self, s) for s in attrs}
 
 
