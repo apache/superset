@@ -27,6 +27,7 @@ flask-caching==1.4.0
 flask-compress==1.4.0
 flask-login==0.4.1        # via flask-appbuilder
 flask-migrate==2.1.1
+flask-oauthlib==0.9.5
 flask-openid==1.2.5       # via flask-appbuilder
 flask-sqlalchemy==2.3.2   # via flask-appbuilder, flask-migrate
 flask-wtf==0.14.2
