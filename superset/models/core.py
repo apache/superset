@@ -620,23 +620,35 @@ class Database(Model, AuditMixinNullable):
             effective_username = url.username
             if user_name:
                 effective_username = user_name
-            elif hasattr(g, 'user') and g.user.username:
+            elif hasattr(g, 'user') and hasattr(g.user, 'username') and g.user.username is not None:
                 effective_username = g.user.username
         return effective_username
 
     def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
-        params = extra.get('engine_params', {})
-        if nullpool:
-            params['poolclass'] = NullPool
         url = self.db_engine_spec.adjust_database_uri(url, schema)
         effective_username = self.get_effective_user(url, user_name)
+        # If using MySQL or Presto for example, will set url.username
+        # If using Hive, will not do anything yet since that relies on a configuration parameter instead.
         self.db_engine_spec.modify_url_for_impersonation(url, self.impersonate_user, effective_username)
 
         masked_url = self.get_password_masked_url(url)
         logging.info("Database.get_sqla_engine(). Masked URL: {0}".format(masked_url))
 
+        params = extra.get('engine_params', {})
+        if nullpool:
+            params['poolclass'] = NullPool
+
+        # If using Hive, this will set hive.server2.proxy.user=$effective_username
+        configuration = {}
+        configuration.update(
+            self.db_engine_spec.get_configuration_for_impersonation(str(url),
+                                                                    self.impersonate_user,
+                                                                    effective_username))
+        if configuration:
+            params["connect_args"] = {"configuration": configuration}
+        
         return create_engine(url, **params)
 
     def get_reserved_words(self):
