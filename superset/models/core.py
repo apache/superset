@@ -648,7 +648,7 @@ class Database(Model, AuditMixinNullable):
                                                                     effective_username))
         if configuration:
             params["connect_args"] = {"configuration": configuration}
-        
+
         return create_engine(url, **params)
 
     def get_reserved_words(self):

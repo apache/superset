@@ -81,7 +81,7 @@ class Query(Model):
     user = relationship(sm.user_model, foreign_keys=[user_id])
 
     __table_args__ = (
-        sqla.Index('ti_user_id_changed_on', user_id, changed_on), 
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
     )
 
     @property

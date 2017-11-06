@@ -169,4 +169,3 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assert_cannot_gamma(granter_set)
         self.assert_cannot_alpha(granter_set)
-
