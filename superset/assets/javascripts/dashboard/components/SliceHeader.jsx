@@ -12,13 +12,26 @@ const propTypes = {
   exportCSVUrl: PropTypes.string,
   isExpanded: PropTypes.bool,
   formDataExtra: PropTypes.object,
-  removeSlice: PropTypes.func.isRequired,
+  removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
 };
 
+const defaultProps = {
+  forceRefresh: () => ({}),
+  removeSlice: () => ({}),
+  updateSliceName: () => ({}),
+  toggleExpandSlice: () => ({}),
+};
+
 class SliceHeader extends React.PureComponent {
+  constructor(props) {
+    super(props);
+
+    this.onSaveTitle = this.onSaveTitle.bind(this);
+  }
+
   onSaveTitle(newTitle) {
     if (this.props.updateSliceName) {
       this.props.updateSliceName(this.props.slice.slice_id, newTitle);
@@ -41,7 +54,7 @@ class SliceHeader extends React.PureComponent {
             <EditableTitle
               title={slice.slice_name}
               canEdit={!!this.props.updateSliceName}
-              onSaveTitle={this.onSaveTitle.bind(this)}
+              onSaveTitle={this.onSaveTitle}
               noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
             />
           </div>
@@ -58,7 +71,7 @@ class SliceHeader extends React.PureComponent {
               </a>
               <a
                 className={`refresh ${isCached ? 'danger' : ''}`}
-                onClick={() => (this.props.forceRefresh())}
+                onClick={() => (this.props.forceRefresh(slice.slice_id))}
               >
                 <TooltipWrapper
                   placement="top"
@@ -79,7 +92,7 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               }
-              <a href={slice.edit_url}>
+              <a href={slice.edit_url} target="_blank">
                 <TooltipWrapper
                   placement="top"
                   label="edit"
@@ -97,7 +110,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-table" />
                 </TooltipWrapper>
               </a>
-              <a className="exploreChart" href={this.props.exploreChartUrl}>
+              <a className="exploreChart" href={this.props.exploreChartUrl} target="_blank">
                 <TooltipWrapper
                   placement="top"
                   label="exploreChart"
@@ -106,7 +119,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-share" />
                 </TooltipWrapper>
               </a>
-              <a className="remove-chart" onClick={() => (this.props.removeSlice(slice.slice_id))}>
+              <a className="remove-chart" onClick={() => (this.props.removeSlice(slice))}>
                 <TooltipWrapper
                   placement="top"
                   label="close"
@@ -124,5 +137,6 @@ class SliceHeader extends React.PureComponent {
 }
 
 SliceHeader.propTypes = propTypes;
+SliceHeader.defaultProps = defaultProps;
 
 export default SliceHeader;

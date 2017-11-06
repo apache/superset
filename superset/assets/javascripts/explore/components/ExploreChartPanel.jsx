@@ -19,7 +19,7 @@ const propTypes = {
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   table_name: PropTypes.string,
-  viz_type: PropTypes.string.isRequired,
+  vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
   standalone: PropTypes.bool,
   timeout: PropTypes.number,
@@ -66,7 +66,7 @@ class ExploreChartPanel extends React.PureComponent {
             chartKey={this.props.chart.chartKey}
             setControlValue={this.props.actions.setControlValue}
             timeout={this.props.timeout}
-            viz_type={this.props.viz_type}
+            vizType={this.props.vizType}
           />
         </Panel>
       </div>

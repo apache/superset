@@ -45,7 +45,7 @@ class SliceAdder extends React.Component {
   }
 
   onEnterModal() {
-    const uri = '/sliceaddview/api/read?_flt_0_created_by=' + this.props.userId;
+    const uri = `/sliceaddview/api/read?_flt_0_created_by=${this.props.userId}`;
     this.slicesRequest = $.ajax({
       url: uri,
       type: 'GET',
@@ -54,7 +54,7 @@ class SliceAdder extends React.Component {
         const slices = response.result.map(slice => ({
           id: slice.id,
           sliceName: slice.slice_name,
-          vizType: slice.viz_type,
+          vizType: slice.vizType,
           modified: slice.modified,
         }));
 

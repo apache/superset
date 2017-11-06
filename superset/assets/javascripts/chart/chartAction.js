@@ -46,9 +46,10 @@ export function triggerQuery(value = true, key) {
   return { type: TRIGGER_QUERY, value, key };
 }
 
+// this action is used for forced re-render without fetch data
 export const RENDER_TRIGGERED = 'RENDER_TRIGGERED';
-export function renderTriggered(key) {
-  return { type: RENDER_TRIGGERED, key };
+export function renderTriggered(value, key) {
+  return { type: RENDER_TRIGGERED, value, key };
 }
 
 export const RUN_QUERY = 'RUN_QUERY';

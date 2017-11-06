@@ -283,7 +283,7 @@ export function dashboardContainer(dashboard, datasources, userid) {
       const refreshAll = () => {
         const slices = dash.sliceObjects
           .filter(slice => immune.indexOf(slice.data.slice_id) === -1);
-        dash.renderSlices(slices, true, interval * 0.2);
+        dash.fetchSlices(slices, true, interval * 0.2);
       };
       const fetchAndRender = function () {
         refreshAll();

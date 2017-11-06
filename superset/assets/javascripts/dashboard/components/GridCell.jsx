@@ -14,22 +14,44 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
-  fetchSlice: PropTypes.func,
-  removeSlice: PropTypes.func.isRequired,
-  updateSliceName: PropTypes.func,
-  toggleExpandSlice: PropTypes.func,
+  exploreChartUrl: PropTypes.string,
+  exportCSVUrl: PropTypes.string,
   slice: PropTypes.object,
   chartKey: PropTypes.string,
   formData: PropTypes.object,
   filters: PropTypes.object,
+  forceRefresh: PropTypes.func,
+  removeSlice: PropTypes.func,
+  updateSliceName: PropTypes.func,
+  toggleExpandSlice: PropTypes.func,
   addFilter: PropTypes.func,
+  getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
-  exploreChartUrl: PropTypes.string,
-  exportCSVUrl: PropTypes.string,
+};
+
+const defaultProps = {
+  forceRefresh: () => ({}),
+  removeSlice: () => ({}),
+  updateSliceName: () => ({}),
+  toggleExpandSlice: () => ({}),
+  addFilter: () => ({}),
+  getFilters: () => ({}),
+  clearFilter: () => ({}),
+  removeFilter: () => ({}),
 };
 
 class GridCell extends React.PureComponent {
+  constructor(props) {
+    super(props);
+
+    const sliceId = this.props.slice.slice_id;
+    this.addFilter = this.props.addFilter.bind(this, sliceId);
+    this.getFilters = this.props.getFilters.bind(this, sliceId);
+    this.clearFilter = this.props.clearFilter.bind(this, sliceId);
+    this.removeFilter = this.props.removeFilter.bind(this, sliceId);
+  }
+
   getDescriptionId(slice) {
     return 'description_' + slice.slice_id;
   }
@@ -55,27 +77,30 @@ class GridCell extends React.PureComponent {
   }
 
   render() {
-    const slice = this.props.slice;
+    const {
+      exploreChartUrl, exportCSVUrl, isExpanded, isLoading, removeSlice, updateSliceName,
+      toggleExpandSlice, forceRefresh, chartKey, slice, datasource, formData, timeout,
+    } = this.props;
     return (
       <div
-        className={this.props.isLoading ? 'slice-cell-highlight' : 'slice-cell'}
+        className={isLoading ? 'slice-cell-highlight' : 'slice-cell'}
         id={`${slice.slice_id}-cell`}
       >
         <div ref={this.getHeaderId(slice)}>
           <SliceHeader
             slice={slice}
-            exploreChartUrl={this.props.exploreChartUrl}
-            exportCSVUrl={this.props.exportCSVUrl}
-            isExpanded={this.props.isExpanded}
-            removeSlice={this.props.removeSlice}
-            updateSliceName={this.props.updateSliceName}
-            toggleExpandSlice={this.props.toggleExpandSlice}
-            forceRefresh={() => this.props.fetchSlice(true)}
+            exploreChartUrl={exploreChartUrl}
+            exportCSVUrl={exportCSVUrl}
+            isExpanded={isExpanded}
+            removeSlice={removeSlice}
+            updateSliceName={updateSliceName}
+            toggleExpandSlice={toggleExpandSlice}
+            forceRefresh={forceRefresh}
           />
         </div>
         <div
           className="slice_description bs-callout bs-callout-default"
-          style={this.props.isExpanded ? {} : { display: 'none' }}
+          style={isExpanded ? {} : { display: 'none' }}
           ref={this.getDescriptionId(slice)}
           dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
         />
@@ -83,17 +108,17 @@ class GridCell extends React.PureComponent {
           <input type="hidden" value="false" />
           <ChartContainer
             containerId={`slice-container-${slice.slice_id}`}
-            chartKey={this.props.chartKey}
-            datasource={this.props.datasource}
-            formData={this.props.formData}
+            chartKey={chartKey}
+            datasource={datasource}
+            formData={formData}
             height={this.height(slice)}
             width={this.width()}
-            timeout={this.props.timeout}
-            viz_type={slice.formData.viz_type}
-            addFilter={this.props.addFilter.bind(this, slice.slice_id)}
-            getFilters={() => (this.props.filters[slice.slice_id])}
-            clearFilter={() => this.props.clearFilter.bind(this, slice.slice_id)}
-            removeFilter={() => this.props.removeFilter.bind(this, slice.slice_id)}
+            timeout={timeout}
+            vizType={slice.formData.viz_type}
+            addFilter={this.addFilter}
+            getFilters={this.getFilters}
+            clearFilter={this.clearFilter}
+            removeFilter={this.removeFilter}
           />
         </div>
       </div>
@@ -102,5 +127,6 @@ class GridCell extends React.PureComponent {
 }
 
 GridCell.propTypes = propTypes;
+GridCell.defaultProps = defaultProps;
 
 export default GridCell;

@@ -3,10 +3,10 @@ import PropTypes from 'prop-types';
 import $ from 'jquery';
 
 const propTypes = {
-  containerId: PropTypes.string,
-  vizType: PropTypes.string,
-  height: PropTypes.func,
-  width: PropTypes.func,
+  containerId: PropTypes.string.isRequired,
+  vizType: PropTypes.string.isRequired,
+  height: PropTypes.func.isRequired,
+  width: PropTypes.func.isRequired,
 };
 
 class ChartBody extends React.PureComponent {

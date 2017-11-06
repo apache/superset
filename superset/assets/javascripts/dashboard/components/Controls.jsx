@@ -52,7 +52,9 @@ class Controls extends React.PureComponent {
     this.props.onChange();
   }
   render() {
-    const dashboard = this.props.dashboard;
+    const { dashboard, userId,
+      addSlicesToDashboard, startPeriodicRender, readFilters,
+      serialize, onSave } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
       + `${dashboard.dashboard_title}&Body=${emailBody}`;
@@ -66,20 +68,20 @@ class Controls extends React.PureComponent {
         </Button>
         <SliceAdder
           dashboard={dashboard}
-          addSlicesToDashboard={this.props.addSlicesToDashboard}
-          userId={this.props.userId}
+          addSlicesToDashboard={addSlicesToDashboard}
+          userId={userId}
           triggerNode={
             <i className="fa fa-plus" />
           }
         />
         <RefreshIntervalModal
-          onChange={refreshInterval => this.props.startPeriodicRender(refreshInterval * 1000)}
+          onChange={refreshInterval => startPeriodicRender(refreshInterval * 1000)}
           triggerNode={
             <i className="fa fa-clock-o" />
           }
         />
         <CodeModal
-          codeCallback={this.props.readFilters}
+          codeCallback={readFilters}
           triggerNode={<i className="fa fa-filter" />}
         />
         <CssEditor
@@ -107,9 +109,9 @@ class Controls extends React.PureComponent {
         </Button>
         <SaveModal
           dashboard={dashboard}
-          readFilters={this.props.readFilters}
-          serialize={this.props.serialize}
-          onSave={this.props.onSave}
+          readFilters={readFilters}
+          serialize={serialize}
+          onSave={onSave}
           css={this.state.css}
           triggerNode={
             <Button disabled={!dashboard.dash_save_perm}>

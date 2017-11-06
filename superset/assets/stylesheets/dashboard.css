@@ -105,10 +105,6 @@ div.widget:hover .chart-controls {
   font-weight: bold;
 }
 
-.is-loading .slice_container {
-  opacity: 0.5;
-}
-
 .dashboard .separator.widget .slice_container {
   padding: 0;
   overflow: visible;

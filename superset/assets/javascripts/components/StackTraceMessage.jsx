@@ -42,11 +42,11 @@ class StackTraceMessage extends React.PureComponent {
           {msg}
         </Alert>
         {this.hasTrace() &&
-        <Collapse in={this.state.showStackTrace}>
-          <pre>
-            {this.props.queryResponse.stacktrace}
-          </pre>
-        </Collapse>
+          <Collapse in={this.state.showStackTrace}>
+            <pre>
+              {this.props.queryResponse.stacktrace}
+            </pre>
+          </Collapse>
         }
       </div>
     );

@@ -14,7 +14,7 @@ export const chartPropType = {
   latestQueryFormData: PropTypes.object,
   queryResponse: PropTypes.object,
   triggerQuery: PropTypes.bool,
-  triggerRender: PropTypes.bool,
+  lastRendered: PropTypes.number,
 };
 
 export const chart = {
@@ -26,69 +26,63 @@ export const chart = {
   latestQueryFormData: null,
   queryResponse: null,
   triggerQuery: true,
-  triggerRender: false,
+  lastRendered: 0,
 };
 
 export default function chartReducer(charts = {}, action) {
   const actionHandlers = {
     [actions.CHART_UPDATE_SUCCEEDED](state) {
-      return Object.assign(
-        {},
-        state,
-        {
-          chartStatus: 'success',
-          queryResponse: action.queryResponse,
-          chartUpdateEndTime: now(),
-        },
-      );
+      return { ...state,
+        chartStatus: 'success',
+        queryResponse: action.queryResponse,
+        chartUpdateEndTime: now(),
+      };
     },
     [actions.CHART_UPDATE_STARTED](state) {
-      return Object.assign({}, state,
-        {
-          chartStatus: 'loading',
-          chartUpdateEndTime: null,
-          chartUpdateStartTime: now(),
-          queryRequest: action.queryRequest,
-        });
+      return { ...state,
+        chartStatus: 'loading',
+        chartUpdateEndTime: null,
+        chartUpdateStartTime: now(),
+        queryRequest: action.queryRequest,
+      };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
-      return Object.assign({}, state,
-        {
-          chartStatus: 'stopped',
-          chartAlert: t('Updating chart was stopped'),
-        });
+      return { ...state,
+        chartStatus: 'stopped',
+        chartAlert: t('Updating chart was stopped'),
+      };
     },
     [actions.CHART_RENDERING_FAILED](state) {
-      return Object.assign({}, state, {
+      return { ...state,
         chartStatus: 'failed',
         chartAlert: t('An error occurred while rendering the visualization: %s', action.error),
-      });
+      };
     },
     [actions.CHART_UPDATE_TIMEOUT](state) {
-      return Object.assign({}, state, {
+      return { ...state,
         chartStatus: 'failed',
         chartAlert: (
-        '<strong>Query timeout</strong> - visualization query are set to timeout at ' +
-        `${action.timeout} seconds. ` +
+        "<strong>{t('Query timeout')}</strong> - " +
+        t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
         t('Perhaps your data has grown, your database is under unusual load, ' +
-          'or you are simply querying a data source that is to large ' +
+          'or you are simply querying a data source that is too large ' +
           'to be processed within the timeout range. ' +
           'If that is the case, we recommend that you summarize your data further.')),
-      });
+      };
     },
     [actions.CHART_UPDATE_FAILED](state) {
-      return Object.assign({}, state, {
+      return { ...state,
         chartStatus: 'failed',
         chartAlert: action.queryResponse ? action.queryResponse.error : t('Network error.'),
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
-      });
+      };
     },
     [actions.TRIGGER_QUERY](state) {
-      return Object.assign({}, state, { triggerQuery: action.value });
+      return { ...state, triggerQuery: action.value };
     },
     [actions.RENDER_TRIGGERED](state) {
-      return Object.assign({}, state, { triggerRender: false });
+      return { ...state, lastRendered: action.value };
     },
   };
 
@@ -99,9 +93,7 @@ export default function chartReducer(charts = {}, action) {
   }
 
   if (action.type in actionHandlers) {
-    return Object.assign({}, charts, {
-      [action.key]: actionHandlers[action.type](charts[action.key], action),
-    });
+    return { ...charts, [action.key]: actionHandlers[action.type](charts[action.key], action) };
   }
 
   return charts;

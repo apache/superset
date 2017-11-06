@@ -25,11 +25,38 @@ const propTypes = {
   updateDashboardLayout: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   addFilter: PropTypes.func,
+  getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
 };
 
+const defaultProps = {
+  onChange: () => ({}),
+  getFormDataExtra: () => ({}),
+  fetchSlice: () => ({}),
+  saveSlice: () => ({}),
+  removeSlice: () => ({}),
+  removeChart: () => ({}),
+  updateDashboardLayout: () => ({}),
+  toggleExpandSlice: () => ({}),
+  addFilter: () => ({}),
+  getFilters: () => ({}),
+  clearFilter: () => ({}),
+  removeFilter: () => ({}),
+};
+
 class GridLayout extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.onResizeStop = this.onResizeStop.bind(this);
+    this.onDragStop = this.onDragStop.bind(this);
+    this.forceRefresh = this.forceRefresh.bind(this);
+    this.removeSlice = this.removeSlice.bind(this);
+    this.updateSliceName = this.props.dashboard.dash_edit_perm ?
+      this.updateSliceName.bind(this) : null;
+  }
+
   onResizeStop(layout) {
     this.props.updateDashboardLayout(layout);
     this.props.onChange();
@@ -65,14 +92,18 @@ class GridLayout extends React.Component {
       .map(slice => (slice.slice_id)).indexOf(sliceId);
   }
 
-  removeSlice(slice, chart) {
-    if (!slice || !chart) {
+  forceRefresh(sliceId) {
+    return this.props.fetchSlice(this.props.charts['slice_' + sliceId], true);
+  }
+
+  removeSlice(slice) {
+    if (!slice) {
       return;
     }
 
     // remove slice dashbaord and charts
     this.props.removeSlice(slice);
-    this.props.removeChart(chart.chartKey);
+    this.props.removeChart(this.props.charts['slice_' + slice.slice_id].chartKey);
     this.props.onChange();
   }
 
@@ -100,8 +131,8 @@ class GridLayout extends React.Component {
       <ResponsiveReactGridLayout
         className="layout"
         layouts={{ lg: this.props.dashboard.layout }}
-        onResizeStop={this.onResizeStop.bind(this)}
-        onDragStop={this.onDragStop.bind(this)}
+        onResizeStop={this.onResizeStop}
+        onDragStop={this.onDragStop}
         cols={{ lg: 12, md: 12, sm: 10, xs: 8, xxs: 6 }}
         rowHeight={100}
         autoSize
@@ -132,11 +163,11 @@ class GridLayout extends React.Component {
               isLoading={[undefined, 'loading']
                 .indexOf(this.props.charts['slice_' + slice.slice_id].chartStatus) !== -1}
               toggleExpandSlice={this.props.toggleExpandSlice}
-              fetchSlice={this.props.fetchSlice.bind(this, this.props.charts['slice_' + slice.slice_id])}
-              removeSlice={this.removeSlice.bind(this, slice, this.props.charts['slice_' + slice.slice_id])}
-              updateSliceName={this.props.dashboard.dash_edit_perm ?
-                this.updateSliceName.bind(this) : null}
+              forceRefresh={this.forceRefresh}
+              removeSlice={this.removeSlice}
+              updateSliceName={this.updateSliceName}
               addFilter={this.props.addFilter}
+              getFilters={this.props.getFilters}
               clearFilter={this.props.clearFilter}
               removeFilter={this.props.removeFilter}
             />
@@ -146,6 +177,8 @@ class GridLayout extends React.Component {
     );
   }
 }
+
 GridLayout.propTypes = propTypes;
+GridLayout.defaultProps = defaultProps;
 
 export default GridLayout;

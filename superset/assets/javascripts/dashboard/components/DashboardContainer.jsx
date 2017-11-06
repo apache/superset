@@ -20,7 +20,7 @@ function mapStateToProps({ charts, dashboard }) {
 }
 
 function mapDispatchToProps(dispatch) {
-  const actions = Object.assign({}, chartActions, dashboardActions);
+  const actions = { ...chartActions, ...dashboardActions };
   return {
     actions: bindActionCreators(actions, dispatch),
   };

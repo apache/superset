@@ -5,6 +5,7 @@ import Mustache from 'mustache';
 
 import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
+import Loading from '../components/Loading';
 import StackTraceMessage from '../components/StackTraceMessage';
 import visMap from '../../visualizations/main';
 
@@ -18,7 +19,7 @@ const propTypes = {
   width: PropTypes.number,
   setControlValue: PropTypes.func,
   timeout: PropTypes.number,
-  viz_type: PropTypes.string.isRequired,
+  vizType: PropTypes.string.isRequired,
   // state
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -27,7 +28,7 @@ const propTypes = {
   latestQueryFormData: PropTypes.object,
   queryRequest: PropTypes.object,
   queryResponse: PropTypes.object,
-  triggerRender: PropTypes.bool,
+  lastRendered: PropTypes.number,
   triggerQuery: PropTypes.bool,
   // dashboard callbacks
   addFilter: PropTypes.func,
@@ -37,10 +38,10 @@ const propTypes = {
 };
 
 const defaultProps = {
-  addFilter: () => {},
+  addFilter: () => ({}),
   getFilters: () => ({}),
-  clearFilter: () => {},
-  removeFilter: () => {},
+  clearFilter: () => ({}),
+  removeFilter: () => ({}),
 };
 
 class Chart extends React.PureComponent {
@@ -56,6 +57,8 @@ class Chart extends React.PureComponent {
     this.getFilters = this.getFilters.bind(this);
     this.clearFilter = this.clearFilter.bind(this);
     this.removeFilter = this.removeFilter.bind(this);
+    this.height = this.height.bind(this);
+    this.width = this.width.bind(this);
   }
 
   componentDidMount() {
@@ -71,13 +74,13 @@ class Chart extends React.PureComponent {
 
   componentDidUpdate(prevProps) {
     if (
-      this.props.queryResponse &&
-      this.props.chartStatus === 'success' &&
-      !this.props.queryResponse.error && (
-      prevProps.queryResponse !== this.props.queryResponse ||
-      prevProps.height !== this.props.height ||
-      prevProps.width !== this.props.width ||
-      this.props.triggerRender)
+        this.props.queryResponse &&
+        this.props.chartStatus === 'success' &&
+        !this.props.queryResponse.error && (
+        prevProps.queryResponse !== this.props.queryResponse ||
+        prevProps.height !== this.props.height ||
+        prevProps.width !== this.props.width ||
+        prevProps.lastRendered !== this.props.lastRendered)
     ) {
       this.renderViz();
     }
@@ -106,21 +109,17 @@ class Chart extends React.PureComponent {
   }
 
   width() {
-    return this.props.width ?
-      this.props.width :
-      this.container.el.offsetWidth;
+    return this.props.width || this.container.el.offsetWidth;
   }
 
   height() {
-    return this.props.height ?
-      this.props.height :
-      this.container.el.offsetHeight;
+    return this.props.height || this.container.el.offsetHeight;
   }
 
   d3format(col, number) {
-    const format =
-      this.props.datasource.column_formats && this.props.datasource.column_formats[col] ?
-      this.props.datasource.column_formats[col] : '0.3s';
+    const { datasource } = this.props;
+    const format = (datasource.column_formats && datasource.column_formats[col]) || '0.3s';
+
     return d3format(format, number);
   }
 
@@ -140,9 +139,7 @@ class Chart extends React.PureComponent {
   }
 
   renderViz() {
-    this.props.actions.renderTriggered(this.props.chartKey);
-
-    const viz = visMap[this.props.viz_type];
+    const viz = visMap[this.props.vizType];
     try {
       viz(this, this.props.queryResponse, this.props.actions.setControlValue);
     } catch (e) {
@@ -154,12 +151,9 @@ class Chart extends React.PureComponent {
     const isLoading = this.props.chartStatus === 'loading';
     return (
       <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}>
-        {isLoading && <img
-          alt="loading"
-          width="25"
-          src="/static/assets/images/loading.gif"
-          style={{ position: 'absolute' }}
-        />}
+        {isLoading &&
+          <Loading size={25} />
+        }
 
         {this.props.chartAlert &&
         <StackTraceMessage
@@ -169,15 +163,15 @@ class Chart extends React.PureComponent {
         }
 
         {!this.props.chartAlert &&
-        <ChartBody
-          containerId={this.containerId}
-          vizType={this.props.formData.viz_type}
-          height={this.height.bind(this)}
-          width={this.width.bind(this)}
-          ref={(inner) => {
-            this.container = inner;
-          }}
-        />
+          <ChartBody
+            containerId={this.containerId}
+            vizType={this.props.formData.viz_type}
+            height={this.height}
+            width={this.width}
+            ref={(inner) => {
+              this.container = inner;
+            }}
+          />
         }
       </div>
     );

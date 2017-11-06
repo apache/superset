@@ -45,7 +45,7 @@ class ExploreViewContainer extends React.Component {
   componentWillReceiveProps(np) {
     if (np.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
-      this.props.actions.triggerQuery(this.props.chart.chartKey);
+      this.props.actions.triggerQuery(true, this.props.chart.chartKey);
     }
     if (np.controls.datasource.value !== this.props.controls.datasource.value) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
@@ -208,7 +208,7 @@ function mapStateToProps({ explore, charts }) {
     slice: explore.slice,
     form_data,
     table_name: form_data.datasource_name,
-    viz_type: form_data.viz_type,
+    vizType: form_data.viz_type,
     standalone: explore.standalone,
     forcedHeight: explore.forced_height,
     chart,

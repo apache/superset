@@ -12,7 +12,7 @@ export function getInitialState(bootstrapData) {
   delete common.locale;
   delete common.language_pack;
 
-  const dashboard = Object.assign({}, bootstrapData.dashboard_data);
+  const dashboard = { ...bootstrapData.dashboard_data };
   const filters = {};
   try {
     // allow request parameter overwrite dashboard metadata
@@ -58,61 +58,56 @@ export function getInitialState(bootstrapData) {
   const initCharts = {};
   dashboard.slices.forEach((slice) => {
     const chartKey = 'slice_' + slice.slice_id;
-    initCharts[chartKey] =
-      Object.assign({}, chart, {
-        chartKey,
-        slice_id: slice.slice_id,
-        form_data: slice.form_data,
-        formData: applyDefaultFormData(slice.form_data),
-      });
+    initCharts[chartKey] = { ...chart,
+      chartKey,
+      slice_id: slice.slice_id,
+      form_data: slice.form_data,
+      formData: applyDefaultFormData(slice.form_data),
+    };
   });
 
   // also need to add formData for dashboard.slices
-  dashboard.slices = dashboard.slices.map(
-    slice => (Object.assign({}, slice,
-      { formData: applyDefaultFormData(slice.form_data) })));
+  dashboard.slices = dashboard.slices.map(slice =>
+    ({ ...slice, formData: applyDefaultFormData(slice.form_data) }),
+  );
 
   return {
     charts: initCharts,
-    dashboard: Object.assign({}, { filters, dashboard, userId: user_id, datasources, common }),
+    dashboard: { filters, dashboard, userId: user_id, datasources, common },
   };
 }
 
 const dashboard = function (state = {}, action) {
   const actionHandlers = {
     [actions.UPDATE_DASHBOARD_TITLE]() {
-      const newDashboard = Object.assign({}, state.dashboard, { dashboard_title: action.title });
-      return Object.assign({}, state, { dashboard: newDashboard });
+      const newDashboard = { ...state.dashboard, dashboard_title: action.title };
+      return { ...state, dashboard: newDashboard };
     },
     [actions.UPDATE_DASHBOARD_LAYOUT]() {
-      const newDashboard = Object.assign({}, state.dashboard, { layout: action.layout });
-      return Object.assign({}, state, { dashboard: newDashboard });
+      const newDashboard = { ...state.dashboard, layout: action.layout };
+      return { ...state, dashboard: newDashboard };
     },
     [actions.REMOVE_SLICE]() {
       const newLayout = state.dashboard.layout.filter(function (reactPos) {
         return reactPos.i !== String(action.slice.slice_id);
       });
-      let newDashboard = removeFromArr(state.dashboard, 'slices', action.slice, 'slice_id');
-      newDashboard = Object.assign({}, newDashboard, { layout: newLayout });
-      return Object.assign({}, state, { dashboard: newDashboard });
+      const newDashboard = removeFromArr(state.dashboard, 'slices', action.slice, 'slice_id');
+      return { ...state, dashboard: { ...newDashboard, layout: newLayout } };
     },
     [actions.TOGGLE_FAVE_STAR]() {
-      return Object.assign({}, state, { isStarred: action.isStarred });
+      return { ...state, isStarred: action.isStarred };
     },
     [actions.TOGGLE_EXPAND_SLICE]() {
-      const updatedExpandedSlices = Object.assign({}, state.dashboard.metadata.expanded_slices);
+      const updatedExpandedSlices = { ...state.dashboard.metadata.expanded_slices };
       const sliceId = action.slice.slice_id;
       if (action.isExpanded) {
         updatedExpandedSlices[sliceId] = true;
       } else {
         delete updatedExpandedSlices[sliceId];
       }
-      const metadata = Object.assign({}, state.dashboard.metadata,
-        { expanded_slices: updatedExpandedSlices });
-
-      return Object.assign({}, state, {
-        dashboard: Object.assign({}, state.dashboard, { metadata }),
-      });
+      const metadata = { ...state.dashboard.metadata, expanded_slices: updatedExpandedSlices };
+      const newDashboard = { ...state.dashboard, metadata };
+      return { ...state, dashboard: newDashboard };
     },
 
     // filters
@@ -123,38 +118,38 @@ const dashboard = function (state = {}, action) {
         return state;
       }
 
-      let filters = Object.assign({}, state.filters);
+      let filters;
       const { sliceId, col, vals, merge, refresh } = action;
       const filterKeys = ['__from', '__to', '__time_col',
         '__time_grain', '__time_origin', '__granularity'];
       if (filterKeys.indexOf(col) >= 0 ||
         selectedSlice.formData.groupby.indexOf(col) !== -1) {
         if (!(sliceId in state.filters)) {
-          filters = Object.assign({}, filters, { [sliceId]: {} });
+          filters = { ...state.filters, [sliceId]: {} };
         }
 
         let newFilter = {};
-        if (filters[sliceId] && !(col in filters[sliceId]) || !merge) {
-          newFilter = Object.assign({}, filters[sliceId], { [col]: vals });
+        if (state.filters[sliceId] && !(col in state.filters[sliceId]) || !merge) {
+          newFilter = { ...state.filters[sliceId], [col]: vals };
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return
-        } else if (filters[sliceId][col] instanceof Array) {
-          newFilter = d3.merge([filters[sliceId][col], vals]);
+        } else if (state.filters[sliceId][col] instanceof Array) {
+          newFilter = d3.merge([state.filters[sliceId][col], vals]);
         } else {
-          newFilter = d3.merge([[filters[sliceId][col]], vals])[0] || '';
+          newFilter = d3.merge([[state.filters[sliceId][col]], vals])[0] || '';
         }
-        filters = Object.assign({}, filters, { [sliceId]: newFilter });
+        filters = { ...state.filters, [sliceId]: newFilter };
       }
-      return Object.assign({}, state, { filters, refresh });
+      return { ...state, filters, refresh };
     },
     [actions.CLEAR_FILTER]() {
-      const newFilters = Object.assign({}, state.filters);
+      const newFilters = { ...state.filters };
       delete newFilters[action.sliceId];
 
-      return Object.assign({}, state, { filter: newFilters, refresh: true });
+      return { ...state.dashboard, filter: newFilters, refresh: true };
     },
     [actions.REMOVE_FILTER]() {
-      const newFilters = Object.assign({}, state.filters);
+      const newFilters = { ...state.filters };
       const { sliceId, col, vals } = action;
 
       if (sliceId in state.filters) {
@@ -168,7 +163,7 @@ const dashboard = function (state = {}, action) {
           newFilters[sliceId][col] = a;
         }
       }
-      return Object.assign({}, state, { filter: newFilters, refresh: true });
+      return { ...state.dashboard, filter: newFilters, refresh: true };
     },
 
     // slice reducer
@@ -177,7 +172,7 @@ const dashboard = function (state = {}, action) {
         state.dashboard, 'slices',
         action.slice, { slice_name: action.sliceName },
         'slice_id');
-      return Object.assign({}, state, { dashboard: newDashboard });
+      return { ...state.dashboard, dashboard: newDashboard };
     },
   };
 

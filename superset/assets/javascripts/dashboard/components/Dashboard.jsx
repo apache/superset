@@ -22,24 +22,6 @@ const propTypes = {
   timeout: PropTypes.number,
   userId: PropTypes.string,
   isStarred: PropTypes.bool,
-  isFiltersChanged: PropTypes.bool,
-  updateDashboardTitle: PropTypes.func,
-  readFilters: PropTypes.func,
-  fetchFaveStar: PropTypes.func,
-  saveFaveStar: PropTypes.func,
-  renderSlices: PropTypes.func,
-  startPeriodicRender: PropTypes.func,
-  getFormDataExtra: PropTypes.func,
-  fetchSlice: PropTypes.func,
-  saveSlice: PropTypes.func,
-  removeSlice: PropTypes.func,
-  removeChart: PropTypes.func,
-  toggleExpandSlice: PropTypes.func,
-  updateDashboardLayout: PropTypes.func,
-  addSlicesToDashboard: PropTypes.func,
-  addFilter: PropTypes.func,
-  clearFilter: PropTypes.func,
-  removeFilter: PropTypes.func,
 };
 
 const defaultProps = {
@@ -51,7 +33,6 @@ const defaultProps = {
   timeout: 60,
   userId: '',
   isStarred: false,
-  isFiltersChanged: false,
 };
 
 class Dashboard extends React.PureComponent {
@@ -63,13 +44,36 @@ class Dashboard extends React.PureComponent {
     // alert for unsaved changes
     this.state = {
       alert: null,
+      trigger: false,
     };
+
+    this.rerenderCharts = this.rerenderCharts.bind(this);
+    this.updateDashboardTitle = this.updateDashboardTitle.bind(this);
+    this.onSave = this.onSave.bind(this);
+    this.onChange = this.onChange.bind(this);
+    this.serialize = this.serialize.bind(this);
+    this.readFilters = this.readFilters.bind(this);
+    this.fetchAllSlices = this.fetchSlices.bind(this, this.getAllSlices());
+    this.startPeriodicRender = this.startPeriodicRender.bind(this);
+    this.addSlicesToDashboard = this.addSlicesToDashboard.bind(this);
+    this.fetchSlice = this.fetchSlice.bind(this);
+    this.getFormDataExtra = this.getFormDataExtra.bind(this);
+    this.props.actions.fetchFaveStar = this.props.actions.fetchFaveStar.bind(this);
+    this.props.actions.saveFaveStar = this.props.actions.saveFaveStar.bind(this);
+    this.props.actions.saveSlice = this.props.actions.saveSlice.bind(this);
+    this.props.actions.removeSlice = this.props.actions.removeSlice.bind(this);
+    this.props.actions.removeChart = this.props.actions.removeChart.bind(this);
+    this.props.actions.updateDashboardLayout = this.props.actions.updateDashboardLayout.bind(this);
+    this.props.actions.toggleExpandSlice = this.props.actions.toggleExpandSlice.bind(this);
+    this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
+    this.props.actions.clearFilter = this.props.actions.clearFilter.bind(this);
+    this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
   }
 
   componentDidMount() {
     this.loadPreSelectFilters();
     this.firstLoad = false;
-    this.bindResizeToWindowResize();
+    window.addEventListener('resize', this.rerenderCharts);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -83,6 +87,10 @@ class Dashboard extends React.PureComponent {
     if (!areObjectsEqual(prevProps.filters, this.props.filters) && this.props.refresh) {
       Object.keys(this.props.filters).forEach(sliceId => (this.refreshExcept(sliceId)));
     }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.rerenderCharts);
   }
 
   onBeforeUnload(hasChanged) {
@@ -107,7 +115,7 @@ class Dashboard extends React.PureComponent {
 
   // return charts in array
   getAllSlices() {
-    return Object.keys(this.props.slices).map(key => (this.props.slices[key]));
+    return Object.values(this.props.slices);
   }
 
   getFormDataExtra(slice) {
@@ -117,15 +125,14 @@ class Dashboard extends React.PureComponent {
     return formDataExtra;
   }
 
+  getFilters(sliceId) {
+    return this.props.filters[sliceId];
+  }
+
   unload() {
     const message = t('You have unsaved changes.');
     window.event.returnValue = message; // Gecko + IE
     return message; // Gecko + Webkit, Safari, Chrome etc.
-  }
-
-  fetchSlice(slice, force = false) {
-    return this.props.actions.runQuery(
-      this.getFormDataExtra(slice), force, this.props.timeout, slice.chartKey);
   }
 
   effectiveExtraFilters(sliceId) {
@@ -179,7 +186,8 @@ class Dashboard extends React.PureComponent {
       for (const col in this.props.filters[key]) {
         const sliceId = parseInt(key, 10);
         this.props.actions.addFilter(sliceId, col,
-          this.props.filters[key][col], false, false);
+          this.props.filters[key][col], false, false,
+        );
       }
     }
   }
@@ -188,7 +196,7 @@ class Dashboard extends React.PureComponent {
     const immune = this.props.dashboard.metadata.filter_immune_slices || [];
     const slices = this.getAllSlices()
       .filter(slice => slice.slice_id !== sliceId && immune.indexOf(slice.slice_id) === -1);
-    this.renderSlices(slices);
+    this.fetchSlices(slices);
   }
 
   stopPeriodicRender() {
@@ -200,17 +208,16 @@ class Dashboard extends React.PureComponent {
 
   startPeriodicRender(interval) {
     this.stopPeriodicRender();
-    const dash = this;
     const immune = this.props.dashboard.metadata.timed_refresh_immune_slices || [];
     const refreshAll = () => {
       const affectedSlices = this.getAllSlices()
         .filter(slice => immune.indexOf(slice.slice_id) === -1);
-      dash.renderSlices(affectedSlices, true, interval * 0.2);
+      this.fetchSlices(affectedSlices, true, interval * 0.2);
     };
-    const fetchAndRender = function () {
+    const fetchAndRender = () => {
       refreshAll();
       if (interval > 0) {
-        dash.refreshTimer = setTimeout(fetchAndRender, interval);
+        this.refreshTimer = setTimeout(fetchAndRender, interval);
       }
     };
 
@@ -222,18 +229,8 @@ class Dashboard extends React.PureComponent {
     return JSON.stringify(this.props.filters, null, '  ');
   }
 
-  bindResizeToWindowResize() {
-    let resizeTimer;
-    const dash = this;
-    const allSlices = this.getAllSlices();
-    $(window).on('resize', () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(dash.renderSlices(allSlices), 500);
-    });
-  }
-
   updateDashboardTitle(title) {
-    this.props.updateDashboardTitle(title);
+    this.props.actions.updateDashboardTitle(title);
     this.onChange();
   }
 
@@ -245,6 +242,45 @@ class Dashboard extends React.PureComponent {
       size_x: reactPos.w,
       size_y: reactPos.h,
     }));
+  }
+
+  addSlicesToDashboard(sliceIds) {
+    return this.props.actions.addSlicesToDashboard(this.props.dashboard.id, sliceIds);
+  }
+
+  fetchSlice(slice, force = false) {
+    return this.props.actions.runQuery(
+      this.getFormDataExtra(slice), force, this.props.timeout, slice.chartKey,
+    );
+  }
+
+  // fetch and render an list of slices
+  fetchSlices(slc, force = false, interval = 0) {
+    const slices = slc || this.getAllSlices();
+    if (!interval) {
+      slices.forEach((slice) => { this.fetchSlice(slice, force); });
+      return;
+    }
+
+    const meta = this.props.dashboard.metadata;
+    const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
+    if (typeof meta.stagger_refresh !== 'boolean') {
+      meta.stagger_refresh = meta.stagger_refresh === undefined ?
+        true : meta.stagger_refresh === 'true';
+    }
+    const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
+    slices.forEach((slice, i) => {
+      setTimeout(() => { this.fetchSlice(slice, force); }, delay * i);
+    });
+  }
+
+  // re-render chart without fetch
+  rerenderCharts() {
+    this.getAllSlices().forEach((slice) => {
+      setTimeout(() => {
+        this.props.actions.renderTriggered(new Date().getTime(), slice.chartKey);
+      }, 50);
+    });
   }
 
   renderUnsavedChangeAlert() {
@@ -259,27 +295,6 @@ class Dashboard extends React.PureComponent {
     });
   }
 
-  // render an list of slices
-  renderSlices(slc, force = false, interval = 0) {
-    const dash = this;
-    const slices = slc || this.getAllSlices();
-    if (!interval) {
-      slices.forEach(slice => (dash.fetchSlice(slice, force)));
-      return;
-    }
-
-    const meta = this.props.dashboard.metadata;
-    const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
-    if (typeof meta.stagger_refresh !== 'boolean') {
-      meta.stagger_refresh = meta.stagger_refresh === undefined ?
-        true : meta.stagger_refresh === 'true';
-    }
-    const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
-    slices.forEach((slice, i) => {
-      setTimeout(() => dash.fetchSlice(slice, force), delay * i);
-    });
-  }
-
   render() {
     return (
       <div id="dashboard-container">
@@ -290,17 +305,16 @@ class Dashboard extends React.PureComponent {
             dashboard={this.props.dashboard}
             userId={this.props.userId}
             isStarred={this.props.isStarred}
-            updateDashboardTitle={this.updateDashboardTitle.bind(this)}
-            onSave={this.onSave.bind(this)}
-            onChange={this.onChange.bind(this)}
-            serialize={this.serialize.bind(this)}
-            readFilters={this.readFilters.bind(this)}
-            fetchFaveStar={this.props.actions.fetchFaveStar.bind(this)}
-            saveFaveStar={this.props.actions.saveFaveStar.bind(this)}
-            renderSlices={this.renderSlices.bind(this, this.getAllSlices())}
-            startPeriodicRender={this.startPeriodicRender.bind(this)}
-            addSlicesToDashboard={this.props.actions.addSlicesToDashboard
-              .bind(this, this.props.dashboard.id)}
+            updateDashboardTitle={this.updateDashboardTitle}
+            onSave={this.onSave}
+            onChange={this.onChange}
+            serialize={this.serialize}
+            readFilters={this.readFilters}
+            fetchFaveStar={this.props.actions.fetchFaveStar}
+            saveFaveStar={this.props.actions.saveFaveStar}
+            renderSlices={this.fetchAllSlices}
+            startPeriodicRender={this.startPeriodicRender}
+            addSlicesToDashboard={this.addSlicesToDashboard}
           />
         </div>
         <div id="grid-container" className="slice-grid gridster">
@@ -310,17 +324,18 @@ class Dashboard extends React.PureComponent {
             filters={this.props.filters}
             charts={this.props.slices}
             timeout={this.props.timeout}
-            onChange={this.onChange.bind(this)}
-            getFormDataExtra={this.getFormDataExtra.bind(this)}
-            fetchSlice={this.fetchSlice.bind(this)}
-            saveSlice={this.props.actions.saveSlice.bind(this)}
-            removeSlice={this.props.actions.removeSlice.bind(this)}
-            removeChart={this.props.actions.removeChart.bind(this)}
-            updateDashboardLayout={this.props.actions.updateDashboardLayout.bind(this)}
-            toggleExpandSlice={this.props.actions.toggleExpandSlice.bind(this)}
-            addFilter={this.props.actions.addFilter.bind(this)}
-            clearFilter={this.props.actions.clearFilter.bind(this)}
-            removeFilter={this.props.actions.removeFilter.bind(this)}
+            onChange={this.onChange}
+            getFormDataExtra={this.getFormDataExtra}
+            fetchSlice={this.fetchSlice}
+            saveSlice={this.props.actions.saveSlice}
+            removeSlice={this.props.actions.removeSlice}
+            removeChart={this.props.actions.removeChart}
+            updateDashboardLayout={this.props.actions.updateDashboardLayout}
+            toggleExpandSlice={this.props.actions.toggleExpandSlice}
+            addFilter={this.props.actions.addFilter}
+            getFilters={this.getFilters}
+            clearFilter={this.props.actions.clearFilter}
+            removeFilter={this.props.actions.removeFilter}
           />
         </div>
       </div>
