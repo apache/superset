@@ -1,8 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import VirtualizedSelect from 'react-virtualized-select';
 import Select, { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
+import VirtualizedRendererWrap from '../../../components/VirtualizedRendererWrap';
+import OnPasteSelect from '../../../components/OnPasteSelect';
 
 const propTypes = {
   choices: PropTypes.array,
@@ -35,55 +38,6 @@ const defaultProps = {
   optionRenderer: opt => opt.label,
   valueRenderer: opt => opt.label,
   valueKey: 'value',
-};
-
-// Handle `onPaste` so that users may paste in
-// options as comma-delimited, slightly modified from
-// https://github.com/JedWatson/react-select/issues/1672
-function pasteSelect(props) {
-  let pasteInput;
-  return (
-    <Select
-      {...props}
-      ref={(ref) => {
-        // Creatable requires a reference to its Select child
-        if (props.ref) {
-          props.ref(ref);
-        }
-        pasteInput = ref;
-      }}
-      inputProps={{
-        onPaste: (evt) => {
-          if (!props.multi) {
-            return;
-          }
-          evt.preventDefault();
-          // pull text from the clipboard and split by comma
-          const clipboard = evt.clipboardData.getData('Text');
-          if (!clipboard) {
-            return;
-          }
-          const values = clipboard.split(/[,]+/).map(v => v.trim());
-          const options = values
-            .filter(value =>
-              // Creatable validates options
-              props.isValidNewOption ? props.isValidNewOption({ label: value }) : !!value,
-            )
-            .map(value => ({
-              [props.labelKey]: value,
-              [props.valueKey]: value,
-            }));
-          if (options.length) {
-            pasteInput.selectValue(options);
-          }
-        },
-      }}
-    />
-  );
-}
-pasteSelect.propTypes = {
-  multi: PropTypes.bool,
-  ref: PropTypes.func,
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -161,23 +115,16 @@ export default class SelectControl extends React.PureComponent {
       clearable: this.props.clearable,
       isLoading: this.props.isLoading,
       onChange: this.onChange,
-      optionRenderer: this.props.optionRenderer,
+      optionRenderer: VirtualizedRendererWrap(this.props.optionRenderer),
       valueRenderer: this.props.valueRenderer,
+      selectComponent: this.props.freeForm ? Creatable : Select,
     };
-    //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
-    const selectWrap = this.props.freeForm ? (
-      <Creatable {...selectProps}>
-        {pasteSelect}
-      </Creatable>
-    ) : (
-      pasteSelect(selectProps)
-    );
     return (
       <div>
         {this.props.showHeader &&
           <ControlHeader {...this.props} />
         }
-        {selectWrap}
+        <OnPasteSelect {...selectProps} selectWrap={VirtualizedSelect} />
       </div>
     );
   }

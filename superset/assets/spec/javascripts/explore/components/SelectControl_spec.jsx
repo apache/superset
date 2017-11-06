@@ -1,10 +1,13 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import Select, { Creatable } from 'react-select';
+import VirtualizedSelect from 'react-virtualized-select';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
+import OnPasteSelect from '../../../../javascripts/components/OnPasteSelect';
+import VirtualizedRendererWrap from '../../../../javascripts/components/VirtualizedRendererWrap';
 import SelectControl from '../../../../javascripts/explore/components/controls/SelectControl';
 
 const defaultProps = {
@@ -26,19 +29,39 @@ describe('SelectControl', () => {
     wrapper = shallow(<SelectControl {...defaultProps} />);
   });
 
-  it('renders a Select', () => {
-    expect(wrapper.find(Select)).to.have.lengthOf(1);
+  it('renders an OnPasteSelect', () => {
+    expect(wrapper.find(OnPasteSelect)).to.have.lengthOf(1);
   });
 
   it('calls onChange when toggled', () => {
-    const select = wrapper.find(Select);
+    const select = wrapper.find(OnPasteSelect);
     select.simulate('change', { value: 50 });
     expect(defaultProps.onChange.calledWith(50)).to.be.true;
   });
 
-  it('renders a Creatable for freeform', () => {
+  it('passes VirtualizedSelect as selectWrap', () => {
+    const select = wrapper.find(OnPasteSelect);
+    expect(select.props().selectWrap).to.equal(VirtualizedSelect);
+  });
+
+  it('passes Creatable as selectComponent when freeForm=true', () => {
     wrapper = shallow(<SelectControl {...defaultProps} freeForm />);
-    expect(wrapper.find(Creatable)).to.have.lengthOf(1);
+    const select = wrapper.find(OnPasteSelect);
+    expect(select.props().selectComponent).to.equal(Creatable);
+  });
+
+  it('passes Select as selectComponent when freeForm=false', () => {
+    const select = wrapper.find(OnPasteSelect);
+    expect(select.props().selectComponent).to.equal(Select);
+  });
+
+  it('wraps optionRenderer in a VirtualizedRendererWrap', () => {
+    const select = wrapper.find(OnPasteSelect);
+    const defaultOptionRenderer = SelectControl.defaultProps.optionRenderer;
+    const wrappedRenderer = VirtualizedRendererWrap(defaultOptionRenderer);
+    expect(select.props().optionRenderer).to.be.a('Function');
+    // different instances of wrapper with same inner renderer are unequal
+    expect(select.props().optionRenderer.name).to.equal(wrappedRenderer.name);
   });
 
   describe('getOptions', () => {
