@@ -1433,6 +1433,7 @@ class Superset(BaseSupersetView):
             uri = request.json.get('uri')
             db_name = request.json.get('name')
             impersonate_user = request.json.get('impersonate_user')
+            database = None
             if db_name:
                 database = (
                     db.session
@@ -1444,20 +1445,32 @@ class Superset(BaseSupersetView):
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
-            
-            url = make_url(uri)
-            db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
-            db_engine.patch()
-            uri = db_engine.get_uri_for_impersonation(uri, impersonate_user, username)
-            masked_url = database.get_password_masked_url_from_uri(uri)
 
-            logging.info("Superset.testconn(). Masked URL: {0}".format(masked_url))
+            configuration = {}
+
+            if database and uri:
+                url = make_url(uri)
+                db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
+                db_engine.patch()
+            
+                masked_url = database.get_password_masked_url_from_uri(uri)
+                logging.info("Superset.testconn(). Masked URL: {0}".format(masked_url))
+
+                configuration.update(
+                    db_engine.get_configuration_for_impersonation(uri,
+                                                                  impersonate_user,
+                                                                  username)
+                )
 
             connect_args = (
                 request.json
                 .get('extras', {})
                 .get('engine_params', {})
                 .get('connect_args', {}))
+
+            if configuration:
+                connect_args["configuration"] = configuration
+
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
