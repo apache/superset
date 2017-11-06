@@ -517,9 +517,6 @@ class SqlaTable(Model, BaseDatasource):
 
         for col, ascending in orderby:
             direction = asc if ascending else desc
-            print('-='*20)
-            print([col, ascending])
-            print('-='*20)
             qry = qry.order_by(direction(col))
 
         if row_limit:

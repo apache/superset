@@ -153,6 +153,7 @@ Resources
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
 * [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
+* [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
 
 
 Contributing
@@ -168,6 +169,7 @@ Who uses Apache Superset (incubating)?
 Here's a list of organizations who have taken the time to send a PR to let
 the world know they are using Superset. Join our growing community!
 
+ - [AiHello](https://www.aihello.com)
  - [Airbnb](https://github.com/airbnb)
  - [Amino](https://amino.com)
  - [Brilliant.org](https://brilliant.org/)
@@ -189,6 +191,7 @@ the world know they are using Superset. Join our growing community!
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
  - [Udemy](https://www.udemy.com/)
+ - [VIPKID](https://www.vipkid.com.cn/)
  - [Yahoo!](https://yahoo.com/)
  - [Zalando](https://www.zalando.com)
 

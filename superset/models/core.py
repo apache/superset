@@ -13,6 +13,7 @@ import textwrap
 from future.standard_library import install_aliases
 from copy import copy
 from datetime import datetime, date
+from copy import deepcopy
 
 import pandas as pd
 import sqlalchemy as sqla
@@ -47,6 +48,7 @@ config = app.config
 stats_logger = config.get('STATS_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
+PASSWORD_MASK = "X" * 10
 
 def set_related_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
@@ -193,7 +195,12 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def form_data(self):
-        form_data = json.loads(self.params)
+        form_data = {}
+        try:
+            form_data = json.loads(self.params)
+        except Exception as e:
+            logging.error("Malformed json in slice's params")
+            logging.exception(e)
         form_data.update({
             'slice_id': self.id,
             'viz_type': self.viz_type,
@@ -581,30 +588,56 @@ class Database(Model, AuditMixinNullable):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
 
+    @classmethod
+    def get_password_masked_url_from_uri(cls, uri):
+        url = make_url(uri)
+        return cls.get_password_masked_url(url)
+
+    @classmethod
+    def get_password_masked_url(cls, url):
+        url_copy = deepcopy(url)
+        if url_copy.password is not None and url_copy.password != PASSWORD_MASK:
+            url_copy.password = PASSWORD_MASK
+        return url_copy
+
     def set_sqlalchemy_uri(self, uri):
-        password_mask = "X" * 10
         conn = sqla.engine.url.make_url(uri)
-        if conn.password != password_mask and not self.custom_password_store:
+        if conn.password != PASSWORD_MASK and not self.custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
-        conn.password = password_mask if conn.password else None
+        conn.password = PASSWORD_MASK if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
+
+    def get_effective_user(self, url, user_name=None):
+        """
+        Get the effective user, especially during impersonation.
+        :param url: SQL Alchemy URL object
+        :param user_name: Default username
+        :return: The effective username
+        """
+        effective_username = None
+        if self.impersonate_user:
+            effective_username = url.username
+            if user_name:
+                effective_username = user_name
+            elif hasattr(g, 'user') and g.user.username:
+                effective_username = g.user.username
+        return effective_username
 
     def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
-        uri = make_url(self.sqlalchemy_uri_decrypted)
+        url = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
         if nullpool:
             params['poolclass'] = NullPool
-        uri = self.db_engine_spec.adjust_database_uri(uri, schema)
-        if self.impersonate_user:
-            eff_username = uri.username
-            if user_name:
-                eff_username = user_name
-            elif hasattr(g, 'user') and g.user.username:
-                eff_username = g.user.username
-            uri.username = eff_username
-        return create_engine(uri, **params)
+        url = self.db_engine_spec.adjust_database_uri(url, schema)
+        effective_username = self.get_effective_user(url, user_name)
+        self.db_engine_spec.modify_url_for_impersonation(url, self.impersonate_user, effective_username)
+
+        masked_url = self.get_password_masked_url(url)
+        logging.info("Database.get_sqla_engine(). Masked URL: {0}".format(masked_url))
+
+        return create_engine(url, **params)
 
     def get_reserved_words(self):
         return self.get_sqla_engine().dialect.preparer.reserved_words
@@ -688,6 +721,10 @@ class Database(Model, AuditMixinNullable):
         return db_engine_specs.engines.get(
             self.backend, db_engine_specs.BaseEngineSpec)
 
+    @classmethod
+    def get_db_engine_spec_for_backend(cls, backend):
+        return db_engine_specs.engines.get(backend, db_engine_specs.BaseEngineSpec)
+
     def grains(self):
         """Defines time granularity database-specific expressions.
 
@@ -751,8 +788,8 @@ class Database(Model, AuditMixinNullable):
 
     def has_table(self, table):
         engine = self.get_sqla_engine()
-        return engine.dialect.has_table(
-            engine, table.table_name, table.schema or None)
+        return engine.has_table(
+            table.table_name, table.schema or None)
 
     def get_dialect(self):
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
