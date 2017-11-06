@@ -3,16 +3,21 @@ import React from 'react';
 import propTypes from 'prop-types';
 import { Table, Thead, Th, Tr, Td } from 'reactable';
 import d3 from 'd3';
-import { Sparkline, LineSeries } from '@data-ui/sparkline';
 import Mustache from 'mustache';
+import { Sparkline, LineSeries, PointSeries, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
 
 import MetricOption from '../javascripts/components/MetricOption';
-import TooltipWrapper from '../javascripts/components/TooltipWrapper';
 import { d3format, brandColor } from '../javascripts/modules/utils';
+import { formatDate } from '../javascripts/modules/dates';
 import InfoTooltipWithTrigger from '../javascripts/components/InfoTooltipWithTrigger';
 import './time_table.css';
 
-const SPARK_MARGIN = 3;
+const SPARKLINE_MARGIN = {
+  top: 8,
+  right: 8,
+  bottom: 8,
+  left: 8,
+};
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
 
 function FormattedNumber({ num, format }) {
@@ -23,6 +28,7 @@ function FormattedNumber({ num, format }) {
   }
   return <span>{num}</span>;
 }
+
 FormattedNumber.propTypes = {
   num: propTypes.number,
   format: propTypes.string,
@@ -30,14 +36,10 @@ FormattedNumber.propTypes = {
 
 function viz(slice, payload) {
   slice.container.css('height', slice.height());
-  const recs = payload.data.records;
+  const records = payload.data.records;
   const fd = payload.form_data;
-  const data = Object.keys(recs).sort().map((iso) => {
-    const o = recs[iso];
-    return o;
-  });
-  const reversedData = data.slice();
-  reversedData.reverse();
+  const data = Object.keys(records).sort().map(iso => ({ ...records[iso], iso }));
+  const reversedData = [...data].reverse();
   const metricMap = {};
   slice.datasource.metrics.forEach((m) => {
     metricMap[m.metric_name] = m;
@@ -53,13 +55,14 @@ function viz(slice, payload) {
   }
   const tableData = metrics.map((metric) => {
     let leftCell;
-    const context = Object.assign({}, fd, { metric });
+    const context = { ...fd, metric };
     const url = fd.url ? Mustache.render(fd.url, context) : null;
-
     if (!payload.data.is_group_by) {
-      leftCell = <MetricOption metric={metricMap[metric]} url={url}showFormula={false} />;
+      leftCell = (
+        <MetricOption metric={metricMap[metric]} url={url} showFormula={false} openInNewWindow />
+      );
     } else {
-      leftCell = url ? <a href={url}>{metric}</a> : metric;
+      leftCell = url ? <a href={url} target="_blank">{metric}</a> : metric;
     }
     const row = { metric: leftCell };
     fd.column_collection.forEach((c) => {
@@ -79,33 +82,47 @@ function viz(slice, payload) {
             }
           }
         }
-        const extent = d3.extent(sparkData);
-        const tooltip = `min: ${d3format(c.d3format, extent[0])}, \
-          max: ${d3format(c.d3format, extent[1])}`;
         row[c.key] = {
           data: sparkData[sparkData.length - 1],
           display: (
-            <TooltipWrapper label="tt-spark" tooltip={tooltip}>
-              <div>
+            <WithTooltip
+              renderTooltip={({ index }) => (
+                <div style={{ minWidth: 140 }}>
+                  <strong>{d3format(c.d3format, data[index][metric])}</strong>
+                  <div>{formatDate(data[index].iso)}</div>
+                </div>
+              )}
+            >
+              {({ onMouseLeave, onMouseMove, tooltipData }) => (
                 <Sparkline
                   ariaLabel={`spark-${metric}`}
                   width={parseInt(c.width, 10) || 300}
                   height={parseInt(c.height, 10) || 50}
-                  margin={{
-                    top: SPARK_MARGIN,
-                    bottom: SPARK_MARGIN,
-                    left: SPARK_MARGIN,
-                    right: SPARK_MARGIN,
-                  }}
+                  margin={SPARKLINE_MARGIN}
                   data={sparkData}
+                  onMouseLeave={onMouseLeave}
+                  onMouseMove={onMouseMove}
                 >
                   <LineSeries
                     showArea={false}
                     stroke={brandColor}
                   />
+                  {tooltipData &&
+                    <VerticalReferenceLine
+                      reference={tooltipData.index}
+                      strokeDasharray="3 3"
+                      strokeWidth={1}
+                    />}
+                  {tooltipData &&
+                    <PointSeries
+                      points={[tooltipData.index]}
+                      fill={brandColor}
+                      strokeWidth={1}
+                    />}
                 </Sparkline>
-              </div>
-            </TooltipWrapper>),
+              )}
+            </WithTooltip>
+          ),
         };
       } else {
         const recent = reversedData[0][metric];

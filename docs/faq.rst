@@ -170,8 +170,8 @@ You can override this path using the ``SUPERSET_HOME`` environment variable.
 
 Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
 
-How do I add new columns to an existing table
----------------------------------------------
+What if the table schema changed?
+---------------------------------
 
 Table schemas evolve, and Superset needs to reflect that. It's pretty common
 in the life cycle of a dashboard to want to add a new dimension or metric.
@@ -213,3 +213,11 @@ How can I set a default filter on my dashboard?
 
 Easy. Simply apply the filter and save the dashboard while the filter
 is active.
+
+How do I get Superset to refresh the schema of my table?
+--------------------------------------------------------
+
+When adding columns to a table, you can have Superset detect and merge the
+new columns in by using the "Refresh Metadata" action in the
+``Source -> Tables`` page. Simply check the box next to the tables
+you want the schema refreshed, and click ``Actions -> Refresh Metadata``.

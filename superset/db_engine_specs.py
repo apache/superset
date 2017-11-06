@@ -198,15 +198,16 @@ class BaseEngineSpec(object):
             url.username = username
 
     @classmethod
-    def get_uri_for_impersonation(cls, uri, impersonate_user, username):
+    def get_configuration_for_impersonation(cls, uri, impersonate_user, username):
         """
-        Return a new URI string that allows for user impersonation.
+        Return a configuration dictionary that can be merged with other configs
+        that can set the correct properties for impersonating users
         :param uri: URI string
-        :param impersonate_user:  Bool indicating if impersonation is enabled
+        :param impersonate_user: Bool indicating if impersonation is enabled
         :param username: Effective username
-        :return: New URI string
+        :return: Dictionary with configs required for impersonation
         """
-        return uri
+        return {}
 
 
 class PostgresEngineSpec(BaseEngineSpec):
@@ -214,14 +215,14 @@ class PostgresEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain("Time Column", _('Time Column'), "{col}"),
-        Grain("second", _('second'), "DATE_TRUNC('second', {col})"),
-        Grain("minute", _('minute'), "DATE_TRUNC('minute', {col})"),
-        Grain("hour", _('hour'), "DATE_TRUNC('hour', {col})"),
-        Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
-        Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
-        Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
-        Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', {col})"),
-        Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
+        Grain("second", _('second'), "DATE_TRUNC('second', \"{col}\")"),
+        Grain("minute", _('minute'), "DATE_TRUNC('minute', \"{col}\")"),
+        Grain("hour", _('hour'), "DATE_TRUNC('hour', \"{col}\")"),
+        Grain("day", _('day'), "DATE_TRUNC('day', \"{col}\")"),
+        Grain("week", _('week'), "DATE_TRUNC('week', \"{col}\")"),
+        Grain("month", _('month'), "DATE_TRUNC('month', \"{col}\")"),
+        Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', \"{col}\")"),
+        Grain("year", _('year'), "DATE_TRUNC('year', \"{col}\")"),
     )
 
     @classmethod
@@ -701,7 +702,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.constants = patched_constants
         hive.ttypes = patched_ttypes
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
-        hive.Connection = patched_hive.ConnectionProxyUser
 
     @classmethod
     @cache_util.memoized_func(
@@ -863,27 +863,29 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param impersonate_user: Bool indicating if impersonation is enabled
         :param username: Effective username
         """
-        if impersonate_user is not None and "auth" in url.query.keys() and username is not None:
-            url.query["hive_server2_proxy_user"] = username
+        # Do nothing in the URL object since instead this should modify
+        # the configuraiton dictionary. See get_configuration_for_impersonation
+        pass
 
     @classmethod
-    def get_uri_for_impersonation(cls, uri, impersonate_user, username):
+    def get_configuration_for_impersonation(cls, uri, impersonate_user, username):
         """
-        Return a new URI string that allows for user impersonation.
+        Return a configuration dictionary that can be merged with other configs
+        that can set the correct properties for impersonating users
         :param uri: URI string
-        :param impersonate_user:  Bool indicating if impersonation is enabled
+        :param impersonate_user: Bool indicating if impersonation is enabled
         :param username: Effective username
-        :return: New URI string
+        :return: Dictionary with configs required for impersonation
         """
-        new_uri = uri
+        configuration = {}
         url = make_url(uri)
         backend_name = url.get_backend_name()
 
         # Must be Hive connection, enable impersonation, and set param auth=LDAP|KERBEROS
-        if backend_name == "hive" and "auth" in url.query.keys() and\
+        if backend_name == "hive" and "auth" in url.query.keys() and \
                         impersonate_user is True and username is not None:
-            new_uri += "&hive_server2_proxy_user={0}".format(username)
-        return new_uri
+            configuration["hive.server2.proxy.user"] = username
+        return configuration
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
