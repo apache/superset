@@ -2057,7 +2057,7 @@ class Superset(BaseSupersetView):
             )
             query.status = utils.QueryStatus.STOPPED
             db.session.commit()
-        except Exception as e:
+        except Exception:
             pass
         return self.json_response('OK')
 

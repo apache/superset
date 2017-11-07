@@ -139,9 +139,7 @@ class CeleryTestCase(SupersetTestCase):
         return json.loads(resp.data.decode('utf-8'))
 
     def test_add_limit_to_the_query(self):
-        session = db.session
         main_db = self.get_main_database(db.session)
-        eng = main_db.get_sqla_engine()
 
         select_query = "SELECT * FROM outer_space;"
         updated_select_query = main_db.wrap_sql_limit(select_query, 100)
