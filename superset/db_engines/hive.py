@@ -3,27 +3,6 @@ from TCLIService import ttypes
 from thrift import Thrift
 
 
-old_Connection = hive.Connection
-
-# TODO
-# Monkey-patch of PyHive project's pyhive/hive.py which needed to change the constructor.
-# Submitted a pull request on October 13, 2017 and waiting for it to be merged.
-# https://github.com/dropbox/PyHive/pull/165
-class ConnectionProxyUser(hive.Connection):
-
-    def __init__(self, host=None, port=None, username=None, database='default', auth=None,
-             configuration=None, kerberos_service_name=None, password=None,
-             thrift_transport=None, hive_server2_proxy_user=None):
-        configuration = configuration or {}
-        if auth is not None and auth in ('LDAP', 'KERBEROS'):
-            if hive_server2_proxy_user is not None:
-                configuration["hive.server2.proxy.user"] = hive_server2_proxy_user
-        # restore the old connection class, otherwise, will recurse on its own __init__ method
-        hive.Connection = old_Connection
-        hive.Connection.__init__(self, host=host, port=port, username=username, database=database, auth=auth,
-                 configuration=configuration, kerberos_service_name=kerberos_service_name, password=password,
-                 thrift_transport=thrift_transport)
-
 
 # TODO: contribute back to pyhive.
 def fetch_logs(self, max_rows=1024,
