@@ -270,7 +270,7 @@ class DeleteMixin(object):
         __("Delete"),
         __("Delete all Really?"),
         "fa-trash",
-        single=False
+        single=False,
     )
     def muldelete(self, items):
         if not items:

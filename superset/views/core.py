@@ -151,8 +151,8 @@ class DashboardFilter(SupersetFilter):
                 db.session.query(Dash.id)
                 .distinct()
                 .join(Dash.slices)
-                .filter(Slice.id.in_(slice_ids_qry))
-            )
+                .filter(Slice.id.in_(slice_ids_qry)),
+            ),
         )
         return query
 
@@ -179,7 +179,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'allow_dml', 'creator', 'modified']
     order_columns = [
         'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
-        'modified'
+        'modified',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
@@ -256,7 +256,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'extra': _("Extra"),
         'allow_run_sync': _("Allow Run Sync"),
         'allow_run_async': _("Allow Run Async"),
-        'impersonate_user': _("Impersonate the logged on user")
+        'impersonate_user': _("Impersonate the logged on user"),
     }
 
     def pre_add(self, db):
@@ -365,10 +365,10 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             "These parameters are generated dynamically when clicking "
             "the save or overwrite button in the explore view. This JSON "
             "object is exposed here for reference and for power users who may "
-            "want to alter specific parameters."),
-        'cache_timeout': _(
-            "Duration (in seconds) of the caching timeout for this slice."
+            "want to alter specific parameters.",
         ),
+        'cache_timeout': _(
+            "Duration (in seconds) of the caching timeout for this slice."),
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
@@ -532,7 +532,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
                 mimetype="application/text")
         return self.render_template(
             'superset/export_dashboards.html',
-            dashboards_url='/dashboardmodelview/list'
+            dashboards_url='/dashboardmodelview/list',
         )
 
 
@@ -770,7 +770,7 @@ class Superset(BaseSupersetView):
         db.session.commit()
         return self.json_response({
             'granted': granted_perms,
-            'requested': list(db_ds_names)
+            'requested': list(db_ds_names),
         }, status=201)
 
     @log_this
@@ -1455,7 +1455,7 @@ class Superset(BaseSupersetView):
                 configuration.update(
                     db_engine.get_configuration_for_impersonation(uri,
                                                                   impersonate_user,
-                                                                  username)
+                                                                  username),
                 )
 
             connect_args = (
@@ -1486,17 +1486,17 @@ class Superset(BaseSupersetView):
             db.session.query(M.Log, M.Dashboard, M.Slice)
             .outerjoin(
                 M.Dashboard,
-                M.Dashboard.id == M.Log.dashboard_id
+                M.Dashboard.id == M.Log.dashboard_id,
             )
             .outerjoin(
                 M.Slice,
-                M.Slice.id == M.Log.slice_id
+                M.Slice.id == M.Log.slice_id,
             )
             .filter(
                 sqla.and_(
                     ~M.Log.action.in_(('queries', 'shortner', 'sql_json')),
                     M.Log.user_id == user_id,
-                )
+                ),
             )
             .order_by(M.Log.dttm.desc())
             .limit(1000)
@@ -1553,10 +1553,10 @@ class Superset(BaseSupersetView):
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'Dashboard',
                     models.Dashboard.id == models.FavStar.obj_id,
-                )
+                ),
             )
             .order_by(
-                models.FavStar.dttm.desc()
+                models.FavStar.dttm.desc(),
             )
         )
         payload = []
@@ -1590,10 +1590,10 @@ class Superset(BaseSupersetView):
                 sqla.or_(
                     Dash.created_by_fk == user_id,
                     Dash.changed_by_fk == user_id,
-                )
+                ),
             )
             .order_by(
-                Dash.changed_on.desc()
+                Dash.changed_on.desc(),
             )
         )
         payload = [{
@@ -1618,7 +1618,7 @@ class Superset(BaseSupersetView):
                 sqla.or_(
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
-                )
+                ),
             )
             .order_by(Slice.changed_on.desc())
         )
@@ -1647,10 +1647,10 @@ class Superset(BaseSupersetView):
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'slice',
                     models.Slice.id == models.FavStar.obj_id,
-                )
+                ),
             )
             .order_by(
-                models.FavStar.dttm.desc()
+                models.FavStar.dttm.desc(),
             )
         )
         payload = []
@@ -1733,8 +1733,8 @@ class Superset(BaseSupersetView):
                         class_name=class_name,
                         obj_id=obj_id,
                         user_id=g.user.get_id(),
-                        dttm=datetime.now()
-                    )
+                        dttm=datetime.now(),
+                    ),
                 )
             count = 1
         elif action == 'unselect':
@@ -1993,7 +1993,7 @@ class Superset(BaseSupersetView):
             models.Database).filter_by(id=database_id).first()
         return self.render_template(
             "superset/ajah.html",
-            content=mydb.select_star(table_name, show_cols=True)
+            content=mydb.select_star(table_name, show_cols=True),
         )
 
     @expose("/theme/")
@@ -2023,7 +2023,7 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 "Data could not be retrieved. "
                 "You may want to re-run the query.",
-                status=410
+                status=410,
             )
 
         query = db.session.query(Query).filter_by(results_key=key).one()
@@ -2085,7 +2085,7 @@ class Superset(BaseSupersetView):
         if select_as_cta and mydb.force_ctas_schema:
             tmp_table_name = '{}.{}'.format(
                 mydb.force_ctas_schema,
-                tmp_table_name
+                tmp_table_name,
             )
 
         query = Query(
@@ -2326,7 +2326,7 @@ class Superset(BaseSupersetView):
             for perm in role.permissions:
                 if perm.permission and perm.view_menu:
                     perms.add(
-                        (perm.permission.name, perm.view_menu.name)
+                        (perm.permission.name, perm.view_menu.name),
                     )
                     if perm.permission.name in ('datasource_access', 'database_access'):
                         permissions[perm.permission.name].add(perm.view_menu.name)
@@ -2354,7 +2354,7 @@ class Superset(BaseSupersetView):
             title=user.username + "'s profile",
             navbar_container=True,
             entry='profile',
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser)
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
 
     @has_access
@@ -2368,7 +2368,7 @@ class Superset(BaseSupersetView):
         return self.render_template(
             'superset/basic.html',
             entry='sqllab',
-            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
+            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser),
         )
 
     @api

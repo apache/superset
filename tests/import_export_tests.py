@@ -77,7 +77,7 @@ class ImportExportTests(SupersetTestCase):
             viz_type='bubble',
             params=json.dumps(params),
             datasource_id=ds_id,
-            id=id
+            id=id,
         )
 
     def create_dashboard(self, title, id=0, slcs=[]):
@@ -88,7 +88,7 @@ class ImportExportTests(SupersetTestCase):
             slices=slcs,
             position_json='{"size_y": 2, "size_x": 2}',
             slug='{}_imported'.format(title.lower()),
-            json_metadata=json.dumps(json_metadata)
+            json_metadata=json.dumps(json_metadata),
         )
 
     def create_table(
@@ -98,7 +98,7 @@ class ImportExportTests(SupersetTestCase):
             id=id,
             schema=schema,
             table_name=name,
-            params=json.dumps(params)
+            params=json.dumps(params),
         )
         for col_name in cols_names:
             table.columns.append(
@@ -114,7 +114,7 @@ class ImportExportTests(SupersetTestCase):
             id=id,
             datasource_name=name,
             cluster_name='druid_test',
-            params=json.dumps(params)
+            params=json.dumps(params),
         )
         for col_name in cols_names:
             datasource.columns.append(
@@ -229,13 +229,13 @@ class ImportExportTests(SupersetTestCase):
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
             birth_dash.id,
-            json.loads(exported_dashboards[0].json_metadata)['remote_id']
+            json.loads(exported_dashboards[0].json_metadata)['remote_id'],
         )
 
         self.assert_dash_equals(world_health_dash, exported_dashboards[1])
         self.assertEquals(
             world_health_dash.id,
-            json.loads(exported_dashboards[1].json_metadata)['remote_id']
+            json.loads(exported_dashboards[1].json_metadata)['remote_id'],
         )
 
         exported_tables = sorted(
@@ -337,8 +337,8 @@ class ImportExportTests(SupersetTestCase):
             "filter_immune_slices": ["{}".format(e_slc.id)],
             "expanded_slices": {
                 "{}".format(e_slc.id): True,
-                "{}".format(b_slc.id): False
-            }
+                "{}".format(b_slc.id): False,
+            },
         })
 
         imported_dash_id = models.Dashboard.import_obj(
@@ -358,8 +358,8 @@ class ImportExportTests(SupersetTestCase):
             "filter_immune_slices": ["{}".format(i_e_slc.id)],
             "expanded_slices": {
                 '{}'.format(i_e_slc.id): True,
-                '{}'.format(i_b_slc.id): False
-            }
+                '{}'.format(i_b_slc.id): False,
+            },
         }
         self.assertEquals(expected_json_metadata,
                           json.loads(imported_dash.json_metadata))

@@ -197,7 +197,7 @@ class BaseViz(object):
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
-            'order_desc': order_desc
+            'order_desc': order_desc,
         }
         return d
 
@@ -387,7 +387,7 @@ class TableViz(BaseViz):
         if 'percent_metrics' in fd:
             d['metrics'] = d['metrics'] + list(filter(
                 lambda m: m not in d['metrics'],
-                fd['percent_metrics']
+                fd['percent_metrics'],
             ))
 
         d['is_timeseries'] = self.should_be_timeseries()
@@ -416,7 +416,7 @@ class TableViz(BaseViz):
             # Remove metrics that are not in the main metrics list
             for m in filter(
                 lambda m: m not in fd['metrics'] and m in df.columns,
-                percent_metrics
+                percent_metrics,
             ):
                 del df[m]
 
@@ -766,7 +766,7 @@ class BubbleViz(NVD3Viz):
         form_data = self.form_data
         d = super(BubbleViz, self).query_obj()
         d['groupby'] = [
-            form_data.get('entity')
+            form_data.get('entity'),
         ]
         if form_data.get('series'):
             d['groupby'].append(form_data.get('series'))
@@ -1090,7 +1090,7 @@ class NVD3DualLineViz(NVD3Viz):
         chart_data = []
         metrics = [
             self.form_data.get('metric'),
-            self.form_data.get('metric_2')
+            self.form_data.get('metric_2'),
         ]
         for i, m in enumerate(metrics):
             ys = series[m]
@@ -1105,7 +1105,7 @@ class NVD3DualLineViz(NVD3Viz):
                     for ds in df.index
                 ],
                 "yAxis": i+1,
-                "type": "line"
+                "type": "line",
             }
             chart_data.append(d)
         return chart_data
@@ -1702,14 +1702,14 @@ class MapboxViz(BaseViz):
                     "geometry": {
                         "type": "Point",
                         "coordinates": [lon, lat],
-                    }
+                    },
                 }
                 for lon, lat, metric, point_radius
                 in zip(
                     df[fd.get('all_columns_x')],
                     df[fd.get('all_columns_y')],
                     metric_col, point_radius_col)
-            ]
+            ],
         }
 
         return {
@@ -1912,7 +1912,7 @@ class PartitionViz(NVD3TimeSeriesViz):
             'name': i,
             'val': levels[level][metric][dims][i],
             'children': self.nest_values(
-                levels, level + 1, metric, dims + (i,)
+                levels, level + 1, metric, dims + (i,),
             ),
         } for i in levels[level][metric][dims].index]
 
@@ -1933,7 +1933,7 @@ class PartitionViz(NVD3TimeSeriesViz):
         return [{
             'name': i,
             'val': procs[level][dims][i][time],
-            'children': self.nest_procs(procs, level + 1, dims + (i,), time)
+            'children': self.nest_procs(procs, level + 1, dims + (i,), time),
         } for i in procs[level][dims].columns]
 
     def get_data(self, df):

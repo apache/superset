@@ -163,7 +163,7 @@ class DimSelector(Having):
                 'type': 'dimSelector',
                 'dimension': args['dimension'],
                 'value': args['value'],
-            }
+            },
         }
 
 

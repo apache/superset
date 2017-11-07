@@ -134,13 +134,13 @@ def merge_perm(sm, permission_name, view_menu_name, connection):
         permission_table = sm.permission_model.__table__
         connection.execute(
             permission_table.insert()
-            .values(name=permission_name)
+            .values(name=permission_name),
         )
     if not view_menu:
         view_menu_table = sm.viewmenu_model.__table__
         connection.execute(
             view_menu_table.insert()
-            .values(name=view_menu_name)
+            .values(name=view_menu_name),
         )
 
     permission = sm.find_permission(permission_name)
@@ -155,8 +155,8 @@ def merge_perm(sm, permission_name, view_menu_name, connection):
             permission_view_table.insert()
             .values(
                 permission_id=permission.id,
-                view_menu_id=view_menu.id
-                )
+                view_menu_id=view_menu.id,
+                ),
         )
 
 
@@ -167,7 +167,7 @@ def set_perm(mapper, connection, target):  # noqa
         connection.execute(
             link_table.update()
             .where(link_table.c.id == target.id)
-            .values(perm=target.get_perm())
+            .values(perm=target.get_perm()),
         )
 
     # add to view menu if not already exists
