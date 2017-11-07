@@ -87,8 +87,8 @@ function viz(slice, payload) {
           display: (
             <WithTooltip
               renderTooltip={({ index }) => (
-                <div style={{ minWidth: 140 }}>
-                  <strong>{d3format(c.d3format, data[index][metric])}</strong>
+                <div>
+                  <strong>{d3format(c.d3format, sparkData[index])}</strong>
                   <div>{formatDate(data[index].iso)}</div>
                 </div>
               )}
