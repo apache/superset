@@ -38,7 +38,7 @@ function viz(slice, payload) {
   slice.container.css('height', slice.height());
   const records = payload.data.records;
   const fd = payload.form_data;
-  const data = Object.keys(records).sort().map(iso => ({ ...records[iso], iso }));
+  const data = Object.keys(records).sort().map(iso => ({ ...records[iso] }));
   const reversedData = [...data].reverse();
   const metricMap = {};
   slice.datasource.metrics.forEach((m) => {
