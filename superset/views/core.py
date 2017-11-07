@@ -586,6 +586,9 @@ appbuilder.add_view(
 def health():
     return "OK"
 
+@app.route('/healthcheck')
+def healthcheck():
+    return "OK"
 
 @app.route('/ping')
 def ping():
@@ -1444,7 +1447,7 @@ class Superset(BaseSupersetView):
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
-            
+
             url = make_url(uri)
             db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
             db_engine.patch()
