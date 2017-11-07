@@ -143,7 +143,6 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
             'groupby': 'target',
             'metric': 'sum__value',
             'row_limit': 5000,
@@ -165,7 +164,6 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
             'groupby': 'target',
             'metric': 'sum__value',
             'row_limit': 5000,
