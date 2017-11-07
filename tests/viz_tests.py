@@ -73,7 +73,7 @@ class BaseVizTestCase(unittest.TestCase):
         datasource.query = Mock(return_value=results)
         test_viz = viz.BaseViz(datasource, form_data)
         test_viz.get_fillna_for_columns = Mock(return_value=0)
-        result = test_viz.get_df(query_obj)
+        test_viz.get_df(query_obj)
         mock_call = df.__setitem__.mock_calls[0]
         self.assertEqual(mock_call[1][0], DTTM_ALIAS)
         self.assertFalse(mock_call[1][1].empty)
@@ -83,7 +83,7 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertEqual(mock_call[1][1][0].hour, 6)
         self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
         mock_dttm_col.python_date_format = 'utc'
-        result = test_viz.get_df(query_obj)
+        test_viz.get_df(query_obj)
         mock_call = df.__setitem__.mock_calls[2]
         self.assertEqual(mock_call[1][0], DTTM_ALIAS)
         self.assertFalse(mock_call[1][1].empty)
