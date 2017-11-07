@@ -38,7 +38,7 @@ function viz(slice, payload) {
   slice.container.css('height', slice.height());
   const records = payload.data.records;
   const fd = payload.form_data;
-  const data = Object.keys(records).sort().map(iso => ({ ...records[iso] }));
+  const data = Object.keys(records).sort().map(iso => ({ ...records[iso], iso }));
   const reversedData = [...data].reverse();
   const metricMap = {};
   slice.datasource.metrics.forEach((m) => {
@@ -140,7 +140,7 @@ function viz(slice, payload) {
         } else if (c.colType === 'contrib') {
           // contribution to column total
           v = recent / Object.keys(reversedData[0])
-          .map(k => reversedData[0][k])
+          .map(k => k !== 'iso' ? reversedData[0][k] : null)
           .reduce((a, b) => a + b);
         } else if (c.colType === 'avg') {
           // Average over the last {timeLag}
