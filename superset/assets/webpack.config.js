@@ -47,12 +47,12 @@ const config = {
       },
       {
         test: /\.jsx?$/,
-        exclude: APP_DIR + '/node_modules',
+        exclude: /node_modules/,
         loader: 'babel-loader',
         query: {
           presets: [
             'airbnb',
-            'es2015',
+            'env',
             'react',
           ],
         },

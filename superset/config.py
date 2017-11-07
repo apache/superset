@@ -161,6 +161,7 @@ LANGUAGES = {
     'it': {'flag': 'it', 'name': 'Italian'},
     'fr': {'flag': 'fr', 'name': 'French'},
     'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'ja': {'flag': 'jp', 'name': 'Japanese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -324,6 +325,10 @@ if not CACHE_DEFAULT_TIMEOUT:
 # Set to False if/when debugging FAB related issues like
 # permission management
 SILENCE_FAB = True
+
+# The link to a page containing common errors and their resolutions
+# It will be appended at the bottom of sql_lab errors.
+TROUBLESHOOTING_LINK = ""
 
 
 # Integrate external Blueprints to the app by passing them to your

@@ -14,11 +14,6 @@ describe('SavedQuery', () => {
   };
   it('is valid', () => {
     expect(
-      React.isValidElement(<QueryStateLabel />),
-    ).to.equal(true);
-  });
-  it('is valid with props', () => {
-    expect(
       React.isValidElement(<QueryStateLabel {...mockedProps} />),
     ).to.equal(true);
   });

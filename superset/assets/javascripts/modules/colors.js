@@ -1,7 +1,9 @@
 import d3 from 'd3';
 
+export const brandColor = '#00A699';
+
 // Color related utility functions go in this object
-const bnbColors = [
+export const bnbColors = [
   '#ff5a5f', // rausch
   '#7b0051', // hackb
   '#007A87', // kazan
@@ -91,6 +93,13 @@ export const spectrums = {
   black_white: [
     'black',
     'white',
+  ],
+  dark_blue: [
+    '#EBF5F8',
+    '#6BB1CC',
+    '#357E9B',
+    '#1B4150',
+    '#092935',
   ],
 };
 

@@ -65,6 +65,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return sorted([c.column_name for c in self.columns])
 
     @property
+    def columns_types(self):
+        return {c.column_name: c.type for c in self.columns}
+
+    @property
     def main_dttm_col(self):
         return "timestamp"
 
@@ -205,6 +209,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
     description = Column(Text)
+    is_dttm = None
 
     # [optional] Set this to support import/export functionality
     export_fields = []
@@ -248,7 +253,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     def data(self):
         attrs = (
             'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby')
+            'filterable', 'groupby', 'is_dttm')
         return {s: getattr(self, s) for s in attrs}
 
 
@@ -265,6 +270,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
+    warning_text = Column(Text)
 
     """
     The interface should also declare a datasource relationship pointing
@@ -289,5 +295,7 @@ class BaseMetric(AuditMixinNullable, ImportMixin):
 
     @property
     def data(self):
-        attrs = ('metric_name', 'verbose_name', 'description', 'expression')
+        attrs = (
+            'metric_name', 'verbose_name', 'description', 'expression',
+            'warning_text')
         return {s: getattr(self, s) for s in attrs}

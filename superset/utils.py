@@ -665,3 +665,31 @@ def get_celery_app(config):
         return _celery_app
     _celery_app = celery.Celery(config_source=config.get('CELERY_CONFIG'))
     return _celery_app
+
+
+def merge_extra_filters(form_data):
+    # extra_filters are temporary/contextual filters that are external
+    # to the slice definition. We use those for dynamic interactive
+    # filters like the ones emitted by the "Filter Box" visualization
+    if form_data.get('extra_filters'):
+        # __form and __to are special extra_filters that target time
+        # boundaries. The rest of extra_filters are simple
+        # [column_name in list_of_values]. `__` prefix is there to avoid
+        # potential conflicts with column that would be named `from` or `to`
+        if 'filters' not in form_data:
+            form_data['filters'] = []
+        date_options = {
+            '__from': 'since',
+            '__to': 'until',
+            '__time_col': 'granularity_sqla',
+            '__time_grain': 'time_grain_sqla',
+            '__time_origin': 'druid_time_origin',
+            '__granularity': 'granularity',
+        }
+        for filtr in form_data['extra_filters']:
+            if date_options.get(filtr['col']):  # merge date options
+                if filtr.get('val'):
+                    form_data[date_options[filtr['col']]] = filtr['val']
+            else:
+                form_data['filters'] += [filtr]  # merge col filters
+        del form_data['extra_filters']

@@ -5,7 +5,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-from celery.bin import worker as celery_worker
 from datetime import datetime
 from subprocess import Popen
 

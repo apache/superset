@@ -23,14 +23,14 @@ class CacheLabel extends React.PureComponent {
   updateTooltipContent() {
     const cachedText = this.props.cachedTimestamp ? (
       <span>
-        t('Loaded data cached') <b>{moment.utc(this.props.cachedTimestamp).fromNow()}</b>
+        {t('Loaded data cached')}
+        <b> {moment.utc(this.props.cachedTimestamp).fromNow()}</b>
       </span>) :
       t('Loaded from cache');
 
     const tooltipContent = (
       <span>
-        {cachedText}.
-        {t('Click to force-refresh')}
+        {cachedText}. {t('Click to force-refresh')}
       </span>
     );
     this.setState({ tooltipContent });

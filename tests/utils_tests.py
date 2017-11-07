@@ -1,12 +1,22 @@
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from superset.utils import (
-    json_int_dttm_ser, json_iso_dttm_ser, base_json_conv, parse_human_timedelta, zlib_compress, zlib_decompress_to_string
+    json_int_dttm_ser,
+    json_iso_dttm_ser,
+    base_json_conv,
+    parse_human_timedelta,
+    zlib_compress,
+    zlib_decompress_to_string,
+    merge_extra_filters,
+    datetime_f,
+    JSONEncodedDict,
+    validate_json,
+    SupersetException,
 )
 import unittest
 import uuid
 
-from mock import Mock, patch
+from mock import patch
 import numpy
 
 
@@ -52,3 +62,80 @@ class UtilsTestCase(unittest.TestCase):
         got_str = zlib_decompress_to_string(blob)
         self.assertEquals(json_str, got_str)
 
+    def test_merge_extra_filters(self):
+        # does nothing if no extra filters
+        form_data = {'A': 1, 'B': 2, 'c': 'test'}
+        expected = {'A': 1, 'B': 2, 'c': 'test'}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # does nothing if empty extra_filters
+        form_data = {'A': 1, 'B': 2, 'c': 'test', 'extra_filters': []}
+        expected = {'A': 1, 'B': 2, 'c': 'test', 'extra_filters': []}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # copy over extra filters into empty filters
+        form_data = {'extra_filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+        ]}
+        expected = {'filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # adds extra filters to existing filters
+        form_data = {'extra_filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+        ], 'filters': [{'col': 'D', 'op': '!=', 'val': ['G1', 'g2']}]}
+        expected = {'filters': [
+            {'col': 'D', 'op': '!=', 'val': ['G1', 'g2']},
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        # adds extra filters to existing filters and sets time options
+        form_data = {'extra_filters': [
+            {'col': '__from', 'op': 'in', 'val': '1 year ago'},
+            {'col': '__to', 'op': 'in', 'val': None},
+            {'col': '__time_col', 'op': 'in', 'val': 'birth_year'},
+            {'col': '__time_grain', 'op': 'in', 'val': 'years'},
+            {'col': 'A', 'op': 'like', 'val': 'hello'},
+            {'col': '__time_origin', 'op': 'in', 'val': 'now'},
+            {'col': '__granularity', 'op': 'in', 'val': '90 seconds'},
+        ]}
+        expected = {
+            'filters': [{'col': 'A', 'op': 'like', 'val': 'hello'}],
+            'since': '1 year ago',
+            'granularity_sqla': 'birth_year',
+            'time_grain_sqla': 'years',
+            'granularity': '90 seconds',
+            'druid_time_origin': 'now',
+        }
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+
+    def test_datetime_f(self):
+        self.assertEquals(datetime_f(datetime(1990, 9, 21, 19, 11, 19, 626096)),
+            '<nobr>1990-09-21T19:11:19.626096</nobr>')
+        self.assertEquals(len(datetime_f(datetime.now())), 28)
+        self.assertEquals(datetime_f(None), '<nobr>None</nobr>')
+        iso = datetime.now().isoformat()[:10].split('-')
+        [a, b, c] = [int(v) for v in iso]
+        self.assertEquals(datetime_f(datetime(a, b, c)), '<nobr>00:00:00</nobr>')
+
+    def test_json_encoded_obj(self):
+        obj = {'a': 5, 'b': ['a', 'g', 5]}
+        val = '{"a": 5, "b": ["a", "g", 5]}'
+        jsonObj = JSONEncodedDict()
+        resp = jsonObj.process_bind_param(obj, 'dialect')
+        self.assertIn('"a": 5', resp)
+        self.assertIn('"b": ["a", "g", 5]', resp)
+        self.assertEquals(jsonObj.process_result_value(val, 'dialect'), obj)
+
+    def test_validate_json(self):
+        invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
+        with self.assertRaises(SupersetException):
+            validate_json(invalid)

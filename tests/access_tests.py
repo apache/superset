@@ -8,7 +8,7 @@ import json
 import mock
 import unittest
 
-from superset import db, models, sm, security
+from superset import db, sm, security
 
 from superset.models import core as models
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -204,7 +204,7 @@ class RequestAccessTests(SupersetTestCase):
         access_request1 = create_access_request(
             session, 'table', 'random_time_series', TEST_ROLE_1, 'gamma2')
         ds_1_id = access_request1.datasource_id
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'random_time_series', TEST_ROLE_1, 'gamma')
         access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
         self.assertTrue(access_requests)
@@ -229,7 +229,7 @@ class RequestAccessTests(SupersetTestCase):
 
         access_request1 = create_access_request(
             session, 'table', 'birth_names', TEST_ROLE_1, 'gamma')
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'birth_names', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
         # gamma becomes alpha
@@ -258,7 +258,7 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user = sm.find_user(username='gamma')
         access_request1 = create_access_request(
             session, 'table', 'long_lat', TEST_ROLE_1, 'gamma')
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'long_lat', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
         # gamma gets granted database access
@@ -294,7 +294,7 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user = sm.find_user(username='gamma')
         access_request1 = create_access_request(
             session, 'table', 'wb_health_population', TEST_ROLE_1, 'gamma')
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'wb_health_population', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
         ds = session.query(SqlaTable).filter_by(
@@ -335,9 +335,8 @@ class RequestAccessTests(SupersetTestCase):
         access_request1 = create_access_request(
             session, 'table', 'unicode_test', TEST_ROLE_NAME, 'gamma')
         ds_1_id = access_request1.datasource_id
-        resp = self.get_resp(GRANT_ROLE_REQUEST.format(
+        self.get_resp(GRANT_ROLE_REQUEST.format(
             'table', ds_1_id, 'gamma', TEST_ROLE_NAME))
-
         # Test email content.
         self.assertTrue(mock_send_mime.called)
         call_args = mock_send_mime.call_args[0]
@@ -436,9 +435,6 @@ class RequestAccessTests(SupersetTestCase):
             'datasource_type={}&'
             'datasource_id={}&'
             'action={}&')
-        ROLE_EXTEND_LINK = (
-            '<a href="/superset/approve?datasource_type={}&datasource_id={}&'
-            'created_by={}&role_to_extend={}">Extend {} Role</a>')
         ROLE_GRANT_LINK = (
             '<a href="/superset/approve?datasource_type={}&datasource_id={}&'
             'created_by={}&role_to_grant={}">Grant {} Role</a>')

@@ -1,3 +1,6 @@
+@import './less/index.less';
+@import "./less/cosmo/variables.less";
+
 body {
     margin: 0px !important;
 }
@@ -27,6 +30,10 @@ body {
 
 input.form-control {
     background-color: white;
+}
+
+input.form-control.input-sm {
+  height: 36px;
 }
 
 .chart-header a.danger {
@@ -152,9 +159,6 @@ img.viz-thumb-option {
 }
 
 
-div.header {
-  font-weight: bold;
-}
 li.widget:hover {
   z-index: 1000;
 }
@@ -210,6 +214,8 @@ div.widget .slice_container {
 .editable-title input[type="button"] {
     border-color: transparent;
     background: inherit;
+    white-space: normal;
+    text-align: left;
 }
 
 .editable-title input[type="button"]:hover {
@@ -344,11 +350,10 @@ iframe {
   .Select-multi-value-wrapper {
     display: flex;
     flex-wrap: wrap;
-    padding-bottom: 3px;
   }
 
   .Select-value {
-    line-height: 1.2;
+    height: 23px;
   }
 
   .Select-input > input {
@@ -365,9 +370,27 @@ iframe {
 .PopoverSection {
   padding-bottom: 10px;
 }
+.popover {
+  max-width: 500px !important;
+}
 .float-left {
   float: left;
 }
 .float-right {
   float: right;
+}
+
+g.annotation-container {
+  line {
+    stroke: @stroke-primary;
+  }
+
+  rect.annotation {
+    stroke: @stroke-primary;
+    fill-opacity: 0.1;
+    stroke-width: 1;
+  }
+}
+.stroke-primary {
+  stroke: @brand-primary;
 }

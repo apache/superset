@@ -3,6 +3,7 @@ import $ from 'jquery';
 import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
+import d3tip from 'd3-tip';
 
 import { getColorFromScheme } from '../javascripts/modules/colors';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
@@ -73,13 +74,39 @@ function getMaxLabelSize(container, axisClass) {
   return Math.max(...labelDimensions);
 }
 
+/* eslint-disable camelcase */
+function formatLabel(column, verbose_map) {
+  let label;
+  if (Array.isArray(column) && column.length) {
+    label = verbose_map[column[0]] || column[0];
+    if (column.length > 1) {
+      label += ', ';
+    }
+    label += column.slice(1).join(', ');
+  } else {
+    label = verbose_map[column] || column;
+  }
+  return label;
+}
+/* eslint-enable camelcase */
+
 function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
 
+  let data;
+  if (payload.data) {
+    data = payload.data.map(x => ({
+      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+    }));
+  } else {
+    data = [];
+  }
+
   slice.container.html('');
   slice.clearError();
+
 
   // Calculates the longest label size for stretching bottom margin
   function calculateStretchMargins(payloadData) {
@@ -102,9 +129,9 @@ function nvd3Vis(slice, payload) {
   const barchartWidth = function () {
     let bars;
     if (fd.bar_stacked) {
-      bars = d3.max(payload.data, function (d) { return d.values.length; });
+      bars = d3.max(data, function (d) { return d.values.length; });
     } else {
-      bars = d3.sum(payload.data, function (d) { return d.values.length; });
+      bars = d3.sum(data, function (d) { return d.values.length; });
     }
     if (bars * minBarWidth > width) {
       return bars * minBarWidth;
@@ -162,7 +189,7 @@ function nvd3Vis(slice, payload) {
 
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
+            addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         break;
@@ -179,13 +206,13 @@ function nvd3Vis(slice, payload) {
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
         if (fd.order_bars) {
-          payload.data.forEach((d) => {
+          data.forEach((d) => {
             d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
           });
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
-            addTotalBarValues(svg, chart, payload.data, stacked, fd.y_axis_format);
+            addTotalBarValues(svg, chart, data, stacked, fd.y_axis_format);
           }, animationTime);
         }
         if (!reduceXTicks) {
@@ -202,14 +229,21 @@ function nvd3Vis(slice, payload) {
           chart.donut(true);
         }
         chart.labelsOutside(fd.labels_outside);
-        chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
-          .labelType(fd.pie_label_type);
+        chart.labelThreshold(0.05);  // Configure the minimum slice size for labels to show up
+        if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
+          chart.labelType(fd.pie_label_type);
+        } else if (fd.pie_label_type === 'key_value') {
+          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
+        }
         chart.cornerRadius(true);
 
-        if (fd.pie_label_type === 'percent') {
+        if (fd.pie_label_type === 'percent' || fd.pie_label_type === 'key_percent') {
           let total = 0;
-          payload.data.forEach((d) => { total += d.y; });
+          data.forEach((d) => { total += d.y; });
           chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
+          if (fd.pie_label_type === 'key_percent') {
+            chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
+          }
         }
 
         break;
@@ -248,7 +282,7 @@ function nvd3Vis(slice, payload) {
           return s;
         });
         chart.pointRange([5, fd.max_bubble_size ** 2]);
-        chart.pointDomain([0, d3.max(payload.data, d => d3.max(d.values, v => v.size))]);
+        chart.pointDomain([0, d3.max(data, d => d3.max(d.values, v => v.size))]);
         break;
 
       case 'area':
@@ -262,9 +296,7 @@ function nvd3Vis(slice, payload) {
       case 'box_plot':
         colorKey = 'label';
         chart = nv.models.boxPlotChart();
-        chart.x(function (d) {
-          return d.label;
-        });
+        chart.x(d => d.label);
         chart.staggerLabels(true);
         chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
         break;
@@ -319,7 +351,8 @@ function nvd3Vis(slice, payload) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (vizType !== 'dist_bar' && chart.xAxis && chart.xAxis.tickFormat) {
+    const isXAxisString = ['dist_bar', 'box_plot'].indexOf(vizType) >= 0;
+    if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
@@ -395,7 +428,7 @@ function nvd3Vis(slice, payload) {
       chart.showLegend(width > BREAKPOINTS.small);
     }
     svg
-    .datum(payload.data)
+    .datum(data)
     .transition().duration(500)
     .attr('height', height)
     .attr('width', width)
@@ -471,11 +504,83 @@ function nvd3Vis(slice, payload) {
 
       // render chart
       svg
-      .datum(payload.data)
+      .datum(data)
       .transition().duration(500)
       .attr('height', height)
       .attr('width', width)
       .call(chart);
+
+      // add annotation_layer
+      if (isTimeSeries && payload.annotations && payload.annotations.length) {
+        const tip = d3tip()
+          .attr('class', 'd3-tip')
+          .direction('n')
+          .offset([-5, 0])
+          .html((d) => {
+            if (!d || !d.layer) {
+              return '';
+            }
+
+            const title = d.short_descr ?
+              d.short_descr + ' - ' + d.layer :
+              d.layer;
+            const body = d.long_descr;
+            return '<div><strong>' + title + '</strong></div><br/>' +
+            '<div>' + body + '</div>';
+          });
+
+        const hh = chart.yAxis.scale().range()[0];
+
+        let annotationLayer;
+        let xScale;
+        let minStep;
+        if (vizType === 'bar') {
+          const xMax = d3.max(payload.data[0].values, d => (d.x));
+          const xMin = d3.min(payload.data[0].values, d => (d.x));
+          minStep = chart.xAxis.range()[1] - chart.xAxis.range()[0];
+          annotationLayer = svg.select('.nv-barsWrap')
+            .insert('g', ':first-child');
+          xScale = d3.scale.quantile()
+            .domain([xMin, xMax])
+            .range(chart.xAxis.range());
+        } else {
+          minStep = 1;
+          annotationLayer = svg.select('.nv-background')
+            .append('g');
+          xScale = chart.xScale();
+        }
+
+        annotationLayer
+          .attr('class', 'annotation-container')
+          .append('defs')
+          .append('pattern')
+          .attr('id', 'diagonal')
+          .attr('patternUnits', 'userSpaceOnUse')
+          .attr('width', 8)
+          .attr('height', 10)
+          .attr('patternTransform', 'rotate(45 50 50)')
+          .append('line')
+          .attr('stroke-width', 7)
+          .attr('y2', 10);
+
+        annotationLayer.selectAll('rect')
+          .data(payload.annotations)
+          .enter()
+          .append('rect')
+          .attr('class', 'annotation')
+          .attr('x', d => (xScale(d.start_dttm)))
+          .attr('y', 0)
+          .attr('width', (d) => {
+            const w = xScale(d.end_dttm) - xScale(d.start_dttm);
+            return w === 0 ? minStep : w;
+          })
+          .attr('height', hh)
+          .attr('fill', 'url(#diagonal)')
+          .on('mouseover', tip.show)
+          .on('mouseout', tip.hide);
+
+        annotationLayer.selectAll('rect').call(tip);
+      }
     }
 
     // on scroll, hide tooltips. throttle to only 4x/second.

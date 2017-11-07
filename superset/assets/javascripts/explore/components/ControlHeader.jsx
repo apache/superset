@@ -5,7 +5,7 @@ import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import { t } from '../../locales';
 
 const propTypes = {
-  label: PropTypes.string.isRequired,
+  label: PropTypes.string,
   description: PropTypes.string,
   validationErrors: PropTypes.array,
   renderTrigger: PropTypes.bool,
@@ -40,7 +40,7 @@ export default class ControlHeader extends React.Component {
             <span>
               <InfoTooltipWithTrigger
                 label={t('bolt')}
-                tooltip={this.props.description}
+                tooltip={t('Changing this control takes effect instantly')}
                 placement="top"
                 icon="bolt"
               />
@@ -52,6 +52,9 @@ export default class ControlHeader extends React.Component {
     return null;
   }
   render() {
+    if (!this.props.label) {
+      return null;
+    }
     const labelClass = (this.props.validationErrors.length > 0) ? 'text-danger' : '';
     return (
       <div

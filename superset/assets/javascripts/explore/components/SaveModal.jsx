@@ -108,7 +108,11 @@ class SaveModal extends React.Component {
     this.props.actions.saveSlice(saveUrl)
       .then((data) => {
         // Go to new slice url or dashboard url
-        window.location = data;
+        if (gotodash) {
+          window.location = data.dashboard;
+        } else {
+          window.location = data.slice.slice_url;
+        }
       });
     this.props.onHide();
   }
@@ -185,6 +189,7 @@ class SaveModal extends React.Component {
             {t('Add slice to existing dashboard')}
           </Radio>
           <Select
+            className="save-modal-selector"
             options={this.props.dashboards}
             onChange={this.onChange.bind(this, 'saveToDashboardId')}
             autoSize={false}

@@ -143,14 +143,13 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
             'groupby': 'target',
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': slice_id,
         }
         # Changing name and save as a new slice
-        resp = self.get_resp(
+        self.get_resp(
             url.format(
                 tbl_id,
                 copy_name,
@@ -165,14 +164,13 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
             'groupby': 'target',
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': new_slice_id,
         }
         # Setting the name back to its original name by overwriting new slice
-        resp = self.get_resp(
+        self.get_resp(
             url.format(
                 tbl_id,
                 new_slice_name,
@@ -276,13 +274,15 @@ class CoreTests(SupersetTestCase):
         assert self.get_resp('/health') == "OK"
         assert self.get_resp('/ping') == "OK"
 
-    def test_testconn(self):
+    def test_testconn(self, username='admin'):
+        self.login(username=username)
         database = self.get_main_database(db.session)
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps({
             'uri': database.safe_sqlalchemy_uri(),
-            'name': 'main'
+            'name': 'main',
+            'impersonate_user': False
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
@@ -291,7 +291,8 @@ class CoreTests(SupersetTestCase):
         # validate that the endpoint works with the decrypted sqlalchemy uri
         data = json.dumps({
             'uri': database.sqlalchemy_uri_decrypted,
-            'name': 'main'
+            'name': 'main',
+            'impersonate_user': False
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
@@ -352,7 +353,7 @@ class CoreTests(SupersetTestCase):
 
         try:
             resp = self.client.post('/kv/store/', data=dict())
-        except Exception as e:
+        except Exception:
             self.assertRaises(TypeError)
 
         value = json.dumps({'data': 'this is a test'})
@@ -369,7 +370,7 @@ class CoreTests(SupersetTestCase):
 
         try:
             resp = self.client.get('/kv/10001/')
-        except Exception as e:
+        except Exception:
             self.assertRaises(TypeError)
 
     def test_save_dash(self, username='admin'):
@@ -455,7 +456,7 @@ class CoreTests(SupersetTestCase):
             'dashboard_title': 'new title'
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
-        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = (
             db.session.query(models.Dashboard)
                 .filter_by(slug="births")
@@ -757,6 +758,25 @@ class CoreTests(SupersetTestCase):
         slc_url = slc.slice_url.replace("explore", "explore_json")
         self.get_json_resp(slc_url)
         self.assertEqual(1, qry.count())
+
+    def test_slice_query_endpoint(self):
+        # API endpoint for query string
+        self.login(username="admin")
+        slc = self.get_slice("Girls", db.session)
+        resp = self.get_resp('/superset/slice_query/{}/'.format(slc.id))
+        assert 'query' in resp
+        assert 'language' in resp
+        self.logout();
+
+    def test_viz_get_fillna_for_columns(self):
+        slc = self.get_slice("Girls", db.session)
+        q = slc.viz.query_obj()
+        results = slc.viz.datasource.query(q)
+        fillna_columns = slc.viz.get_fillna_for_columns(results.df.columns)
+        self.assertDictEqual(
+            fillna_columns,
+            {'name': ' NULL', 'sum__num': 0}
+        )
 
 
 if __name__ == '__main__':
