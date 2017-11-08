@@ -34,19 +34,23 @@ const bootstrappedState = Object.assign(
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,
-    triggerQuery: true,
-    triggerRender: false,
   },
 );
 
+const chartKey = bootstrappedState.slice ? ('slice_' + bootstrappedState.slice.slice_id) : 'slice';
 const initState = {
-  chart: {
-    chartAlert: null,
-    chartStatus: null,
-    chartUpdateEndTime: null,
-    chartUpdateStartTime: now(),
-    latestQueryFormData: getFormDataFromControls(controls),
-    queryResponse: null,
+  charts: {
+    [chartKey]: {
+      chartKey,
+      chartAlert: null,
+      chartStatus: null,
+      chartUpdateEndTime: null,
+      chartUpdateStartTime: now(),
+      latestQueryFormData: getFormDataFromControls(controls),
+      queryResponse: null,
+      triggerQuery: true,
+      triggerRender: false,
+    },
   },
   saveModal: {
     dashboards: [],
