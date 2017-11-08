@@ -153,8 +153,8 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    elif (query.limit and superset_query.is_select()
-          and db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+    elif (query.limit and superset_query.is_select() and
+            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
     try:
