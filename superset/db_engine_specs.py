@@ -486,7 +486,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 'cols': cols,
                 'latest': {col_name: latest_part},
                 'partitionQuery': pql,
-            }
+            },
         }
 
     @classmethod

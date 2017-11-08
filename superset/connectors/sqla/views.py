@@ -117,7 +117,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             "(https://github.com/d3/d3-format/blob/master/README.md#format). "
             "For instance, this default formatting applies in the Table "
             "visualization and allow for different metric to use different "
-            "formats", True
+            "formats", True,
         ),
     }
     add_columns = edit_columns
@@ -189,13 +189,13 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
             "markdown</a>"),
         'sql': _(
             "This fields acts a Superset view, meaning that Superset will "
-            "run a query against this string as a subquery."
+            "run a query against this string as a subquery.",
         ),
         'fetch_values_predicate': _(
             "Predicate applied when fetching distinct value to "
             "populate the filter control component. Supports "
             "jinja template syntax. Applies only when "
-            "`Enable Filter Select` is on."
+            "`Enable Filter Select` is on.",
         ),
         'default_endpoint': _(
             "Redirects to this endpoint when clicking on the table "

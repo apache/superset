@@ -68,18 +68,18 @@ class UtilsTestCase(unittest.TestCase):
         # copy over extra filters into empty filters
         form_data = {'extra_filters': [
             {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ]}
         expected = {'filters': [
             {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ]}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
         # adds extra filters to existing filters
         form_data = {'extra_filters': [
             {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ], 'filters': [{'col': 'D', 'op': '!=', 'val': ['G1', 'g2']}]}
         expected = {'filters': [
             {'col': 'D', 'op': '!=', 'val': ['G1', 'g2']},

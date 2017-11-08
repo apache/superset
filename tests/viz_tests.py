@@ -24,7 +24,7 @@ class BaseVizTestCase(unittest.TestCase):
         test_viz = viz.BaseViz(datasource, form_data);
         self.assertEqual(
             test_viz.default_fillna,
-            test_viz.get_fillna_for_columns()
+            test_viz.get_fillna_for_columns(),
         )
 
     def test_get_df_returns_empty_df(self):
@@ -164,13 +164,13 @@ class TableVizTestCase(unittest.TestCase):
         }
         test_viz = viz.TableViz(datasource, form_data)
         f_query_obj = {
-            'metrics': form_data['metrics']
+            'metrics': form_data['metrics'],
         }
         super_query_obj.return_value = f_query_obj
         query_obj = test_viz.query_obj()
         self.assertEqual([
             'sum__A', 'count', 'avg__C',
-            'avg__B', 'max__Y'
+            'avg__B', 'max__Y',
         ], query_obj['metrics'])
 
     @patch('superset.viz.BaseViz.query_obj')
@@ -195,7 +195,7 @@ class TableVizTestCase(unittest.TestCase):
         datasource = Mock()
         form_data = {
             'all_columns': ['colA', 'colB', 'colC'],
-            'order_by_cols': ['["colA", "colB"]', '["colC"]']
+            'order_by_cols': ['["colA", "colB"]', '["colC"]'],
         }
         super_query_obj.return_value = {
             'columns': ['colD', 'colC'],
@@ -212,18 +212,18 @@ class TableVizTestCase(unittest.TestCase):
         datasource = Mock()
         form_data = {
             'timeseries_limit_metric': '__time__',
-            'order_desc': False
+            'order_desc': False,
         }
         super_query_obj.return_value = {
-            'metrics': ['colA', 'colB']
+            'metrics': ['colA', 'colB'],
         }
         test_viz = viz.TableViz(datasource, form_data)
         query_obj = test_viz.query_obj()
         self.assertEqual([
-            'colA', 'colB', '__time__'
+            'colA', 'colB', '__time__',
         ], query_obj['metrics'])
         self.assertEqual([(
-            '__time__', True
+            '__time__', True,
         )], query_obj['orderby'])
 
     def test_should_be_timeseries_raises_when_no_granularity(self):
@@ -238,7 +238,7 @@ class PairedTTestTestCase(unittest.TestCase):
     def test_get_data_transforms_dataframe(self):
         form_data = {
             'groupby': ['groupA', 'groupB', 'groupC'],
-            'metrics': ['metric1', 'metric2', 'metric3']
+            'metrics': ['metric1', 'metric2', 'metric3'],
         }
         datasource = {'type': 'table'}
         # Test data
@@ -330,7 +330,7 @@ class PairedTTestTestCase(unittest.TestCase):
     def test_get_data_empty_null_keys(self):
         form_data = {
             'groupby': [],
-            'metrics': ['', None]
+            'metrics': ['', None],
         }
         datasource = {'type': 'table'}
         # Test data
@@ -548,7 +548,7 @@ class PartitionVizTestCase(unittest.TestCase):
             len(nest[0]['children']
                 [0]['children']
                 [0]['children']
-                [0]['children'])
+                [0]['children']),
         )
 
     def test_get_data_calls_correct_method(self):

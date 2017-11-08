@@ -61,7 +61,7 @@ class ConnectorRegistry(object):
             session.query(datasource_class)
             .options(
                 subqueryload(datasource_class.columns),
-                subqueryload(datasource_class.metrics)
+                subqueryload(datasource_class.metrics),
             )
             .filter_by(id=datasource_id)
             .one()

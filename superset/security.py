@@ -133,13 +133,13 @@ def is_gamma_pvm(pvm):
 
 def is_sql_lab_pvm(pvm):
     return pvm.view_menu.name in {'SQL Lab'} or pvm.permission.name in {
-        'can_sql_json', 'can_csv', 'can_search_queries'
+        'can_sql_json', 'can_csv', 'can_search_queries',
     }
 
 
 def is_granter_pvm(pvm):
     return pvm.permission.name in {
-        'can_override_role_permissions', 'can_approve'
+        'can_override_role_permissions', 'can_approve',
     }
 
 

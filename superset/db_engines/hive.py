@@ -30,7 +30,7 @@ def fetch_logs(self, max_rows=1024,
                 operationHandle=self._operationHandle,
                 orientation=ttypes.TFetchOrientation.FETCH_NEXT,
                 maxRows=self.arraysize,
-                fetchType=1  # 0: results, 1: logs
+                fetchType=1,  # 0: results, 1: logs
             )
             response = self._connection.client.FetchResults(req)
             hive._check_status(response)

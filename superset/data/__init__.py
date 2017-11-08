@@ -93,7 +93,7 @@ def load_energy():
             "viz_type": "sankey",
             "where": ""
         }
-        """)
+        """),
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
@@ -119,7 +119,7 @@ def load_energy():
             "viz_type": "directed_force",
             "where": ""
         }
-        """)
+        """),
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
@@ -145,7 +145,7 @@ def load_energy():
             "xscale_interval": "1",
             "yscale_interval": "1"
         }
-        """)
+        """),
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
@@ -971,7 +971,7 @@ def load_country_map_data():
             '2012': BigInteger,
             '2013': BigInteger,
             '2014': BigInteger,
-            'date': Date()
+            'date': Date(),
         },
         index=False)
     print("Done loading table!")
