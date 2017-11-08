@@ -32,6 +32,17 @@ class ConnectorRegistry(object):
         return datasources
 
     @classmethod
+    def get_datasources_by_permissions(cls, session, permissions):
+        datasources = []
+        for source_type in ConnectorRegistry.sources:
+            datasources.extend(
+                session.query(ConnectorRegistry.sources[source_type])
+                    .filter(ConnectorRegistry.sources[source_type].perm.in_(permissions))
+                    .all()
+            )
+        return datasources
+
+    @classmethod
     def get_datasource_by_name(cls, session, datasource_type, datasource_name,
                                schema, database_name):
         datasource_class = ConnectorRegistry.sources[datasource_type]
