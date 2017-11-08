@@ -572,7 +572,7 @@ class SqlaTable(Model, BaseDatasource):
         def cols_adjustment(df):
             _tmp = []
             for col in df.columns:
-                if col not in query_obj['metrics']: 
+                if col not in query_obj['metrics']:
                     _tmp.append(self.database.db_engine_spec.format_column_name(col))
                 else:
                     _tmp.append(col)
