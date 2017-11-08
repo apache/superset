@@ -105,7 +105,8 @@ def get_sql_results(
 
 
 def execute_sql(
-    ctask, query_id, return_results=True, store_results=False, user_name=None):
+    ctask, query_id, return_results=True, store_results=False, user_name=None,
+):
     """Executes the sql query returns the results."""
     session = get_session(not ctask.request.called_directly)
 

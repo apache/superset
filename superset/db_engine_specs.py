@@ -461,7 +461,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         result_set_df = db.get_df(
             """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
                ORDER BY concat(table_schema, '.', table_name)""".format(
-                   datasource_type.upper()), None)
+                datasource_type.upper(),
+            ),
+            None)
         result_sets = defaultdict(list)
         for unused, row in result_set_df.iterrows():
             result_sets[row['table_schema']].append(row['table_name'])
@@ -879,8 +881,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         backend_name = url.get_backend_name()
 
         # Must be Hive connection, enable impersonation, and set param auth=LDAP|KERBEROS
-        if backend_name == "hive" and "auth" in url.query.keys() and \
-                        impersonate_user is True and username is not None:
+        if (backend_name == "hive" and "auth" in url.query.keys() and
+                impersonate_user is True and username is not None):
             configuration["hive.server2.proxy.user"] = username
         return configuration
 

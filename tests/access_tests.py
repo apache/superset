@@ -547,11 +547,11 @@ class RequestAccessTests(SupersetTestCase):
             '/superset/update_role/',
             data=json.dumps({
                 'users': [{
-                        'username': 'gamma',
-                        'first_name': 'Gamma',
-                        'last_name': 'Gamma',
-                        'email': 'gamma@superset.com',
-                    }],
+                    'username': 'gamma',
+                    'first_name': 'Gamma',
+                    'last_name': 'Gamma',
+                    'email': 'gamma@superset.com',
+                }],
                 'role_name': update_role_str,
             }),
             follow_redirects=True,
