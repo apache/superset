@@ -5,6 +5,7 @@ import { decimal2sexagesimal } from 'geolib';
 
 import TextControl from './TextControl';
 import ControlHeader from '../ControlHeader';
+import { defaultViewport } from '../../../modules/geo';
 
 const PARAMS = [
   'longitude',
@@ -23,13 +24,7 @@ const propTypes = {
 const defaultProps = {
   onChange: () => {},
   default: { type: 'fix', value: 5 },
-  value: {
-    longitude: 6.85236157047845,
-    latitude: 31.222656842808707,
-    zoom: 1,
-    bearing: 0,
-    pitch: 0,
-  },
+  value: defaultViewport,
 };
 
 export default class ViewportControl extends React.Component {

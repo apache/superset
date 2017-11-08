@@ -1735,8 +1735,6 @@ class BaseDeckGLViz(BaseViz):
 
     """Base class for deck.gl visualizations"""
 
-    viz_type = "mapbox"
-    verbose_name = _("Mapbox")
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
 
@@ -1751,15 +1749,15 @@ class BaseDeckGLViz(BaseViz):
 
     def get_position(self, d):
         return [
-            d.get(self.form_data.get('all_columns_x')),
-            d.get(self.form_data.get('all_columns_y')),
+            d.get(self.form_data.get('longitude')),
+            d.get(self.form_data.get('latitude')),
         ]
 
     def query_obj(self):
         d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
 
-        d['groupby'] = [fd.get('all_columns_x'), fd.get('all_columns_y')]
+        d['groupby'] = [fd.get('longitude'), fd.get('latitude')]
         if fd.get('dimension'):
             d['groupby'] += [fd.get('dimension')]
 
@@ -1767,9 +1765,6 @@ class BaseDeckGLViz(BaseViz):
         return d
 
     def get_data(self, df):
-        fd = self.form_data
-
-        # using geoJSON formatting
         features = []
         for d in df.to_dict(orient='records'):
             d = dict(position=self.get_position(d), **self.get_properties(d))
