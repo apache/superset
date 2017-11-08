@@ -2,6 +2,7 @@ import React from 'react';
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import * as v from '../validators';
 import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
+import { defaultViewport } from '../../modules/geo';
 import MetricOption from '../../components/MetricOption';
 import ColumnOption from '../../components/ColumnOption';
 import OptionDescription from '../../components/OptionDescription';
@@ -432,12 +433,13 @@ export const controls = {
   },
 
   groupby: groupByControl,
-  dimension: Object.assign({}, groupByControl, {
+  dimension: {
+    ...groupByControl,
     label: t('Dimension'),
     description: t('Select a dimension'),
     multi: false,
     default: null,
-  }),
+  },
 
   columns: Object.assign({}, groupByControl, {
     label: t('Columns'),
@@ -450,6 +452,28 @@ export const controls = {
     label: t('Columns'),
     default: [],
     description: t('Columns to display'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  longitude: {
+    type: 'SelectControl',
+    label: t('Longitude'),
+    default: 1,
+    validators: [v.nonEmpty],
+    description: t('Select the longitude column'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  latitude: {
+    type: 'SelectControl',
+    label: t('Latitude'),
+    default: 1,
+    validators: [v.nonEmpty],
+    description: t('Select the latitude column'),
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
@@ -1376,13 +1400,8 @@ export const controls = {
     label: t('Viewport'),
     renderTrigger: true,
     description: t('Parameters related to the view and perspective on the map'),
-    default: {
-      longitude: 6.85236157047845,
-      latitude: 31.222656842808707,
-      zoom: 1,
-      bearing: 0,
-      pitch: 0,
-    },
+    // default is whole world mostly centered
+    default: defaultViewport,
   },
 
   viewport_zoom: {
@@ -1438,6 +1457,7 @@ export const controls = {
   color: {
     type: 'ColorPickerControl',
     label: t('Color'),
+    default: colorPrimary,
     description: t('Pick a color'),
   },
 

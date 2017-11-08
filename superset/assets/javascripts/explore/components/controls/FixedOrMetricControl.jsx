@@ -8,6 +8,11 @@ import SelectControl from './SelectControl';
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
+const controlTypes = {
+  fixed: 'fix',
+  metric: 'metric',
+};
+
 const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.object,
@@ -18,25 +23,25 @@ const propTypes = {
 
 const defaultProps = {
   onChange: () => {},
-  default: { type: 'fix', value: 5 },
+  default: { type: controlTypes.fixed, value: 5 },
 };
 
 export default class FixedOrMetricControl extends React.Component {
   constructor(props) {
     super(props);
     this.onChange = this.onChange.bind(this);
-    const type = props.value ? props.value.type : props.default.type || 'fix';
-    const value = props.value ? props.value.value : props.default.value || '100';
+    const type = (props.value ? props.value.type : props.default.type) || controlTypes.fixed;
+    const value = (props.value ? props.value.value : props.default.value) || '100';
     this.state = {
       type,
-      fixedValue: type === 'fix' ? value : '',
-      metricValue: type === 'metric' ? value : null,
+      fixedValue: type === controlTypes.fixed ? value : '',
+      metricValue: type === controlTypes.metric ? value : null,
     };
   }
   onChange() {
     this.props.onChange({
       type: this.state.type,
-      value: this.state.type === 'fix' ? this.state.fixedValue : this.state.metricValue,
+      value: this.state.type === controlTypes.fixed ? this.state.fixedValue : this.state.metricValue,
     });
   }
   setType(type) {
@@ -50,33 +55,33 @@ export default class FixedOrMetricControl extends React.Component {
   }
   renderPopover() {
     const value = this.props.value || this.props.default;
-    const type = value.type || 'fix';
+    const type = value.type || controlTypes.fixed;
     const metrics = this.props.datasource ? this.props.datasource.metrics : null;
     return (
       <Popover id="filter-popover">
         <div style={{ width: '240px' }}>
           <PopoverSection
             title="Fixed"
-            isSelected={type === 'fix'}
-            onSelect={this.onChange.bind(this, 'fix')}
+            isSelected={type === controlTypes.fixed}
+            onSelect={this.onChange.bind(this, controlTypes.fixed)}
           >
             <TextControl
               isFloat
               onChange={this.setFixedValue.bind(this)}
-              onFocus={this.setType.bind(this, 'fix')}
+              onFocus={this.setType.bind(this, controlTypes.fixed)}
               value={this.state.fixedValue}
             />
           </PopoverSection>
           <PopoverSection
             title="Based on a metric"
-            isSelected={type === 'metric'}
-            onSelect={this.onChange.bind(this, 'metric')}
+            isSelected={type === controlTypes.metric}
+            onSelect={this.onChange.bind(this, controlTypes.metric)}
           >
             <SelectControl
               {...controls.metric}
               name="metric"
               options={metrics}
-              onFocus={this.setType.bind(this, 'metric')}
+              onFocus={this.setType.bind(this, controlTypes.metric)}
               onChange={this.setMetric.bind(this)}
               value={this.state.metricValue}
             />
@@ -98,10 +103,10 @@ export default class FixedOrMetricControl extends React.Component {
           overlay={this.renderPopover()}
         >
           <Label style={{ cursor: 'pointer' }}>
-            {this.state.type === 'fix' &&
+            {this.state.type === controlTypes.fixed &&
               <span>{this.state.fixedValue}</span>
             }
-            {this.state.type === 'metric' &&
+            {this.state.type === controlTypes.metric &&
               <span>
                 <span style={{ fontWeight: 'normal' }}>metric: </span>
                 <strong>{this.state.metricValue}</strong>

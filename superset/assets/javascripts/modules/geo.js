@@ -1,3 +1,10 @@
+export const defaultViewport = {
+  longitude: 6.85236157047845,
+  latitude: 31.222656842808707,
+  zoom: 1,
+  bearing: 0,
+  pitch: 0,
+};
 
 const METER_TO_MILE = 1609.34;
 export function unitToRadius(unit, num) {

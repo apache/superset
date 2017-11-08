@@ -1234,8 +1234,8 @@ def load_deck_dash():
     slices = []
     tbl = db.session.query(TBL).filter_by(table_name='long_lat').first()
     slice_data = {
-        "all_columns_x": "LON",
-        "all_columns_y": "LAT",
+        "longitude": "LON",
+        "latitude": "LAT",
         "color_picker": {
             "r": 205,
             "g": 0,
@@ -1282,8 +1282,8 @@ def load_deck_dash():
         "point_unit": "square_m",
         "filters": [],
         "row_limit": 5000,
-        "all_columns_y": "LAT",
-        "all_columns_x": "LON",
+        "longitude": "LON",
+        "latitude": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/dark-v9",
         "granularity_sqla": "date",
         "size": "count",
@@ -1324,8 +1324,8 @@ def load_deck_dash():
     slice_data = {
         "filters": [],
         "row_limit": 5000,
-        "all_columns_y": "LAT",
-        "all_columns_x": "LON",
+        "longitude": "LON",
+        "latitude": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/streets-v9",
         "granularity_sqla": "date",
         "size": "count",
@@ -1370,8 +1370,8 @@ def load_deck_dash():
     slice_data = {
         "filters": [],
         "row_limit": 5000,
-        "all_columns_y": "LAT",
-        "all_columns_x": "LON",
+        "longitude": "LON",
+        "latitude": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",
         "granularity_sqla": "date",
         "size": "count",
