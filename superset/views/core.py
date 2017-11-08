@@ -1743,7 +1743,6 @@ class Superset(BaseSupersetView):
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
-        logging.info("in dashboard")
         session = db.session()
         qry = session.query(models.Dashboard)
         if dashboard_id.isdigit():
