@@ -1,22 +1,19 @@
 """Views used by the SqlAlchemy connector"""
-from past.builtins import basestring
-
-from flask import Markup, flash, redirect
+from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-
-from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
+from past.builtins import basestring
 
-from superset import appbuilder, db, utils, security, sm
-from superset.utils import has_access
+from superset import appbuilder, db, security, sm, utils
 from superset.connectors.base.views import DatasourceModelView
+from superset.utils import has_access
 from superset.views.base import (
-    SupersetModelView, ListWidgetWithCheckboxes, DeleteMixin, DatasourceFilter,
-    get_datasource_exist_error_mgs,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    ListWidgetWithCheckboxes, SupersetModelView,
 )
-
 from . import models
 
 

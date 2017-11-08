@@ -1,14 +1,12 @@
-from flask import redirect, g
-
+from flask import g, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
 from superset import appbuilder
 from superset.models.sql_lab import Query, SavedQuery
-from .base import SupersetModelView, BaseSupersetView, DeleteMixin
+from .base import BaseSupersetView, DeleteMixin, SupersetModelView
 
 
 class QueryView(SupersetModelView):

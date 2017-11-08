@@ -4,43 +4,38 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from copy import copy, deepcopy
+from datetime import date, datetime
 import functools
 import json
 import logging
-import numpy
 import pickle
 import textwrap
-from future.standard_library import install_aliases
-from copy import copy
-from datetime import datetime, date
-from copy import deepcopy
-
-import pandas as pd
-import sqlalchemy as sqla
-from sqlalchemy.engine.url import make_url
-from sqlalchemy.orm import subqueryload
 
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
-
+from future.standard_library import install_aliases
+import numpy
+import pandas as pd
+import sqlalchemy as sqla
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, Date, Table,
-    create_engine, MetaData, select
+    Boolean, Column, create_engine, Date, DateTime, ForeignKey, Integer,
+    MetaData, select, String, Table, Text,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.engine import url
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
-from sqlalchemy.engine import url
 from sqlalchemy_utils import EncryptedType
 
-from superset import app, db, db_engine_specs, utils, sm
+from superset import app, db, db_engine_specs, sm, utils
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.viz import viz_types
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.viz import viz_types
 install_aliases()
 from urllib import parse  # noqa
 
@@ -648,7 +643,7 @@ class Database(Model, AuditMixinNullable):
                                                                     effective_username))
         if configuration:
             params["connect_args"] = {"configuration": configuration}
-        
+
         return create_engine(url, **params)
 
     def get_reserved_words(self):

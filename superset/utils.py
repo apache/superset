@@ -4,45 +4,43 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from builtins import object
+from datetime import date, datetime, time, timedelta
 import decimal
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formatdate
 import functools
 import json
 import logging
 import os
 import signal
-import parsedatetime
 import smtplib
-import pytz
-import sqlalchemy as sa
-import uuid
 import sys
+import uuid
 import zlib
-import numpy
-
-from builtins import object
-from datetime import date, datetime, time, timedelta
 
 import celery
 from dateutil.parser import parse
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.utils import formatdate
-
-from flask import flash, Markup, render_template, url_for, redirect, request
-from flask_appbuilder.const import (
-    LOGMSG_ERR_SEC_ACCESS_DENIED,
-    FLAMSG_ERR_SEC_ACCESS_DENIED,
-    PERMISSION_PREFIX
-)
+from flask import flash, Markup, redirect, render_template, request, url_for
 from flask_appbuilder._compat import as_unicode
+from flask_appbuilder.const import (
+    FLAMSG_ERR_SEC_ACCESS_DENIED,
+    LOGMSG_ERR_SEC_ACCESS_DENIED,
+    PERMISSION_PREFIX,
+)
 from flask_babel import gettext as __
 from flask_cache import Cache
 import markdown as md
+import numpy
+import parsedatetime
 from past.builtins import basestring
 from pydruid.utils.having import Having
+import pytz
+import sqlalchemy as sa
 from sqlalchemy import event, exc, select
-from sqlalchemy.types import TypeDecorator, TEXT
+from sqlalchemy.types import TEXT, TypeDecorator
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 

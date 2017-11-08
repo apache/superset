@@ -1,24 +1,16 @@
-from datetime import datetime, date, timedelta, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from superset.utils import (
-    json_int_dttm_ser,
-    json_iso_dttm_ser,
-    base_json_conv,
-    parse_human_timedelta,
-    zlib_compress,
-    zlib_decompress_to_string,
-    merge_extra_filters,
-    datetime_f,
-    JSONEncodedDict,
-    validate_json,
-    SupersetException,
-)
 import unittest
 import uuid
 
 from mock import patch
 import numpy
 
+from superset.utils import (
+    base_json_conv, datetime_f, json_int_dttm_ser, json_iso_dttm_ser,
+    JSONEncodedDict, merge_extra_filters, parse_human_timedelta,
+    SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
+)
 
 class UtilsTestCase(unittest.TestCase):
     def test_json_int_dttm_ser(self):

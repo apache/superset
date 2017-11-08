@@ -9,11 +9,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import OrderedDict
 import imp
 import json
 import os
 import sys
-from collections import OrderedDict
 
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB

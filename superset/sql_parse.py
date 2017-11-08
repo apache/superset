@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import logging
 
 import sqlparse
-from sqlparse.sql import IdentifierList, Identifier
+from sqlparse.sql import Identifier, IdentifierList
 from sqlparse.tokens import Keyword, Name
 
 RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}

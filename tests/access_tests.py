@@ -5,16 +5,15 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import json
-import mock
 import unittest
 
-from superset import db, sm, security
+import mock
 
-from superset.models import core as models
+from superset import db, security, sm
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.druid.models import DruidDatasource
-
+from superset.connectors.sqla.models import SqlaTable
+from superset.models import core as models
 from .base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {

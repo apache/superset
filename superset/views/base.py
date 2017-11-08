@@ -3,18 +3,16 @@ import json
 import logging
 import traceback
 
-from flask import g, redirect, Response, flash, abort, get_flashed_messages
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
-from flask_babel import get_locale
-
-from flask_appbuilder import BaseView
-from flask_appbuilder import ModelView
-from flask_appbuilder.widgets import ListWidget
+from flask import abort, flash, g, get_flashed_messages, redirect, Response
+from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.widgets import ListWidget
+from flask_babel import get_locale
+from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
-from superset import appbuilder, conf, db, utils, sm, sql_parse
+from superset import appbuilder, conf, db, sm, sql_parse, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.translations.utils import get_language_pack

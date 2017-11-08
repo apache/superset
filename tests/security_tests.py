@@ -1,5 +1,4 @@
 from superset import security, sm
-
 from .base_tests import SupersetTestCase
 
 
