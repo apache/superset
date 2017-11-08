@@ -302,7 +302,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['all_columns_x', 'all_columns_y'],
+          ['longitude', 'latitude'],
           ['groupby', 'size'],
           ['row_limit'],
         ],
@@ -333,7 +333,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['all_columns_x', 'all_columns_y'],
+          ['longitude', 'latitude'],
           ['groupby', 'size'],
           ['row_limit'],
         ],
@@ -364,7 +364,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['all_columns_x', 'all_columns_y'],
+          ['longitude', 'latitude'],
           ['groupby', 'size'],
           ['row_limit'],
         ],
@@ -399,7 +399,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['all_columns_x', 'all_columns_y'],
+          ['longitude', 'latitude'],
           ['groupby'],
           ['row_limit'],
         ],
@@ -1210,8 +1210,7 @@ export const visTypes = {
         label: t('Viewport'),
         controlSetRows: [
           ['viewport_longitude', 'viewport_latitude'],
-          ['viewport_zoom', 'viewport_bearing'],
-          ['viewport_pitch', null],
+          ['viewport_zoom', null],
         ],
       },
     ],
