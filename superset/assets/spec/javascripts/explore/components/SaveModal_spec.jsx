@@ -24,7 +24,7 @@ describe('SaveModal', () => {
     },
     explore: {
       can_overwrite: true,
-      user_id: '1',
+      userId: '1',
       datasource: {},
       slice: {
         slice_id: 1,

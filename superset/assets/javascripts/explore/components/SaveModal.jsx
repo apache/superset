@@ -13,7 +13,7 @@ const propTypes = {
   onHide: PropTypes.func.isRequired,
   actions: PropTypes.object.isRequired,
   form_data: PropTypes.object,
-  user_id: PropTypes.string.isRequired,
+  userId: PropTypes.string.isRequired,
   dashboards: PropTypes.array.isRequired,
   alert: PropTypes.string,
   slice: PropTypes.object,
@@ -34,7 +34,7 @@ class SaveModal extends React.Component {
     };
   }
   componentDidMount() {
-    this.props.actions.fetchDashboards(this.props.user_id);
+    this.props.actions.fetchDashboards(this.props.userId);
   }
   onChange(name, event) {
     switch (name) {
@@ -243,7 +243,7 @@ function mapStateToProps({ explore, saveModal }) {
     datasource: explore.datasource,
     slice: explore.slice,
     can_overwrite: explore.can_overwrite,
-    user_id: explore.user_id,
+    userId: explore.userId,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
   };

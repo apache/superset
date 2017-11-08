@@ -19,10 +19,9 @@ export function alterInObject(state, arrKey, obj, alterations) {
   return Object.assign({}, state, { [arrKey]: newObject });
 }
 
-export function alterInArr(state, arrKey, obj, alterations) {
+export function alterInArr(state, arrKey, obj, alterations, idKey = 'id') {
   // Finds an item in an array in the state and replaces it with a
   // new object with an altered property
-  const idKey = 'id';
   const newArr = [];
   state[arrKey].forEach((arrItem) => {
     if (obj[idKey] === arrItem[idKey]) {
@@ -96,19 +95,5 @@ export function areArraysShallowEqual(arr1, arr2) {
 }
 
 export function areObjectsEqual(obj1, obj2) {
-  if (!obj1 || !obj2) {
-    return false;
-  }
-  if (!Object.keys(obj1).length !== Object.keys(obj2).length) {
-    return false;
-  }
-  for (const id in obj1) {
-    if (!obj2.hasOwnProperty(id)) {
-      return false;
-    }
-    if (obj1[id] !== obj2[id]) {
-      return false;
-    }
-  }
-  return true;
+  return JSON.stringify(obj1) === JSON.stringify(obj2);
 }

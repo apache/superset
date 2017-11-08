@@ -189,8 +189,23 @@ div.widget .chart-header a {
   display: none;
 }
 
-div.widget .slice_container {
-  overflow: hidden;
+div.widget {
+  .slice_container {
+    overflow: hidden;
+  }
+
+  .stack-trace-container.has-trace {
+    .alert-warning:hover {
+      cursor: pointer;
+    }
+  }
+
+  .is-loading {
+    .stack-trace-container,
+    .slice_container {
+      opacity: 0.5;
+    }
+  }
 }
 
 .navbar .alert {

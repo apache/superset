@@ -1,10 +1,8 @@
-/* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Responsive, WidthProvider } from 'react-grid-layout';
-import $ from 'jquery';
 
-import SliceCell from './SliceCell';
+import GridCell from './GridCell';
 import { getExploreUrl } from '../../explore/exploreUtils';
 
 require('react-grid-layout/css/styles.css');
@@ -14,119 +12,127 @@ const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  datasources: PropTypes.object,
+  charts: PropTypes.object.isRequired,
+  filters: PropTypes.object,
+  timeout: PropTypes.number,
+  onChange: PropTypes.func,
+  getFormDataExtra: PropTypes.func,
+  fetchSlice: PropTypes.func,
+  saveSlice: PropTypes.func,
+  removeSlice: PropTypes.func,
+  removeChart: PropTypes.func,
+  updateDashboardLayout: PropTypes.func,
+  toggleExpandSlice: PropTypes.func,
+  addFilter: PropTypes.func,
+  getFilters: PropTypes.func,
+  clearFilter: PropTypes.func,
+  removeFilter: PropTypes.func,
+};
+
+const defaultProps = {
+  onChange: () => ({}),
+  getFormDataExtra: () => ({}),
+  fetchSlice: () => ({}),
+  saveSlice: () => ({}),
+  removeSlice: () => ({}),
+  removeChart: () => ({}),
+  updateDashboardLayout: () => ({}),
+  toggleExpandSlice: () => ({}),
+  addFilter: () => ({}),
+  getFilters: () => ({}),
+  clearFilter: () => ({}),
+  removeFilter: () => ({}),
 };
 
 class GridLayout extends React.Component {
-  componentWillMount() {
-    const layout = [];
+  constructor(props) {
+    super(props);
 
-    this.props.dashboard.slices.forEach((slice, index) => {
-      const sliceId = slice.slice_id;
-      let pos = this.props.dashboard.posDict[sliceId];
-      if (!pos) {
-        pos = {
-          col: (index * 4 + 1) % 12,
-          row: Math.floor((index) / 3) * 4,
-          size_x: 4,
-          size_y: 4,
-        };
-      }
-
-      layout.push({
-        i: String(sliceId),
-        x: pos.col - 1,
-        y: pos.row,
-        w: pos.size_x,
-        minW: 2,
-        h: pos.size_y,
-      });
-    });
-
-    this.setState({
-      layout,
-      slices: this.props.dashboard.slices,
-    });
+    this.onResizeStop = this.onResizeStop.bind(this);
+    this.onDragStop = this.onDragStop.bind(this);
+    this.forceRefresh = this.forceRefresh.bind(this);
+    this.removeSlice = this.removeSlice.bind(this);
+    this.updateSliceName = this.props.dashboard.dash_edit_perm ?
+      this.updateSliceName.bind(this) : null;
   }
 
-  onResizeStop(layout, oldItem, newItem) {
-    const newSlice = this.props.dashboard.getSlice(newItem.i);
-    if (oldItem.w !== newItem.w || oldItem.h !== newItem.h) {
-      this.setState({ layout }, () => newSlice.resize());
-    }
-    this.props.dashboard.onChange();
+  onResizeStop(layout) {
+    this.props.updateDashboardLayout(layout);
+    this.props.onChange();
   }
 
   onDragStop(layout) {
-    this.setState({ layout });
-    this.props.dashboard.onChange();
+    this.props.updateDashboardLayout(layout);
+    this.props.onChange();
   }
 
-  removeSlice(sliceId) {
-    $('[data-toggle=tooltip]').tooltip('hide');
-    this.setState({
-      layout: this.state.layout.filter(function (reactPos) {
-        return reactPos.i !== String(sliceId);
-      }),
-      slices: this.state.slices.filter(function (slice) {
-        return slice.slice_id !== sliceId;
-      }),
-    });
-    this.props.dashboard.onChange();
+  getWidgetId(slice) {
+    return 'widget_' + slice.slice_id;
+  }
+
+  getWidgetHeight(slice) {
+    const widgetId = this.getWidgetId(slice);
+    if (!widgetId || !this.refs[widgetId]) {
+      return 400;
+    }
+    return this.refs[widgetId].offsetHeight;
+  }
+
+  getWidgetWidth(slice) {
+    const widgetId = this.getWidgetId(slice);
+    if (!widgetId || !this.refs[widgetId]) {
+      return 400;
+    }
+    return this.refs[widgetId].offsetWidth;
+  }
+
+  findSliceIndexById(sliceId) {
+    return this.props.dashboard.slices
+      .map(slice => (slice.slice_id)).indexOf(sliceId);
+  }
+
+  forceRefresh(sliceId) {
+    return this.props.fetchSlice(this.props.charts['slice_' + sliceId], true);
+  }
+
+  removeSlice(slice) {
+    if (!slice) {
+      return;
+    }
+
+    // remove slice dashbaord and charts
+    this.props.removeSlice(slice);
+    this.props.removeChart(this.props.charts['slice_' + slice.slice_id].chartKey);
+    this.props.onChange();
   }
 
   updateSliceName(sliceId, sliceName) {
-    const index = this.state.slices.map(slice => (slice.slice_id)).indexOf(sliceId);
+    const index = this.findSliceIndexById(sliceId);
     if (index === -1) {
       return;
     }
 
-    // update slice_name first
-    const oldSlices = this.state.slices;
-    const currentSlice = this.state.slices[index];
-    const updated = Object.assign({},
-        this.state.slices[index], { slice_name: sliceName });
-    const updatedSlices = this.state.slices.slice();
-    updatedSlices[index] = updated;
-    this.setState({ slices: updatedSlices });
+    const currentSlice = this.props.dashboard.slices[index];
+    if (currentSlice.slice_name === sliceName) {
+      return;
+    }
 
-    const sliceParams = {};
-    sliceParams.slice_id = currentSlice.slice_id;
-    sliceParams.action = 'overwrite';
-    sliceParams.slice_name = sliceName;
-    const saveUrl = getExploreUrl(currentSlice.form_data, 'base', false, null, sliceParams);
-
-    $.ajax({
-      url: saveUrl,
-      type: 'GET',
-      success: () => {
-        notify.success('This slice name was saved successfully.');
-      },
-      error: () => {
-        // if server-side reject the overwrite action,
-        // revert to old state
-        this.setState({ slices: oldSlices });
-        notify.error('You don\'t have the rights to alter this slice');
-      },
-    });
+    this.props.saveSlice(currentSlice, sliceName);
   }
 
-  serialize() {
-    return this.state.layout.map(reactPos => ({
-      slice_id: reactPos.i,
-      col: reactPos.x + 1,
-      row: reactPos.y,
-      size_x: reactPos.w,
-      size_y: reactPos.h,
-    }));
+  isExpanded(slice) {
+    return this.props.dashboard.metadata.expanded_slices &&
+      this.props.dashboard.metadata.expanded_slices[slice.slice_id];
   }
 
   render() {
     return (
       <ResponsiveReactGridLayout
         className="layout"
-        layouts={{ lg: this.state.layout }}
-        onResizeStop={this.onResizeStop.bind(this)}
-        onDragStop={this.onDragStop.bind(this)}
+        layouts={{ lg: this.props.dashboard.layout }}
+        onResizeStop={this.onResizeStop}
+        onDragStop={this.onDragStop}
         cols={{ lg: 12, md: 12, sm: 10, xs: 8, xxs: 6 }}
         rowHeight={100}
         autoSize
@@ -134,19 +140,36 @@ class GridLayout extends React.Component {
         useCSSTransforms
         draggableHandle=".drag"
       >
-        {this.state.slices.map(slice => (
+        {this.props.dashboard.slices.map(slice => (
           <div
             id={'slice_' + slice.slice_id}
             key={slice.slice_id}
             data-slice-id={slice.slice_id}
             className={`widget ${slice.form_data.viz_type}`}
+            ref={this.getWidgetId(slice)}
           >
-            <SliceCell
+            <GridCell
               slice={slice}
-              removeSlice={this.removeSlice.bind(this, slice.slice_id)}
-              expandedSlices={this.props.dashboard.metadata.expanded_slices}
-              updateSliceName={this.props.dashboard.dash_edit_perm ?
-                this.updateSliceName.bind(this) : null}
+              chartKey={'slice_' + slice.slice_id}
+              datasource={this.props.datasources[slice.form_data.datasource]}
+              filters={this.props.filters}
+              formData={this.props.getFormDataExtra(slice)}
+              timeout={this.props.timeout}
+              widgetHeight={this.getWidgetHeight(slice)}
+              widgetWidth={this.getWidgetWidth(slice)}
+              exploreChartUrl={getExploreUrl(this.props.getFormDataExtra(slice))}
+              exportCSVUrl={getExploreUrl(this.props.getFormDataExtra(slice), 'csv')}
+              isExpanded={!!this.isExpanded(slice)}
+              isLoading={[undefined, 'loading']
+                .indexOf(this.props.charts['slice_' + slice.slice_id].chartStatus) !== -1}
+              toggleExpandSlice={this.props.toggleExpandSlice}
+              forceRefresh={this.forceRefresh}
+              removeSlice={this.removeSlice}
+              updateSliceName={this.updateSliceName}
+              addFilter={this.props.addFilter}
+              getFilters={this.props.getFilters}
+              clearFilter={this.props.clearFilter}
+              removeFilter={this.props.removeFilter}
             />
           </div>
         ))}
@@ -156,5 +179,6 @@ class GridLayout extends React.Component {
 }
 
 GridLayout.propTypes = propTypes;
+GridLayout.defaultProps = defaultProps;
 
 export default GridLayout;
