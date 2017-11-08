@@ -8,29 +8,28 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import defaultdict
 import copy
+from datetime import datetime, timedelta
 import hashlib
 import inspect
+from itertools import product
 import logging
 import traceback
 import uuid
 import zlib
 
-from collections import defaultdict
-from itertools import product
-from datetime import datetime, timedelta
-
-import pandas as pd
-import numpy as np
+from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
 from markdown import markdown
+import numpy as np
+import pandas as pd
 import simplejson as json
-from six import string_types, PY3
+from six import PY3, string_types
 from six.moves import reduce
-from dateutil import relativedelta as rdelta
 
-from superset import app, utils, cache, get_manifest_file
+from superset import app, cache, get_manifest_file, utils
 from superset.utils import DTTM_ALIAS, merge_extra_filters
 
 config = app.config

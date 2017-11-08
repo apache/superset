@@ -4,21 +4,20 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import datetime
 import gzip
 import json
 import os
-import textwrap
-import datetime
 import random
+import textwrap
 
 import pandas as pd
-from sqlalchemy import String, DateTime, Date, Float, BigInteger
+from sqlalchemy import BigInteger, Date, DateTime, Float, String
 
 from superset import app, db, utils
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
 from superset.security import get_or_create_main_db
-
-from superset.connectors.connector_registry import ConnectorRegistry
 
 # Shortcuts
 DB = models.Database

@@ -3,24 +3,24 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from time import sleep
 from datetime import datetime
 import json
 import logging
+from time import sleep
 import uuid
+
+from celery.exceptions import SoftTimeLimitExceeded
 import pandas as pd
 import sqlalchemy
-
-from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
-from celery.exceptions import SoftTimeLimitExceeded
+from sqlalchemy.pool import NullPool
 
-from superset import (app, db, utils, dataframe, results_backend)
-from superset.models.sql_lab import Query
-from superset.sql_parse import SupersetQuery
+from superset import app, dataframe, db, results_backend, utils
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
-from superset.utils import QueryStatus, get_celery_app
+from superset.models.sql_lab import Query
+from superset.sql_parse import SupersetQuery
+from superset.utils import get_celery_app, QueryStatus
 
 config = app.config
 celery_app = get_celery_app(config)

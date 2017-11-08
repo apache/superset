@@ -1,41 +1,37 @@
  # pylint: disable=invalid-unary-operand-type
 from collections import OrderedDict
-import json
-import logging
 from copy import deepcopy
 from datetime import datetime, timedelta
-from six import string_types
+import json
+import logging
 from multiprocessing import Pool
 
-import requests
-import sqlalchemy as sa
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime, or_,
-)
-from sqlalchemy.orm import backref, relationship
 from dateutil.parser import parse as dparse
-
+from flask import escape, Markup
+from flask_appbuilder import Model
+from flask_appbuilder.models.decorators import renders
+from flask_babel import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
-from pydruid.utils.filters import Dimension, Filter, Bound
-from pydruid.utils.postaggregator import (
-    Postaggregator, Quantile, Quantiles, Field, Const, HyperUniqueCardinality,
-)
+from pydruid.utils.filters import Bound, Dimension, Filter
 from pydruid.utils.having import Aggregation
-
-from flask import Markup, escape
-from flask_appbuilder.models.decorators import renders
-from flask_appbuilder import Model
-
-from flask_babel import lazy_gettext as _
-
-from superset import conf, db, import_util, utils, sm
-from superset.utils import (
-    flasher, MetricPermException, DimSelector, DTTM_ALIAS
+from pydruid.utils.postaggregator import (
+    Const, Field, HyperUniqueCardinality, Postaggregator, Quantile, Quantiles,
 )
-from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
+import requests
+from six import string_types
+import sqlalchemy as sa
+from sqlalchemy import (
+    Boolean, Column, DateTime, ForeignKey, Integer, or_, String, Text,
+)
+from sqlalchemy.orm import backref, relationship
+
+from superset import conf, db, import_util, sm, utils
+from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
+from superset.utils import (
+    DimSelector, DTTM_ALIAS, flasher, MetricPermException,
+)
 
 DRUID_TZ = conf.get("DRUID_TZ")
 

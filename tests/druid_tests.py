@@ -10,12 +10,11 @@ import unittest
 
 from mock import Mock, patch
 
-from superset import db, sm, security
+from superset import db, security, sm
 from superset.connectors.druid.models import (
-    DruidMetric, DruidCluster, DruidDatasource
+    DruidCluster, DruidDatasource, DruidMetric, Postaggregator, PyDruid,
+    Quantile,
 )
-from superset.connectors.druid.models import PyDruid, Quantile, Postaggregator
-
 from .base_tests import SupersetTestCase
 
 class PickableMock(Mock):

@@ -9,18 +9,18 @@ import os
 import subprocess
 import time
 import unittest
-from past.builtins import basestring
 
 import pandas as pd
+from past.builtins import basestring
 
-from superset import app, appbuilder, cli, db, dataframe
+from superset import app, appbuilder, cli, dataframe, db
 from superset.models import core as models
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.security import sync_role_definitions
 from superset.sql_parse import SupersetQuery
-
 from .base_tests import SupersetTestCase
+
 
 BASE_DIR = app.config.get('BASE_DIR')
 

@@ -1,11 +1,12 @@
-import unittest
-import pandas as pd
-import superset.viz as viz
-import superset.utils as utils
-
-from superset.utils import DTTM_ALIAS
-from mock import Mock, patch
 from datetime import datetime, timedelta
+import unittest
+
+from mock import Mock, patch
+import pandas as pd
+
+import superset.utils as utils
+from superset.utils import DTTM_ALIAS
+import superset.viz as viz
 
 class BaseVizTestCase(unittest.TestCase):
     def test_constructor_exception_no_datasource(self):
