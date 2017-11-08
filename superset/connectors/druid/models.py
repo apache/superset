@@ -973,7 +973,13 @@ class DruidDatasource(Model, BaseDatasource):
         if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
-        if not having_filters and len(groupby) == 1 and order_desc:
+
+        if (
+            not having_filters and
+            len(groupby) == 1 and
+            order_desc and
+            not isinstance(list(qry.get('dimensions'))[0], dict)
+        ):
             dim = list(qry.get('dimensions'))[0]
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
@@ -995,7 +1001,7 @@ class DruidDatasource(Model, BaseDatasource):
             if phase == 1:
                 return query_str
             query_str += (
-              "//\nPhase 2 (built based on phase one's results)\n")
+              "// Phase 2 (built based on phase one's results)\n")
             df = client.export_pandas()
             qry['filter'] = self._add_filter_from_pre_query_data(
                                 df,
@@ -1037,7 +1043,7 @@ class DruidDatasource(Model, BaseDatasource):
                 if phase == 1:
                     return query_str
                 query_str += (
-                    "//\nPhase 2 (built based on phase one's results)\n")
+                    "// Phase 2 (built based on phase one's results)\n")
                 df = client.export_pandas()
                 qry['filter'] = self._add_filter_from_pre_query_data(
                                     df,
