@@ -596,7 +596,7 @@ class Database(Model, AuditMixinNullable):
         return url_copy
 
     def set_sqlalchemy_uri(self, uri):
-        conn = sqla.engine.url.make_url(uri)
+        conn = sqla.engine.url.make_url(uri.strip())
         if conn.password != PASSWORD_MASK and not self.custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
