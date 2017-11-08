@@ -569,6 +569,19 @@ class SqlaTable(Model, BaseDatasource):
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))
 
+        def cols_adjustment(df):
+            _tmp = []
+            for col in df.columns:
+                if col not in query_obj['metrics']: 
+                    _tmp.append(self.database.db_engine_spec.format_column_name(col))
+                else:
+                    _tmp.append(col)
+
+            df.columns = _tmp
+            return df
+
+        df = cols_adjustment(df)
+
         return QueryResult(
             status=status,
             df=df,

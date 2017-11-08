@@ -208,6 +208,10 @@ class BaseEngineSpec(object):
         """
         return uri
 
+    @classmethod
+    def format_column_name(cls, col_name):
+        return col_name
+
 
 class PostgresEngineSpec(BaseEngineSpec):
     engine = 'postgresql'
@@ -948,6 +952,10 @@ class OracleEngineSpec(PostgresEngineSpec):
         return (
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
+
+    @classmethod
+    def format_column_name(cls, col_name):
+        return col_name.upper()
 
 
 class VerticaEngineSpec(PostgresEngineSpec):
