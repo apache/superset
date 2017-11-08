@@ -4,18 +4,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from sqlalchemy.orm.session import make_transient
-
 import json
 import pickle
 import unittest
 
-from superset import db
-from superset.models import core as models
-from superset.connectors.druid.models import (
-    DruidDatasource, DruidColumn, DruidMetric)
-from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
+from sqlalchemy.orm.session import make_transient
 
+from superset import db
+from superset.connectors.druid.models import (
+    DruidColumn, DruidDatasource, DruidMetric,
+)
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.models import core as models
 from .base_tests import SupersetTestCase
 
 

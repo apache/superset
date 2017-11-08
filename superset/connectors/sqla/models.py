@@ -1,31 +1,28 @@
 from datetime import datetime
 import logging
-import sqlparse
-from past.builtins import basestring
-
-import pandas as pd
-
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime,
-)
-import sqlalchemy as sa
-from sqlalchemy import asc, and_, desc, select, or_
-from sqlalchemy.sql.expression import TextAsFrom
-from sqlalchemy.orm import backref, relationship
-from sqlalchemy.sql import table, literal_column, text, column
 
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
+import pandas as pd
+from past.builtins import basestring
+import sqlalchemy as sa
+from sqlalchemy import (
+    and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
+    select, String, Text,
+)
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy.sql import column, literal_column, table, text
+from sqlalchemy.sql.expression import TextAsFrom
+import sqlparse
 
-from superset import db, utils, import_util, sm
-from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
-from superset.utils import DTTM_ALIAS, QueryStatus
-from superset.models.helpers import QueryResult
-from superset.models.core import Database
+from superset import db, import_util, sm, utils
+from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
+from superset.models.core import Database
+from superset.models.helpers import QueryResult
 from superset.models.helpers import set_perm
+from superset.utils import DTTM_ALIAS, QueryStatus
 
 
 class TableColumn(Model, BaseColumn):

@@ -1,5 +1,6 @@
-from superset import tables_cache
 from flask import request
+
+from superset import tables_cache
 
 
 def view_cache_key(*unused_args, **unused_kwargs):

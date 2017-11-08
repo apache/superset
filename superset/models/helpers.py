@@ -5,18 +5,18 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
-import humanize
 import json
 import re
-import sqlalchemy as sa
-
-from sqlalchemy.ext.declarative import declared_attr
 
 from flask import escape, Markup
-from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
-from superset.utils import QueryStatus
+from flask_appbuilder.models.mixins import AuditMixin
+import humanize
+import sqlalchemy as sa
+from sqlalchemy.ext.declarative import declared_attr
+
 from superset import sm
+from superset.utils import QueryStatus
 
 
 class ImportMixin(object):

@@ -16,24 +16,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import namedtuple, defaultdict
-
+from collections import defaultdict, namedtuple
 import inspect
 import logging
 import re
 import textwrap
 import time
 
-import sqlparse
-from sqlalchemy import select
-from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
-
+from sqlalchemy import select
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.sql import text
+import sqlparse
 
-from superset.utils import SupersetTemplateException
-from superset.utils import QueryStatus
-from superset import conf, cache_util, utils
+from superset import cache_util, conf, utils
+from superset.utils import QueryStatus, SupersetTemplateException
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 

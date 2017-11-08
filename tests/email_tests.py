@@ -4,15 +4,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 import logging
-import mock
 import tempfile
 import unittest
 
-from superset import utils, app
+import mock
 
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
+from superset import app, utils
 
 send_email_test = mock.Mock()
 

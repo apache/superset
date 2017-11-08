@@ -4,14 +4,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
-
-import json
 import os
 
 from flask import Flask, redirect
-from flask_appbuilder import SQLA, AppBuilder, IndexView
+from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect

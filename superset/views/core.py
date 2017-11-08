@@ -7,46 +7,42 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import json
 import logging
-import pandas as pd
 import pickle
 import re
 import time
 import traceback
 from urllib import parse
 
-import sqlalchemy as sqla
-
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup,
-    url_for)
+    flash, g, Markup, redirect, render_template, request, Response, url_for,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
-
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-
+import pandas as pd
+import sqlalchemy as sqla
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
 from werkzeug.routing import BaseConverter
 
 from superset import (
-    appbuilder, cache, db, viz, utils, app,
-    sm, sql_lab, results_backend, security,
+    app, appbuilder, cache, db, results_backend, security, sm, sql_lab, utils,
+    viz,
 )
-from superset.legacy import cast_form_data
-from superset.utils import has_access, QueryStatus, merge_extra_filters
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.legacy import cast_form_data
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-
+from superset.utils import has_access, merge_extra_filters, QueryStatus
 from .base import (
-    api, SupersetModelView, BaseSupersetView, DeleteMixin,
-    SupersetFilter, get_user_roles, json_error_response, get_error_msg,
-    CsvResponse)
+    api, BaseSupersetView, CsvResponse, DeleteMixin, get_error_msg,
+    get_user_roles, json_error_response, SupersetFilter, SupersetModelView,
+)
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -1452,7 +1448,7 @@ class Superset(BaseSupersetView):
                 url = make_url(uri)
                 db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
                 db_engine.patch()
-            
+
                 masked_url = database.get_password_masked_url_from_uri(uri)
                 logging.info("Superset.testconn(). Masked URL: {0}".format(masked_url))
 

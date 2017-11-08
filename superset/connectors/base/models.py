@@ -1,10 +1,10 @@
 import json
 
 from sqlalchemy import (
-    and_, Column, Integer, String, Text, Boolean,
+    and_, Boolean, Column, Integer, String, Text,
 )
-from sqlalchemy.orm import foreign, relationship
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import foreign, relationship
 
 from superset import utils
 from superset.models.core import Slice

@@ -1,6 +1,7 @@
-from superset.views.base import SupersetModelView
-from superset.utils import SupersetException
 from flask import Markup
+
+from superset.utils import SupersetException
+from superset.views.base import SupersetModelView
 
 
 class DatasourceModelView(SupersetModelView):

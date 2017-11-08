@@ -6,21 +6,20 @@ from __future__ import unicode_literals
 
 import csv
 import doctest
+import io
 import json
 import logging
-import io
 import random
 import unittest
 
 from flask import escape
 import sqlalchemy as sqla
 
-from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
+from superset import appbuilder, db, jinja_context, sm, sql_lab, utils
+from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
-from superset.connectors.sqla.models import SqlaTable
-
 from .base_tests import SupersetTestCase
 
 
