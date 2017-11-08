@@ -63,7 +63,7 @@ class UtilityFunctionTests(SupersetTestCase):
         self.assertEqual(
             "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\n"
             "Luke_Father = 'Darth Vader'",
-            q.as_create_table("tmp")
+            q.as_create_table("tmp"),
         )
 
 
@@ -113,12 +113,12 @@ class CeleryTestCase(SupersetTestCase):
     def tearDownClass(cls):
         subprocess.call(
             "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9",
-            shell=True
+            shell=True,
         )
         subprocess.call(
             "ps auxww | grep 'superset worker' | awk '{print $2}' | "
             "xargs kill -9",
-            shell=True
+            shell=True,
         )
 
     def run_sql(self, db_id, sql, client_id, cta='false', tmp_table='tmp',
@@ -148,7 +148,7 @@ class CeleryTestCase(SupersetTestCase):
         # In addition some of the engines do not include OFFSET 0.
         self.assertTrue(
             "SELECT * FROM (SELECT * FROM outer_space;) AS inner_qry "
-            "LIMIT 100" in ' '.join(updated_select_query.split())
+            "LIMIT 100" in ' '.join(updated_select_query.split()),
         )
 
         select_query_no_semicolon = "SELECT * FROM outer_space"
@@ -157,7 +157,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertTrue(
             "SELECT * FROM (SELECT * FROM outer_space) AS inner_qry "
             "LIMIT 100" in
-            ' '.join(updated_select_query_no_semicolon.split())
+            ' '.join(updated_select_query_no_semicolon.split()),
         )
 
         multi_line_query = (
@@ -167,7 +167,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertTrue(
             "SELECT * FROM (SELECT * FROM planets WHERE "
             "Luke_Father = 'Darth Vader';) AS inner_qry LIMIT 100" in
-            ' '.join(updated_multi_line_query.split())
+            ' '.join(updated_multi_line_query.split()),
         )
 
     def test_run_sync_query_dont_exist(self):
@@ -276,7 +276,7 @@ class CeleryTestCase(SupersetTestCase):
                     'is_dim': False},
                 {'is_date': False, 'type': 'STRING',
                     'name': 'string3', 'is_dim': True}], 'name')
-                , cols
+                , cols,
             )
         else:
             self.assertEqual(self.dictify_list_of_dicts([
@@ -296,7 +296,7 @@ class CeleryTestCase(SupersetTestCase):
                     'is_dim': False},
                 {'is_date': False, 'type': 'STRING',
                     'name': 'string3', 'is_dim': True}], 'name')
-                , cols
+                , cols,
             )
 
 

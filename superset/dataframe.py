@@ -139,7 +139,7 @@ class SupersetDataFrame(object):
                     column.update({
                         'is_date': True,
                         'is_dim': False,
-                        'agg': None
+                        'agg': None,
                     })
             # 'agg' is optional attribute
             if not column['agg']:

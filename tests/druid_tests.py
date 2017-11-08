@@ -36,7 +36,7 @@ SEGMENT_METADATA = [{
         "size": 100000, "cardinality": 1504, "errorMessage": None},
     "metric1": {
         "type": "FLOAT", "hasMultipleValues": False,
-        "size": 100000, "cardinality": None, "errorMessage": None}
+        "size": 100000, "cardinality": None, "errorMessage": None},
   },
   "aggregators": {
     "metric1": {
@@ -45,7 +45,7 @@ SEGMENT_METADATA = [{
         "fieldName": "metric1"},
   },
   "size": 300000,
-  "numRows": 5000000
+  "numRows": 5000000,
 }]
 
 GB_RESULT_SET = [
@@ -55,7 +55,7 @@ GB_RESULT_SET = [
     "event": {
       "dim1": 'Canada',
       "metric1": 12345678,
-    }
+    },
   },
   {
     "version": "v1",
@@ -63,7 +63,7 @@ GB_RESULT_SET = [
     "event": {
       "dim1": 'USA',
       "metric1": 12345678 / 2,
-    }
+    },
   },
 ]
 
@@ -195,10 +195,10 @@ class DruidTests(SupersetTestCase):
                     "ts_column": "d",
                     "sources": [{
                         "table": "clicks",
-                        "partition": "d='{{ ds }}'"
-                    }]
-                }
-            }
+                        "partition": "d='{{ ds }}'",
+                    }],
+                },
+            },
         }
         def check():
             resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
@@ -227,9 +227,9 @@ class DruidTests(SupersetTestCase):
                 "dimensions": ["affiliate_id", "second_seen"],
                 "metrics_spec": [
                     {"type": "bla", "name": "sum"},
-                    {"type": "unique", "name": "unique"}
+                    {"type": "unique", "name": "unique"},
                 ],
-            }
+            },
         }
         resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
         druid_ds = db.session.query(DruidDatasource).filter_by(
@@ -308,7 +308,7 @@ class DruidTests(SupersetTestCase):
 
         db.session.add(cluster)
         cluster.get_datasources = PickableMock(
-            return_value=['test_datasource']
+            return_value=['test_datasource'],
         )
         cluster.get_druid_version = PickableMock(return_value='0.9.1')
 
@@ -349,14 +349,14 @@ class DruidTests(SupersetTestCase):
                 verbose_name='APPROXIMATE_HISTOGRAM(*)',
                 metric_type='approxHistogramFold',
                 json=json.dumps(
-                    {'type': 'approxHistogramFold', 'name': 'a_histogram'})
+                    {'type': 'approxHistogramFold', 'name': 'a_histogram'}),
                 ),
             'aCustomMetric': DruidMetric(
                 metric_name='aCustomMetric',
                 verbose_name='MY_AWESOME_METRIC(*)',
                 metric_type='aCustomType',
                 json=json.dumps(
-                    {'type': 'customMetric', 'name': 'aCustomMetric'})
+                    {'type': 'customMetric', 'name': 'aCustomMetric'}),
                 ),
             'quantile_p95': DruidMetric(
                 metric_name='quantile_p95',
@@ -424,7 +424,7 @@ class DruidTests(SupersetTestCase):
         self.assertIn('field', res.filter['filter'])
         self.assertEqual(
             3,
-            len(res.filter['filter']['field'].filter['filter']['fields'])
+            len(res.filter['filter']['field'].filter['filter']['fields']),
         )
 
     def test_get_filters_constructs_filter_equals(self):
@@ -440,7 +440,7 @@ class DruidTests(SupersetTestCase):
         self.assertEqual('not', res.filter['filter']['type'])
         self.assertEqual(
             'h',
-            res.filter['filter']['field'].filter['filter']['value']
+            res.filter['filter']['field'].filter['filter']['value'],
         )
 
     def test_get_filters_constructs_bounds_filter(self):

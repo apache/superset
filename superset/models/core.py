@@ -199,7 +199,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data.update({
             'slice_id': self.id,
             'viz_type': self.viz_type,
-            'datasource': str(self.datasource_id) + '__' + self.datasource_type
+            'datasource': str(self.datasource_id) + '__' + self.datasource_type,
         })
         if self.cache_timeout:
             form_data['cache_timeout'] = self.cache_timeout
@@ -301,7 +301,7 @@ dashboard_user = Table(
     'dashboard_user', metadata,
     Column('id', Integer, primary_key=True),
     Column('user_id', Integer, ForeignKey('ab_user.id')),
-    Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
+    Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
 )
 
 
@@ -687,7 +687,7 @@ class Database(Model, AuditMixinNullable):
             select('*')
             .select_from(
                 TextAsFrom(text(sql), ['*'])
-                .alias('inner_qry')
+                .alias('inner_qry'),
             ).limit(limit)
         )
         return self.compile_sqla_query(qry)

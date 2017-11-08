@@ -232,7 +232,7 @@ class DruidColumn(Model, BaseColumn):
     export_fields = (
         'datasource_name', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json'
+        'description', 'dimension_spec_json',
     )
 
     def __repr__(self):
@@ -253,7 +253,7 @@ class DruidColumn(Model, BaseColumn):
             metric_name='count',
             verbose_name='COUNT(*)',
             metric_type='count',
-            json=json.dumps({'type': 'count', 'name': 'count'})
+            json=json.dumps({'type': 'count', 'name': 'count'}),
         )
         # Somehow we need to reassign this for UDAFs
         if self.type in ('DOUBLE', 'FLOAT'):
@@ -269,7 +269,7 @@ class DruidColumn(Model, BaseColumn):
                 metric_type='sum',
                 verbose_name='SUM({})'.format(self.column_name),
                 json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name})
+                    'type': mt, 'name': name, 'fieldName': self.column_name}),
             )
 
         if self.avg and self.is_num:
@@ -280,7 +280,7 @@ class DruidColumn(Model, BaseColumn):
                 metric_type='avg',
                 verbose_name='AVG({})'.format(self.column_name),
                 json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name})
+                    'type': mt, 'name': name, 'fieldName': self.column_name}),
             )
 
         if self.min and self.is_num:
@@ -291,7 +291,7 @@ class DruidColumn(Model, BaseColumn):
                 metric_type='min',
                 verbose_name='MIN({})'.format(self.column_name),
                 json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name})
+                    'type': mt, 'name': name, 'fieldName': self.column_name}),
             )
         if self.max and self.is_num:
             mt = corrected_type.lower() + 'Max'
@@ -301,7 +301,7 @@ class DruidColumn(Model, BaseColumn):
                 metric_type='max',
                 verbose_name='MAX({})'.format(self.column_name),
                 json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name})
+                    'type': mt, 'name': name, 'fieldName': self.column_name}),
             )
         if self.count_distinct:
             name = 'count_distinct__' + self.column_name
@@ -313,8 +313,8 @@ class DruidColumn(Model, BaseColumn):
                     json=json.dumps({
                         'type': self.type,
                         'name': name,
-                        'fieldName': self.column_name
-                    })
+                        'fieldName': self.column_name,
+                    }),
                 )
             else:
                 metrics[name] = DruidMetric(
@@ -324,7 +324,7 @@ class DruidColumn(Model, BaseColumn):
                     json=json.dumps({
                         'type': 'cardinality',
                         'name': name,
-                        'fieldNames': [self.column_name]})
+                        'fieldNames': [self.column_name]}),
                 )
         return metrics
 
@@ -372,7 +372,7 @@ class DruidMetric(Model, BaseMetric):
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
-        'json', 'description', 'is_restricted', 'd3format'
+        'json', 'description', 'is_restricted', 'd3format',
     )
 
     @property
@@ -392,7 +392,7 @@ class DruidMetric(Model, BaseMetric):
         return (
             "{parent_name}.[{obj.metric_name}](id:{obj.id})"
         ).format(obj=self,
-                 parent_name=self.datasource.full_name
+                 parent_name=self.datasource.full_name,
                  ) if self.datasource else None
 
     @classmethod
@@ -434,7 +434,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
-        'cluster_name', 'offset', 'cache_timeout', 'params'
+        'cluster_name', 'offset', 'cache_timeout', 'params',
     )
 
     @property
@@ -491,7 +491,7 @@ class DruidDatasource(Model, BaseDatasource):
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month',
             ],
-            "time_grains": ['now']
+            "time_grains": ['now'],
         }
 
     def __repr__(self):
@@ -815,11 +815,11 @@ class DruidDatasource(Model, BaseDatasource):
                 elif mconf.get('type') == 'constant':
                     post_aggs[metric_name] = Const(
                         mconf.get('value'),
-                        output_name=mconf.get('name', '')
+                        output_name=mconf.get('name', ''),
                     )
                 elif mconf.get('type') == 'hyperUniqueCardinality':
                     post_aggs[metric_name] = HyperUniqueCardinality(
-                        mconf.get('name')
+                        mconf.get('name'),
                     )
                 elif mconf.get('type') == 'arithmetic':
                     post_aggs[metric_name] = Postaggregator(
@@ -936,7 +936,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         if rejected_metrics:
             raise MetricPermException(
-                "Access to the metrics denied: " + ', '.join(rejected_metrics)
+                "Access to the metrics denied: " + ', '.join(rejected_metrics),
             )
 
         # the dimensions list with dimensionSpecs expanded
@@ -1155,18 +1155,18 @@ class DruidDatasource(Model, BaseDatasource):
             elif op == '>':
                 cond = Bound(
                     col, eq, None,
-                    lowerStrict=True, alphaNumeric=is_numeric_col
+                    lowerStrict=True, alphaNumeric=is_numeric_col,
                 )
             elif op == '<':
                 cond = Bound(
                     col, None, eq,
-                    upperStrict=True, alphaNumeric=is_numeric_col
+                    upperStrict=True, alphaNumeric=is_numeric_col,
                 )
 
             if filters:
                 filters = Filter(type="and", fields=[
                     cond,
-                    filters
+                    filters,
                 ])
             else:
                 filters = cond
@@ -1192,7 +1192,7 @@ class DruidDatasource(Model, BaseDatasource):
         reversed_op_map = {
             '!=': '==',
             '>=': '<',
-            '<=': '>'
+            '<=': '>',
         }
 
         for flt in raw_filters:

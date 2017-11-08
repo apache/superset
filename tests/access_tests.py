@@ -23,9 +23,9 @@ ROLE_TABLES_PERM_DATA = {
         'name': 'main',
         'schema': [{
             'name': '',
-            'datasources': ['birth_names']
-        }]
-    }]
+            'datasources': ['birth_names'],
+        }],
+    }],
 }
 
 ROLE_ALL_PERM_DATA = {
@@ -35,17 +35,17 @@ ROLE_ALL_PERM_DATA = {
         'name': 'main',
         'schema': [{
             'name': '',
-            'datasources': ['birth_names']
-        }]
+            'datasources': ['birth_names'],
+        }],
     }, {
         'datasource_type': 'druid',
         'name': 'druid_test',
         'schema': [{
             'name': '',
-            'datasources': ['druid_ds_1', 'druid_ds_2']
-        }]
-    }
-    ]
+            'datasources': ['druid_ds_1', 'druid_ds_2'],
+        }],
+    },
+    ],
 }
 
 EXTEND_ROLE_REQUEST = (
@@ -172,7 +172,7 @@ class RequestAccessTests(SupersetTestCase):
         override_me.permissions.append(
             sm.find_permission_view_menu(
                 view_menu_name=self.get_table_by_name('long_lat').perm,
-                permission_name='datasource_access')
+                permission_name='datasource_access'),
         )
         db.session.flush()
 
@@ -550,11 +550,11 @@ class RequestAccessTests(SupersetTestCase):
                         'username': 'gamma',
                         'first_name': 'Gamma',
                         'last_name': 'Gamma',
-                        'email': 'gamma@superset.com'
+                        'email': 'gamma@superset.com',
                     }],
-                'role_name': update_role_str
+                'role_name': update_role_str,
             }),
-            follow_redirects=True
+            follow_redirects=True,
         )
         update_role = sm.find_role(update_role_str)
         self.assertEquals(
@@ -568,16 +568,16 @@ class RequestAccessTests(SupersetTestCase):
                     'username': 'alpha',
                     'first_name': 'Alpha',
                     'last_name': 'Alpha',
-                    'email': 'alpha@superset.com'
+                    'email': 'alpha@superset.com',
                 }, {
                     'username': 'unknown',
                     'first_name': 'Unknown1',
                     'last_name': 'Unknown2',
-                    'email': 'unknown@superset.com'
+                    'email': 'unknown@superset.com',
                 }],
-                'role_name': update_role_str
+                'role_name': update_role_str,
             }),
-            follow_redirects=True
+            follow_redirects=True,
         )
         self.assertEquals(resp.status_code, 201)
         update_role = sm.find_role(update_role_str)

@@ -102,12 +102,12 @@ class SupersetTestCase(unittest.TestCase):
 
             druid_datasource1 = DruidDatasource(
                 datasource_name='druid_ds_1',
-                cluster_name='druid_test'
+                cluster_name='druid_test',
             )
             session.add(druid_datasource1)
             druid_datasource2 = DruidDatasource(
                 datasource_name='druid_ds_2',
-                cluster_name='druid_test'
+                cluster_name='druid_test',
             )
             session.add(druid_datasource2)
             session.commit()
