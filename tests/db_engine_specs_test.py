@@ -10,7 +10,7 @@ from superset.db_engine_specs import HiveEngineSpec
 
 class DbEngineSpecsTestCase(unittest.TestCase):
     def test_0_progress(self):
-        log  = """
+        log = """
             17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=compile from=org.apache.hadoop.hive.ql.Driver>
             17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=parse from=org.apache.hadoop.hive.ql.Driver>
         """.split('\n')
