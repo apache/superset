@@ -220,7 +220,9 @@ class BaseViz(object):
 
     @property
     def cache_key(self):
-        s = str([(k, self.form_data[k]) for k in sorted(self.form_data.keys())])
+        form_data = self.form_data.copy()
+        merge_extra_filters(form_data)
+        s = str([(k, form_data[k]) for k in sorted(form_data.keys())])
         return hashlib.md5(s.encode('utf-8')).hexdigest()
 
     def get_annotations(self):

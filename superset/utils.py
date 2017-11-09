@@ -668,8 +668,8 @@ def get_celery_app(config):
 def merge_extra_filters(form_data):
     # extra_filters are temporary/contextual filters that are external
     # to the slice definition. We use those for dynamic interactive
-    # filters like the ones emitted by the 'Filter Box' visualization
-    if form_data.get('extra_filters'):
+    # filters like the ones emitted by the "Filter Box" visualization
+    if 'extra_filters' in form_data:
         # __form and __to are special extra_filters that target time
         # boundaries. The rest of extra_filters are simple
         # [column_name in list_of_values]. `__` prefix is there to avoid
