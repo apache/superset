@@ -1,3 +1,3 @@
 .time_table.slice_container {
-  overflow: auto;
+  overflow: auto !important;
 }
