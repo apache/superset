@@ -163,7 +163,7 @@ Refer to the
 for more information.
 
 Note that *gunicorn* does not
-work on Windows so the `superser runserver` command is not expected to work
+work on Windows so the `superset runserver` command is not expected to work
 in that context. Also note that the development web
 server (`superset runserver -d`) is not intended for production use.
 
