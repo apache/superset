@@ -1444,15 +1444,6 @@ class Superset(BaseSupersetView):
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
-<<<<<<< HEAD
-=======
-
-            url = make_url(uri)
-            db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
-            db_engine.patch()
-            uri = db_engine.get_uri_for_impersonation(uri, impersonate_user, username)
-            masked_url = database.get_password_masked_url_from_uri(uri)
->>>>>>> 5187dc2d... add healthcheck for envoy integrations
 
             configuration = {}
 
