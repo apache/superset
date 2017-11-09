@@ -14,7 +14,6 @@ import pandas as pd
 from past.builtins import basestring
 
 from superset import app, appbuilder, cli, dataframe, db
-from superset.models import core as models
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
 from superset.security import sync_role_definitions

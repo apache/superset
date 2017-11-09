@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import unittest
 
 from mock import Mock, patch
@@ -7,6 +7,7 @@ import pandas as pd
 import superset.utils as utils
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
+
 
 class BaseVizTestCase(unittest.TestCase):
     def test_constructor_exception_no_datasource(self):
