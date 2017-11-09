@@ -275,8 +275,8 @@ class CeleryTestCase(SupersetTestCase):
                 {'is_date': True, 'type': 'STRING', 'name': 'string2',
                     'is_dim': False},
                 {'is_date': False, 'type': 'STRING',
-                    'name': 'string3', 'is_dim': True}], 'name')
-                , cols,
+                    'name': 'string3', 'is_dim': True}], 'name'),
+                cols,
             )
         else:
             self.assertEqual(self.dictify_list_of_dicts([
@@ -295,8 +295,8 @@ class CeleryTestCase(SupersetTestCase):
                 {'is_date': True, 'type': 'STRING', 'name': 'string2',
                     'is_dim': False},
                 {'is_date': False, 'type': 'STRING',
-                    'name': 'string3', 'is_dim': True}], 'name')
-                , cols,
+                    'name': 'string3', 'is_dim': True}], 'name'),
+                cols,
             )
 
 

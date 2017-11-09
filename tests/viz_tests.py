@@ -104,7 +104,7 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertEqual(156, test_viz.cache_timeout)
         datasource.cache_timeout = None
         datasource.database = Mock()
-        datasource.database.cache_timeout= 1666
+        datasource.database.cache_timeout = 1666
         self.assertEqual(1666, test_viz.cache_timeout)
 
 

@@ -1313,7 +1313,7 @@ class Superset(BaseSupersetView):
             max_tables = max_items * len(table_names) // total_items
             max_views = max_items * len(view_names) // total_items
 
-        table_options = [{'value': tn,  'label': tn}
+        table_options = [{'value': tn, 'label': tn}
                          for tn in table_names[:max_tables]]
         table_options.extend([{'value': vn, 'label': '[view] {}'.format(vn)}
                               for vn in view_names[:max_views]])

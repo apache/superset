@@ -649,7 +649,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             msg = (
                 "A filter needs to be specified for {} out of the "
                 "{} fields."
-            ).format(len(part_fields)-1, len(part_fields))
+            ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 
         for field in part_fields:
