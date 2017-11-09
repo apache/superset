@@ -16,9 +16,11 @@ from superset.connectors.druid.models import (
 )
 from .base_tests import SupersetTestCase
 
+
 class PickableMock(Mock):
     def __reduce__(self):
         return (Mock, ())
+
 
 SEGMENT_METADATA = [{
     "id": "some_id",
@@ -199,6 +201,7 @@ class DruidTests(SupersetTestCase):
                 },
             },
         }
+
         def check():
             resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
             druid_ds = (

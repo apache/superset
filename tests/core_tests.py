@@ -181,7 +181,6 @@ class CoreTests(SupersetTestCase):
         assert slc.slice_name == new_slice_name
         db.session.delete(slc)
 
-
     def test_filter_endpoint(self):
         self.login(username='admin')
         slice_name = "Energy Sankey"

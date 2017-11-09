@@ -272,6 +272,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
+
 appbuilder.add_link(
     'Import Dashboards',
     label=__("Import Dashboards"),
@@ -299,11 +300,13 @@ class DatabaseAsync(DatabaseView):
         'allow_run_async', 'allow_run_sync', 'allow_dml',
     ]
 
+
 appbuilder.add_view_no_menu(DatabaseAsync)
 
 
 class DatabaseTablesAsync(DatabaseView):
     list_columns = ['id', 'all_table_names', 'all_schema_names']
+
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
@@ -323,6 +326,7 @@ class AccessRequestsModelView(SupersetModelView, DeleteMixin):
         'roles_with_datasource': _("Roles to grant"),
         'created_on': _("Created On"),
     }
+
 
 appbuilder.add_view(
     AccessRequestsModelView,
@@ -411,6 +415,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             }),
         )
 
+
 appbuilder.add_view(
     SliceModelView,
     "Slices",
@@ -429,6 +434,7 @@ class SliceAsync(SliceModelView):  # noqa
         'slice_link': _('Slice'),
     }
 
+
 appbuilder.add_view_no_menu(SliceAsync)
 
 
@@ -436,6 +442,7 @@ class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'id', 'slice_name', 'slice_link', 'viz_type',
         'owners', 'modified', 'changed_on']
+
 
 appbuilder.add_view_no_menu(SliceAddView)
 
@@ -554,6 +561,7 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
         'modified': _('Modified'),
     }
 
+
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
@@ -569,6 +577,7 @@ class LogModelView(SupersetModelView):
         'json': _("JSON"),
     }
 
+
 appbuilder.add_view(
     LogModelView,
     "Action Log",
@@ -582,9 +591,11 @@ appbuilder.add_view(
 def health():
     return "OK"
 
+
 @app.route('/healthcheck')
 def healthcheck():
     return "OK"
+
 
 @app.route('/ping')
 def ping():
@@ -619,6 +630,7 @@ class KV(BaseSupersetView):
             return json_error_response(e)
         return Response(kv.value, status=200)
 
+
 appbuilder.add_view_no_menu(KV)
 
 
@@ -651,6 +663,7 @@ class R(BaseSupersetView):
         """Redirects to specified url while flash a message"""
         flash(Markup(request.args.get("msg")), "info")
         return redirect(request.args.get("url"))
+
 
 appbuilder.add_view_no_menu(R)
 
@@ -2388,6 +2401,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=401)
         return self.get_query_string_response(viz_obj)
 
+
 appbuilder.add_view_no_menu(Superset)
 
 
@@ -2403,6 +2417,7 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
 
 class CssTemplateAsyncModelView(CssTemplateModelView):
     list_columns = ['template_name', 'css']
+
 
 appbuilder.add_separator("Sources")
 appbuilder.add_view(
@@ -2426,6 +2441,7 @@ appbuilder.add_link(
     category='SQL Lab',
     category_label=__("SQL Lab"),
 )
+
 appbuilder.add_link(
     'Query Search',
     label=_("Query Search"),
@@ -2451,6 +2467,8 @@ class RegexConverter(BaseConverter):
     def __init__(self, url_map, *items):
         super(RegexConverter, self).__init__(url_map)
         self.regex = items[0]
+
+
 app.url_map.converters['regex'] = RegexConverter
 
 

@@ -299,7 +299,6 @@ class RequestAccessTests(SupersetTestCase):
         ds = session.query(SqlaTable).filter_by(
             table_name='wb_health_population').first()
 
-
         ds.schema = 'temp_schema'
         security.merge_perm(
             sm, 'schema_access', ds.schema_perm)

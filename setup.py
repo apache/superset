@@ -18,6 +18,7 @@ def get_git_sha():
     except Exception:
         return ""
 
+
 GIT_SHA = get_git_sha()
 version_info = {
     'GIT_SHA': GIT_SHA,
