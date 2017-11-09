@@ -41,7 +41,8 @@ export default class FixedOrMetricControl extends React.Component {
   onChange() {
     this.props.onChange({
       type: this.state.type,
-      value: this.state.type === controlTypes.fixed ? this.state.fixedValue : this.state.metricValue,
+      value: this.state.type === controlTypes.fixed ?
+        this.state.fixedValue : this.state.metricValue,
     });
   }
   setType(type) {
