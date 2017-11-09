@@ -1953,7 +1953,7 @@ class Superset(BaseSupersetView):
             dtype = ""
             try:
                 dtype = '{}'.format(col['type'])
-            except:
+            except Exception:
                 pass
             cols.append({
                 'name': col['name'],
