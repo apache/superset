@@ -1674,7 +1674,10 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/warm_up_cache/", methods=['GET'])
     def warm_up_cache(self):
-        """Warms up the cache for the slice or table."""
+        """Warms up the cache for the slice or table.
+
+        Note for slices a force refresh occurs.
+        """
         slices = None
         session = db.session()
         slice_id = request.args.get('slice_id')
