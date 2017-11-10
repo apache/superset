@@ -1,4 +1,4 @@
- # pylint: disable=invalid-unary-operand-type
+# pylint: disable=invalid-unary-operand-type
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -919,8 +919,8 @@ class DruidDatasource(Model, BaseDatasource):
         columns_dict = {c.column_name: c for c in self.columns}
 
         all_metrics, post_aggs = self._metrics_and_post_aggs(
-                                      metrics,
-                                      metrics_dict)
+            metrics,
+            metrics_dict)
 
         aggregations = OrderedDict()
         for m in self.metrics:
@@ -996,16 +996,16 @@ class DruidDatasource(Model, BaseDatasource):
             client.topn(**pre_qry)
             query_str += "// Two phase query\n// Phase 1\n"
             query_str += json.dumps(
-              client.query_builder.last_query.query_dict, indent=2)
+                client.query_builder.last_query.query_dict, indent=2)
             query_str += "\n"
             if phase == 1:
                 return query_str
             query_str += (
-              "// Phase 2 (built based on phase one's results)\n")
+                "// Phase 2 (built based on phase one's results)\n")
             df = client.export_pandas()
             qry['filter'] = self._add_filter_from_pre_query_data(
-                                df,
-                                qry['dimensions'], filters)
+                df,
+                qry['dimensions'], filters)
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
                 qry['threshold'] = row_limit
@@ -1046,8 +1046,10 @@ class DruidDatasource(Model, BaseDatasource):
                     "// Phase 2 (built based on phase one's results)\n")
                 df = client.export_pandas()
                 qry['filter'] = self._add_filter_from_pre_query_data(
-                                    df,
-                                    qry['dimensions'], filters)
+                    df,
+                    qry['dimensions'],
+                    filters,
+                )
                 qry['limit_spec'] = None
             if row_limit:
                 qry['limit_spec'] = {

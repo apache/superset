@@ -110,8 +110,10 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(form_data, expected)
 
     def test_datetime_f(self):
-        self.assertEquals(datetime_f(datetime(1990, 9, 21, 19, 11, 19, 626096)),
-            '<nobr>1990-09-21T19:11:19.626096</nobr>')
+        self.assertEquals(
+            datetime_f(datetime(1990, 9, 21, 19, 11, 19, 626096)),
+            '<nobr>1990-09-21T19:11:19.626096</nobr>',
+        )
         self.assertEquals(len(datetime_f(datetime.now())), 28)
         self.assertEquals(datetime_f(None), '<nobr>None</nobr>')
         iso = datetime.now().isoformat()[:10].split('-')

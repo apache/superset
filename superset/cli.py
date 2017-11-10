@@ -141,13 +141,17 @@ def load_examples(load_test_data):
 @manager.option(
     '-d', '--datasource',
     help=(
-            "Specify which datasource name to load, if omitted, all "
-            "datasources will be refreshed"))
+        "Specify which datasource name to load, if omitted, all "
+        "datasources will be refreshed"
+    ),
+)
 @manager.option(
     '-m', '--merge',
     help=(
-            "Specify using 'merge' property during operation. "
-            "Default value is False "))
+        "Specify using 'merge' property during operation. "
+        "Default value is False "
+    ),
+)
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()

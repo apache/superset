@@ -28,9 +28,9 @@ class SupersetTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         if (
-                        self.requires_examples and
-                        not os.environ.get('SOLO_TEST') and
-                        not os.environ.get('examples_loaded')
+            self.requires_examples and
+            not os.environ.get('SOLO_TEST') and
+            not os.environ.get('examples_loaded')
         ):
             logging.info("Loading examples")
             cli.load_examples(load_test_data=True)
@@ -133,8 +133,8 @@ class SupersetTestCase(unittest.TestCase):
     def get_slice(self, slice_name, session):
         slc = (
             session.query(models.Slice)
-                .filter_by(slice_name=slice_name)
-                .one()
+            .filter_by(slice_name=slice_name)
+            .one()
         )
         session.expunge_all()
         return slc
@@ -169,20 +169,20 @@ class SupersetTestCase(unittest.TestCase):
     def get_main_database(self, session):
         return (
             db.session.query(models.Database)
-                .filter_by(database_name='main')
-                .first()
+            .filter_by(database_name='main')
+            .first()
         )
 
     def get_access_requests(self, username, ds_type, ds_id):
         DAR = models.DatasourceAccessRequest
         return (
             db.session.query(DAR)
-                .filter(
+            .filter(
                 DAR.created_by == sm.find_user(username=username),
                 DAR.datasource_type == ds_type,
                 DAR.datasource_id == ds_id,
-                )
-                .first()
+            )
+            .first()
         )
 
     def logout(self):

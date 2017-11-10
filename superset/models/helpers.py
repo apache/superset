@@ -156,7 +156,7 @@ def merge_perm(sm, permission_name, view_menu_name, connection):
             .values(
                 permission_id=permission.id,
                 view_menu_id=view_menu.id,
-                ),
+            ),
         )
 
 

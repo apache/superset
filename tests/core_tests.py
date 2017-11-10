@@ -365,7 +365,8 @@ class CoreTests(SupersetTestCase):
 
         resp = self.client.get('/kv/{}/'.format(kv.id))
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(json.loads(value),
+        self.assertEqual(
+            json.loads(value),
             json.loads(resp.data.decode('utf-8')))
 
         try:
@@ -436,8 +437,8 @@ class CoreTests(SupersetTestCase):
         self.login(username=username)
         dash = (
             db.session.query(models.Dashboard)
-                .filter_by(slug="births")
-                .first()
+            .filter_by(slug="births")
+            .first()
         )
         origin_title = dash.dashboard_title
         positions = []
@@ -459,8 +460,8 @@ class CoreTests(SupersetTestCase):
         self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = (
             db.session.query(models.Dashboard)
-                .filter_by(slug="births")
-                .first()
+            .filter_by(slug="births")
+            .first()
         )
         self.assertEqual(updatedDash.dashboard_title, 'new title')
         # # bring back dashboard original title
