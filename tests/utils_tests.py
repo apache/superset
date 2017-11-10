@@ -24,7 +24,7 @@ class UtilsTestCase(unittest.TestCase):
         assert json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
 
         with self.assertRaises(TypeError):
-            json_int_dttm_ser("this is not a date")
+            json_int_dttm_ser('this is not a date')
 
     def test_json_iso_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
@@ -35,7 +35,7 @@ class UtilsTestCase(unittest.TestCase):
         assert json_iso_dttm_ser(t) == t.isoformat()
 
         with self.assertRaises(TypeError):
-            json_iso_dttm_ser("this is not a date")
+            json_iso_dttm_ser('this is not a date')
 
     def test_base_json_conv(self):
         assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
@@ -50,7 +50,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(parse_human_timedelta('now'), timedelta(0))
 
     def test_zlib_compression(self):
-        json_str = """{"test": 1}"""
+        json_str = '{"test": 1}'
         blob = zlib_compress(json_str)
         got_str = zlib_decompress_to_string(blob)
         self.assertEquals(json_str, got_str)

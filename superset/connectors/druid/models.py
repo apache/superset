@@ -33,7 +33,7 @@ from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher, MetricPermException,
 )
 
-DRUID_TZ = conf.get("DRUID_TZ")
+DRUID_TZ = conf.get('DRUID_TZ')
 
 
 # Function wrapper because bound methods cannot
@@ -65,7 +65,7 @@ class DruidCluster(Model, AuditMixinNullable):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
-    type = "druid"
+    type = 'druid'
 
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
@@ -86,21 +86,21 @@ class DruidCluster(Model, AuditMixinNullable):
 
     def get_pydruid_client(self):
         cli = PyDruid(
-            "http://{0}:{1}/".format(self.broker_host, self.broker_port),
+            'http://{0}:{1}/'.format(self.broker_host, self.broker_port),
             self.broker_endpoint)
         return cli
 
     def get_datasources(self):
         endpoint = (
-            "http://{obj.coordinator_host}:{obj.coordinator_port}/"
-            "{obj.coordinator_endpoint}/datasources"
+            'http://{obj.coordinator_host}:{obj.coordinator_port}/'
+            '{obj.coordinator_endpoint}/datasources'
         ).format(obj=self)
 
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
         endpoint = (
-            "http://{obj.coordinator_host}:{obj.coordinator_port}/status"
+            'http://{obj.coordinator_host}:{obj.coordinator_port}/status'
         ).format(obj=self)
         return json.loads(requests.get(endpoint).text)['version']
 
@@ -144,11 +144,11 @@ class DruidCluster(Model, AuditMixinNullable):
                 with session.no_autoflush:
                     session.add(datasource)
                 flasher(
-                    "Adding new datasource [{}]".format(ds_name), 'success')
+                    'Adding new datasource [{}]'.format(ds_name), 'success')
                 ds_map[ds_name] = datasource
             elif refreshAll:
                 flasher(
-                    "Refreshing datasource [{}]".format(ds_name), 'info')
+                    'Refreshing datasource [{}]'.format(ds_name), 'info')
             else:
                 del ds_map[ds_name]
                 continue
@@ -200,7 +200,7 @@ class DruidCluster(Model, AuditMixinNullable):
 
     @property
     def perm(self):
-        return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
+        return '[{obj.cluster_name}].(id:{obj.id})'.format(obj=self)
 
     def get_perm(self):
         return self.perm
@@ -390,7 +390,7 @@ class DruidMetric(Model, BaseMetric):
     @property
     def perm(self):
         return (
-            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+            '{parent_name}.[{obj.metric_name}](id:{obj.id})'
         ).format(obj=self,
                  parent_name=self.datasource.full_name,
                  ) if self.datasource else None
@@ -410,13 +410,13 @@ class DruidDatasource(Model, BaseDatasource):
 
     __tablename__ = 'datasources'
 
-    type = "druid"
-    query_langtage = "json"
+    type = 'druid'
+    query_langtage = 'json'
     cluster_class = DruidCluster
     metric_class = DruidMetric
     column_class = DruidColumn
 
-    baselink = "druiddatasourcemodelview"
+    baselink = 'druiddatasourcemodelview'
 
     # Columns
     datasource_name = Column(String(255), unique=True)
@@ -469,8 +469,8 @@ class DruidDatasource(Model, BaseDatasource):
 
     def get_perm(self):
         return (
-            "[{obj.cluster_name}].[{obj.datasource_name}]"
-            "(id:{obj.id})").format(obj=self)
+            '[{obj.cluster_name}].[{obj.datasource_name}]'
+            '(id:{obj.id})').format(obj=self)
 
     @property
     def link(self):
@@ -485,13 +485,13 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def time_column_grains(self):
         return {
-            "time_columns": [
+            'time_columns': [
                 'all', '5 seconds', '30 seconds', '1 minute',
                 '5 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month',
             ],
-            "time_grains": ['now'],
+            'time_grains': ['now'],
         }
 
     def __repr__(self):
@@ -499,7 +499,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     @renders('datasource_name')
     def datasource_link(self):
-        url = "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+        url = '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
         name = escape(self.datasource_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
@@ -561,7 +561,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
-        logging.info("Syncing datasource [{}]".format(self.datasource_name))
+        logging.info('Syncing datasource [{}]'.format(self.datasource_name))
         client = self.cluster.get_pydruid_client()
         results = client.time_boundary(datasource=self.datasource_name)
         if not results:
@@ -585,7 +585,7 @@ class DruidDatasource(Model, BaseDatasource):
                 merge=self.merge_flag,
                 analysisTypes=[])
         except Exception as e:
-            logging.warning("Failed first attempt to get latest segment")
+            logging.warning('Failed first attempt to get latest segment')
             logging.exception(e)
         if not segment_metadata:
             # if no segments in the past 7 days, look at all segments
@@ -601,7 +601,7 @@ class DruidDatasource(Model, BaseDatasource):
                     merge=self.merge_flag,
                     analysisTypes=[])
             except Exception as e:
-                logging.warning("Failed 2nd attempt to get latest segment")
+                logging.warning('Failed 2nd attempt to get latest segment')
                 logging.exception(e)
         if segment_metadata:
             return segment_metadata[-1]['columns']
@@ -669,7 +669,7 @@ class DruidDatasource(Model, BaseDatasource):
                     groupby=True,
                     filterable=True,
                     # TODO: fetch type from Hive.
-                    type="STRING",
+                    type='STRING',
                     datasource=datasource,
                 )
                 session.add(col_obj)
@@ -678,20 +678,20 @@ class DruidDatasource(Model, BaseDatasource):
             session.query(DruidMetric)
             .filter(DruidMetric.datasource_name == druid_config['name'])
             .filter(or_(DruidMetric.metric_name == spec['name']
-                    for spec in druid_config["metrics_spec"]))
+                    for spec in druid_config['metrics_spec']))
         )
         metric_objs = {metric.metric_name: metric for metric in metric_objs}
-        for metric_spec in druid_config["metrics_spec"]:
-            metric_name = metric_spec["name"]
-            metric_type = metric_spec["type"]
+        for metric_spec in druid_config['metrics_spec']:
+            metric_name = metric_spec['name']
+            metric_type = metric_spec['type']
             metric_json = json.dumps(metric_spec)
 
-            if metric_type == "count":
-                metric_type = "longSum"
+            if metric_type == 'count':
+                metric_type = 'longSum'
                 metric_json = json.dumps({
-                    "type": "longSum",
-                    "name": metric_name,
-                    "fieldName": metric_name,
+                    'type': 'longSum',
+                    'name': metric_name,
+                    'fieldName': metric_name,
                 })
 
             metric_obj = metric_objs.get(metric_name, None)
@@ -699,11 +699,11 @@ class DruidDatasource(Model, BaseDatasource):
                 metric_obj = DruidMetric(
                     metric_name=metric_name,
                     metric_type=metric_type,
-                    verbose_name="%s(%s)" % (metric_type, metric_name),
+                    verbose_name='%s(%s)' % (metric_type, metric_name),
                     datasource=datasource,
                     json=metric_json,
                     description=(
-                        "Imported from the airolap config dir for %s" %
+                        'Imported from the airolap config dir for %s' %
                         druid_config['name']),
                 )
                 session.add(metric_obj)
@@ -823,7 +823,7 @@ class DruidDatasource(Model, BaseDatasource):
                     )
                 elif mconf.get('type') == 'arithmetic':
                     post_aggs[metric_name] = Postaggregator(
-                        mconf.get('fn', "/"),
+                        mconf.get('fn', '/'),
                         mconf.get('fields', []),
                         mconf.get('name', ''))
                 else:
@@ -844,11 +844,11 @@ class DruidDatasource(Model, BaseDatasource):
 
         qry = dict(
             datasource=self.datasource_name,
-            granularity="all",
+            granularity='all',
             intervals=from_dttm.isoformat() + '/' + datetime.now().isoformat(),
-            aggregations=dict(count=count("count")),
+            aggregations=dict(count=count('count')),
             dimension=column_name,
-            metric="count",
+            metric='count',
             threshold=limit,
         )
 
@@ -870,16 +870,16 @@ class DruidDatasource(Model, BaseDatasource):
                     f = Dimension(dim) == row[dim]
                     fields.append(f)
                 if len(fields) > 1:
-                    term = Filter(type="and", fields=fields)
+                    term = Filter(type='and', fields=fields)
                     new_filters.append(term)
                 elif fields:
                     new_filters.append(fields[0])
             if new_filters:
-                ff = Filter(type="or", fields=new_filters)
+                ff = Filter(type='or', fields=new_filters)
                 if not dim_filter:
                     ret = ff
                 else:
-                    ret = Filter(type="and", fields=[ff, dim_filter])
+                    ret = Filter(type='and', fields=[ff, dim_filter])
         return ret
 
     def run_query(  # noqa / druid
@@ -913,7 +913,7 @@ class DruidDatasource(Model, BaseDatasource):
         to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
         timezone = from_dttm.tzname()
 
-        query_str = ""
+        query_str = ''
         metrics_dict = {m.metric_name: m for m in self.metrics}
 
         columns_dict = {c.column_name: c for c in self.columns}
@@ -936,7 +936,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         if rejected_metrics:
             raise MetricPermException(
-                "Access to the metrics denied: " + ', '.join(rejected_metrics),
+                'Access to the metrics denied: ' + ', '.join(rejected_metrics),
             )
 
         # the dimensions list with dimensionSpecs expanded
@@ -969,7 +969,7 @@ class DruidDatasource(Model, BaseDatasource):
         having_filters = self.get_having_filters(extras.get('having_druid'))
         if having_filters:
             qry['having'] = having_filters
-        order_direction = "descending" if order_desc else "ascending"
+        order_direction = 'descending' if order_desc else 'ascending'
         if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
@@ -987,17 +987,17 @@ class DruidDatasource(Model, BaseDatasource):
                 order_by = list(qry['aggregations'].keys())[0]
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry = deepcopy(qry)
-            pre_qry['granularity'] = "all"
+            pre_qry['granularity'] = 'all'
             pre_qry['threshold'] = min(row_limit,
                                        timeseries_limit or row_limit)
             pre_qry['metric'] = order_by
             pre_qry['dimension'] = dim
             del pre_qry['dimensions']
             client.topn(**pre_qry)
-            query_str += "// Two phase query\n// Phase 1\n"
+            query_str += '// Two phase query\n// Phase 1\n'
             query_str += json.dumps(
                 client.query_builder.last_query.query_dict, indent=2)
-            query_str += "\n"
+            query_str += '\n'
             if phase == 1:
                 return query_str
             query_str += (
@@ -1023,23 +1023,23 @@ class DruidDatasource(Model, BaseDatasource):
                     order_by = timeseries_limit_metric
                 # Limit on the number of timeseries, doing a two-phases query
                 pre_qry = deepcopy(qry)
-                pre_qry['granularity'] = "all"
+                pre_qry['granularity'] = 'all'
                 pre_qry['limit_spec'] = {
-                    "type": "default",
-                    "limit": min(timeseries_limit, row_limit),
+                    'type': 'default',
+                    'limit': min(timeseries_limit, row_limit),
                     'intervals': (
                         inner_from_dttm.isoformat() + '/' +
                         inner_to_dttm.isoformat()),
-                    "columns": [{
-                        "dimension": order_by,
-                        "direction": order_direction,
+                    'columns': [{
+                        'dimension': order_by,
+                        'direction': order_direction,
                     }],
                 }
                 client.groupby(**pre_qry)
-                query_str += "// Two phase query\n// Phase 1\n"
+                query_str += '// Two phase query\n// Phase 1\n'
                 query_str += json.dumps(
                     client.query_builder.last_query.query_dict, indent=2)
-                query_str += "\n"
+                query_str += '\n'
                 if phase == 1:
                     return query_str
                 query_str += (
@@ -1053,12 +1053,12 @@ class DruidDatasource(Model, BaseDatasource):
                 qry['limit_spec'] = None
             if row_limit:
                 qry['limit_spec'] = {
-                    "type": "default",
-                    "limit": row_limit,
-                    "columns": [{
-                        "dimension": (
+                    'type': 'default',
+                    'limit': row_limit,
+                    'columns': [{
+                        'dimension': (
                             metrics[0] if metrics else self.metrics[0]),
-                        "direction": order_direction,
+                        'direction': order_direction,
                     }],
                 }
             client.groupby(**qry)
@@ -1074,7 +1074,7 @@ class DruidDatasource(Model, BaseDatasource):
         df = client.export_pandas()
 
         if df is None or df.size == 0:
-            raise Exception(_("No data was returned."))
+            raise Exception(_('No data was returned.'))
         df.columns = [
             DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
 
@@ -1120,7 +1120,7 @@ class DruidDatasource(Model, BaseDatasource):
             cond = None
             if op in ('in', 'not in'):
                 eq = [
-                    types.replace("'", '').strip()
+                    types.replace('"', '').strip()
                     if isinstance(types, string_types)
                     else types
                     for types in eq]
@@ -1149,13 +1149,13 @@ class DruidDatasource(Model, BaseDatasource):
                 else:
                     for s in eq:
                         fields.append(Dimension(col) == s)
-                    cond = Filter(type="or", fields=fields)
+                    cond = Filter(type='or', fields=fields)
 
                 if op == 'not in':
                     cond = ~cond
 
             elif op == 'regex':
-                cond = Filter(type="regex", pattern=eq, dimension=col)
+                cond = Filter(type='regex', pattern=eq, dimension=col)
             elif op == '>=':
                 cond = Bound(col, eq, None, alphaNumeric=is_numeric_col)
             elif op == '<=':
@@ -1172,7 +1172,7 @@ class DruidDatasource(Model, BaseDatasource):
                 )
 
             if filters:
-                filters = Filter(type="and", fields=[
+                filters = Filter(type='and', fields=[
                     cond,
                     filters,
                 ])
