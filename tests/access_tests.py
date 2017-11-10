@@ -268,7 +268,7 @@ class RequestAccessTests(SupersetTestCase):
         ds_perm_view = sm.find_permission_view_menu(
             'database_access', database.perm)
         sm.add_permission_role(
-            sm.find_role(DB_ACCESS_ROLE) , ds_perm_view)
+            sm.find_role(DB_ACCESS_ROLE), ds_perm_view)
         gamma_user.roles.append(sm.find_role(DB_ACCESS_ROLE))
         session.commit()
         access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
@@ -306,7 +306,7 @@ class RequestAccessTests(SupersetTestCase):
         schema_perm_view = sm.find_permission_view_menu(
             'schema_access', ds.schema_perm)
         sm.add_permission_role(
-            sm.find_role(SCHEMA_ACCESS_ROLE) , schema_perm_view)
+            sm.find_role(SCHEMA_ACCESS_ROLE), schema_perm_view)
         gamma_user.roles.append(sm.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
         # gamma2 request gets fulfilled

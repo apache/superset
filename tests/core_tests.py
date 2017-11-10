@@ -271,6 +271,7 @@ class CoreTests(SupersetTestCase):
 
     def test_misc(self):
         assert self.get_resp('/health') == "OK"
+        assert self.get_resp('/healthcheck') == "OK"
         assert self.get_resp('/ping') == "OK"
 
     def test_testconn(self, username='admin'):
@@ -766,7 +767,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp('/superset/slice_query/{}/'.format(slc.id))
         assert 'query' in resp
         assert 'language' in resp
-        self.logout();
+        self.logout()
 
     def test_viz_get_fillna_for_columns(self):
         slc = self.get_slice("Girls", db.session)

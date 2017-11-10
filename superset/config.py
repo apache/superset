@@ -154,7 +154,7 @@ PUBLIC_ROLE_LIKE_GAMMA = False
 # Setup default language
 BABEL_DEFAULT_LOCALE = 'en'
 # Your application default translation path
-BABEL_DEFAULT_FOLDER = 'babel/translations'
+BABEL_DEFAULT_FOLDER = 'superset/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
@@ -162,6 +162,7 @@ LANGUAGES = {
     'fr': {'flag': 'fr', 'name': 'French'},
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
+    'de': {'flag': 'de', 'name': 'German'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -338,7 +339,7 @@ BLUEPRINTS = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-TRACKING_URL_TRANSFORMER = lambda x: x
+TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

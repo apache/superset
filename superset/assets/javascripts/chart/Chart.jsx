@@ -62,7 +62,12 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.runQuery();
+    if (this.props.triggerQuery) {
+      this.props.actions.runQuery(this.props.formData, false,
+        this.props.timeout,
+        this.props.chartKey,
+      );
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -121,13 +126,6 @@ class Chart extends React.PureComponent {
     const format = (datasource.column_formats && datasource.column_formats[col]) || '0.3s';
 
     return d3format(format, number);
-  }
-
-  runQuery() {
-    this.props.actions.runQuery(this.props.formData, true,
-      this.props.timeout,
-      this.props.chartKey,
-    );
   }
 
   render_template(s) {

@@ -637,9 +637,9 @@ class CalHeatmapViz(BaseViz):
         elif domain == "week":
             range_ = diff_delta.years * 53 + diff_delta.weeks + 1
         elif domain == "day":
-            range_ = diff_secs // (24*60*60) + 1
+            range_ = diff_secs // (24 * 60 * 60) + 1
         else:
-            range_ = diff_secs // (60*60) + 1
+            range_ = diff_secs // (60 * 60) + 1
 
         return {
             "timestamps": timestamps,
@@ -1104,7 +1104,7 @@ class NVD3DualLineViz(NVD3Viz):
                     {'x': ds, 'y': ys[ds] if ds in ys else None}
                     for ds in df.index
                 ],
-                "yAxis": i+1,
+                "yAxis": i + 1,
                 "type": "line",
             }
             chart_data.append(d)
@@ -1243,7 +1243,7 @@ class DistributionBarViz(DistributionPieViz):
             elif len(self.metrics) > 1:
                 series_title = ", ".join(name)
             else:
-                l = [str(s) for s in name[1:]]
+                l = [str(s) for s in name[1:]]  # noqa: E741
                 series_title = ", ".join(l)
             values = []
             for i, v in ys.iteritems():

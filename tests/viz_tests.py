@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import unittest
 
 from mock import Mock, patch
@@ -7,6 +7,7 @@ import pandas as pd
 import superset.utils as utils
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
+
 
 class BaseVizTestCase(unittest.TestCase):
     def test_constructor_exception_no_datasource(self):
@@ -21,7 +22,7 @@ class BaseVizTestCase(unittest.TestCase):
             'token': '12345',
         }
         datasource = {'type': 'table'}
-        test_viz = viz.BaseViz(datasource, form_data);
+        test_viz = viz.BaseViz(datasource, form_data)
         self.assertEqual(
             test_viz.default_fillna,
             test_viz.get_fillna_for_columns(),
@@ -104,7 +105,7 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertEqual(156, test_viz.cache_timeout)
         datasource.cache_timeout = None
         datasource.database = Mock()
-        datasource.database.cache_timeout= 1666
+        datasource.database.cache_timeout = 1666
         self.assertEqual(1666, test_viz.cache_timeout)
 
 

@@ -15,7 +15,7 @@ def get_git_sha():
     try:
         s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
         return s.strip()
-    except:
+    except Exception:
         return ""
 
 GIT_SHA = get_git_sha()

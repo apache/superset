@@ -582,6 +582,9 @@ appbuilder.add_view(
 def health():
     return "OK"
 
+@app.route('/healthcheck')
+def healthcheck():
+    return "OK"
 
 @app.route('/ping')
 def ping():
@@ -1313,7 +1316,7 @@ class Superset(BaseSupersetView):
             max_tables = max_items * len(table_names) // total_items
             max_views = max_items * len(view_names) // total_items
 
-        table_options = [{'value': tn,  'label': tn}
+        table_options = [{'value': tn, 'label': tn}
                          for tn in table_names[:max_tables]]
         table_options.extend([{'value': vn, 'label': '[view] {}'.format(vn)}
                               for vn in view_names[:max_views]])
@@ -1674,7 +1677,10 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/warm_up_cache/", methods=['GET'])
     def warm_up_cache(self):
-        """Warms up the cache for the slice or table."""
+        """Warms up the cache for the slice or table.
+
+        Note for slices a force refresh occurs.
+        """
         slices = None
         session = db.session()
         slice_id = request.args.get('slice_id')
@@ -1953,7 +1959,7 @@ class Superset(BaseSupersetView):
             dtype = ""
             try:
                 dtype = '{}'.format(col['type'])
-            except:
+            except Exception:
                 pass
             cols.append({
                 'name': col['name'],
@@ -2138,14 +2144,12 @@ class Superset(BaseSupersetView):
 
         # Sync request.
         try:
-            SQLLAB_TIMEOUT = config.get("SQLLAB_TIMEOUT")
-            with utils.timeout(
-                    seconds=SQLLAB_TIMEOUT,
-                    error_message=(
-                        "The query exceeded the {SQLLAB_TIMEOUT} seconds "
-                        "timeout. You may want to run your query as a "
-                        "`CREATE TABLE AS` to prevent timeouts."
-                    ).format(**locals())):
+            timeout = config.get("SQLLAB_TIMEOUT")
+            timeout_msg = (
+                "The query exceeded the {timeout} seconds "
+                "timeout.").format(**locals())
+            with utils.timeout(seconds=timeout,
+                               error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
