@@ -582,6 +582,9 @@ appbuilder.add_view(
 def health():
     return "OK"
 
+@app.route('/healthcheck')
+def healthcheck():
+    return "OK"
 
 @app.route('/ping')
 def ping():
