@@ -43,7 +43,7 @@ setup(
     zip_safe=False,
     scripts=['superset/bin/superset'],
     install_requires=[
-        'boto3==1.4.4',
+        'boto3>=1.4.6',
         'celery==4.1.0',
         'colorama==0.3.9',
         'cryptography==1.9',
