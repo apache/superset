@@ -247,7 +247,7 @@ class ImportExportTests(SupersetTestCase):
             self.get_table_by_name('wb_health_population'), exported_tables[1])
 
     def test_import_1_slice(self):
-        expected_slice = self.create_slice('Import Me', id=10001);
+        expected_slice = self.create_slice('Import Me', id=10001)
         slc_id = models.Slice.import_obj(expected_slice, import_time=1989)
         slc = self.get_slice(slc_id)
         self.assertEquals(slc.datasource.perm, slc.perm)

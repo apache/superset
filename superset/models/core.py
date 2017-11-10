@@ -849,7 +849,7 @@ class Log(Model):
             params = ""
             try:
                 params = json.dumps(d)
-            except:
+            except Exception:
                 pass
             stats_logger.incr(f.__name__)
             value = f(*args, **kwargs)
