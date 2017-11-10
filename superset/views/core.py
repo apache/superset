@@ -2138,14 +2138,12 @@ class Superset(BaseSupersetView):
 
         # Sync request.
         try:
-            SQLLAB_TIMEOUT = config.get("SQLLAB_TIMEOUT")
-            with utils.timeout(
-                    seconds=SQLLAB_TIMEOUT,
-                    error_message=(
-                        "The query exceeded the {SQLLAB_TIMEOUT} seconds "
-                        "timeout. You may want to run your query as a "
-                        "`CREATE TABLE AS` to prevent timeouts."
-                    ).format(**locals())):
+            timeout = config.get("SQLLAB_TIMEOUT")
+            timeout_msg = (
+                "The query exceeded the {timeout} seconds "
+                "timeout.").format(**locals())
+            with utils.timeout(seconds=timeout,
+                               error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
