@@ -112,7 +112,7 @@ class UtilsTestCase(unittest.TestCase):
     def test_merge_extra_filters_ignores_empty_filters(self):
         form_data = {'extra_filters': [
             {'col': 'a', 'op': 'in', 'val': ''},
-            {'col': 'B', 'op': '==', 'val': []}
+            {'col': 'B', 'op': '==', 'val': []},
         ]}
         expected = {'filters': []}
         merge_extra_filters(form_data)
@@ -122,16 +122,16 @@ class UtilsTestCase(unittest.TestCase):
         form_data = {
             'extra_filters': [
                 {'col': 'a', 'op': 'in', 'val': 'someval'},
-                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
             ],
             'filters': [
                 {'col': 'a', 'op': 'in', 'val': 'someval'},
-                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
             ],
         }
         expected = {'filters': [
             {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ]}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
@@ -195,15 +195,14 @@ class UtilsTestCase(unittest.TestCase):
     def test_datetime_f(self):
         self.assertEquals(
             datetime_f(datetime(1990, 9, 21, 19, 11, 19, 626096)),
-            '<nobr>1990-09-21T19:11:19.626096</nobr>'
+            '<nobr>1990-09-21T19:11:19.626096</nobr>',
         )
         self.assertEquals(len(datetime_f(datetime.now())), 28)
         self.assertEquals(datetime_f(None), '<nobr>None</nobr>')
         iso = datetime.now().isoformat()[:10].split('-')
         [a, b, c] = [int(v) for v in iso]
         self.assertEquals(
-            datetime_f(datetime(a, b, c)),
-            '<nobr>00:00:00</nobr>'
+            datetime_f(datetime(a, b, c)), '<nobr>00:00:00</nobr>',
         )
 
     def test_json_encoded_obj(self):
