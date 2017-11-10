@@ -4,21 +4,20 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import datetime
 import gzip
 import json
 import os
-import textwrap
-import datetime
 import random
+import textwrap
 
 import pandas as pd
-from sqlalchemy import String, DateTime, Date, Float, BigInteger
+from sqlalchemy import BigInteger, Date, DateTime, Float, String
 
 from superset import app, db, utils
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
 from superset.security import get_or_create_main_db
-
-from superset.connectors.connector_registry import ConnectorRegistry
 
 # Shortcuts
 DB = models.Database
@@ -94,7 +93,7 @@ def load_energy():
             "viz_type": "sankey",
             "where": ""
         }
-        """)
+        """),
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
@@ -120,7 +119,7 @@ def load_energy():
             "viz_type": "directed_force",
             "where": ""
         }
-        """)
+        """),
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
@@ -146,7 +145,7 @@ def load_energy():
             "xscale_interval": "1",
             "yscale_interval": "1"
         }
-        """)
+        """),
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
@@ -688,7 +687,7 @@ def load_birth_names():
     <h1>Birth Names Dashboard</h1>
     <p>
         The source dataset came from
-        <a href="https://github.com/hadley/babynames">[here]</a>
+        <a href="https://github.com/hadley/babynames" target="_blank">[here]</a>
     </p>
     <img src="/static/assets/images/babytux.jpg">
 </div>
@@ -972,7 +971,7 @@ def load_country_map_data():
             '2012': BigInteger,
             '2013': BigInteger,
             '2014': BigInteger,
-            'date': Date()
+            'date': Date(),
         },
         index=False)
     print("Done loading table!")

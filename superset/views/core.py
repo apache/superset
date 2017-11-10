@@ -7,44 +7,42 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import json
 import logging
-import pandas as pd
 import pickle
 import re
 import time
 import traceback
-
-import sqlalchemy as sqla
+from urllib import parse
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup,
-    url_for)
+    flash, g, Markup, redirect, render_template, request, Response, url_for,
+)
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
 from flask_appbuilder.security.sqla import models as ab_models
-
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-
+import pandas as pd
+import sqlalchemy as sqla
 from sqlalchemy import create_engine
+from sqlalchemy.engine.url import make_url
 from werkzeug.routing import BaseConverter
 
 from superset import (
-    appbuilder, cache, db, viz, utils, app,
-    sm, sql_lab, results_backend, security,
+    app, appbuilder, cache, db, results_backend, security, sm, sql_lab, utils,
+    viz,
 )
-from superset.legacy import cast_form_data
-from superset.utils import has_access, QueryStatus, merge_extra_filters
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.legacy import cast_form_data
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-
+from superset.utils import has_access, merge_extra_filters, QueryStatus
 from .base import (
-    api, SupersetModelView, BaseSupersetView, DeleteMixin,
-    SupersetFilter, get_user_roles, json_error_response, get_error_msg,
-    CsvResponse)
+    api, BaseSupersetView, CsvResponse, DeleteMixin, get_error_msg,
+    get_user_roles, json_error_response, SupersetFilter, SupersetModelView,
+)
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -153,8 +151,8 @@ class DashboardFilter(SupersetFilter):
                 db.session.query(Dash.id)
                 .distinct()
                 .join(Dash.slices)
-                .filter(Slice.id.in_(slice_ids_qry))
-            )
+                .filter(Slice.id.in_(slice_ids_qry)),
+            ),
         )
         return query
 
@@ -181,7 +179,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'allow_dml', 'creator', 'modified']
     order_columns = [
         'database_name', 'allow_run_sync', 'allow_run_async', 'allow_dml',
-        'modified'
+        'modified',
     ]
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
@@ -240,8 +238,10 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
             "#sqlalchemy.schema.MetaData) call. ", True),
         'impersonate_user': _(
-            "All the queries in Sql Lab are going to be executed "
-            "on behalf of currently authorized user."),
+            "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user "
+            "who must have permission to run them.<br/>"
+            "If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, "
+            "but impersonate the currently logged on user via hive.server2.proxy.user property."),
     }
     label_columns = {
         'expose_in_sqllab': _("Expose in SQL Lab"),
@@ -256,7 +256,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'extra': _("Extra"),
         'allow_run_sync': _("Allow Run Sync"),
         'allow_run_async': _("Allow Run Async"),
-        'impersonate_user': _("Impersonate queries to the database"),
+        'impersonate_user': _("Impersonate the logged on user"),
     }
 
     def pre_add(self, db):
@@ -365,10 +365,10 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             "These parameters are generated dynamically when clicking "
             "the save or overwrite button in the explore view. This JSON "
             "object is exposed here for reference and for power users who may "
-            "want to alter specific parameters."),
-        'cache_timeout': _(
-            "Duration (in seconds) of the caching timeout for this slice."
+            "want to alter specific parameters.",
         ),
+        'cache_timeout': _(
+            "Duration (in seconds) of the caching timeout for this slice."),
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
@@ -386,7 +386,11 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'viz_type': _("Visualization Type"),
     }
 
+    def pre_add(self, obj):
+        utils.validate_json(obj.params)
+
     def pre_update(self, obj):
+        utils.validate_json(obj.params)
         check_ownership(obj)
 
     def pre_delete(self, obj):
@@ -528,7 +532,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
                 mimetype="application/text")
         return self.render_template(
             'superset/export_dashboards.html',
-            dashboards_url='/dashboardmodelview/list'
+            dashboards_url='/dashboardmodelview/list',
         )
 
 
@@ -578,6 +582,9 @@ appbuilder.add_view(
 def health():
     return "OK"
 
+@app.route('/healthcheck')
+def healthcheck():
+    return "OK"
 
 @app.route('/ping')
 def ping():
@@ -766,7 +773,7 @@ class Superset(BaseSupersetView):
         db.session.commit()
         return self.json_response({
             'granted': granted_perms,
-            'requested': list(db_ds_names)
+            'requested': list(db_ds_names),
         }, status=201)
 
     @log_this
@@ -943,7 +950,7 @@ class Superset(BaseSupersetView):
             .format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
-                json.dumps(viz_obj.form_data)
+                parse.quote(json.dumps(viz_obj.form_data)),
             )
         )
         if request.args.get("standalone") == "true":
@@ -1209,7 +1216,7 @@ class Superset(BaseSupersetView):
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
             "can_overwrite": is_owner(slc, g.user),
-            'form_data': form_data,
+            'form_data': slc.form_data,
             'slice': slc.data,
         }
 
@@ -1309,7 +1316,7 @@ class Superset(BaseSupersetView):
             max_tables = max_items * len(table_names) // total_items
             max_views = max_items * len(view_names) // total_items
 
-        table_options = [{'value': tn,  'label': tn}
+        table_options = [{'value': tn, 'label': tn}
                          for tn in table_names[:max_tables]]
         table_options.extend([{'value': vn, 'label': '[view] {}'.format(vn)}
                               for vn in view_names[:max_views]])
@@ -1421,8 +1428,11 @@ class Superset(BaseSupersetView):
     def testconn(self):
         """Tests a sqla connection"""
         try:
+            username = g.user.username if g.user is not None else None
             uri = request.json.get('uri')
             db_name = request.json.get('name')
+            impersonate_user = request.json.get('impersonate_user')
+            database = None
             if db_name:
                 database = (
                     db.session
@@ -1434,11 +1444,32 @@ class Superset(BaseSupersetView):
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
+
+            configuration = {}
+
+            if database and uri:
+                url = make_url(uri)
+                db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
+                db_engine.patch()
+
+                masked_url = database.get_password_masked_url_from_uri(uri)
+                logging.info("Superset.testconn(). Masked URL: {0}".format(masked_url))
+
+                configuration.update(
+                    db_engine.get_configuration_for_impersonation(uri,
+                                                                  impersonate_user,
+                                                                  username),
+                )
+
             connect_args = (
                 request.json
                 .get('extras', {})
                 .get('engine_params', {})
                 .get('connect_args', {}))
+
+            if configuration:
+                connect_args["configuration"] = configuration
+
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
@@ -1458,17 +1489,17 @@ class Superset(BaseSupersetView):
             db.session.query(M.Log, M.Dashboard, M.Slice)
             .outerjoin(
                 M.Dashboard,
-                M.Dashboard.id == M.Log.dashboard_id
+                M.Dashboard.id == M.Log.dashboard_id,
             )
             .outerjoin(
                 M.Slice,
-                M.Slice.id == M.Log.slice_id
+                M.Slice.id == M.Log.slice_id,
             )
             .filter(
                 sqla.and_(
                     ~M.Log.action.in_(('queries', 'shortner', 'sql_json')),
                     M.Log.user_id == user_id,
-                )
+                ),
             )
             .order_by(M.Log.dttm.desc())
             .limit(1000)
@@ -1525,10 +1556,10 @@ class Superset(BaseSupersetView):
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'Dashboard',
                     models.Dashboard.id == models.FavStar.obj_id,
-                )
+                ),
             )
             .order_by(
-                models.FavStar.dttm.desc()
+                models.FavStar.dttm.desc(),
             )
         )
         payload = []
@@ -1562,10 +1593,10 @@ class Superset(BaseSupersetView):
                 sqla.or_(
                     Dash.created_by_fk == user_id,
                     Dash.changed_by_fk == user_id,
-                )
+                ),
             )
             .order_by(
-                Dash.changed_on.desc()
+                Dash.changed_on.desc(),
             )
         )
         payload = [{
@@ -1590,7 +1621,7 @@ class Superset(BaseSupersetView):
                 sqla.or_(
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
-                )
+                ),
             )
             .order_by(Slice.changed_on.desc())
         )
@@ -1619,10 +1650,10 @@ class Superset(BaseSupersetView):
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'slice',
                     models.Slice.id == models.FavStar.obj_id,
-                )
+                ),
             )
             .order_by(
-                models.FavStar.dttm.desc()
+                models.FavStar.dttm.desc(),
             )
         )
         payload = []
@@ -1705,8 +1736,8 @@ class Superset(BaseSupersetView):
                         class_name=class_name,
                         obj_id=obj_id,
                         user_id=g.user.get_id(),
-                        dttm=datetime.now()
-                    )
+                        dttm=datetime.now(),
+                    ),
                 )
             count = 1
         elif action == 'unselect':
@@ -1925,7 +1956,7 @@ class Superset(BaseSupersetView):
             dtype = ""
             try:
                 dtype = '{}'.format(col['type'])
-            except:
+            except Exception:
                 pass
             cols.append({
                 'name': col['name'],
@@ -1965,7 +1996,7 @@ class Superset(BaseSupersetView):
             models.Database).filter_by(id=database_id).first()
         return self.render_template(
             "superset/ajah.html",
-            content=mydb.select_star(table_name, show_cols=True)
+            content=mydb.select_star(table_name, show_cols=True),
         )
 
     @expose("/theme/")
@@ -1995,7 +2026,7 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 "Data could not be retrieved. "
                 "You may want to re-run the query.",
-                status=410
+                status=410,
             )
 
         query = db.session.query(Query).filter_by(results_key=key).one()
@@ -2025,7 +2056,7 @@ class Superset(BaseSupersetView):
             )
             query.status = utils.QueryStatus.STOPPED
             db.session.commit()
-        except Exception as e:
+        except Exception:
             pass
         return self.json_response('OK')
 
@@ -2057,7 +2088,7 @@ class Superset(BaseSupersetView):
         if select_as_cta and mydb.force_ctas_schema:
             tmp_table_name = '{}.{}'.format(
                 mydb.force_ctas_schema,
-                tmp_table_name
+                tmp_table_name,
             )
 
         query = Query(
@@ -2110,14 +2141,12 @@ class Superset(BaseSupersetView):
 
         # Sync request.
         try:
-            SQLLAB_TIMEOUT = config.get("SQLLAB_TIMEOUT")
-            with utils.timeout(
-                    seconds=SQLLAB_TIMEOUT,
-                    error_message=(
-                        "The query exceeded the {SQLLAB_TIMEOUT} seconds "
-                        "timeout. You may want to run your query as a "
-                        "`CREATE TABLE AS` to prevent timeouts."
-                    ).format(**locals())):
+            timeout = config.get("SQLLAB_TIMEOUT")
+            timeout_msg = (
+                "The query exceeded the {timeout} seconds "
+                "timeout.").format(**locals())
+            with utils.timeout(seconds=timeout,
+                               error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True)
@@ -2298,7 +2327,7 @@ class Superset(BaseSupersetView):
             for perm in role.permissions:
                 if perm.permission and perm.view_menu:
                     perms.add(
-                        (perm.permission.name, perm.view_menu.name)
+                        (perm.permission.name, perm.view_menu.name),
                     )
                     if perm.permission.name in ('datasource_access', 'database_access'):
                         permissions[perm.permission.name].add(perm.view_menu.name)
@@ -2326,7 +2355,7 @@ class Superset(BaseSupersetView):
             title=user.username + "'s profile",
             navbar_container=True,
             entry='profile',
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser)
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
 
     @has_access
@@ -2340,7 +2369,7 @@ class Superset(BaseSupersetView):
         return self.render_template(
             'superset/basic.html',
             entry='sqllab',
-            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
+            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser),
         )
 
     @api

@@ -3,27 +3,28 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import ChartContainer from './ChartContainer';
+
+import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
+import { chartPropType } from '../../chart/chartReducer';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
-import * as chartActions from '../actions/chartActions';
+import * as chartActions from '../../chart/chartAction';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   chartStatus: PropTypes.string,
+  chart: PropTypes.shape(chartPropType).isRequired,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.bool.isRequired,
-  triggerQuery: PropTypes.bool.isRequired,
-  queryRequest: PropTypes.object,
   timeout: PropTypes.number,
 };
 
@@ -39,13 +40,12 @@ class ExploreViewContainer extends React.Component {
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
-    this.triggerQueryIfNeeded();
   }
 
   componentWillReceiveProps(np) {
     if (np.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
-      this.props.actions.triggerQuery();
+      this.props.actions.triggerQuery(true, this.props.chart.chartKey);
     }
     if (np.controls.datasource.value !== this.props.controls.datasource.value) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
@@ -63,9 +63,7 @@ class ExploreViewContainer extends React.Component {
   onQuery() {
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
-    this.props.actions.removeChartAlert();
-
-    this.props.actions.triggerQuery();
+    this.props.actions.triggerQuery(true, this.props.chart.chartKey);
 
     history.pushState(
       {},
@@ -74,7 +72,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   onStop() {
-    this.props.actions.chartUpdateStopped(this.props.queryRequest);
+    this.props.actions.chartUpdateStopped(this.props.chart.queryRequest);
   }
 
   getWidth() {
@@ -90,8 +88,9 @@ class ExploreViewContainer extends React.Component {
   }
 
   triggerQueryIfNeeded() {
-    if (this.props.triggerQuery && !this.hasErrors()) {
-      this.props.actions.runQuery(this.props.form_data, false, this.props.timeout);
+    if (this.props.chart.triggerQuery && !this.hasErrors()) {
+      this.props.actions.runQuery(this.props.form_data, false,
+        this.props.timeout, this.props.chart.chartKey);
     }
   }
 
@@ -134,10 +133,10 @@ class ExploreViewContainer extends React.Component {
   }
   renderChartContainer() {
     return (
-      <ChartContainer
-        actions={this.props.actions}
+      <ExploreChartPanel
         width={this.state.width}
         height={this.state.height}
+        {...this.props}
       />);
   }
 
@@ -168,7 +167,7 @@ class ExploreViewContainer extends React.Component {
               onQuery={this.onQuery.bind(this)}
               onSave={this.toggleModal.bind(this)}
               onStop={this.onStop.bind(this)}
-              loading={this.props.chartStatus === 'loading'}
+              loading={this.props.chart.chartStatus === 'loading'}
               errorMessage={this.renderErrorMessage()}
             />
             <br />
@@ -191,18 +190,28 @@ class ExploreViewContainer extends React.Component {
 
 ExploreViewContainer.propTypes = propTypes;
 
-function mapStateToProps({ explore, chart }) {
+function mapStateToProps({ explore, charts }) {
   const form_data = getFormDataFromControls(explore.controls);
+  const chartKey = Object.keys(charts)[0];
+  const chart = charts[chartKey];
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
+    datasource: explore.datasource,
     datasource_type: explore.datasource.type,
+    datasourceId: explore.datasource_id,
     controls: explore.controls,
+    can_overwrite: !!explore.can_overwrite,
+    can_download: !!explore.can_download,
+    column_formats: explore.datasource ? explore.datasource.column_formats : null,
+    containerId: explore.slice ? `slice-container-${explore.slice.slice_id}` : 'slice-container',
+    isStarred: explore.isStarred,
+    slice: explore.slice,
     form_data,
+    table_name: form_data.datasource_name,
+    vizType: form_data.viz_type,
     standalone: explore.standalone,
-    triggerQuery: explore.triggerQuery,
     forcedHeight: explore.forced_height,
-    queryRequest: chart.queryRequest,
-    chartStatus: chart.chartStatus,
+    chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
   };
 }

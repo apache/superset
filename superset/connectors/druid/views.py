@@ -1,22 +1,21 @@
 from datetime import datetime
 import logging
 
-from flask import Markup, flash, redirect
+from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-
-from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
-from superset import db, utils, appbuilder, sm, security
+from superset import appbuilder, db, security, sm, utils
+from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.utils import has_access
-from superset.connectors.base.views import DatasourceModelView
 from superset.views.base import (
-    BaseSupersetView,
-    SupersetModelView, validate_json, DeleteMixin, ListWidgetWithCheckboxes,
-    DatasourceFilter, get_datasource_exist_error_mgs)
-
+    BaseSupersetView, DatasourceFilter, DeleteMixin,
+    get_datasource_exist_error_mgs, ListWidgetWithCheckboxes, SupersetModelView,
+    validate_json,
+)
 from . import models
 
 
@@ -185,7 +184,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         'filter_select_enabled', 'fetch_values_from',
         'default_endpoint', 'offset', 'cache_timeout']
     search_columns = (
-        'datasource_name', 'cluster', 'description', 'owner'
+        'datasource_name', 'cluster', 'description', 'owner',
     )
     add_columns = edit_columns
     show_columns = add_columns + ['perm']

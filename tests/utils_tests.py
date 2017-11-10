@@ -1,24 +1,16 @@
-from datetime import datetime, date, timedelta, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from superset.utils import (
-    json_int_dttm_ser,
-    json_iso_dttm_ser,
-    base_json_conv,
-    parse_human_timedelta,
-    zlib_compress,
-    zlib_decompress_to_string,
-    merge_extra_filters,
-    datetime_f,
-    JSONEncodedDict,
-    validate_json,
-    SupersetException,
-)
 import unittest
 import uuid
 
 from mock import patch
 import numpy
 
+from superset.utils import (
+    base_json_conv, datetime_f, json_int_dttm_ser, json_iso_dttm_ser,
+    JSONEncodedDict, merge_extra_filters, parse_human_timedelta,
+    SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
+)
 
 class UtilsTestCase(unittest.TestCase):
     def test_json_int_dttm_ser(self):
@@ -76,18 +68,18 @@ class UtilsTestCase(unittest.TestCase):
         # copy over extra filters into empty filters
         form_data = {'extra_filters': [
             {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ]}
         expected = {'filters': [
             {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ]}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
         # adds extra filters to existing filters
         form_data = {'extra_filters': [
             {'col': 'a', 'op': 'in', 'val': 'someval'},
-            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']}
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
         ], 'filters': [{'col': 'D', 'op': '!=', 'val': ['G1', 'g2']}]}
         expected = {'filters': [
             {'col': 'D', 'op': '!=', 'val': ['G1', 'g2']},

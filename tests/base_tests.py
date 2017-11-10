@@ -4,18 +4,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import logging
 import json
+import logging
 import os
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, cli, db, appbuilder, security, sm
+from superset import app, appbuilder, cli, db, security, sm
+from superset.connectors.druid.models import DruidCluster, DruidDatasource
+from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.security import sync_role_definitions
-from superset.connectors.sqla.models import SqlaTable
-from superset.connectors.druid.models import DruidCluster, DruidDatasource
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
@@ -102,12 +102,12 @@ class SupersetTestCase(unittest.TestCase):
 
             druid_datasource1 = DruidDatasource(
                 datasource_name='druid_ds_1',
-                cluster_name='druid_test'
+                cluster_name='druid_test',
             )
             session.add(druid_datasource1)
             druid_datasource2 = DruidDatasource(
                 datasource_name='druid_ds_2',
-                cluster_name='druid_test'
+                cluster_name='druid_test',
             )
             session.add(druid_datasource2)
             session.commit()

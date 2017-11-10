@@ -5,11 +5,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+
 from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import conf, db, sm
-from superset.models import core as models
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.models import core as models
 
 READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
@@ -103,16 +104,16 @@ def get_or_create_main_db():
 
 def is_admin_only(pvm):
     # not readonly operations on read only model views allowed only for admins
-    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS
-            and pvm.permission.name not in READ_ONLY_PERMISSION):
+    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS and
+            pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
-    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS
-            or pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
+    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS or
+        pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
 
 
 def is_alpha_only(pvm):
-    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS
-            and pvm.permission.name not in READ_ONLY_PERMISSION):
+    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
+            pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
     return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
 
@@ -132,13 +133,13 @@ def is_gamma_pvm(pvm):
 
 def is_sql_lab_pvm(pvm):
     return pvm.view_menu.name in {'SQL Lab'} or pvm.permission.name in {
-        'can_sql_json', 'can_csv', 'can_search_queries'
+        'can_sql_json', 'can_csv', 'can_search_queries',
     }
 
 
 def is_granter_pvm(pvm):
     return pvm.permission.name in {
-        'can_override_role_permissions', 'can_approve'
+        'can_override_role_permissions', 'can_approve',
     }
 
 

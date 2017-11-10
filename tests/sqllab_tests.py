@@ -9,9 +9,9 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from superset import db, utils, appbuilder, sm
-from superset.models.sql_lab import Query
 
+from superset import appbuilder, db, sm, utils
+from superset.models.sql_lab import Query
 from .base_tests import SupersetTestCase
 
 
@@ -111,7 +111,7 @@ class SqlLabTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/queries/{}'.format(
-                int(utils.datetime_to_epoch(now))-1000))
+                int(utils.datetime_to_epoch(now)) - 1000))
         self.assertEquals(1, len(data))
 
         self.logout()
@@ -149,7 +149,7 @@ class SqlLabTests(SupersetTestCase):
             '/superset/search_queries?user_id={}'.format(user_id))
         data = json.loads(resp)
         self.assertEquals(1, len(data))
-        self.assertEquals(data[0]['userId'] , user_id)
+        self.assertEquals(data[0]['userId'], user_id)
 
     def test_search_query_on_status(self):
         self.run_some_queries()

@@ -14,6 +14,15 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  slices: PropTypes.array,
+  userId: PropTypes.string.isRequired,
+  addSlicesToDashboard: PropTypes.func,
+  onSave: PropTypes.func,
+  onChange: PropTypes.func,
+  readFilters: PropTypes.func,
+  renderSlices: PropTypes.func,
+  serialize: PropTypes.func,
+  startPeriodicRender: PropTypes.func,
 };
 
 class Controls extends React.PureComponent {
@@ -36,14 +45,16 @@ class Controls extends React.PureComponent {
   }
   refresh() {
     // Force refresh all slices
-    this.props.dashboard.renderSlices(this.props.dashboard.sliceObjects, true);
+    this.props.renderSlices(true);
   }
   changeCss(css) {
     this.setState({ css });
-    this.props.dashboard.onChange();
+    this.props.onChange();
   }
   render() {
-    const dashboard = this.props.dashboard;
+    const { dashboard, userId,
+      addSlicesToDashboard, startPeriodicRender, readFilters,
+      serialize, onSave } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
       + `${dashboard.dashboard_title}&Body=${emailBody}`;
@@ -57,18 +68,20 @@ class Controls extends React.PureComponent {
         </Button>
         <SliceAdder
           dashboard={dashboard}
+          addSlicesToDashboard={addSlicesToDashboard}
+          userId={userId}
           triggerNode={
             <i className="fa fa-plus" />
           }
         />
         <RefreshIntervalModal
-          onChange={refreshInterval => dashboard.startPeriodicRender(refreshInterval * 1000)}
+          onChange={refreshInterval => startPeriodicRender(refreshInterval * 1000)}
           triggerNode={
             <i className="fa fa-clock-o" />
           }
         />
         <CodeModal
-          codeCallback={dashboard.readFilters.bind(dashboard)}
+          codeCallback={readFilters}
           triggerNode={<i className="fa fa-filter" />}
         />
         <CssEditor
@@ -96,6 +109,9 @@ class Controls extends React.PureComponent {
         </Button>
         <SaveModal
           dashboard={dashboard}
+          readFilters={readFilters}
+          serialize={serialize}
+          onSave={onSave}
           css={this.state.css}
           triggerNode={
             <Button disabled={!dashboard.dash_save_perm}>

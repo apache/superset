@@ -6,21 +6,20 @@ from __future__ import unicode_literals
 
 import csv
 import doctest
+import io
 import json
 import logging
-import io
 import random
 import unittest
 
 from flask import escape
 import sqlalchemy as sqla
 
-from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
+from superset import appbuilder, db, jinja_context, sm, sql_lab, utils
+from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.sql_lab import Query
 from superset.views.core import DatabaseView
-from superset.connectors.sqla.models import SqlaTable
-
 from .base_tests import SupersetTestCase
 
 
@@ -143,20 +142,19 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
             'groupby': 'target',
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': slice_id,
         }
         # Changing name and save as a new slice
-        resp = self.get_resp(
+        self.get_resp(
             url.format(
                 tbl_id,
                 copy_name,
                 'saveas',
-                json.dumps(form_data)
-            )
+                json.dumps(form_data),
+            ),
         )
         slices = db.session.query(models.Slice) \
             .filter_by(slice_name=copy_name).all()
@@ -165,20 +163,19 @@ class CoreTests(SupersetTestCase):
 
         form_data = {
             'viz_type': 'sankey',
-            'groupby': 'source',
             'groupby': 'target',
             'metric': 'sum__value',
             'row_limit': 5000,
             'slice_id': new_slice_id,
         }
         # Setting the name back to its original name by overwriting new slice
-        resp = self.get_resp(
+        self.get_resp(
             url.format(
                 tbl_id,
                 new_slice_name,
                 'overwrite',
-                json.dumps(form_data)
-            )
+                json.dumps(form_data),
+            ),
         )
         slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
         assert slc.slice_name == new_slice_name
@@ -274,15 +271,18 @@ class CoreTests(SupersetTestCase):
 
     def test_misc(self):
         assert self.get_resp('/health') == "OK"
+        assert self.get_resp('/healthcheck') == "OK"
         assert self.get_resp('/ping') == "OK"
 
-    def test_testconn(self):
+    def test_testconn(self, username='admin'):
+        self.login(username=username)
         database = self.get_main_database(db.session)
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps({
             'uri': database.safe_sqlalchemy_uri(),
-            'name': 'main'
+            'name': 'main',
+            'impersonate_user': False,
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
@@ -291,7 +291,8 @@ class CoreTests(SupersetTestCase):
         # validate that the endpoint works with the decrypted sqlalchemy uri
         data = json.dumps({
             'uri': database.sqlalchemy_uri_decrypted,
-            'name': 'main'
+            'name': 'main',
+            'impersonate_user': False,
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
@@ -352,7 +353,7 @@ class CoreTests(SupersetTestCase):
 
         try:
             resp = self.client.post('/kv/store/', data=dict())
-        except Exception as e:
+        except Exception:
             self.assertRaises(TypeError)
 
         value = json.dumps({'data': 'this is a test'})
@@ -369,7 +370,7 @@ class CoreTests(SupersetTestCase):
 
         try:
             resp = self.client.get('/kv/10001/')
-        except Exception as e:
+        except Exception:
             self.assertRaises(TypeError)
 
     def test_save_dash(self, username='admin'):
@@ -389,7 +390,7 @@ class CoreTests(SupersetTestCase):
             'css': '',
             'expanded_slices': {},
             'positions': positions,
-            'dashboard_title': dash.dashboard_title
+            'dashboard_title': dash.dashboard_title,
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
         resp = self.get_resp(url, data=dict(data=json.dumps(data)))
@@ -416,7 +417,7 @@ class CoreTests(SupersetTestCase):
             'expanded_slices': {},
             'positions': positions,
             'dashboard_title': dash.dashboard_title,
-            'default_filters': default_filters
+            'default_filters': default_filters,
         }
 
         url = '/superset/save_dash/{}/'.format(dash.id)
@@ -452,10 +453,10 @@ class CoreTests(SupersetTestCase):
             'css': '',
             'expanded_slices': {},
             'positions': positions,
-            'dashboard_title': 'new title'
+            'dashboard_title': 'new title',
         }
         url = '/superset/save_dash/{}/'.format(dash.id)
-        resp = self.get_resp(url, data=dict(data=json.dumps(data)))
+        self.get_resp(url, data=dict(data=json.dumps(data)))
         updatedDash = (
             db.session.query(models.Dashboard)
                 .filter_by(slug="births")
@@ -513,7 +514,7 @@ class CoreTests(SupersetTestCase):
             slice_name="Name Cloud").first()
         data = {
             "slice_ids": [new_slice.data["slice_id"],
-                          existing_slice.data["slice_id"]]
+                          existing_slice.data["slice_id"]],
         }
         url = '/superset/add_slices/{}/'.format(dash.id)
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
@@ -695,8 +696,8 @@ class CoreTests(SupersetTestCase):
     def test_fetch_datasource_metadata(self):
         self.login(username='admin')
         url = (
-            '/superset/fetch_datasource_metadata?'
-            + 'datasourceKey=1__table'
+            '/superset/fetch_datasource_metadata?' +
+            'datasourceKey=1__table'
         )
         resp = self.get_json_resp(url)
         keys = [
@@ -765,7 +766,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp('/superset/slice_query/{}/'.format(slc.id))
         assert 'query' in resp
         assert 'language' in resp
-        self.logout();
+        self.logout()
 
     def test_viz_get_fillna_for_columns(self):
         slc = self.get_slice("Girls", db.session)
@@ -774,7 +775,7 @@ class CoreTests(SupersetTestCase):
         fillna_columns = slc.viz.get_fillna_for_columns(results.df.columns)
         self.assertDictEqual(
             fillna_columns,
-            {'name': ' NULL', 'sum__num': 0}
+            {'name': ' NULL', 'sum__num': 0},
         )
 
 

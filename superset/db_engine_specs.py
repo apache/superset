@@ -16,22 +16,21 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import namedtuple, defaultdict
-
+from collections import defaultdict, namedtuple
 import inspect
 import logging
 import re
 import textwrap
 import time
 
-import sqlparse
-from sqlalchemy import select
-from sqlalchemy.sql import text
 from flask_babel import lazy_gettext as _
+from sqlalchemy import select
+from sqlalchemy.engine.url import make_url
+from sqlalchemy.sql import text
+import sqlparse
 
-from superset.utils import SupersetTemplateException
-from superset.utils import QueryStatus
-from superset import conf, cache_util, utils
+from superset import cache_util, conf, utils
+from superset.utils import QueryStatus, SupersetTemplateException
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 
@@ -184,20 +183,43 @@ class BaseEngineSpec(object):
             sql = sqlparse.format(sql, reindent=True)
         return sql
 
+    @classmethod
+    def modify_url_for_impersonation(cls, url, impersonate_user, username):
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        if impersonate_user is not None and username is not None:
+            url.username = username
+
+    @classmethod
+    def get_configuration_for_impersonation(cls, uri, impersonate_user, username):
+        """
+        Return a configuration dictionary that can be merged with other configs
+        that can set the correct properties for impersonating users
+        :param uri: URI string
+        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param username: Effective username
+        :return: Dictionary with configs required for impersonation
+        """
+        return {}
+
 
 class PostgresEngineSpec(BaseEngineSpec):
     engine = 'postgresql'
 
     time_grains = (
         Grain("Time Column", _('Time Column'), "{col}"),
-        Grain("second", _('second'), "DATE_TRUNC('second', {col})"),
-        Grain("minute", _('minute'), "DATE_TRUNC('minute', {col})"),
-        Grain("hour", _('hour'), "DATE_TRUNC('hour', {col})"),
-        Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
-        Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
-        Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
-        Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', {col})"),
-        Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
+        Grain("second", _('second'), "DATE_TRUNC('second', \"{col}\")"),
+        Grain("minute", _('minute'), "DATE_TRUNC('minute', \"{col}\")"),
+        Grain("hour", _('hour'), "DATE_TRUNC('hour', \"{col}\")"),
+        Grain("day", _('day'), "DATE_TRUNC('day', \"{col}\")"),
+        Grain("week", _('week'), "DATE_TRUNC('week', \"{col}\")"),
+        Grain("month", _('month'), "DATE_TRUNC('month', \"{col}\")"),
+        Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', \"{col}\")"),
+        Grain("year", _('year'), "DATE_TRUNC('year', \"{col}\")"),
     )
 
     @classmethod
@@ -358,7 +380,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         try:
             if isinstance(e.args, tuple) and len(e.args) > 1:
                 message = e.args[1]
-        except:
+        except Exception:
             pass
         return message
 
@@ -464,7 +486,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                 'cols': cols,
                 'latest': {col_name: latest_part},
                 'partitionQuery': pql,
-            }
+            },
         }
 
     @classmethod
@@ -533,14 +555,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         limit_clause = "LIMIT {}".format(limit) if limit else ''
         order_by_clause = ''
         if order_by:
-            l = []
+            l = []  # noqa: E741
             for field, desc in order_by:
                 l.append(field + ' DESC' if desc else '')
             order_by_clause = 'ORDER BY ' + ', '.join(l)
 
         where_clause = ''
         if filters:
-            l = []
+            l = []  # noqa: E741
             for field, value in filters.items():
                 l.append("{field} = '{value}'".format(**locals()))
             where_clause = 'WHERE ' + ' AND '.join(l)
@@ -627,7 +649,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             msg = (
                 "A filter needs to be specified for {} out of the "
                 "{} fields."
-            ).format(len(part_fields)-1, len(part_fields))
+            ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 
         for field in part_fields:
@@ -706,7 +728,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def extract_error_message(cls, e):
         try:
             msg = e.message.status.errorMessage
-        except:
+        except Exception:
             msg = str(e)
         return msg
 
@@ -830,6 +852,37 @@ class HiveEngineSpec(PrestoEngineSpec):
             cls, table_name, limit=0, order_by=None, filters=None):
         return "SHOW PARTITIONS {table_name}".format(**locals())
 
+    @classmethod
+    def modify_url_for_impersonation(cls, url, impersonate_user, username):
+        """
+        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        :param url: SQLAlchemy URL object
+        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param username: Effective username
+        """
+        # Do nothing in the URL object since instead this should modify
+        # the configuraiton dictionary. See get_configuration_for_impersonation
+        pass
+
+    @classmethod
+    def get_configuration_for_impersonation(cls, uri, impersonate_user, username):
+        """
+        Return a configuration dictionary that can be merged with other configs
+        that can set the correct properties for impersonating users
+        :param uri: URI string
+        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param username: Effective username
+        :return: Dictionary with configs required for impersonation
+        """
+        configuration = {}
+        url = make_url(uri)
+        backend_name = url.get_backend_name()
+
+        # Must be Hive connection, enable impersonation, and set param auth=LDAP|KERBEROS
+        if backend_name == "hive" and "auth" in url.query.keys() and \
+                        impersonate_user is True and username is not None:
+            configuration["hive.server2.proxy.user"] = username
+        return configuration
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'

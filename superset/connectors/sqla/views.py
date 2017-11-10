@@ -1,21 +1,19 @@
 """Views used by the SqlAlchemy connector"""
+from flask import flash, Markup, redirect
+from flask_appbuilder import CompactCRUDMixin, expose
+from flask_appbuilder.actions import action
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from past.builtins import basestring
 
-from flask import Markup, flash, redirect
-from flask_appbuilder import CompactCRUDMixin, expose
-from flask_appbuilder.models.sqla.interface import SQLAInterface
-
-from flask_babel import lazy_gettext as _
-from flask_babel import gettext as __
-
-from superset import appbuilder, db, utils, security, sm
-from superset.utils import has_access
+from superset import appbuilder, db, security, sm, utils
 from superset.connectors.base.views import DatasourceModelView
+from superset.utils import has_access
 from superset.views.base import (
-    SupersetModelView, ListWidgetWithCheckboxes, DeleteMixin, DatasourceFilter,
-    get_datasource_exist_error_mgs,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    ListWidgetWithCheckboxes, SupersetModelView,
 )
-
 from . import models
 
 
@@ -119,7 +117,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             "(https://github.com/d3/d3-format/blob/master/README.md#format). "
             "For instance, this default formatting applies in the Table "
             "visualization and allow for different metric to use different "
-            "formats", True
+            "formats", True,
         ),
     }
     add_columns = edit_columns
@@ -191,13 +189,13 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
             "markdown</a>"),
         'sql': _(
             "This fields acts a Superset view, meaning that Superset will "
-            "run a query against this string as a subquery."
+            "run a query against this string as a subquery.",
         ),
         'fetch_values_predicate': _(
             "Predicate applied when fetching distinct value to "
             "populate the filter control component. Supports "
             "jinja template syntax. Applies only when "
-            "`Enable Filter Select` is on."
+            "`Enable Filter Select` is on.",
         ),
         'default_endpoint': _(
             "Redirects to this endpoint when clicking on the table "
@@ -271,6 +269,20 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
         if isinstance(resp, basestring):
             return resp
         return redirect('/superset/explore/table/{}/'.format(pk))
+
+    @action(
+        "refresh",
+        __("Refresh Metadata"),
+        __("Refresh column metadata"),
+        "fa-refresh")
+    def refresh(self, tables):
+        for t in tables:
+            t.fetch_metadata()
+        msg = _(
+            "Metadata refreshed for the following table(s): %(tables)s",
+            tables=", ".join([t.table_name for t in tables]))
+        flash(msg, 'info')
+        return redirect('/tablemodelview/list/')
 
 appbuilder.add_view(
     TableModelView,

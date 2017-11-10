@@ -1,31 +1,28 @@
 from datetime import datetime
 import logging
-import sqlparse
-from past.builtins import basestring
-
-import pandas as pd
-
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean,
-    DateTime,
-)
-import sqlalchemy as sa
-from sqlalchemy import asc, and_, desc, select, or_
-from sqlalchemy.sql.expression import TextAsFrom
-from sqlalchemy.orm import backref, relationship
-from sqlalchemy.sql import table, literal_column, text, column
 
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
+import pandas as pd
+from past.builtins import basestring
+import sqlalchemy as sa
+from sqlalchemy import (
+    and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
+    select, String, Text,
+)
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy.sql import column, literal_column, table, text
+from sqlalchemy.sql.expression import TextAsFrom
+import sqlparse
 
-from superset import db, utils, import_util, sm
-from superset.connectors.base.models import BaseDatasource, BaseColumn, BaseMetric
-from superset.utils import DTTM_ALIAS, QueryStatus
-from superset.models.helpers import QueryResult
-from superset.models.core import Database
+from superset import db, import_util, sm, utils
+from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
+from superset.models.core import Database
+from superset.models.helpers import QueryResult
 from superset.models.helpers import set_perm
+from superset.utils import DTTM_ALIAS, QueryStatus
 
 
 class TableColumn(Model, BaseColumn):
@@ -47,7 +44,7 @@ class TableColumn(Model, BaseColumn):
         'table_id', 'column_name', 'verbose_name', 'is_dttm', 'is_active',
         'type', 'groupby', 'count_distinct', 'sum', 'avg', 'max', 'min',
         'filterable', 'expression', 'description', 'python_date_format',
-        'database_expression'
+        'database_expression',
     )
 
     @property
@@ -61,7 +58,7 @@ class TableColumn(Model, BaseColumn):
 
     def get_time_filter(self, start_dttm, end_dttm):
         col = self.sqla_col.label('__time')
-        l = []
+        l = []  # noqa: E741
         if start_dttm:
             l.append(col >= text(self.dttm_sql_literal(start_dttm)))
         if end_dttm:
@@ -231,7 +228,7 @@ class SqlaTable(Model, BaseDatasource):
 
     @property
     def dttm_cols(self):
-        l = [c.column_name for c in self.columns if c.is_dttm]
+        l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
         if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
@@ -265,7 +262,7 @@ class SqlaTable(Model, BaseDatasource):
     def time_column_grains(self):
         return {
             "time_columns": self.dttm_cols,
-            "time_grains": [grain.name for grain in self.database.grains()]
+            "time_grains": [grain.name for grain in self.database.grains()],
         }
 
     def get_col(self, col_name):
@@ -325,8 +322,8 @@ class SqlaTable(Model, BaseDatasource):
         sql = str(
             qry.compile(
                 engine,
-                compile_kwargs={"literal_binds": True}
-            )
+                compile_kwargs={"literal_binds": True},
+            ),
         )
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
@@ -517,9 +514,6 @@ class SqlaTable(Model, BaseDatasource):
 
         for col, ascending in orderby:
             direction = asc if ascending else desc
-            print('-='*20)
-            print([col, ascending])
-            print('-='*20)
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -628,35 +622,35 @@ class SqlaTable(Model, BaseDatasource):
                     metric_name='sum__' + dbcol.column_name,
                     verbose_name='sum__' + dbcol.column_name,
                     metric_type='sum',
-                    expression="SUM({})".format(quoted)
+                    expression="SUM({})".format(quoted),
                 ))
             if dbcol.avg:
                 metrics.append(M(
                     metric_name='avg__' + dbcol.column_name,
                     verbose_name='avg__' + dbcol.column_name,
                     metric_type='avg',
-                    expression="AVG({})".format(quoted)
+                    expression="AVG({})".format(quoted),
                 ))
             if dbcol.max:
                 metrics.append(M(
                     metric_name='max__' + dbcol.column_name,
                     verbose_name='max__' + dbcol.column_name,
                     metric_type='max',
-                    expression="MAX({})".format(quoted)
+                    expression="MAX({})".format(quoted),
                 ))
             if dbcol.min:
                 metrics.append(M(
                     metric_name='min__' + dbcol.column_name,
                     verbose_name='min__' + dbcol.column_name,
                     metric_type='min',
-                    expression="MIN({})".format(quoted)
+                    expression="MIN({})".format(quoted),
                 ))
             if dbcol.count_distinct:
                 metrics.append(M(
                     metric_name='count_distinct__' + dbcol.column_name,
                     verbose_name='count_distinct__' + dbcol.column_name,
                     metric_type='count_distinct',
-                    expression="COUNT(DISTINCT {})".format(quoted)
+                    expression="COUNT(DISTINCT {})".format(quoted),
                 ))
             dbcol.type = datatype
 
@@ -664,7 +658,7 @@ class SqlaTable(Model, BaseDatasource):
             metric_name='count',
             verbose_name='COUNT(*)',
             metric_type='count',
-            expression="COUNT(*)"
+            expression="COUNT(*)",
         ))
 
         dbmetrics = db.session.query(M).filter(M.table_id == self.id).filter(

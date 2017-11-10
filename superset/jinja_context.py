@@ -10,10 +10,9 @@ import random
 import time
 import uuid
 
-from jinja2.sandbox import SandboxedEnvironment
-from flask import request, g
-
 from dateutil.relativedelta import relativedelta
+from flask import g, request
+from jinja2.sandbox import SandboxedEnvironment
 
 from superset import app
 

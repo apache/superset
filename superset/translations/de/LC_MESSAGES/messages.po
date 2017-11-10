@@ -1,21 +1,22 @@
-# Translations template for PROJECT.
+# German translations for PROJECT.
 # Copyright (C) 2017 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2017.
+# FIRST AUTHOR github.com/alanmcruickshank, 2017.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2017-10-20 14:36+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: de\n"
+"Language-Team: de <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.4.0\n"
+"Generated-By: Babel 2.5.1\n"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:553
 #: superset/db_engine_specs.py:192 superset/db_engine_specs.py:223
@@ -25,14 +26,14 @@ msgstr ""
 #: superset/db_engine_specs.py:953 superset/db_engine_specs.py:990
 #: superset/db_engine_specs.py:1015
 msgid "Time Column"
-msgstr ""
+msgstr "Zeitspalte"
 
 #: superset/db_engine_specs.py:193 superset/db_engine_specs.py:224
 #: superset/db_engine_specs.py:316 superset/db_engine_specs.py:372
 #: superset/db_engine_specs.py:840 superset/db_engine_specs.py:908
 #: superset/db_engine_specs.py:991
 msgid "second"
-msgstr ""
+msgstr "Sekunde"
 
 #: superset/db_engine_specs.py:194 superset/db_engine_specs.py:227
 #: superset/db_engine_specs.py:319 superset/db_engine_specs.py:374
@@ -40,7 +41,7 @@ msgstr ""
 #: superset/db_engine_specs.py:910 superset/db_engine_specs.py:954
 #: superset/db_engine_specs.py:992 superset/db_engine_specs.py:1016
 msgid "minute"
-msgstr ""
+msgstr "Minute"
 
 #: superset/db_engine_specs.py:195 superset/db_engine_specs.py:231
 #: superset/db_engine_specs.py:321 superset/db_engine_specs.py:376
@@ -48,7 +49,7 @@ msgstr ""
 #: superset/db_engine_specs.py:912 superset/db_engine_specs.py:960
 #: superset/db_engine_specs.py:993 superset/db_engine_specs.py:1017
 msgid "hour"
-msgstr ""
+msgstr "Stunde"
 
 #: superset/db_engine_specs.py:196 superset/db_engine_specs.py:236
 #: superset/db_engine_specs.py:268 superset/db_engine_specs.py:323
@@ -57,7 +58,7 @@ msgstr ""
 #: superset/db_engine_specs.py:962 superset/db_engine_specs.py:994
 #: superset/db_engine_specs.py:1018
 msgid "day"
-msgstr ""
+msgstr "Tag"
 
 #: superset/db_engine_specs.py:197 superset/db_engine_specs.py:242
 #: superset/db_engine_specs.py:269 superset/db_engine_specs.py:324
@@ -65,7 +66,7 @@ msgstr ""
 #: superset/db_engine_specs.py:882 superset/db_engine_specs.py:916
 #: superset/db_engine_specs.py:995 superset/db_engine_specs.py:1019
 msgid "week"
-msgstr ""
+msgstr "Woche"
 
 #: superset/db_engine_specs.py:198 superset/db_engine_specs.py:244
 #: superset/db_engine_specs.py:271 superset/db_engine_specs.py:326
@@ -74,7 +75,7 @@ msgstr ""
 #: superset/db_engine_specs.py:964 superset/db_engine_specs.py:996
 #: superset/db_engine_specs.py:1020
 msgid "month"
-msgstr ""
+msgstr "Monat"
 
 #: superset/db_engine_specs.py:199 superset/db_engine_specs.py:246
 #: superset/db_engine_specs.py:328 superset/db_engine_specs.py:384
@@ -82,14 +83,14 @@ msgstr ""
 #: superset/db_engine_specs.py:920 superset/db_engine_specs.py:966
 #: superset/db_engine_specs.py:997 superset/db_engine_specs.py:1021
 msgid "quarter"
-msgstr ""
+msgstr "Vierteljahr"
 
 #: superset/db_engine_specs.py:200 superset/db_engine_specs.py:250
 #: superset/db_engine_specs.py:330 superset/db_engine_specs.py:858
 #: superset/db_engine_specs.py:888 superset/db_engine_specs.py:968
 #: superset/db_engine_specs.py:998 superset/db_engine_specs.py:1022
 msgid "year"
-msgstr ""
+msgstr "Jahr"
 
 #: superset/db_engine_specs.py:332
 msgid "week_start_monday"
@@ -105,33 +106,33 @@ msgstr ""
 
 #: superset/db_engine_specs.py:844 superset/db_engine_specs.py:956
 msgid "5 minute"
-msgstr ""
+msgstr "5 Minuten"
 
 #: superset/db_engine_specs.py:846
 msgid "half hour"
-msgstr ""
+msgstr "halbe Stunde"
 
 #: superset/db_engine_specs.py:958
 msgid "10 minute"
-msgstr ""
+msgstr "10 Minuten"
 
 #: superset/utils.py:499
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr ""
+msgstr "[Superset] Zugriff auf Datenquelle %(name)s war genehmigt "
 
 #: superset/viz.py:50
-msgid "Viz is missing a datasource"
+msgid "Viz fehlt eine Datenquelle"
 msgstr ""
 
 #: superset/viz.py:181
 msgid "From date cannot be larger than to date"
-msgstr ""
+msgstr "'Von Datum' kann nicht größer als 'bis Datum' sein"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:334
 #: superset/viz.py:369
 msgid "Table View"
-msgstr ""
+msgstr "Tabellenansicht"
 
 #: superset/viz.py:381
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
@@ -512,7 +513,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:114
 msgid "Open in SQL Editor"
-msgstr ""
+msgstr "Bearbeiten in SQL Editor"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:133
 msgid "view results"
@@ -546,13 +547,13 @@ msgstr ""
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:241
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:280
 msgid "Visualize"
-msgstr ""
+msgstr "Visualalisieren"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:162
 #: superset/connectors/sqla/views.py:85 superset/connectors/sqla/views.py:135
 #: superset/connectors/sqla/views.py:214 superset/views/core.py:380
 msgid "Table"
-msgstr ""
+msgstr "Tabellen"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:162
 msgid "was created"
@@ -830,7 +831,7 @@ msgstr ""
 #: superset/assets/javascripts/components/EditableTitle.jsx:13
 #: superset/views/core.py:475 superset/views/core.py:542
 msgid "Title"
-msgstr ""
+msgstr "Titel"
 
 #: superset/assets/javascripts/components/EditableTitle.jsx:92
 msgid "click to edit title"
@@ -861,16 +862,16 @@ msgstr ""
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:164
 #, python-format
 msgid "Served from data cached %s . Click to force refresh."
-msgstr ""
+msgstr "Von Daten dienten um %s im Cache gespeichert. Aktualisierung erzwingen durch Klicken"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:169
 msgid "Click to force refresh"
-msgstr ""
+msgstr "Aktualisierung erzwingen"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:353
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:100
 msgid "Error"
-msgstr ""
+msgstr "Fehler"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:354
 #, python-format
@@ -888,24 +889,24 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/components/Controls.jsx:54
 msgid "Force refresh the whole dashboard"
-msgstr ""
+msgstr "Ganze Dashboard Aktualisierung erzwingen"
 
 #: superset/assets/javascripts/dashboard/components/Controls.jsx:94
 msgid "Edit this dashboard's properties"
-msgstr ""
+msgstr "Dashboardeigenschaften bearbeiten"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:65
 msgid "Load a template"
-msgstr ""
+msgstr "Vorlage laden"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:68
 msgid "Load a CSS template"
-msgstr ""
+msgstr "CSS Vorlage laden"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:80
 #: superset/views/core.py:482
 msgid "CSS"
-msgstr ""
+msgstr "CSS"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:86
 msgid "Live CSS Editor"
@@ -913,35 +914,35 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:19
 msgid "Don't refresh"
-msgstr ""
+msgstr "Nicht aktualisieren"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:20
 msgid "10 seconds"
-msgstr ""
+msgstr "10 Sekunden"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:21
 msgid "30 seconds"
-msgstr ""
+msgstr "30 Sekunden"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:22
 msgid "1 minute"
-msgstr ""
+msgstr "1 Minute"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:23
 msgid "5 minutes"
-msgstr ""
+msgstr "5 Minuten"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:38
 msgid "Refresh Interval"
-msgstr ""
+msgstr "Aktualisierung Zwischenzeit"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:41
 msgid "Choose the refresh frequency for this dashboard"
-msgstr ""
+msgstr "Aktualisierungsfrequenz auswählen für dieses Dashboard"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:63
 msgid "This dashboard was saved successfully."
-msgstr ""
+msgstr "Dashboard wurde erfolgreich gespeichert"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:69
 msgid "Sorry, there was an error saving this dashboard: "
@@ -953,7 +954,7 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:115
 msgid "Save Dashboard"
-msgstr ""
+msgstr "Dashboard speichern"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:123
 #, python-format
@@ -972,7 +973,7 @@ msgstr ""
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:142
 #: superset/views/core.py:379
 msgid "Name"
-msgstr ""
+msgstr "Name"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:148
 msgid "Viz"
@@ -982,7 +983,7 @@ msgstr ""
 #: superset/views/core.py:480 superset/views/core.py:544
 #: superset/views/sql_lab.py:57
 msgid "Modified"
-msgstr ""
+msgstr "Geändert"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:167
 msgid "Add Slices"
@@ -998,36 +999,36 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:37
 msgid "Move chart"
-msgstr ""
+msgstr "Diagramm bewegen"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:40
 msgid "Force refresh data"
-msgstr ""
+msgstr "Aktualisierung erzwingen"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:44
 msgid "Toggle chart description"
-msgstr ""
+msgstr "Diagramm Beschreibung umschalten"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:54
 msgid "Edit chart"
-msgstr ""
+msgstr "Diagramm bearbeiten"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:62
 msgid "Export CSV"
-msgstr ""
+msgstr "Exportieren als CSV"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:70
 msgid "Explore chart"
-msgstr ""
+msgstr "Diagramm untersuchen"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:77
 msgid "Remove chart from dashboard"
-msgstr ""
+msgstr "Diagramm von Dashboard entfernen"
 
 #: superset/assets/javascripts/explore/components/ChartContainer.jsx:180
 #, python-format
 msgid "%s - untitled"
-msgstr ""
+msgstr "%s - unbenannt"
 
 #: superset/assets/javascripts/explore/components/ChartContainer.jsx:287
 msgid "Edit slice properties"
@@ -1035,7 +1036,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/components/ControlHeader.jsx:32
 msgid "description"
-msgstr ""
+msgstr "Beschreibung"
 
 #: superset/assets/javascripts/explore/components/ControlHeader.jsx:42
 msgid "bolt"
@@ -1043,7 +1044,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/components/DisplayQueryButton.jsx:61
 msgid "Error..."
-msgstr ""
+msgstr "Fehler..."
 
 #: superset/assets/javascripts/explore/components/DisplayQueryButton.jsx:97
 #: superset/assets/javascripts/explore/stores/visTypes.js:56
@@ -1069,7 +1070,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:946
 #: superset/assets/javascripts/explore/stores/visTypes.js:1005
 msgid "Query"
-msgstr ""
+msgstr "Abfrage"
 
 #: superset/assets/javascripts/explore/components/EmbedCodeButton.jsx:76
 msgid "Height"
@@ -1081,36 +1082,36 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/components/ExploreActionButtons.jsx:32
 msgid "Export to .json"
-msgstr ""
+msgstr "Exportieren als JSON"
 
 #: superset/assets/javascripts/explore/components/ExploreActionButtons.jsx:42
 msgid "Export to .csv format"
-msgstr ""
+msgstr "Exportieren als CSV"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:74
 msgid "Please enter a slice name"
-msgstr ""
+msgstr "Bitten Scheibename eingeben"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:89
 msgid "Please select a dashboard"
-msgstr ""
+msgstr "Bitte Dashboard auswählen"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:97
 msgid "Please enter a dashboard name"
-msgstr ""
+msgstr "Bitte Dashboardname eingeben"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:134
 msgid "Save A Slice"
-msgstr ""
+msgstr "Scheibe speichern"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:155
 #, python-format
 msgid "Overwrite slice %s"
-msgstr ""
+msgstr "Überschreiben Scheibe %s"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:164
 msgid "Save as"
-msgstr ""
+msgstr "Speichern als"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:168
 msgid "[slice name]"
@@ -1118,19 +1119,19 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:181
 msgid "Do not add to a dashboard"
-msgstr ""
+msgstr "Nicht zum Dashboard hinzufügen"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:189
 msgid "Add slice to existing dashboard"
-msgstr ""
+msgstr "Schiebe zum vorhandenen Dashboard hinzufügen"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:205
 msgid "Add to new dashboard"
-msgstr ""
+msgstr "Schiebe zum neuen Dashboard hinzufügen"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:231
 msgid "Save & go to dashboard"
-msgstr ""
+msgstr "Speichern & zum Dashboard gehen"
 
 #: superset/assets/javascripts/explore/components/URLShortLinkButton.jsx:32
 #, python-format
@@ -1220,7 +1221,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/components/controls/VizTypeControl.jsx:110
 msgid "Select a visualization type"
-msgstr ""
+msgstr "Visualisierungstyp wählen"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:32
 msgid "Updating chart was stopped"
@@ -1260,20 +1261,20 @@ msgstr ""
 #: superset/connectors/druid/views.py:45 superset/views/core.py:318
 #: superset/views/core.py:342 superset/views/core.py:373
 msgid "Datasource"
-msgstr ""
+msgstr "Datenquelle"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:82
 #: superset/views/core.py:381
 msgid "Visualization Type"
-msgstr ""
+msgstr "Visualisierungstyp"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:84
 msgid "The type of visualization to display"
-msgstr ""
+msgstr "Der Visualisierungstyp anzuzeigen"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:90
 msgid "Metrics"
-msgstr ""
+msgstr "Metriken"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:99
 #: superset/assets/javascripts/explore/stores/controls.jsx:116
@@ -1298,29 +1299,29 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/controls.jsx:125
 #: superset/views/annotations.py:47
 msgid "Annotation Layers"
-msgstr ""
+msgstr "Anmerkungstufe"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:127
 msgid "Annotation layers to overlay on the visualization"
-msgstr ""
+msgstr "Anmerkungstufe auf die Visualisierung zu legen"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:129
 msgid "Select a annotation layer"
-msgstr ""
+msgstr "Anmerkungstufe auswählen"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:130
 msgid "Error while fetching annotation layers"
-msgstr ""
+msgstr "Fehler bei Anmerkungstufeabruf"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:141
 #: superset/assets/javascripts/explore/stores/visTypes.js:832
 #: superset/connectors/druid/views.py:106 superset/connectors/sqla/views.py:130
 msgid "Metric"
-msgstr ""
+msgstr "Metrik"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:143
 msgid "Choose the metric"
-msgstr ""
+msgstr "Metrik auswählen"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:156
 msgid "Right Axis Metric"
@@ -2290,7 +2291,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:48
 #: superset/views/annotations.py:55
 msgid "Annotations"
-msgstr ""
+msgstr "Anmerkungen"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:66
 msgid "Advanced Analytics"
@@ -2637,65 +2638,65 @@ msgstr ""
 
 #: superset/assets/javascripts/profile/components/App.jsx:24
 msgid "Favorites"
-msgstr ""
+msgstr "Favoriten"
 
 #: superset/assets/javascripts/profile/components/App.jsx:30
 msgid "Created Content"
-msgstr ""
+msgstr "Erstellte Inhalt"
 
 #: superset/assets/javascripts/profile/components/App.jsx:37
 msgid "Recent Activity"
-msgstr ""
+msgstr "Kürzliche Aktivitäten"
 
 #: superset/assets/javascripts/profile/components/App.jsx:42
 msgid "Security & Access"
-msgstr ""
+msgstr "Sicherheit & Zugriff"
 
 #: superset/assets/javascripts/profile/components/CreatedContent.jsx:33
 msgid "No slices"
-msgstr ""
+msgstr "Keine Schieben"
 
 #: superset/assets/javascripts/profile/components/CreatedContent.jsx:49
 msgid "No dashboards"
-msgstr ""
+msgstr "Keine Dashboards"
 
 #: superset/assets/javascripts/profile/components/CreatedContent.jsx:58
 #: superset/assets/javascripts/profile/components/Favorites.jsx:59
 #: superset/templates/superset/welcome.html:13 superset/views/core.py:372
 #: superset/views/core.py:532
 msgid "Dashboards"
-msgstr ""
+msgstr "Dashboards"
 
 #: superset/assets/javascripts/profile/components/CreatedContent.jsx:61
 #: superset/assets/javascripts/profile/components/Favorites.jsx:62
 #: superset/views/core.py:408 superset/views/core.py:477
 msgid "Slices"
-msgstr ""
+msgstr "Schieben"
 
 #: superset/assets/javascripts/profile/components/Favorites.jsx:34
 msgid "No favorite slices yet, go click on stars!"
-msgstr ""
+msgstr "Noch keine Lieblingsscheiben, klicken Sie auf ein paar Sterne!"
 
 #: superset/assets/javascripts/profile/components/Favorites.jsx:50
 msgid "No favorite dashboards yet, go click on stars!"
-msgstr ""
+msgstr "Noch keine Lieblingsdashboards, klicken Sie auf ein paar Sterne!"
 
 #: superset/assets/javascripts/profile/components/Security.jsx:14
 msgid "Roles"
-msgstr ""
+msgstr "Rollen"
 
 #: superset/assets/javascripts/profile/components/Security.jsx:23
 #: superset/views/core.py:284
 msgid "Databases"
-msgstr ""
+msgstr "Datenbanken"
 
 #: superset/assets/javascripts/profile/components/Security.jsx:34
 msgid "Datasources"
-msgstr ""
+msgstr "Datenquellen"
 
 #: superset/assets/javascripts/profile/components/UserInfo.jsx:18
 msgid "Profile picture provided by Gravatar"
-msgstr ""
+msgstr "Profilbild von Gravatar"
 
 #: superset/assets/javascripts/profile/components/UserInfo.jsx:33
 msgid "joined"
@@ -2716,32 +2717,32 @@ msgstr ""
 
 #: superset/connectors/druid/models.py:1073
 msgid "No data was returned."
-msgstr ""
+msgstr "Keine Daten zurückgesendet"
 
 #: superset/connectors/druid/views.py:28
 msgid "List Druid Column"
-msgstr ""
+msgstr "Druid Spalten auflisten"
 
 #: superset/connectors/druid/views.py:29
 msgid "Show Druid Column"
-msgstr ""
+msgstr "Druid Spalte anzeigen"
 
 #: superset/connectors/druid/views.py:30
 msgid "Add Druid Column"
-msgstr ""
+msgstr "Druid Spalte einfügen"
 
 #: superset/connectors/druid/views.py:31
 msgid "Edit Druid Column"
-msgstr ""
+msgstr "Druid Spalte bearbeiten"
 
 #: superset/connectors/druid/views.py:43 superset/connectors/sqla/views.py:80
 msgid "Column"
-msgstr ""
+msgstr "Spalte"
 
 #: superset/connectors/druid/views.py:44 superset/connectors/druid/views.py:109
 #: superset/connectors/sqla/views.py:94 superset/connectors/sqla/views.py:133
 msgid "Type"
-msgstr ""
+msgstr "Typ"
 
 #: superset/connectors/druid/views.py:46 superset/connectors/sqla/views.py:83
 msgid "Groupable"
@@ -2767,19 +2768,19 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:80
 msgid "List Druid Metric"
-msgstr ""
+msgstr "Druid Metriken auflisten"
 
 #: superset/connectors/druid/views.py:81
 msgid "Show Druid Metric"
-msgstr ""
+msgstr "Druid Metrik anzeigen"
 
 #: superset/connectors/druid/views.py:82
 msgid "Add Druid Metric"
-msgstr ""
+msgstr "Druid Metrik einfügen"
 
 #: superset/connectors/druid/views.py:83
 msgid "Edit Druid Metric"
-msgstr ""
+msgstr "Druid Metric bearbeiten"
 
 #: superset/connectors/druid/views.py:100 superset/connectors/sqla/views.py:115
 msgid ""
@@ -2795,31 +2796,31 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:110 superset/views/core.py:559
 msgid "JSON"
-msgstr ""
+msgstr "JSON"
 
 #: superset/connectors/druid/views.py:111
 msgid "Druid Datasource"
-msgstr ""
+msgstr "Druid Datenquelle"
 
 #: superset/connectors/druid/views.py:112 superset/connectors/sqla/views.py:138
 msgid "Warning Message"
-msgstr ""
+msgstr "Warnmeldung"
 
 #: superset/connectors/druid/views.py:129
 msgid "List Druid Cluster"
-msgstr ""
+msgstr "Druid Cluster auflisten"
 
 #: superset/connectors/druid/views.py:130
 msgid "Show Druid Cluster"
-msgstr ""
+msgstr "Druid Cluster anzeigen"
 
 #: superset/connectors/druid/views.py:131
 msgid "Add Druid Cluster"
-msgstr ""
+msgstr "Druid Cluster einfügen"
 
 #: superset/connectors/druid/views.py:132
 msgid "Edit Druid Cluster"
-msgstr ""
+msgstr "Druid Cluster bearbeiten"
 
 #: superset/connectors/druid/views.py:143
 #: superset/connectors/druid/views.py:227
@@ -2860,23 +2861,23 @@ msgstr ""
 #: superset/connectors/druid/views.py:323 superset/connectors/sqla/views.py:281
 #: superset/views/core.py:287
 msgid "Sources"
-msgstr ""
+msgstr "Quellen"
 
 #: superset/connectors/druid/views.py:174
 msgid "List Druid Datasource"
-msgstr ""
+msgstr "Druid Datenquellen auflisten"
 
 #: superset/connectors/druid/views.py:175
 msgid "Show Druid Datasource"
-msgstr ""
+msgstr "Druid Datenquelle anzeigen"
 
 #: superset/connectors/druid/views.py:176
 msgid "Add Druid Datasource"
-msgstr ""
+msgstr "Druid Datenquelle einfügen"
 
 #: superset/connectors/druid/views.py:177
 msgid "Edit Druid Datasource"
-msgstr ""
+msgstr "Druid Datenquelle bearbeiten"
 
 #: superset/connectors/druid/views.py:196 superset/connectors/sqla/views.py:176
 msgid ""
@@ -2918,7 +2919,7 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:226
 msgid "Data Source"
-msgstr ""
+msgstr "Datenquelle"
 
 #: superset/connectors/druid/views.py:229 superset/connectors/sqla/views.py:225
 msgid "Owner"
@@ -2947,15 +2948,15 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:265
 msgid "Druid Datasources"
-msgstr ""
+msgstr "Druid Datenquellen"
 
 #: superset/connectors/druid/views.py:312
 msgid "Scan New Datasources"
-msgstr ""
+msgstr "Neue Datenquellen suchen"
 
 #: superset/connectors/druid/views.py:320
 msgid "Refresh Druid Metadata"
-msgstr ""
+msgstr "Druid Metadata aktualisieren"
 
 #: superset/connectors/sqla/models.py:394
 msgid ""
@@ -2965,7 +2966,7 @@ msgstr ""
 
 #: superset/connectors/sqla/models.py:398
 msgid "Empty query?"
-msgstr ""
+msgstr "Leere Abfrage?"
 
 #: superset/connectors/sqla/models.py:401
 msgid "Metric '{}' is not valid"
@@ -2979,19 +2980,19 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:27
 msgid "List Columns"
-msgstr ""
+msgstr "Spalten auflisten"
 
 #: superset/connectors/sqla/views.py:28
 msgid "Show Column"
-msgstr ""
+msgstr "Spalte anzeigen"
 
 #: superset/connectors/sqla/views.py:29
 msgid "Add Column"
-msgstr ""
+msgstr "Spalte einfügen"
 
 #: superset/connectors/sqla/views.py:30
 msgid "Edit Column"
-msgstr ""
+msgstr "Spalte bearbeiten"
 
 #: superset/connectors/sqla/views.py:45
 msgid ""
@@ -3024,19 +3025,19 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:102
 msgid "List Metrics"
-msgstr ""
+msgstr "Metriken auflisten"
 
 #: superset/connectors/sqla/views.py:103
 msgid "Show Metric"
-msgstr ""
+msgstr "Metrik anzeigen"
 
 #: superset/connectors/sqla/views.py:104
 msgid "Add Metric"
-msgstr ""
+msgstr "Metrik einfügen"
 
 #: superset/connectors/sqla/views.py:105
 msgid "Edit Metric"
-msgstr ""
+msgstr "Metrik bearbeiten"
 
 #: superset/connectors/sqla/views.py:134
 msgid "SQL Expression"
@@ -3048,23 +3049,23 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:137
 msgid "Is Restricted"
-msgstr ""
+msgstr "Ist begrenzt"
 
 #: superset/connectors/sqla/views.py:155
 msgid "List Tables"
-msgstr ""
+msgstr "Tabellen auflisten"
 
 #: superset/connectors/sqla/views.py:156
 msgid "Show Table"
-msgstr ""
+msgstr "Tabelle anzeigen"
 
 #: superset/connectors/sqla/views.py:157
 msgid "Add Table"
-msgstr ""
+msgstr "Tabelle einfügen"
 
 #: superset/connectors/sqla/views.py:158
 msgid "Edit Table"
-msgstr ""
+msgstr "Tabelle bearbeiten"
 
 #: superset/connectors/sqla/views.py:185
 msgid "Name of the table that exists in the source database"
@@ -3093,16 +3094,16 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:215
 msgid "Changed By"
-msgstr ""
+msgstr "Bearbeitet von"
 
 #: superset/connectors/sqla/views.py:216 superset/views/core.py:247
 #: superset/views/sql_lab.py:19 superset/views/sql_lab.py:55
 msgid "Database"
-msgstr ""
+msgstr "Datenbank"
 
 #: superset/connectors/sqla/views.py:217 superset/views/core.py:249
 msgid "Last Changed"
-msgstr ""
+msgstr "Bearbeitet am"
 
 #: superset/connectors/sqla/views.py:219
 msgid "Schema"
@@ -3114,7 +3115,7 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:223
 msgid "Table Name"
-msgstr ""
+msgstr "Tabellename"
 
 #: superset/connectors/sqla/views.py:224
 msgid "Fetch Values Predicate"
@@ -3138,35 +3139,35 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:279
 msgid "Tables"
-msgstr ""
+msgstr "Tabellen"
 
 #: superset/templates/appbuilder/navbar_right.html:41
 msgid "Profile"
-msgstr ""
+msgstr "Profil"
 
 #: superset/templates/appbuilder/navbar_right.html:42
 msgid "Logout"
-msgstr ""
+msgstr "Ausloggen"
 
 #: superset/templates/appbuilder/navbar_right.html:47
 msgid "Login"
-msgstr ""
+msgstr "Einloggen"
 
 #: superset/templates/appbuilder/general/widgets/base_list.html:37
 msgid "Record Count"
-msgstr ""
+msgstr "Datensätzeanzahl"
 
 #: superset/templates/appbuilder/general/widgets/base_list.html:46
 msgid "No records found"
-msgstr ""
+msgstr "Keine Datensätze gefunden"
 
 #: superset/templates/superset/import_dashboards.html:11
 msgid "Import"
-msgstr ""
+msgstr "Importiern"
 
 #: superset/templates/superset/request_access.html:2
 msgid "No Access!"
-msgstr ""
+msgstr "Keine Zugriff!"
 
 #: superset/templates/superset/request_access.html:7
 #, python-format
@@ -3175,11 +3176,11 @@ msgstr ""
 
 #: superset/templates/superset/request_access.html:13
 msgid "Request Permissions"
-msgstr ""
+msgstr "Berechtigung anfordern"
 
 #: superset/templates/superset/welcome.html:3
 msgid "Welcome!"
-msgstr ""
+msgstr "Wilkommen!"
 
 #: superset/templates/superset/models/database/macros.html:4
 msgid "Test Connection"
@@ -3189,7 +3190,7 @@ msgstr ""
 #: superset/views/core.py:277 superset/views/core.py:2371
 #: superset/views/sql_lab.py:30
 msgid "Manage"
-msgstr ""
+msgstr "Einstellungen"
 
 #: superset/views/base.py:62
 #, python-format
@@ -3202,11 +3203,11 @@ msgstr ""
 
 #: superset/views/base.py:272
 msgid "Delete"
-msgstr ""
+msgstr "Löschen"
 
 #: superset/views/base.py:273
 msgid "Delete all Really?"
-msgstr ""
+msgstr "Wirklich alle löschen?"
 
 #: superset/views/core.py:56
 msgid "This endpoint requires the `all_datasource_access` permission"
@@ -3226,7 +3227,7 @@ msgstr ""
 
 #: superset/views/core.py:62
 msgid "You don't have access to this datasource"
-msgstr ""
+msgstr "Sie haben keine Zugriff auf diese Datenquelle"
 
 #: superset/views/core.py:66
 #, python-format
@@ -3244,19 +3245,19 @@ msgstr ""
 
 #: superset/views/core.py:174
 msgid "List Databases"
-msgstr ""
+msgstr "Dakenbanken auflisten"
 
 #: superset/views/core.py:175
 msgid "Show Database"
-msgstr ""
+msgstr "Datenbank anzeigen"
 
 #: superset/views/core.py:176
 msgid "Add Database"
-msgstr ""
+msgstr "Datenbank einfügen"
 
 #: superset/views/core.py:177
 msgid "Edit Database"
-msgstr ""
+msgstr "Datenbank bearbeiten"
 
 #: superset/views/core.py:212
 msgid "Expose this DB in SQL Lab"
@@ -3316,7 +3317,7 @@ msgstr ""
 #: superset/views/core.py:248 superset/views/core.py:371
 #: superset/views/core.py:479 superset/views/core.py:543
 msgid "Creator"
-msgstr ""
+msgstr "Schöpfer"
 
 #: superset/views/core.py:250
 msgid "SQLAlchemy URI"
@@ -3340,20 +3341,20 @@ msgstr ""
 
 #: superset/views/core.py:273
 msgid "Import Dashboards"
-msgstr ""
+msgstr "Dashboards importieren"
 
 #: superset/views/core.py:315 superset/views/core.py:556
 #: superset/views/sql_lab.py:18 superset/views/sql_lab.py:54
 msgid "User"
-msgstr ""
+msgstr "Benutzer"
 
 #: superset/views/core.py:316
 msgid "User Roles"
-msgstr ""
+msgstr "Benutzer Rollen"
 
 #: superset/views/core.py:317
 msgid "Database URL"
-msgstr ""
+msgstr "Datenbank URL"
 
 #: superset/views/core.py:319
 msgid "Roles to grant"
@@ -3365,27 +3366,27 @@ msgstr ""
 
 #: superset/views/core.py:326
 msgid "Access requests"
-msgstr ""
+msgstr "Zugriffsanforderungen"
 
 #: superset/views/core.py:328 superset/views/core.py:567
 msgid "Security"
-msgstr ""
+msgstr "Sicherheit"
 
 #: superset/views/core.py:335
 msgid "List Slices"
-msgstr ""
+msgstr "Schieben auflisten"
 
 #: superset/views/core.py:336
 msgid "Show Slice"
-msgstr ""
+msgstr "Schiebe anzeigen"
 
 #: superset/views/core.py:337
 msgid "Add Slice"
-msgstr ""
+msgstr "Schiebe einfügen"
 
 #: superset/views/core.py:338
 msgid "Edit Slice"
-msgstr ""
+msgstr "Schiebe bearbeiten"
 
 #: superset/views/core.py:359
 msgid ""
@@ -3401,7 +3402,7 @@ msgstr ""
 
 #: superset/views/core.py:375
 msgid "Last Modified"
-msgstr ""
+msgstr "Geändert"
 
 #: superset/views/core.py:376 superset/views/core.py:478
 msgid "Owners"
@@ -3413,23 +3414,23 @@ msgstr ""
 
 #: superset/views/core.py:378 superset/views/core.py:420
 msgid "Slice"
-msgstr ""
+msgstr "Schiebe"
 
 #: superset/views/core.py:437
 msgid "List Dashboards"
-msgstr ""
+msgstr "Dashboards auflisten"
 
 #: superset/views/core.py:438
 msgid "Show Dashboard"
-msgstr ""
+msgstr "Dashboard anzeigen"
 
 #: superset/views/core.py:439
 msgid "Add Dashboard"
-msgstr ""
+msgstr "Dashboard einfügen"
 
 #: superset/views/core.py:440
 msgid "Edit Dashboard"
-msgstr ""
+msgstr "Dashboard bearbeiten"
 
 #: superset/views/core.py:451
 msgid ""
@@ -3489,7 +3490,7 @@ msgstr ""
 
 #: superset/views/core.py:557
 msgid "Action"
-msgstr ""
+msgstr "Tat"
 
 #: superset/views/core.py:558
 msgid "dttm"
@@ -3497,11 +3498,11 @@ msgstr ""
 
 #: superset/views/core.py:565
 msgid "Action Log"
-msgstr ""
+msgstr "Aktionsprotokoll"
 
 #: superset/views/core.py:796
 msgid "Access was requested"
-msgstr ""
+msgstr "Zugang wurde beantragt"
 
 #: superset/views/core.py:857
 #, python-format
@@ -3551,11 +3552,11 @@ msgstr ""
 
 #: superset/views/core.py:2357
 msgid "Template Name"
-msgstr ""
+msgstr "Vorlagename"
 
 #: superset/views/core.py:2368
 msgid "CSS Templates"
-msgstr ""
+msgstr "CSS Vorlagen"
 
 #: superset/views/core.py:2379
 msgid "SQL Editor"
@@ -3567,7 +3568,7 @@ msgstr ""
 
 #: superset/views/core.py:2388
 msgid "Query Search"
-msgstr ""
+msgstr "Abfragen suchen"
 
 #: superset/views/sql_lab.py:20
 msgid "Status"
@@ -3575,31 +3576,31 @@ msgstr ""
 
 #: superset/views/sql_lab.py:21
 msgid "Start Time"
-msgstr ""
+msgstr "Von Zeit"
 
 #: superset/views/sql_lab.py:22 superset/views/sql_lab.py:58
 msgid "End Time"
-msgstr ""
+msgstr "Bis Zeit"
 
 #: superset/views/sql_lab.py:28
 msgid "Queries"
-msgstr ""
+msgstr "Abfragen"
 
 #: superset/views/sql_lab.py:37
 msgid "List Saved Query"
-msgstr ""
+msgstr "Gespeicherte Abfragen auflisten"
 
 #: superset/views/sql_lab.py:38
 msgid "Show Saved Query"
-msgstr ""
+msgstr "Gespeicherte Abfrage anzeigen"
 
 #: superset/views/sql_lab.py:39
 msgid "Add Saved Query"
-msgstr ""
+msgstr "Gespeicherte Abfrage einfügen"
 
 #: superset/views/sql_lab.py:40
 msgid "Edit Saved Query"
-msgstr ""
+msgstr "Gespeicherte Abfrage bearbeiten"
 
 #: superset/views/sql_lab.py:59
 msgid "Pop Tab Link"
@@ -3607,9 +3608,9 @@ msgstr ""
 
 #: superset/views/sql_lab.py:60
 msgid "Changed on"
-msgstr ""
+msgstr "Bearbeitet am"
 
 #: superset/views/sql_lab.py:79
 msgid "Saved Queries"
-msgstr ""
+msgstr "Gespeicherte Abfragen"
 

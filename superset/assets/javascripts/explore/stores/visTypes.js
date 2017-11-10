@@ -338,8 +338,9 @@ export const visTypes = {
         label: t('GROUP BY'),
         description: t('Use this section if you want a query that aggregates'),
         controlSetRows: [
-          ['groupby', 'metrics'],
-          ['include_time', null],
+          ['groupby'],
+          ['metrics', 'percent_metrics'],
+          ['include_time'],
           ['timeseries_limit_metric', 'order_desc'],
         ],
       },
@@ -388,7 +389,7 @@ export const visTypes = {
         multiple: false,
       },
       url: {
-        label: t(
+        description: t(
           "Templated link, it's possible to include {{ metric }} " +
           'or other values coming from the controls.'),
       },
@@ -851,8 +852,8 @@ export const visTypes = {
     ],
     controlOverrides: {
       entity: {
-        label: t('ISO 3166-1 codes of region/province/department'),
-        description: t('It\'s ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)'),
+        label: t('ISO 3166-2 codes of region/province/department'),
+        description: t('It\'s ISO 3166-2 of your region/province/department in your table. (see documentation for list of ISO 3166-2)'),
       },
       metric: {
         label: t('Metric'),
@@ -1153,6 +1154,33 @@ export const visTypes = {
           ['liftvalue_precision'],
         ],
       },
+    ],
+  },
+
+  partition: {
+    label: 'Partition Diagram',
+    showOnExplore: true,
+    controlPanelSections: [
+      sections.NVD3TimeSeries[0],
+      {
+        label: t('Time Series Options'),
+        expanded: true,
+        controlSetRows: [
+          ['time_series_option'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['color_scheme'],
+          ['number_format', 'date_time_format'],
+          ['partition_limit', 'partition_threshold'],
+          ['log_scale', 'equal_date_size'],
+          ['rich_tooltip'],
+        ],
+      },
+      sections.NVD3TimeSeries[1],
     ],
   },
 };

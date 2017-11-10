@@ -10,13 +10,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime, date
-from past.builtins import basestring
-
-import pandas as pd
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from datetime import date, datetime
 
 import numpy as np
+import pandas as pd
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from past.builtins import basestring
 
 
 INFER_COL_TYPES_THRESHOLD = 95
@@ -140,7 +139,7 @@ class SupersetDataFrame(object):
                     column.update({
                         'is_date': True,
                         'is_dim': False,
-                        'agg': None
+                        'agg': None,
                     })
             # 'agg' is optional attribute
             if not column['agg']:

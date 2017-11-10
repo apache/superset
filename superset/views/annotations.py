@@ -3,12 +3,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from flask_babel import gettext as __
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_babel import gettext as __
 
-from superset.models.annotations import Annotation, AnnotationLayer
 from superset import appbuilder
-from .base import SupersetModelView, DeleteMixin
+from superset.models.annotations import Annotation, AnnotationLayer
+from .base import DeleteMixin, SupersetModelView
 
 
 class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa

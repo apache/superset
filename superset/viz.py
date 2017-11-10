@@ -8,28 +8,28 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import defaultdict
 import copy
+from datetime import datetime, timedelta
 import hashlib
 import inspect
+from itertools import product
 import logging
 import traceback
 import uuid
 import zlib
 
-from collections import defaultdict
-from itertools import product
-from datetime import datetime, timedelta
-
-import pandas as pd
-import numpy as np
+from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
 from markdown import markdown
+import numpy as np
+import pandas as pd
 import simplejson as json
-from six import string_types, PY3
-from dateutil import relativedelta as rdelta
+from six import PY3, string_types
+from six.moves import reduce
 
-from superset import app, utils, cache, get_manifest_file
+from superset import app, cache, get_manifest_file, utils
 from superset.utils import DTTM_ALIAS, merge_extra_filters
 
 config = app.config
@@ -197,7 +197,7 @@ class BaseViz(object):
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
-            'order_desc': order_desc
+            'order_desc': order_desc,
         }
         return d
 
@@ -383,12 +383,42 @@ class TableViz(BaseViz):
                 d['metrics'] += [sort_by]
             d['orderby'] = [(sort_by, not fd.get("order_desc", True))]
 
+        # Add all percent metrics that are not already in the list
+        if 'percent_metrics' in fd:
+            d['metrics'] = d['metrics'] + list(filter(
+                lambda m: m not in d['metrics'],
+                fd['percent_metrics'],
+            ))
+
         d['is_timeseries'] = self.should_be_timeseries()
         return d
 
     def get_data(self, df):
+        fd = self.form_data
         if not self.should_be_timeseries() and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
+
+        # Sum up and compute percentages for all percent metrics
+        percent_metrics = fd.get('percent_metrics', [])
+        if len(percent_metrics):
+            percent_metrics = list(filter(lambda m: m in df, percent_metrics))
+            metric_sums = {
+                m: reduce(lambda a, b: a + b, df[m])
+                for m in percent_metrics
+            }
+            metric_percents = {
+                m: list(map(lambda a: a / metric_sums[m], df[m]))
+                for m in percent_metrics
+            }
+            for m in percent_metrics:
+                m_name = '%' + m
+                df[m_name] = pd.Series(metric_percents[m], name=m_name)
+            # Remove metrics that are not in the main metrics list
+            for m in filter(
+                lambda m: m not in fd['metrics'] and m in df.columns,
+                percent_metrics,
+            ):
+                del df[m]
 
         return dict(
             records=df.to_dict(orient="records"),
@@ -607,9 +637,9 @@ class CalHeatmapViz(BaseViz):
         elif domain == "week":
             range_ = diff_delta.years * 53 + diff_delta.weeks + 1
         elif domain == "day":
-            range_ = diff_secs // (24*60*60) + 1
+            range_ = diff_secs // (24 * 60 * 60) + 1
         else:
-            range_ = diff_secs // (60*60) + 1
+            range_ = diff_secs // (60 * 60) + 1
 
         return {
             "timestamps": timestamps,
@@ -736,7 +766,7 @@ class BubbleViz(NVD3Viz):
         form_data = self.form_data
         d = super(BubbleViz, self).query_obj()
         d['groupby'] = [
-            form_data.get('entity')
+            form_data.get('entity'),
         ]
         if form_data.get('series'):
             d['groupby'].append(form_data.get('series'))
@@ -915,7 +945,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if isinstance(series_title, string_types):
                 series_title += title_suffix
             elif title_suffix and isinstance(series_title, (list, tuple)):
-                series_title.append(title_suffix)
+                series_title = series_title + (title_suffix,)
 
             d = {
                 "key": series_title,
@@ -928,16 +958,24 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data.append(d)
         return chart_data
 
-    def process_data(self, df):
+    def process_data(self, df, aggregate=False):
         fd = self.form_data
         df = df.fillna(0)
         if fd.get("granularity") == "all":
             raise Exception(_("Pick a time granularity for your time series"))
 
-        df = df.pivot_table(
-            index=DTTM_ALIAS,
-            columns=fd.get('groupby'),
-            values=fd.get('metrics'))
+        if not aggregate:
+            df = df.pivot_table(
+                index=DTTM_ALIAS,
+                columns=fd.get('groupby'),
+                values=fd.get('metrics'))
+        else:
+            df = df.pivot_table(
+                index=DTTM_ALIAS,
+                columns=fd.get('groupby'),
+                values=fd.get('metrics'),
+                fill_value=0,
+                aggfunc=sum)
 
         fm = fd.get("resample_fillmethod")
         if not fm:
@@ -1052,7 +1090,7 @@ class NVD3DualLineViz(NVD3Viz):
         chart_data = []
         metrics = [
             self.form_data.get('metric'),
-            self.form_data.get('metric_2')
+            self.form_data.get('metric_2'),
         ]
         for i, m in enumerate(metrics):
             ys = series[m]
@@ -1066,8 +1104,8 @@ class NVD3DualLineViz(NVD3Viz):
                     {'x': ds, 'y': ys[ds] if ds in ys else None}
                     for ds in df.index
                 ],
-                "yAxis": i+1,
-                "type": "line"
+                "yAxis": i + 1,
+                "type": "line",
             }
             chart_data.append(d)
         return chart_data
@@ -1205,7 +1243,7 @@ class DistributionBarViz(DistributionPieViz):
             elif len(self.metrics) > 1:
                 series_title = ", ".join(name)
             else:
-                l = [str(s) for s in name[1:]]
+                l = [str(s) for s in name[1:]]  # noqa: E741
                 series_title = ", ".join(l)
             values = []
             for i, v in ys.iteritems():
@@ -1664,14 +1702,14 @@ class MapboxViz(BaseViz):
                     "geometry": {
                         "type": "Point",
                         "coordinates": [lon, lat],
-                    }
+                    },
                 }
                 for lon, lat, metric, point_radius
                 in zip(
                     df[fd.get('all_columns_x')],
                     df[fd.get('all_columns_y')],
                     metric_col, point_radius_col)
-            ]
+            ],
         }
 
         return {
@@ -1780,6 +1818,142 @@ class PairedTTestViz(BaseViz):
             else:
                 data[key] = [d]
         return data
+
+
+class PartitionViz(NVD3TimeSeriesViz):
+
+    """
+    A hierarchical data visualization with support for time series.
+    """
+
+    viz_type = 'partition'
+    verbose_name = _("Partition Diagram")
+
+    def query_obj(self):
+        query_obj = super(PartitionViz, self).query_obj()
+        time_op = self.form_data.get('time_series_option', 'not_time')
+        # Return time series data if the user specifies so
+        query_obj['is_timeseries'] = time_op != 'not_time'
+        return query_obj
+
+    def levels_for(self, time_op, groups, df):
+        """
+        Compute the partition at each `level` from the dataframe.
+        """
+        levels = {}
+        for i in range(0, len(groups) + 1):
+            agg_df = df.groupby(groups[:i]) if i else df
+            levels[i] = (
+                agg_df.mean() if time_op == 'agg_mean'
+                else agg_df.sum(numeric_only=True))
+        return levels
+
+    def levels_for_diff(self, time_op, groups, df):
+        # Obtain a unique list of the time grains
+        times = list(set(df[DTTM_ALIAS]))
+        times.sort()
+        until = times[len(times) - 1]
+        since = times[0]
+        # Function describing how to calculate the difference
+        func = {
+            'point_diff': [
+                pd.Series.sub,
+                lambda a, b, fill_value: a - b,
+            ],
+            'point_factor': [
+                pd.Series.div,
+                lambda a, b, fill_value: a / float(b),
+            ],
+            'point_percent': [
+                lambda a, b, fill_value=0: a.div(b, fill_value=fill_value) - 1,
+                lambda a, b, fill_value: a / float(b) - 1,
+            ],
+        }[time_op]
+        agg_df = df.groupby(DTTM_ALIAS).sum()
+        levels = {0: pd.Series({
+            m: func[1](agg_df[m][until], agg_df[m][since], 0)
+            for m in agg_df.columns})}
+        for i in range(1, len(groups) + 1):
+            agg_df = df.groupby([DTTM_ALIAS] + groups[:i]).sum()
+            levels[i] = pd.DataFrame({
+                m: func[0](agg_df[m][until], agg_df[m][since], fill_value=0)
+                for m in agg_df.columns})
+        return levels
+
+    def levels_for_time(self, groups, df):
+        procs = {}
+        for i in range(0, len(groups) + 1):
+            self.form_data['groupby'] = groups[:i]
+            df_drop = df.drop(groups[i:], 1)
+            procs[i] = self.process_data(df_drop, aggregate=True).fillna(0)
+        self.form_data['groupby'] = groups
+        return procs
+
+    def nest_values(self, levels, level=0, metric=None, dims=()):
+        """
+        Nest values at each level on the back-end with
+        access and setting, instead of summing from the bottom.
+        """
+        if not level:
+            return [{
+                'name': m,
+                'val': levels[0][m],
+                'children': self.nest_values(levels, 1, m),
+            } for m in levels[0].index]
+        if level == 1:
+            return [{
+                'name': i,
+                'val': levels[1][metric][i],
+                'children': self.nest_values(levels, 2, metric, (i,)),
+            } for i in levels[1][metric].index]
+        if level >= len(levels):
+            return []
+        return [{
+            'name': i,
+            'val': levels[level][metric][dims][i],
+            'children': self.nest_values(
+                levels, level + 1, metric, dims + (i,),
+            ),
+        } for i in levels[level][metric][dims].index]
+
+    def nest_procs(self, procs, level=-1, dims=(), time=None):
+        if level == -1:
+            return [{
+                'name': m,
+                'children': self.nest_procs(procs, 0, (m,)),
+            } for m in procs[0].columns]
+        if not level:
+            return [{
+                'name': t,
+                'val': procs[0][dims[0]][t],
+                'children': self.nest_procs(procs, 1, dims, t),
+            } for t in procs[0].index]
+        if level >= len(procs):
+            return []
+        return [{
+            'name': i,
+            'val': procs[level][dims][i][time],
+            'children': self.nest_procs(procs, level + 1, dims + (i,), time),
+        } for i in procs[level][dims].columns]
+
+    def get_data(self, df):
+        fd = self.form_data
+        groups = fd.get('groupby', [])
+        time_op = fd.get('time_series_option', 'not_time')
+        if not len(groups):
+            raise ValueError('Please choose at least one groupby')
+        if time_op == 'not_time':
+            levels = self.levels_for('agg_sum', groups, df)
+        elif time_op in ['agg_sum', 'agg_mean']:
+            levels = self.levels_for(time_op, groups, df)
+        elif time_op in ['point_diff', 'point_factor', 'point_percent']:
+            levels = self.levels_for_diff(time_op, groups, df)
+        elif time_op == 'adv_anal':
+            procs = self.levels_for_time(groups, df)
+            return self.nest_procs(procs)
+        else:
+            levels = self.levels_for('agg_sum', [DTTM_ALIAS] + groups, df)
+        return self.nest_values(levels)
 
 
 viz_types = {

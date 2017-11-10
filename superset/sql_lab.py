@@ -3,24 +3,24 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from time import sleep
 from datetime import datetime
 import json
 import logging
+from time import sleep
 import uuid
+
+from celery.exceptions import SoftTimeLimitExceeded
 import pandas as pd
 import sqlalchemy
-
-from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
-from celery.exceptions import SoftTimeLimitExceeded
+from sqlalchemy.pool import NullPool
 
-from superset import (app, db, utils, dataframe, results_backend)
-from superset.models.sql_lab import Query
-from superset.sql_parse import SupersetQuery
+from superset import app, dataframe, db, results_backend, utils
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
-from superset.utils import QueryStatus, get_celery_app
+from superset.models.sql_lab import Query
+from superset.sql_parse import SupersetQuery
+from superset.utils import get_celery_app, QueryStatus
 
 config = app.config
 celery_app = get_celery_app(config)
@@ -118,6 +118,10 @@ def execute_sql(
 
     def handle_error(msg):
         """Local method handling error while processing the SQL"""
+        troubleshooting_link = config["TROUBLESHOOTING_LINK"]
+        msg = "Error: {}. You can find common superset errors and their \
+            resolutions at: {}".format(msg, troubleshooting_link) \
+            if troubleshooting_link else msg
         query.error_message = msg
         query.status = QueryStatus.FAILED
         query.tmp_table_name = None
@@ -149,8 +153,8 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    elif (query.limit and superset_query.is_select()
-          and db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+    elif (query.limit and superset_query.is_select() and
+            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
     try:
@@ -168,6 +172,7 @@ def execute_sql(
     session.merge(query)
     session.commit()
     logging.info("Set query to 'running'")
+    conn = None
     try:
         engine = database.get_sqla_engine(
             schema=query.schema, nullpool=not ctask.request.called_directly, user_name=user_name)
@@ -183,20 +188,23 @@ def execute_sql(
         data = db_engine_spec.fetch_data(cursor, query.limit)
     except SoftTimeLimitExceeded as e:
         logging.exception(e)
-        conn.close()
+        if conn is not None:
+            conn.close()
         return handle_error(
             "SQL Lab timeout. This environment's policy is to kill queries "
             "after {} seconds.".format(SQLLAB_TIMEOUT))
     except Exception as e:
         logging.exception(e)
-        conn.close()
+        if conn is not None:
+            conn.close()
         return handle_error(db_engine_spec.extract_error_message(e))
 
     logging.info("Fetching cursor description")
     cursor_description = cursor.description
 
-    conn.commit()
-    conn.close()
+    if conn is not None:
+        conn.commit()
+        conn.close()
 
     if query.status == utils.QueryStatus.STOPPED:
         return json.dumps(

@@ -3,13 +3,16 @@ import d3 from 'd3';
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactDOM from 'react-dom';
-import Select from 'react-select';
+import VirtualizedSelect from 'react-virtualized-select';
+import { Creatable } from 'react-select';
 import { Button } from 'react-bootstrap';
 
 import DateFilterControl from '../javascripts/explore/components/controls/DateFilterControl';
 import ControlRow from '../javascripts/explore/components/ControlRow';
 import Control from '../javascripts/explore/components/Control';
 import controls from '../javascripts/explore/stores/controls';
+import OnPasteSelect from '../javascripts/components/OnPasteSelect';
+import VirtualizedRendererWrap from '../javascripts/components/VirtualizedRendererWrap';
 import './filter_box.css';
 import { t } from '../javascripts/locales';
 
@@ -164,7 +167,7 @@ class FilterBox extends React.Component {
             text: v,
             metric: 0,
           };
-          this.props.filtersChoices[filterKey].push(addChoice);
+          this.props.filtersChoices[filterKey].unshift(addChoice);
         }
       }
     }
@@ -177,7 +180,7 @@ class FilterBox extends React.Component {
       return (
         <div key={filter} className="m-b-5">
           {this.props.datasource.verbose_map[filter] || filter}
-          <Select.Creatable
+          <OnPasteSelect
             placeholder={t('Select [%s]', filter)}
             key={filter}
             multi
@@ -195,6 +198,9 @@ class FilterBox extends React.Component {
               return { value: opt.id, label: opt.id, style };
             })}
             onChange={this.changeFilter.bind(this, filter)}
+            selectComponent={Creatable}
+            selectWrap={VirtualizedSelect}
+            optionRenderer={VirtualizedRendererWrap(opt => opt.label)}
           />
         </div>
       );

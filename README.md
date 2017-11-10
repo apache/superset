@@ -153,6 +153,7 @@ Resources
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
 * [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
+* [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
 
 
 Contributing
@@ -181,6 +182,7 @@ the world know they are using Superset. Join our growing community!
  - [Faasos](http://faasos.com/)
  - [GfK Data Lab](http://datalab.gfk.com)
  - [Konfío](http://konfio.mx)
+ - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://cloudschooling.it)
  - [Pronto Tools](http://www.prontotools.io)
  - [Qunar](https://www.qunar.com/)
@@ -189,7 +191,9 @@ the world know they are using Superset. Join our growing community!
  - [Tails.com](https://tails.com)
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
+ - [Twitter](https://twitter.com/)
  - [Udemy](https://www.udemy.com/)
+ - [VIPKID](https://www.vipkid.com.cn/)
  - [Yahoo!](https://yahoo.com/)
  - [Zalando](https://www.zalando.com)
 

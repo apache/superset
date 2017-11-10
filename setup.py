@@ -1,7 +1,8 @@
+import json
 import os
 import subprocess
-import json
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
@@ -14,7 +15,7 @@ def get_git_sha():
     try:
         s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
         return s.strip()
-    except:
+    except Exception:
         return ""
 
 GIT_SHA = get_git_sha()
