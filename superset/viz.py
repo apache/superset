@@ -1208,9 +1208,9 @@ class DistributionBarViz(DistributionPieViz):
         d = super(DistributionBarViz, self).query_obj()  # noqa
         fd = self.form_data
         if (
-                len(d['groupby']) <
-                len(fd.get('groupby') or []) + len(fd.get('columns') or [])
-                ):
+            len(d['groupby']) <
+            len(fd.get('groupby') or []) + len(fd.get('columns') or [])
+        ):
             raise Exception(
                 _("Can't have overlap between Series and Breakdowns"))
         if not fd.get('metrics'):
@@ -1523,7 +1523,7 @@ class IFrameViz(BaseViz):
     is_timeseries = False
 
     def get_df(self):
-       return None
+        return None
 
 
 class ParallelCoordinatesViz(BaseViz):

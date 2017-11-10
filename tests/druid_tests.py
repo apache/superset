@@ -21,49 +21,49 @@ class PickableMock(Mock):
         return (Mock, ())
 
 SEGMENT_METADATA = [{
-  "id": "some_id",
-  "intervals": ["2013-05-13T00:00:00.000Z/2013-05-14T00:00:00.000Z"],
-  "columns": {
-    "__time": {
-        "type": "LONG", "hasMultipleValues": False,
-        "size": 407240380, "cardinality": None, "errorMessage": None},
-    "dim1": {
-        "type": "STRING", "hasMultipleValues": False,
-        "size": 100000, "cardinality": 1944, "errorMessage": None},
-    "dim2": {
-        "type": "STRING", "hasMultipleValues": True,
-        "size": 100000, "cardinality": 1504, "errorMessage": None},
-    "metric1": {
-        "type": "FLOAT", "hasMultipleValues": False,
-        "size": 100000, "cardinality": None, "errorMessage": None},
-  },
-  "aggregators": {
-    "metric1": {
-        "type": "longSum",
-        "name": "metric1",
-        "fieldName": "metric1"},
-  },
-  "size": 300000,
-  "numRows": 5000000,
+    "id": "some_id",
+    "intervals": ["2013-05-13T00:00:00.000Z/2013-05-14T00:00:00.000Z"],
+    "columns": {
+        "__time": {
+            "type": "LONG", "hasMultipleValues": False,
+            "size": 407240380, "cardinality": None, "errorMessage": None},
+        "dim1": {
+            "type": "STRING", "hasMultipleValues": False,
+            "size": 100000, "cardinality": 1944, "errorMessage": None},
+        "dim2": {
+            "type": "STRING", "hasMultipleValues": True,
+            "size": 100000, "cardinality": 1504, "errorMessage": None},
+        "metric1": {
+            "type": "FLOAT", "hasMultipleValues": False,
+            "size": 100000, "cardinality": None, "errorMessage": None},
+    },
+    "aggregators": {
+        "metric1": {
+            "type": "longSum",
+            "name": "metric1",
+            "fieldName": "metric1"},
+    },
+    "size": 300000,
+    "numRows": 5000000,
 }]
 
 GB_RESULT_SET = [
-  {
-    "version": "v1",
-    "timestamp": "2012-01-01T00:00:00.000Z",
-    "event": {
-      "dim1": 'Canada',
-      "metric1": 12345678,
+    {
+        "version": "v1",
+        "timestamp": "2012-01-01T00:00:00.000Z",
+        "event": {
+            "dim1": 'Canada',
+            "metric1": 12345678,
+        },
     },
-  },
-  {
-    "version": "v1",
-    "timestamp": "2012-01-01T00:00:00.000Z",
-    "event": {
-      "dim1": 'USA',
-      "metric1": 12345678 / 2,
+    {
+        "version": "v1",
+        "timestamp": "2012-01-01T00:00:00.000Z",
+        "event": {
+            "dim1": 'USA',
+            "metric1": 12345678 / 2,
+        },
     },
-  },
 ]
 
 
@@ -337,26 +337,30 @@ class DruidTests(SupersetTestCase):
                 metric_name='unused_count',
                 verbose_name='COUNT(*)',
                 metric_type='count',
-                json=json.dumps({'type': 'count', 'name': 'unused_count'})),
+                json=json.dumps({'type': 'count', 'name': 'unused_count'}),
+            ),
             'some_sum': DruidMetric(
                 metric_name='some_sum',
                 verbose_name='SUM(*)',
                 metric_type='sum',
-                json=json.dumps({'type': 'sum', 'name': 'sum'})),
+                json=json.dumps({'type': 'sum', 'name': 'sum'}),
+            ),
             'a_histogram': DruidMetric(
                 metric_name='a_histogram',
                 verbose_name='APPROXIMATE_HISTOGRAM(*)',
                 metric_type='approxHistogramFold',
                 json=json.dumps(
-                    {'type': 'approxHistogramFold', 'name': 'a_histogram'}),
+                    {'type': 'approxHistogramFold', 'name': 'a_histogram'},
                 ),
+            ),
             'aCustomMetric': DruidMetric(
                 metric_name='aCustomMetric',
                 verbose_name='MY_AWESOME_METRIC(*)',
                 metric_type='aCustomType',
                 json=json.dumps(
-                    {'type': 'customMetric', 'name': 'aCustomMetric'}),
+                    {'type': 'customMetric', 'name': 'aCustomMetric'},
                 ),
+            ),
             'quantile_p95': DruidMetric(
                 metric_name='quantile_p95',
                 verbose_name='P95(*)',
@@ -365,7 +369,9 @@ class DruidTests(SupersetTestCase):
                     'type': 'quantile',
                     'probability': 0.95,
                     'name': 'p95',
-                    'fieldName': 'a_histogram'})),
+                    'fieldName': 'a_histogram',
+                }),
+            ),
             'aCustomPostAgg': DruidMetric(
                 metric_name='aCustomPostAgg',
                 verbose_name='CUSTOM_POST_AGG(*)',
@@ -375,7 +381,10 @@ class DruidTests(SupersetTestCase):
                     'name': 'aCustomPostAgg',
                     'field': {
                         'type': 'fieldAccess',
-                        'fieldName': 'aCustomMetric'}})),
+                        'fieldName': 'aCustomMetric',
+                    },
+                }),
+            ),
         }
 
         metrics = ['some_sum']

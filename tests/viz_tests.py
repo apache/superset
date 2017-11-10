@@ -545,7 +545,8 @@ class PartitionVizTestCase(unittest.TestCase):
         self.assertEqual(3, len(nest[0]['children']))
         self.assertEqual(3, len(nest[0]['children'][0]['children']))
         self.assertEqual(1, len(nest[0]['children'][0]['children'][0]['children']))
-        self.assertEqual(1,
+        self.assertEqual(
+            1,
             len(nest[0]['children']
                 [0]['children']
                 [0]['children']

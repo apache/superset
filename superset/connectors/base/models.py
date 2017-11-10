@@ -47,8 +47,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return relationship(
             'Slice',
             primaryjoin=lambda: and_(
-              foreign(Slice.datasource_id) == self.id,
-              foreign(Slice.datasource_type) == self.type))
+                foreign(Slice.datasource_id) == self.id,
+                foreign(Slice.datasource_type) == self.type,
+            ),
+        )
 
     # placeholder for a relationship to a derivative of BaseColumn
     columns = []
