@@ -6,9 +6,10 @@ from __future__ import unicode_literals
 
 import csv
 import doctest
+import io
 import json
 import logging
-import io
+import mock
 import random
 import unittest
 
@@ -297,6 +298,24 @@ class CoreTests(SupersetTestCase):
             'impersonate_user': False
         })
         response = self.client.post('/superset/testconn', data=data, content_type='application/json')
+        assert response.status_code == 200
+        assert response.headers['Content-Type'] == 'application/json'
+
+    def test_testconn_does_work_without_a_database(self, username='admin'):
+        self.login(username=username)
+        database = self.get_main_database(db.session)
+
+        data = json.dumps({
+            'uri': database.safe_sqlalchemy_uri(),
+            'name': '',
+            'impersonate_user': False
+        })
+        engine = mock.Mock()
+        engine.connect = mock.Mock()
+        engine.table_names = mock.Mock(return_value=[])
+        with mock.patch('superset.views.core.create_engine', return_value=engine):
+            response = self.client.post('/superset/testconn', data=data, content_type='application/json')
+        engine.table_names.assert_called_with()
         assert response.status_code == 200
         assert response.headers['Content-Type'] == 'application/json'
 
