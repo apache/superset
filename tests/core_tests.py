@@ -766,7 +766,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp('/superset/slice_query/{}/'.format(slc.id))
         assert 'query' in resp
         assert 'language' in resp
-        self.logout();
+        self.logout()
 
     def test_viz_get_fillna_for_columns(self):
         slc = self.get_slice("Girls", db.session)

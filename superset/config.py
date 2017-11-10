@@ -338,7 +338,7 @@ BLUEPRINTS = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-TRACKING_URL_TRANSFORMER = lambda x: x
+TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

@@ -380,7 +380,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         try:
             if isinstance(e.args, tuple) and len(e.args) > 1:
                 message = e.args[1]
-        except:
+        except Exception:
             pass
         return message
 
@@ -555,14 +555,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         limit_clause = "LIMIT {}".format(limit) if limit else ''
         order_by_clause = ''
         if order_by:
-            l = []
+            l = []  # noqa: E741
             for field, desc in order_by:
                 l.append(field + ' DESC' if desc else '')
             order_by_clause = 'ORDER BY ' + ', '.join(l)
 
         where_clause = ''
         if filters:
-            l = []
+            l = []  # noqa: E741
             for field, value in filters.items():
                 l.append("{field} = '{value}'".format(**locals()))
             where_clause = 'WHERE ' + ' AND '.join(l)
@@ -728,7 +728,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def extract_error_message(cls, e):
         try:
             msg = e.message.status.errorMessage
-        except:
+        except Exception:
             msg = str(e)
         return msg
 

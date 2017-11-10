@@ -1243,7 +1243,7 @@ class DistributionBarViz(DistributionPieViz):
             elif len(self.metrics) > 1:
                 series_title = ", ".join(name)
             else:
-                l = [str(s) for s in name[1:]]
+                l = [str(s) for s in name[1:]]  # noqa: E741
                 series_title = ", ".join(l)
             values = []
             for i, v in ys.iteritems():
