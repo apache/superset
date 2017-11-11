@@ -18,7 +18,10 @@ const propTypes = {
   value: PropTypes.object,
   isFloat: PropTypes.bool,
   datasource: PropTypes.object,
-  default: PropTypes.object,
+  default: PropTypes.shape({
+    type: PropTypes.oneOf(['fix', 'metric']),
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  }),
 };
 
 const defaultProps = {
@@ -30,6 +33,7 @@ export default class FixedOrMetricControl extends React.Component {
   constructor(props) {
     super(props);
     this.onChange = this.onChange.bind(this);
+    this.setType = this.setType.bind(this);
     const type = (props.value ? props.value.type : props.default.type) || controlTypes.fixed;
     const value = (props.value ? props.value.value : props.default.value) || '100';
     this.state = {
@@ -46,13 +50,13 @@ export default class FixedOrMetricControl extends React.Component {
     });
   }
   setType(type) {
-    this.setState({ type }, this.onChange);
+    this.setState(() => ({ type }), this.onChange);
   }
   setFixedValue(fixedValue) {
-    this.setState({ fixedValue }, this.onChange);
+    this.setState(() => ({ fixedValue }), this.onChange);
   }
   setMetric(metricValue) {
-    this.setState({ metricValue }, this.onChange);
+    this.setState(() => ({ metricValue }), this.onChange);
   }
   renderPopover() {
     const value = this.props.value || this.props.default;
@@ -64,25 +68,25 @@ export default class FixedOrMetricControl extends React.Component {
           <PopoverSection
             title="Fixed"
             isSelected={type === controlTypes.fixed}
-            onSelect={this.onChange.bind(this, controlTypes.fixed)}
+            onSelect={() => { this.onChange(controlTypes.fixed); }}
           >
             <TextControl
               isFloat
               onChange={this.setFixedValue.bind(this)}
-              onFocus={this.setType.bind(this, controlTypes.fixed)}
+              onFocus={() => { this.setType(controlTypes.fixed); }}
               value={this.state.fixedValue}
             />
           </PopoverSection>
           <PopoverSection
             title="Based on a metric"
             isSelected={type === controlTypes.metric}
-            onSelect={this.onChange.bind(this, controlTypes.metric)}
+            onSelect={() => { this.onChange(controlTypes.metric); }}
           >
             <SelectControl
               {...controls.metric}
               name="metric"
               options={metrics}
-              onFocus={this.setType.bind(this, controlTypes.metric)}
+              onFocus={() => { this.setType(controlTypes.metric); }}
               onChange={this.setMetric.bind(this)}
               value={this.state.metricValue}
             />

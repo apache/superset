@@ -26,14 +26,12 @@ export default class DeckGLContainer extends React.Component {
   }
   componentWillMount() {
     const timer = setInterval(this.tick, 1000);
-    this.setState({ timer });
+    this.setState(() => ({ timer }));
   }
   componentWillReceiveProps(nextProps) {
-    this.setState({
-      viewport: {
-        ...nextProps.viewport,
-      },
-    });
+    this.setState(() => ({
+      viewport: { ...nextProps.viewport },
+    }));
   }
   componentWillUnmount() {
     this.clearInterval(this.state.timer);
@@ -44,9 +42,7 @@ export default class DeckGLContainer extends React.Component {
     delete vp.height;
     const newVp = { ...this.state.viewport, ...vp };
 
-    this.setState({
-      viewport: newVp,
-    });
+    this.setState(() => ({ viewport: newVp }));
     this.props.onViewportChange(newVp);
   }
   tick() {
@@ -57,8 +53,7 @@ export default class DeckGLContainer extends React.Component {
       if (setCV) {
         setCV('viewport', vp);
       }
-
-      this.setState({ previousViewport: this.state.viewport });
+      this.setState(() => ({ previousViewport: this.state.viewport }));
     }
   }
   layers() {
