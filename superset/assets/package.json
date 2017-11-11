@@ -96,6 +96,7 @@
     "srcdoc-polyfill": "^1.0.0",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "urijs": "^1.18.10",
+    "underscore": "^1.8.3",
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {
