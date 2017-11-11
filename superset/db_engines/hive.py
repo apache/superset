@@ -3,7 +3,6 @@ from TCLIService import ttypes
 from thrift import Thrift
 
 
-
 # TODO: contribute back to pyhive.
 def fetch_logs(self, max_rows=1024,
                orientation=ttypes.TFetchOrientation.FETCH_NEXT):

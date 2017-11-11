@@ -12,6 +12,7 @@ from superset.utils import (
     SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
 )
 
+
 class UtilsTestCase(unittest.TestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
