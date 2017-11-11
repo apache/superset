@@ -886,6 +886,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             configuration["hive.server2.proxy.user"] = username
         return configuration
 
+
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"

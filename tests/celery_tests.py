@@ -30,6 +30,8 @@ class CeleryConfig(object):
     CELERY_RESULT_BACKEND = 'db+sqlite:///' + app.config.get('SQL_CELERY_RESULTS_DB_FILE_PATH')
     CELERY_ANNOTATIONS = {'sql_lab.add': {'rate_limit': '10/s'}}
     CONCURRENCY = 1
+
+
 app.config['CELERY_CONFIG'] = CeleryConfig
 
 
