@@ -160,8 +160,7 @@ class GridLayout extends React.Component {
               exploreChartUrl={getExploreUrl(this.props.getFormDataExtra(slice))}
               exportCSVUrl={getExploreUrl(this.props.getFormDataExtra(slice), 'csv')}
               isExpanded={!!this.isExpanded(slice)}
-              isLoading={[undefined, 'loading']
-                .indexOf(this.props.charts['slice_' + slice.slice_id].chartStatus) !== -1}
+              isLoading={this.props.charts['slice_' + slice.slice_id].chartStatus === 'loading'}
               toggleExpandSlice={this.props.toggleExpandSlice}
               forceRefresh={this.forceRefresh}
               removeSlice={this.removeSlice}
