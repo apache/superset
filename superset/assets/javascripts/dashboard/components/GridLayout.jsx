@@ -127,6 +127,45 @@ class GridLayout extends React.Component {
   }
 
   render() {
+    const cells = this.props.dashboard.slices.map((slice) => {
+      const chartKey = `slice_${slice.slice_id}`;
+      const currentChart = this.props.charts[chartKey];
+      const queryResponse = currentChart.queryResponse || {};
+      return (
+        <div
+          id={'slice_' + slice.slice_id}
+          key={slice.slice_id}
+          data-slice-id={slice.slice_id}
+          className={`widget ${slice.form_data.viz_type}`}
+          ref={this.getWidgetId(slice)}
+        >
+          <GridCell
+            slice={slice}
+            chartKey={chartKey}
+            datasource={this.props.datasources[slice.form_data.datasource]}
+            filters={this.props.filters}
+            formData={this.props.getFormDataExtra(slice)}
+            timeout={this.props.timeout}
+            widgetHeight={this.getWidgetHeight(slice)}
+            widgetWidth={this.getWidgetWidth(slice)}
+            exploreChartUrl={getExploreUrl(this.props.getFormDataExtra(slice))}
+            exportCSVUrl={getExploreUrl(this.props.getFormDataExtra(slice), 'csv')}
+            isExpanded={!!this.isExpanded(slice)}
+            isLoading={[undefined, 'loading'].indexOf(currentChart.chartStatus) !== -1}
+            isCached={queryResponse.is_cached}
+            cachedDttm={queryResponse.cached_dttm}
+            toggleExpandSlice={this.props.toggleExpandSlice}
+            forceRefresh={this.forceRefresh}
+            removeSlice={this.removeSlice}
+            updateSliceName={this.updateSliceName}
+            addFilter={this.props.addFilter}
+            getFilters={this.props.getFilters}
+            clearFilter={this.props.clearFilter}
+            removeFilter={this.props.removeFilter}
+          />
+        </div>);
+    });
+
     return (
       <ResponsiveReactGridLayout
         className="layout"
@@ -140,39 +179,7 @@ class GridLayout extends React.Component {
         useCSSTransforms
         draggableHandle=".drag"
       >
-        {this.props.dashboard.slices.map(slice => (
-          <div
-            id={'slice_' + slice.slice_id}
-            key={slice.slice_id}
-            data-slice-id={slice.slice_id}
-            className={`widget ${slice.form_data.viz_type}`}
-            ref={this.getWidgetId(slice)}
-          >
-            <GridCell
-              slice={slice}
-              chartKey={'slice_' + slice.slice_id}
-              datasource={this.props.datasources[slice.form_data.datasource]}
-              filters={this.props.filters}
-              formData={this.props.getFormDataExtra(slice)}
-              timeout={this.props.timeout}
-              widgetHeight={this.getWidgetHeight(slice)}
-              widgetWidth={this.getWidgetWidth(slice)}
-              exploreChartUrl={getExploreUrl(this.props.getFormDataExtra(slice))}
-              exportCSVUrl={getExploreUrl(this.props.getFormDataExtra(slice), 'csv')}
-              isExpanded={!!this.isExpanded(slice)}
-              isLoading={[undefined, 'loading']
-                .indexOf(this.props.charts['slice_' + slice.slice_id].chartStatus) !== -1}
-              toggleExpandSlice={this.props.toggleExpandSlice}
-              forceRefresh={this.forceRefresh}
-              removeSlice={this.removeSlice}
-              updateSliceName={this.updateSliceName}
-              addFilter={this.props.addFilter}
-              getFilters={this.props.getFilters}
-              clearFilter={this.props.clearFilter}
-              removeFilter={this.props.removeFilter}
-            />
-          </div>
-        ))}
+        {cells}
       </ResponsiveReactGridLayout>
     );
   }
