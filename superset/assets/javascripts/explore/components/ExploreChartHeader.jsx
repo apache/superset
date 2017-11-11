@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { chartPropType } from '../../chart/chartReducer';
 import ExploreActionButtons from './ExploreActionButtons';
 import EditableTitle from '../../components/EditableTitle';
+import AlteredSliceTag from '../../components/AlteredSliceTag';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
@@ -52,6 +53,13 @@ class ExploreChartHeader extends React.PureComponent {
           this.props.actions.updateChartTitle(newTitle);
         }
       });
+  }
+
+  renderAlteredTag() {
+    const origFormData = (this.props.slice && this.props.slice.form_data) || {};
+    const currentFormData = this.props.form_data;
+    const tagProps = { origFormData, currentFormData };
+    return (<AlteredSliceTag {...tagProps} />);
   }
 
   renderChartTitle() {
@@ -105,6 +113,8 @@ class ExploreChartHeader extends React.PureComponent {
           </TooltipWrapper>
         </span>
         }
+
+        {this.renderAlteredTag()}
 
         <div className="pull-right">
           {this.props.chart.chartStatus === 'success' &&
