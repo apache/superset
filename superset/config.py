@@ -348,7 +348,9 @@ try:
         print('Loaded your LOCAL configuration at [{}]'.format(
             os.environ[CONFIG_PATH_ENV_VAR]))
         module = sys.modules[__name__]
-        override_conf = imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
+        override_conf = imp.load_source(
+            'superset_config',
+            os.environ[CONFIG_PATH_ENV_VAR])
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))

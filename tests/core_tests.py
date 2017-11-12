@@ -283,7 +283,10 @@ class CoreTests(SupersetTestCase):
             'name': 'main',
             'impersonate_user': False,
         })
-        response = self.client.post('/superset/testconn', data=data, content_type='application/json')
+        response = self.client.post(
+            '/superset/testconn',
+            data=data,
+            content_type='application/json')
         assert response.status_code == 200
         assert response.headers['Content-Type'] == 'application/json'
 
@@ -293,7 +296,10 @@ class CoreTests(SupersetTestCase):
             'name': 'main',
             'impersonate_user': False,
         })
-        response = self.client.post('/superset/testconn', data=data, content_type='application/json')
+        response = self.client.post(
+            '/superset/testconn',
+            data=data,
+            content_type='application/json')
         assert response.status_code == 200
         assert response.headers['Content-Type'] == 'application/json'
 
@@ -311,7 +317,8 @@ class CoreTests(SupersetTestCase):
             assert conn.password != conn_pre.password
 
     def test_databaseview_edit(self, username='admin'):
-        # validate that sending a password-masked uri does not over-write the decrypted uri
+        # validate that sending a password-masked uri does not over-write the decrypted
+        # uri
         self.login(username=username)
         database = self.get_main_database(db.session)
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
@@ -740,7 +747,8 @@ class CoreTests(SupersetTestCase):
         self.assertNotIn('message', data)
         data = self.get_json_resp('/superset/fave_dashboards/{}/'.format(userid))
         self.assertNotIn('message', data)
-        data = self.get_json_resp('/superset/fave_dashboards_by_username/{}/'.format(username))
+        data = self.get_json_resp(
+            '/superset/fave_dashboards_by_username/{}/'.format(username))
         self.assertNotIn('message', data)
 
     def test_slice_id_is_always_logged_correctly_on_web_request(self):
