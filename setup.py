@@ -5,7 +5,7 @@ import subprocess
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
+PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'assets')
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
