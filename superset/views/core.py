@@ -238,10 +238,11 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
             "#sqlalchemy.schema.MetaData) call. ", True),
         'impersonate_user': _(
-            "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user "
-            "who must have permission to run them.<br/>"
-            "If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, "
-            "but impersonate the currently logged on user via hive.server2.proxy.user property."),
+            "If Presto, all the queries in SQL Lab are going to be executed as the "
+            "currently logged on user who must have permission to run them.<br/>"
+            "If Hive and hive.server2.enable.doAs is enabled, will run the queries as "
+            "service account, but impersonate the currently logged on user "
+            "via hive.server2.proxy.user property."),
     }
     label_columns = {
         'expose_in_sqllab': _("Expose in SQL Lab"),
@@ -1102,7 +1103,9 @@ class Superset(BaseSupersetView):
         action = request.args.get('action')
 
         if action == 'overwrite' and not slice_overwrite_perm:
-            return json_error_response("You don't have the rights to alter this slice", status=400)
+            return json_error_response(
+                "You don't have the rights to alter this slice",
+                status=400)
 
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
@@ -1462,7 +1465,8 @@ class Superset(BaseSupersetView):
 
             if database and uri:
                 url = make_url(uri)
-                db_engine = models.Database.get_db_engine_spec_for_backend(url.get_backend_name())
+                db_engine = models.Database.get_db_engine_spec_for_backend(
+                    url.get_backend_name())
                 db_engine.patch()
 
                 masked_url = database.get_password_masked_url_from_uri(uri)

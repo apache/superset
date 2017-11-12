@@ -27,7 +27,8 @@ BASE_DIR = app.config.get('BASE_DIR')
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///' + app.config.get('SQL_CELERY_DB_FILE_PATH')
     CELERY_IMPORTS = ('superset.sql_lab', )
-    CELERY_RESULT_BACKEND = 'db+sqlite:///' + app.config.get('SQL_CELERY_RESULTS_DB_FILE_PATH')
+    CELERY_RESULT_BACKEND = (
+        'db+sqlite:///' + app.config.get('SQL_CELERY_RESULTS_DB_FILE_PATH'))
     CELERY_ANNOTATIONS = {'sql_lab.add': {'rate_limit': '10/s'}}
     CONCURRENCY = 1
 
