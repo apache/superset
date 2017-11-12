@@ -41,6 +41,7 @@ export default function chartReducer(charts = {}, action) {
     [actions.CHART_UPDATE_STARTED](state) {
       return { ...state,
         chartStatus: 'loading',
+        chartAlert: null,
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
         queryRequest: action.queryRequest,
