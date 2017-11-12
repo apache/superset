@@ -229,12 +229,9 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         name = escape(self.slice_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
-    def get_viz(self, url_params_multidict=None):
+    def get_viz(self):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
 
-        :param werkzeug.datastructures.MultiDict url_params_multidict:
-            Contains the visualization params, they override the self.params
-            stored in the database
         :return: object of the 'viz_type' type that is taken from the
             url_params_multidict or self.params.
         :rtype: :py:class:viz.BaseViz
