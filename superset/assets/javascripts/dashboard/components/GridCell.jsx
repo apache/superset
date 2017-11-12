@@ -11,6 +11,8 @@ const propTypes = {
   timeout: PropTypes.number,
   datasource: PropTypes.object,
   isLoading: PropTypes.bool,
+  isCached: PropTypes.bool,
+  cachedDttm: PropTypes.number,
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
@@ -78,8 +80,9 @@ class GridCell extends React.PureComponent {
 
   render() {
     const {
-      exploreChartUrl, exportCSVUrl, isExpanded, isLoading, removeSlice, updateSliceName,
-      toggleExpandSlice, forceRefresh, chartKey, slice, datasource, formData, timeout,
+      exploreChartUrl, exportCSVUrl, isExpanded, isLoading, isCached, cachedDttm,
+      removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
+      chartKey, slice, datasource, formData, timeout,
     } = this.props;
     return (
       <div
@@ -92,6 +95,8 @@ class GridCell extends React.PureComponent {
             exploreChartUrl={exploreChartUrl}
             exportCSVUrl={exportCSVUrl}
             isExpanded={isExpanded}
+            isCached={isCached}
+            cachedDttm={cachedDttm}
             removeSlice={removeSlice}
             updateSliceName={updateSliceName}
             toggleExpandSlice={toggleExpandSlice}
