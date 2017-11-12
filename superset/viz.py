@@ -244,7 +244,6 @@ class BaseViz(object):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
         payload = None
-        force = force if force else self.form_data.get('force') == 'true'
         if not force and cache:
             payload = cache.get(cache_key)
 
