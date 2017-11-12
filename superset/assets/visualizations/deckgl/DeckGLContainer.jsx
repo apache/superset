@@ -23,6 +23,7 @@ export default class DeckGLContainer extends React.Component {
       viewport: props.viewport,
     };
     this.tick = this.tick.bind(this);
+    this.onViewportChange = this.onViewportChange.bind(this);
   }
   componentWillMount() {
     const timer = setInterval(this.tick, 1000);
@@ -69,7 +70,7 @@ export default class DeckGLContainer extends React.Component {
       <MapGL
         {...viewport}
         mapStyle={this.props.mapStyle}
-        onViewportChange={this.onViewportChange.bind(this)}
+        onViewportChange={this.onViewportChange}
         mapboxApiAccessToken={this.props.mapboxApiAccessToken}
       >
         <DeckGL

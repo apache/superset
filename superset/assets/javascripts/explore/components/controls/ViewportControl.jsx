@@ -17,8 +17,15 @@ const PARAMS = [
 
 const propTypes = {
   onChange: PropTypes.func.isRequired,
-  value: PropTypes.object,
+  value: PropTypes.shape({
+    longitude: PropTypes.number,
+    latitude: PropTypes.number,
+    zoom: PropTypes.number,
+    bearing: PropTypes.number,
+    pitch: PropTypes.number,
+  }),
   default: PropTypes.object,
+  name: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
@@ -40,7 +47,7 @@ export default class ViewportControl extends React.Component {
   }
   renderTextControl(ctrl) {
     return (
-      <div>
+      <div key={ctrl}>
         {ctrl}
         <TextControl
           value={this.props.value[ctrl]}
@@ -52,7 +59,7 @@ export default class ViewportControl extends React.Component {
   }
   renderPopover() {
     return (
-      <Popover id="filter-popover" title="Viewport">
+      <Popover id={`filter-popover-${this.props.name}`} title="Viewport">
         {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
       </Popover>
     );

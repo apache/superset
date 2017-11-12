@@ -30,11 +30,10 @@ function deckScatter(slice, payload, setControlValue) {
   });
 
   const layer = new ScatterplotLayer({
-    id: 'scatterplot-layer',
+    id: `scatter-layer-${slice.containerId}`,
     data,
     pickable: true,
     fp64: true,
-    // onHover: info => console.log('Hovered:', info),
     outline: false,
   });
   const viewport = {

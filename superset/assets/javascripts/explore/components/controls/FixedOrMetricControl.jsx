@@ -34,6 +34,8 @@ export default class FixedOrMetricControl extends React.Component {
     super(props);
     this.onChange = this.onChange.bind(this);
     this.setType = this.setType.bind(this);
+    this.setFixedValue = this.setFixedValue.bind(this);
+    this.setMetric = this.setMetric.bind(this);
     const type = (props.value ? props.value.type : props.default.type) || controlTypes.fixed;
     const value = (props.value ? props.value.value : props.default.value) || '100';
     this.state = {
@@ -50,13 +52,13 @@ export default class FixedOrMetricControl extends React.Component {
     });
   }
   setType(type) {
-    this.setState(() => ({ type }), this.onChange);
+    this.setState({ type }, this.onChange);
   }
   setFixedValue(fixedValue) {
-    this.setState(() => ({ fixedValue }), this.onChange);
+    this.setState({ fixedValue }, this.onChange);
   }
   setMetric(metricValue) {
-    this.setState(() => ({ metricValue }), this.onChange);
+    this.setState({ metricValue }, this.onChange);
   }
   renderPopover() {
     const value = this.props.value || this.props.default;
@@ -72,7 +74,7 @@ export default class FixedOrMetricControl extends React.Component {
           >
             <TextControl
               isFloat
-              onChange={this.setFixedValue.bind(this)}
+              onChange={this.setFixedValue}
               onFocus={() => { this.setType(controlTypes.fixed); }}
               value={this.state.fixedValue}
             />
@@ -87,7 +89,7 @@ export default class FixedOrMetricControl extends React.Component {
               name="metric"
               options={metrics}
               onFocus={() => { this.setType(controlTypes.metric); }}
-              onChange={this.setMetric.bind(this)}
+              onChange={this.setMetric}
               value={this.state.metricValue}
             />
           </PopoverSection>

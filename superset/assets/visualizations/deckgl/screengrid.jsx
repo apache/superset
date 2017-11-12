@@ -20,7 +20,7 @@ function deckScreenGridLayer(slice, payload, setControlValue) {
   // Passing a layer creator function instead of a layer since the
   // layer needs to be regenerated at each render
   const layer = () => new ScreenGridLayer({
-    id: 'screengrid-layer',
+    id: `screengrid-layer-${slice.containerId}`,
     data,
     pickable: true,
     cellSizePixels: fd.grid_size,

@@ -13,7 +13,7 @@ function deckScreenGridLayer(slice, payload, setControlValue) {
   }));
 
   const layer = new GridLayer({
-    id: 'screengrid-layer',
+    id: `grid-layer-${slice.containerId}`,
     data,
     pickable: true,
     cellSize: fd.grid_size,
