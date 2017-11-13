@@ -89,6 +89,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'database_expression': _("Database Expression"),
         'type': _('Type'),
     }
+
+
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
@@ -141,6 +143,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     def post_update(self, metric):
         if metric.is_restricted:
             security.merge_perm(sm, 'metric_access', metric.get_perm())
+
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
@@ -283,6 +286,7 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
             tables=", ".join([t.table_name for t in tables]))
         flash(msg, 'info')
         return redirect('/tablemodelview/list/')
+
 
 appbuilder.add_view(
     TableModelView,

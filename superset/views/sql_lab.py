@@ -20,6 +20,7 @@ class QueryView(SupersetModelView):
         'end_time': _('End Time'),
     }
 
+
 appbuilder.add_view(
     QueryView,
     "Queries",
@@ -69,6 +70,7 @@ class SavedQueryViewApi(SavedQueryView):
     show_columns = ['label', 'db_id', 'schema', 'description', 'sql']
     add_columns = show_columns
     edit_columns = add_columns
+
 
 appbuilder.add_view_no_menu(SavedQueryViewApi)
 appbuilder.add_view_no_menu(SavedQueryView)

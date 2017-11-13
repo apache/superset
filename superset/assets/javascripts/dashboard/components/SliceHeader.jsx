@@ -11,6 +11,8 @@ const propTypes = {
   exploreChartUrl: PropTypes.string,
   exportCSVUrl: PropTypes.string,
   isExpanded: PropTypes.bool,
+  isCached: PropTypes.bool,
+  cachedDttm: PropTypes.number,
   formDataExtra: PropTypes.object,
   removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
@@ -40,9 +42,9 @@ class SliceHeader extends React.PureComponent {
 
   render() {
     const slice = this.props.slice;
-    const isCached = slice.is_cached;
+    const isCached = this.props.isCached;
     const isExpanded = !!this.props.isExpanded;
-    const cachedWhen = moment.utc(slice.cached_dttm).fromNow();
+    const cachedWhen = moment.utc(this.props.cachedDttm).fromNow();
     const refreshTooltip = isCached ?
       t('Served from data cached %s . Click to force refresh.', cachedWhen) :
       t('Force refresh data');

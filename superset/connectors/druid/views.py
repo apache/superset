@@ -68,6 +68,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     def post_add(self, col):
         self.post_update(col)
 
+
 appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 
@@ -117,6 +118,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         if metric.is_restricted:
             security.merge_perm(sm, 'metric_access', metric.get_perm())
 
+
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
@@ -154,6 +156,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
+
 
 appbuilder.add_view(
     DruidClusterModelView,
@@ -257,6 +260,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
+
 appbuilder.add_view(
     DruidDatasourceModelView,
     "Druid Datasources",
@@ -302,6 +306,7 @@ class Druid(BaseSupersetView):
         datasources only and add them.
         """
         return self.refresh_datasources(refreshAll=False)
+
 
 appbuilder.add_view_no_menu(Druid)
 

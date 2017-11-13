@@ -550,3 +550,20 @@ same server.
         return "Ok"
 
     BLUEPRINTS = [simple_page]
+
+StatsD logging
+--------------
+
+Superset is instrumented to log events to StatsD if desired. Most endpoints hit
+are logged as well as key events like query start and end in SQL Lab.
+
+To setup StatsD logging, it's a matter of configuring the logger in your
+``superset_config.py``.
+
+..code ::
+
+    from superset.stats_logger import StatsdStatsLogger
+    STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
+
+Note that it's also possible to implement you own logger by deriving
+``superset.stats_logger.BaseStatsLogger``.

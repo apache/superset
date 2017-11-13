@@ -176,7 +176,10 @@ def execute_sql(
     conn = None
     try:
         engine = database.get_sqla_engine(
-            schema=query.schema, nullpool=not ctask.request.called_directly, user_name=user_name)
+            schema=query.schema,
+            nullpool=not ctask.request.called_directly,
+            user_name=user_name,
+        )
         conn = engine.raw_connection()
         cursor = conn.cursor()
         logging.info("Running query: \n{}".format(executed_sql))

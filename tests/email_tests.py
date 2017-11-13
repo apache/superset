@@ -117,5 +117,6 @@ class EmailSmtpTest(unittest.TestCase):
         assert not mock_smtp.called
         assert not mock_smtp_ssl.called
 
+
 if __name__ == '__main__':
     unittest.main()

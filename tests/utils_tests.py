@@ -12,6 +12,7 @@ from superset.utils import (
     SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
 )
 
+
 class UtilsTestCase(unittest.TestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
@@ -109,6 +110,89 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
+    def test_merge_extra_filters_ignores_empty_filters(self):
+        form_data = {'extra_filters': [
+            {'col': 'a', 'op': 'in', 'val': ''},
+            {'col': 'B', 'op': '==', 'val': []},
+        ]}
+        expected = {'filters': []}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+
+    def test_merge_extra_filters_ignores_equal_filters(self):
+        form_data = {
+            'extra_filters': [
+                {'col': 'a', 'op': 'in', 'val': 'someval'},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+            'filters': [
+                {'col': 'a', 'op': 'in', 'val': 'someval'},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+        }
+        expected = {'filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+
+    def test_merge_extra_filters_merges_different_val_types(self):
+        form_data = {
+            'extra_filters': [
+                {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+            'filters': [
+                {'col': 'a', 'op': 'in', 'val': 'someval'},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+        }
+        expected = {'filters': [
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+        form_data = {
+            'extra_filters': [
+                {'col': 'a', 'op': 'in', 'val': 'someval'},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+            'filters': [
+                {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+        }
+        expected = {'filters': [
+            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            {'col': 'a', 'op': 'in', 'val': 'someval'},
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+
+    def test_merge_extra_filters_adds_unequal_lists(self):
+        form_data = {
+            'extra_filters': [
+                {'col': 'a', 'op': 'in', 'val': ['g1', 'g2', 'g3']},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2', 'c3']},
+            ],
+            'filters': [
+                {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
+                {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            ],
+        }
+        expected = {'filters': [
+            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2']},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2']},
+            {'col': 'a', 'op': 'in', 'val': ['g1', 'g2', 'g3']},
+            {'col': 'B', 'op': '==', 'val': ['c1', 'c2', 'c3']},
+        ]}
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+
     def test_datetime_f(self):
         self.assertEquals(
             datetime_f(datetime(1990, 9, 21, 19, 11, 19, 626096)),
@@ -118,7 +202,9 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEquals(datetime_f(None), '<nobr>None</nobr>')
         iso = datetime.now().isoformat()[:10].split('-')
         [a, b, c] = [int(v) for v in iso]
-        self.assertEquals(datetime_f(datetime(a, b, c)), '<nobr>00:00:00</nobr>')
+        self.assertEquals(
+            datetime_f(datetime(a, b, c)), '<nobr>00:00:00</nobr>',
+        )
 
     def test_json_encoded_obj(self):
         obj = {'a': 5, 'b': ['a', 'g', 5]}
