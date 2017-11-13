@@ -65,12 +65,7 @@ export default function RunQueryActionButton(props) {
   } else {
     button = syncBtn;
   }
-
-  return (
-    <div className="inline m-r-5 pull-left">
-      {button}
-    </div>
-  );
+  return button;
 }
 
 RunQueryActionButton.propTypes = propTypes;

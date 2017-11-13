@@ -165,21 +165,26 @@ class SqlEditor extends React.PureComponent {
       <div className="sql-toolbar clearfix" id="js-sql-toolbar">
         <div className="pull-left">
           <Form inline>
-            <RunQueryActionButton
-              allowAsync={this.props.database ? this.props.database.allow_run_async : false}
-              dbId={qe.dbId}
-              queryState={this.props.latestQuery && this.props.latestQuery.state}
-              runQuery={this.runQuery.bind(this)}
-              selectedText={qe.selectedText}
-              stopQuery={this.stopQuery.bind(this)}
-            />
-            <SaveQuery
-              defaultLabel={qe.title}
-              sql={qe.sql}
-              onSave={this.props.actions.saveQuery}
-              schema={qe.schema}
-              dbId={qe.dbId}
-            />
+            <span className="m-r-5">
+              <RunQueryActionButton
+                allowAsync={this.props.database ? this.props.database.allow_run_async : false}
+                dbId={qe.dbId}
+                queryState={this.props.latestQuery && this.props.latestQuery.state}
+                runQuery={this.runQuery.bind(this)}
+                selectedText={qe.selectedText}
+                stopQuery={this.stopQuery.bind(this)}
+              />
+            </span>
+            <span className="m-r-5">
+              <SaveQuery
+                defaultLabel={qe.title}
+                sql={qe.sql}
+                className="m-r-5"
+                onSave={this.props.actions.saveQuery}
+                schema={qe.schema}
+                dbId={qe.dbId}
+              />
+            </span>
             {ctasControls}
           </Form>
         </div>
