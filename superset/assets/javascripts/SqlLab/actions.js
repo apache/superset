@@ -153,10 +153,12 @@ export function runQuery(query) {
             msg = err.responseText;
           }
         }
-        if (textStatus === 'error' && errorThrown === '') {
-          msg = t('Could not connect to server');
-        } else if (msg === null) {
-          msg = `[${textStatus}] ${errorThrown}`;
+        if (msg === null) {
+          if (errorThrown) {
+            msg = `[${textStatus}] ${errorThrown}`;
+          } else {
+            msg = t('Unknown error');
+          }
         }
         if (msg.indexOf('CSRF token') > 0) {
           msg = t('Your session timed out, please refresh your page and try again.');
