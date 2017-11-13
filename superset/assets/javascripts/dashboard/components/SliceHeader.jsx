@@ -12,7 +12,7 @@ const propTypes = {
   exportCSVUrl: PropTypes.string,
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
-  cachedDttm: PropTypes.number,
+  cachedDttm: PropTypes.string,
   formDataExtra: PropTypes.object,
   removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
