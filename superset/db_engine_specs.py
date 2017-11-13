@@ -245,6 +245,7 @@ class PostgresEngineSpec(BaseEngineSpec):
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
 
+
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     time_grains = (
