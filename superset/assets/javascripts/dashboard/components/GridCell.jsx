@@ -12,7 +12,7 @@ const propTypes = {
   datasource: PropTypes.object,
   isLoading: PropTypes.bool,
   isCached: PropTypes.bool,
-  cachedDttm: PropTypes.number,
+  cachedDttm: PropTypes.string,
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
