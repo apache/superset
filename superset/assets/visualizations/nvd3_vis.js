@@ -314,7 +314,6 @@ function nvd3Vis(slice, payload) {
         chart.showLegend(false);
       } else {
         chart.showLegend(fd.show_legend);
-        chart.legend.margin({top: 5, right:30, left:80, bottom: 30}); //you can have your own margins
       }
     }
 
