@@ -16,7 +16,7 @@ def get_git_sha():
         s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
         return s.strip()
     except Exception:
-        return ""
+        return ''
 
 
 GIT_SHA = get_git_sha()
@@ -24,10 +24,10 @@ version_info = {
     'GIT_SHA': GIT_SHA,
     'version': version_string,
 }
-print("-==-" * 15)
-print("VERSION: " + version_string)
-print("GIT SHA: " + GIT_SHA)
-print("-==-" * 15)
+print('-==-' * 15)
+print('VERSION: ' + version_string)
+print('GIT SHA: ' + GIT_SHA)
+print('-==-' * 15)
 
 with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
     json.dump(version_info, version_file)
@@ -36,8 +36,8 @@ with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
 setup(
     name='superset',
     description=(
-        "A interactive data visualization platform build on SqlAlchemy "
-        "and druid.io"),
+        'A interactive data visualization platform build on SqlAlchemy '
+        'and druid.io'),
     version=version_string,
     packages=find_packages(),
     include_package_data=True,

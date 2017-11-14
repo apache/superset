@@ -122,7 +122,7 @@ class Query(Model):
         tab = (self.tab_name.replace(' ', '_').lower()
                if self.tab_name else 'notab')
         tab = re.sub(r'\W+', '', tab)
-        return "sqllab_{tab}_{ts}".format(**locals())
+        return 'sqllab_{tab}_{ts}'.format(**locals())
 
 
 class SavedQuery(Model, AuditMixinNullable):

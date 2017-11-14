@@ -138,7 +138,7 @@ class SqlMetric(Model, BaseMetric):
     @property
     def perm(self):
         return (
-            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+            '{parent_name}.[{obj.metric_name}](id:{obj.id})'
         ).format(obj=self,
                  parent_name=self.table.full_name) if self.table else None
 
@@ -155,7 +155,7 @@ class SqlaTable(Model, BaseDatasource):
 
     """An ORM object for SqlAlchemy table references"""
 
-    type = "table"
+    type = 'table'
     query_language = 'sql'
     metric_class = SqlMetric
     column_class = TableColumn
@@ -177,7 +177,7 @@ class SqlaTable(Model, BaseDatasource):
     schema = Column(String(255))
     sql = Column(Text)
 
-    baselink = "tablemodelview"
+    baselink = 'tablemodelview'
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
@@ -212,14 +212,14 @@ class SqlaTable(Model, BaseDatasource):
 
     def get_perm(self):
         return (
-            "[{obj.database}].[{obj.table_name}]"
-            "(id:{obj.id})").format(obj=self)
+            '[{obj.database}].[{obj.table_name}]'
+            '(id:{obj.id})').format(obj=self)
 
     @property
     def name(self):
         if not self.schema:
             return self.table_name
-        return "{}.{}".format(self.schema, self.table_name)
+        return '{}.{}'.format(self.schema, self.table_name)
 
     @property
     def full_name(self):
@@ -251,18 +251,18 @@ class SqlaTable(Model, BaseDatasource):
         return df.to_html(
             index=False,
             classes=(
-                "dataframe table table-striped table-bordered "
-                "table-condensed"))
+                'dataframe table table-striped table-bordered '
+                'table-condensed'))
 
     @property
     def sql_url(self):
-        return self.database.sql_url + "?table_name=" + str(self.table_name)
+        return self.database.sql_url + '?table_name=' + str(self.table_name)
 
     @property
     def time_column_grains(self):
         return {
-            "time_columns": self.dttm_cols,
-            "time_grains": [grain.name for grain in self.database.grains()],
+            'time_columns': self.dttm_cols,
+            'time_grains': [grain.name for grain in self.database.grains()],
         }
 
     def get_col(self, col_name):
@@ -304,9 +304,9 @@ class SqlaTable(Model, BaseDatasource):
             qry = qry.where(tp.process_template(self.fetch_values_predicate))
 
         engine = self.database.get_sqla_engine()
-        sql = "{}".format(
+        sql = '{}'.format(
             qry.compile(
-                engine, compile_kwargs={"literal_binds": True}, ),
+                engine, compile_kwargs={'literal_binds': True}, ),
         )
 
         df = pd.read_sql_query(sql=sql, con=engine)
@@ -322,7 +322,7 @@ class SqlaTable(Model, BaseDatasource):
         sql = str(
             qry.compile(
                 engine,
-                compile_kwargs={"literal_binds": True},
+                compile_kwargs={'literal_binds': True},
             ),
         )
         logging.info(sql)
@@ -389,10 +389,10 @@ class SqlaTable(Model, BaseDatasource):
 
         if not granularity and is_timeseries:
             raise Exception(_(
-                "Datetime column not provided as part table configuration "
-                "and is required by this type of chart"))
+                'Datetime column not provided as part table configuration '
+                'and is required by this type of chart'))
         if not groupby and not metrics and not columns:
-            raise Exception(_("Empty query?"))
+            raise Exception(_('Empty query?'))
         for m in metrics:
             if m not in metrics_dict:
                 raise Exception(_("Metric '{}' is not valid".format(m)))
@@ -400,7 +400,7 @@ class SqlaTable(Model, BaseDatasource):
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:
-            main_metric_expr = literal_column("COUNT(*)").label("ccount")
+            main_metric_expr = literal_column('COUNT(*)').label('ccount')
 
         select_exprs = []
         groupby_exprs = []
@@ -465,7 +465,7 @@ class SqlaTable(Model, BaseDatasource):
                         # For backwards compatibility and edge cases
                         # where a column data type might have changed
                         if isinstance(v, basestring):
-                            v = v.strip("'").strip('"')
+                            v = v.strip(""").strip(""")
                             if col_obj.is_num:
                                 v = utils.string_to_num(v)
 
@@ -600,9 +600,9 @@ class SqlaTable(Model, BaseDatasource):
             try:
                 datatype = col.type.compile(dialect=db_dialect).upper()
             except Exception as e:
-                datatype = "UNKNOWN"
+                datatype = 'UNKNOWN'
                 logging.error(
-                    "Unrecognized data type in {}.{}".format(table, col.name))
+                    'Unrecognized data type in {}.{}'.format(table, col.name))
                 logging.exception(e)
             dbcol = dbcols.get(col.name, None)
             if not dbcol:
@@ -622,35 +622,35 @@ class SqlaTable(Model, BaseDatasource):
                     metric_name='sum__' + dbcol.column_name,
                     verbose_name='sum__' + dbcol.column_name,
                     metric_type='sum',
-                    expression="SUM({})".format(quoted),
+                    expression='SUM({})'.format(quoted),
                 ))
             if dbcol.avg:
                 metrics.append(M(
                     metric_name='avg__' + dbcol.column_name,
                     verbose_name='avg__' + dbcol.column_name,
                     metric_type='avg',
-                    expression="AVG({})".format(quoted),
+                    expression='AVG({})'.format(quoted),
                 ))
             if dbcol.max:
                 metrics.append(M(
                     metric_name='max__' + dbcol.column_name,
                     verbose_name='max__' + dbcol.column_name,
                     metric_type='max',
-                    expression="MAX({})".format(quoted),
+                    expression='MAX({})'.format(quoted),
                 ))
             if dbcol.min:
                 metrics.append(M(
                     metric_name='min__' + dbcol.column_name,
                     verbose_name='min__' + dbcol.column_name,
                     metric_type='min',
-                    expression="MIN({})".format(quoted),
+                    expression='MIN({})'.format(quoted),
                 ))
             if dbcol.count_distinct:
                 metrics.append(M(
                     metric_name='count_distinct__' + dbcol.column_name,
                     verbose_name='count_distinct__' + dbcol.column_name,
                     metric_type='count_distinct',
-                    expression="COUNT(DISTINCT {})".format(quoted),
+                    expression='COUNT(DISTINCT {})'.format(quoted),
                 ))
             dbcol.type = datatype
 
@@ -658,7 +658,7 @@ class SqlaTable(Model, BaseDatasource):
             metric_name='count',
             verbose_name='COUNT(*)',
             metric_type='count',
-            expression="COUNT(*)",
+            expression='COUNT(*)',
         ))
 
         dbmetrics = db.session.query(M).filter(M.table_id == self.id).filter(

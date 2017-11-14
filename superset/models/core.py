@@ -43,7 +43,7 @@ config = app.config
 stats_logger = config.get('STATS_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
-PASSWORD_MASK = "X" * 10
+PASSWORD_MASK = 'X' * 10
 
 def set_related_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
@@ -209,19 +209,19 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     def slice_url(self):
         """Defines the url to access the slice"""
         return (
-            "/superset/explore/{obj.datasource_type}/"
-            "{obj.datasource_id}/?form_data={params}".format(
+            '/superset/explore/{obj.datasource_type}/'
+            '{obj.datasource_id}/?form_data={params}'.format(
                 obj=self, params=parse.quote(json.dumps(self.form_data))))
 
     @property
     def slice_id_url(self):
         return (
-            "/superset/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/"
+            '/superset/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/'
         ).format(slc=self)
 
     @property
     def edit_url(self):
-        return "/slicemodelview/edit/{}".format(self.id)
+        return '/slicemodelview/edit/{}'.format(self.id)
 
     @property
     def slice_link(self):
@@ -238,9 +238,9 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         """
         slice_params = json.loads(self.params)
         slice_params['slice_id'] = self.id
-        slice_params['json'] = "false"
+        slice_params['json'] = 'false'
         slice_params['slice_name'] = self.slice_name
-        slice_params['viz_type'] = self.viz_type if self.viz_type else "table"
+        slice_params['viz_type'] = self.viz_type if self.viz_type else 'table'
 
         return viz_types[slice_params.get('viz_type')](
             self.datasource,
@@ -327,8 +327,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     @property
     def table_names(self):
         # pylint: disable=no-member
-        return ", ".join(
-            {"{}".format(s.datasource.full_name) for s in self.slices})
+        return ', '.join(
+            {'{}'.format(s.datasource.full_name) for s in self.slices})
 
     @property
     def url(self):
@@ -338,9 +338,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             default_filters = json_metadata.get('default_filters')
             if default_filters:
                 filters = parse.quote(default_filters.encode('utf8'))
-                return "/superset/dashboard/{}/?preselect_filters={}".format(
+                return '/superset/dashboard/{}/?preselect_filters={}'.format(
                     self.slug or self.id, filters)
-        return "/superset/dashboard/{}/".format(self.slug or self.id)
+        return '/superset/dashboard/{}/'.format(self.slug or self.id)
 
     @property
     def datasources(self):
@@ -538,7 +538,7 @@ class Database(Model, AuditMixinNullable):
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
-    type = "table"
+    type = 'table'
 
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
@@ -633,7 +633,7 @@ class Database(Model, AuditMixinNullable):
             effective_username)
 
         masked_url = self.get_password_masked_url(url)
-        logging.info("Database.get_sqla_engine(). Masked URL: {0}".format(masked_url))
+        logging.info('Database.get_sqla_engine(). Masked URL: {0}'.format(masked_url))
 
         params = extra.get('engine_params', {})
         if nullpool:
@@ -647,7 +647,7 @@ class Database(Model, AuditMixinNullable):
                 self.impersonate_user,
                 effective_username))
         if configuration:
-            params["connect_args"] = {"configuration": configuration}
+            params['connect_args'] = {'configuration': configuration}
 
         return create_engine(url, **params)
 
@@ -676,7 +676,7 @@ class Database(Model, AuditMixinNullable):
 
     def compile_sqla_query(self, qry, schema=None):
         eng = self.get_sqla_engine(schema=schema)
-        compiled = qry.compile(eng, compile_kwargs={"literal_binds": True})
+        compiled = qry.compile(eng, compile_kwargs={'literal_binds': True})
         return '{}'.format(compiled)
 
     def select_star(
@@ -709,7 +709,7 @@ class Database(Model, AuditMixinNullable):
         if not schema:
             tables_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'table', force=force)
-            return tables_dict.get("", [])
+            return tables_dict.get('', [])
         return sorted(
             self.db_engine_spec.get_table_names(schema, self.inspector))
 
@@ -717,7 +717,7 @@ class Database(Model, AuditMixinNullable):
         if not schema:
             views_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'view', force=force)
-            return views_dict.get("", [])
+            return views_dict.get('', [])
         views = []
         try:
             views = self.inspector.get_view_names(schema)
@@ -796,7 +796,7 @@ class Database(Model, AuditMixinNullable):
 
     def get_perm(self):
         return (
-            "[{obj.database_name}].(id:{obj.id})").format(obj=self)
+            '[{obj.database_name}].(id:{obj.id})').format(obj=self)
 
     def has_table(self, table):
         engine = self.get_sqla_engine()
@@ -851,7 +851,7 @@ class Log(Model):
             except (ValueError, TypeError):
                 slice_id = 0
 
-            params = ""
+            params = ''
             try:
                 params = json.dumps(d)
             except Exception:
@@ -948,6 +948,6 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
             )
             href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
             if r.name in self.ROLES_BLACKLIST:
-                href = "{} Role".format(r.name)
+                href = '{} Role'.format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'

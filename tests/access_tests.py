@@ -446,7 +446,7 @@ class RequestAccessTests(SupersetTestCase):
         # request access to the table
         resp = self.get_resp(
             ACCESS_REQUEST.format('table', table_1_id, 'go'))
-        assert "Access was requested" in resp
+        assert 'Access was requested' in resp
         access_request1 = self.get_access_requests('gamma', 'table', table_1_id)
         assert access_request1 is not None
 
@@ -463,7 +463,7 @@ class RequestAccessTests(SupersetTestCase):
             alpha_role,
             sm.find_permission_view_menu('datasource_access', table3_perm))
         sm.add_permission_role(
-            sm.find_role("energy_usage_role"),
+            sm.find_role('energy_usage_role'),
             sm.find_permission_view_menu('datasource_access', table3_perm))
         session.commit()
 

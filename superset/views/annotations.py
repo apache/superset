@@ -20,15 +20,15 @@ class AnnotationModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def pre_add(self, obj):
         if not obj.layer:
-            raise Exception("Annotation layer is required.")
+            raise Exception('Annotation layer is required.')
         if not obj.start_dttm and not obj.end_dttm:
-            raise Exception("Annotation start time or end time is required.")
+            raise Exception('Annotation start time or end time is required.')
         elif not obj.start_dttm:
             obj.start_dttm = obj.end_dttm
         elif not obj.end_dttm:
             obj.end_dttm = obj.start_dttm
         elif obj.end_dttm < obj.start_dttm:
-            raise Exception("Annotation end time must be no earlier than start time.")
+            raise Exception('Annotation end time must be no earlier than start time.')
 
     def pre_update(self, obj):
         self.pre_add(obj)
@@ -43,17 +43,17 @@ class AnnotationLayerModelView(SupersetModelView, DeleteMixin):
 
 appbuilder.add_view(
     AnnotationLayerModelView,
-    "Annotation Layers",
-    label=__("Annotation Layers"),
-    icon="fa-comment",
-    category="Manage",
-    category_label=__("Manage"),
+    'Annotation Layers',
+    label=__('Annotation Layers'),
+    icon='fa-comment',
+    category='Manage',
+    category_label=__('Manage'),
     category_icon='')
 appbuilder.add_view(
     AnnotationModelView,
-    "Annotations",
-    label=__("Annotations"),
-    icon="fa-comments",
-    category="Manage",
-    category_label=__("Manage"),
+    'Annotations',
+    label=__('Annotations'),
+    icon='fa-comments',
+    category='Manage',
+    category_label=__('Manage'),
     category_icon='')

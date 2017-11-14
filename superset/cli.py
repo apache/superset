@@ -29,38 +29,38 @@ def init():
 
 @manager.option(
     '-d', '--debug', action='store_true',
-    help="Start the web server in debug mode")
+    help='Start the web server in debug mode')
 @manager.option(
     '-n', '--no-reload', action='store_false', dest='no_reload',
-    default=config.get("FLASK_USE_RELOAD"),
+    default=config.get('FLASK_USE_RELOAD'),
     help="Don't use the reloader in debug mode")
 @manager.option(
-    '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
-    help="Specify the address to which to bind the web server")
+    '-a', '--address', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
+    help='Specify the address to which to bind the web server')
 @manager.option(
-    '-p', '--port', default=config.get("SUPERSET_WEBSERVER_PORT"),
-    help="Specify the port on which to run the web server")
+    '-p', '--port', default=config.get('SUPERSET_WEBSERVER_PORT'),
+    help='Specify the port on which to run the web server')
 @manager.option(
     '-w', '--workers',
-    default=config.get("SUPERSET_WORKERS", 2),
-    help="Number of gunicorn web server workers to fire up")
+    default=config.get('SUPERSET_WORKERS', 2),
+    help='Number of gunicorn web server workers to fire up')
 @manager.option(
-    '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
-    help="Specify the timeout (seconds) for the gunicorn web server")
+    '-t', '--timeout', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
+    help='Specify the timeout (seconds) for the gunicorn web server')
 @manager.option(
-    '-s', '--socket', default=config.get("SUPERSET_WEBSERVER_SOCKET"),
-    help="Path to a UNIX socket as an alternative to address:port, e.g. "
-         "/var/run/superset.sock. "
-         "Will override the address and port values.")
+    '-s', '--socket', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
+    help='Path to a UNIX socket as an alternative to address:port, e.g. '
+         '/var/run/superset.sock. '
+         'Will override the address and port values.')
 def runserver(debug, no_reload, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
-    debug = debug or config.get("DEBUG")
+    debug = debug or config.get('DEBUG')
     if debug:
         print(Fore.BLUE + '-=' * 20)
         print(
-            Fore.YELLOW + "Starting Superset server in " +
-            Fore.RED + "DEBUG" +
-            Fore.YELLOW + " mode")
+            Fore.YELLOW + 'Starting Superset server in ' +
+            Fore.RED + 'DEBUG' +
+            Fore.YELLOW + ' mode')
         print(Fore.BLUE + '-=' * 20)
         print(Style.RESET_ALL)
         app.run(
@@ -70,16 +70,16 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
             debug=True,
             use_reloader=no_reload)
     else:
-        addr_str = " unix:{socket} " if socket else" {address}:{port} "
+        addr_str = ' unix:{socket} ' if socket else' {address}:{port} '
         cmd = (
-            "gunicorn "
-            "-w {workers} "
-            "--timeout {timeout} "
-            "-b " + addr_str +
-            "--limit-request-line 0 "
-            "--limit-request-field_size 0 "
-            "superset:app").format(**locals())
-        print(Fore.GREEN + "Starting server with command: ")
+            'gunicorn '
+            '-w {workers} '
+            '--timeout {timeout} '
+            '-b ' + addr_str +
+            '--limit-request-line 0 '
+            '--limit-request-field_size 0 '
+            'superset:app').format(**locals())
+        print(Fore.GREEN + 'Starting server with command: ')
         print(Fore.YELLOW + cmd)
         print(Style.RESET_ALL)
         Popen(cmd, shell=True).wait()
@@ -87,69 +87,69 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
 
 @manager.option(
     '-v', '--verbose', action='store_true',
-    help="Show extra information")
+    help='Show extra information')
 def version(verbose):
     """Prints the current version number"""
     print(Fore.BLUE + '-=' * 15)
-    print(Fore.YELLOW + "Superset " + Fore.CYAN + "{version}".format(
+    print(Fore.YELLOW + 'Superset ' + Fore.CYAN + '{version}'.format(
         version=config.get('VERSION_STRING')))
     print(Fore.BLUE + '-=' * 15)
     if verbose:
-        print("[DB] : " + "{}".format(db.engine))
+        print('[DB] : ' + '{}'.format(db.engine))
     print(Style.RESET_ALL)
 
 
 @manager.option(
     '-t', '--load-test-data', action='store_true',
-    help="Load additional test data")
+    help='Load additional test data')
 def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     from superset import data
-    print("Loading examples into {}".format(db))
+    print('Loading examples into {}'.format(db))
 
     data.load_css_templates()
 
-    print("Loading energy related dataset")
+    print('Loading energy related dataset')
     data.load_energy()
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
     data.load_world_bank_health_n_pop()
 
-    print("Loading [Birth names]")
+    print('Loading [Birth names]')
     data.load_birth_names()
 
-    print("Loading [Random time series data]")
+    print('Loading [Random time series data]')
     data.load_random_time_series_data()
 
-    print("Loading [Random long/lat data]")
+    print('Loading [Random long/lat data]')
     data.load_long_lat_data()
 
-    print("Loading [Country Map data]")
+    print('Loading [Country Map data]')
     data.load_country_map_data()
 
-    print("Loading [Multiformat time series]")
+    print('Loading [Multiformat time series]')
     data.load_multiformat_time_series_data()
 
-    print("Loading [Misc Charts] dashboard")
+    print('Loading [Misc Charts] dashboard')
     data.load_misc_dashboard()
 
     if load_test_data:
-        print("Loading [Unicode test data]")
+        print('Loading [Unicode test data]')
         data.load_unicode_test_data()
 
 
 @manager.option(
     '-d', '--datasource',
     help=(
-        "Specify which datasource name to load, if omitted, all "
-        "datasources will be refreshed"
+        'Specify which datasource name to load, if omitted, all '
+        'datasources will be refreshed'
     ),
 )
 @manager.option(
     '-m', '--merge',
     help=(
         "Specify using 'merge' property during operation. "
-        "Default value is False "
+        'Default value is False '
     ),
 )
 def refresh_druid(datasource, merge):
@@ -167,8 +167,8 @@ def refresh_druid(datasource, merge):
             logging.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
         print(
-            "Refreshed metadata from cluster "
-            "[" + cluster.cluster_name + "]")
+            'Refreshed metadata from cluster '
+            '[' + cluster.cluster_name + ']')
     session.commit()
 
 
@@ -188,14 +188,14 @@ def update_datasources_cache():
 @manager.option(
     '-w', '--workers',
     type=int,
-    help="Number of celery server workers to fire up")
+    help='Number of celery server workers to fire up')
 def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
     if workers:
         celery_app.conf.update(CELERYD_CONCURRENCY=workers)
-    elif config.get("SUPERSET_CELERY_WORKERS"):
+    elif config.get('SUPERSET_CELERY_WORKERS'):
         celery_app.conf.update(
-            CELERYD_CONCURRENCY=config.get("SUPERSET_CELERY_WORKERS"))
+            CELERYD_CONCURRENCY=config.get('SUPERSET_CELERY_WORKERS'))
 
     worker = celery_app.Worker(optimization='fair')
     worker.start()
@@ -216,12 +216,12 @@ def flower(port, address):
     broker"""
     BROKER_URL = celery_app.conf.BROKER_URL
     cmd = (
-        "celery flower "
-        "--broker={BROKER_URL} "
-        "--port={port} "
-        "--address={address} "
+        'celery flower '
+        '--broker={BROKER_URL} '
+        '--port={port} '
+        '--address={address} '
     ).format(**locals())
-    print(Fore.GREEN + "Starting a Celery Flower instance")
+    print(Fore.GREEN + 'Starting a Celery Flower instance')
     print(Fore.BLUE + '-=' * 40)
     print(Fore.YELLOW + cmd)
     print(Fore.BLUE + '-=' * 40)

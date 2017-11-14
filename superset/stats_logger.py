@@ -30,17 +30,17 @@ class BaseStatsLogger(object):
 class DummyStatsLogger(BaseStatsLogger):
     def incr(self, key):
         logging.debug(
-            Fore.CYAN + "[stats_logger] (incr) " + key + Style.RESET_ALL)
+            Fore.CYAN + '[stats_logger] (incr) ' + key + Style.RESET_ALL)
 
     def decr(self, key):
         logging.debug((
-            Fore.CYAN + "[stats_logger] (decr) " + key +
+            Fore.CYAN + '[stats_logger] (decr) ' + key +
             Style.RESET_ALL))
 
     def gauge(self, key, value):
         logging.debug((
-            Fore.CYAN + "[stats_logger] (gauge) "
-            "{key} | {value}" + Style.RESET_ALL).format(**locals()))
+            Fore.CYAN + '[stats_logger] (gauge) '
+            '{key} | {value}' + Style.RESET_ALL).format(**locals()))
 
 
 try:

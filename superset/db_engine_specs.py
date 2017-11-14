@@ -106,7 +106,7 @@ class BaseEngineSpec(object):
             all_result_sets += [
                 '{}.{}'.format(schema, t) for t in result_sets[schema]]
         if all_result_sets:
-            result_sets[""] = all_result_sets
+            result_sets[''] = all_result_sets
         return result_sets
 
     @classmethod
@@ -139,7 +139,7 @@ class BaseEngineSpec(object):
         For those it's probably better to not alter the database
         component of the URI with the schema name, it won't work.
 
-        Some database drivers like presto accept "{catalog}/{schema}" in
+        Some database drivers like presto accept '{catalog}/{schema}' in
         the database component of the URL, that can be handled here.
         """
         return uri
@@ -211,15 +211,15 @@ class PostgresEngineSpec(BaseEngineSpec):
     engine = 'postgresql'
 
     time_grains = (
-        Grain("Time Column", _('Time Column'), "{col}"),
-        Grain("second", _('second'), "DATE_TRUNC('second', \"{col}\")"),
-        Grain("minute", _('minute'), "DATE_TRUNC('minute', \"{col}\")"),
-        Grain("hour", _('hour'), "DATE_TRUNC('hour', \"{col}\")"),
-        Grain("day", _('day'), "DATE_TRUNC('day', \"{col}\")"),
-        Grain("week", _('week'), "DATE_TRUNC('week', \"{col}\")"),
-        Grain("month", _('month'), "DATE_TRUNC('month', \"{col}\")"),
-        Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', \"{col}\")"),
-        Grain("year", _('year'), "DATE_TRUNC('year', \"{col}\")"),
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'), "DATE_TRUNC('second', '{col}')"),
+        Grain('minute', _('minute'), "DATE_TRUNC('minute', '{col}')"),
+        Grain('hour', _('hour'), "DATE_TRUNC('hour', '{col}')"),
+        Grain('day', _('day'), "DATE_TRUNC('day', '{col}')"),
+        Grain('week', _('week'), "DATE_TRUNC('week', '{col}')"),
+        Grain('month', _('month'), "DATE_TRUNC('month', '{col}')"),
+        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', '{col}')"),
+        Grain('year', _('year'), "DATE_TRUNC('year', '{col}')"),
     )
 
     @classmethod
@@ -295,9 +295,9 @@ class SqliteEngineSpec(BaseEngineSpec):
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain('day', _('day'), 'DATE({col})'),
-        Grain("week", _('week'),
+        Grain('week', _('week'),
               "DATE({col}, -strftime('%w', {col}) || ' days')"),
-        Grain("month", _('month'),
+        Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')"),
     )
 
@@ -321,7 +321,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         all_result_sets += [
             '{}.{}'.format(schema, t) for t in result_sets[schema]]
         if all_result_sets:
-            result_sets[""] = all_result_sets
+            result_sets[''] = all_result_sets
         return result_sets
 
     @classmethod
@@ -342,25 +342,25 @@ class MySQLEngineSpec(BaseEngineSpec):
     cursor_execute_kwargs = {'args': {}}
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
-        Grain("second", _('second'), "DATE_ADD(DATE({col}), "
-              "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
-              " + SECOND({col})) SECOND)"),
-        Grain("minute", _('minute'), "DATE_ADD(DATE({col}), "
-              "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)"),
-        Grain("hour", _('hour'), "DATE_ADD(DATE({col}), "
-              "INTERVAL HOUR({col}) HOUR)"),
+        Grain('second', _('second'), 'DATE_ADD(DATE({col}), '
+              'INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60'
+              ' + SECOND({col})) SECOND)'),
+        Grain('minute', _('minute'), 'DATE_ADD(DATE({col}), '
+              'INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)'),
+        Grain('hour', _('hour'), 'DATE_ADD(DATE({col}), '
+              'INTERVAL HOUR({col}) HOUR)'),
         Grain('day', _('day'), 'DATE({col})'),
-        Grain("week", _('week'), "DATE(DATE_SUB({col}, "
-              "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
-        Grain("month", _('month'), "DATE(DATE_SUB({col}, "
-              "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
-        Grain("quarter", _('quarter'), "MAKEDATE(YEAR({col}), 1) "
-              "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER"),
-        Grain("year", _('year'), "DATE(DATE_SUB({col}, "
-              "INTERVAL DAYOFYEAR({col}) - 1 DAY))"),
-        Grain("week_start_monday", _('week_start_monday'),
-              "DATE(DATE_SUB({col}, "
-              "INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))"),
+        Grain('week', _('week'), 'DATE(DATE_SUB({col}, '
+              'INTERVAL DAYOFWEEK({col}) - 1 DAY))'),
+        Grain('month', _('month'), 'DATE(DATE_SUB({col}, '
+              'INTERVAL DAYOFMONTH({col}) - 1 DAY))'),
+        Grain('quarter', _('quarter'), 'MAKEDATE(YEAR({col}), 1) '
+              '+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER'),
+        Grain('year', _('year'), 'DATE(DATE_SUB({col}, '
+              'INTERVAL DAYOFYEAR({col}) - 1 DAY))'),
+        Grain('week_start_monday', _('week_start_monday'),
+              'DATE(DATE_SUB({col}, '
+              'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))'),
     )
 
     @classmethod
@@ -378,7 +378,7 @@ class MySQLEngineSpec(BaseEngineSpec):
 
     @classmethod
     def epoch_to_dttm(cls):
-        return "from_unixtime({col})"
+        return 'from_unixtime({col})'
 
     @classmethod
     def extract_error_message(cls, e):
@@ -412,10 +412,10 @@ class PrestoEngineSpec(BaseEngineSpec):
               "date_trunc('month', CAST({col} AS TIMESTAMP))"),
         Grain('quarter', _('quarter'),
               "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
-        Grain("week_ending_saturday", _('week_ending_saturday'),
+        Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-              "CAST({col} AS TIMESTAMP))))"),
-        Grain("week_start_sunday", _('week_start_sunday'),
+              'CAST({col} AS TIMESTAMP))))'),
+        Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
     )
@@ -439,7 +439,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def escape_sql(cls, sql):
-        return re.sub(r'%%|%', "%%", sql)
+        return re.sub(r'%%|%', '%%', sql)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -452,7 +452,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def epoch_to_dttm(cls):
-        return "from_unixtime({col})"
+        return 'from_unixtime({col})'
 
     @classmethod
     @cache_util.memoized_func(
@@ -474,7 +474,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         result_sets = defaultdict(list)
         for unused, row in result_set_df.iterrows():
             result_sets[row['table_schema']].append(row['table_name'])
-            result_sets[""].append('{}.{}'.format(
+            result_sets[''].append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
         return result_sets
 
@@ -486,7 +486,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         cols = indexes[0].get('column_names', [])
         full_table_name = table_name
         if schema_name and '.' not in table_name:
-            full_table_name = "{}.{}".format(schema_name, table_name)
+            full_table_name = '{}.{}'.format(schema_name, table_name)
         pql = cls._partition_query(full_table_name)
         col_name, latest_part = cls.latest_partition(
             table_name, schema_name, database, show_first=True)
@@ -561,7 +561,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         :param filters: a list of filters to apply
         :param filters: dict of field name and filter value combinations
         """
-        limit_clause = "LIMIT {}".format(limit) if limit else ''
+        limit_clause = 'LIMIT {}'.format(limit) if limit else ''
         order_by_clause = ''
         if order_by:
             l = []  # noqa: E741
@@ -610,12 +610,12 @@ class PrestoEngineSpec(BaseEngineSpec):
         indexes = database.get_indexes(table_name, schema)
         if len(indexes[0]['column_names']) < 1:
             raise SupersetTemplateException(
-                "The table should have one partitioned field")
+                'The table should have one partitioned field')
         elif not show_first and len(indexes[0]['column_names']) > 1:
             raise SupersetTemplateException(
-                "The table should have a single partitioned field "
-                "to use this function. You may want to use "
-                "`presto.latest_sub_partition`")
+                'The table should have a single partitioned field '
+                'to use this function. You may want to use '
+                '`presto.latest_sub_partition`')
         part_field = indexes[0]['column_names'][0]
         sql = cls._partition_query(table_name, 1, [(part_field, True)])
         df = database.get_df(sql, schema)
@@ -652,12 +652,12 @@ class PrestoEngineSpec(BaseEngineSpec):
         part_fields = indexes[0]['column_names']
         for k in kwargs.keys():
             if k not in k in part_fields:
-                msg = "Field [{k}] is not part of the portioning key"
+                msg = 'Field [{k}] is not part of the portioning key'
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             msg = (
-                "A filter needs to be specified for {} out of the "
-                "{} fields."
+                'A filter needs to be specified for {} out of the '
+                '{} fields.'
             ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 
@@ -762,9 +762,9 @@ class HiveEngineSpec(PrestoEngineSpec):
                 reduce_progress = int(match.groupdict()['reduce_progress'])
                 stages[stage_number] = (map_progress + reduce_progress) / 2
         logging.info(
-            "Progress detail: {}, "
-            "current job {}, "
-            "total jobs: {}".format(stages, current_job, total_jobs))
+            'Progress detail: {}, '
+            'current job {}, '
+            'total jobs: {}'.format(stages, current_job, total_jobs))
 
         stage_progress = sum(
             stages.values()) / len(stages.values()) if stages else 0
@@ -776,7 +776,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     @classmethod
     def get_tracking_url(cls, log_lines):
-        lkp = "Tracking URL = "
+        lkp = 'Tracking URL = '
         for line in log_lines:
             if lkp in line:
                 return line.split(lkp)[1]
@@ -803,7 +803,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             if log:
                 log_lines = log.splitlines()
                 progress = cls.progress(log_lines)
-                logging.info("Progress total: {}".format(progress))
+                logging.info('Progress total: {}'.format(progress))
                 needs_commit = False
                 if progress > query.progress:
                     query.progress = progress
@@ -813,19 +813,19 @@ class HiveEngineSpec(PrestoEngineSpec):
                     if tracking_url:
                         job_id = tracking_url.split('/')[-2]
                         logging.info(
-                            "Found the tracking url: {}".format(tracking_url))
+                            'Found the tracking url: {}'.format(tracking_url))
                         tracking_url = tracking_url_trans(tracking_url)
                         logging.info(
-                            "Transformation applied: {}".format(tracking_url))
+                            'Transformation applied: {}'.format(tracking_url))
                         query.tracking_url = tracking_url
-                        logging.info("Job id: {}".format(job_id))
+                        logging.info('Job id: {}'.format(job_id))
                         needs_commit = True
                 if job_id and len(log_lines) > last_log_line:
                     # Wait for job id before logging things out
                     # this allows for prefixing all log lines and becoming
                     # searchable in something like Kibana
                     for l in log_lines[last_log_line:]:
-                        logging.info("[{}] {}".format(job_id, l))
+                        logging.info('[{}] {}'.format(job_id, l))
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
@@ -859,7 +859,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def _partition_query(
             cls, table_name, limit=0, order_by=None, filters=None):
-        return "SHOW PARTITIONS {table_name}".format(**locals())
+        return 'SHOW PARTITIONS {table_name}'.format(**locals())
 
     @classmethod
     def modify_url_for_impersonation(cls, url, impersonate_user, username):
@@ -888,9 +888,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         backend_name = url.get_backend_name()
 
         # Must be Hive connection, enable impersonation, and set param auth=LDAP|KERBEROS
-        if (backend_name == "hive" and "auth" in url.query.keys() and
+        if (backend_name == 'hive' and 'auth' in url.query.keys() and
                 impersonate_user is True and username is not None):
-            configuration["hive.server2.proxy.user"] = username
+            configuration['hive.server2.proxy.user'] = username
         return configuration
 
 
@@ -899,27 +899,27 @@ class MssqlEngineSpec(BaseEngineSpec):
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
 
     time_grains = (
-        Grain("Time Column", _('Time Column'), "{col}"),
-        Grain("second", _('second'), "DATEADD(second, "
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'), 'DATEADD(second, '
               "DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')"),
-        Grain("minute", _('minute'), "DATEADD(minute, "
-              "DATEDIFF(minute, 0, {col}), 0)"),
-        Grain("5 minute", _('5 minute'), "DATEADD(minute, "
-              "DATEDIFF(minute, 0, {col}) / 5 * 5, 0)"),
-        Grain("half hour", _('half hour'), "DATEADD(minute, "
-              "DATEDIFF(minute, 0, {col}) / 30 * 30, 0)"),
-        Grain("hour", _('hour'), "DATEADD(hour, "
-              "DATEDIFF(hour, 0, {col}), 0)"),
-        Grain("day", _('day'), "DATEADD(day, "
-              "DATEDIFF(day, 0, {col}), 0)"),
-        Grain("week", _('week'), "DATEADD(week, "
-              "DATEDIFF(week, 0, {col}), 0)"),
-        Grain("month", _('month'), "DATEADD(month, "
-              "DATEDIFF(month, 0, {col}), 0)"),
-        Grain("quarter", _('quarter'), "DATEADD(quarter, "
-              "DATEDIFF(quarter, 0, {col}), 0)"),
-        Grain("year", _('year'), "DATEADD(year, "
-              "DATEDIFF(year, 0, {col}), 0)"),
+        Grain('minute', _('minute'), 'DATEADD(minute, '
+              'DATEDIFF(minute, 0, {col}), 0)'),
+        Grain('5 minute', _('5 minute'), 'DATEADD(minute, '
+              'DATEDIFF(minute, 0, {col}) / 5 * 5, 0)'),
+        Grain('half hour', _('half hour'), 'DATEADD(minute, '
+              'DATEDIFF(minute, 0, {col}) / 30 * 30, 0)'),
+        Grain('hour', _('hour'), 'DATEADD(hour, '
+              'DATEDIFF(hour, 0, {col}), 0)'),
+        Grain('day', _('day'), 'DATEADD(day, '
+              'DATEDIFF(day, 0, {col}), 0)'),
+        Grain('week', _('week'), 'DATEADD(week, '
+              'DATEDIFF(week, 0, {col}), 0)'),
+        Grain('month', _('month'), 'DATEADD(month, '
+              'DATEDIFF(month, 0, {col}), 0)'),
+        Grain('quarter', _('quarter'), 'DATEADD(quarter, '
+              'DATEDIFF(quarter, 0, {col}), 0)'),
+        Grain('year', _('year'), 'DATEADD(year, '
+              'DATEDIFF(year, 0, {col}), 0)'),
     )
 
     @classmethod
@@ -955,7 +955,7 @@ class OracleEngineSpec(PostgresEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return (
-            """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+            """TO_TIMESTAMP('{}', 'YYYY-MM-DD'T'HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
 
@@ -982,10 +982,10 @@ class AthenaEngineSpec(BaseEngineSpec):
               "date_trunc('month', CAST({col} AS TIMESTAMP))"),
         Grain('quarter', _('quarter'),
               "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
-        Grain("week_ending_saturday", _('week_ending_saturday'),
+        Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-              "CAST({col} AS TIMESTAMP))))"),
-        Grain("week_start_sunday", _('week_start_sunday'),
+              'CAST({col} AS TIMESTAMP))))'),
+        Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
     )
@@ -1002,7 +1002,7 @@ class AthenaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def epoch_to_dttm(cls):
-        return "from_unixtime({col})"
+        return 'from_unixtime({col})'
 
 
 class ClickHouseEngineSpec(BaseEngineSpec):
@@ -1015,21 +1015,21 @@ class ClickHouseEngineSpec(BaseEngineSpec):
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain('minute', _('minute'),
-              "toStartOfMinute(toDateTime({col}))"),
+              'toStartOfMinute(toDateTime({col}))'),
         Grain('5 minute', _('5 minute'),
-              "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)"),
+              'toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)'),
         Grain('10 minute', _('10 minute'),
-              "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)"),
+              'toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)'),
         Grain('hour', _('hour'),
-              "toStartOfHour(toDateTime({col}))"),
+              'toStartOfHour(toDateTime({col}))'),
         Grain('day', _('day'),
-              "toStartOfDay(toDateTime({col}))"),
+              'toStartOfDay(toDateTime({col}))'),
         Grain('month', _('month'),
-              "toStartOfMonth(toDateTime({col}))"),
+              'toStartOfMonth(toDateTime({col}))'),
         Grain('quarter', _('quarter'),
-              "toStartOfQuarter(toDateTime({col}))"),
+              'toStartOfQuarter(toDateTime({col}))'),
         Grain('year', _('year'),
-              "toStartOfYear(toDateTime({col}))"),
+              'toStartOfYear(toDateTime({col}))'),
     )
 
     @classmethod
@@ -1050,22 +1050,22 @@ class BQEngineSpec(BaseEngineSpec):
     engine = 'bigquery'
 
     time_grains = (
-        Grain("Time Column", _('Time Column'), "{col}"),
-        Grain("second", _('second'), "TIMESTAMP_TRUNC({col}, SECOND)"),
-        Grain("minute", _('minute'), "TIMESTAMP_TRUNC({col}, MINUTE)"),
-        Grain("hour", _('hour'), "TIMESTAMP_TRUNC({col}, HOUR)"),
-        Grain("day", _('day'), "TIMESTAMP_TRUNC({col}, DAY)"),
-        Grain("week", _('week'), "TIMESTAMP_TRUNC({col}, WEEK)"),
-        Grain("month", _('month'), "TIMESTAMP_TRUNC({col}, MONTH)"),
-        Grain("quarter", _('quarter'), "TIMESTAMP_TRUNC({col}, QUARTER)"),
-        Grain("year", _('year'), "TIMESTAMP_TRUNC({col}, YEAR)"),
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('second', _('second'), 'TIMESTAMP_TRUNC({col}, SECOND)'),
+        Grain('minute', _('minute'), 'TIMESTAMP_TRUNC({col}, MINUTE)'),
+        Grain('hour', _('hour'), 'TIMESTAMP_TRUNC({col}, HOUR)'),
+        Grain('day', _('day'), 'TIMESTAMP_TRUNC({col}, DAY)'),
+        Grain('week', _('week'), 'TIMESTAMP_TRUNC({col}, WEEK)'),
+        Grain('month', _('month'), 'TIMESTAMP_TRUNC({col}, MONTH)'),
+        Grain('quarter', _('quarter'), 'TIMESTAMP_TRUNC({col}, QUARTER)'),
+        Grain('year', _('year'), 'TIMESTAMP_TRUNC({col}, YEAR)'),
     )
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
@@ -1075,21 +1075,21 @@ class ImpalaEngineSpec(BaseEngineSpec):
     engine = 'impala'
 
     time_grains = (
-        Grain("Time Column", _('Time Column'), "{col}"),
-        Grain("minute", _('minute'), "TRUNC({col}, 'MI')"),
-        Grain("hour", _('hour'), "TRUNC({col}, 'HH')"),
-        Grain("day", _('day'), "TRUNC({col}, 'DD')"),
-        Grain("week", _('week'), "TRUNC({col}, 'WW')"),
-        Grain("month", _('month'), "TRUNC({col}, 'MONTH')"),
-        Grain("quarter", _('quarter'), "TRUNC({col}, 'Q')"),
-        Grain("year", _('year'), "TRUNC({col}, 'YYYY')"),
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('minute', _('minute'), "TRUNC({col}, 'MI')"),
+        Grain('hour', _('hour'), "TRUNC({col}, 'HH')"),
+        Grain('day', _('day'), "TRUNC({col}, 'DD')"),
+        Grain('week', _('week'), "TRUNC({col}, 'WW')"),
+        Grain('month', _('month'), "TRUNC({col}, 'MONTH')"),
+        Grain('quarter', _('quarter'), "TRUNC({col}, 'Q')"),
+        Grain('year', _('year'), "TRUNC({col}, 'YYYY')"),
     )
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
