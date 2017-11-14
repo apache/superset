@@ -801,6 +801,60 @@ class BubbleViz(NVD3Viz):
                 'values': v})
         return chart_data
 
+class CatScatViz(BaseViz):
+    """Cat Scat Viz"""
+
+    viz_type = "catscat"
+    verbose_name = _("Categorical Scatterplot")
+    is_timeseries = False
+
+    def query_obj(self):
+        def as_strings(field):
+            value = form_data.get(field)
+            return value.split(',') if value else []
+
+        def as_floats(field):
+            return [float(x) for x in as_strings(field)]
+
+        form_data = self.form_data
+        d = super(CatScatViz, self).query_obj()
+        d['groupby'] = [
+            form_data.get('entity'),
+        ]
+        if form_data.get('series'):
+            d['groupby'].append(form_data.get('series'))
+        self.y_metric = form_data.get('y')
+        self.z_metric = form_data.get('shape')
+        self.entity = form_data.get('entity')
+        self.series = form_data.get('series') or self.entity
+        self.y_lines = as_floats('marker_lines')
+
+
+        d['metrics'] = [
+            self.y_metric,
+        ]
+
+        if not all(d['metrics'] + [self.entity]):
+            raise Exception(_("Pick a metric for y"))
+        return d
+
+    def get_data(self, df):
+        df['y'] = df[[self.y_metric]]
+        df['shape'] = df[[self.z_metric]]
+        df['group'] = df[[self.series]]
+
+        series = defaultdict(list)
+        for row in df.to_dict(orient='records'):
+            series[row['group']].append(row)
+        chart_data = []
+        for k, v in series.items():
+            chart_data.append({
+                'key': k,
+                'values': v})
+        return {
+            'data':chart_data,
+            'yLines': self.y_lines or None,
+        }
 
 class BulletViz(NVD3Viz):
 
