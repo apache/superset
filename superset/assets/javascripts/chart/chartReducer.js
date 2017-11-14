@@ -20,7 +20,7 @@ export const chartPropType = {
 export const chart = {
   chartKey: '',
   chartAlert: null,
-  chartStatus: null,
+  chartStatus: 'loading',
   chartUpdateEndTime: null,
   chartUpdateStartTime: now(),
   latestQueryFormData: null,
