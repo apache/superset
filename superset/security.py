@@ -86,15 +86,15 @@ def is_user_defined_permission(perm):
 
 
 def get_or_create_main_db():
-    logging.info("Creating database reference")
+    logging.info('Creating database reference')
     dbobj = (
         db.session.query(models.Database)
         .filter_by(database_name='main')
         .first()
     )
     if not dbobj:
-        dbobj = models.Database(database_name="main")
-    dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
+        dbobj = models.Database(database_name='main')
+    dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
     dbobj.expose_in_sqllab = True
     dbobj.allow_run_sync = True
     db.session.add(dbobj)
@@ -146,7 +146,7 @@ def is_granter_pvm(pvm):
 
 
 def set_role(role_name, pvm_check):
-    logging.info("Syncing {} perms".format(role_name))
+    logging.info('Syncing {} perms'.format(role_name))
     sesh = sm.get_session()
     pvms = sesh.query(ab_models.PermissionView).all()
     pvms = [p for p in pvms if p.permission and p.view_menu]
@@ -167,7 +167,7 @@ def create_missing_perms():
     """Creates missing perms for datasources, schemas and metrics"""
 
     logging.info(
-        "Fetching a set of all perms to lookup which ones are missing")
+        'Fetching a set of all perms to lookup which ones are missing')
     all_pvs = set()
     for pv in sm.get_session.query(sm.permissionview_model).all():
         if pv.permission and pv.view_menu:
@@ -178,18 +178,18 @@ def create_missing_perms():
         if view_menu and perm and (view_menu, perm) not in all_pvs:
             merge_perm(sm, view_menu, perm)
 
-    logging.info("Creating missing datasource permissions.")
+    logging.info('Creating missing datasource permissions.')
     datasources = ConnectorRegistry.get_all_datasources(db.session)
     for datasource in datasources:
         merge_pv('datasource_access', datasource.get_perm())
         merge_pv('schema_access', datasource.schema_perm)
 
-    logging.info("Creating missing database permissions.")
+    logging.info('Creating missing database permissions.')
     databases = db.session.query(models.Database).all()
     for database in databases:
         merge_pv('database_access', database.perm)
 
-    logging.info("Creating missing metrics permissions")
+    logging.info('Creating missing metrics permissions')
     metrics = []
     for datasource_class in ConnectorRegistry.sources.values():
         metrics += list(db.session.query(datasource_class.metric_class).all())
@@ -201,7 +201,7 @@ def create_missing_perms():
 
 def sync_role_definitions():
     """Inits the Superset application with security roles and such"""
-    logging.info("Syncing role definition")
+    logging.info('Syncing role definition')
 
     get_or_create_main_db()
     create_custom_permissions()

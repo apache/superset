@@ -63,13 +63,13 @@ def get_query(query_id, session, retry_count=5):
         except Exception:
             attempt += 1
             logging.error(
-                "Query with id `{}` could not be retrieved".format(query_id))
+                'Query with id `{}` could not be retrieved'.format(query_id))
             stats_logger.incr('error_attempting_orm_query_' + str(attempt))
-            logging.error("Sleeping for a sec before retrying...")
+            logging.error('Sleeping for a sec before retrying...')
             sleep(1)
     if not query:
         stats_logger.incr('error_failed_at_getting_orm_query')
-        raise SqlLabException("Failed at getting query")
+        raise SqlLabException('Failed at getting query')
     return query
 
 
@@ -119,9 +119,9 @@ def execute_sql(
 
     def handle_error(msg):
         """Local method handling error while processing the SQL"""
-        troubleshooting_link = config["TROUBLESHOOTING_LINK"]
-        msg = "Error: {}. You can find common superset errors and their \
-            resolutions at: {}".format(msg, troubleshooting_link) \
+        troubleshooting_link = config['TROUBLESHOOTING_LINK']
+        msg = 'Error: {}. You can find common superset errors and their \
+            resolutions at: {}'.format(msg, troubleshooting_link) \
             if troubleshooting_link else msg
         query.error_message = msg
         query.status = QueryStatus.FAILED
@@ -141,12 +141,12 @@ def execute_sql(
     executed_sql = superset_query.stripped()
     if not superset_query.is_select() and not database.allow_dml:
         return handle_error(
-            "Only `SELECT` statements are allowed against this database")
+            'Only `SELECT` statements are allowed against this database')
     if query.select_as_cta:
         if not superset_query.is_select():
             return handle_error(
-                "Only `SELECT` statements can be used with the CREATE TABLE "
-                "feature.")
+                'Only `SELECT` statements can be used with the CREATE TABLE '
+                'feature.')
             return
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
@@ -164,7 +164,7 @@ def execute_sql(
         executed_sql = template_processor.process_template(executed_sql)
     except Exception as e:
         logging.exception(e)
-        msg = "Template rendering failed: " + utils.error_msg_from_exception(e)
+        msg = 'Template rendering failed: ' + utils.error_msg_from_exception(e)
         return handle_error(msg)
 
     query.executed_sql = executed_sql
@@ -182,13 +182,13 @@ def execute_sql(
         )
         conn = engine.raw_connection()
         cursor = conn.cursor()
-        logging.info("Running query: \n{}".format(executed_sql))
+        logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
         cursor.execute(query.executed_sql,
                        **db_engine_spec.cursor_execute_kwargs)
-        logging.info("Handling cursor")
+        logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
-        logging.info("Fetching data: {}".format(query.to_dict()))
+        logging.info('Fetching data: {}'.format(query.to_dict()))
         data = db_engine_spec.fetch_data(cursor, query.limit)
     except SoftTimeLimitExceeded as e:
         logging.exception(e)
@@ -196,14 +196,14 @@ def execute_sql(
             conn.close()
         return handle_error(
             "SQL Lab timeout. This environment's policy is to kill queries "
-            "after {} seconds.".format(SQLLAB_TIMEOUT))
+            'after {} seconds.'.format(SQLLAB_TIMEOUT))
     except Exception as e:
         logging.exception(e)
         if conn is not None:
             conn.close()
         return handle_error(db_engine_spec.extract_error_message(e))
 
-    logging.info("Fetching cursor description")
+    logging.info('Fetching cursor description')
     cursor_description = cursor.description
 
     if conn is not None:
@@ -248,7 +248,7 @@ def execute_sql(
     })
     if store_results:
         key = '{}'.format(uuid.uuid4())
-        logging.info("Storing results in results backend, key: {}".format(key))
+        logging.info('Storing results in results backend, key: {}'.format(key))
         json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
         results_backend.set(key, utils.zlib_compress(json_payload))
         query.results_key = key

@@ -40,32 +40,32 @@ class UtilityFunctionTests(SupersetTestCase):
 
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
-        q = SupersetQuery("SELECT * FROM outer_space;")
+        q = SupersetQuery('SELECT * FROM outer_space;')
 
         self.assertEqual(
-            "CREATE TABLE tmp AS \nSELECT * FROM outer_space",
-            q.as_create_table("tmp"))
+            'CREATE TABLE tmp AS \nSELECT * FROM outer_space',
+            q.as_create_table('tmp'))
 
         self.assertEqual(
-            "DROP TABLE IF EXISTS tmp;\n"
-            "CREATE TABLE tmp AS \nSELECT * FROM outer_space",
-            q.as_create_table("tmp", overwrite=True))
+            'DROP TABLE IF EXISTS tmp;\n'
+            'CREATE TABLE tmp AS \nSELECT * FROM outer_space',
+            q.as_create_table('tmp', overwrite=True))
 
         # now without a semicolon
-        q = SupersetQuery("SELECT * FROM outer_space")
+        q = SupersetQuery('SELECT * FROM outer_space')
         self.assertEqual(
-            "CREATE TABLE tmp AS \nSELECT * FROM outer_space",
-            q.as_create_table("tmp"))
+            'CREATE TABLE tmp AS \nSELECT * FROM outer_space',
+            q.as_create_table('tmp'))
 
         # now a multi-line query
         multi_line_query = (
-            "SELECT * FROM planets WHERE\n"
+            'SELECT * FROM planets WHERE\n'
             "Luke_Father = 'Darth Vader'")
         q = SupersetQuery(multi_line_query)
         self.assertEqual(
-            "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\n"
+            'CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\n'
             "Luke_Father = 'Darth Vader'",
-            q.as_create_table("tmp"),
+            q.as_create_table('tmp'),
         )
 
 
@@ -118,8 +118,7 @@ class CeleryTestCase(SupersetTestCase):
             shell=True,
         )
         subprocess.call(
-            "ps auxww | grep 'superset worker' | awk '{print $2}' | "
-            "xargs kill -9",
+            "ps auxww | grep 'superset worker' | awk '{print $2}' | xargs kill -9",
             shell=True,
         )
 
@@ -143,22 +142,22 @@ class CeleryTestCase(SupersetTestCase):
     def test_add_limit_to_the_query(self):
         main_db = self.get_main_database(db.session)
 
-        select_query = "SELECT * FROM outer_space;"
+        select_query = 'SELECT * FROM outer_space;'
         updated_select_query = main_db.wrap_sql_limit(select_query, 100)
         # Different DB engines have their own spacing while compiling
         # the queries, that's why ' '.join(query.split()) is used.
         # In addition some of the engines do not include OFFSET 0.
         self.assertTrue(
-            "SELECT * FROM (SELECT * FROM outer_space;) AS inner_qry "
-            "LIMIT 100" in ' '.join(updated_select_query.split()),
+            'SELECT * FROM (SELECT * FROM outer_space;) AS inner_qry '
+            'LIMIT 100' in ' '.join(updated_select_query.split()),
         )
 
-        select_query_no_semicolon = "SELECT * FROM outer_space"
+        select_query_no_semicolon = 'SELECT * FROM outer_space'
         updated_select_query_no_semicolon = main_db.wrap_sql_limit(
             select_query_no_semicolon, 100)
         self.assertTrue(
-            "SELECT * FROM (SELECT * FROM outer_space) AS inner_qry "
-            "LIMIT 100" in
+            'SELECT * FROM (SELECT * FROM outer_space) AS inner_qry '
+            'LIMIT 100' in
             ' '.join(updated_select_query_no_semicolon.split()),
         )
 
@@ -167,7 +166,7 @@ class CeleryTestCase(SupersetTestCase):
         )
         updated_multi_line_query = main_db.wrap_sql_limit(multi_line_query, 100)
         self.assertTrue(
-            "SELECT * FROM (SELECT * FROM planets WHERE "
+            'SELECT * FROM (SELECT * FROM planets WHERE '
             "Luke_Father = 'Darth Vader';) AS inner_qry LIMIT 100" in
             ' '.join(updated_multi_line_query.split()),
         )
@@ -176,7 +175,7 @@ class CeleryTestCase(SupersetTestCase):
         main_db = self.get_main_database(db.session)
         db_id = main_db.id
         sql_dont_exist = 'SELECT name FROM table_dont_exist'
-        result1 = self.run_sql(db_id, sql_dont_exist, "1", cta='true')
+        result1 = self.run_sql(db_id, sql_dont_exist, '1', cta='true')
         self.assertTrue('error' in result1)
 
     def test_run_sync_query_cta(self):
@@ -187,7 +186,7 @@ class CeleryTestCase(SupersetTestCase):
         sql_where = (
             "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name))
         result2 = self.run_sql(
-            db_id, sql_where, "2", tmp_table='tmp_table_2', cta='true')
+            db_id, sql_where, '2', tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
         self.assertEqual([], result2['data'])
         self.assertEqual([], result2['columns'])
@@ -203,7 +202,7 @@ class CeleryTestCase(SupersetTestCase):
         db_id = main_db.id
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
-            db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true')
+            db_id, sql_empty_result, '3', tmp_table='tmp_table_3', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
         self.assertEqual([], result3['columns'])
@@ -216,7 +215,7 @@ class CeleryTestCase(SupersetTestCase):
         eng = main_db.get_sqla_engine()
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result = self.run_sql(
-            main_db.id, sql_where, "4", async='true', tmp_table='tmp_async_1',
+            main_db.id, sql_where, '4', async='true', tmp_table='tmp_async_1',
             cta='true')
         assert result['query']['state'] in (
             QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
@@ -228,10 +227,10 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(QueryStatus.SUCCESS, query.status)
         self.assertEqual([{'name': 'Admin'}], df.to_dict(orient='records'))
         self.assertEqual(QueryStatus.SUCCESS, query.status)
-        self.assertTrue("FROM tmp_async_1" in query.select_sql)
-        self.assertTrue("LIMIT 666" in query.select_sql)
+        self.assertTrue('FROM tmp_async_1' in query.select_sql)
+        self.assertTrue('LIMIT 666' in query.select_sql)
         self.assertEqual(
-            "CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role "
+            'CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role '
             "WHERE name='Admin'", query.executed_sql)
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
@@ -254,7 +253,7 @@ class CeleryTestCase(SupersetTestCase):
 
     def test_get_columns(self):
         main_db = self.get_main_database(db.session)
-        df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
+        df = main_db.get_df('SELECT * FROM multiformat_time_series', None)
         cdf = dataframe.SupersetDataFrame(df)
 
         # Making ordering non-deterministic

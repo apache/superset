@@ -92,10 +92,10 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = 'Superset'
 
 # Uncomment to setup an App icon
-APP_ICON = "/static/assets/images/superset-logo@2x.png"
+APP_ICON = '/static/assets/images/superset-logo@2x.png'
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -239,7 +239,7 @@ INTERVAL = 1
 BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = ""
+MAPBOX_API_KEY = ''
 
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000000
@@ -329,7 +329,7 @@ SILENCE_FAB = True
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
-TROUBLESHOOTING_LINK = ""
+TROUBLESHOOTING_LINK = ''
 
 
 # Integrate external Blueprints to the app by passing them to your

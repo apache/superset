@@ -60,7 +60,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     @property
     def uid(self):
         """Unique id across datasource types"""
-        return "{self.id}__{self.type}".format(**locals())
+        return '{self.id}__{self.type}'.format(**locals())
 
     @property
     def column_names(self):
@@ -72,7 +72,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def main_dttm_col(self):
-        return "timestamp"
+        return 'timestamp'
 
     @property
     def connection(self):
@@ -105,7 +105,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+            return '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
 
     @property
     def column_formats(self):

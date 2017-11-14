@@ -16,7 +16,7 @@ def cast_filter_data(form_data):
     flts = []
     having_flts = []
     fd = form_data
-    filter_pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
+    filter_pattern = re.compile(r"""((?:[^,"']|"[^"]*"|'[^']*')+)""")
     for i in range(0, 10):
         for prefix in ['flt', 'having']:
             col_str = '{}_col_{}'.format(prefix, i)

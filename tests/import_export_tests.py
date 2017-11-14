@@ -60,9 +60,9 @@ class ImportExportTests(SupersetTestCase):
             'database_name': db_name,
             'schema': '',
             # Test for trailing commas
-            "metrics": [
-                "sum__signup_attempt_email",
-                "sum__signup_attempt_facebook",
+            'metrics': [
+                'sum__signup_attempt_email',
+                'sum__signup_attempt_facebook',
             ],
         }
 
@@ -319,7 +319,7 @@ class ImportExportTests(SupersetTestCase):
         make_transient(expected_dash)
         self.assert_dash_equals(
             expected_dash, imported_dash, check_position=False)
-        self.assertEquals({"remote_id": 10002, "import_time": 1990},
+        self.assertEquals({'remote_id': 10002, 'import_time': 1990},
                           json.loads(imported_dash.json_metadata))
 
         expected_position = dash_with_1_slice.position_array
@@ -333,11 +333,11 @@ class ImportExportTests(SupersetTestCase):
         dash_with_2_slices = self.create_dashboard(
             'dash_with_2_slices', slcs=[e_slc, b_slc], id=10003)
         dash_with_2_slices.json_metadata = json.dumps({
-            "remote_id": 10003,
-            "filter_immune_slices": ["{}".format(e_slc.id)],
-            "expanded_slices": {
-                "{}".format(e_slc.id): True,
-                "{}".format(b_slc.id): False,
+            'remote_id': 10003,
+            'filter_immune_slices': ['{}'.format(e_slc.id)],
+            'expanded_slices': {
+                '{}'.format(e_slc.id): True,
+                '{}'.format(b_slc.id): False,
             },
         })
 
@@ -353,10 +353,10 @@ class ImportExportTests(SupersetTestCase):
         i_e_slc = self.get_slice_by_name('e_slc')
         i_b_slc = self.get_slice_by_name('b_slc')
         expected_json_metadata = {
-            "remote_id": 10003,
-            "import_time": 1991,
-            "filter_immune_slices": ["{}".format(i_e_slc.id)],
-            "expanded_slices": {
+            'remote_id': 10003,
+            'import_time': 1991,
+            'filter_immune_slices': ['{}'.format(i_e_slc.id)],
+            'expanded_slices': {
                 '{}'.format(i_e_slc.id): True,
                 '{}'.format(i_b_slc.id): False,
             },
@@ -391,7 +391,7 @@ class ImportExportTests(SupersetTestCase):
         imported_dash = self.get_dash(imported_dash_id_2)
         self.assert_dash_equals(
             expected_dash, imported_dash, check_position=False)
-        self.assertEquals({"remote_id": 10004, "import_time": 1992},
+        self.assertEquals({'remote_id': 10004, 'import_time': 1992},
                           json.loads(imported_dash.json_metadata))
 
     def test_import_table_no_metadata(self):
@@ -403,7 +403,7 @@ class ImportExportTests(SupersetTestCase):
     def test_import_table_1_col_1_met(self):
         table = self.create_table(
             'table_1_col_1_met', id=10002,
-            cols_names=["col1"], metric_names=["metric1"])
+            cols_names=['col1'], metric_names=['metric1'])
         imported_id = SqlaTable.import_obj(table, import_time=1990)
         imported = self.get_table(imported_id)
         self.assert_table_equals(table, imported)
@@ -464,7 +464,7 @@ class ImportExportTests(SupersetTestCase):
     def test_import_druid_1_col_1_met(self):
         datasource = self.create_druid_datasource(
             'druid_1_col_1_met', id=10002,
-            cols_names=["col1"], metric_names=["metric1"])
+            cols_names=['col1'], metric_names=['metric1'])
         imported_id = DruidDatasource.import_obj(
             datasource, import_time=1990)
         imported = self.get_datasource(imported_id)

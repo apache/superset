@@ -19,7 +19,7 @@ from superset.security import sync_role_definitions
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
-BASE_DIR = app.config.get("BASE_DIR")
+BASE_DIR = app.config.get('BASE_DIR')
 
 
 class SupersetTestCase(unittest.TestCase):
@@ -32,9 +32,9 @@ class SupersetTestCase(unittest.TestCase):
             not os.environ.get('SOLO_TEST') and
             not os.environ.get('examples_loaded')
         ):
-            logging.info("Loading examples")
+            logging.info('Loading examples')
             cli.load_examples(load_test_data=True)
-            logging.info("Done loading examples")
+            logging.info('Done loading examples')
             sync_role_definitions()
             os.environ['examples_loaded'] = '1'
         else:
@@ -43,7 +43,7 @@ class SupersetTestCase(unittest.TestCase):
         self.client = app.test_client()
         self.maxDiff = None
 
-        gamma_sqllab_role = sm.add_role("gamma_sqllab")
+        gamma_sqllab_role = sm.add_role('gamma_sqllab')
         for perm in sm.find_role('Gamma').permissions:
             sm.add_permission_role(gamma_sqllab_role, perm)
         db_perm = self.get_main_database(sm.get_session).perm
@@ -92,11 +92,11 @@ class SupersetTestCase(unittest.TestCase):
         session = db.session
         cluster = (
             session.query(DruidCluster)
-            .filter_by(cluster_name="druid_test")
+            .filter_by(cluster_name='druid_test')
             .first()
         )
         if not cluster:
-            cluster = DruidCluster(cluster_name="druid_test")
+            cluster = DruidCluster(cluster_name='druid_test')
             session.add(cluster)
             session.commit()
 
@@ -155,7 +155,7 @@ class SupersetTestCase(unittest.TestCase):
             resp = self.client.get(url, follow_redirects=follow_redirects)
         if raise_on_error and resp.status_code > 400:
             raise Exception(
-                "http request failed with code {}".format(resp.status_code))
+                'http request failed with code {}'.format(resp.status_code))
         return resp.data.decode('utf-8')
 
     def get_json_resp(
@@ -214,7 +214,7 @@ class SupersetTestCase(unittest.TestCase):
                       client_id=client_id),
         )
         if raise_on_error and 'error' in resp:
-            raise Exception("run_sql failed")
+            raise Exception('run_sql failed')
         return resp
 
     def test_gamma_permissions(self):
