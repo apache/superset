@@ -6,6 +6,7 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
 from past.builtins import basestring
+import six
 import sqlalchemy as sa
 from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
@@ -319,7 +320,7 @@ class SqlaTable(Model, BaseDatasource):
     def get_query_str(self, query_obj):
         engine = self.database.get_sqla_engine()
         qry = self.get_sqla_query(**query_obj)
-        sql = str(
+        sql = six.text_type(
             qry.compile(
                 engine,
                 compile_kwargs={'literal_binds': True},
