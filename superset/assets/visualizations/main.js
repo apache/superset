@@ -6,6 +6,7 @@ const vizMap = {
   big_number_total: require('./big_number.js'),
   box_plot: require('./nvd3_vis.js'),
   bubble: require('./nvd3_vis.js'),
+  catscat: require('./catscat.js'),
   bullet: require('./nvd3_vis.js'),
   cal_heatmap: require('./cal_heatmap.js'),
   compare: require('./nvd3_vis.js'),

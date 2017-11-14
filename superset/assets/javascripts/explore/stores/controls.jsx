@@ -813,6 +813,19 @@ export const controls = {
     }),
   },
 
+  shape: {
+    type: 'SelectControl',
+    label: t('Bubble Shape'),
+    default: null,
+    validators: [v.nonEmpty],
+    optionRenderer: m => <MetricOption metric={m} />,
+    valueRenderer: m => <MetricOption metric={m} />,
+    valueKey: 'metric_name',
+    mapStateToProps: state => ({
+      options: (state.datasource) ? state.datasource.metrics : [],
+    }),
+  },
+
   url: {
     type: 'TextControl',
     label: t('URL'),

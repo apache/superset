@@ -597,6 +597,50 @@ export const visTypes = {
     },
   },
 
+  catscat: {
+    label: t('Categorical Scatterplot'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['series', 'entity'],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        controlSetRows: [
+          ['marker_lines'],
+          ['y_axis_label', 'bottom_margin'],
+          ['y', 'y_axis_format'],
+          ['y_log_scale', 'y_axis_showminmax'],
+        ],
+      },
+      {
+        label: t('Points'),
+        controlSetRows: [
+          ['shape'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        controlSetRows: [
+          ['color_scheme'],
+          ['show_legend', null],
+        ],
+      },
+    ],
+    controlOverrides: {
+      x_axis_format: {
+        default: '.3s',
+      },
+      color_scheme: {
+        renderTrigger: false,
+      },
+    },
+  },
+
+
   bullet: {
     label: t('Bullet Chart'),
     requiresTime: false,
