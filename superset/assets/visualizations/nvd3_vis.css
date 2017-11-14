@@ -11,7 +11,7 @@ text.nv-axislabel {
   font-size: 14px;
 }
 
-.dist_bar {
+.slice_container.dist_bar {
   overflow-x: auto !important;
 }
 
