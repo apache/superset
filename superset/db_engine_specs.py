@@ -238,6 +238,13 @@ class PostgresEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
+    @classmethod
+    def get_table_names(cls, schema, inspector):
+        """Need to consider foreign tables for PostgreSQL"""
+        tables = inspector.get_table_names(schema)
+        tables.extend(inspector.get_foreign_table_names(schema))
+        return sorted(tables)
+
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
