@@ -15,10 +15,9 @@ import string
 import unittest
 
 from flask import escape
-from sqlalchemy.engine import create_engine
 import sqlalchemy as sqla
 
-from superset import app, appbuilder, db, jinja_context, sm, sql_lab, utils
+from superset import appbuilder, db, jinja_context, sm, sql_lab, utils
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.sql_lab import Query
@@ -791,22 +790,18 @@ class CoreTests(SupersetTestCase):
 
     def test_import_csv(self):
         self.login(username='admin')
-        config = app.config
-        print(config['SQLALCHEMY_DATABASE_URI']) #add the id mappings! don't go straight to the 
-        filename = "testCSV.csv"
+        filename = 'testCSV.csv'
         table_name = ''.join(
             random.choice(string.ascii_uppercase) for _ in range(5))
 
         test_file = open(filename, 'w+')
-        test_file.write("a,b\n")
-        test_file.write("john,1\n")
-        test_file.write("paul,2\n")
+        test_file.write('a,b\n')
+        test_file.write('john,1\n')
+        test_file.write('paul,2\n')
         test_file.close()
-        engine = create_engine(config['SQLALCHEMY_DATABASE_URI'])
-
         main_db_uri = db.session.query(
             models.Database.sqlalchemy_uri)\
-            .filter_by(database_name="main").all()
+            .filter_by(database_name='main').all()
 
         test_file = open(filename, 'rb')
         form_data = {
@@ -829,10 +824,7 @@ class CoreTests(SupersetTestCase):
         try:
             # ensure uploaded successfully
             form_post = self.get_resp(url, data=form_data)
-            if "Not a valid choice" in form_post:
-                print("Not a valid choice")
-                return
-            assert 'CSV file "testCSV.csv" uploaded to table' in form_post
+            assert 'CSV file \"testCSV.csv\" uploaded to table' in form_post
         finally:
             os.remove(filename)
 

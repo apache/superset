@@ -13,11 +13,11 @@ import re
 import time
 import traceback
 from urllib import parse
+
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
 from flask_appbuilder import expose, SimpleFormView
-
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
@@ -43,7 +43,6 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
-
 from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin, get_error_msg,
     get_user_roles, json_error_response, SupersetFilter, SupersetModelView,
@@ -327,16 +326,12 @@ class CsvToDatabaseView(SimpleFormView):
     def form_get(self, form):
         form.sep.data = ','
         form.header.data = 0
-        form.squeeze.data = False
-        form.names.data = None
         form.mangle_dupe_cols.data = True
         form.skipinitialspace.data = False
         form.skip_blank_lines.data = True
         form.parse_dates.data = True
         form.infer_datetime_format.data = True
-        form.dayfirst.data = False
         form.decimal.data = '.'
-        form.error_bad_lines.data = False
         form.if_exists.data = 'append'
         all_datasources = db.session.query(
             models.Database.sqlalchemy_uri,
@@ -351,18 +346,18 @@ class CsvToDatabaseView(SimpleFormView):
                 csv_file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
                 return filename
 
-        form.names.data =\
-            form.names.data.split(",") if form.names.data else None
+        csv_file = form.csv_file.data
+        upload_file(csv_file)
+        table = SqlaTable(table_name=form.name.data)
         database = (
             db.session.query(models.Database)
             .filter_by(sqlalchemy_uri=form.data.get('con'))
             .one()
         )
-        upload_file(form.csv_file.data)
-        table = SqlaTable(table_name=form.name.data)
-        table.database_id = database.id
         table.database = database
-        successful = database.db_engine_spec.upload_csv(form, table)
+        table.database_id = database.id
+        successful, message = database.db_engine_spec.create_table_from_csv(form, table)
+        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
         if successful:
             # Go back to welcome page / splash screen
             db_name = db.session.query(models.Database.database_name)\
@@ -374,6 +369,9 @@ class CsvToDatabaseView(SimpleFormView):
                                                 db_name[0]))
             flash(message, 'info')
             return redirect('/tablemodelview/list/')
+
+        else:
+            flash(message, 'info')
 
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
@@ -2532,13 +2530,13 @@ appbuilder.add_link(
 
 appbuilder.add_link(
     'Upload a CSV',
-    label=__("Upload a CSV"),
+    label=__('Upload a CSV'),
     href='/csvtodatabaseview/form',
-    icon="fa-upload",
+    icon='fa-upload',
     category='Sources',
-    category_label=__("Sources"),
+    category_label=__('Sources'),
     category_icon='fa-wrench',)
-appbuilder.add_separator("Sources")
+appbuilder.add_separator('Sources')
 
 
 @app.after_request

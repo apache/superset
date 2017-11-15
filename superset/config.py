@@ -306,7 +306,7 @@ CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
 
 # The directory within the bucket specified above that will
 # contain all the external tables
-CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
+CSV_TO_HIVE_UPLOAD_DIRECTORY = 'EXTERNAL_HIVE_TABLES/'
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
