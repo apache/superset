@@ -32,6 +32,22 @@ class ExploreChartPanel extends React.PureComponent {
     return parseInt(this.props.height, 10) - headerHeight;
   }
 
+  renderChart() {
+    return (
+      <ChartContainer
+        containerId={this.props.containerId}
+        datasource={this.props.datasource}
+        formData={this.props.form_data}
+        height={this.getHeight()}
+        slice={this.props.slice}
+        chartKey={this.props.chart.chartKey}
+        setControlValue={this.props.actions.setControlValue}
+        timeout={this.props.timeout}
+        vizType={this.props.vizType}
+      />
+    );
+  }
+
   render() {
     if (this.props.standalone) {
       // dom manipulation hack to get rid of the boostrap theme's body background
@@ -57,17 +73,7 @@ class ExploreChartPanel extends React.PureComponent {
           style={{ height: this.props.height }}
           header={header}
         >
-          <ChartContainer
-            containerId={this.props.containerId}
-            datasource={this.props.datasource}
-            formData={this.props.form_data}
-            height={this.getHeight()}
-            slice={this.props.slice}
-            chartKey={this.props.chart.chartKey}
-            setControlValue={this.props.actions.setControlValue}
-            timeout={this.props.timeout}
-            vizType={this.props.vizType}
-          />
+          {this.renderChart()}
         </Panel>
       </div>
     );
