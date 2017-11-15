@@ -1888,14 +1888,14 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
-        SqlaTable = ConnectorRegistry.sources['table']
+        db_id = data.get('dbId')
         table = (
             db.session.query(SqlaTable)
-            .filter_by(table_name=table_name)
+            .filter_by(table_name=table_name, database_id=db_id)
             .first()
         )
         if not table:
-            table = SqlaTable(table_name=table_name)
+            table = SqlaTable(table_name=table_name, database_id=db_id)
         table.database_id = data.get('dbId')
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()

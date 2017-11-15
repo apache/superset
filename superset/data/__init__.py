@@ -172,12 +172,15 @@ def load_world_bank_health_n_pop():
         index=False)
 
     print("Creating table [wb_health_population] reference")
-    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+
+    db_obj = get_or_create_main_db()
+
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=db_obj).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
-    tbl.database = get_or_create_main_db()
+    tbl.database = db_obj
     tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
@@ -567,11 +570,14 @@ def load_birth_names():
     print("-" * 80)
 
     print("Creating table [birth_names] reference")
-    obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
+
+    db_obj = get_or_create_main_db()
+
+    obj = db.session.query(TBL).filter_by(table_name='birth_names', database=db_obj).first()
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = db_obj
     obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()
@@ -836,11 +842,13 @@ def load_unicode_test_data():
     print("-" * 80)
 
     print("Creating table [unicode_test] reference")
-    obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
+
+    db_obj=get_or_create_main_db()
+    obj = db.session.query(TBL).filter_by(table_name='unicode_test', database=db_obj).first()
     if not obj:
         obj = TBL(table_name='unicode_test')
     obj.main_dttm_col = 'date'
-    obj.database = get_or_create_main_db()
+    obj.database = db_obj
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -914,11 +922,12 @@ def load_random_time_series_data():
     print("-" * 80)
 
     print("Creating table [random_time_series] reference")
-    obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
+    db_obj = get_or_create_main_db()
+    obj = db.session.query(TBL).filter_by(table_name='random_time_series', database=db_obj).first()
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = db_obj
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -977,11 +986,12 @@ def load_country_map_data():
     print("Done loading table!")
     print("-" * 80)
     print("Creating table reference")
-    obj = db.session.query(TBL).filter_by(table_name='birth_france_by_region').first()
+    db_obj=get_or_create_main_db()
+    obj = db.session.query(TBL).filter_by(table_name='birth_france_by_region', database=db_obj).first()
     if not obj:
         obj = TBL(table_name='birth_france_by_region')
     obj.main_dttm_col = 'date'
-    obj.database = get_or_create_main_db()
+    obj.database = db_obj
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1042,11 +1052,12 @@ def load_long_lat_data():
     print("-" * 80)
 
     print("Creating table reference")
-    obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
+    db_obj = get_or_create_main_db()
+    obj = db.session.query(TBL).filter_by(table_name='long_lat', database=db_obj).first()
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'date'
-    obj.database = get_or_create_main_db()
+    obj.database = db_obj
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1103,11 +1114,12 @@ def load_multiformat_time_series_data():
     print("Done loading table!")
     print("-" * 80)
     print("Creating table [multiformat_time_series] reference")
-    obj = db.session.query(TBL).filter_by(table_name='multiformat_time_series').first()
+    db_obj = get_or_create_main_db()
+    obj = db.session.query(TBL).filter_by(table_name='multiformat_time_series', database=db_obj).first()
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = db_obj
     dttm_and_expr_dict = {
         'ds': [None, None],
         'ds2': [None, None],
