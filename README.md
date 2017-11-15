@@ -149,11 +149,12 @@ More screenshots
 
 Resources
 -------------
-* [Superset Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
+* [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org/)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
 * [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 * [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
+* [DEPRECATED Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
 
 
 Contributing
