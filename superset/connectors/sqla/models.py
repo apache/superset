@@ -465,7 +465,7 @@ class SqlaTable(Model, BaseDatasource):
                         # For backwards compatibility and edge cases
                         # where a column data type might have changed
                         if isinstance(v, basestring):
-                            v = v.strip(""").strip(""")
+                            v = v.strip("'").strip('"')
                             if col_obj.is_num:
                                 v = utils.string_to_num(v)
 
