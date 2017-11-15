@@ -61,9 +61,9 @@ class UtilsTestCase(unittest.TestCase):
         expected = {'A': 1, 'B': 2, 'c': 'test'}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
-        # does nothing if empty extra_filters
+        # empty extra_filters
         form_data = {'A': 1, 'B': 2, 'c': 'test', 'extra_filters': []}
-        expected = {'A': 1, 'B': 2, 'c': 'test', 'extra_filters': []}
+        expected = {'A': 1, 'B': 2, 'c': 'test', 'filters': []}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
         # copy over extra filters into empty filters
