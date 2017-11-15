@@ -286,9 +286,8 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
 
 Lint the project with:
 
-    # for python changes
-    flake8 changes tests
-    flake8 changes superset
+    # for python
+    flake8
 
     # for javascript
     npm run lint
