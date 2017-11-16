@@ -1,10 +1,10 @@
 import json
 
 from sqlalchemy import (
-    and_, Column, Integer, String, Text, Boolean,
+    and_, Boolean, Column, Integer, String, Text,
 )
-from sqlalchemy.orm import foreign, relationship
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import foreign, relationship
 
 from superset import utils
 from superset.models.core import Slice
@@ -47,8 +47,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return relationship(
             'Slice',
             primaryjoin=lambda: and_(
-              foreign(Slice.datasource_id) == self.id,
-              foreign(Slice.datasource_type) == self.type))
+                foreign(Slice.datasource_id) == self.id,
+                foreign(Slice.datasource_type) == self.type,
+            ),
+        )
 
     # placeholder for a relationship to a derivative of BaseColumn
     columns = []
@@ -58,7 +60,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     @property
     def uid(self):
         """Unique id across datasource types"""
-        return "{self.id}__{self.type}".format(**locals())
+        return '{self.id}__{self.type}'.format(**locals())
 
     @property
     def column_names(self):
@@ -70,7 +72,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def main_dttm_col(self):
-        return "timestamp"
+        return 'timestamp'
 
     @property
     def connection(self):
@@ -103,7 +105,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+            return '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
 
     @property
     def column_formats(self):
@@ -209,6 +211,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
     description = Column(Text)
+    is_dttm = None
 
     # [optional] Set this to support import/export functionality
     export_fields = []
@@ -218,7 +221,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     num_types = (
         'DOUBLE', 'FLOAT', 'INT', 'BIGINT',
-        'LONG', 'REAL', 'NUMERIC', 'DECIMAL'
+        'LONG', 'REAL', 'NUMERIC', 'DECIMAL',
     )
     date_types = ('DATE', 'TIME', 'DATETIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
@@ -252,7 +255,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     def data(self):
         attrs = (
             'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby')
+            'filterable', 'groupby', 'is_dttm')
         return {s: getattr(self, s) for s in attrs}
 
 

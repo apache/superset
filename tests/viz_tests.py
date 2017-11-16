@@ -1,11 +1,13 @@
+from datetime import datetime
 import unittest
-import pandas as pd
-import superset.viz as viz
-import superset.utils as utils
 
-from superset.utils import DTTM_ALIAS
 from mock import Mock, patch
-from datetime import datetime, timedelta
+import pandas as pd
+
+import superset.utils as utils
+from superset.utils import DTTM_ALIAS
+import superset.viz as viz
+
 
 class BaseVizTestCase(unittest.TestCase):
     def test_constructor_exception_no_datasource(self):
@@ -20,10 +22,10 @@ class BaseVizTestCase(unittest.TestCase):
             'token': '12345',
         }
         datasource = {'type': 'table'}
-        test_viz = viz.BaseViz(datasource, form_data);
+        test_viz = viz.BaseViz(datasource, form_data)
         self.assertEqual(
             test_viz.default_fillna,
-            test_viz.get_fillna_for_columns()
+            test_viz.get_fillna_for_columns(),
         )
 
     def test_get_df_returns_empty_df(self):
@@ -73,7 +75,7 @@ class BaseVizTestCase(unittest.TestCase):
         datasource.query = Mock(return_value=results)
         test_viz = viz.BaseViz(datasource, form_data)
         test_viz.get_fillna_for_columns = Mock(return_value=0)
-        result = test_viz.get_df(query_obj)
+        test_viz.get_df(query_obj)
         mock_call = df.__setitem__.mock_calls[0]
         self.assertEqual(mock_call[1][0], DTTM_ALIAS)
         self.assertFalse(mock_call[1][1].empty)
@@ -83,7 +85,7 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertEqual(mock_call[1][1][0].hour, 6)
         self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
         mock_dttm_col.python_date_format = 'utc'
-        result = test_viz.get_df(query_obj)
+        test_viz.get_df(query_obj)
         mock_call = df.__setitem__.mock_calls[2]
         self.assertEqual(mock_call[1][0], DTTM_ALIAS)
         self.assertFalse(mock_call[1][1].empty)
@@ -103,7 +105,7 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertEqual(156, test_viz.cache_timeout)
         datasource.cache_timeout = None
         datasource.database = Mock()
-        datasource.database.cache_timeout= 1666
+        datasource.database.cache_timeout = 1666
         self.assertEqual(1666, test_viz.cache_timeout)
 
 
@@ -163,13 +165,13 @@ class TableVizTestCase(unittest.TestCase):
         }
         test_viz = viz.TableViz(datasource, form_data)
         f_query_obj = {
-            'metrics': form_data['metrics']
+            'metrics': form_data['metrics'],
         }
         super_query_obj.return_value = f_query_obj
         query_obj = test_viz.query_obj()
         self.assertEqual([
             'sum__A', 'count', 'avg__C',
-            'avg__B', 'max__Y'
+            'avg__B', 'max__Y',
         ], query_obj['metrics'])
 
     @patch('superset.viz.BaseViz.query_obj')
@@ -194,7 +196,7 @@ class TableVizTestCase(unittest.TestCase):
         datasource = Mock()
         form_data = {
             'all_columns': ['colA', 'colB', 'colC'],
-            'order_by_cols': ['["colA", "colB"]', '["colC"]']
+            'order_by_cols': ['["colA", "colB"]', '["colC"]'],
         }
         super_query_obj.return_value = {
             'columns': ['colD', 'colC'],
@@ -211,18 +213,18 @@ class TableVizTestCase(unittest.TestCase):
         datasource = Mock()
         form_data = {
             'timeseries_limit_metric': '__time__',
-            'order_desc': False
+            'order_desc': False,
         }
         super_query_obj.return_value = {
-            'metrics': ['colA', 'colB']
+            'metrics': ['colA', 'colB'],
         }
         test_viz = viz.TableViz(datasource, form_data)
         query_obj = test_viz.query_obj()
         self.assertEqual([
-            'colA', 'colB', '__time__'
+            'colA', 'colB', '__time__',
         ], query_obj['metrics'])
         self.assertEqual([(
-            '__time__', True
+            '__time__', True,
         )], query_obj['orderby'])
 
     def test_should_be_timeseries_raises_when_no_granularity(self):
@@ -237,7 +239,7 @@ class PairedTTestTestCase(unittest.TestCase):
     def test_get_data_transforms_dataframe(self):
         form_data = {
             'groupby': ['groupA', 'groupB', 'groupC'],
-            'metrics': ['metric1', 'metric2', 'metric3']
+            'metrics': ['metric1', 'metric2', 'metric3'],
         }
         datasource = {'type': 'table'}
         # Test data
@@ -329,7 +331,7 @@ class PairedTTestTestCase(unittest.TestCase):
     def test_get_data_empty_null_keys(self):
         form_data = {
             'groupby': [],
-            'metrics': ['', None]
+            'metrics': ['', None],
         }
         datasource = {'type': 'table'}
         # Test data
@@ -543,11 +545,12 @@ class PartitionVizTestCase(unittest.TestCase):
         self.assertEqual(3, len(nest[0]['children']))
         self.assertEqual(3, len(nest[0]['children'][0]['children']))
         self.assertEqual(1, len(nest[0]['children'][0]['children'][0]['children']))
-        self.assertEqual(1,
+        self.assertEqual(
+            1,
             len(nest[0]['children']
                 [0]['children']
                 [0]['children']
-                [0]['children'])
+                [0]['children']),
         )
 
     def test_get_data_calls_correct_method(self):

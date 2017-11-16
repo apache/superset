@@ -170,8 +170,8 @@ You can override this path using the ``SUPERSET_HOME`` environment variable.
 
 Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
 
-How do I add new columns to an existing table
----------------------------------------------
+What if the table schema changed?
+---------------------------------
 
 Table schemas evolve, and Superset needs to reflect that. It's pretty common
 in the life cycle of a dashboard to want to add a new dimension or metric.

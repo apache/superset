@@ -9,4 +9,6 @@ set -e
 superset/bin/superset db upgrade
 superset/bin/superset version -v
 python setup.py nosetests
-coveralls
+if [ "$CI" = "true" ] ; then
+  coveralls
+fi

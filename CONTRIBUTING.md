@@ -49,6 +49,10 @@ If you are proposing a feature:
     implement.
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
+    
+### Questions
+
+There is a dedicated [tag](https://stackoverflow.com/questions/tagged/apache-superset) on [stackoverflow](https://stackoverflow.com/). Please use it when asking questions.
 
 ## Pull Request Guidelines
 
@@ -282,9 +286,8 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
 
 Lint the project with:
 
-    # for python changes
-    flake8 changes tests
-    flake8 changes superset
+    # for python
+    flake8
 
     # for javascript
     npm run lint

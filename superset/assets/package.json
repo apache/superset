@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.20.1",
+  "version": "0.21.0dev",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -40,7 +40,7 @@
   "homepage": "http://superset.apache.org/",
   "dependencies": {
     "@data-ui/event-flow": "0.0.8",
-    "@data-ui/sparkline": "0.0.1",
+    "@data-ui/sparkline": "0.0.47",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "brace": "^0.10.0",
@@ -55,11 +55,14 @@
     "d3-tip": "^0.6.7",
     "datamaps": "^0.5.8",
     "datatables.net-bs": "^1.10.15",
+    "deck.gl": "^4.1.5",
     "distributions": "^1.0.0",
+    "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "jed": "^1.1.1",
     "jquery": "3.1.1",
     "lodash.throttle": "^4.1.1",
+    "luma.gl": "^4.0.5",
     "moment": "2.18.1",
     "mustache": "^2.2.1",
     "nvd3": "1.8.6",
@@ -96,6 +99,7 @@
     "srcdoc-polyfill": "^1.0.0",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "urijs": "^1.18.10",
+    "underscore": "^1.8.3",
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {

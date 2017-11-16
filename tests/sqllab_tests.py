@@ -9,9 +9,9 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from superset import db, utils, appbuilder, sm
-from superset.models.sql_lab import Query
 
+from superset import appbuilder, db, sm, utils
+from superset.models.sql_lab import Query
 from .base_tests import SupersetTestCase
 
 
@@ -25,15 +25,15 @@ class SqlLabTests(SupersetTestCase):
         db.session.query(Query).delete()
         db.session.commit()
         self.run_sql(
-            "SELECT * FROM ab_user",
+            'SELECT * FROM ab_user',
             client_id='client_id_1',
             user_name='admin')
         self.run_sql(
-            "SELECT * FROM NO_TABLE",
+            'SELECT * FROM NO_TABLE',
             client_id='client_id_3',
             user_name='admin')
         self.run_sql(
-            "SELECT * FROM ab_permission",
+            'SELECT * FROM ab_permission',
             client_id='client_id_2',
             user_name='gamma_sqllab')
         self.logout()
@@ -46,10 +46,10 @@ class SqlLabTests(SupersetTestCase):
     def test_sql_json(self):
         self.login('admin')
 
-        data = self.run_sql('SELECT * FROM ab_user', "1")
+        data = self.run_sql('SELECT * FROM ab_user', '1')
         self.assertLess(0, len(data['data']))
 
-        data = self.run_sql('SELECT * FROM unexistant_table', "2")
+        data = self.run_sql('SELECT * FROM unexistant_table', '2')
         self.assertLess(0, len(data['error']))
 
     def test_sql_json_has_access(self):
@@ -64,7 +64,7 @@ class SqlLabTests(SupersetTestCase):
             .filter(ab_models.Permission.name == 'database_access')
             .first()
         )
-        astronaut = sm.add_role("Astronaut")
+        astronaut = sm.add_role('Astronaut')
         sm.add_permission_role(astronaut, main_db_permission_view)
         # Astronaut role is Gamma + sqllab +  main db permissions
         for perm in sm.find_role('Gamma').permissions:
@@ -78,7 +78,7 @@ class SqlLabTests(SupersetTestCase):
                 'gagarin', 'Iurii', 'Gagarin', 'gagarin@cosmos.ussr',
                 astronaut,
                 password='general')
-        data = self.run_sql('SELECT * FROM ab_user', "3", user_name='gagarin')
+        data = self.run_sql('SELECT * FROM ab_user', '3', user_name='gagarin')
         db.session.query(Query).delete()
         db.session.commit()
         self.assertLess(0, len(data['data']))
@@ -97,8 +97,8 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(2, len(data))
 
         # Run 2 more queries
-        self.run_sql("SELECT * FROM ab_user LIMIT 1", client_id='client_id_4')
-        self.run_sql("SELECT * FROM ab_user LIMIT 2", client_id='client_id_5')
+        self.run_sql('SELECT * FROM ab_user LIMIT 1', client_id='client_id_4')
+        self.run_sql('SELECT * FROM ab_user LIMIT 2', client_id='client_id_5')
         self.login('admin')
         data = self.get_json_resp('/superset/queries/0')
         self.assertEquals(4, len(data))
@@ -111,7 +111,7 @@ class SqlLabTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/queries/{}'.format(
-                int(utils.datetime_to_epoch(now))-1000))
+                int(utils.datetime_to_epoch(now)) - 1000))
         self.assertEquals(1, len(data))
 
         self.logout()
@@ -149,7 +149,7 @@ class SqlLabTests(SupersetTestCase):
             '/superset/search_queries?user_id={}'.format(user_id))
         data = json.loads(resp)
         self.assertEquals(1, len(data))
-        self.assertEquals(data[0]['userId'] , user_id)
+        self.assertEquals(data[0]['userId'], user_id)
 
     def test_search_query_on_status(self):
         self.run_some_queries()
@@ -195,7 +195,7 @@ class SqlLabTests(SupersetTestCase):
 
     def test_alias_duplicate(self):
         self.run_sql(
-            "SELECT username as col, id as col, username FROM ab_user",
+            'SELECT username as col, id as col, username FROM ab_user',
             client_id='2e2df3',
             user_name='admin',
             raise_on_error=True)

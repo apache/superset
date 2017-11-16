@@ -5,18 +5,18 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
-import humanize
 import json
 import re
-import sqlalchemy as sa
-
-from sqlalchemy.ext.declarative import declared_attr
 
 from flask import escape, Markup
-from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
-from superset.utils import QueryStatus
+from flask_appbuilder.models.mixins import AuditMixin
+import humanize
+import sqlalchemy as sa
+from sqlalchemy.ext.declarative import declared_attr
+
 from superset import sm
+from superset.utils import QueryStatus
 
 
 class ImportMixin(object):
@@ -39,8 +39,8 @@ class ImportMixin(object):
     @property
     def params_dict(self):
         if self.params:
-            params = re.sub(",[ \t\r\n]+}", "}", self.params)
-            params = re.sub(",[ \t\r\n]+\]", "]", params)
+            params = re.sub(',[ \t\r\n]+}', '}', self.params)
+            params = re.sub(',[ \t\r\n]+\]', ']', params)
             return json.loads(params)
         else:
             return {}
@@ -134,13 +134,13 @@ def merge_perm(sm, permission_name, view_menu_name, connection):
         permission_table = sm.permission_model.__table__
         connection.execute(
             permission_table.insert()
-            .values(name=permission_name)
+            .values(name=permission_name),
         )
     if not view_menu:
         view_menu_table = sm.viewmenu_model.__table__
         connection.execute(
             view_menu_table.insert()
-            .values(name=view_menu_name)
+            .values(name=view_menu_name),
         )
 
     permission = sm.find_permission(permission_name)
@@ -155,8 +155,8 @@ def merge_perm(sm, permission_name, view_menu_name, connection):
             permission_view_table.insert()
             .values(
                 permission_id=permission.id,
-                view_menu_id=view_menu.id
-                )
+                view_menu_id=view_menu.id,
+            ),
         )
 
 
@@ -167,7 +167,7 @@ def set_perm(mapper, connection, target):  # noqa
         connection.execute(
             link_table.update()
             .where(link_table.c.id == target.id)
-            .values(perm=target.get_perm())
+            .values(perm=target.get_perm()),
         )
 
     # add to view menu if not already exists

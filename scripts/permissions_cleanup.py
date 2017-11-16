@@ -1,5 +1,6 @@
-from superset import sm
 from collections import defaultdict
+
+from superset import sm
 
 
 def cleanup_permissions():
