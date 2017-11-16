@@ -133,9 +133,15 @@ def load_examples(load_test_data):
     print('Loading [Misc Charts] dashboard')
     data.load_misc_dashboard()
 
+    print("Loading DECK.gl demo")
+    data.load_deck_dash()
+
     if load_test_data:
         print('Loading [Unicode test data]')
         data.load_unicode_test_data()
+
+    print("Loading flights data")
+    data.load_flights()
 
 
 @manager.option(

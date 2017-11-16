@@ -21,6 +21,7 @@ const propTypes = {
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
+    PropTypes.object,
     PropTypes.bool,
     PropTypes.array,
     PropTypes.func]),
