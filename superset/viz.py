@@ -1730,7 +1730,111 @@ class MapboxViz(BaseViz):
         }
 
 
+class BaseDeckGLViz(BaseViz):
+
+    """Base class for deck.gl visualizations"""
+
+    is_timeseries = False
+    credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
+
+    def get_metrics(self):
+        self.metric = self.form_data.get('size')
+        return [self.metric]
+
+    def get_properties(self, d):
+        return {
+            'weight': d.get(self.metric) or 1,
+        }
+
+    def get_position(self, d):
+        return [
+            d.get(self.form_data.get('longitude')),
+            d.get(self.form_data.get('latitude')),
+        ]
+
+    def query_obj(self):
+        d = super(BaseDeckGLViz, self).query_obj()
+        fd = self.form_data
+
+        d['groupby'] = [fd.get('longitude'), fd.get('latitude')]
+        if fd.get('dimension'):
+            d['groupby'] += [fd.get('dimension')]
+
+        d['metrics'] = self.get_metrics()
+        return d
+
+    def get_data(self, df):
+        features = []
+        for d in df.to_dict(orient='records'):
+            d = dict(position=self.get_position(d), **self.get_properties(d))
+            features.append(d)
+        return {
+            "features": features,
+            "mapboxApiKey": config.get('MAPBOX_API_KEY'),
+        }
+
+
+class DeckScatterViz(BaseDeckGLViz):
+
+    """deck.gl's ScatterLayer"""
+
+    viz_type = "deck_scatter"
+    verbose_name = _("Deck.gl - Scatter plot")
+
+    def query_obj(self):
+        self.point_radius_fixed = self.form_data.get('point_radius_fixed')
+        return super(DeckScatterViz, self).query_obj()
+
+    def get_metrics(self):
+        if self.point_radius_fixed.get('type') == 'metric':
+            self.metric = self.point_radius_fixed.get('value')
+        else:
+            self.metric = 'count'
+        return [self.metric]
+
+    def get_properties(self, d):
+        return {
+            "radius": self.fixed_value if self.fixed_value else d.get(self.metric),
+            "cat_color": d.get(self.dim) if self.dim else None,
+        }
+
+    def get_data(self, df):
+        fd = self.form_data
+        self.point_radius_fixed = fd.get('point_radius_fixed')
+        self.fixed_value = None
+        self.dim = self.form_data.get('dimension')
+        if self.point_radius_fixed.get('type') != 'metric':
+            self.fixed_value = self.point_radius_fixed.get('value')
+
+        return super(DeckScatterViz, self).get_data(df)
+
+
+class DeckScreengrid(BaseDeckGLViz):
+
+    """deck.gl's ScreenGridLayer"""
+
+    viz_type = "deck_screengrid"
+    verbose_name = _("Deck.gl - Screen Grid")
+
+
+class DeckGrid(BaseDeckGLViz):
+
+    """deck.gl's DeckLayer"""
+
+    viz_type = "deck_grid"
+    verbose_name = _("Deck.gl - 3D Grid")
+
+
+class DeckHex(BaseDeckGLViz):
+
+    """deck.gl's DeckLayer"""
+
+    viz_type = "deck_hex"
+    verbose_name = _("Deck.gl - 3D HEX")
+
+
 class EventFlowViz(BaseViz):
+
     """A visualization to explore patterns in event sequences"""
 
     viz_type = 'event_flow'
