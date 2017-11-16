@@ -1769,8 +1769,8 @@ class BaseDeckGLViz(BaseViz):
             d = dict(position=self.get_position(d), **self.get_properties(d))
             features.append(d)
         return {
-            "features": features,
-            "mapboxApiKey": config.get('MAPBOX_API_KEY'),
+            'features': features,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 
 
@@ -1778,8 +1778,8 @@ class DeckScatterViz(BaseDeckGLViz):
 
     """deck.gl's ScatterLayer"""
 
-    viz_type = "deck_scatter"
-    verbose_name = _("Deck.gl - Scatter plot")
+    viz_type = 'deck_scatter'
+    verbose_name = _('Deck.gl - Scatter plot')
 
     def query_obj(self):
         self.point_radius_fixed = self.form_data.get('point_radius_fixed')
@@ -1794,8 +1794,8 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_properties(self, d):
         return {
-            "radius": self.fixed_value if self.fixed_value else d.get(self.metric),
-            "cat_color": d.get(self.dim) if self.dim else None,
+            'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
+            'cat_color': d.get(self.dim) if self.dim else None,
         }
 
     def get_data(self, df):
@@ -1813,24 +1813,24 @@ class DeckScreengrid(BaseDeckGLViz):
 
     """deck.gl's ScreenGridLayer"""
 
-    viz_type = "deck_screengrid"
-    verbose_name = _("Deck.gl - Screen Grid")
+    viz_type = 'deck_screengrid'
+    verbose_name = _('Deck.gl - Screen Grid')
 
 
 class DeckGrid(BaseDeckGLViz):
 
     """deck.gl's DeckLayer"""
 
-    viz_type = "deck_grid"
-    verbose_name = _("Deck.gl - 3D Grid")
+    viz_type = 'deck_grid'
+    verbose_name = _('Deck.gl - 3D Grid')
 
 
 class DeckHex(BaseDeckGLViz):
 
     """deck.gl's DeckLayer"""
 
-    viz_type = "deck_hex"
-    verbose_name = _("Deck.gl - 3D HEX")
+    viz_type = 'deck_hex'
+    verbose_name = _('Deck.gl - 3D HEX')
 
 
 class EventFlowViz(BaseViz):
