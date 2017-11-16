@@ -107,6 +107,9 @@ const dashboard = function (state = {}, action) {
     [actions.TOGGLE_FAVE_STAR]() {
       return { ...state, isStarred: action.isStarred };
     },
+    [actions.SET_EDIT_MODE]() {
+      return { ...state, editMode: action.editMode };
+    },
     [actions.TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.dashboard.metadata.expanded_slices };
       const sliceId = action.slice.slice_id;

@@ -41,7 +41,9 @@ class SliceAdder extends React.Component {
   }
 
   componentWillUnmount() {
-    this.slicesRequest.abort();
+    if (this.slicesRequest) {
+      this.slicesRequest.abort();
+    }
   }
 
   onEnterModal() {

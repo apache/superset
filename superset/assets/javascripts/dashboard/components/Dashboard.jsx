@@ -22,6 +22,7 @@ const propTypes = {
   timeout: PropTypes.number,
   userId: PropTypes.string,
   isStarred: PropTypes.bool,
+  editMode: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -33,6 +34,7 @@ const defaultProps = {
   timeout: 60,
   userId: '',
   isStarred: false,
+  editMode: true,
 };
 
 class Dashboard extends React.PureComponent {
@@ -315,6 +317,8 @@ class Dashboard extends React.PureComponent {
             renderSlices={this.fetchAllSlices}
             startPeriodicRender={this.startPeriodicRender}
             addSlicesToDashboard={this.addSlicesToDashboard}
+            editMode={this.props.editMode}
+            setEditMode={this.props.actions.setEditMode}
           />
         </div>
         <div id="grid-container" className="slice-grid gridster">
@@ -336,6 +340,7 @@ class Dashboard extends React.PureComponent {
             getFilters={this.getFilters}
             clearFilter={this.props.actions.clearFilter}
             removeFilter={this.props.actions.removeFilter}
+            editMode={this.props.editMode}
           />
         </div>
       </div>
