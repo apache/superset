@@ -6,6 +6,7 @@ import * as actions from './actions';
 import { getParam } from '../modules/utils';
 import { alterInArr, removeFromArr } from '../reduxUtils';
 import { applyDefaultFormData } from '../explore/stores/store';
+import { getColorFromScheme } from '../modules/colors';
 
 export function getInitialState(bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;
@@ -23,6 +24,15 @@ export function getInitialState(bootstrapData) {
     }
   } catch (e) {
     //
+  }
+
+  // Priming the color palette with user's label-color mapping provided in
+  // the dashboard's JSON metadata
+  if (dashboard.metadata && dashboard.metadata.label_colors) {
+    const colorMap = dashboard.metadata.label_colors;
+    for (const label in colorMap) {
+      getColorFromScheme(label, null, colorMap[label]);
+    }
   }
 
   dashboard.posDict = {};
