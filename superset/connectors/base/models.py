@@ -145,10 +145,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
-        verbose_map = {
+        verbose_map = {'__timestamp': 'Time'}
+        verbose_map.update({
             o.metric_name: o.verbose_name or o.metric_name
             for o in self.metrics
-        }
+        })
         verbose_map.update({
             o.column_name: o.verbose_name or o.column_name
             for o in self.columns
