@@ -72,7 +72,14 @@ class FilterBox extends React.Component {
     return control;
   }
   clickApply() {
-    this.props.onChange(Object.keys(this.state.selectedValues)[0], [], true, true);
+    const { selectedValues } = this.state;
+    Object.keys(selectedValues).forEach((fltr, i, arr) => {
+      let refresh = false;
+      if (i === arr.length - 1) {
+        refresh = true;
+      }
+      this.props.onChange(fltr, selectedValues[fltr], false, refresh);
+    });
     this.setState({ hasChanged: false });
   }
   changeFilter(filter, options) {
@@ -90,7 +97,9 @@ class FilterBox extends React.Component {
     const selectedValues = Object.assign({}, this.state.selectedValues);
     selectedValues[fltr] = vals;
     this.setState({ selectedValues, hasChanged: true });
-    this.props.onChange(fltr, vals, false, this.props.instantFiltering);
+    if (this.props.instantFiltering) {
+      this.props.onChange(fltr, vals, false, true);
+    }
   }
   render() {
     let dateFilter;
