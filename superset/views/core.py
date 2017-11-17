@@ -451,7 +451,7 @@ appbuilder.add_view_no_menu(SliceAsync)
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'id', 'slice_name', 'slice_link', 'viz_type',
-        'owners', 'modified', 'changed_on']
+        'datasource_link', 'owners', 'modified', 'changed_on']
 
 
 appbuilder.add_view_no_menu(SliceAddView)
