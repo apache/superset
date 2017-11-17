@@ -134,9 +134,9 @@ const dashboard = function (state = {}, action) {
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return
         } else if (state.filters[sliceId][col] instanceof Array) {
-          newFilter = d3.merge([state.filters[sliceId][col], vals]);
+          newFilter[col] = d3.merge([state.filters[sliceId][col], vals]);
         } else {
-          newFilter = d3.merge([[state.filters[sliceId][col]], vals])[0] || '';
+          newFilter[col] = d3.merge([[state.filters[sliceId][col]], vals])[0] || '';
         }
         filters = { ...state.filters, [sliceId]: newFilter };
       }
