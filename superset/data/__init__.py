@@ -172,9 +172,7 @@ def load_world_bank_health_n_pop():
         index=False)
 
     print("Creating table [wb_health_population] reference")
-
     db_obj = get_or_create_main_db()
-
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name, database=db_obj).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
@@ -570,9 +568,7 @@ def load_birth_names():
     print("-" * 80)
 
     print("Creating table [birth_names] reference")
-
     db_obj = get_or_create_main_db()
-
     obj = db.session.query(TBL).filter_by(table_name='birth_names', database=db_obj).first()
     if not obj:
         obj = TBL(table_name='birth_names')
@@ -842,7 +838,6 @@ def load_unicode_test_data():
     print("-" * 80)
 
     print("Creating table [unicode_test] reference")
-
     db_obj=get_or_create_main_db()
     obj = db.session.query(TBL).filter_by(table_name='unicode_test', database=db_obj).first()
     if not obj:
