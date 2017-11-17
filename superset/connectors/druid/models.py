@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 import json
 import logging
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -157,7 +157,7 @@ class DruidCluster(Model, AuditMixinNullable):
         session.flush()
 
         # Prepare multithreaded executation
-        pool = Pool()
+        pool = ThreadPool()
         ds_refresh = list(ds_map.values())
         metadata = pool.map(_fetch_metadata_for, ds_refresh)
         pool.close()
