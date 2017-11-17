@@ -166,36 +166,37 @@ class DruidCluster(Model, AuditMixinNullable):
         for i in range(0, len(ds_refresh)):
             datasource = ds_refresh[i]
             cols = metadata[i]
-            col_objs_list = (
-                session.query(DruidColumn)
-                .filter(DruidColumn.datasource_name == datasource.datasource_name)
-                .filter(or_(DruidColumn.column_name == col for col in cols))
-            )
-            col_objs = {col.column_name: col for col in col_objs_list}
-            for col in cols:
-                if col == '__time':  # skip the time column
-                    continue
-                col_obj = col_objs.get(col, None)
-                if not col_obj:
-                    col_obj = DruidColumn(
-                        datasource_name=datasource.datasource_name,
-                        column_name=col)
-                    with session.no_autoflush:
-                        session.add(col_obj)
-                datatype = cols[col]['type']
-                if datatype == 'STRING':
-                    col_obj.groupby = True
-                    col_obj.filterable = True
-                if datatype == 'hyperUnique' or datatype == 'thetaSketch':
-                    col_obj.count_distinct = True
-                # Allow sum/min/max for long or double
-                if datatype == 'LONG' or datatype == 'DOUBLE':
-                    col_obj.sum = True
-                    col_obj.min = True
-                    col_obj.max = True
-                col_obj.type = datatype
-                col_obj.datasource = datasource
-            datasource.generate_metrics_for(col_objs_list)
+            if cols:
+                col_objs_list = (
+                    session.query(DruidColumn)
+                    .filter(DruidColumn.datasource_name == datasource.datasource_name)
+                    .filter(or_(DruidColumn.column_name == col for col in cols))
+                )
+                col_objs = {col.column_name: col for col in col_objs_list}
+                for col in cols:
+                    if col == '__time':  # skip the time column
+                        continue
+                    col_obj = col_objs.get(col, None)
+                    if not col_obj:
+                        col_obj = DruidColumn(
+                            datasource_name=datasource.datasource_name,
+                            column_name=col)
+                        with session.no_autoflush:
+                            session.add(col_obj)
+                    datatype = cols[col]['type']
+                    if datatype == 'STRING':
+                        col_obj.groupby = True
+                        col_obj.filterable = True
+                    if datatype == 'hyperUnique' or datatype == 'thetaSketch':
+                        col_obj.count_distinct = True
+                    # Allow sum/min/max for long or double
+                    if datatype == 'LONG' or datatype == 'DOUBLE':
+                        col_obj.sum = True
+                        col_obj.min = True
+                        col_obj.max = True
+                    col_obj.type = datatype
+                    col_obj.datasource = datasource
+                datasource.generate_metrics_for(col_objs_list)
         session.commit()
 
     @property
