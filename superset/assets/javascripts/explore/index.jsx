@@ -43,13 +43,14 @@ const initState = {
     [chartKey]: {
       chartKey,
       chartAlert: null,
-      chartStatus: null,
+      chartStatus: 'loading',
       chartUpdateEndTime: null,
       chartUpdateStartTime: now(),
       latestQueryFormData: getFormDataFromControls(controls),
+      queryRequest: null,
       queryResponse: null,
       triggerQuery: true,
-      triggerRender: false,
+      lastRendered: 0,
     },
   },
   saveModal: {
