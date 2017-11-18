@@ -54,7 +54,8 @@ class SliceAdder extends React.Component {
         const slices = response.result.map(slice => ({
           id: slice.id,
           sliceName: slice.slice_name,
-          vizType: slice.vizType,
+          vizType: slice.viz_type,
+          datasourceLink: slice.datasource_link,
           modified: slice.modified,
         }));
 
@@ -164,6 +165,14 @@ class SliceAdder extends React.Component {
               dataSort
             >
               {t('Viz')}
+            </TableHeaderColumn>
+            <TableHeaderColumn
+              dataField="datasourceLink"
+              dataSort
+              // Will cause react-bootstrap-table to interpret the HTML returned
+              dataFormat={datasourceLink => datasourceLink}
+            >
+              {t('Datasource')}
             </TableHeaderColumn>
             <TableHeaderColumn
               dataField="modified"
