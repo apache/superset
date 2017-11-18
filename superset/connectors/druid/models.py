@@ -122,9 +122,9 @@ class DruidCluster(Model, AuditMixinNullable):
             ds_refresh.append(datasource_name)
         else:
             return
-        self.refresh_async(ds_refresh, merge_flag, refreshAll)
+        self.refresh(ds_refresh, merge_flag, refreshAll)
 
-    def refresh_async(self, datasource_names, merge_flag, refreshAll):
+    def refresh(self, datasource_names, merge_flag, refreshAll):
         """
         Fetches metadata for the specified datasources andm
         merges to the Superset database
