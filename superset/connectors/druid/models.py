@@ -564,11 +564,15 @@ class DruidDatasource(Model, BaseDatasource):
         """Returns segment metadata from the latest segment"""
         logging.info('Syncing datasource [{}]'.format(self.datasource_name))
         client = self.cluster.get_pydruid_client()
-        results = client.time_boundary(datasource=self.datasource_name)
-        if not results:
-            return
-        max_time = results[0]['result']['maxTime']
-        max_time = dparse(max_time)
+        try:
+            results = client.time_boundary(datasource=self.datasource_name)
+        except IOError:
+            results = None
+        if results:
+            max_time = results[0]['result']['maxTime']
+            max_time = dparse(max_time)
+        else:
+            max_time = datetime.now()
         # Query segmentMetadata for 7 days back. However, due to a bug,
         # we need to set this interval to more than 1 day ago to exclude
         # realtime segments, which triggered a bug (fixed in druid 0.8.2).
