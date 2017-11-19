@@ -36,8 +36,12 @@ const bootstrappedState = Object.assign(
     isStarred: false,
   },
 );
-
-const chartKey = bootstrappedState.slice ? ('slice_' + bootstrappedState.slice.slice_id) : 'slice';
+const slice = bootstrappedState.slice;
+const sliceFormData = slice ?
+  getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
+  :
+  null;
+const chartKey = slice ? ('slice_' + slice.slice_id) : 'slice';
 const initState = {
   charts: {
     [chartKey]: {
@@ -47,6 +51,7 @@ const initState = {
       chartUpdateEndTime: null,
       chartUpdateStartTime: now(),
       latestQueryFormData: getFormDataFromControls(controls),
+      sliceFormData,
       queryRequest: null,
       queryResponse: null,
       triggerQuery: true,
