@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import csv
+import datetime
 import doctest
 import io
 import json
@@ -13,9 +14,11 @@ import random
 import unittest
 
 from flask import escape
+import pandas as pd
+import psycopg2
 import sqlalchemy as sqla
 
-from superset import appbuilder, db, jinja_context, sm, sql_lab, utils
+from superset import appbuilder, dataframe, db, jinja_context, sm, sql_lab, utils
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.sql_lab import Query
@@ -784,6 +787,22 @@ class CoreTests(SupersetTestCase):
         self.assertDictEqual(
             fillna_columns,
             {'name': ' NULL', 'sum__num': 0},
+        )
+
+    def test_dataframe_timezone(self):
+        tz = psycopg2.tz.FixedOffsetTimezone(offset=60, name=None)
+        data = [(datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
+                (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz,),)]
+        df = dataframe.SupersetDataFrame(pd.DataFrame(data=list(data),
+                                                      columns=['data', ]))
+        data = df.data
+        self.assertDictEqual(
+            data[0],
+            {'data': pd.Timestamp('2017-11-18 21:53:00.219225+0100', tz=tz), },
+        )
+        self.assertDictEqual(
+            data[1],
+            {'data': pd.Timestamp('2017-11-18 22:06:30.061810+0100', tz=tz), },
         )
 
 

@@ -14,6 +14,7 @@ from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
+from pandas.core.common import _maybe_box_datetimelike
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from past.builtins import basestring
 
@@ -48,7 +49,10 @@ class SupersetDataFrame(object):
 
     @property
     def data(self):
-        return self.__df.to_dict(orient='records')
+        # work around for https://github.com/pandas-dev/pandas/issues/18372
+        return [dict((k, _maybe_box_datetimelike(v))
+                     for k, v in zip(self.__df.columns, np.atleast_1d(row)))
+                for row in self.__df.values]
 
     @classmethod
     def db_type(cls, dtype):
