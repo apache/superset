@@ -1,5 +1,5 @@
 Superset
-=========
+========== 
 
 [![Build Status](https://travis-ci.org/apache/incubator-superset.svg?branch=master)](https://travis-ci.org/apache/incubator-superset)
 [![PyPI version](https://badge.fury.io/py/superset.svg)](https://badge.fury.io/py/superset)
