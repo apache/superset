@@ -1103,7 +1103,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return schemas
 
 
-
 engines = {
     o.engine: o for o in globals().values()
     if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}
