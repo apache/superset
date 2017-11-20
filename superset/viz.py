@@ -787,8 +787,8 @@ class BubbleViz(NVD3Viz):
         return d
 
     def get_data(self, df):
-        df['x'] = df[[self.x_metric]]
-        df['y'] = df[[self.y_metric]]
+        df['x'] = df[[self.x_metric]].ix[:, 0]
+        df['y'] = df[[self.y_metric]].ix[:, 0]
         df['size'] = df[[self.z_metric]]
         df['shape'] = 'circle'
         df['group'] = df[[self.series]]
