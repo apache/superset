@@ -150,7 +150,6 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_schema_names(cls, inspector):
-        print("trying")
         return sorted(inspector.get_schema_names())
 
     @classmethod
