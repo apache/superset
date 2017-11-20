@@ -726,7 +726,8 @@ class Database(Model, AuditMixinNullable):
         return views
 
     def all_schema_names(self):
-        return sorted(self.inspector.get_schema_names())
+        schemas = sorted(self.db_engine_spec.get_schema_names(self.inspector))
+        return schemas
 
     @property
     def db_engine_spec(self):
