@@ -53,6 +53,7 @@ class ExploreViewContainer extends React.Component {
     }
     // if any control value changed and it's an instant control
     if (Object.keys(np.controls).some(key => (np.controls[key].renderTrigger &&
+      typeof this.props.controls[key] !== 'undefined' &&
       !areObjectsEqual(np.controls[key].value, this.props.controls[key].value)))) {
       this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
     }
