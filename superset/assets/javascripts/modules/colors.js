@@ -103,17 +103,36 @@ export const spectrums = {
   ],
 };
 
+/**
+ * Get a color from a scheme specific palette (scheme)
+ * The function cycles through the palette while memoizing labels
+ * association to colors. If the function is called twice with the
+ * same string, it will return the same color.
+ *
+ * @param {string} s - The label for which we want to get a color
+ * @param {string} scheme - The palette name, or "scheme"
+ * @param {string} forcedColor - A color that the caller wants to
+    forcibly associate to a label.
+ */
 export const getColorFromScheme = (function () {
-  // Color factory
   const seen = {};
-  return function (s, scheme) {
+  const forcedColors = {};
+  return function (s, scheme, forcedColor) {
     if (!s) {
       return;
     }
     const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
-    let stringifyS = String(s);
+    let stringifyS = String(s).toLowerCase();
     // next line is for superset series that should have the same color
     stringifyS = stringifyS.replace('---', '');
+
+    if (forcedColor && !forcedColors[stringifyS]) {
+      forcedColors[stringifyS] = forcedColor;
+    }
+    if (forcedColors[stringifyS]) {
+      return forcedColors[stringifyS];
+    }
+
     if (seen[selectedScheme] === undefined) {
       seen[selectedScheme] = {};
     }
@@ -142,3 +161,13 @@ export const colorScalerFactory = function (colors, data, accessor, extents) {
   const points = colors.map((col, i) => ext[0] + (i * chunkSize));
   return d3.scale.linear().domain(points).range(colors).clamp(true);
 };
+
+export function hexToRGB(hex, alpha = 255) {
+  if (!hex) {
+    return [0, 0, 0, alpha];
+  }
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b, alpha];
+}

@@ -104,14 +104,14 @@ class BaseEngineSpec(object):
 
     @staticmethod
     def create_table_from_csv(form, table):
-        def allowed_file(filename):
+        def _allowed_file(filename):
             # Only allow specific file extensions as specified in the config
             extension = os.path.splitext(filename)[1]
             return extension and extension[1:] in app.config['ALLOWED_EXTENSIONS']
 
         filename = secure_filename(form.csv_file.data.filename)
-        if not allowed_file(filename):
-            return (False, 'Invalid file type selected.')
+        if not _allowed_file(filename):
+            raise Exception('Invalid file type selected')
         kwargs = {
             'filepath_or_buffer': filename,
             'sep': form.sep.data,
@@ -140,7 +140,6 @@ class BaseEngineSpec(object):
             'chunksize': 10000,
         }
         BaseEngineSpec.df_to_db(**df_to_db_kwargs)
-        return (True, '')
 
     @classmethod
     def escape_sql(cls, sql):
@@ -800,8 +799,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         if not bucket_path:
             logging.info('No upload bucket specified')
-            return (
-                False,
+            raise Exception(
                 'No upload bucket specified. You can specify one in the config file.')
 
         upload_prefix = app.config['CSV_TO_HIVE_UPLOAD_DIRECTORY']
@@ -821,15 +819,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'""".format(**locals())
-        try:
-            logging.info(form.con.data)
-            engine = create_engine(form.con.data)
-            engine.execute(sql)
-            return (True, '')
-        except Exception as e:
-            logging.exception(e)
-            logging.info(sql)
-            return (False, BaseEngineSpec.extract_error_message(e))
+
+        logging.info(form.con.data)
+        engine = create_engine(form.con.data)
+        engine.execute(sql)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):

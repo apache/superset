@@ -12,10 +12,10 @@ function mapStateToProps({ charts }, ownProps) {
     chartUpdateEndTime: chart.chartUpdateEndTime,
     chartUpdateStartTime: chart.chartUpdateStartTime,
     latestQueryFormData: chart.latestQueryFormData,
+    lastRendered: chart.lastRendered,
     queryResponse: chart.queryResponse,
     queryRequest: chart.queryRequest,
     triggerQuery: chart.triggerQuery,
-    triggerRender: chart.triggerRender,
   };
 }
 

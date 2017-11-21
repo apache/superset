@@ -333,21 +333,23 @@ class CsvToDatabaseView(SimpleFormView):
         form.infer_datetime_format.data = True
         form.decimal.data = '.'
         form.if_exists.data = 'append'
-        all_datasources = db.session.query(
-            models.Database.sqlalchemy_uri,
-            models.Database.database_name)\
+        all_datasources = (
+            db.session.query(
+                models.Database.sqlalchemy_uri,
+                models.Database.database_name)
             .all()
+        )
         form.con.choices += all_datasources
 
     def form_post(self, form):
-        def upload_file(csv_file):
+        def _upload_file(csv_file):
             if csv_file and csv_file.filename:
                 filename = secure_filename(csv_file.filename)
                 csv_file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
                 return filename
 
         csv_file = form.csv_file.data
-        upload_file(csv_file)
+        _upload_file(csv_file)
         table = SqlaTable(table_name=form.name.data)
         database = (
             db.session.query(models.Database)
@@ -356,22 +358,26 @@ class CsvToDatabaseView(SimpleFormView):
         )
         table.database = database
         table.database_id = database.id
-        successful, message = database.db_engine_spec.create_table_from_csv(form, table)
-        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
-        if successful:
-            # Go back to welcome page / splash screen
-            db_name = db.session.query(models.Database.database_name)\
-                .filter_by(sqlalchemy_uri=form.data.get('con')).one()
-
-            message = _('CSV file "{0}" uploaded to table "{1}" in '
-                        'database "{2}"'.format(form.csv_file.data.filename,
-                                                form.name.data,
-                                                db_name[0]))
-            flash(message, 'info')
+        try:
+            database.db_engine_spec.create_table_from_csv(form, table)
+        except Exception as e:
+            os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
+            flash(e, 'error')
             return redirect('/tablemodelview/list/')
 
-        else:
-            flash(message, 'info')
+        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
+        # Go back to welcome page / splash screen
+        db_name = (
+            db.session.query(models.Database.database_name)
+            .filter_by(sqlalchemy_uri=form.data.get('con'))
+            .one()
+        )
+        message = _('CSV file "{0}" uploaded to table "{1}" in '
+                    'database "{2}"'.format(form.csv_file.data.filename,
+                                            form.name.data,
+                                            db_name[0]))
+        flash(message, 'info')
+        return redirect('/tablemodelview/list/')
 
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
@@ -514,7 +520,7 @@ appbuilder.add_view_no_menu(SliceAsync)
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'id', 'slice_name', 'slice_link', 'viz_type',
-        'owners', 'modified', 'changed_on']
+        'datasource_link', 'owners', 'modified', 'changed_on']
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -578,7 +584,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         obj.slug = obj.slug.strip() or None
         if obj.slug:
             obj.slug = obj.slug.replace(' ', '-')
-            obj.slug = re.sub(r'\W+', '', obj.slug)
+            obj.slug = re.sub(r'[^a-zA-Z0-9\-]+', '', obj.slug)
         if g.user not in obj.owners:
             obj.owners.append(g.user)
         utils.validate_json(obj.json_metadata)
