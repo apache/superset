@@ -150,7 +150,7 @@ class BaseEngineSpec(object):
 
     @classmethod
     def get_schema_names(cls, inspector):
-        return sorted(inspector.get_schema_names())
+        return inspector.get_schema_names()
 
     @classmethod
     def get_table_names(cls, schema, inspector):
