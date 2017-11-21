@@ -40,7 +40,7 @@ function tableVis(slice, payload) {
   div.html('');
   const table = div.append('table')
     .classed(
-      'dataframe dataframe table table-striped table-bordered ' +
+      'dataframe dataframe table table-striped ' +
       'table-condensed table-hover dataTable no-footer', true)
     .attr('width', '100%');
 
