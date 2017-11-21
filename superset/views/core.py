@@ -130,14 +130,6 @@ class SliceFilter(SupersetFilter):
         return query.filter(self.model.perm.in_(perms))
 
 
-class DatabaseFilter(SupersetFilter):
-    def apply(self, query, func):
-        if self.has_all_datasource_access():
-            return query
-        perms = self.get_view_menus('database_access')
-        return query.filter(self.model.perm.in_(perms))
-
-
 class DashboardFilter(SupersetFilter):
 
     """List dashboards for which users have access to at least one slice"""
@@ -211,7 +203,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     ]
     add_template = 'superset/models/database/add.html'
     edit_template = 'superset/models/database/edit.html'
-    base_filters = [['perm', DatabaseFilter, lambda:[]]]
     base_order = ('changed_on', 'desc')
     description_columns = {
         'sqlalchemy_uri': utils.markdown(
@@ -451,7 +442,7 @@ appbuilder.add_view_no_menu(SliceAsync)
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'id', 'slice_name', 'slice_link', 'viz_type',
-        'owners', 'modified', 'changed_on']
+        'datasource_link', 'owners', 'modified', 'changed_on']
 
 
 appbuilder.add_view_no_menu(SliceAddView)

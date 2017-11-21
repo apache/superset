@@ -377,9 +377,34 @@ def generic_find_constraint_name(table, columns, referenced, db):
     t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
 
     for fk in t.foreign_key_constraints:
-        if (fk.referred_table.name == referenced and
-                set(fk.column_keys) == columns):
+        if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
             return fk.name
+
+
+def generic_find_fk_constraint_name(table, columns, referenced, insp):
+    """Utility to find a foreign-key constraint name in alembic migrations"""
+    for fk in insp.get_foreign_keys(table):
+        if fk['referred_table'] == referenced and set(fk['referred_columns']) == columns:
+            return fk['name']
+
+
+def generic_find_fk_constraint_names(table, columns, referenced, insp):
+    """Utility to find foreign-key constraint names in alembic migrations"""
+    names = set()
+
+    for fk in insp.get_foreign_keys(table):
+        if fk['referred_table'] == referenced and set(fk['referred_columns']) == columns:
+            names.add(fk['name'])
+
+    return names
+
+
+def generic_find_uq_constraint_name(table, columns, insp):
+    """Utility to find a unique constraint name in alembic migrations"""
+
+    for uq in insp.get_unique_constraints(table):
+        if columns == set(uq['column_names']):
+            return uq['name']
 
 
 def get_datasource_full_name(database_name, datasource_name, schema=None):

@@ -149,6 +149,10 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
+    def get_schema_names(cls, inspector):
+        return inspector.get_schema_names()
+
+    @classmethod
     def get_table_names(cls, schema, inspector):
         return sorted(inspector.get_table_names(schema))
 
@@ -212,14 +216,14 @@ class PostgresEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('second', _('second'), "DATE_TRUNC('second', '{col}')"),
-        Grain('minute', _('minute'), "DATE_TRUNC('minute', '{col}')"),
-        Grain('hour', _('hour'), "DATE_TRUNC('hour', '{col}')"),
-        Grain('day', _('day'), "DATE_TRUNC('day', '{col}')"),
-        Grain('week', _('week'), "DATE_TRUNC('week', '{col}')"),
-        Grain('month', _('month'), "DATE_TRUNC('month', '{col}')"),
-        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', '{col}')"),
-        Grain('year', _('year'), "DATE_TRUNC('year', '{col}')"),
+        Grain('second', _('second'), "DATE_TRUNC('second', {col})"),
+        Grain('minute', _('minute'), "DATE_TRUNC('minute', {col})"),
+        Grain('hour', _('hour'), "DATE_TRUNC('hour', {col})"),
+        Grain('day', _('day'), "DATE_TRUNC('day', {col})"),
+        Grain('week', _('week'), "DATE_TRUNC('week', {col})"),
+        Grain('month', _('month'), "DATE_TRUNC('month', {col})"),
+        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', {col})"),
+        Grain('year', _('year'), "DATE_TRUNC('year', {col})"),
     )
 
     @classmethod
@@ -1091,6 +1095,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         if tt == 'DATE':
             return "{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    def get_schema_names(cls, inspector):
+        schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
+                   if not row[0].startswith('_')]
+        return schemas
 
 
 engines = {
