@@ -149,6 +149,10 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
+    def get_schema_names(cls, inspector):
+        return inspector.get_schema_names()
+
+    @classmethod
     def get_table_names(cls, schema, inspector):
         return sorted(inspector.get_table_names(schema))
 
@@ -1091,6 +1095,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         if tt == 'DATE':
             return "{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    def get_schema_names(cls, inspector):
+        schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
+                   if not row[0].startswith('_')]
+        return schemas
 
 
 engines = {
