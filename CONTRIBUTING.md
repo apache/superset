@@ -49,6 +49,10 @@ If you are proposing a feature:
     implement.
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
+    
+### Questions
+
+There is a dedicated [tag](https://stackoverflow.com/questions/tagged/apache-superset) on [stackoverflow](https://stackoverflow.com/). Please use it when asking questions.
 
 ## Pull Request Guidelines
 
@@ -262,9 +266,15 @@ Before running python unit tests, please setup local testing environment:
 pip install -r dev-reqs.txt
 ```
 
-Python tests can be run with:
+All python tests can be run with:
 
     ./run_tests.sh
+    
+Alternatively, you can run a specific test with:
+
+    ./run_specific_test.sh tests.core_tests:CoreTests.test_function_name
+    
+Note that before running specific tests, you have to both setup the local testing environment and run all tests.
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
@@ -276,9 +286,8 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
 
 Lint the project with:
 
-    # for python changes
-    flake8 changes tests
-    flake8 changes superset
+    # for python
+    flake8
 
     # for javascript
     npm run lint
@@ -344,19 +353,16 @@ navigation bar.
         'zh': {'flag': 'cn', 'name': 'Chinese'},
     }
 
-We need to extract the string to be translated, run the following command:
-
-    pybabel extract -F ./babel/babel.cfg -k _ -k __ -k t -k tn -k tct -o ./babel/messages.pot .
-
 As per the [Flask AppBuilder documentation] about translation, to create a
-new language dictionary, run the following command:
+new language dictionary, run the following command (where `es` is replaced with
+the language code for your target language):
 
-    pybabel init -i ./babel/messages.pot -d superset/translations -l es
+    pybabel init -i superset/translations/messages.pot -d superset/translations -l es
 
 Then it's a matter of running the statement below to gather all strings that
 need translation
 
-    fabmanager babel-extract --target superset/translations/
+    fabmanager babel-extract --target superset/translations/ --output superset/translations/messages.pot --config superset/translations/babel.cfg -k _ -k __ -k t -k tn -k tct
 
 You can then translate the strings gathered in files located under
 `superset/translation`, where there's one per language. For the translations
@@ -372,6 +378,11 @@ We need to be compiled using this command:
 Execute this command to convert the en PO file into a json file:
 
     po2json -d superset -f jed1.x superset/translations/en/LC_MESSAGES/messages.po superset/translations/en/LC_MESSAGES/messages.json
+
+If you get errors running `po2json`, you might be running the ubuntu package with the same
+name rather than the nodejs package (they have a different format for the arguments). You
+need to be running the nodejs version, and so if there is a conflict you may need to point
+directly at `/usr/local/bin/po2json` rather than just `po2json`.
 
 ## Adding new datasources
 

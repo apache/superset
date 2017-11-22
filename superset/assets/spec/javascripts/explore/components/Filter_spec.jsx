@@ -88,4 +88,28 @@ describe('Filter', () => {
     const regexWrapper = shallow(<Filter {...props} />);
     expect(regexWrapper.find('input')).to.have.lengthOf(1);
   });
+
+  it('renders `input` for text filters', () => {
+    const props = Object.assign({}, defaultProps);
+    ['>=', '>', '<=', '<'].forEach((op) => {
+      props.filter = {
+        col: 'col1',
+        op,
+        value: 'val',
+      };
+      wrapper = shallow(<Filter {...props} />);
+      expect(wrapper.find('input')).to.have.lengthOf(1);
+    });
+  });
+
+  it('replaces null filter values with empty string in `input`', () => {
+    const props = Object.assign({}, defaultProps);
+    props.filter = {
+      col: 'col1',
+      op: '>=',
+      value: null,
+    };
+    wrapper = shallow(<Filter {...props} />);
+    expect(wrapper.find('input').props().value).to.equal('');
+  });
 });

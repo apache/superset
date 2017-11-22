@@ -56,11 +56,6 @@ export default function exploreReducer(state = {}, action) {
       }
       return Object.assign({}, state, changes);
     },
-    [actions.TRIGGER_QUERY]() {
-      return Object.assign({}, state, {
-        triggerQuery: action.value,
-      });
-    },
     [actions.UPDATE_CHART_TITLE]() {
       const updatedSlice = Object.assign({}, state.slice, { slice_name: action.slice_name });
       return Object.assign({}, state, { slice: updatedSlice });
@@ -68,9 +63,6 @@ export default function exploreReducer(state = {}, action) {
     [actions.RESET_FIELDS]() {
       const controls = getControlsState(state, getFormDataFromControls(state.controls));
       return Object.assign({}, state, { controls });
-    },
-    [actions.RENDER_TRIGGERED]() {
-      return Object.assign({}, state, { triggerRender: false });
     },
     [actions.CREATE_NEW_SLICE]() {
       return Object.assign({}, state, {

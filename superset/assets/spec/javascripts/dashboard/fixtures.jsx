@@ -66,5 +66,5 @@ export const contextData = {
   dash_save_perm: true,
   standalone_mode: false,
   dash_edit_perm: true,
-  user_id: '1',
+  userId: '1',
 };

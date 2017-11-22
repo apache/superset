@@ -4,17 +4,18 @@
  * as arguments and return something that evals to false if v is valid,
  * and an error message if not valid.
  * */
+import { t } from '../locales';
 
 export function numeric(v) {
   if (v && isNaN(v)) {
-    return 'is expected to be a number';
+    return t('is expected to be a number');
   }
   return false;
 }
 
 export function integer(v) {
   if (v && (isNaN(v) || parseInt(v, 10) !== +(v))) {
-    return 'is expected to be an integer';
+    return t('is expected to be an integer');
   }
   return false;
 }
@@ -26,7 +27,7 @@ export function nonEmpty(v) {
       v === '' ||
       (Array.isArray(v) && v.length === 0)
   ) {
-    return 'cannot be empty';
+    return t('cannot be empty');
   }
   return false;
 }

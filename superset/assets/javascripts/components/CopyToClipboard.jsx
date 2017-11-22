@@ -52,14 +52,21 @@ export default class CopyToClipboard extends React.Component {
   }
 
   copyToClipboard(textToCopy) {
-    const textArea = document.createElement('textarea');
+    const selection = document.getSelection();
+    selection.removeAllRanges();
+    document.activeElement.blur();
+    const range = document.createRange();
+    const span = document.createElement('span');
+    span.textContent = textToCopy;
+    span.style.all = 'unset';
+    span.style.position = 'fixed';
+    span.style.top = 0;
+    span.style.clip = 'rect(0, 0, 0, 0)';
+    span.style.whiteSpace = 'pre';
 
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-1000px';
-    textArea.value = textToCopy;
-
-    document.body.appendChild(textArea);
-    textArea.select();
+    document.body.appendChild(span);
+    range.selectNode(span);
+    selection.addRange(range);
     try {
       if (!document.execCommand('copy')) {
         throw new Error(t('Not successful'));
@@ -68,7 +75,12 @@ export default class CopyToClipboard extends React.Component {
       window.alert(t('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!')); // eslint-disable-line
     }
 
-    document.body.removeChild(textArea);
+    document.body.removeChild(span);
+    if (selection.removeRange) {
+      selection.removeRange(range);
+    } else {
+      selection.removeAllRanges();
+    }
 
     this.setState({ hasCopied: true });
     this.props.onCopyEnd();

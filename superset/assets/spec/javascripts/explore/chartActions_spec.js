@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
 import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
-import * as actions from '../../../javascripts/explore/actions/chartActions';
+import * as actions from '../../../javascripts/chart/chartAction';
 
 describe('chart actions', () => {
   let dispatch;

@@ -13,6 +13,9 @@ const propTypes = {
   css: PropTypes.string,
   dashboard: PropTypes.object.isRequired,
   triggerNode: PropTypes.node.isRequired,
+  readFilters: PropTypes.func,
+  serialize: PropTypes.func,
+  onSave: PropTypes.func,
 };
 
 class SaveModal extends React.PureComponent {
@@ -45,8 +48,8 @@ class SaveModal extends React.PureComponent {
     });
   }
   saveDashboardRequest(data, url, saveType) {
-    const dashboard = this.props.dashboard;
     const saveModal = this.modal;
+    const onSaveDashboard = this.props.onSave;
     Object.assign(data, { css: this.props.css });
     $.ajax({
       type: 'POST',
@@ -56,7 +59,7 @@ class SaveModal extends React.PureComponent {
       },
       success(resp) {
         saveModal.close();
-        dashboard.onSave();
+        onSaveDashboard();
         if (saveType === 'newDashboard') {
           window.location = `/superset/dashboard/${resp.id}/`;
         } else {
@@ -72,21 +75,13 @@ class SaveModal extends React.PureComponent {
   }
   saveDashboard(saveType, newDashboardTitle) {
     const dashboard = this.props.dashboard;
-    const expandedSlices = {};
-    $.each($('.slice_info'), function () {
-      const widget = $(this).parents('.widget');
-      const sliceDescription = widget.find('.slice_description');
-      if (sliceDescription.is(':visible')) {
-        expandedSlices[$(widget).attr('data-slice-id')] = true;
-      }
-    });
-    const positions = dashboard.reactGridLayout.serialize();
+    const positions = this.props.serialize();
     const data = {
       positions,
       css: this.state.css,
-      expanded_slices: expandedSlices,
+      expanded_slices: dashboard.metadata.expanded_slices || {},
       dashboard_title: dashboard.dashboard_title,
-      default_filters: dashboard.readFilters(),
+      default_filters: this.props.readFilters(),
       duplicate_slices: this.state.duplicateSlices,
     };
     let url = null;

@@ -10,13 +10,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime, date
-from past.builtins import basestring
-
-import pandas as pd
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from datetime import date, datetime
 
 import numpy as np
+import pandas as pd
+from pandas.core.common import _maybe_box_datetimelike
+from pandas.core.dtypes.dtypes import ExtensionDtype
+from past.builtins import basestring
 
 
 INFER_COL_TYPES_THRESHOLD = 95
@@ -49,7 +49,10 @@ class SupersetDataFrame(object):
 
     @property
     def data(self):
-        return self.__df.to_dict(orient='records')
+        # work around for https://github.com/pandas-dev/pandas/issues/18372
+        return [dict((k, _maybe_box_datetimelike(v))
+                     for k, v in zip(self.__df.columns, np.atleast_1d(row)))
+                for row in self.__df.values]
 
     @classmethod
     def db_type(cls, dtype):
@@ -140,7 +143,7 @@ class SupersetDataFrame(object):
                     column.update({
                         'is_date': True,
                         'is_dim': False,
-                        'agg': None
+                        'agg': None,
                     })
             # 'agg' is optional attribute
             if not column['agg']:

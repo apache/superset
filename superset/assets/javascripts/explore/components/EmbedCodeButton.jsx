@@ -73,7 +73,7 @@ export default class EmbedCodeButton extends React.Component {
             <div className="col-md-6 col-sm-12">
               <div className="form-group">
                 <small>
-                  <label className="control-label" htmlFor="embed-height">t('Height')</label>
+                  <label className="control-label" htmlFor="embed-height">{t('Height')}</label>
                 </small>
                 <input
                   className="form-control input-sm"
@@ -87,7 +87,7 @@ export default class EmbedCodeButton extends React.Component {
             <div className="col-md-6 col-sm-12">
               <div className="form-group">
                 <small>
-                  <label className="control-label" htmlFor="embed-width">t('Width')</label>
+                  <label className="control-label" htmlFor="embed-width">{t('Width')}</label>
                 </small>
                 <input
                   className="form-control input-sm"

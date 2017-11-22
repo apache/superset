@@ -3,18 +3,16 @@ import json
 import logging
 import traceback
 
-from flask import g, redirect, Response, flash, abort, get_flashed_messages
-from flask_babel import gettext as __
-from flask_babel import lazy_gettext as _
-from flask_babel import get_locale
-
-from flask_appbuilder import BaseView
-from flask_appbuilder import ModelView
-from flask_appbuilder.widgets import ListWidget
+from flask import abort, flash, g, get_flashed_messages, redirect, Response
+from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.widgets import ListWidget
+from flask_babel import get_locale
+from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 
-from superset import appbuilder, conf, db, utils, sm, sql_parse
+from superset import appbuilder, conf, db, sm, sql_parse, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.translations.utils import get_language_pack
@@ -23,13 +21,13 @@ FRONTEND_CONF_KEYS = ('SUPERSET_WEBSERVER_TIMEOUT',)
 
 
 def get_error_msg():
-    if conf.get("SHOW_STACKTRACE"):
+    if conf.get('SHOW_STACKTRACE'):
         error_msg = traceback.format_exc()
     else:
-        error_msg = "FATAL ERROR \n"
+        error_msg = 'FATAL ERROR \n'
         error_msg += (
-            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
-            "configuration setting to enable it")
+            'Stacktrace is hidden. Change the SHOW_STACKTRACE '
+            'configuration setting to enable it')
     return error_msg
 
 
@@ -40,7 +38,7 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None):
             payload['stacktrace'] = stacktrace
     return Response(
         json.dumps(payload, default=utils.json_iso_dttm_ser),
-        status=status, mimetype="application/json")
+        status=status, mimetype='application/json')
 
 
 def api(f):
@@ -59,7 +57,7 @@ def api(f):
 
 
 def get_datasource_exist_error_mgs(full_name):
-    return __("Datasource %(name)s already exists", name=full_name)
+    return __('Datasource %(name)s already exists', name=full_name)
 
 
 def get_user_roles():
@@ -78,26 +76,26 @@ class BaseSupersetView(BaseView):
 
     def all_datasource_access(self, user=None):
         return self.can_access(
-            "all_datasource_access", "all_datasource_access", user=user)
+            'all_datasource_access', 'all_datasource_access', user=user)
 
     def database_access(self, database, user=None):
         return (
             self.can_access(
-                "all_database_access", "all_database_access", user=user) or
-            self.can_access("database_access", database.perm, user=user)
+                'all_database_access', 'all_database_access', user=user) or
+            self.can_access('database_access', database.perm, user=user)
         )
 
     def schema_access(self, datasource, user=None):
         return (
             self.database_access(datasource.database, user=user) or
             self.all_datasource_access(user=user) or
-            self.can_access("schema_access", datasource.schema_perm, user=user)
+            self.can_access('schema_access', datasource.schema_perm, user=user)
         )
 
     def datasource_access(self, datasource, user=None):
         return (
             self.schema_access(datasource, user=user) or
-            self.can_access("datasource_access", datasource.perm, user=user)
+            self.can_access('datasource_access', datasource.perm, user=user)
         )
 
     def datasource_access_by_name(
@@ -112,13 +110,13 @@ class BaseSupersetView(BaseView):
         datasources = ConnectorRegistry.query_datasources_by_name(
             db.session, database, datasource_name, schema=schema)
         for datasource in datasources:
-            if self.can_access("datasource_access", datasource.perm):
+            if self.can_access('datasource_access', datasource.perm):
                 return True
         return False
 
     def datasource_access_by_fullname(
             self, database, full_table_name, schema):
-        table_name_pieces = full_table_name.split(".")
+        table_name_pieces = full_table_name.split('.')
         if len(table_name_pieces) == 2:
             table_schema = table_name_pieces[0]
             table_name = table_name_pieces[1]
@@ -236,7 +234,7 @@ class DeleteMixin(object):
         try:
             self.pre_delete(item)
         except Exception as e:
-            flash(str(e), "danger")
+            flash(str(e), 'danger')
         else:
             view_menu = sm.find_view_menu(item.get_perm())
             pvs = sm.get_session.query(sm.permissionview_model).filter_by(
@@ -268,11 +266,11 @@ class DeleteMixin(object):
             self.update_redirect()
 
     @action(
-        "muldelete",
-        __("Delete"),
-        __("Delete all Really?"),
-        "fa-trash",
-        single=False
+        'muldelete',
+        __('Delete'),
+        __('Delete all Really?'),
+        'fa-trash',
+        single=False,
     )
     def muldelete(self, items):
         if not items:
@@ -281,7 +279,7 @@ class DeleteMixin(object):
             try:
                 self.pre_delete(item)
             except Exception as e:
-                flash(str(e), "danger")
+                flash(str(e), 'danger')
             else:
                 self._delete(item.id)
         self.update_redirect()

@@ -4,15 +4,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 import logging
-import mock
 import tempfile
 import unittest
 
-from superset import utils, app
+import mock
 
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
+from superset import app, utils
 
 send_email_test = mock.Mock()
 
@@ -89,8 +89,8 @@ class EmailSmtpTest(unittest.TestCase):
             'from', 'to', MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp.called
         mock_smtp_ssl.assert_called_with(
-             app.config.get('SMTP_HOST'),
-             app.config.get('SMTP_PORT'),
+            app.config.get('SMTP_HOST'),
+            app.config.get('SMTP_PORT'),
         )
 
     @mock.patch('smtplib.SMTP_SSL')
@@ -104,8 +104,8 @@ class EmailSmtpTest(unittest.TestCase):
             'from', 'to', MIMEMultipart(), app.config, dryrun=False)
         assert not mock_smtp_ssl.called
         mock_smtp.assert_called_with(
-             app.config.get('SMTP_HOST'),
-             app.config.get('SMTP_PORT'),
+            app.config.get('SMTP_HOST'),
+            app.config.get('SMTP_PORT'),
         )
         assert not mock_smtp.login.called
 
@@ -116,6 +116,7 @@ class EmailSmtpTest(unittest.TestCase):
             'from', 'to', MIMEMultipart(), app.config, dryrun=True)
         assert not mock_smtp.called
         assert not mock_smtp_ssl.called
+
 
 if __name__ == '__main__':
     unittest.main()

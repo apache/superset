@@ -62,7 +62,7 @@ that the required dependencies are installed: ::
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
     brew install pkg-config libffi openssl python
-    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==1.7.2
+    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography==1.9
 
 **Windows** isn't officially supported at this point, but if you want to
 attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
@@ -163,7 +163,7 @@ Refer to the
 for more information.
 
 Note that *gunicorn* does not
-work on Windows so the `superser runserver` command is not expected to work
+work on Windows so the `superset runserver` command is not expected to work
 in that context. Also note that the development web
 server (`superset runserver -d`) is not intended for production use.
 
@@ -550,3 +550,20 @@ same server.
         return "Ok"
 
     BLUEPRINTS = [simple_page]
+
+StatsD logging
+--------------
+
+Superset is instrumented to log events to StatsD if desired. Most endpoints hit
+are logged as well as key events like query start and end in SQL Lab.
+
+To setup StatsD logging, it's a matter of configuring the logger in your
+``superset_config.py``.
+
+..code ::
+
+    from superset.stats_logger import StatsdStatsLogger
+    STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')
+
+Note that it's also possible to implement you own logger by deriving
+``superset.stats_logger.BaseStatsLogger``.

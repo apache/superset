@@ -12,7 +12,7 @@ const propTypes = {
   onChange: PropTypes.func,
   value: PropTypes.string,
   default: PropTypes.string,
-  choices: PropTypes.arrayOf(React.PropTypes.array).isRequired,
+  choices: PropTypes.arrayOf(PropTypes.array).isRequired,
   schemes: PropTypes.object.isRequired,
   isLinear: PropTypes.bool,
 };

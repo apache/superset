@@ -3,6 +3,7 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
+import * as chartActions from '../../../javascripts/chart/chartAction';
 import * as actions from '../../../javascripts/explore/actions/exploreActions';
 import { defaultState } from '../../../javascripts/explore/stores/store';
 import exploreReducer from '../../../javascripts/explore/reducers/exploreReducer';
@@ -77,7 +78,7 @@ describe('fetching actions', () => {
       ajaxStub.yieldsTo('success', { data: '' });
       makeRequest(true);
       expect(dispatch.callCount).to.equal(5);
-      expect(dispatch.getCall(4).args[0].type).to.equal(actions.TRIGGER_QUERY);
+      expect(dispatch.getCall(4).args[0].type).to.equal(chartActions.TRIGGER_QUERY);
     });
   });
 });
