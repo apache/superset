@@ -83,7 +83,7 @@ export function getInitialState(bootstrapData) {
 
   return {
     charts: initCharts,
-    dashboard: { filters, dashboard, userId: user_id, datasources, common },
+    dashboard: { filters, dashboard, userId: user_id, datasources, common, editMode: false },
   };
 }
 
