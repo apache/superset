@@ -172,7 +172,7 @@ class DictImportExportTests(SupersetTestCase):
         self.assert_table_equals(table, imported)
         self.yaml_compare(table.export_to_dict(), imported.export_to_dict())
 
-    def test_import_table_override(self):
+    def test_import_table_override_append(self):
         table, dict_table = self.create_table(
             'table_override', id=ID_PREFIX + 3,
             cols_names=['col1'],
@@ -197,6 +197,33 @@ class DictImportExportTests(SupersetTestCase):
         self.assert_table_equals(expected_table, imported_over)
         self.yaml_compare(expected_table.export_to_dict(),
                           imported_over.export_to_dict())
+
+    def test_import_table_override_sync(self):
+        table, dict_table = self.create_table(
+            'table_override', id=ID_PREFIX + 3,
+            cols_names=['col1'],
+            metric_names=['m1'])
+        imported_table = SqlaTable.import_from_dict(db.session, dict_table)
+        db.session.commit()
+        table_over, dict_table_over = self.create_table(
+            'table_override', id=ID_PREFIX + 3,
+            cols_names=['new_col1', 'col2', 'col3'],
+            metric_names=['new_metric1'])
+        imported_over_table = SqlaTable.import_from_dict(
+            session=db.session,
+            dict_rep=dict_table_over,
+            sync=['metrics', 'columns'])
+        db.session.commit()
+
+        imported_over = self.get_table(imported_over_table.id)
+        self.assertEquals(imported_table.id, imported_over.id)
+        expected_table, _ = self.create_table(
+            'table_override', id=ID_PREFIX + 3,
+            metric_names=['new_metric1'],
+            cols_names=['new_col1', 'col2', 'col3'])
+        self.assert_table_equals(expected_table, imported_over)
+        self.yaml_compare(expected_table.export_to_dict(),
+          imported_over.export_to_dict())
 
     def test_import_table_override_identical(self):
         table, dict_table = self.create_table(
@@ -249,7 +276,7 @@ class DictImportExportTests(SupersetTestCase):
         imported = self.get_datasource(imported_cluster.id)
         self.assert_datasource_equals(datasource, imported)
 
-    def test_import_druid_override(self):
+    def test_import_druid_override_append(self):
         datasource, dict_datasource = self.create_druid_datasource(
             'druid_override', id=ID_PREFIX + 3, cols_names=['col1'],
             metric_names=['m1'])
@@ -272,13 +299,37 @@ class DictImportExportTests(SupersetTestCase):
             cols_names=['col1', 'new_col1', 'col2', 'col3'])
         self.assert_datasource_equals(expected_datasource, imported_over)
 
+    def test_import_druid_override_sync(self):
+        datasource, dict_datasource = self.create_druid_datasource(
+            'druid_override', id=ID_PREFIX + 3, cols_names=['col1'],
+            metric_names=['m1'])
+        imported_cluster = DruidDatasource.import_from_dict(db.session,
+          dict_datasource)
+        db.session.commit()
+        table_over, table_over_dict = self.create_druid_datasource(
+            'druid_override', id=ID_PREFIX + 3,
+            cols_names=['new_col1', 'col2', 'col3'],
+            metric_names=['new_metric1'])
+        imported_over_cluster = DruidDatasource.import_from_dict(
+            session=db.session,
+            dict_rep=table_over_dict,
+            sync=['metrics', 'columns'])  # syncing metrics and columns
+        db.session.commit()
+        imported_over = self.get_datasource(imported_over_cluster.id)
+        self.assertEquals(imported_cluster.id, imported_over.id)
+        expected_datasource, _ = self.create_druid_datasource(
+            'druid_override', id=ID_PREFIX + 3,
+            metric_names=['new_metric1'],
+            cols_names=['new_col1', 'col2', 'col3'])
+        self.assert_datasource_equals(expected_datasource, imported_over)
+
     def test_import_druid_override_identical(self):
         datasource, dict_datasource = self.create_druid_datasource(
             'copy_cat', id=ID_PREFIX + 4,
             cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported = DruidDatasource.import_from_dict(db.session,
-                                                    dict_datasource)
+        imported = DruidDatasource.import_from_dict(session=db.session,
+                                                    dict_rep=dict_datasource)
         db.session.commit()
         copy_datasource, dict_cp_datasource = self.create_druid_datasource(
             'copy_cat', id=ID_PREFIX + 4,
