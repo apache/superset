@@ -432,6 +432,29 @@ export const controls = {
     'to find in the [country] column'),
   },
 
+  freq: {
+    type: 'SelectControl',
+    label: t('Frequency'),
+    default: '7D',
+    freeForm: true,
+    clearable: false,
+    choices: [
+      ['AS', '[AS] Year'],
+      ['52W', '[52W] 52 Weeks'],
+      ['W-SUN', '[W-SUN] Week (starting Sunday)'],
+      ['W-MON', '[W-MON] Week (starting Monday)'],
+      ['D', '[D] Day'],
+      ['4W', '[4W] 4 Weeks'],
+    ],
+    description: t(
+      'The frequency over which to pivot time. Free-form "pandas" offset alias ' +
+      'are allowed. Click on the info bubble for more details. '),
+    tooltipOnClick: () => {
+      window.open(
+        'https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases');
+    },
+  },
+
   groupby: groupByControl,
   dimension: {
     ...groupByControl,
