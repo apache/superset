@@ -24,7 +24,7 @@ before_install:
 before_script:
   - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
-  - mysql -u root -e "GRANT ALL ON *.* TO 'mysqluser'@'localhost';"
+  - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
   - psql -U postgres -c "CREATE DATABASE superset;"
   - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
   - export PATH=${PATH}:/tmp/hive/bin
