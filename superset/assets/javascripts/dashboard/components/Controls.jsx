@@ -94,10 +94,14 @@ class Controls extends React.PureComponent {
   render() {
     const { dashboard, userId,
       addSlicesToDashboard, startPeriodicRender, readFilters,
-      serialize, onSave } = this.props;
+      serialize, onSave, editMode } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
       + `${dashboard.dashboard_title}&Body=${emailBody}`;
+    let saveText = t('Save as');
+    if (editMode) {
+      saveText = t('Save');
+    }
     return (
       <span>
         <DropdownButton title="Actions" bsSize="small" id="bg-nested-dropdown" pullRight>
@@ -117,23 +121,21 @@ class Controls extends React.PureComponent {
               />
             }
           />
-          {this.props.editMode &&
-            <SaveModal
-              dashboard={dashboard}
-              readFilters={readFilters}
-              serialize={serialize}
-              onSave={onSave}
-              css={this.state.css}
-              triggerNode={
-                <MenuItemContent
-                  text={t('Save')}
-                  tooltip={t('Save the dashboard')}
-                  faIcon="save"
-                />
-              }
-            />
-          }
-          {this.props.editMode &&
+          <SaveModal
+            dashboard={dashboard}
+            readFilters={readFilters}
+            serialize={serialize}
+            onSave={onSave}
+            css={this.state.css}
+            triggerNode={
+              <MenuItemContent
+                text={saveText}
+                tooltip={t('Save the dashboard')}
+                faIcon="save"
+              />
+            }
+          />
+          {editMode &&
             <ActionMenuItem
               text={t('Edit properties')}
               tooltip={t("Edit the dashboards's properties")}
@@ -141,7 +143,7 @@ class Controls extends React.PureComponent {
               onClick={() => { window.location = `/dashboardmodelview/edit/${dashboard.id}`; }}
             />
           }
-          {this.props.editMode &&
+          {editMode &&
             <ActionMenuItem
               text={t('Email')}
               tooltip={t('Email a link to this dashbaord')}
@@ -149,7 +151,7 @@ class Controls extends React.PureComponent {
               faIcon="envelope"
             />
           }
-          {this.props.editMode &&
+          {editMode &&
             <SliceAdder
               dashboard={dashboard}
               addSlicesToDashboard={addSlicesToDashboard}
@@ -163,7 +165,7 @@ class Controls extends React.PureComponent {
               }
             />
           }
-          {this.props.editMode &&
+          {editMode &&
             <CssEditor
               dashboard={dashboard}
               triggerNode={
