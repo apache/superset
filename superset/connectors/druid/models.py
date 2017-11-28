@@ -1018,7 +1018,7 @@ class DruidDatasource(Model, BaseDatasource):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        elif len(groupby) > 1 or having_filters or not order_desc:
+        else:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             if timeseries_limit and is_timeseries:
