@@ -10,7 +10,9 @@ import doctest
 import io
 import json
 import logging
+import os
 import random
+import string
 import unittest
 
 from flask import escape
@@ -788,6 +790,46 @@ class CoreTests(SupersetTestCase):
             fillna_columns,
             {'name': ' NULL', 'sum__num': 0},
         )
+
+    def test_import_csv(self):
+        self.login(username='admin')
+        filename = 'testCSV.csv'
+        table_name = ''.join(
+            random.choice(string.ascii_uppercase) for _ in range(5))
+
+        test_file = open(filename, 'w+')
+        test_file.write('a,b\n')
+        test_file.write('john,1\n')
+        test_file.write('paul,2\n')
+        test_file.close()
+        main_db_uri = db.session.query(
+            models.Database.sqlalchemy_uri)\
+            .filter_by(database_name='main').all()
+
+        test_file = open(filename, 'rb')
+        form_data = {
+            'csv_file': test_file,
+            'sep': ',',
+            'name': table_name,
+            'con': main_db_uri[0][0],
+            'if_exists': 'append',
+            'index_label': 'test_label',
+            'mangle_dupe_cols': False}
+
+        url = '/databaseview/list/'
+        add_datasource_page = self.get_resp(url)
+        assert 'Upload a CSV' in add_datasource_page
+
+        url = '/csvtodatabaseview/form'
+        form_get = self.get_resp(url)
+        assert 'CSV to Database configuration' in form_get
+
+        try:
+            # ensure uploaded successfully
+            form_post = self.get_resp(url, data=form_data)
+            assert 'CSV file \"testCSV.csv\" uploaded to table' in form_post
+        finally:
+            os.remove(filename)
 
     def test_dataframe_timezone(self):
         tz = psycopg2.tz.FixedOffsetTimezone(offset=60, name=None)
