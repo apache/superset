@@ -55,13 +55,6 @@ class ExploreChartHeader extends React.PureComponent {
       });
   }
 
-  renderAlteredTag() {
-    const origFormData = (this.props.slice && this.props.slice.form_data) || {};
-    const currentFormData = this.props.form_data;
-    const tagProps = { origFormData, currentFormData };
-    return (<AlteredSliceTag {...tagProps} />);
-  }
-
   renderChartTitle() {
     let title;
     if (this.props.slice) {
@@ -113,9 +106,12 @@ class ExploreChartHeader extends React.PureComponent {
           </TooltipWrapper>
         </span>
         }
-
-        {this.renderAlteredTag()}
-
+        {this.props.chart.sliceFormData &&
+          <AlteredSliceTag
+            origFormData={this.props.chart.sliceFormData}
+            currentFormData={this.props.form_data}
+          />
+        }
         <div className="pull-right">
           {this.props.chart.chartStatus === 'success' &&
           queryResponse &&

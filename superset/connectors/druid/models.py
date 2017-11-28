@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 import json
 import logging
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -22,7 +22,7 @@ import requests
 from six import string_types
 import sqlalchemy as sa
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, or_, String, Text,
+    Boolean, Column, DateTime, ForeignKey, Integer, or_, String, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
 
@@ -122,9 +122,9 @@ class DruidCluster(Model, AuditMixinNullable):
             ds_refresh.append(datasource_name)
         else:
             return
-        self.refresh_async(ds_refresh, merge_flag, refreshAll)
+        self.refresh(ds_refresh, merge_flag, refreshAll)
 
-    def refresh_async(self, datasource_names, merge_flag, refreshAll):
+    def refresh(self, datasource_names, merge_flag, refreshAll):
         """
         Fetches metadata for the specified datasources andm
         merges to the Superset database
@@ -157,7 +157,7 @@ class DruidCluster(Model, AuditMixinNullable):
         session.flush()
 
         # Prepare multithreaded executation
-        pool = Pool()
+        pool = ThreadPool()
         ds_refresh = list(ds_map.values())
         metadata = pool.map(_fetch_metadata_for, ds_refresh)
         pool.close()
@@ -166,36 +166,37 @@ class DruidCluster(Model, AuditMixinNullable):
         for i in range(0, len(ds_refresh)):
             datasource = ds_refresh[i]
             cols = metadata[i]
-            col_objs_list = (
-                session.query(DruidColumn)
-                .filter(DruidColumn.datasource_name == datasource.datasource_name)
-                .filter(or_(DruidColumn.column_name == col for col in cols))
-            )
-            col_objs = {col.column_name: col for col in col_objs_list}
-            for col in cols:
-                if col == '__time':  # skip the time column
-                    continue
-                col_obj = col_objs.get(col, None)
-                if not col_obj:
-                    col_obj = DruidColumn(
-                        datasource_name=datasource.datasource_name,
-                        column_name=col)
-                    with session.no_autoflush:
-                        session.add(col_obj)
-                datatype = cols[col]['type']
-                if datatype == 'STRING':
-                    col_obj.groupby = True
-                    col_obj.filterable = True
-                if datatype == 'hyperUnique' or datatype == 'thetaSketch':
-                    col_obj.count_distinct = True
-                # Allow sum/min/max for long or double
-                if datatype == 'LONG' or datatype == 'DOUBLE':
-                    col_obj.sum = True
-                    col_obj.min = True
-                    col_obj.max = True
-                col_obj.type = datatype
-                col_obj.datasource = datasource
-            datasource.generate_metrics_for(col_objs_list)
+            if cols:
+                col_objs_list = (
+                    session.query(DruidColumn)
+                    .filter(DruidColumn.datasource_id == datasource.id)
+                    .filter(or_(DruidColumn.column_name == col for col in cols))
+                )
+                col_objs = {col.column_name: col for col in col_objs_list}
+                for col in cols:
+                    if col == '__time':  # skip the time column
+                        continue
+                    col_obj = col_objs.get(col, None)
+                    if not col_obj:
+                        col_obj = DruidColumn(
+                            datasource_id=datasource.id,
+                            column_name=col)
+                        with session.no_autoflush:
+                            session.add(col_obj)
+                    datatype = cols[col]['type']
+                    if datatype == 'STRING':
+                        col_obj.groupby = True
+                        col_obj.filterable = True
+                    if datatype == 'hyperUnique' or datatype == 'thetaSketch':
+                        col_obj.count_distinct = True
+                    # Allow sum/min/max for long or double
+                    if datatype == 'LONG' or datatype == 'DOUBLE':
+                        col_obj.sum = True
+                        col_obj.min = True
+                        col_obj.max = True
+                    col_obj.type = datatype
+                    col_obj.datasource = datasource
+                datasource.generate_metrics_for(col_objs_list)
         session.commit()
 
     @property
@@ -219,9 +220,9 @@ class DruidColumn(Model, BaseColumn):
 
     __tablename__ = 'columns'
 
-    datasource_name = Column(
-        String(255),
-        ForeignKey('datasources.datasource_name'))
+    datasource_id = Column(
+        Integer,
+        ForeignKey('datasources.id'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
@@ -230,7 +231,7 @@ class DruidColumn(Model, BaseColumn):
     dimension_spec_json = Column(Text)
 
     export_fields = (
-        'datasource_name', 'column_name', 'is_active', 'type', 'groupby',
+        'datasource_id', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
         'description', 'dimension_spec_json',
     )
@@ -333,15 +334,14 @@ class DruidColumn(Model, BaseColumn):
         metrics = self.get_metrics()
         dbmetrics = (
             db.session.query(DruidMetric)
-            .filter(DruidCluster.cluster_name == self.datasource.cluster_name)
-            .filter(DruidMetric.datasource_name == self.datasource_name)
+            .filter(DruidMetric.datasource_id == self.datasource_id)
             .filter(or_(
                 DruidMetric.metric_name == m for m in metrics
             ))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics.values():
-            metric.datasource_name = self.datasource_name
+            metric.datasource_id = self.datasource_id
             if not dbmetrics.get(metric.metric_name, None):
                 db.session.add(metric)
 
@@ -349,7 +349,7 @@ class DruidColumn(Model, BaseColumn):
     def import_obj(cls, i_column):
         def lookup_obj(lookup_column):
             return db.session.query(DruidColumn).filter(
-                DruidColumn.datasource_name == lookup_column.datasource_name,
+                DruidColumn.datasource_id == lookup_column.datasource_id,
                 DruidColumn.column_name == lookup_column.column_name).first()
 
         return import_util.import_simple_obj(db.session, i_column, lookup_obj)
@@ -360,9 +360,9 @@ class DruidMetric(Model, BaseMetric):
     """ORM object referencing Druid metrics for a datasource"""
 
     __tablename__ = 'metrics'
-    datasource_name = Column(
-        String(255),
-        ForeignKey('datasources.datasource_name'))
+    datasource_id = Column(
+        Integer,
+        ForeignKey('datasources.id'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
@@ -371,7 +371,7 @@ class DruidMetric(Model, BaseMetric):
     json = Column(Text)
 
     export_fields = (
-        'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
+        'metric_name', 'verbose_name', 'metric_type', 'datasource_id',
         'json', 'description', 'is_restricted', 'd3format',
     )
 
@@ -399,7 +399,7 @@ class DruidMetric(Model, BaseMetric):
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
             return db.session.query(DruidMetric).filter(
-                DruidMetric.datasource_name == lookup_metric.datasource_name,
+                DruidMetric.datasource_id == lookup_metric.datasource_id,
                 DruidMetric.metric_name == lookup_metric.metric_name).first()
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
@@ -419,7 +419,7 @@ class DruidDatasource(Model, BaseDatasource):
     baselink = 'druiddatasourcemodelview'
 
     # Columns
-    datasource_name = Column(String(255), unique=True)
+    datasource_name = Column(String(255))
     is_hidden = Column(Boolean, default=False)
     fetch_values_from = Column(String(100))
     cluster_name = Column(
@@ -431,6 +431,7 @@ class DruidDatasource(Model, BaseDatasource):
         sm.user_model,
         backref=backref('datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
+    UniqueConstraint('cluster_name', 'datasource_name')
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
@@ -518,7 +519,7 @@ class DruidDatasource(Model, BaseDatasource):
          superset instances. Audit metadata isn't copies over.
         """
         def lookup_datasource(d):
-            return db.session.query(DruidDatasource).join(DruidCluster).filter(
+            return db.session.query(DruidDatasource).filter(
                 DruidDatasource.datasource_name == d.datasource_name,
                 DruidCluster.cluster_name == d.cluster_name,
             ).first()
@@ -563,11 +564,15 @@ class DruidDatasource(Model, BaseDatasource):
         """Returns segment metadata from the latest segment"""
         logging.info('Syncing datasource [{}]'.format(self.datasource_name))
         client = self.cluster.get_pydruid_client()
-        results = client.time_boundary(datasource=self.datasource_name)
-        if not results:
-            return
-        max_time = results[0]['result']['maxTime']
-        max_time = dparse(max_time)
+        try:
+            results = client.time_boundary(datasource=self.datasource_name)
+        except IOError:
+            results = None
+        if results:
+            max_time = results[0]['result']['maxTime']
+            max_time = dparse(max_time)
+        else:
+            max_time = datetime.now()
         # Query segmentMetadata for 7 days back. However, due to a bug,
         # we need to set this interval to more than 1 day ago to exclude
         # realtime segments, which triggered a bug (fixed in druid 0.8.2).
@@ -615,13 +620,12 @@ class DruidDatasource(Model, BaseDatasource):
             metrics.update(col.get_metrics())
         dbmetrics = (
             db.session.query(DruidMetric)
-            .filter(DruidCluster.cluster_name == self.cluster_name)
-            .filter(DruidMetric.datasource_name == self.datasource_name)
+            .filter(DruidMetric.datasource_id == self.id)
             .filter(or_(DruidMetric.metric_name == m for m in metrics))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics.values():
-            metric.datasource_name = self.datasource_name
+            metric.datasource_id = self.id
             if not dbmetrics.get(metric.metric_name, None):
                 with db.session.no_autoflush:
                     db.session.add(metric)
@@ -656,7 +660,7 @@ class DruidDatasource(Model, BaseDatasource):
         dimensions = druid_config['dimensions']
         col_objs = (
             session.query(DruidColumn)
-            .filter(DruidColumn.datasource_name == druid_config['name'])
+            .filter(DruidColumn.datasource_id == datasource.id)
             .filter(or_(DruidColumn.column_name == dim for dim in dimensions))
         )
         col_objs = {col.column_name: col for col in col_objs}
@@ -664,7 +668,7 @@ class DruidDatasource(Model, BaseDatasource):
             col_obj = col_objs.get(dim, None)
             if not col_obj:
                 col_obj = DruidColumn(
-                    datasource_name=druid_config['name'],
+                    datasource_id=datasource.id,
                     column_name=dim,
                     groupby=True,
                     filterable=True,
@@ -676,7 +680,7 @@ class DruidDatasource(Model, BaseDatasource):
         # Import Druid metrics
         metric_objs = (
             session.query(DruidMetric)
-            .filter(DruidMetric.datasource_name == druid_config['name'])
+            .filter(DruidMetric.datasource_id == datasource.id)
             .filter(or_(DruidMetric.metric_name == spec['name']
                     for spec in druid_config['metrics_spec']))
         )
@@ -1014,7 +1018,7 @@ class DruidDatasource(Model, BaseDatasource):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        elif len(groupby) > 1 or having_filters or not order_desc:
+        else:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             if timeseries_limit and is_timeseries:

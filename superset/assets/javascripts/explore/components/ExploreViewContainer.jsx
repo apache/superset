@@ -9,6 +9,7 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
+import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../stores/store';
 import { chartPropType } from '../../chart/chartReducer';
 import * as exploreActions from '../actions/exploreActions';
@@ -49,6 +50,12 @@ class ExploreViewContainer extends React.Component {
     }
     if (np.controls.datasource.value !== this.props.controls.datasource.value) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
+    }
+    // if any control value changed and it's an instant control
+    if (Object.keys(np.controls).some(key => (np.controls[key].renderTrigger &&
+      typeof this.props.controls[key] !== 'undefined' &&
+      !areObjectsEqual(np.controls[key].value, this.props.controls[key].value)))) {
+      this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
     }
   }
 

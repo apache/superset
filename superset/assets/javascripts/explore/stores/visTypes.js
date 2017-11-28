@@ -486,7 +486,8 @@ export const visTypes = {
         description: t('Use this section if you want a query that aggregates'),
         controlSetRows: [
           ['groupby'],
-          ['metrics', 'percent_metrics'],
+          ['metrics'],
+          ['percent_metrics'],
           ['include_time'],
           ['timeseries_limit_metric', 'order_desc'],
         ],
@@ -610,7 +611,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['series', 'metric', 'limit'],
+          ['series', 'metric'],
+          ['row_limit', null],
         ],
       },
       {

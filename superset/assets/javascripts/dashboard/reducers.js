@@ -6,6 +6,7 @@ import * as actions from './actions';
 import { getParam } from '../modules/utils';
 import { alterInArr, removeFromArr } from '../reduxUtils';
 import { applyDefaultFormData } from '../explore/stores/store';
+import { getColorFromScheme } from '../modules/colors';
 
 export function getInitialState(bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;
@@ -23,6 +24,15 @@ export function getInitialState(bootstrapData) {
     }
   } catch (e) {
     //
+  }
+
+  // Priming the color palette with user's label-color mapping provided in
+  // the dashboard's JSON metadata
+  if (dashboard.metadata && dashboard.metadata.label_colors) {
+    const colorMap = dashboard.metadata.label_colors;
+    for (const label in colorMap) {
+      getColorFromScheme(label, null, colorMap[label]);
+    }
   }
 
   dashboard.posDict = {};
@@ -73,7 +83,7 @@ export function getInitialState(bootstrapData) {
 
   return {
     charts: initCharts,
-    dashboard: { filters, dashboard, userId: user_id, datasources, common },
+    dashboard: { filters, dashboard, userId: user_id, datasources, common, editMode: false },
   };
 }
 
@@ -96,6 +106,9 @@ const dashboard = function (state = {}, action) {
     },
     [actions.TOGGLE_FAVE_STAR]() {
       return { ...state, isStarred: action.isStarred };
+    },
+    [actions.SET_EDIT_MODE]() {
+      return { ...state, editMode: action.editMode };
     },
     [actions.TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.dashboard.metadata.expanded_slices };
@@ -134,9 +147,9 @@ const dashboard = function (state = {}, action) {
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return
         } else if (state.filters[sliceId][col] instanceof Array) {
-          newFilter = d3.merge([state.filters[sliceId][col], vals]);
+          newFilter[col] = d3.merge([state.filters[sliceId][col], vals]);
         } else {
-          newFilter = d3.merge([[state.filters[sliceId][col]], vals])[0] || '';
+          newFilter[col] = d3.merge([[state.filters[sliceId][col]], vals])[0] || '';
         }
         filters = { ...state.filters, [sliceId]: newFilter };
       }

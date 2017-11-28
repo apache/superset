@@ -28,6 +28,7 @@ export default class FilterControl extends React.Component {
     }));
     this.state = {
       filters: initialFilters,
+      activeRequest: null,
     };
   }
 
@@ -45,16 +46,22 @@ export default class FilterControl extends React.Component {
         newStateFilters[index].valuesLoading = true;
         return { filters: newStateFilters };
       });
-      $.ajax({
-        type: 'GET',
-        url: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
-        success: (data) => {
-          this.setState((prevState) => {
-            const newStateFilters = Object.assign([], prevState.filters);
-            newStateFilters[index] = { valuesLoading: false, valueChoices: data };
-            return { filters: newStateFilters };
-          });
-        },
+      // if there is an outstanding request to fetch values, cancel it.
+      if (this.state.activeRequest) {
+        this.state.activeRequest.abort();
+      }
+      this.setState({
+        activeRequest: $.ajax({
+          type: 'GET',
+          url: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
+          success: (data) => {
+            this.setState((prevState) => {
+              const newStateFilters = Object.assign([], prevState.filters);
+              newStateFilters[index] = { valuesLoading: false, valueChoices: data };
+              return { filters: newStateFilters, activeRequest: null };
+            });
+          },
+        }),
       });
     }
   }

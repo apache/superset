@@ -28,6 +28,7 @@ const propTypes = {
   getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
+  editMode: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -162,6 +163,7 @@ class GridLayout extends React.Component {
             getFilters={this.props.getFilters}
             clearFilter={this.props.clearFilter}
             removeFilter={this.props.removeFilter}
+            editMode={this.props.editMode}
           />
         </div>);
     });

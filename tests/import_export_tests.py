@@ -485,13 +485,12 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_druid_override(self):
         datasource = self.create_druid_datasource(
-            'druid_override', id=10003, cols_names=['col1'],
+            'druid_override', id=10004, cols_names=['col1'],
             metric_names=['m1'])
         imported_id = DruidDatasource.import_obj(
             datasource, import_time=1991)
-
         table_over = self.create_druid_datasource(
-            'druid_override', id=10003,
+            'druid_override', id=10004,
             cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
         imported_over_id = DruidDatasource.import_obj(
@@ -500,19 +499,19 @@ class ImportExportTests(SupersetTestCase):
         imported_over = self.get_datasource(imported_over_id)
         self.assertEquals(imported_id, imported_over.id)
         expected_datasource = self.create_druid_datasource(
-            'druid_override', id=10003, metric_names=['new_metric1', 'm1'],
+            'druid_override', id=10004, metric_names=['new_metric1', 'm1'],
             cols_names=['col1', 'new_col1', 'col2', 'col3'])
         self.assert_datasource_equals(expected_datasource, imported_over)
 
     def test_import_druid_override_idential(self):
         datasource = self.create_druid_datasource(
-            'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
+            'copy_cat', id=10005, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
         imported_id = DruidDatasource.import_obj(
             datasource, import_time=1993)
 
         copy_datasource = self.create_druid_datasource(
-            'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
+            'copy_cat', id=10005, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
         imported_id_copy = DruidDatasource.import_obj(
             copy_datasource, import_time=1994)

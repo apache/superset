@@ -45,6 +45,13 @@ visualizations.
 https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed
 
 
+Can I upload and visualize csv data?
+-------------------------------------
+
+Yes, using the ``Upload a CSV`` button under the ``Sources``
+menu item. This brings up a form that allows you specify required information. After creating the table from CSV, it can then be loadede like any other on the ``Sources -> Tables``page.
+
+
 Why are my queries timing out?
 ------------------------------
 
@@ -221,3 +228,19 @@ When adding columns to a table, you can have Superset detect and merge the
 new columns in by using the "Refresh Metadata" action in the
 ``Source -> Tables`` page. Simply check the box next to the tables
 you want the schema refreshed, and click ``Actions -> Refresh Metadata``.
+
+Is there a way to force the use specific colors?
+------------------------------------------------
+
+It is possible on a per-dashboard basis by providing a mapping of
+labels to colors in the ``JSON Metadata`` attribute using the
+``label_colors`` key.
+
+..code::
+
+	{
+	  "label_colors": {
+		"Girls": "#FF69B4",
+		"Boys": "#ADD8E6"
+	  }
+	}

@@ -106,6 +106,7 @@ class SaveModal extends React.PureComponent {
     return (
       <ModalTrigger
         ref={(modal) => { this.modal = modal; }}
+        isMenuItem
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save Dashboard')}
         modalBody={

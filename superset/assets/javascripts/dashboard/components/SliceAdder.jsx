@@ -41,7 +41,9 @@ class SliceAdder extends React.Component {
   }
 
   componentWillUnmount() {
-    this.slicesRequest.abort();
+    if (this.slicesRequest) {
+      this.slicesRequest.abort();
+    }
   }
 
   onEnterModal() {
@@ -54,7 +56,8 @@ class SliceAdder extends React.Component {
         const slices = response.result.map(slice => ({
           id: slice.id,
           sliceName: slice.slice_name,
-          vizType: slice.vizType,
+          vizType: slice.viz_type,
+          datasourceLink: slice.datasource_link,
           modified: slice.modified,
         }));
 
@@ -166,6 +169,14 @@ class SliceAdder extends React.Component {
               {t('Viz')}
             </TableHeaderColumn>
             <TableHeaderColumn
+              dataField="datasourceLink"
+              dataSort
+              // Will cause react-bootstrap-table to interpret the HTML returned
+              dataFormat={datasourceLink => datasourceLink}
+            >
+              {t('Datasource')}
+            </TableHeaderColumn>
+            <TableHeaderColumn
               dataField="modified"
               dataSort
               sortFunc={this.modifiedDateComparator}
@@ -193,9 +204,10 @@ class SliceAdder extends React.Component {
         triggerNode={this.props.triggerNode}
         tooltip={t('Add a new slice to the dashboard')}
         beforeOpen={this.onEnterModal.bind(this)}
-        isButton
+        isMenuItem
         modalBody={modalContent}
         bsSize="large"
+        setModalAsTriggerChildren
         modalTitle={t('Add Slices to Dashboard')}
       />
     );

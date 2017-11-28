@@ -22,11 +22,11 @@ env:
 before_install:
   - npm install -g npm@'>=5.4.1'
 before_script:
-  - mysql -e 'drop database if exists superset; create database superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
+  - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
   - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
-  - psql -c 'create database superset;' -U postgres
-  - psql -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';" -U postgres
+  - psql -U postgres -c "CREATE DATABASE superset;"
+  - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
   - export PATH=${PATH}:/tmp/hive/bin
 install:
   - pip install --upgrade pip

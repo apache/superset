@@ -16,6 +16,7 @@ function mapStateToProps({ charts, dashboard }) {
     refresh: dashboard.refresh,
     userId: dashboard.userId,
     isStarred: !!dashboard.isStarred,
+    editMode: dashboard.editMode,
   };
 }
 

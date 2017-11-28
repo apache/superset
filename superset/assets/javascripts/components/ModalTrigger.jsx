@@ -1,7 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Modal } from 'react-bootstrap';
+import { Modal, MenuItem } from 'react-bootstrap';
 import cx from 'classnames';
+
 import Button from './Button';
 
 const propTypes = {
@@ -13,6 +14,7 @@ const propTypes = {
   beforeOpen: PropTypes.func,
   onExit: PropTypes.func,
   isButton: PropTypes.bool,
+  isMenuItem: PropTypes.bool,
   bsSize: PropTypes.string,
   className: PropTypes.string,
   tooltip: PropTypes.string,
@@ -23,6 +25,7 @@ const defaultProps = {
   beforeOpen: () => {},
   onExit: () => {},
   isButton: false,
+  isMenuItem: false,
   bsSize: null,
   className: '',
 };
@@ -85,6 +88,13 @@ export default class ModalTrigger extends React.Component {
           {this.props.triggerNode}
           {this.renderModal()}
         </Button>
+      );
+    } else if (this.props.isMenuItem) {
+      return (
+        <MenuItem onClick={this.open}>
+          {this.props.triggerNode}
+          {this.renderModal()}
+        </MenuItem>
       );
     }
     /* eslint-disable jsx-a11y/interactive-supports-focus */
