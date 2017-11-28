@@ -898,7 +898,7 @@ class DruidDatasource(Model, BaseDatasource):
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
-            extras=None,  # noqa
+            extras={},  # noqa
             select=None,  # noqa
             columns=None, phase=2, client=None, form_data=None,
             order_desc=True):
@@ -977,8 +977,7 @@ class DruidDatasource(Model, BaseDatasource):
         if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
-
-        if (
+        elif (
             not having_filters and
             len(groupby) == 1 and
             order_desc and
@@ -1018,7 +1017,7 @@ class DruidDatasource(Model, BaseDatasource):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        else:
+        elif len(groupby) > 0:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             if timeseries_limit and is_timeseries:
