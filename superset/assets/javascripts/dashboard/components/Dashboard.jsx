@@ -33,7 +33,7 @@ const defaultProps = {
   timeout: 60,
   userId: '',
   isStarred: false,
-  editMode: true,
+  editMode: false,
 };
 
 class Dashboard extends React.PureComponent {

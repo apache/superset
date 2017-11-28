@@ -42,7 +42,7 @@ const defaultProps = {
   getFilters: () => ({}),
   clearFilter: () => ({}),
   removeFilter: () => ({}),
-  editMode: true,
+  editMode: false,
 };
 
 class GridCell extends React.PureComponent {

@@ -26,7 +26,7 @@ const defaultProps = {
   removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
-  editMode: true,
+  editMode: false,
 };
 
 class SliceHeader extends React.PureComponent {
