@@ -47,7 +47,9 @@ export default class FilterControl extends React.Component {
         return { filters: newStateFilters };
       });
       // if there is an outstanding request to fetch values, cancel it.
-      if (this.state.activeRequest) this.state.activeRequest.abort();
+      if (this.state.activeRequest) {
+        this.state.activeRequest.abort();
+      }
       this.setState({
         activeRequest: $.ajax({
           type: 'GET',
@@ -56,7 +58,7 @@ export default class FilterControl extends React.Component {
             this.setState((prevState) => {
               const newStateFilters = Object.assign([], prevState.filters);
               newStateFilters[index] = { valuesLoading: false, valueChoices: data };
-              return { filters: newStateFilters };
+              return { filters: newStateFilters, activeRequest: null };
             });
           },
         }),
