@@ -79,7 +79,7 @@
     "react-datetime": "2.9.0",
     "react-dom": "^15.6.2",
     "react-gravatar": "^2.6.1",
-    "react-grid-layout": "^0.14.4",
+    "react-grid-layout": "^0.16.0",
     "react-map-gl": "^3.0.4",
     "react-redux": "^5.0.2",
     "react-resizable": "^1.3.3",
@@ -98,8 +98,8 @@
     "sprintf-js": "^1.1.1",
     "srcdoc-polyfill": "^1.0.0",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
-    "urijs": "^1.18.10",
     "underscore": "^1.8.3",
+    "urijs": "^1.18.10",
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {

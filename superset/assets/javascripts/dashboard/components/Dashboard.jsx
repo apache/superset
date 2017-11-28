@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import AlertsWrapper from '../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
 import Header from './Header';
-import DashboardAlert from './DashboardAlert';
 import { getExploreUrl } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { t } from '../../locales';
@@ -22,6 +21,7 @@ const propTypes = {
   timeout: PropTypes.number,
   userId: PropTypes.string,
   isStarred: PropTypes.bool,
+  editMode: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -33,6 +33,7 @@ const defaultProps = {
   timeout: 60,
   userId: '',
   isStarred: false,
+  editMode: false,
 };
 
 class Dashboard extends React.PureComponent {
@@ -42,10 +43,7 @@ class Dashboard extends React.PureComponent {
     this.firstLoad = true;
 
     // alert for unsaved changes
-    this.state = {
-      alert: null,
-      trigger: false,
-    };
+    this.state = { unsavedChanges: false };
 
     this.rerenderCharts = this.rerenderCharts.bind(this);
     this.updateDashboardTitle = this.updateDashboardTitle.bind(this);
@@ -76,13 +74,6 @@ class Dashboard extends React.PureComponent {
     window.addEventListener('resize', this.rerenderCharts);
   }
 
-  componentWillReceiveProps(nextProps) {
-    // check filters is changed
-    if (!areObjectsEqual(nextProps.filters, this.props.filters)) {
-      this.renderUnsavedChangeAlert();
-    }
-  }
-
   componentDidUpdate(prevProps) {
     if (!areObjectsEqual(prevProps.filters, this.props.filters) && this.props.refresh) {
       Object.keys(this.props.filters).forEach(sliceId => (this.refreshExcept(sliceId)));
@@ -103,14 +94,12 @@ class Dashboard extends React.PureComponent {
 
   onChange() {
     this.onBeforeUnload(true);
-    this.renderUnsavedChangeAlert();
+    this.setState({ unsavedChanges: true });
   }
 
   onSave() {
     this.onBeforeUnload(false);
-    this.setState({
-      alert: '',
-    });
+    this.setState({ unsavedChanges: false });
   }
 
   // return charts in array
@@ -283,26 +272,14 @@ class Dashboard extends React.PureComponent {
     });
   }
 
-  renderUnsavedChangeAlert() {
-    this.setState({
-      alert: (
-        <span>
-          <strong>{t('You have unsaved changes.')}</strong> {t('Click the')} &nbsp;
-          <i className="fa fa-save" />&nbsp;
-          {t('button on the top right to save your changes.')}
-        </span>
-      ),
-    });
-  }
-
   render() {
     return (
       <div id="dashboard-container">
-        {this.state.alert && <DashboardAlert alertContent={this.state.alert} />}
         <div id="dashboard-header">
           <AlertsWrapper initMessages={this.props.initMessages} />
           <Header
             dashboard={this.props.dashboard}
+            unsavedChanges={this.state.unsavedChanges}
             userId={this.props.userId}
             isStarred={this.props.isStarred}
             updateDashboardTitle={this.updateDashboardTitle}
@@ -315,6 +292,8 @@ class Dashboard extends React.PureComponent {
             renderSlices={this.fetchAllSlices}
             startPeriodicRender={this.startPeriodicRender}
             addSlicesToDashboard={this.addSlicesToDashboard}
+            editMode={this.props.editMode}
+            setEditMode={this.props.actions.setEditMode}
           />
         </div>
         <div id="grid-container" className="slice-grid gridster">
@@ -336,6 +315,7 @@ class Dashboard extends React.PureComponent {
             getFilters={this.getFilters}
             clearFilter={this.props.actions.clearFilter}
             removeFilter={this.props.actions.removeFilter}
+            editMode={this.props.editMode}
           />
         </div>
       </div>
