@@ -30,6 +30,7 @@ const propTypes = {
   getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
+  editMode: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -41,6 +42,7 @@ const defaultProps = {
   getFilters: () => ({}),
   clearFilter: () => ({}),
   removeFilter: () => ({}),
+  editMode: false,
 };
 
 class GridCell extends React.PureComponent {
@@ -101,6 +103,7 @@ class GridCell extends React.PureComponent {
             updateSliceName={updateSliceName}
             toggleExpandSlice={toggleExpandSlice}
             forceRefresh={forceRefresh}
+            editMode={this.props.editMode}
           />
         </div>
         <div

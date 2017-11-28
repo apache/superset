@@ -41,7 +41,9 @@ class SliceAdder extends React.Component {
   }
 
   componentWillUnmount() {
-    this.slicesRequest.abort();
+    if (this.slicesRequest) {
+      this.slicesRequest.abort();
+    }
   }
 
   onEnterModal() {
@@ -202,9 +204,10 @@ class SliceAdder extends React.Component {
         triggerNode={this.props.triggerNode}
         tooltip={t('Add a new slice to the dashboard')}
         beforeOpen={this.onEnterModal.bind(this)}
-        isButton
+        isMenuItem
         modalBody={modalContent}
         bsSize="large"
+        setModalAsTriggerChildren
         modalTitle={t('Add Slices to Dashboard')}
       />
     );
