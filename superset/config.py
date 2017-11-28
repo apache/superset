@@ -41,6 +41,8 @@ with open(PACKAGE_FILE) as package_file:
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
+# max rows retrieved by filter select auto complete
+FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2
 SUPERSET_CELERY_WORKERS = 32
 
