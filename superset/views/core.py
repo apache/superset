@@ -129,8 +129,7 @@ class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
             return query
-        perms = self.get_view_menus('datasource_access')
-        # TODO(bogdan): add `schema_access` support here
+        perms = [d.perm for d in self.datasources_with_access()]
         return query.filter(self.model.perm.in_(perms))
 
 
@@ -143,8 +142,7 @@ class DashboardFilter(SupersetFilter):
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
-        # TODO(bogdan): add `schema_access` support here
-        datasource_perms = self.get_view_menus('datasource_access')
+        datasource_perms = [d.perm for d in self.datasources_with_access()]
         slice_ids_qry = (
             db.session
             .query(Slice.id)

@@ -20,6 +20,13 @@ from superset.translations.utils import get_language_pack
 FRONTEND_CONF_KEYS = ('SUPERSET_WEBSERVER_TIMEOUT',)
 
 
+ALL_DATASOURCE_ACCESS = 'all_datasource_access'
+ALL_DATABASE_ACCESS = 'all_database_access'
+DATABASE_ACCESS = 'database_access'
+SCHEMA_ACCESS = 'schema_access'
+DATASOURCE_ACCESS = 'datasource_access'
+
+
 def get_error_msg():
     if conf.get('SHOW_STACKTRACE'):
         error_msg = traceback.format_exc()
@@ -76,26 +83,26 @@ class BaseSupersetView(BaseView):
 
     def all_datasource_access(self, user=None):
         return self.can_access(
-            'all_datasource_access', 'all_datasource_access', user=user)
+            ALL_DATASOURCE_ACCESS, ALL_DATASOURCE_ACCESS, user=user)
 
     def database_access(self, database, user=None):
         return (
             self.can_access(
-                'all_database_access', 'all_database_access', user=user) or
-            self.can_access('database_access', database.perm, user=user)
+                ALL_DATABASE_ACCESS, ALL_DATABASE_ACCESS, user=user) or
+            self.can_access(DATABASE_ACCESS, database.perm, user=user)
         )
 
     def schema_access(self, datasource, user=None):
         return (
             self.database_access(datasource.database, user=user) or
             self.all_datasource_access(user=user) or
-            self.can_access('schema_access', datasource.schema_perm, user=user)
+            self.can_access(SCHEMA_ACCESS, datasource.schema_perm, user=user)
         )
 
     def datasource_access(self, datasource, user=None):
         return (
             self.schema_access(datasource, user=user) or
-            self.can_access('datasource_access', datasource.perm, user=user)
+            self.can_access(DATASOURCE_ACCESS, datasource.perm, user=user)
         )
 
     def datasource_access_by_name(
@@ -104,13 +111,13 @@ class BaseSupersetView(BaseView):
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and self.can_access('schema_access', schema_perm):
+        if schema and self.can_access(SCHEMA_ACCESS, schema_perm):
             return True
 
         datasources = ConnectorRegistry.query_datasources_by_name(
             db.session, database, datasource_name, schema=schema)
         for datasource in datasources:
-            if self.can_access('datasource_access', datasource.perm):
+            if self.can_access(DATASOURCE_ACCESS, datasource.perm):
                 return True
         return False
 
@@ -138,7 +145,7 @@ class BaseSupersetView(BaseView):
             for perm in r.permissions:
                 if (
                         perm.permission and
-                        'datasource_access' == perm.permission.name):
+                        DATASOURCE_ACCESS == perm.permission.name):
                     datasource_perms.add(perm.view_menu.name)
         return datasource_perms
 
@@ -149,7 +156,7 @@ class BaseSupersetView(BaseView):
         subset = set()
         for schema in schemas:
             schema_perm = utils.get_schema_perm(database, schema)
-            if self.can_access('schema_access', schema_perm):
+            if self.can_access(SCHEMA_ACCESS, schema_perm):
                 subset.add(schema)
 
         perms = self.user_datasource_perms()
@@ -173,7 +180,7 @@ class BaseSupersetView(BaseView):
 
         if schema:
             schema_perm = utils.get_schema_perm(database, schema)
-            if self.can_access('schema_access', schema_perm):
+            if self.can_access(SCHEMA_ACCESS, schema_perm):
                 return datasource_names
 
         user_perms = self.user_datasource_perms()
@@ -299,13 +306,16 @@ class SupersetFilter(BaseFilter):
         return get_user_roles()
 
     def get_all_permissions(self):
-        """Returns a set of tuples with the perm name and view menu name"""
-        perms = set()
+        """Returns a map of view menu name to permission name"""
+        permissions = dict()
         for role in self.get_user_roles():
-            for perm_view in role.permissions:
-                t = (perm_view.permission.name, perm_view.view_menu.name)
-                perms.add(t)
-        return perms
+            for perm in role.permissions:
+                view_name = perm.view_menu.name
+                perm_name = perm.permission.name
+                perm_set = permissions.get(view_name, set())
+                perm_set.add(perm_name)
+                permissions[perm.view_menu.name] = perm_set
+        return permissions
 
     def has_role(self, role_name_or_list):
         """Whether the user has this role name"""
@@ -316,28 +326,52 @@ class SupersetFilter(BaseFilter):
 
     def has_perm(self, permission_name, view_menu_name):
         """Whether the user has this perm"""
-        return (permission_name, view_menu_name) in self.get_all_permissions()
+        return permission_name in self.get_all_permissions().get(
+          view_menu_name, {})
 
     def get_view_menus(self, permission_name):
         """Returns the details of view_menus for a perm name"""
         vm = set()
-        for perm_name, vm_name in self.get_all_permissions():
-            if perm_name == permission_name:
+        for vm_name, perm_names in list(self.get_all_permissions().items()):
+            if permission_name in perm_names:
                 vm.add(vm_name)
         return vm
 
     def has_all_datasource_access(self):
         return (
             self.has_role(['Admin', 'Alpha']) or
-            self.has_perm('all_datasource_access', 'all_datasource_access'))
+            self.has_perm(ALL_DATASOURCE_ACCESS, ALL_DATASOURCE_ACCESS))
+
+    def datasources_with_access(self):
+        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        permissions = self.get_all_permissions()
+        if (ALL_DATASOURCE_ACCESS in permissions.get(
+                ALL_DATASOURCE_ACCESS, {}) or
+                ALL_DATABASE_ACCESS in permissions.get(
+                ALL_DATABASE_ACCESS, {})):
+            return list(datasources)
+        else:
+            filtered = list()
+            for ds in datasources:
+                if (ds.database and
+                        DATABASE_ACCESS in permissions.get(
+                        ds.database.perm, {})):
+                    filtered.append(ds)
+                if (ds.schema_perm
+                        and SCHEMA_ACCESS in permissions.get(ds.schema_perm, {})):
+                    filtered.append(ds)
+                if DATASOURCE_ACCESS in permissions.get(ds.perm, {}):
+                    filtered.append(ds)
+        return filtered
 
 
 class DatasourceFilter(SupersetFilter):
+
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
             return query
-        perms = self.get_view_menus('datasource_access')
-        # TODO(bogdan): add `schema_access` support here
+
+        perms = [d.perm for d in self.datasources_with_access()]
         return query.filter(self.model.perm.in_(perms))
 
 
