@@ -39,8 +39,8 @@
   },
   "homepage": "http://superset.apache.org/",
   "dependencies": {
-    "@data-ui/event-flow": "0.0.8",
-    "@data-ui/sparkline": "0.0.47",
+    "@data-ui/event-flow": "^0.0.8",
+    "@data-ui/sparkline": "^0.0.49",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "brace": "^0.10.0",
