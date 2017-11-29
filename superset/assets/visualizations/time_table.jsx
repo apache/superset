@@ -7,7 +7,7 @@ import Mustache from 'mustache';
 import { Sparkline, LineSeries, PointSeries, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
 
 import MetricOption from '../javascripts/components/MetricOption';
-import { d3format, brandColor } from '../javascripts/modules/utils';
+import { d3format } from '../javascripts/modules/utils';
 import { formatDateThunk } from '../javascripts/modules/dates';
 import InfoTooltipWithTrigger from '../javascripts/components/InfoTooltipWithTrigger';
 import './time_table.css';
@@ -180,7 +180,7 @@ function viz(slice, payload) {
               <FormattedNumber num={v} format={column.d3format} />
             </div>
           ),
-          style: {
+          style: color && {
             boxShadow: `inset 0px -2.5px 0px 0px ${color}`,
             borderRight: '2px solid #fff',
           },
