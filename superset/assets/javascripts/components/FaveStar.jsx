@@ -5,19 +5,20 @@ import TooltipWrapper from './TooltipWrapper';
 import { t } from '../locales';
 
 const propTypes = {
-  sliceId: PropTypes.number.isRequired,
-  actions: PropTypes.object.isRequired,
+  itemId: PropTypes.number.isRequired,
+  fetchFaveStar: PropTypes.func,
+  saveFaveStar: PropTypes.func,
   isStarred: PropTypes.bool.isRequired,
 };
 
 export default class FaveStar extends React.Component {
   componentDidMount() {
-    this.props.actions.fetchFaveStar(this.props.sliceId);
+    this.props.fetchFaveStar(this.props.itemId);
   }
 
   onClick(e) {
     e.preventDefault();
-    this.props.actions.saveFaveStar(this.props.sliceId, this.props.isStarred);
+    this.props.saveFaveStar(this.props.itemId, this.props.isStarred);
   }
 
   render() {

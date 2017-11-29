@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { Button, Panel, Grid, Row, Col } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
 import visTypes from '../explore/stores/visTypes';
+import { t } from '../locales';
 
 const propTypes = {
   datasources: PropTypes.arrayOf(PropTypes.shape({
@@ -50,30 +51,30 @@ export default class AddSliceContainer extends React.PureComponent {
   render() {
     return (
       <div className="container">
-        <Panel header={<h3>{('Create a new slice')}</h3>}>
+        <Panel header={<h3>{t('Create a new slice')}</h3>}>
           <Grid>
             <Row>
               <Col xs={12} sm={6}>
                 <div>
-                  <p>{('Choose a datasource')}</p>
+                  <p>{t('Choose a datasource')}</p>
                   <Select
                     clearable={false}
                     name="select-datasource"
                     onChange={this.changeDatasource.bind(this)}
                     options={this.props.datasources}
-                    placeholder={('Choose a datasource')}
+                    placeholder={t('Choose a datasource')}
                     value={this.state.datasourceValue}
                   />
                 </div>
                 <br />
                 <div>
-                  <p>{('Choose a visualization type')}</p>
+                  <p>{t('Choose a visualization type')}</p>
                   <Select
                     clearable={false}
                     name="select-vis-type"
                     onChange={this.changeVisType.bind(this)}
                     options={this.vizTypeOptions}
-                    placeholder={('Choose a visualization type')}
+                    placeholder={t('Choose a visualization type')}
                     value={this.state.visType}
                   />
                 </div>
@@ -83,7 +84,7 @@ export default class AddSliceContainer extends React.PureComponent {
                   disabled={this.isBtnDisabled()}
                   onClick={this.gotoSlice.bind(this)}
                 >
-                  {('Create new slice')}
+                  {t('Create new slice')}
                 </Button>
                 <br /><br />
               </Col>

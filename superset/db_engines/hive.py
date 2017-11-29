@@ -22,14 +22,14 @@ def fetch_logs(self, max_rows=1024,
     except (ttypes.TApplicationException,
             Thrift.TApplicationException):
         if self._state == self._STATE_NONE:
-            raise hive.ProgrammingError("No query yet")
+            raise hive.ProgrammingError('No query yet')
         logs = []
         while True:
             req = ttypes.TFetchResultsReq(
                 operationHandle=self._operationHandle,
                 orientation=ttypes.TFetchOrientation.FETCH_NEXT,
                 maxRows=self.arraysize,
-                fetchType=1  # 0: results, 1: logs
+                fetchType=1,  # 0: results, 1: logs
             )
             response = self._connection.client.FetchResults(req)
             hive._check_status(response)

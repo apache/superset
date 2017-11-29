@@ -127,6 +127,58 @@ Installation & Configuration
 [See in the documentation](https://superset.incubator.apache.org/installation.html)
 
 
+Resources
+-------------
+* [Mailing list](https://lists.apache.org/list.html?dev@superset.apache.org/)
+* [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
+* [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
+* [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
+* [Stackoverflow tag](https://stackoverflow.com/questions/tagged/apache-superset)
+* [DEPRECATED Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
+
+
+Contributing
+------------
+
+Interested in contributing? Casual hacking? Check out
+[Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
+
+
+Who uses Apache Superset (incubating)?
+--------------------------------------
+
+Here's a list of organizations who have taken the time to send a PR to let
+the world know they are using Superset. Join our growing community!
+
+ - [AiHello](https://www.aihello.com)
+ - [Airbnb](https://github.com/airbnb)
+ - [Amino](https://amino.com)
+ - [Brilliant.org](https://brilliant.org/)
+ - [Capital Service S.A.](http://capitalservice.pl)
+ - [Clark.de](http://clark.de/)
+ - [Digit Game Studios](https://www.digitgaming.com/)
+ - [Douban](https://www.douban.com/)
+ - [Endress+Hauser](http://www.endress.com/)
+ - [FBK - ICT center](http://ict.fbk.eu)
+ - [Faasos](http://faasos.com/)
+ - [GfK Data Lab](http://datalab.gfk.com)
+ - [Konfío](http://konfio.mx)
+ - [Lyft](https://www.lyft.com/)
+ - [Maieutical Labs](https://cloudschooling.it)
+ - [Pronto Tools](http://www.prontotools.io)
+ - [Qunar](https://www.qunar.com/)
+ - [Shopee](https://shopee.sg)
+ - [Shopkick](https://www.shopkick.com)
+ - [Tails.com](https://tails.com)
+ - [Tobii](http://www.tobii.com/)
+ - [Tooploox](https://www.tooploox.com/)
+ - [Twitter](https://twitter.com/)
+ - [Udemy](https://www.udemy.com/)
+ - [VIPKID](https://www.vipkid.com.cn/)
+ - [Yahoo!](https://yahoo.com/)
+ - [Zalando](https://www.zalando.com)
+
+
 More screenshots
 ----------------
 
@@ -145,49 +197,3 @@ More screenshots
 ![superset-sql-lab-2](https://cloud.githubusercontent.com/assets/130878/20234713/0f67b856-a835-11e6-9d50-7a52168f66fd.png)
 
 ![superset-sql-lab](https://cloud.githubusercontent.com/assets/130878/20234714/0f68f45a-a835-11e6-9467-f47ad0af7e79.png)
-
-
-Resources
--------------
-* [Superset Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
-* [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
-* [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
-* [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
-
-
-Contributing
-------------
-
-Interested in contributing? Casual hacking? Check out
-[Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)
-
-
-Who uses Apache Superset (incubating)?
---------------------------------------
-
-Here's a list of organizations who have taken the time to send a PR to let
-the world know they are using Superset. Join our growing community!
-
- - [Airbnb](https://github.com/airbnb)
- - [Amino](https://amino.com)
- - [Brilliant.org](https://brilliant.org/)
- - [Capital Service S.A.](http://capitalservice.pl)
- - [Clark.de](http://clark.de/)
- - [Digit Game Studios](https://www.digitgaming.com/)
- - [Douban](https://www.douban.com/)
- - [Endress+Hauser](http://www.endress.com/)
- - [FBK - ICT center](http://ict.fbk.eu)
- - [Faasos](http://faasos.com/)
- - [GfK Data Lab](http://datalab.gfk.com)
- - [Konfío](http://konfio.mx)
- - [Maieutical Labs](https://cloudschooling.it)
- - [Qunar](https://www.qunar.com/)
- - [Shopee](https://shopee.sg)
- - [Shopkick](https://www.shopkick.com)
- - [Tails.com](https://tails.com)
- - [Tobii](http://www.tobii.com/)
- - [Tooploox](https://www.tooploox.com/)
- - [Udemy](https://www.udemy.com/)
- - [Yahoo!](https://yahoo.com/)
- - [Zalando](https://www.zalando.com)
-

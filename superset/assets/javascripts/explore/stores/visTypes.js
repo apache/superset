@@ -97,7 +97,8 @@ export const visTypes = {
     showOnExplore: true,
     controlPanelSections: [
       {
-        label: t('Chart Options'),
+        label: t('Query'),
+        expanded: true,
         controlSetRows: [
           ['metrics'],
           ['groupby'],
@@ -293,6 +294,153 @@ export const visTypes = {
     },
   },
 
+  deck_hex: {
+    label: t('Deck.gl - Hexagons'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['longitude', 'latitude'],
+          ['groupby', 'size'],
+          ['row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['color_picker', null],
+          ['grid_size', 'extruded'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      size: {
+        label: t('Height'),
+        description: t('Metric used to control height'),
+        validators: [v.nonEmpty],
+      },
+    },
+  },
+
+  deck_grid: {
+    label: t('Deck.gl - Grid'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['longitude', 'latitude'],
+          ['groupby', 'size'],
+          ['row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['color_picker', null],
+          ['grid_size', 'extruded'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      size: {
+        label: t('Height'),
+        description: t('Metric used to control height'),
+        validators: [v.nonEmpty],
+      },
+    },
+  },
+
+  deck_screengrid: {
+    label: t('Deck.gl - Screen grid'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['longitude', 'latitude'],
+          ['groupby', 'size'],
+          ['row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('Grid'),
+        controlSetRows: [
+          ['grid_size', 'color_picker'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      size: {
+        label: t('Weight'),
+        description: t("Metric used as a weight for the grid's coloring"),
+        validators: [v.nonEmpty],
+      },
+    },
+  },
+
+  deck_scatter: {
+    label: t('Deck.gl - Scatter plot'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['longitude', 'latitude'],
+          ['groupby'],
+          ['row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('Point Size'),
+        controlSetRows: [
+          ['point_radius_fixed', 'point_unit'],
+          ['multiplier', null],
+        ],
+      },
+      {
+        label: t('Point Color'),
+        controlSetRows: [
+          ['color_picker', null],
+          ['dimension', 'color_scheme'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      all_columns_x: {
+        label: t('Longitude Column'),
+        validators: [v.nonEmpty],
+      },
+      all_columns_y: {
+        label: t('Latitude Column'),
+        validators: [v.nonEmpty],
+      },
+      dimension: {
+        label: t('Categorical Color'),
+        description: t('Pick a dimension from which categorical colors are defined'),
+      },
+    },
+  },
+
   area: {
     label: t('Time Series - Stacked'),
     requiresTime: true,
@@ -337,8 +485,10 @@ export const visTypes = {
         label: t('GROUP BY'),
         description: t('Use this section if you want a query that aggregates'),
         controlSetRows: [
-          ['groupby', 'metrics'],
-          ['include_time', null],
+          ['groupby'],
+          ['metrics'],
+          ['percent_metrics'],
+          ['include_time'],
           ['timeseries_limit_metric', 'order_desc'],
         ],
       },
@@ -369,6 +519,31 @@ export const visTypes = {
     },
   },
 
+  time_table: {
+    label: t('Time Series Table'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['groupby', 'metrics'],
+          ['column_collection'],
+          ['url'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      groupby: {
+        multiple: false,
+      },
+      url: {
+        description: t(
+          "Templated link, it's possible to include {{ metric }} " +
+          'or other values coming from the controls.'),
+      },
+    },
+  },
+
   markup: {
     label: t('Markup'),
     controlPanelSections: [
@@ -394,7 +569,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Pivot Options',
+        label: t('Pivot Options'),
         controlSetRows: [
           ['pandas_aggfunc', 'pivot_margins'],
           ['number_format', 'combine_metric'],
@@ -436,11 +611,12 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['series', 'metric', 'limit'],
+          ['series', 'metric'],
+          ['row_limit', null],
         ],
       },
       {
-        label: 'Options',
+        label: t('Options'),
         controlSetRows: [
           ['size_from', 'size_to'],
           ['rotation'],
@@ -489,7 +665,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Options',
+        label: t('Options'),
         controlSetRows: [
           ['domain_granularity'],
           ['subdomain_granularity'],
@@ -582,7 +758,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['metric'],
           ['ranges', 'range_labels'],
@@ -604,7 +780,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
@@ -629,7 +805,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Chart Options',
+        label: t('Chart Options'),
         controlSetRows: [
           ['subheader'],
           ['y_axis_format'],
@@ -825,8 +1001,8 @@ export const visTypes = {
     ],
     controlOverrides: {
       entity: {
-        label: t('ISO 3166-1 codes of region/province/department'),
-        description: t('It\'s ISO 3166-1 of your region/province/department in your table. (see documentation for list of ISO 3166-1)'),
+        label: t('ISO 3166-2 codes of region/province/department'),
+        description: t('It\'s ISO 3166-2 of your region/province/department in your table. (see documentation for list of ISO 3166-2)'),
       },
       metric: {
         label: t('Metric'),
@@ -883,12 +1059,9 @@ export const visTypes = {
         controlSetRows: [
           ['groupby'],
           ['metric'],
-        ],
-      },
-      {
-        label: 'Options',
-        controlSetRows: [
           ['date_filter', 'instant_filtering'],
+          ['show_sqla_time_granularity', 'show_sqla_time_column'],
+          ['show_druid_time_granularity', 'show_druid_time_origin'],
         ],
       },
     ],
@@ -931,7 +1104,7 @@ export const visTypes = {
         ],
       },
       {
-        label: 'Options',
+        label: t('Options'),
         controlSetRows: [
           ['show_datatable', 'include_series'],
         ],
@@ -959,6 +1132,7 @@ export const visTypes = {
           ['left_margin', 'bottom_margin'],
           ['y_axis_bounds', 'y_axis_format'],
           ['show_legend', 'show_perc'],
+          ['show_values'],
           ['sort_x_axis', 'sort_y_axis'],
         ],
       },
@@ -971,7 +1145,7 @@ export const visTypes = {
         validators: [v.nonEmpty],
       },
       y_axis_bounds: {
-        label: 'Value bounds',
+        label: t('Value bounds'),
         renderTrigger: false,
         description: (
           'Hard value bounds applied for color coding. Is only relevant ' +
@@ -980,7 +1154,7 @@ export const visTypes = {
         ),
       },
       y_axis_format: {
-        label: 'Value Format',
+        label: t('Value Format'),
       },
     },
   },
@@ -1037,9 +1211,8 @@ export const visTypes = {
       {
         label: t('Viewport'),
         controlSetRows: [
-          ['viewport_longitude'],
-          ['viewport_latitude'],
-          ['viewport_zoom'],
+          ['viewport_longitude', 'viewport_latitude'],
+          ['viewport_zoom', null],
         ],
       },
     ],
@@ -1115,13 +1288,13 @@ export const visTypes = {
   },
 
   paired_ttest: {
-    label: 'Time Series - Paired t-test',
+    label: t('Time Series - Paired t-test'),
     showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],
       {
-        label: 'Paired t-test',
+        label: t('Paired t-test'),
         expanded: false,
         controlSetRows: [
           ['significance_level'],
@@ -1129,6 +1302,33 @@ export const visTypes = {
           ['liftvalue_precision'],
         ],
       },
+    ],
+  },
+
+  partition: {
+    label: 'Partition Diagram',
+    showOnExplore: true,
+    controlPanelSections: [
+      sections.NVD3TimeSeries[0],
+      {
+        label: t('Time Series Options'),
+        expanded: true,
+        controlSetRows: [
+          ['time_series_option'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['color_scheme'],
+          ['number_format', 'date_time_format'],
+          ['partition_limit', 'partition_threshold'],
+          ['log_scale', 'equal_date_size'],
+          ['rich_tooltip'],
+        ],
+      },
+      sections.NVD3TimeSeries[1],
     ],
   },
 };

@@ -5,10 +5,8 @@ import * as v from '../../validators';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
-  label: PropTypes.string,
-  description: PropTypes.string,
   onChange: PropTypes.func,
+  onFocus: PropTypes.func,
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
@@ -18,9 +16,8 @@ const propTypes = {
 };
 
 const defaultProps = {
-  label: null,
-  description: null,
   onChange: () => {},
+  onFocus: () => {},
   value: '',
   isInt: false,
   isFloat: false,
@@ -64,6 +61,7 @@ export default class TextControl extends React.Component {
             type="text"
             placeholder=""
             onChange={this.onChange}
+            onFocus={this.props.onFocus}
             value={value}
           />
         </FormGroup>

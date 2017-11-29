@@ -205,7 +205,7 @@ class TTestTable extends React.Component {
     ]);
     return (
       <div>
-        <h1>{metric}</h1>
+        <h3>{metric}</h3>
         <Table
           className="table"
           id={`table_${metric}`}

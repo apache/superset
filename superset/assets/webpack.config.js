@@ -19,7 +19,7 @@ const config = {
     common: APP_DIR + '/javascripts/common.js',
     addSlice: ['babel-polyfill', APP_DIR + '/javascripts/addSlice/index.jsx'],
     explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/index.jsx'],
-    dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/Dashboard.jsx'],
+    dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],
     welcome: ['babel-polyfill', APP_DIR + '/javascripts/welcome.js'],
     profile: ['babel-polyfill', APP_DIR + '/javascripts/profile/index.jsx'],
@@ -47,12 +47,12 @@ const config = {
       },
       {
         test: /\.jsx?$/,
-        exclude: APP_DIR + '/node_modules',
+        exclude: /node_modules/,
         loader: 'babel-loader',
         query: {
           presets: [
             'airbnb',
-            'es2015',
+            'env',
             'react',
           ],
         },

@@ -9,11 +9,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import OrderedDict
 import imp
 import json
 import os
 import sys
-from collections import OrderedDict
 
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
@@ -41,6 +41,8 @@ with open(PACKAGE_FILE) as package_file:
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
+# max rows retrieved by filter select auto complete
+FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2
 SUPERSET_CELERY_WORKERS = 32
 
@@ -56,9 +58,9 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
+# SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -92,10 +94,10 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = 'Superset'
 
 # Uncomment to setup an App icon
-APP_ICON = "/static/assets/images/superset-logo@2x.png"
+APP_ICON = '/static/assets/images/superset-logo@2x.png'
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -154,13 +156,15 @@ PUBLIC_ROLE_LIKE_GAMMA = False
 # Setup default language
 BABEL_DEFAULT_LOCALE = 'en'
 # Your application default translation path
-BABEL_DEFAULT_FOLDER = 'babel/translations'
+BABEL_DEFAULT_FOLDER = 'superset/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
     'it': {'flag': 'it', 'name': 'Italian'},
     'fr': {'flag': 'fr', 'name': 'French'},
     'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'ja': {'flag': 'jp', 'name': 'Japanese'},
+    'de': {'flag': 'de', 'name': 'German'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -183,6 +187,10 @@ TABLE_NAMES_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 # CORS Options
 ENABLE_CORS = False
 CORS_OPTIONS = {}
+
+# Allowed format types for upload on Database view
+# TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
+ALLOWED_EXTENSIONS = set(['csv'])
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv method
 # note: index option should not be overridden
@@ -237,7 +245,7 @@ INTERVAL = 1
 BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = ""
+MAPBOX_API_KEY = ''
 
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000000
@@ -294,6 +302,14 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
 
+# The S3 bucket where you want to store your external hive tables created
+# from CSV files. For example, 'companyname-superset'
+CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
+
+# The directory within the bucket specified above that will
+# contain all the external tables
+CSV_TO_HIVE_UPLOAD_DIRECTORY = 'EXTERNAL_HIVE_TABLES/'
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
@@ -325,6 +341,10 @@ if not CACHE_DEFAULT_TIMEOUT:
 # permission management
 SILENCE_FAB = True
 
+# The link to a page containing common errors and their resolutions
+# It will be appended at the bottom of sql_lab errors.
+TROUBLESHOOTING_LINK = ''
+
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
@@ -333,7 +353,7 @@ BLUEPRINTS = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-TRACKING_URL_TRANSFORMER = lambda x: x
+TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
@@ -342,7 +362,9 @@ try:
         print('Loaded your LOCAL configuration at [{}]'.format(
             os.environ[CONFIG_PATH_ENV_VAR]))
         module = sys.modules[__name__]
-        override_conf = imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
+        override_conf = imp.load_source(
+            'superset_config',
+            os.environ[CONFIG_PATH_ENV_VAR])
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))

@@ -5,16 +5,15 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import json
-import mock
 import unittest
 
-from superset import db, models, sm, security
+import mock
 
-from superset.models import core as models
+from superset import db, security, sm
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.druid.models import DruidDatasource
-
+from superset.connectors.sqla.models import SqlaTable
+from superset.models import core as models
 from .base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {
@@ -24,9 +23,9 @@ ROLE_TABLES_PERM_DATA = {
         'name': 'main',
         'schema': [{
             'name': '',
-            'datasources': ['birth_names']
-        }]
-    }]
+            'datasources': ['birth_names'],
+        }],
+    }],
 }
 
 ROLE_ALL_PERM_DATA = {
@@ -36,17 +35,17 @@ ROLE_ALL_PERM_DATA = {
         'name': 'main',
         'schema': [{
             'name': '',
-            'datasources': ['birth_names']
-        }]
+            'datasources': ['birth_names'],
+        }],
     }, {
         'datasource_type': 'druid',
         'name': 'druid_test',
         'schema': [{
             'name': '',
-            'datasources': ['druid_ds_1', 'druid_ds_2']
-        }]
-    }
-    ]
+            'datasources': ['druid_ds_1', 'druid_ds_2'],
+        }],
+    },
+    ],
 }
 
 EXTEND_ROLE_REQUEST = (
@@ -173,7 +172,7 @@ class RequestAccessTests(SupersetTestCase):
         override_me.permissions.append(
             sm.find_permission_view_menu(
                 view_menu_name=self.get_table_by_name('long_lat').perm,
-                permission_name='datasource_access')
+                permission_name='datasource_access'),
         )
         db.session.flush()
 
@@ -204,7 +203,7 @@ class RequestAccessTests(SupersetTestCase):
         access_request1 = create_access_request(
             session, 'table', 'random_time_series', TEST_ROLE_1, 'gamma2')
         ds_1_id = access_request1.datasource_id
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'random_time_series', TEST_ROLE_1, 'gamma')
         access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
         self.assertTrue(access_requests)
@@ -229,7 +228,7 @@ class RequestAccessTests(SupersetTestCase):
 
         access_request1 = create_access_request(
             session, 'table', 'birth_names', TEST_ROLE_1, 'gamma')
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'birth_names', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
         # gamma becomes alpha
@@ -258,7 +257,7 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user = sm.find_user(username='gamma')
         access_request1 = create_access_request(
             session, 'table', 'long_lat', TEST_ROLE_1, 'gamma')
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'long_lat', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
         # gamma gets granted database access
@@ -269,7 +268,7 @@ class RequestAccessTests(SupersetTestCase):
         ds_perm_view = sm.find_permission_view_menu(
             'database_access', database.perm)
         sm.add_permission_role(
-            sm.find_role(DB_ACCESS_ROLE) , ds_perm_view)
+            sm.find_role(DB_ACCESS_ROLE), ds_perm_view)
         gamma_user.roles.append(sm.find_role(DB_ACCESS_ROLE))
         session.commit()
         access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
@@ -294,12 +293,11 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user = sm.find_user(username='gamma')
         access_request1 = create_access_request(
             session, 'table', 'wb_health_population', TEST_ROLE_1, 'gamma')
-        access_request2 = create_access_request(
+        create_access_request(
             session, 'table', 'wb_health_population', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
         ds = session.query(SqlaTable).filter_by(
             table_name='wb_health_population').first()
-
 
         ds.schema = 'temp_schema'
         security.merge_perm(
@@ -307,7 +305,7 @@ class RequestAccessTests(SupersetTestCase):
         schema_perm_view = sm.find_permission_view_menu(
             'schema_access', ds.schema_perm)
         sm.add_permission_role(
-            sm.find_role(SCHEMA_ACCESS_ROLE) , schema_perm_view)
+            sm.find_role(SCHEMA_ACCESS_ROLE), schema_perm_view)
         gamma_user.roles.append(sm.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
         # gamma2 request gets fulfilled
@@ -335,9 +333,8 @@ class RequestAccessTests(SupersetTestCase):
         access_request1 = create_access_request(
             session, 'table', 'unicode_test', TEST_ROLE_NAME, 'gamma')
         ds_1_id = access_request1.datasource_id
-        resp = self.get_resp(GRANT_ROLE_REQUEST.format(
+        self.get_resp(GRANT_ROLE_REQUEST.format(
             'table', ds_1_id, 'gamma', TEST_ROLE_NAME))
-
         # Test email content.
         self.assertTrue(mock_send_mime.called)
         call_args = mock_send_mime.call_args[0]
@@ -436,9 +433,6 @@ class RequestAccessTests(SupersetTestCase):
             'datasource_type={}&'
             'datasource_id={}&'
             'action={}&')
-        ROLE_EXTEND_LINK = (
-            '<a href="/superset/approve?datasource_type={}&datasource_id={}&'
-            'created_by={}&role_to_extend={}">Extend {} Role</a>')
         ROLE_GRANT_LINK = (
             '<a href="/superset/approve?datasource_type={}&datasource_id={}&'
             'created_by={}&role_to_grant={}">Grant {} Role</a>')
@@ -452,7 +446,7 @@ class RequestAccessTests(SupersetTestCase):
         # request access to the table
         resp = self.get_resp(
             ACCESS_REQUEST.format('table', table_1_id, 'go'))
-        assert "Access was requested" in resp
+        assert 'Access was requested' in resp
         access_request1 = self.get_access_requests('gamma', 'table', table_1_id)
         assert access_request1 is not None
 
@@ -469,7 +463,7 @@ class RequestAccessTests(SupersetTestCase):
             alpha_role,
             sm.find_permission_view_menu('datasource_access', table3_perm))
         sm.add_permission_role(
-            sm.find_role("energy_usage_role"),
+            sm.find_role('energy_usage_role'),
             sm.find_permission_view_menu('datasource_access', table3_perm))
         session.commit()
 
@@ -552,14 +546,14 @@ class RequestAccessTests(SupersetTestCase):
             '/superset/update_role/',
             data=json.dumps({
                 'users': [{
-                        'username': 'gamma',
-                        'first_name': 'Gamma',
-                        'last_name': 'Gamma',
-                        'email': 'gamma@superset.com'
-                    }],
-                'role_name': update_role_str
+                    'username': 'gamma',
+                    'first_name': 'Gamma',
+                    'last_name': 'Gamma',
+                    'email': 'gamma@superset.com',
+                }],
+                'role_name': update_role_str,
             }),
-            follow_redirects=True
+            follow_redirects=True,
         )
         update_role = sm.find_role(update_role_str)
         self.assertEquals(
@@ -573,16 +567,16 @@ class RequestAccessTests(SupersetTestCase):
                     'username': 'alpha',
                     'first_name': 'Alpha',
                     'last_name': 'Alpha',
-                    'email': 'alpha@superset.com'
+                    'email': 'alpha@superset.com',
                 }, {
                     'username': 'unknown',
                     'first_name': 'Unknown1',
                     'last_name': 'Unknown2',
-                    'email': 'unknown@superset.com'
+                    'email': 'unknown@superset.com',
                 }],
-                'role_name': update_role_str
+                'role_name': update_role_str,
             }),
-            follow_redirects=True
+            follow_redirects=True,
         )
         self.assertEquals(resp.status_code, 201)
         update_role = sm.find_role(update_role_str)

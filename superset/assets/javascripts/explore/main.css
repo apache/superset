@@ -110,3 +110,14 @@
 .save-modal-selector {
   margin: 10px 0;
 }
+.list-group {
+  margin-bottom: 10px;
+}
+.color-popover.popover {
+  border: none;
+  background-color: transparent;
+}
+.color-popover .popover-content {
+  padding: 0;
+  background-color: transparent;
+}

@@ -4,45 +4,43 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from builtins import object
+from datetime import date, datetime, time, timedelta
 import decimal
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formatdate
 import functools
 import json
 import logging
 import os
 import signal
-import parsedatetime
 import smtplib
-import pytz
-import sqlalchemy as sa
-import uuid
 import sys
+import uuid
 import zlib
-import numpy
-
-from builtins import object
-from datetime import date, datetime, time, timedelta
 
 import celery
 from dateutil.parser import parse
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.application import MIMEApplication
-from email.utils import formatdate
-
-from flask import flash, Markup, render_template, url_for, redirect, request
-from flask_appbuilder.const import (
-    LOGMSG_ERR_SEC_ACCESS_DENIED,
-    FLAMSG_ERR_SEC_ACCESS_DENIED,
-    PERMISSION_PREFIX
-)
+from flask import flash, Markup, redirect, render_template, request, url_for
 from flask_appbuilder._compat import as_unicode
+from flask_appbuilder.const import (
+    FLAMSG_ERR_SEC_ACCESS_DENIED,
+    LOGMSG_ERR_SEC_ACCESS_DENIED,
+    PERMISSION_PREFIX,
+)
 from flask_babel import gettext as __
 from flask_cache import Cache
 import markdown as md
+import numpy
+import parsedatetime
 from past.builtins import basestring
 from pydruid.utils.having import Having
+import pytz
+import sqlalchemy as sa
 from sqlalchemy import event, exc, select
-from sqlalchemy.types import TypeDecorator, TEXT
+from sqlalchemy.types import TEXT, TypeDecorator
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
@@ -165,7 +163,7 @@ class DimSelector(Having):
                 'type': 'dimSelector',
                 'dimension': args['dimension'],
                 'value': args['value'],
-            }
+            },
         }
 
 
@@ -188,9 +186,9 @@ def parse_human_datetime(s):
     datetime.datetime(2015, 4, 3, 0, 0)
     >>> parse_human_datetime('2/3/1969')
     datetime.datetime(1969, 2, 3, 0, 0)
-    >>> parse_human_datetime("now") <= datetime.now()
+    >>> parse_human_datetime('now') <= datetime.now()
     True
-    >>> parse_human_datetime("yesterday") <= datetime.now()
+    >>> parse_human_datetime('yesterday') <= datetime.now()
     True
     >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
     True
@@ -207,7 +205,7 @@ def parse_human_datetime(s):
         try:
             cal = parsedatetime.Calendar()
             parsed_dttm, parsed_flags = cal.parseDT(s)
-            # when time is not extracted, we "reset to midnight"
+            # when time is not extracted, we 'reset to midnight'
             if parsed_flags & 2 == 0:
                 parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
             dttm = dttm_from_timtuple(parsed_dttm.utctimetuple())
@@ -226,7 +224,7 @@ def parse_human_timedelta(s):
     """
     Returns ``datetime.datetime`` from natural language time deltas
 
-    >>> parse_human_datetime("now") <= datetime.now()
+    >>> parse_human_datetime('now') <= datetime.now()
     True
     """
     cal = parsedatetime.Calendar()
@@ -262,7 +260,7 @@ def datetime_f(dttm):
             dttm = dttm[11:]
         elif now_iso[:4] == dttm[:4]:
             dttm = dttm[5:]
-    return "<nobr>{}</nobr>".format(dttm)
+    return '<nobr>{}</nobr>'.format(dttm)
 
 
 def base_json_conv(obj):
@@ -300,7 +298,7 @@ def json_iso_dttm_ser(obj):
         obj = obj.isoformat()
     else:
         raise TypeError(
-            "Unserializable object {} of type {}".format(obj, type(obj)))
+            'Unserializable object {} of type {}'.format(obj, type(obj)))
     return obj
 
 
@@ -326,7 +324,7 @@ def json_int_dttm_ser(obj):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
         raise TypeError(
-            "Unserializable object {} of type {}".format(obj, type(obj)))
+            'Unserializable object {} of type {}'.format(obj, type(obj)))
     return obj
 
 
@@ -345,7 +343,7 @@ def error_msg_from_exception(e):
                      created via create_engine.
     engine = create_engine('presto://localhost:3506/silver') -
       gives an e.message as the str(dict)
-    presto.connect("localhost", port=3506, catalog='silver') - as a dict.
+    presto.connect('localhost', port=3506, catalog='silver') - as a dict.
     The latter version is parsed correctly by this function.
     """
     msg = ''
@@ -353,7 +351,7 @@ def error_msg_from_exception(e):
         if isinstance(e.message, dict):
             msg = e.message.get('message')
         elif e.message:
-            msg = "{}".format(e.message)
+            msg = '{}'.format(e.message)
     return msg or '{}'.format(e)
 
 
@@ -379,20 +377,45 @@ def generic_find_constraint_name(table, columns, referenced, db):
     t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
 
     for fk in t.foreign_key_constraints:
-        if (fk.referred_table.name == referenced
-                and set(fk.column_keys) == columns):
+        if fk.referred_table.name == referenced and set(fk.column_keys) == columns:
             return fk.name
+
+
+def generic_find_fk_constraint_name(table, columns, referenced, insp):
+    """Utility to find a foreign-key constraint name in alembic migrations"""
+    for fk in insp.get_foreign_keys(table):
+        if fk['referred_table'] == referenced and set(fk['referred_columns']) == columns:
+            return fk['name']
+
+
+def generic_find_fk_constraint_names(table, columns, referenced, insp):
+    """Utility to find foreign-key constraint names in alembic migrations"""
+    names = set()
+
+    for fk in insp.get_foreign_keys(table):
+        if fk['referred_table'] == referenced and set(fk['referred_columns']) == columns:
+            names.add(fk['name'])
+
+    return names
+
+
+def generic_find_uq_constraint_name(table, columns, insp):
+    """Utility to find a unique constraint name in alembic migrations"""
+
+    for uq in insp.get_unique_constraints(table):
+        if columns == set(uq['column_names']):
+            return uq['name']
 
 
 def get_datasource_full_name(database_name, datasource_name, schema=None):
     if not schema:
-        return "[{}].[{}]".format(database_name, datasource_name)
-    return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
+        return '[{}].[{}]'.format(database_name, datasource_name)
+    return '[{}].[{}].[{}]'.format(database_name, schema, datasource_name)
 
 
 def get_schema_perm(database, schema):
     if schema:
-        return "[{}].[{}]".format(database, schema)
+        return '[{}].[{}]'.format(database, schema)
 
 
 def validate_json(obj):
@@ -400,7 +423,7 @@ def validate_json(obj):
         try:
             json.loads(obj)
         except Exception:
-            raise SupersetException("JSON is not valid")
+            raise SupersetException('JSON is not valid')
 
 
 def table_has_constraint(table, name, db):
@@ -423,7 +446,7 @@ class timeout(object):
         self.error_message = error_message
 
     def handle_timeout(self, signum, frame):
-        logging.error("Process timed out")
+        logging.error('Process timed out')
         raise SupersetTimeoutException(self.error_message)
 
     def __enter__(self):
@@ -443,15 +466,15 @@ class timeout(object):
 
 
 def pessimistic_connection_handling(some_engine):
-    @event.listens_for(some_engine, "engine_connect")
+    @event.listens_for(some_engine, 'engine_connect')
     def ping_connection(connection, branch):
         if branch:
-            # "branch" refers to a sub-connection of a connection,
+            # 'branch' refers to a sub-connection of a connection,
             # we don't want to bother pinging on these.
             return
 
-        # turn off "close with result".  This flag is only used with
-        # "connectionless" execution, otherwise will be False in any case
+        # turn off 'close with result'.  This flag is only used with
+        # 'connectionless' execution, otherwise will be False in any case
         save_should_close_with_result = connection.should_close_with_result
         connection.should_close_with_result = False
 
@@ -463,7 +486,7 @@ def pessimistic_connection_handling(some_engine):
         except exc.DBAPIError as err:
             # catch SQLAlchemy's DBAPIError, which is a wrapper
             # for the DBAPI's exception.  It includes a .connection_invalidated
-            # attribute which specifies if this connection is a "disconnect"
+            # attribute which specifies if this connection is a 'disconnect'
             # condition, which is based on inspection of the original exception
             # by the dialect in use.
             if err.connection_invalidated:
@@ -475,7 +498,7 @@ def pessimistic_connection_handling(some_engine):
             else:
                 raise
         finally:
-            # restore "close with result"
+            # restore 'close with result'
             connection.should_close_with_result = save_should_close_with_result
 
 
@@ -516,11 +539,11 @@ def send_email_smtp(to, subject, html_content, config, files=None,
     msg = MIMEMultipart(mime_subtype)
     msg['Subject'] = subject
     msg['From'] = smtp_mail_from
-    msg['To'] = ", ".join(to)
+    msg['To'] = ', '.join(to)
     recipients = to
     if cc:
         cc = get_email_address_list(cc)
-        msg['CC'] = ", ".join(cc)
+        msg['CC'] = ', '.join(cc)
         recipients = recipients + cc
 
     if bcc:
@@ -534,11 +557,11 @@ def send_email_smtp(to, subject, html_content, config, files=None,
 
     for fname in files or []:
         basename = os.path.basename(fname)
-        with open(fname, "rb") as f:
+        with open(fname, 'rb') as f:
             msg.attach(
                 MIMEApplication(
                     f.read(),
-                    Content_Disposition='attachment; filename="%s"' % basename,
+                    Content_Disposition="attachment; filename='%s'" % basename,
                     Name=basename))
 
     send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
@@ -559,7 +582,7 @@ def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
             s.starttls()
         if SMTP_USER and SMTP_PASSWORD:
             s.login(SMTP_USER, SMTP_PASSWORD)
-        logging.info("Sent an alert email to " + str(e_to))
+        logging.info('Sent an alert email to ' + str(e_to))
         s.sendmail(e_from, e_to, mime_msg.as_string())
         s.quit()
     else:
@@ -603,11 +626,11 @@ def has_access(f):
             logging.warning(
                 LOGMSG_ERR_SEC_ACCESS_DENIED.format(permission_str,
                                                     self.__class__.__name__))
-            flash(as_unicode(FLAMSG_ERR_SEC_ACCESS_DENIED), "danger")
+            flash(as_unicode(FLAMSG_ERR_SEC_ACCESS_DENIED), 'danger')
         # adds next arg to forward to the original path once user is logged in.
         return redirect(
             url_for(
-                self.appbuilder.sm.auth_view.__class__.__name__ + ".login",
+                self.appbuilder.sm.auth_view.__class__.__name__ + '.login',
                 next=request.path))
 
     f._permission_name = permission_str
@@ -633,7 +656,7 @@ def zlib_compress(data):
     """
     if PY3K:
         if isinstance(data, str):
-            return zlib.compress(bytes(data, "utf-8"))
+            return zlib.compress(bytes(data, 'utf-8'))
         return zlib.compress(data)
     return zlib.compress(data)
 
@@ -651,8 +674,8 @@ def zlib_decompress_to_string(blob):
         if isinstance(blob, bytes):
             decompressed = zlib.decompress(blob)
         else:
-            decompressed = zlib.decompress(bytes(blob, "utf-8"))
-        return decompressed.decode("utf-8")
+            decompressed = zlib.decompress(bytes(blob, 'utf-8'))
+        return decompressed.decode('utf-8')
     return zlib.decompress(blob)
 
 
@@ -665,3 +688,61 @@ def get_celery_app(config):
         return _celery_app
     _celery_app = celery.Celery(config_source=config.get('CELERY_CONFIG'))
     return _celery_app
+
+
+def merge_extra_filters(form_data):
+    # extra_filters are temporary/contextual filters that are external
+    # to the slice definition. We use those for dynamic interactive
+    # filters like the ones emitted by the "Filter Box" visualization
+    if 'extra_filters' in form_data:
+        # __form and __to are special extra_filters that target time
+        # boundaries. The rest of extra_filters are simple
+        # [column_name in list_of_values]. `__` prefix is there to avoid
+        # potential conflicts with column that would be named `from` or `to`
+        if 'filters' not in form_data:
+            form_data['filters'] = []
+        date_options = {
+            '__from': 'since',
+            '__to': 'until',
+            '__time_col': 'granularity_sqla',
+            '__time_grain': 'time_grain_sqla',
+            '__time_origin': 'druid_time_origin',
+            '__granularity': 'granularity',
+        }
+        # Grab list of existing filters 'keyed' on the column and operator
+
+        def get_filter_key(f):
+            return f['col'] + '__' + f['op']
+        existing_filters = {}
+        for existing in form_data['filters']:
+            existing_filters[get_filter_key(existing)] = existing['val']
+        for filtr in form_data['extra_filters']:
+            # Pull out time filters/options and merge into form data
+            if date_options.get(filtr['col']):
+                if filtr.get('val'):
+                    form_data[date_options[filtr['col']]] = filtr['val']
+            elif filtr['val'] and len(filtr['val']):
+                # Merge column filters
+                filter_key = get_filter_key(filtr)
+                if filter_key in existing_filters:
+                    # Check if the filter already exists
+                    if isinstance(filtr['val'], list):
+                        if isinstance(existing_filters[filter_key], list):
+                            # Add filters for unequal lists
+                            # order doesn't matter
+                            if (
+                                sorted(existing_filters[filter_key]) !=
+                                sorted(filtr['val'])
+                            ):
+                                form_data['filters'] += [filtr]
+                        else:
+                            form_data['filters'] += [filtr]
+                    else:
+                        # Do not add filter if same value already exists
+                        if filtr['val'] != existing_filters[filter_key]:
+                            form_data['filters'] += [filtr]
+                else:
+                    # Filter not found, add it
+                    form_data['filters'] += [filtr]
+        # Remove extra filters from the form data since no longer needed
+        del form_data['extra_filters']

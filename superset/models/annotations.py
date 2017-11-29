@@ -4,12 +4,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from flask_appbuilder import Model
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text,
-    DateTime, Index,
+    Column, DateTime, ForeignKey, Index, Integer, String, Text,
 )
 from sqlalchemy.orm import relationship
-from flask_appbuilder import Model
 
 from superset.models.helpers import AuditMixinNullable
 

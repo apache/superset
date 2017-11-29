@@ -23,11 +23,11 @@ def get_language_pack(locale):
     pack = ALL_LANGUAGE_PACKS.get(locale)
     if not pack:
         filename = DIR + '/{}/LC_MESSAGES/messages.json'.format(locale)
-        with open(filename) as f:
-            try:
+        try:
+            with open(filename) as f:
                 pack = json.load(f)
                 ALL_LANGUAGE_PACKS[locale] = pack
-            except Exception:
-                # Assuming english, client side falls back on english
-                pass
+        except Exception:
+            # Assuming english, client side falls back on english
+            pass
     return pack

@@ -77,17 +77,16 @@ function getMaxLabelSize(container, axisClass) {
 /* eslint-disable camelcase */
 function formatLabel(column, verbose_map) {
   let label;
-  if (verbose_map) {
-    if (Array.isArray(column) && column.length) {
-      label = verbose_map[column[0]];
-      if (column.length > 1) {
-        label += `, ${column.slice(1).join(', ')}`;
-      }
-    } else {
-      label = verbose_map[column];
+  if (Array.isArray(column) && column.length) {
+    label = verbose_map[column[0]] || column[0];
+    if (column.length > 1) {
+      label += ', ';
     }
+    label += column.slice(1).join(', ');
+  } else {
+    label = verbose_map[column] || column;
   }
-  return label || column;
+  return label;
 }
 /* eslint-enable camelcase */
 
@@ -230,14 +229,21 @@ function nvd3Vis(slice, payload) {
           chart.donut(true);
         }
         chart.labelsOutside(fd.labels_outside);
-        chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
-          .labelType(fd.pie_label_type);
+        chart.labelThreshold(0.05);  // Configure the minimum slice size for labels to show up
+        if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
+          chart.labelType(fd.pie_label_type);
+        } else if (fd.pie_label_type === 'key_value') {
+          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
+        }
         chart.cornerRadius(true);
 
-        if (fd.pie_label_type === 'percent') {
+        if (fd.pie_label_type === 'percent' || fd.pie_label_type === 'key_percent') {
           let total = 0;
           data.forEach((d) => { total += d.y; });
           chart.tooltip.valueFormatter(d => `${((d / total) * 100).toFixed()}%`);
+          if (fd.pie_label_type === 'key_percent') {
+            chart.labelType(d => `${d.data.x}: ${((d.data.y / total) * 100).toFixed()}%`);
+          }
         }
 
         break;
@@ -290,9 +296,7 @@ function nvd3Vis(slice, payload) {
       case 'box_plot':
         colorKey = 'label';
         chart = nv.models.boxPlotChart();
-        chart.x(function (d) {
-          return d.label;
-        });
+        chart.x(d => d.label);
         chart.staggerLabels(true);
         chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
         break;
@@ -347,7 +351,8 @@ function nvd3Vis(slice, payload) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
     }
-    if (vizType !== 'dist_bar' && chart.xAxis && chart.xAxis.tickFormat) {
+    const isXAxisString = ['dist_bar', 'box_plot'].indexOf(vizType) >= 0;
+    if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
@@ -506,7 +511,7 @@ function nvd3Vis(slice, payload) {
       .call(chart);
 
       // add annotation_layer
-      if (isTimeSeries && payload.annotations.length) {
+      if (isTimeSeries && payload.annotations && payload.annotations.length) {
         const tip = d3tip()
           .attr('class', 'd3-tip')
           .direction('n')
