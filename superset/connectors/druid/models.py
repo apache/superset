@@ -898,7 +898,7 @@ class DruidDatasource(Model, BaseDatasource):
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
-            extras={},  # noqa
+            extras=None,  # noqa
             select=None,  # noqa
             columns=None, phase=2, client=None, form_data=None,
             order_desc=True):
@@ -953,6 +953,7 @@ class DruidDatasource(Model, BaseDatasource):
                 dimensions.append(dim_spec)
             else:
                 dimensions.append(column_name)
+        extras = extras or {}
         qry = dict(
             datasource=self.datasource_name,
             dimensions=dimensions,

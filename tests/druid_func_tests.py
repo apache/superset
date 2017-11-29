@@ -4,7 +4,7 @@ import unittest
 from mock import Mock
 
 from superset.connectors.druid.models import (
-    DruidDatasource, DruidColumn, DruidMetric
+    DruidColumn, DruidDatasource, DruidMetric,
 )
 
 
@@ -126,8 +126,8 @@ class DruidFuncTestCase(unittest.TestCase):
         to_dttm = Mock()
         from_dttm.replace = Mock(return_value=from_dttm)
         to_dttm.replace = Mock(return_value=to_dttm)
-        from_dttm.isoformat = Mock(return_value="from")
-        to_dttm.isoformat = Mock(return_value="to")
+        from_dttm.isoformat = Mock(return_value='from')
+        to_dttm.isoformat = Mock(return_value='to')
         timezone = 'timezone'
         from_dttm.tzname = Mock(return_value=timezone)
         ds = DruidDatasource(datasource_name='datasource')
@@ -149,7 +149,7 @@ class DruidFuncTestCase(unittest.TestCase):
         # no groupby calls client.timeseries
         ds.run_query(
             groupby, metrics, None, from_dttm,
-            to_dttm, client=client, filter=[]
+            to_dttm, client=client, filter=[], row_limit=100,
         )
         self.assertEqual(0, len(client.topn.call_args_list))
         self.assertEqual(0, len(client.groupby.call_args_list))
@@ -166,8 +166,8 @@ class DruidFuncTestCase(unittest.TestCase):
         to_dttm = Mock()
         from_dttm.replace = Mock(return_value=from_dttm)
         to_dttm.replace = Mock(return_value=to_dttm)
-        from_dttm.isoformat = Mock(return_value="from")
-        to_dttm.isoformat = Mock(return_value="to")
+        from_dttm.isoformat = Mock(return_value='from')
+        to_dttm.isoformat = Mock(return_value='to')
         timezone = 'timezone'
         from_dttm.tzname = Mock(return_value=timezone)
         ds = DruidDatasource(datasource_name='datasource')
@@ -186,8 +186,8 @@ class DruidFuncTestCase(unittest.TestCase):
         client.query_builder.last_query.query_dict = {'mock': 0}
         # client.topn is called twice
         ds.run_query(
-            groupby, metrics, None, from_dttm, to_dttm,
-            client=client, order_desc=True, filter=[]
+            groupby, metrics, None, from_dttm, to_dttm, row_limit=100,
+            client=client, order_desc=True, filter=[],
         )
         self.assertEqual(2, len(client.topn.call_args_list))
         self.assertEqual(0, len(client.groupby.call_args_list))
@@ -204,7 +204,7 @@ class DruidFuncTestCase(unittest.TestCase):
         client.query_builder.last_query.query_dict = {'mock': 0}
         ds.run_query(
             groupby, metrics, None, from_dttm, to_dttm, client=client,
-            order_desc=False, filter=[]
+            order_desc=False, filter=[], row_limit=100,
         )
         self.assertEqual(0, len(client.topn.call_args_list))
         self.assertEqual(1, len(client.groupby.call_args_list))
@@ -222,7 +222,7 @@ class DruidFuncTestCase(unittest.TestCase):
         ds.run_query(
             groupby, metrics, None, from_dttm, to_dttm,
             client=client, order_desc=True, timeseries_limit=5,
-            filter=[]
+            filter=[], row_limit=100,
         )
         self.assertEqual(0, len(client.topn.call_args_list))
         self.assertEqual(2, len(client.groupby.call_args_list))
@@ -238,8 +238,8 @@ class DruidFuncTestCase(unittest.TestCase):
         to_dttm = Mock()
         from_dttm.replace = Mock(return_value=from_dttm)
         to_dttm.replace = Mock(return_value=to_dttm)
-        from_dttm.isoformat = Mock(return_value="from")
-        to_dttm.isoformat = Mock(return_value="to")
+        from_dttm.isoformat = Mock(return_value='from')
+        to_dttm.isoformat = Mock(return_value='to')
         timezone = 'timezone'
         from_dttm.tzname = Mock(return_value=timezone)
         ds = DruidDatasource(datasource_name='datasource')
@@ -261,8 +261,8 @@ class DruidFuncTestCase(unittest.TestCase):
         # no groupby calls client.timeseries
         ds.run_query(
             groupby, metrics, None, from_dttm,
-            to_dttm, client=client,
-            filter=[]
+            to_dttm, client=client, row_limit=100,
+            filter=[],
         )
         self.assertEqual(0, len(client.topn.call_args_list))
         self.assertEqual(1, len(client.groupby.call_args_list))
