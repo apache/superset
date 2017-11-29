@@ -36,10 +36,8 @@ datasources = sa.Table(
 
 
 def upgrade():
-
     bind = op.get_bind()
     insp = sa.engine.reflection.Inspector.from_engine(bind)
-
 
     # Add the new less restrictive uniqueness constraint.
     with op.batch_alter_table('datasources', naming_convention=conv) as batch_op:
@@ -117,8 +115,6 @@ def upgrade():
 def downgrade():
     bind = op.get_bind()
     insp = sa.engine.reflection.Inspector.from_engine(bind)
-
-
 
     # Add the new more restrictive uniqueness constraint which is required by
     # the foreign key constraints. Note this operation will fail if the
