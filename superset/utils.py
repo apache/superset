@@ -54,6 +54,8 @@ PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 
+JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
+
 
 def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
