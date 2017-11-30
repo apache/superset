@@ -101,6 +101,11 @@ export const spectrums = {
     '#1B4150',
     '#092935',
   ],
+  pink_grey: [
+    '#E70B81',
+    '#FAFAFA',
+    '#666666',
+  ],
 };
 
 /**

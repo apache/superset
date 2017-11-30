@@ -575,7 +575,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         obj.slug = obj.slug.strip() or None
         if obj.slug:
             obj.slug = obj.slug.replace(' ', '-')
-            obj.slug = re.sub(r'[^a-zA-Z0-9\-]+', '', obj.slug)
+            obj.slug = re.sub(r'[^\w\-]+', '', obj.slug)
         if g.user not in obj.owners:
             obj.owners.append(g.user)
         utils.validate_json(obj.json_metadata)
