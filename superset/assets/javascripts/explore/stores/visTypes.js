@@ -993,8 +993,9 @@ export const visTypes = {
       },
       {
         label: t('Options'),
+        expanded: true,
         controlSetRows: [
-          ['select_country'],
+          ['select_country', 'number_format'],
           ['linear_color_scheme'],
         ],
       },
