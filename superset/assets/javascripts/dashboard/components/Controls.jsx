@@ -13,12 +13,12 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  filters: PropTypes.object.isRequired,
   slices: PropTypes.array,
   userId: PropTypes.string.isRequired,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
-  readFilters: PropTypes.func,
   renderSlices: PropTypes.func,
   serialize: PropTypes.func,
   startPeriodicRender: PropTypes.func,
@@ -92,8 +92,8 @@ class Controls extends React.PureComponent {
     this.props.onChange();
   }
   render() {
-    const { dashboard, userId,
-      addSlicesToDashboard, startPeriodicRender, readFilters,
+    const { dashboard, userId, filters,
+      addSlicesToDashboard, startPeriodicRender,
       serialize, onSave, editMode } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
@@ -123,7 +123,7 @@ class Controls extends React.PureComponent {
           />
           <SaveModal
             dashboard={dashboard}
-            readFilters={readFilters}
+            filters={filters}
             serialize={serialize}
             onSave={onSave}
             css={this.state.css}
