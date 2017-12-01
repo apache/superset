@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import AlertsWrapper from '../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
 import Header from './Header';
+import { exportChart } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { t } from '../../locales';
 
@@ -55,6 +56,8 @@ class Dashboard extends React.PureComponent {
     this.addSlicesToDashboard = this.addSlicesToDashboard.bind(this);
     this.fetchSlice = this.fetchSlice.bind(this);
     this.getFormDataExtra = this.getFormDataExtra.bind(this);
+    this.exploreChart = this.exploreChart.bind(this);
+    this.exportCSV = this.exportCSV.bind(this);
     this.props.actions.fetchFaveStar = this.props.actions.fetchFaveStar.bind(this);
     this.props.actions.saveFaveStar = this.props.actions.saveFaveStar.bind(this);
     this.props.actions.saveSlice = this.props.actions.saveSlice.bind(this);
@@ -245,6 +248,16 @@ class Dashboard extends React.PureComponent {
     });
   }
 
+  exploreChart(slice) {
+    const formData = this.getFormDataExtra(slice);
+    exportChart(formData);
+  }
+
+  exportCSV(slice) {
+    const formData = this.getFormDataExtra(slice);
+    exportChart(formData, 'csv');
+  }
+
   // re-render chart without fetch
   rerenderCharts() {
     this.getAllSlices().forEach((slice) => {
@@ -287,6 +300,8 @@ class Dashboard extends React.PureComponent {
             timeout={this.props.timeout}
             onChange={this.onChange}
             getFormDataExtra={this.getFormDataExtra}
+            exploreChart={this.exploreChart}
+            exportCSV={this.exportCSV}
             fetchSlice={this.fetchSlice}
             saveSlice={this.props.actions.saveSlice}
             removeSlice={this.props.actions.removeSlice}

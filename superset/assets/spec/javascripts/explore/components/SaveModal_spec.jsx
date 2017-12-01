@@ -38,7 +38,7 @@ describe('SaveModal', () => {
   const defaultProps = {
     onHide: () => ({}),
     actions: saveModalActions,
-    form_data: {},
+    form_data: { datasource: '107__table' },
   };
   const mockEvent = {
     target: {
@@ -117,7 +117,7 @@ describe('SaveModal', () => {
 
   describe('saveOrOverwrite', () => {
     beforeEach(() => {
-      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => ('mockURL'));
+      sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({ url: 'mockURL', payload: defaultProps.form_data }));
       sinon.stub(saveModalActions, 'saveSlice').callsFake(() => {
         const d = $.Deferred();
         d.resolve('done');
@@ -125,14 +125,15 @@ describe('SaveModal', () => {
       });
     });
     afterEach(() => {
-      exploreUtils.getExploreUrl.restore();
+      exploreUtils.getExploreUrlAndPayload.restore();
       saveModalActions.saveSlice.restore();
     });
 
     it('should save slice', () => {
       const wrapper = getWrapper();
       wrapper.instance().saveOrOverwrite(true);
-      expect(saveModalActions.saveSlice.getCall(0).args[0]).to.equal('mockURL');
+      const args = saveModalActions.saveSlice.getCall(0).args;
+      expect(args[0]).to.deep.equal(defaultProps.form_data);
     });
     it('existing dashboard', () => {
       const wrapper = getWrapper();
@@ -144,8 +145,8 @@ describe('SaveModal', () => {
 
       wrapper.setState({ saveToDashboardId });
       wrapper.instance().saveOrOverwrite(true);
-      const args = exploreUtils.getExploreUrl.getCall(0).args;
-      expect(args[4].save_to_dashboard_id).to.equal(saveToDashboardId);
+      const args = saveModalActions.saveSlice.getCall(0).args;
+      expect(args[1].save_to_dashboard_id).to.equal(saveToDashboardId);
     });
     it('new dashboard', () => {
       const wrapper = getWrapper();
@@ -157,8 +158,8 @@ describe('SaveModal', () => {
 
       wrapper.setState({ newDashboardName });
       wrapper.instance().saveOrOverwrite(true);
-      const args = exploreUtils.getExploreUrl.getCall(0).args;
-      expect(args[4].new_dashboard_name).to.equal(newDashboardName);
+      const args = saveModalActions.saveSlice.getCall(0).args;
+      expect(args[1].new_dashboard_name).to.equal(newDashboardName);
     });
   });
 

@@ -2,10 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import CopyToClipboard from './../../components/CopyToClipboard';
+import { getExploreLongUrl } from '../exploreUtils';
 import { t } from '../../locales';
 
 const propTypes = {
-  slice: PropTypes.object.isRequired,
+  latestQueryFormData: PropTypes.object.isRequired,
 };
 
 export default class EmbedCodeButton extends React.Component {
@@ -29,7 +30,7 @@ export default class EmbedCodeButton extends React.Component {
   generateEmbedHTML() {
     const srcLink = (
       window.location.origin +
-      this.props.slice.data.standalone_endpoint +
+      getExploreLongUrl(this.props.latestQueryFormData, 'standalone') +
       `&height=${this.state.height}`
     );
     return (

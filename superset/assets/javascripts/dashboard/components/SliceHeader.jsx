@@ -8,16 +8,15 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
-  exploreChartUrl: PropTypes.string,
-  exportCSVUrl: PropTypes.string,
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
   cachedDttm: PropTypes.string,
-  formDataExtra: PropTypes.object,
   removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
+  exploreChart: PropTypes.func,
+  exportCSV: PropTypes.func,
   editMode: PropTypes.bool,
   annotationQuery: PropTypes.object,
   annotationError: PropTypes.object,
@@ -28,6 +27,8 @@ const defaultProps = {
   removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
+  exploreChart: () => ({}),
+  exportCSV: () => ({}),
   editMode: false,
 };
 
@@ -129,7 +130,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-pencil" />
                 </TooltipWrapper>
               </a>
-              <a className="exportCSV" href={this.props.exportCSVUrl}>
+              <a className="exportCSV" onClick={() => (this.props.exportCSV(slice))}>
                 <TooltipWrapper
                   placement="top"
                   label="exportCSV"
@@ -138,7 +139,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-table" />
                 </TooltipWrapper>
               </a>
-              <a className="exploreChart" href={this.props.exploreChartUrl} target="_blank">
+              <a className="exploreChart" onClick={() => (this.props.exploreChart(slice))}>
                 <TooltipWrapper
                   placement="top"
                   label="exploreChart"
