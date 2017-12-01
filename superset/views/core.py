@@ -13,6 +13,7 @@ import re
 import time
 import traceback
 from urllib import parse
+from unidecode import unidecode
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -2288,7 +2289,7 @@ class Superset(BaseSupersetView):
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
-            'attachment; filename={}.csv'.format(query.name))
+            'attachment; filename={}.csv'.format(unidecode(query.name)))
         logging.info('Ready to return response')
         return response
 
