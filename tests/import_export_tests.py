@@ -248,7 +248,7 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_1_slice(self):
         expected_slice = self.create_slice('Import Me', id=10001)
-        slc_id = models.Slice.import_obj(expected_slice, import_time=1989)
+        slc_id = models.Slice.import_obj(expected_slice, None, import_time=1989)
         slc = self.get_slice(slc_id)
         self.assertEquals(slc.datasource.perm, slc.perm)
         self.assert_slice_equals(expected_slice, slc)
@@ -260,9 +260,9 @@ class ImportExportTests(SupersetTestCase):
         table_id = self.get_table_by_name('wb_health_population').id
         # table_id != 666, import func will have to find the table
         slc_1 = self.create_slice('Import Me 1', ds_id=666, id=10002)
-        slc_id_1 = models.Slice.import_obj(slc_1)
+        slc_id_1 = models.Slice.import_obj(slc_1, None)
         slc_2 = self.create_slice('Import Me 2', ds_id=666, id=10003)
-        slc_id_2 = models.Slice.import_obj(slc_2)
+        slc_id_2 = models.Slice.import_obj(slc_2, None)
 
         imported_slc_1 = self.get_slice(slc_id_1)
         imported_slc_2 = self.get_slice(slc_id_2)
@@ -277,17 +277,19 @@ class ImportExportTests(SupersetTestCase):
     def test_import_slices_for_non_existent_table(self):
         with self.assertRaises(IndexError):
             models.Slice.import_obj(self.create_slice(
-                'Import Me 3', id=10004, table_name='non_existent'))
+                'Import Me 3', id=10004, table_name='non_existent'), None)
 
     def test_import_slices_override(self):
         slc = self.create_slice('Import Me New', id=10005)
-        slc_1_id = models.Slice.import_obj(slc, import_time=1990)
+        slc_1_id = models.Slice.import_obj(slc, None, import_time=1990)
         slc.slice_name = 'Import Me New'
+        imported_slc_1 = self.get_slice(slc_1_id)
+        slc_2 = self.create_slice('Import Me New', id=10005)
         slc_2_id = models.Slice.import_obj(
-            self.create_slice('Import Me New', id=10005), import_time=1990)
+            slc_2, imported_slc_1, import_time=1990)
         self.assertEquals(slc_1_id, slc_2_id)
-        imported_slc = self.get_slice(slc_2_id)
-        self.assert_slice_equals(slc, imported_slc)
+        imported_slc_2 = self.get_slice(slc_2_id)
+        self.assert_slice_equals(slc, imported_slc_2)
 
     def test_import_empty_dashboard(self):
         empty_dash = self.create_dashboard('empty_dashboard', id=10001)
