@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import AlertsWrapper from '../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
 import Header from './Header';
-import { getExploreUrl } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { t } from '../../locales';
 
@@ -30,6 +29,7 @@ const defaultProps = {
   slices: {},
   datasources: {},
   filters: {},
+  refresh: false,
   timeout: 60,
   userId: '',
   isStarred: false,
@@ -50,7 +50,6 @@ class Dashboard extends React.PureComponent {
     this.onSave = this.onSave.bind(this);
     this.onChange = this.onChange.bind(this);
     this.serialize = this.serialize.bind(this);
-    this.readFilters = this.readFilters.bind(this);
     this.fetchAllSlices = this.fetchSlices.bind(this, this.getAllSlices());
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
     this.addSlicesToDashboard = this.addSlicesToDashboard.bind(this);
@@ -69,14 +68,18 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.loadPreSelectFilters();
     this.firstLoad = false;
     window.addEventListener('resize', this.rerenderCharts);
   }
 
   componentDidUpdate(prevProps) {
     if (!areObjectsEqual(prevProps.filters, this.props.filters) && this.props.refresh) {
-      Object.keys(this.props.filters).forEach(sliceId => (this.refreshExcept(sliceId)));
+      const currentFilterKeys = Object.keys(this.props.filters);
+      if (currentFilterKeys.length) {
+        currentFilterKeys.forEach(key => (this.refreshExcept(key)));
+      } else {
+        this.refreshExcept();
+      }
     }
   }
 
@@ -160,31 +163,15 @@ class Dashboard extends React.PureComponent {
     return f;
   }
 
-  jsonEndpoint(data, force = false) {
-    let endpoint = getExploreUrl(data, 'json', force);
-    if (endpoint.charAt(0) !== '/') {
-      // Known issue for IE <= 11:
-      // https://connect.microsoft.com/IE/feedbackdetail/view/1002846/pathname-incorrect-for-out-of-document-elements
-      endpoint = '/' + endpoint;
-    }
-    return endpoint;
-  }
-
-  loadPreSelectFilters() {
-    for (const key in this.props.filters) {
-      for (const col in this.props.filters[key]) {
-        const sliceId = parseInt(key, 10);
-        this.props.actions.addFilter(sliceId, col,
-          this.props.filters[key][col], false, false,
-        );
-      }
-    }
-  }
-
-  refreshExcept(sliceId) {
+  refreshExcept(filterKey) {
     const immune = this.props.dashboard.metadata.filter_immune_slices || [];
-    const slices = this.getAllSlices()
-      .filter(slice => slice.slice_id !== sliceId && immune.indexOf(slice.slice_id) === -1);
+    let slices = this.getAllSlices();
+    if (filterKey) {
+      slices = slices.filter(slice => (
+        String(slice.slice_id) !== filterKey &&
+        immune.indexOf(slice.slice_id) === -1
+      ));
+    }
     this.fetchSlices(slices);
   }
 
@@ -211,11 +198,6 @@ class Dashboard extends React.PureComponent {
     };
 
     fetchAndRender();
-  }
-
-  readFilters() {
-    // Returns a list of human readable active filters
-    return JSON.stringify(this.props.filters, null, '  ');
   }
 
   updateDashboardTitle(title) {
@@ -280,13 +262,13 @@ class Dashboard extends React.PureComponent {
           <Header
             dashboard={this.props.dashboard}
             unsavedChanges={this.state.unsavedChanges}
+            filters={this.props.filters}
             userId={this.props.userId}
             isStarred={this.props.isStarred}
             updateDashboardTitle={this.updateDashboardTitle}
             onSave={this.onSave}
             onChange={this.onChange}
             serialize={this.serialize}
-            readFilters={this.readFilters}
             fetchFaveStar={this.props.actions.fetchFaveStar}
             saveFaveStar={this.props.actions.saveFaveStar}
             renderSlices={this.fetchAllSlices}

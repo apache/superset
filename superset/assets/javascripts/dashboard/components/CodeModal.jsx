@@ -21,7 +21,7 @@ export default class CodeModal extends React.PureComponent {
   }
   beforeOpen() {
     let code = this.props.code;
-    if (this.props.codeCallback) {
+    if (!code && this.props.codeCallback) {
       code = this.props.codeCallback();
     }
     this.setState({ code });
