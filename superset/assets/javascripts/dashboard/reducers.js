@@ -14,14 +14,10 @@ export function getInitialState(bootstrapData) {
   delete common.language_pack;
 
   const dashboard = { ...bootstrapData.dashboard_data };
-  const filters = {};
+  let filters = {};
   try {
     // allow request parameter overwrite dashboard metadata
-    const filterData = JSON.parse(getParam('preselect_filters') || dashboard.metadata.default_filters);
-    for (const key in filterData) {
-      const sliceId = parseInt(key, 10);
-      filters[sliceId] = filterData[key];
-    }
+    filters = JSON.parse(getParam('preselect_filters') || dashboard.metadata.default_filters);
   } catch (e) {
     //
   }
@@ -87,7 +83,7 @@ export function getInitialState(bootstrapData) {
   };
 }
 
-const dashboard = function (state = {}, action) {
+export const dashboard = function (state = {}, action) {
   const actionHandlers = {
     [actions.UPDATE_DASHBOARD_TITLE]() {
       const newDashboard = { ...state.dashboard, dashboard_title: action.title };
@@ -98,11 +94,22 @@ const dashboard = function (state = {}, action) {
       return { ...state, dashboard: newDashboard };
     },
     [actions.REMOVE_SLICE]() {
-      const newLayout = state.dashboard.layout.filter(function (reactPos) {
-        return reactPos.i !== String(action.slice.slice_id);
-      });
+      const key = String(action.slice.slice_id);
+      const newLayout = state.dashboard.layout.filter(reactPos => (reactPos.i !== key));
       const newDashboard = removeFromArr(state.dashboard, 'slices', action.slice, 'slice_id');
-      return { ...state, dashboard: { ...newDashboard, layout: newLayout } };
+      // if this slice is a filter
+      const newFilter = { ...state.filters };
+      let refresh = false;
+      if (state.filters[key]) {
+        delete newFilter[key];
+        refresh = true;
+      }
+      return {
+        ...state,
+        dashboard: { ...newDashboard, layout: newLayout },
+        filters: newFilter,
+        refresh,
+      };
     },
     [actions.TOGGLE_FAVE_STAR]() {
       return { ...state, isStarred: action.isStarred };
@@ -158,8 +165,7 @@ const dashboard = function (state = {}, action) {
     [actions.CLEAR_FILTER]() {
       const newFilters = { ...state.filters };
       delete newFilters[action.sliceId];
-
-      return { ...state.dashboard, filter: newFilters, refresh: true };
+      return { ...state, filter: newFilters, refresh: true };
     },
     [actions.REMOVE_FILTER]() {
       const newFilters = { ...state.filters };
@@ -176,7 +182,7 @@ const dashboard = function (state = {}, action) {
           newFilters[sliceId][col] = a;
         }
       }
-      return { ...state.dashboard, filter: newFilters, refresh: true };
+      return { ...state, filter: newFilters, refresh: true };
     },
 
     // slice reducer
@@ -185,7 +191,7 @@ const dashboard = function (state = {}, action) {
         state.dashboard, 'slices',
         action.slice, { slice_name: action.sliceName },
         'slice_id');
-      return { ...state.dashboard, dashboard: newDashboard };
+      return { ...state, dashboard: newDashboard };
     },
   };
 

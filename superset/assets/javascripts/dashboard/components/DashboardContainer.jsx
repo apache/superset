@@ -13,7 +13,7 @@ function mapStateToProps({ charts, dashboard }) {
     slices: charts,
     datasources: dashboard.datasources,
     filters: dashboard.filters,
-    refresh: dashboard.refresh,
+    refresh: !!dashboard.refresh,
     userId: dashboard.userId,
     isStarred: !!dashboard.isStarred,
     editMode: dashboard.editMode,
