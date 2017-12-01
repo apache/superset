@@ -62,6 +62,7 @@ setup(
         'gunicorn==19.7.1',
         'idna==2.5',
         'markdown==2.6.8',
+        'pyopenssl==17.4.0',
         'pandas==0.20.3',
         'parsedatetime==2.0.0',
         'pydruid==0.3.1',

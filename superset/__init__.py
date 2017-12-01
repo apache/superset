@@ -8,12 +8,14 @@ import json
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
+import urllib
 
-from flask import Flask, redirect
+from flask import Flask, redirect, request
 from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
+import OpenSSL
 from werkzeug.contrib.fixers import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -159,5 +161,17 @@ results_backend = app.config.get('RESULTS_BACKEND')
 module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
 module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
 ConnectorRegistry.register_sources(module_datasource_map)
+
+allowed_certs = conf.get('ALLOWED_CERT_COMMON_NAMES')
+if allowed_certs:
+    @app.before_request
+    def is_valid_request():
+        cert = request.headers.get('X-CLIENT-SSL-CERT')
+        if not cert:
+            raise Exception
+        cert = urllib.unquote(cert)
+        X509_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+        if X509_cert.get_subject().commonName not in allowed_certs:
+            raise Exception
 
 from superset import views  # noqa

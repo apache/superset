@@ -322,6 +322,8 @@ ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
 CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
 
+# Certificate common name for filtering requests.
+ALLOWED_CERT_COMMON_NAMES = []
 
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
