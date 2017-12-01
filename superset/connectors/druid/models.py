@@ -874,14 +874,7 @@ class DruidDatasource(Model, BaseDatasource):
             for unused, row in df.iterrows():
                 fields = []
                 for dim in dimensions:
-                    dim_value = dim
-                    # Handle dimension specs by creating a filters
-                    # based on its `outputName`
-                    if isinstance(dim, dict):
-                        dim_value = dim.get('outputName')
-                        if not dim_value:
-                            continue
-                    f = Dimension(dim_value) == row[dim_value]
+                    f = Dimension(dim) == row[dim]
                     fields.append(f)
                 if len(fields) > 1:
                     term = Filter(type='and', fields=fields)
@@ -1002,11 +995,10 @@ class DruidDatasource(Model, BaseDatasource):
         elif (
             not having_filters and
             len(groupby) == 1 and
-            order_desc and
-            not isinstance(list(qry.get('dimensions'))[0], dict)
+            order_desc
         ):
             dim = list(qry.get('dimensions'))[0]
-            logging.info('Running topn query for dimension [{}]'.format(dim))
+            logging.info('Running two-phase topn query for dimension [{}]'.format(dim))
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
             else:
@@ -1017,9 +1009,14 @@ class DruidDatasource(Model, BaseDatasource):
             pre_qry['threshold'] = min(row_limit,
                                        timeseries_limit or row_limit)
             pre_qry['metric'] = order_by
-            pre_qry['dimension'] = dim
+            if isinstance(dim, dict):
+                if 'dimension' in dim:
+                    pre_qry['dimension'] = dim['dimension']
+            else:
+                pre_qry['dimension'] = dim
             del pre_qry['dimensions']
             client.topn(**pre_qry)
+            logging.info('Phase 1 Complete')
             query_str += '// Two phase query\n// Phase 1\n'
             query_str += json.dumps(
                 client.query_builder.last_query.query_dict, indent=2)
@@ -1031,7 +1028,7 @@ class DruidDatasource(Model, BaseDatasource):
             df = client.export_pandas()
             qry['filter'] = self._add_filter_from_pre_query_data(
                 df,
-                qry['dimensions'],
+                [pre_qry['dimension']],
                 filters)
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
@@ -1040,6 +1037,7 @@ class DruidDatasource(Model, BaseDatasource):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
+            logging.info('Phase 2 Complete')
         elif len(groupby) > 0:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
@@ -1063,7 +1061,18 @@ class DruidDatasource(Model, BaseDatasource):
                         'direction': order_direction,
                     }],
                 }
+                pre_qry_dims = []
+                # Replace dimensions specs with their `dimension`
+                # values, and ignore those without
+                for dim in qry['dimensions']:
+                    if isinstance(dim, dict):
+                        if 'dimension' in dim:
+                            pre_qry_dims.append(dim['dimension'])
+                    else:
+                        pre_qry_dims.append(dim)
+                pre_qry['dimensions'] = list(set(pre_qry_dims))
                 client.groupby(**pre_qry)
+                logging.info('Phase 1 Complete')
                 query_str += '// Two phase query\n// Phase 1\n'
                 query_str += json.dumps(
                     client.query_builder.last_query.query_dict, indent=2)
@@ -1075,7 +1084,7 @@ class DruidDatasource(Model, BaseDatasource):
                 df = client.export_pandas()
                 qry['filter'] = self._add_filter_from_pre_query_data(
                     df,
-                    qry['dimensions'],
+                    pre_qry['dimensions'],
                     filters,
                 )
                 qry['limit_spec'] = None
@@ -1090,6 +1099,7 @@ class DruidDatasource(Model, BaseDatasource):
                     }],
                 }
             client.groupby(**qry)
+            logging.info('Query Complete')
         query_str += json.dumps(
             client.query_builder.last_query.query_dict, indent=2)
         return query_str

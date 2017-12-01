@@ -74,6 +74,8 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
                 raise ValueError('Dimension Spec must be a JSON object')
             if 'outputName' not in dimension_spec:
                 raise ValueError('Dimension Spec does not contain `outputName`')
+            if 'dimension' not in dimension_spec:
+                raise ValueError('Dimension Spec is missing `dimension`')
             # `outputName` should be the same as the `column_name`
             if dimension_spec['outputName'] != col.column_name:
                 raise ValueError(
