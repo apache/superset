@@ -725,11 +725,12 @@ class R(BaseSupersetView):
     @expose('/shortner/', methods=['POST', 'GET'])
     def shortner(self):
         url = request.form.get('data')
+        directory = url.split('?')[0][2:]
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-        return('http://{request.headers[Host]}/r/{obj.id}'.format(
-            request=request, obj=obj))
+        return('http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
+            request=request, directory=directory, obj=obj))
 
     @expose('/msg/')
     def msg(self):
@@ -935,16 +936,15 @@ class Superset(BaseSupersetView):
         return redirect('/accessrequestsmodelview/list/')
 
     def get_form_data(self):
-        # get form data from url
+        d = {}
+        # Supporting POST
+        if request.form.get('form_data'):
+            post_data = request.form.get('form_data')
+            d.update(json.loads(post_data))
+        # request params can overwrite post body
         if request.args.get('form_data'):
-            form_data = request.args.get('form_data')
-        elif request.form.get('form_data'):
-            # Supporting POST as well as get
-            form_data = request.form.get('form_data')
-        else:
-            form_data = '{}'
-
-        d = json.loads(form_data)
+            request_param = request.args.get('form_data')
+            d.update(json.loads(request_param))
 
         if request.args.get('viz_type'):
             # Converting old URLs
@@ -1091,7 +1091,7 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access_api
-    @expose('/explore_json/<datasource_type>/<datasource_id>/')
+    @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     def explore_json(self, datasource_type, datasource_id):
         try:
             csv = request.args.get('csv') == 'true'
@@ -1141,18 +1141,32 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access
-    @expose('/explore/<datasource_type>/<datasource_id>/')
+    @expose('/explore/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     def explore(self, datasource_type, datasource_id):
+        datasource_id = int(datasource_id)
+        user_id = g.user.get_id() if g.user else None
         form_data = self.get_form_data()
 
-        datasource_id = int(datasource_id)
-        viz_type = form_data.get('viz_type')
-        slice_id = form_data.get('slice_id')
-        user_id = g.user.get_id() if g.user else None
+        saved_url = None
+        url_id = request.args.get('r')
+        if url_id:
+            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
+            if saved_url:
+                url_str = parse.unquote_plus(
+                    saved_url.url.split('?')[1][10:], encoding='utf-8', errors=None)
+                url_form_data = json.loads(url_str)
+                # allow form_date in request override saved url
+                url_form_data.update(form_data)
+                form_data = url_form_data
 
+        slice_id = form_data.get('slice_id')
         slc = None
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+            slice_form_data = slc.form_data.copy()
+            # allow form_data in request override slice from_data
+            slice_form_data.update(form_data)
+            form_data = slice_form_data
 
         error_redirect = '/slicemodelview/list/'
         datasource = ConnectorRegistry.get_datasource(
@@ -1171,6 +1185,7 @@ class Superset(BaseSupersetView):
                 'datasource_id={datasource_id}&'
                 ''.format(**locals()))
 
+        viz_type = form_data.get('viz_type')
         if not viz_type and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
@@ -1180,6 +1195,9 @@ class Superset(BaseSupersetView):
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
+
+        # On explore, merge extra filters into the form data
+        merge_extra_filters(form_data)
 
         # handle save or overwrite
         action = request.args.get('action')
@@ -1197,11 +1215,6 @@ class Superset(BaseSupersetView):
                 slice_download_perm,
                 datasource_id,
                 datasource_type)
-
-        form_data['datasource'] = str(datasource_id) + '__' + datasource_type
-
-        # On explore, merge extra filters into the form data
-        merge_extra_filters(form_data)
 
         standalone = request.args.get('standalone') == 'true'
         bootstrap_data = {

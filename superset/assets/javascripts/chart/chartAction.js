@@ -1,11 +1,11 @@
-import { getExploreUrl, getAnnotationJsonUrl } from '../explore/exploreUtils';
+import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 
 const $ = window.$ = require('jquery');
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
-export function chartUpdateStarted(queryRequest, key) {
-  return { type: CHART_UPDATE_STARTED, queryRequest, key };
+export function chartUpdateStarted(queryRequest, latestQueryFormData, key) {
+  return { type: CHART_UPDATE_STARTED, queryRequest, latestQueryFormData, key };
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
@@ -106,10 +106,17 @@ export function renderTriggered(value, key) {
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false, timeout = 60, key) {
   return (dispatch) => {
-    const url = getExploreUrl(formData, 'json', force);
+    const { url, payload } = getExploreUrlAndPayload({
+      formData,
+      endpointType: 'json',
+      force,
+    });
     const queryRequest = $.ajax({
+      type: 'POST',
       url,
-      dataType: 'json',
+      data: {
+        form_data: JSON.stringify(payload),
+      },
       timeout: timeout * 1000,
     });
 
@@ -142,5 +149,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       dispatch(triggerQuery(false, key)),
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
+    dispatch(chartUpdateStarted(queryRequest, payload, key));
+    dispatch(triggerQuery(false, key));
   };
 }
