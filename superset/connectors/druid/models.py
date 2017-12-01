@@ -840,6 +840,9 @@ class DruidDatasource(Model, BaseDatasource):
                           column_name,
                           limit=10000):
         """Retrieve some values for the given column"""
+        logging.info(
+            'Getting values for columns [{}] limited to [{}]'
+            .format(column_name, limit))
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         if self.fetch_values_from:
             from_dttm = utils.parse_human_datetime(self.fetch_values_from)
@@ -871,7 +874,14 @@ class DruidDatasource(Model, BaseDatasource):
             for unused, row in df.iterrows():
                 fields = []
                 for dim in dimensions:
-                    f = Dimension(dim) == row[dim]
+                    dim_value = dim
+                    # Handle dimension specs by creating a filters
+                    # based on its `outputName`
+                    if isinstance(dim, dict):
+                        dim_value = dim.get('outputName')
+                        if not dim_value:
+                            continue
+                    f = Dimension(dim_value) == row[dim_value]
                     fields.append(f)
                 if len(fields) > 1:
                     term = Filter(type='and', fields=fields)
@@ -885,6 +895,37 @@ class DruidDatasource(Model, BaseDatasource):
                 else:
                     ret = Filter(type='and', fields=[ff, dim_filter])
         return ret
+
+    def get_aggregations(self, all_metrics):
+        aggregations = OrderedDict()
+        for m in self.metrics:
+            if m.metric_name in all_metrics:
+                aggregations[m.metric_name] = m.json_obj
+        return aggregations
+
+    def check_restricted_metrics(self, aggregations):
+        rejected_metrics = [
+            m.metric_name for m in self.metrics
+            if m.is_restricted and
+            m.metric_name in aggregations.keys() and
+            not sm.has_access('metric_access', m.perm)
+        ]
+        if rejected_metrics:
+            raise MetricPermException(
+                'Access to the metrics denied: ' + ', '.join(rejected_metrics),
+            )
+
+    def get_dimensions(self, groupby, columns_dict):
+        dimensions = []
+        groupby = [gb for gb in groupby if gb in columns_dict]
+        for column_name in groupby:
+            col = columns_dict.get(column_name)
+            dim_spec = col.dimension_spec if col else None
+            if dim_spec:
+                dimensions.append(dim_spec)
+            else:
+                dimensions.append(column_name)
+        return dimensions
 
     def run_query(  # noqa / druid
             self,
@@ -919,40 +960,17 @@ class DruidDatasource(Model, BaseDatasource):
 
         query_str = ''
         metrics_dict = {m.metric_name: m for m in self.metrics}
-
         columns_dict = {c.column_name: c for c in self.columns}
 
         all_metrics, post_aggs = self._metrics_and_post_aggs(
             metrics,
             metrics_dict)
 
-        aggregations = OrderedDict()
-        for m in self.metrics:
-            if m.metric_name in all_metrics:
-                aggregations[m.metric_name] = m.json_obj
-
-        rejected_metrics = [
-            m.metric_name for m in self.metrics
-            if m.is_restricted and
-            m.metric_name in aggregations.keys() and
-            not sm.has_access('metric_access', m.perm)
-        ]
-
-        if rejected_metrics:
-            raise MetricPermException(
-                'Access to the metrics denied: ' + ', '.join(rejected_metrics),
-            )
+        aggregations = self.get_aggregations(all_metrics)
+        self.check_restricted_metrics(aggregations)
 
         # the dimensions list with dimensionSpecs expanded
-        dimensions = []
-        groupby = [gb for gb in groupby if gb in columns_dict]
-        for column_name in groupby:
-            col = columns_dict.get(column_name)
-            dim_spec = col.dimension_spec
-            if dim_spec:
-                dimensions.append(dim_spec)
-            else:
-                dimensions.append(column_name)
+        dimensions = self.get_dimensions(groupby, columns_dict)
         extras = extras or {}
         qry = dict(
             datasource=self.datasource_name,
@@ -974,8 +992,11 @@ class DruidDatasource(Model, BaseDatasource):
         having_filters = self.get_having_filters(extras.get('having_druid'))
         if having_filters:
             qry['having'] = having_filters
+
         order_direction = 'descending' if order_desc else 'ascending'
+
         if len(groupby) == 0 and not having_filters:
+            logging.info('Running timeseries query for no groupby values')
             del qry['dimensions']
             client.timeseries(**qry)
         elif (
@@ -985,6 +1006,7 @@ class DruidDatasource(Model, BaseDatasource):
             not isinstance(list(qry.get('dimensions'))[0], dict)
         ):
             dim = list(qry.get('dimensions'))[0]
+            logging.info('Running topn query for dimension [{}]'.format(dim))
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
             else:
@@ -1009,11 +1031,11 @@ class DruidDatasource(Model, BaseDatasource):
             df = client.export_pandas()
             qry['filter'] = self._add_filter_from_pre_query_data(
                 df,
-                qry['dimensions'], filters)
+                qry['dimensions'],
+                filters)
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
                 qry['threshold'] = row_limit
-            qry['dimension'] = list(qry.get('dimensions'))[0]
             qry['dimension'] = dim
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
@@ -1021,7 +1043,9 @@ class DruidDatasource(Model, BaseDatasource):
         elif len(groupby) > 0:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
+            logging.info('Running groupby query for dimensions [{}]'.format(dimensions))
             if timeseries_limit and is_timeseries:
+                logging.info('Running two-phase query for timeseries')
                 order_by = metrics[0] if metrics else self.metrics[0]
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
