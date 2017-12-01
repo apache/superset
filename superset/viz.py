@@ -1180,7 +1180,6 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
             index=DTTM_ALIAS,
             columns='series',
             values=fd.get('metric'))
-        df = df.fillna(0)
         chart_data = self.to_series(df)
         for serie in chart_data:
             serie['rank'] = rank_lookup[serie['key']]

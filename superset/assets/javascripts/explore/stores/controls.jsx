@@ -435,16 +435,16 @@ export const controls = {
   freq: {
     type: 'SelectControl',
     label: t('Frequency'),
-    default: '7D',
+    default: 'W-MON',
     freeForm: true,
     clearable: false,
     choices: [
       ['AS', '[AS] Year'],
-      ['52W', '[52W] 52 Weeks'],
+      ['52W-MON', '[52W-MON] 52 Weeks (starting Monday)'],
       ['W-SUN', '[W-SUN] Week (starting Sunday)'],
       ['W-MON', '[W-MON] Week (starting Monday)'],
       ['D', '[D] Day'],
-      ['4W', '[4W] 4 Weeks'],
+      ['4W-MON', '[4W-MON] 4 Weeks'],
     ],
     description: t(
       'The frequency over which to pivot time. Free-form "pandas" offset alias ' +
