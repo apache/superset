@@ -7,8 +7,8 @@ import Mustache from 'mustache';
 import { Sparkline, LineSeries, PointSeries, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
 
 import MetricOption from '../javascripts/components/MetricOption';
-import { d3format, brandColor } from '../javascripts/modules/utils';
-import { formatDate } from '../javascripts/modules/dates';
+import { d3format } from '../javascripts/modules/utils';
+import { formatDateThunk } from '../javascripts/modules/dates';
 import InfoTooltipWithTrigger from '../javascripts/components/InfoTooltipWithTrigger';
 import './time_table.css';
 
@@ -18,6 +18,13 @@ const SPARKLINE_MARGIN = {
   bottom: 8,
   left: 8,
 };
+const sparklineTooltipProps = {
+  style: {
+    opacity: 0.8,
+  },
+  offsetTop: 0,
+};
+
 const ACCESSIBLE_COLOR_BOUNDS = ['#ca0020', '#0571b0'];
 
 function FormattedNumber({ num, format }) {
@@ -65,16 +72,16 @@ function viz(slice, payload) {
       leftCell = url ? <a href={url} target="_blank">{metric}</a> : metric;
     }
     const row = { metric: leftCell };
-    fd.column_collection.forEach((c) => {
-      if (c.colType === 'spark') {
+    fd.column_collection.forEach((column) => {
+      if (column.colType === 'spark') {
         let sparkData;
-        if (!c.timeRatio) {
+        if (!column.timeRatio) {
           sparkData = data.map(d => d[metric]);
         } else {
           // Period ratio sparkline
           sparkData = [];
-          for (let i = c.timeRatio; i < data.length; i++) {
-            const prevData = data[i - c.timeRatio][metric];
+          for (let i = column.timeRatio; i < data.length; i++) {
+            const prevData = data[i - column.timeRatio][metric];
             if (prevData && prevData !== 0) {
               sparkData.push(data[i][metric] / prevData);
             } else {
@@ -82,13 +89,16 @@ function viz(slice, payload) {
             }
           }
         }
-        row[c.key] = {
+        const formatDate = formatDateThunk(column.dateFormat);
+        row[column.key] = {
           data: sparkData[sparkData.length - 1],
           display: (
             <WithTooltip
+              tooltipProps={sparklineTooltipProps}
+              hoverStyles={null}
               renderTooltip={({ index }) => (
                 <div>
-                  <strong>{d3format(c.d3format, sparkData[index])}</strong>
+                  <strong>{d3format(column.d3format, sparkData[index])}</strong>
                   <div>{formatDate(data[index].iso)}</div>
                 </div>
               )}
@@ -96,8 +106,8 @@ function viz(slice, payload) {
               {({ onMouseLeave, onMouseMove, tooltipData }) => (
                 <Sparkline
                   ariaLabel={`spark-${metric}`}
-                  width={parseInt(c.width, 10) || 300}
-                  height={parseInt(c.height, 10) || 50}
+                  width={parseInt(column.width, 10) || 300}
+                  height={parseInt(column.height, 10) || 50}
                   margin={SPARKLINE_MARGIN}
                   data={sparkData}
                   onMouseLeave={onMouseLeave}
@@ -105,7 +115,7 @@ function viz(slice, payload) {
                 >
                   <LineSeries
                     showArea={false}
-                    stroke={brandColor}
+                    stroke="#767676"
                   />
                   {tooltipData &&
                     <VerticalReferenceLine
@@ -116,7 +126,7 @@ function viz(slice, payload) {
                   {tooltipData &&
                     <PointSeries
                       points={[tooltipData.index]}
-                      fill={brandColor}
+                      fill="#767676"
                       strokeWidth={1}
                     />}
                 </Sparkline>
@@ -127,47 +137,53 @@ function viz(slice, payload) {
       } else {
         const recent = reversedData[0][metric];
         let v;
-        if (c.colType === 'time') {
+        if (column.colType === 'time') {
           // Time lag ratio
-          v = reversedData[parseInt(c.timeLag, 10)][metric];
-          if (c.comparisonType === 'diff') {
+          v = reversedData[parseInt(column.timeLag, 10)][metric];
+          if (column.comparisonType === 'diff') {
             v = recent - v;
-          } else if (c.comparisonType === 'perc') {
+          } else if (column.comparisonType === 'perc') {
             v = recent / v;
-          } else if (c.comparisonType === 'perc_change') {
+          } else if (column.comparisonType === 'perc_change') {
             v = (recent / v) - 1;
           }
-        } else if (c.colType === 'contrib') {
+        } else if (column.colType === 'contrib') {
           // contribution to column total
           v = recent / Object.keys(reversedData[0])
-          .map(k => k !== 'iso' ? reversedData[0][k] : null)
-          .reduce((a, b) => a + b);
-        } else if (c.colType === 'avg') {
+            .map(k => k !== 'iso' ? reversedData[0][k] : null)
+            .reduce((a, b) => a + b);
+        } else if (column.colType === 'avg') {
           // Average over the last {timeLag}
           v = reversedData
-          .map((k, i) => i < c.timeLag ? k[metric] : 0)
-          .reduce((a, b) => a + b) / c.timeLag;
+          .map((k, i) => i < column.timeLag ? k[metric] : 0)
+          .reduce((a, b) => a + b) / column.timeLag;
         }
         let color;
-        if (c.bounds && c.bounds[0] !== null && c.bounds[1] !== null) {
+        if (column.bounds && column.bounds[0] !== null && column.bounds[1] !== null) {
           const scaler = d3.scale.linear()
             .domain([
-              c.bounds[0],
-              c.bounds[0] + ((c.bounds[1] - c.bounds[0]) / 2),
-              c.bounds[1]])
+              column.bounds[0],
+              column.bounds[0] + ((column.bounds[1] - column.bounds[0]) / 2),
+              column.bounds[1],
+            ])
             .range([ACCESSIBLE_COLOR_BOUNDS[0], 'grey', ACCESSIBLE_COLOR_BOUNDS[1]]);
           color = scaler(v);
-        } else if (c.bounds && c.bounds[0] !== null) {
-          color = v >= c.bounds[0] ? ACCESSIBLE_COLOR_BOUNDS[1] : ACCESSIBLE_COLOR_BOUNDS[0];
-        } else if (c.bounds && c.bounds[1] !== null) {
-          color = v < c.bounds[1] ? ACCESSIBLE_COLOR_BOUNDS[1] : ACCESSIBLE_COLOR_BOUNDS[0];
+        } else if (column.bounds && column.bounds[0] !== null) {
+          color = v >= column.bounds[0] ? ACCESSIBLE_COLOR_BOUNDS[1] : ACCESSIBLE_COLOR_BOUNDS[0];
+        } else if (column.bounds && column.bounds[1] !== null) {
+          color = v < column.bounds[1] ? ACCESSIBLE_COLOR_BOUNDS[1] : ACCESSIBLE_COLOR_BOUNDS[0];
         }
-        row[c.key] = {
+        row[column.key] = {
           data: v,
           display: (
-            <span style={{ color }}>
-              <FormattedNumber num={v} format={c.d3format} />
-            </span>),
+            <div style={{ color }}>
+              <FormattedNumber num={v} format={column.d3format} />
+            </div>
+          ),
+          style: color && {
+            boxShadow: `inset 0px -2.5px 0px 0px ${color}`,
+            borderRight: '2px solid #fff',
+          },
         };
       }
     });
@@ -175,7 +191,7 @@ function viz(slice, payload) {
   });
   ReactDOM.render(
     <Table
-      className="table table-condensed"
+      className="table table-no-hover"
       defaultSort={defaultSort}
       sortBy={defaultSort}
       sortable={fd.column_collection.map(c => c.key)}
@@ -201,6 +217,7 @@ function viz(slice, payload) {
               column={c.key}
               key={c.key}
               value={row[c.key].data}
+              style={row[c.key].style}
             >
               {row[c.key].display}
             </Td>))}
