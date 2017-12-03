@@ -211,6 +211,9 @@ export const sqlLabReducer = function (state, action) {
     [actions.QUERY_EDITOR_SET_SQL]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
     },
+    [actions.QUERY_EDITOR_SET_TEMPLATE_PARAMS]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { templateParams: action.templateParams });
+    },
     [actions.QUERY_EDITOR_SET_SELECTED_TEXT]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { selectedText: action.sql });
     },

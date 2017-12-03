@@ -2161,6 +2161,7 @@ class Superset(BaseSupersetView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
+        template_params = json.loads(request.form.get('templateParams') or {})
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2212,7 +2213,9 @@ class Superset(BaseSupersetView):
             try:
                 sql_lab.get_sql_results.delay(
                     query_id=query_id, return_results=False,
-                    store_results=not query.select_as_cta, user_name=g.user.username)
+                    store_results=not query.select_as_cta,
+                    user_name=g.user.username,
+                    template_params=template_params)
             except Exception as e:
                 logging.exception(e)
                 msg = (
@@ -2233,6 +2236,9 @@ class Superset(BaseSupersetView):
 
         # Sync request.
         try:
+            print(template_params)
+            print(template_params)
+            print(type(template_params))
             timeout = config.get('SQLLAB_TIMEOUT')
             timeout_msg = (
                 'The query exceeded the {timeout} seconds '
@@ -2241,7 +2247,8 @@ class Superset(BaseSupersetView):
                                error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
-                    query_id=query_id, return_results=True)
+                    query_id=query_id, return_results=True,
+                    template_params=template_params)
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))

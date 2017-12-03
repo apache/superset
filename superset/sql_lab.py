@@ -87,11 +87,13 @@ def get_session(nullpool):
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
-        ctask, query_id, return_results=True, store_results=False, user_name=None):
+        ctask, query_id, return_results=True, store_results=False,
+        user_name=None, template_params=None):
     """Executes the sql query returns the results."""
     try:
         return execute_sql(
-            ctask, query_id, return_results, store_results, user_name)
+            ctask, query_id, return_results, store_results, user_name,
+            template_params)
     except Exception as e:
         logging.exception(e)
         stats_logger.incr('error_sqllab_unhandled')
@@ -106,6 +108,7 @@ def get_sql_results(
 
 def execute_sql(
     ctask, query_id, return_results=True, store_results=False, user_name=None,
+    template_params=None,
 ):
     """Executes the sql query returns the results."""
     session = get_session(not ctask.request.called_directly)
@@ -161,7 +164,9 @@ def execute_sql(
     try:
         template_processor = get_template_processor(
             database=database, query=query)
-        executed_sql = template_processor.process_template(executed_sql)
+        tp = template_params or {}
+        executed_sql = template_processor.process_template(
+            executed_sql, **tp)
     except Exception as e:
         logging.exception(e)
         msg = 'Template rendering failed: ' + utils.error_msg_from_exception(e)
