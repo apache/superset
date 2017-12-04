@@ -37,6 +37,8 @@ def upgrade():
     sa.Column('perm', sa.String(length=1000), nullable=True),
     sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('source_url', sa.String(length=1000), nullable=False),
+    sa.Column('source_auth', sqlalchemy_utils.types.json.JSONType(), nullable=True),
+    sa.Column('source_parameters', sqlalchemy_utils.types.json.JSONType(), nullable=True),
     sa.Column('format', sqlalchemy_utils.types.choice.ChoiceType(FORMATS), nullable=False),
     sa.Column('additional_parameters', sqlalchemy_utils.types.json.JSONType(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),

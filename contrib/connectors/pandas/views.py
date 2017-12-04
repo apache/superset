@@ -1,16 +1,18 @@
 """Views used by the SqlAlchemy connector"""
+import json
 import logging
 
 from past.builtins import basestring
 
 from flask import Markup, flash, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
+from flask_appbuilder.fieldwidgets import BS3TextFieldWidget, BS3TextAreaFieldWidget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import sqlalchemy as sa
 
 from flask_babel import lazy_gettext as _
 from flask_babel import gettext as __
-from wtforms import SelectField
+from wtforms import SelectField, StringField, validators
 
 from superset import appbuilder, db, utils, security, sm
 from superset.utils import has_access
@@ -34,6 +36,34 @@ class ChoiceTypeSelectField(SelectField):
             super(ChoiceTypeSelectField, self).process_data(value)
 
 
+class JSONField(StringField):
+    """
+    JSON field for WTForms that converts between the form string data
+    and a dictionary representation, with validation
+
+    See https://gist.github.com/dukebody/dcc371bf286534d546e9
+    """
+    def _value(self):
+        return json.dumps(self.data) if self.data else ''
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            try:
+                self.data = json.loads(valuelist[0])
+            except ValueError:
+                raise ValueError('This field contains invalid JSON')
+        else:
+            self.data = None
+
+    def pre_validate(self, form):
+        super().pre_validate(form)
+        if self.data:
+            try:
+                json.dumps(self.data)
+            except TypeError:
+                raise ValueError('This field contains invalid JSON')
+
+
 class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(PandasColumn)
 
@@ -42,16 +72,15 @@ class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     add_title = _('Add Column')
     edit_title = _('Edit Column')
 
-    can_delete = False
     list_widget = ListWidgetWithCheckboxes
     edit_columns = [
         'column_name', 'verbose_name', 'description',
         'type', 'groupby', 'filterable',
-        'datasource', 'count_distinct', 'sum', 'min', 'max']
+        'datasource', 'count_distinct', 'sum', 'avg', 'min', 'max']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'verbose_name', 'type', 'groupby', 'filterable',
-        'count_distinct', 'sum', 'min', 'max']
+        'count_distinct', 'sum', 'avg', 'min', 'max']
     page_size = 500
     description_columns = {
         'is_dttm': _(
@@ -76,6 +105,7 @@ class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'datasource': _("Datasource"),
         'count_distinct': _("Count Distinct"),
         'sum': _("Sum"),
+        'avg': _("Average"),
         'min': _("Min"),
         'max': _("Max"),
         'type': _('Type'),
@@ -85,7 +115,7 @@ class PandasColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(PandasColumnInlineView)
 
 
-class PandasMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
+class PandasMetricInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(PandasMetric)
 
     list_title = _('List Metrics')
@@ -147,28 +177,52 @@ appbuilder.add_view_no_menu(PandasMetricInlineView)
 class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(PandasDatasource)
 
-    list_title = _('List Pandas Datasources')
-    show_title = _('Show Pandas Datasource')
-    add_title = _('Add Pandas Datasource')
-    edit_title = _('Edit Pandas Datasource')
+    list_title = _('List File Datasources')
+    show_title = _('Show File Datasource')
+    add_title = _('Add File Datasource')
+    edit_title = _('Edit File Datasource')
 
     list_columns = [
         'link', 'changed_by_', 'modified']
     order_columns = [
         'link', 'changed_on_']
-    add_columns = ['name', 'source_url', 'format']
+    add_columns = ['name', 'source_url', 'source_auth', 'source_parameters',
+                   'format', 'additional_parameters']
     add_form_extra_fields = {
-        'format': ChoiceTypeSelectField(_('Format'), choices=FORMATS)
+        'source_auth': JSONField(
+            _('Source Credentials'),
+            [validators.optional(), validators.length(max=100)],
+            widget=BS3TextFieldWidget(),
+            description=(
+                "Credentials required to access the raw data, if required. "
+                "Can be either a username and password in the form "
+                "'[\"username\", \"password\"]' which will be authenticated "
+                "using HTTP Basic Auth, or a string which will be used as "
+                "an Authorization header")),
+        'source_parameters': JSONField(
+            _("Additional Query Parameters"),
+            [validators.optional(), validators.length(max=500)],
+            widget=BS3TextAreaFieldWidget(),
+            description=(
+                "A JSON-formatted dictionary of additional parameters "
+                "used to request the remote file")),
+        'format': ChoiceTypeSelectField(_('Format'), choices=FORMATS),
+        'additional_parameters': JSONField(
+            _("Additional Read Parameters"),
+            [validators.optional(), validators.length(max=500)],
+            widget=BS3TextAreaFieldWidget(),
+            description=(
+                "A JSON-formatted dictionary of additional parameters "
+                "passed to the Pandas read function")),
     }
     edit_columns = [
-        'name', 'source_url', 'format',
+        'name', 'source_url', 'source_auth', 'source_parameters',
+        'format', 'additional_parameters',
         'filter_select_enabled', 'slices',
         'fetch_values_predicate',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
-    edit_form_extra_fields = {
-        'format': ChoiceTypeSelectField(_('Format'), choices=FORMATS)
-    }
+    edit_form_extra_fields = add_form_extra_fields
     show_columns = edit_columns + ['perm']
     related_views = [PandasColumnInlineView, PandasMetricInlineView]
     base_order = ('changed_on', 'desc')
@@ -191,10 +245,6 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
             "The URL used to access the raw data"),
         'format': _(
             "The format of the raw data, e.g. csv"),
-        'additional_parameters': _(
-            "A JSON-formatted dictionary of additional parameters "
-            "passed to the  Pandas read_* function, "
-            "see https://pandas.pydata.org/pandas-docs/stable/api.html#input-output"),  # NOQA
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
@@ -225,7 +275,6 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
         'name': _("Name"),
         'source_url': _("Source URL"),
         'format': _("Format"),
-        'additional_parameters': _("Additional Read Parameters"),
         'fetch_values_predicate': _('Fetch Values Predicate'),
         'owner': _("Owner"),
         'main_dttm_col': _("Main Datetime Column"),
@@ -282,8 +331,8 @@ class PandasDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     PandasDatasourceModelView,
-    "Pandas Datasources",
-    label=__("Pandas Datasources"),
+    "File Datasources",
+    label=__("File Datasources"),
     category="Sources",
     category_label=__("Sources"),
     icon='fa-file',)

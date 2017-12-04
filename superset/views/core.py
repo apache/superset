@@ -1336,6 +1336,9 @@ class Superset(BaseSupersetView):
             'TableColumnInlineView':
                 ConnectorRegistry.sources['table'].column_class,
         }
+        if 'pandas' in ConnectorRegistry.sources:
+            model = ConnectorRegistry.sources['pandas'].column_class
+            modelview_to_model[model_view] = model
         model = modelview_to_model[model_view]
         obj = db.session.query(model).filter_by(id=id_).first()
         if obj:

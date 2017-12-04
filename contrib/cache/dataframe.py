@@ -129,7 +129,7 @@ class DataFrameCache(FileSystemCache):
                         value.to_hdf(tmp, 'df')
                         metadata['format'] = 'hdf'
                         metadata['read_args'] = {'key': 'df'}
-                    except ImportError:
+                    except Exception:
                         # PyTables is not installed, so fallback to pickle
                         pickle.dump(value, f, pickle.HIGHEST_PROTOCOL)
                         metadata['format'] = 'pickle'
