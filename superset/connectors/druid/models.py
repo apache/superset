@@ -106,29 +106,38 @@ class DruidCluster(Model, AuditMixinNullable):
 
     def refresh_datasources(
             self,
-            datasource_name=None,
+            datasource_names=None,
             merge_flag=True,
             refreshAll=True):
-        """Refresh metadata of all datasources in the cluster
-        If ``datasource_name`` is specified, only that datasource is updated
+        """
+        Refresh metadata of all datasources in the cluster
+        If ``datasource_names`` is specified, only those datasources
+        are updated
         """
         self.druid_version = self.get_druid_version()
         ds_list = self.get_datasources()
         blacklist = conf.get('DRUID_DATA_SOURCE_BLACKLIST', [])
-        ds_refresh = []
-        if not datasource_name:
+        if not datasource_names:
             ds_refresh = list(filter(lambda ds: ds not in blacklist, ds_list))
-        elif datasource_name not in blacklist and datasource_name in ds_list:
-            ds_refresh.append(datasource_name)
         else:
-            return
+            if not isinstance(datasource_names, list):
+                # can pass single name or list or names
+                datasource_names = [datasource_names]
+            ds_refresh = list(filter(
+                lambda ds: ds not in blacklist and ds in ds_list,
+                datasource_names,
+            ))
         self.refresh(ds_refresh, merge_flag, refreshAll)
+        flasher("Refreshed metadata from cluster [{}]"
+                .format(self.cluster_name), "info")
 
     def refresh(self, datasource_names, merge_flag, refreshAll):
         """
         Fetches metadata for the specified datasources andm
         merges to the Superset database
         """
+        if not datasource_names or not len(datasource_names):
+            return
         session = db.session
         ds_list = (
             session.query(DruidDatasource)

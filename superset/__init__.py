@@ -167,3 +167,4 @@ if flask_app_mutator:
     flask_app_mutator(app)
 
 from superset import views  # noqa
+from superset.tasks import views  # noqa

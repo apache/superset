@@ -3,6 +3,7 @@ import logging
 
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
+from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
@@ -154,6 +155,29 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, cluster):
         self.pre_add(cluster)
 
+    def refresh_items(self, items, refreshAll=True):
+        if not isinstance(items, list):
+            items = [items]
+        for it in items:
+            it.refresh_datasources(refreshAll=refreshAll)
+        return redirect('/druiddatasourcemodelview/list/')
+
+    @action(
+        "scan_cluster",
+        "Scan",
+        "Scan selected clusters for new datasources?",
+        "fa-search-plus")
+    def scan_clusters(self, items):
+        return self.refresh_items(items, False)
+
+    @action(
+        "refresh_cluster",
+        "Refresh",
+        "Refresh metadata for selected clusters?",
+        "fa-refresh")
+    def refresh_clusters(self, items):
+        return self.refresh_items(items)
+
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
@@ -257,6 +281,28 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     def post_update(self, datasource):
         self.post_add(datasource)
 
+    @action(
+        "refresh_datasource",
+        "Refresh",
+        "Refresh selected datasources?",
+        "fa-refresh")
+    def refresh_datasources(self, items):
+        to_refresh = {}
+        if not isinstance(items, list):
+            items = [items]
+        for item in items:
+            c_name = item.cluster.cluster_name
+            if c_name in to_refresh:
+                to_refresh[c_name]['ds'].append(item.datasource_name)
+            else:
+                to_refresh[c_name] = {
+                    'ds': [item.datasource_name],
+                    'cluster': item.cluster,
+                }
+        for c in to_refresh.values():
+            c['cluster'].refresh_datasources(c['ds'])
+        return redirect(self.get_default_url())
+
     def _delete(self, pk):
         DeleteMixin._delete(self, pk)
 
@@ -291,10 +337,6 @@ class Druid(BaseSupersetView):
                 logging.exception(e)
                 return redirect('/druidclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
-            flash(
-                'Refreshed metadata from cluster '
-                '[' + cluster.cluster_name + ']',
-                'info')
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')
 
@@ -317,7 +359,7 @@ appbuilder.add_link(
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-database',
-    icon='fa-refresh')
+    icon="fa-search-plus")
 appbuilder.add_link(
     'Refresh Druid Metadata',
     label=__('Refresh Druid Metadata'),
@@ -325,7 +367,7 @@ appbuilder.add_link(
     category='Sources',
     category_label=__('Sources'),
     category_icon='fa-database',
-    icon='fa-cog')
+    icon="fa-refresh")
 
 
 appbuilder.add_separator('Sources', )
