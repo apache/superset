@@ -1148,7 +1148,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
 
 class NVD3TimePivotViz(NVD3TimeSeriesViz):
 
-    """Overlapping time series"""
+    """Time Series - Periodicity Pivot"""
 
     viz_type = 'time_pivot'
     sort_series = True

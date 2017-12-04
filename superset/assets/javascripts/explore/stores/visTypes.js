@@ -196,7 +196,7 @@ export const visTypes = {
   },
 
   time_pivot: {
-    label: t('Time Series - Period Pivot'),
+    label: t('Time Series - Periodicity Pivot'),
     showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
