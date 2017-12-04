@@ -6,7 +6,6 @@ import json
 import logging
 from multiprocessing.pool import ThreadPool
 
-from sqlalchemy.schema import UniqueConstraint
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
 from flask_appbuilder import Model
@@ -30,7 +29,7 @@ from sqlalchemy.orm import backref, relationship
 from superset import conf, db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.models.helpers import (
-  AuditMixinNullable, ImportMixin, QueryResult, set_perm
+  AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
 from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher, MetricPermException,
@@ -242,7 +241,7 @@ class DruidColumn(Model, BaseColumn):
     export_fields = (
         'datasource_id', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json', 'verbose_name'
+        'description', 'dimension_spec_json', 'verbose_name',
     )
     export_parent = 'datasource'
 

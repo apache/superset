@@ -546,7 +546,6 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     type = 'table'
     __table_args__ = (UniqueConstraint('database_name'),)
 
-
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions

@@ -14,7 +14,7 @@ from superset.utils import has_access
 from superset.views.base import (
     BaseSupersetView, DatasourceFilter, DeleteMixin,
     get_datasource_exist_error_mgs, ListWidgetWithCheckboxes, SupersetModelView,
-    validate_json, YamlExportMixin
+    validate_json, YamlExportMixin,
 )
 from . import models
 

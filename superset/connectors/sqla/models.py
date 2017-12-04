@@ -12,8 +12,8 @@ from sqlalchemy import (
     and_, asc, Boolean, Column, DateTime, desc, ForeignKey, Integer, or_,
     select, String, Text,
 )
-from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse

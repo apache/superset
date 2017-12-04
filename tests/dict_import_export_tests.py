@@ -6,13 +6,13 @@ from __future__ import unicode_literals
 
 import json
 import unittest
+
 import yaml
 
 from superset import db
 from superset.connectors.druid.models import (
-    DruidDatasource, DruidColumn, DruidMetric)
-from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
-
+     DruidColumn, DruidDatasource, DruidMetric)
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from .base_tests import SupersetTestCase
 
 DBREF = 'dict_import__export_test'
@@ -60,14 +60,14 @@ class DictImportExportTests(SupersetTestCase):
             'params': json.dumps(params),
             'columns': [{'column_name': c}
                         for c in cols_names],
-            'metrics': [{'metric_name': c} for c in metric_names]
+            'metrics': [{'metric_name': c} for c in metric_names],
         }
 
         table = SqlaTable(
             id=id,
             schema=schema,
             table_name=name,
-            params=json.dumps(params)
+            params=json.dumps(params),
         )
         for col_name in cols_names:
             table.columns.append(TableColumn(column_name=col_name))
@@ -85,15 +85,15 @@ class DictImportExportTests(SupersetTestCase):
           'datasource_name': name,
           'id': id,
           'params': json.dumps(params),
-          'columns': [{"column_name": c} for c in cols_names],
-          'metrics': [{"metric_name": c} for c in metric_names]
+          'columns': [{'column_name': c} for c in cols_names],
+          'metrics': [{'metric_name': c} for c in metric_names],
         }
 
         datasource = DruidDatasource(
             id=id,
             datasource_name=name,
             cluster_name=cluster_name,
-            params=json.dumps(params)
+            params=json.dumps(params),
         )
         for col_name in cols_names:
             datasource.columns.append(DruidColumn(column_name=col_name))
@@ -152,7 +152,7 @@ class DictImportExportTests(SupersetTestCase):
     def test_import_table_1_col_1_met(self):
         table, dict_table = self.create_table(
             'table_1_col_1_met', id=ID_PREFIX + 2,
-            cols_names=["col1"], metric_names=["metric1"])
+            cols_names=['col1'], metric_names=['metric1'])
         imported_table = SqlaTable.import_from_dict(db.session, dict_table)
         db.session.commit()
         imported = self.get_table(imported_table.id)
@@ -222,8 +222,9 @@ class DictImportExportTests(SupersetTestCase):
             metric_names=['new_metric1'],
             cols_names=['new_col1', 'col2', 'col3'])
         self.assert_table_equals(expected_table, imported_over)
-        self.yaml_compare(expected_table.export_to_dict(),
-          imported_over.export_to_dict())
+        self.yaml_compare(
+            expected_table.export_to_dict(),
+            imported_over.export_to_dict())
 
     def test_import_table_override_identical(self):
         table, dict_table = self.create_table(
@@ -256,7 +257,7 @@ class DictImportExportTests(SupersetTestCase):
     def test_import_druid_1_col_1_met(self):
         datasource, dict_datasource = self.create_druid_datasource(
             'druid_1_col_1_met', id=ID_PREFIX + 2,
-            cols_names=["col1"], metric_names=["metric1"])
+            cols_names=['col1'], metric_names=['metric1'])
         imported_cluster = DruidDatasource.import_from_dict(db.session,
                                                             dict_datasource)
         db.session.commit()
@@ -303,8 +304,9 @@ class DictImportExportTests(SupersetTestCase):
         datasource, dict_datasource = self.create_druid_datasource(
             'druid_override', id=ID_PREFIX + 3, cols_names=['col1'],
             metric_names=['m1'])
-        imported_cluster = DruidDatasource.import_from_dict(db.session,
-          dict_datasource)
+        imported_cluster = DruidDatasource.import_from_dict(
+            db.session,
+            dict_datasource)
         db.session.commit()
         table_over, table_over_dict = self.create_druid_datasource(
             'druid_override', id=ID_PREFIX + 3,

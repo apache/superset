@@ -44,9 +44,9 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
 from .base import (
-    api, BaseSupersetView, CsvResponse, DeleteMixin, get_error_msg,
-    generate_download_headers, get_user_roles, json_error_response,
-    SupersetFilter, SupersetModelView, YamlExportMixin
+    api, BaseSupersetView, CsvResponse, DeleteMixin,
+    generate_download_headers, get_error_msg, get_user_roles,
+    json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 
 config = app.config

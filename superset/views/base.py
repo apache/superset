@@ -3,7 +3,6 @@ import functools
 import json
 import logging
 import traceback
-import yaml
 
 from flask import abort, flash, g, get_flashed_messages, redirect, Response
 from flask_appbuilder import BaseView, ModelView
@@ -13,6 +12,7 @@ from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+import yaml
 
 from superset import appbuilder, conf, db, sm, sql_parse, utils
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -44,12 +44,13 @@ def json_error_response(msg=None, status=500, stacktrace=None, payload=None):
 
 
 def generate_download_headers(extension, filename=None):
-  filename = filename if filename else datetime.now().strftime("%Y%m%d_%H%M%S")
-  content_disp = "attachment; filename={}.{}".format(filename, extension)
-  headers = {
-    "Content-Disposition": content_disp,
-  }
-  return headers
+    filename = filename if filename else datetime.now().strftime('%Y%m%d_%H%M%S')
+    content_disp = 'attachment; filename={}.{}'.format(filename, extension)
+    headers = {
+        'Content-Disposition': content_disp,
+    }
+    return headers
+
 
 def api(f):
     """
@@ -230,7 +231,7 @@ def validate_json(form, field):  # noqa
 
 
 class YamlExportMixin(object):
-    @action("yaml_export", __("Export as YAML"), __("Export as YAML?"), "fa-download")
+    @action('yaml_export', __('Export to YAML'), __('Export to YAML?'), 'fa-download')
     def yaml_export(self, items):
         if not isinstance(items, list):
             items = [items]
@@ -238,8 +239,8 @@ class YamlExportMixin(object):
         data = [t.export_to_dict() for t in items]
         return Response(
             yaml.safe_dump(data),
-            headers=generate_download_headers("yaml"),
-            mimetype="application/text")
+            headers=generate_download_headers('yaml'),
+            mimetype='application/text')
 
 
 class DeleteMixin(object):

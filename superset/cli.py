@@ -4,16 +4,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import logging
 from datetime import datetime
-from pathlib2 import Path
+import logging
 from subprocess import Popen
 from sys import stdout
-import yaml
 
 from colorama import Fore, Style
 from flask_migrate import MigrateCommand
 from flask_script import Manager
+from pathlib2 import Path
+import yaml
 
 from superset import app, db, dict_import_export_util, security, utils
 
@@ -183,7 +183,7 @@ def refresh_druid(datasource, merge):
 
 @manager.option(
     '-p', '--path', dest='path',
-    help='Path to a single YAML file or path containing multiple YAML ' 
+    help='Path to a single YAML file or path containing multiple YAML '
          'files to import (*.yaml or *.yml)')
 @manager.option(
     '-s', '--sync', dest='sync', default='',
@@ -191,7 +191,7 @@ def refresh_druid(datasource, merge):
          'e.g. "metrics,columns" deletes metrics and columns in the DB '
          'that are not specified in the YAML file')
 @manager.option(
-    '-r', '--recursive', dest='recursive', action="store_true",
+    '-r', '--recursive', dest='recursive', action='store_true',
     help='recursively search the path for yaml files')
 def import_datasources(path, sync, recursive=False):
     """Import datasources from YAML"""
@@ -207,29 +207,30 @@ def import_datasources(path, sync, recursive=False):
         files.extend(p.rglob('*.yaml'))
         files.extend(p.rglob('*.yml'))
     for f in files:
-        logging.info("Importing datasources from file %s", f)
+        logging.info('Importing datasources from file %s', f)
         try:
-          with f.open() as data_stream:
-              dict_import_export_util.import_from_dict(db.session,
-                                                   yaml.load(data_stream),
-                                                   sync=sync_array)
+            with f.open() as data_stream:
+                dict_import_export_util.import_from_dict(
+                    db.session,
+                    yaml.load(data_stream),
+                    sync=sync_array)
         except Exception as e:
-            logging.error("Error when importing datasources from file %s", f)
+            logging.error('Error when importing datasources from file %s', f)
             logging.error(e)
 
 
 @manager.option(
     '-f', '--datasource-file', default=None, dest='datasource_file',
-    help="Specify the the file to export to")
+    help='Specify the the file to export to')
 @manager.option(
     '-p', '--print', action='store_true', dest='print_stdout',
-    help="Print YAML to stdout")
+    help='Print YAML to stdout')
 @manager.option(
     '-b', '--back-references', action='store_true', dest='back_references',
-    help="Include parent back references")
+    help='Include parent back references')
 @manager.option(
     '-d', '--include-defaults', action='store_true', dest='include_defaults',
-    help="Include fields containing defaults")
+    help='Include fields containing defaults')
 def export_datasources(print_stdout, datasource_file,
                        back_references, include_defaults):
     """Export datasources to YAML"""
@@ -241,14 +242,14 @@ def export_datasources(print_stdout, datasource_file,
     if print_stdout or not datasource_file:
         yaml.safe_dump(data, stdout, default_flow_style=False)
     if datasource_file:
-        logging.info("Exporting datasources to %s", datasource_file)
+        logging.info('Exporting datasources to %s', datasource_file)
         with open(datasource_file, 'w') as data_stream:
             yaml.safe_dump(data, data_stream, default_flow_style=False)
 
 
 @manager.option(
     '-b', '--back-references', action='store_false',
-    help="Include parent back references")
+    help='Include parent back references')
 def export_datasource_schema(back_references):
     """Export datasource YAML schema to stdout"""
     data = dict_import_export_util.export_schema_to_dict(

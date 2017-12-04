@@ -12,7 +12,7 @@ from superset.connectors.base.views import DatasourceModelView
 from superset.utils import has_access
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
-    ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin
+    ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
 
