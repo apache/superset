@@ -181,6 +181,11 @@ If the load balancer is inserting X-Forwarded-For/X-Forwarded-Proto headers, you
 should set `ENABLE_PROXY_FIX = True` in the superset config file to extract and use
 the headers.
 
+In case that the reverse proxy is used for providing ssl encryption, 
+an explicit definition of the `X-Forwarded-Proto` may be required.
+For the Apache webserver this can be set as follows: ::
+
+    RequestHeader set X-Forwarded-Proto "https"
 
 Configuration
 -------------
