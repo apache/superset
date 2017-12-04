@@ -1095,10 +1095,10 @@ class Superset(BaseSupersetView):
             status = 400
 
         return json_success(viz_obj.json_dumps(payload), status=status)
-
-    @expose('/import_dashboards', methods=['GET', 'POST'])
+    
     @log_this
     @has_access
+    @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
         """Overrides the dashboards using pickled instances from the file."""
         f = request.files.get('file')
