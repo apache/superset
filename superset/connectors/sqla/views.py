@@ -17,7 +17,7 @@ from superset.views.base import (
 from . import models
 
 
-class TableColumnInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  # noqa
+class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
 
     list_title = _('List Columns')
@@ -94,7 +94,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
-class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  # noqa
+class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
 
     list_title = _('List Metrics')
