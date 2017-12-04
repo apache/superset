@@ -153,6 +153,21 @@ appbuilder = AppBuilder(
 
 sm = appbuilder.sm
 
+before_request_functions = conf.get('BEFORE_REQUEST_FUNCTIONS')
+
+
+@app.before_request
+def before_request():
+    for f in before_request_functions:
+        try:
+            f()
+        except Exception as e:
+            print(
+                'Exception {} in before_request function {}'
+                .format(e, f.func_name))
+            logging.exception(e)
+
+
 results_backend = app.config.get('RESULTS_BACKEND')
 
 # Registering sources
