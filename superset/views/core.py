@@ -1098,6 +1098,7 @@ class Superset(BaseSupersetView):
 
     @expose('/import_dashboards', methods=['GET', 'POST'])
     @log_this
+    @has_access
     def import_dashboards(self):
         """Overrides the dashboards using pickled instances from the file."""
         f = request.files.get('file')
