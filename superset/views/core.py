@@ -1095,7 +1095,7 @@ class Superset(BaseSupersetView):
             status = 400
 
         return json_success(viz_obj.json_dumps(payload), status=status)
-    
+
     @log_this
     @has_access
     @expose('/import_dashboards', methods=['GET', 'POST'])
