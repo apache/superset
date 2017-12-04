@@ -420,7 +420,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'datasource_link': _('Datasource'),
     }
     search_columns = (
-        'slice_name', 'description', 'viz_type', 'owners',
+        'slice_name', 'description', 'viz_type', 'datasource_name', 'owners',
     )
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
