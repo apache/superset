@@ -16,7 +16,6 @@ except ImportError:  # pragma: no cover
 import pandas as pd
 from six import u
 from werkzeug.contrib.cache import FileSystemCache
-from werkzeug.posixemulation import rename
 
 
 class DataFrameCache(FileSystemCache):
@@ -115,32 +114,40 @@ class DataFrameCache(FileSystemCache):
         filename = self._get_filename(key)
         cname = filename + self._fs_cache_suffix
         mname = filename + self._fs_metadata_suffix
+        suffix = self._fs_transaction_suffix
         self._prune()
-        try:
-            fd, tmp = tempfile.mkstemp(suffix=self._fs_transaction_suffix,
-                                       dir=self._path)
-            with os.fdopen(fd, 'wb') as f:
-                try:
-                    value.to_feather(f)
-                    metadata['format'] = 'feather'
-                except ValueError:
-                    try:
-                        value.to_hdf(tmp, 'df')
-                        metadata['format'] = 'hdf'
-                        metadata['read_args'] = {'key': 'df'}
-                    except Exception:
-                        # PyTables is not installed, so fallback to pickle
-                        pickle.dump(value, f, pickle.HIGHEST_PROTOCOL)
-                        metadata['format'] = 'pickle'
-            rename(tmp, cname)
-            os.chmod(cname, self._mode)
-            with open(mname, 'w', encoding='utf-8') as f:
-                f.write(u(json.dumps(metadata)))
-            os.chmod(mname, self._mode)
-        except (IOError, OSError):
-            return False
-        else:
-            return True
+
+        def to_feather(filename, dataframe, metadata):
+            with tempfile.NamedTemporaryFile(dir=self._path, suffix=suffix) as f:
+                dataframe.to_feather(f)
+                metadata['format'] = 'feather'
+                os.link(f.name, cname)
+
+        def to_hdf(filename, dataframe, metadata):
+            with tempfile.NamedTemporaryFile(dir=self._path, suffix=suffix) as f:
+                dataframe.to_hdf(f.name, 'df')
+                metadata['format'] = 'hdf'
+                metadata['read_args'] = {'key': 'df'}
+                os.link(f.name, cname)
+
+        def to_pickle(filename, dataframe, metadata):
+            with tempfile.NamedTemporaryFile(dir=self._path, suffix=suffix) as f:
+                pickle.dump(dataframe, f, pickle.HIGHEST_PROTOCOL)
+                metadata['format'] = 'pickle'
+                os.link(f.name, cname)
+
+        for serializer in [to_feather, to_hdf, to_pickle]:
+            try:
+                serializer(cname, value, metadata)
+                with open(mname, 'w', encoding='utf-8') as f:
+                    f.write(u(json.dumps(metadata)))
+                return True
+            except Exception:
+                # Try the next serializer
+                pass
+
+        # We didn't successfully save the data
+        return False
 
     def delete(self, key):
         filename = self._get_filename(key)
