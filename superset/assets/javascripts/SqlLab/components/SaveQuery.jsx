@@ -1,7 +1,9 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { FormControl, FormGroup, Overlay, Popover, Row, Col } from 'react-bootstrap';
+import { FormControl, FormGroup, Row, Col } from 'react-bootstrap';
+
 import Button from '../../components/Button';
+import ModalTrigger from '../../components/ModalTrigger';
 import { t } from '../../locales';
 
 const propTypes = {
@@ -41,10 +43,10 @@ class SaveQuery extends React.PureComponent {
       sql: this.props.sql,
     };
     this.props.onSave(query);
-    this.setState({ showSave: false });
+    this.saveModal.close();
   }
   onCancel() {
-    this.setState({ showSave: false });
+    this.saveModal.close();
   }
   onLabelChange(e) {
     this.setState({ label: e.target.value });
@@ -55,72 +57,70 @@ class SaveQuery extends React.PureComponent {
   toggleSave(e) {
     this.setState({ target: e.target, showSave: !this.state.showSave });
   }
-  renderPopover() {
+  renderModalBody() {
     return (
-      <Popover id="embed-code-popover">
-        <FormGroup bsSize="small" style={{ width: '350px' }}>
-          <Row>
-            <Col md={12}>
-              <small>
-                <label className="control-label" htmlFor="embed-height">
-                  {t('Label')}
-                </label>
-              </small>
-              <FormControl
-                type="text"
-                placeholder={t('Label for your query')}
-                value={this.state.label}
-                onChange={this.onLabelChange}
-              />
-            </Col>
-          </Row>
-          <br />
-          <Row>
-            <Col md={12}>
-              <small>
-                <label className="control-label" htmlFor="embed-height">{t('Description')}</label>
-              </small>
-              <FormControl
-                componentClass="textarea"
-                placeholder={t('Write a description for your query')}
-                value={this.state.description}
-                onChange={this.onDescriptionChange}
-              />
-            </Col>
-          </Row>
-          <br />
-          <Row>
-            <Col md={12}>
-              <Button
-                bsStyle="primary"
-                onClick={this.onSave}
-                className="m-r-3"
-              >
-                {t('Save')}
-              </Button>
-              <Button onClick={this.onCancel} className="cancelQuery">
-                {t('Cancel')}
-              </Button>
-            </Col>
-          </Row>
-        </FormGroup>
-      </Popover>
+      <FormGroup bsSize="small">
+        <Row>
+          <Col md={12}>
+            <small>
+              <label className="control-label" htmlFor="embed-height">
+                {t('Label')}
+              </label>
+            </small>
+            <FormControl
+              type="text"
+              placeholder={t('Label for your query')}
+              value={this.state.label}
+              onChange={this.onLabelChange}
+            />
+          </Col>
+        </Row>
+        <br />
+        <Row>
+          <Col md={12}>
+            <small>
+              <label className="control-label" htmlFor="embed-height">{t('Description')}</label>
+            </small>
+            <FormControl
+              componentClass="textarea"
+              placeholder={t('Write a description for your query')}
+              value={this.state.description}
+              onChange={this.onDescriptionChange}
+            />
+          </Col>
+        </Row>
+        <br />
+        <Row>
+          <Col md={12}>
+            <Button
+              bsStyle="primary"
+              onClick={this.onSave}
+              className="m-r-3"
+            >
+              {t('Save')}
+            </Button>
+            <Button onClick={this.onCancel} className="cancelQuery">
+              {t('Cancel')}
+            </Button>
+          </Col>
+        </Row>
+      </FormGroup>
     );
   }
   render() {
     return (
       <span className="SaveQuery">
-        <Overlay
-          trigger="click"
-          show={this.state.showSave}
-          placement="bottom"
-          animation={this.props.animation}
-        >
-          {this.renderPopover()}
-        </Overlay>
-        <Button bsSize="small" className="toggleSave" onClick={this.toggleSave}>
-          <i className="fa fa-save" /> {t('Save Query')}
-        </Button>
+        <ModalTrigger
+          ref={(ref) => { this.saveModal = ref; }}
+          modalTitle={t('Save Query')}
+          modalBody={this.renderModalBody()}
+          triggerNode={
+            <Button bsSize="small" className="toggleSave" onClick={this.toggleSave}>
+              <i className="fa fa-save" /> {t('Save Query')}
+            </Button>
+          }
+          bsSize="small"
+        />
       </span>
     );
   }
