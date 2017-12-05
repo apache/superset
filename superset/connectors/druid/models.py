@@ -28,7 +28,9 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import conf, db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
+from superset.models.helpers import (
+  AuditMixinNullable, ImportMixin, QueryResult, set_perm,
+)
 from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher, MetricPermException,
 )
@@ -60,7 +62,7 @@ class CustomPostAggregator(Postaggregator):
         self.post_aggregator = post_aggregator
 
 
-class DruidCluster(Model, AuditMixinNullable):
+class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     """ORM object referencing the Druid clusters"""
 
@@ -80,6 +82,11 @@ class DruidCluster(Model, AuditMixinNullable):
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
+
+    export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
+                     'coordinator_endpoint', 'broker_host', 'broker_port',
+                     'broker_endpoint', 'cache_timeout')
+    export_children = ['datasources']
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
@@ -219,6 +226,7 @@ class DruidColumn(Model, BaseColumn):
     """ORM model for storing Druid datasource column metadata"""
 
     __tablename__ = 'columns'
+    __table_args__ = (UniqueConstraint('column_name', 'datasource_id'),)
 
     datasource_id = Column(
         Integer,
@@ -233,8 +241,9 @@ class DruidColumn(Model, BaseColumn):
     export_fields = (
         'datasource_id', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json',
+        'description', 'dimension_spec_json', 'verbose_name',
     )
+    export_parent = 'datasource'
 
     def __repr__(self):
         return self.column_name
@@ -360,6 +369,7 @@ class DruidMetric(Model, BaseMetric):
     """ORM object referencing Druid metrics for a datasource"""
 
     __tablename__ = 'metrics'
+    __table_args__ = (UniqueConstraint('metric_name', 'datasource_id'),)
     datasource_id = Column(
         Integer,
         ForeignKey('datasources.id'))
@@ -374,6 +384,7 @@ class DruidMetric(Model, BaseMetric):
         'metric_name', 'verbose_name', 'metric_type', 'datasource_id',
         'json', 'description', 'is_restricted', 'd3format',
     )
+    export_parent = 'datasource'
 
     @property
     def expression(self):
@@ -409,6 +420,7 @@ class DruidDatasource(Model, BaseDatasource):
     """ORM object referencing Druid datasources (tables)"""
 
     __tablename__ = 'datasources'
+    __table_args__ = (UniqueConstraint('datasource_name', 'cluster_name'),)
 
     type = 'druid'
     query_langtage = 'json'
@@ -437,6 +449,9 @@ class DruidDatasource(Model, BaseDatasource):
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params',
     )
+
+    export_parent = 'cluster'
+    export_children = ['columns', 'metrics']
 
     @property
     def database(self):
@@ -556,9 +571,12 @@ class DruidDatasource(Model, BaseDatasource):
         v2nums = [int_or_0(n) for n in v2.split('.')]
         v1nums = (v1nums + [0, 0, 0])[:3]
         v2nums = (v2nums + [0, 0, 0])[:3]
-        return v1nums[0] > v2nums[0] or \
-            (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or \
-            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and v1nums[2] > v2nums[2])
+        return (
+                   v1nums[0] > v2nums[0] or
+                   (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
+                   (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
+                       v1nums[2] > v2nums[2])
+               )
 
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""

@@ -14,7 +14,7 @@ from superset.utils import has_access
 from superset.views.base import (
     BaseSupersetView, DatasourceFilter, DeleteMixin,
     get_datasource_exist_error_mgs, ListWidgetWithCheckboxes, SupersetModelView,
-    validate_json,
+    validate_json, YamlExportMixin,
 )
 from . import models
 
@@ -122,7 +122,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
-class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
+class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
 
     list_title = _('List Druid Cluster')
@@ -168,7 +168,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
+class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
 
     list_title = _('List Druid Datasource')
