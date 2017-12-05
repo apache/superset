@@ -12,7 +12,7 @@ from superset.connectors.base.views import DatasourceModelView
 from superset.utils import has_access
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
-    ListWidgetWithCheckboxes, SupersetModelView,
+    ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
 
@@ -148,7 +148,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
+class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
 
     list_title = _('List Tables')
