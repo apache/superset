@@ -825,6 +825,27 @@ class PandasDatasource(Model, BaseDatasource):
             if not any_date_col and dbcol.is_time:
                 any_date_col = col
 
+        # Datasource-level metrics
+        # Note that column-specific metrics are created by reconcile_column_metrics
+        # when the column is created.
+        metrics = [
+            PandasMetric(
+                metric_name='count',
+                verbose_name='count',
+                metric_type='count',
+                source=None,
+                expression='count')]
+        dbmetrics = (
+            db.session.query(PandasMetric)
+            .filter(PandasMetric.datasource == self)
+            .filter(or_(PandasMetric.metric_name == metric.metric_name
+                        for metric in metrics)))
+        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
+        for metric in metrics:
+            if not dbmetrics.get(metric.metric_name, None):
+                metric.pandas_datasource_id = self.id
+                db.session.add(metric)
+
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
 
