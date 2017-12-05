@@ -2161,7 +2161,8 @@ class Superset(BaseSupersetView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
-        template_params = json.loads(request.form.get('templateParams') or {})
+        template_params = json.loads(
+            request.form.get('templateParams') or '{}')
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2236,9 +2237,6 @@ class Superset(BaseSupersetView):
 
         # Sync request.
         try:
-            print(template_params)
-            print(template_params)
-            print(type(template_params))
             timeout = config.get('SQLLAB_TIMEOUT')
             timeout_msg = (
                 'The query exceeded the {timeout} seconds '
