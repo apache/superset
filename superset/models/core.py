@@ -28,6 +28,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
@@ -537,12 +538,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         })
 
 
-class Database(Model, AuditMixinNullable):
+class Database(Model, AuditMixinNullable, ImportMixin):
 
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
     type = 'table'
+    __table_args__ = (UniqueConstraint('database_name'),)
 
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
@@ -567,6 +569,10 @@ class Database(Model, AuditMixinNullable):
     perm = Column(String(1000))
     custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
     impersonate_user = Column(Boolean, default=False)
+    export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
+                     'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+                     'allow_ctas', 'extra')
+    export_children = ['tables']
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name

@@ -441,7 +441,7 @@ class ImportExportTests(SupersetTestCase):
             cols_names=['col1', 'new_col1', 'col2', 'col3'])
         self.assert_table_equals(expected_table, imported_over)
 
-    def test_import_table_override_idential(self):
+    def test_import_table_override_identical(self):
         table = self.create_table(
             'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
@@ -505,7 +505,7 @@ class ImportExportTests(SupersetTestCase):
             cols_names=['col1', 'new_col1', 'col2', 'col3'])
         self.assert_datasource_equals(expected_datasource, imported_over)
 
-    def test_import_druid_override_idential(self):
+    def test_import_druid_override_identical(self):
         datasource = self.create_druid_datasource(
             'copy_cat', id=10005, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])

@@ -44,8 +44,9 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
 from .base import (
-    api, BaseSupersetView, CsvResponse, DeleteMixin, get_error_msg,
-    get_user_roles, json_error_response, SupersetFilter, SupersetModelView,
+    api, BaseSupersetView, CsvResponse, DeleteMixin,
+    generate_download_headers, get_error_msg, get_user_roles,
+    json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 
 config = app.config
@@ -161,16 +162,9 @@ class DashboardFilter(SupersetFilter):
         return query
 
 
-def generate_download_headers(extension):
-    filename = datetime.now().strftime('%Y%m%d_%H%M%S')
-    content_disp = 'attachment; filename={}.{}'.format(filename, extension)
-    headers = {
-        'Content-Disposition': content_disp,
-    }
-    return headers
 
 
-class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
+class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
 
     list_title = _('List Databases')
