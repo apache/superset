@@ -63,17 +63,6 @@ export default class DateFilterControl extends React.Component {
   onNumberChange(event) {
     this.setState({ num: event.target.value }, this.onChange);
   }
-  onChange() {
-    let val;
-    if (this.state.type === 'rel') {
-      val = `${this.state.num} ${this.state.grain} ${this.state.rel}`;
-    } else if (this.state.type === 'fix') {
-      val = this.state.dttm;
-    } else if (this.state.type === 'free') {
-      val = this.state.free;
-    }
-    this.props.onChange(val);
-  }
   onFreeChange(event) {
     this.setState({ free: event.target.value }, this.onChange);
   }
@@ -88,6 +77,15 @@ export default class DateFilterControl extends React.Component {
     this.setState({ dttm: dttm.format().substring(0, 19) }, this.onChange);
   }
   close() {
+    let val;
+    if (this.state.type === 'rel') {
+      val = `${this.state.num} ${this.state.grain} ${this.state.rel}`;
+    } else if (this.state.type === 'fix') {
+      val = this.state.dttm;
+    } else if (this.state.type === 'free') {
+      val = this.state.free;
+    }
+    this.props.onChange(val);
     this.refs.trigger.hide();
   }
   renderPopover() {
