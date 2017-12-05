@@ -162,6 +162,7 @@ the world know they are using Superset. Join our growing community!
  - [FBK - ICT center](http://ict.fbk.eu)
  - [Faasos](http://faasos.com/)
  - [GfK Data Lab](http://datalab.gfk.com)
+ - [Hostnfly](https://www.hostnfly.com/)
  - [Konfío](http://konfio.mx)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://cloudschooling.it)
