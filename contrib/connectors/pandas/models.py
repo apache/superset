@@ -324,7 +324,8 @@ class PandasDatasource(Model, BaseDatasource):
                 cache_key = self.cache_key
                 self.df = dataframe_cache.get(cache_key)
             if not isinstance(self.df, pd.DataFrame):
-                if isinstance(self.source_url, basestring) and self.source_url[:4] == 'http':
+                if (isinstance(self.source_url, basestring) and
+                        self.source_url[:4] == 'http'):
                     # Use requests to retrieve remote data so we can handle authentication
                     auth = self.source_auth
                     url = self.source_url
@@ -377,7 +378,7 @@ class PandasDatasource(Model, BaseDatasource):
                     e.args = (message,) + e.args
                     raise
         # Add the calcuated columns, using a multi-line string to add them all at once
-        # See https://pandas.pydata.org/pandas-docs/stable/enhancingperf.html#enhancingperf-eval
+        # See https://pandas.pydata.org/pandas-docs/stable/enhancingperf.html#enhancingperf-eval  # NOQA: E501
         if calculated_columns:
             self.df.eval('\n'.join(calculated_columns),
                          truediv=True,
@@ -836,7 +837,7 @@ def reconcile_column_metrics(mapper, connection, target):
     Create or delete PandasMetrics to match the metric attributes
     specified on a PandasColumn
     """
-    metrics_table = PandasMetric.__table__
+    mtable = PandasMetric.__table__
     for metric_type in ('sum', 'avg', 'max', 'min', 'count_distinct'):
         # Set up the metric attributes
         metric_name = metric_type + '__' + target.column_name
@@ -852,15 +853,15 @@ def reconcile_column_metrics(mapper, connection, target):
         if getattr(target, metric_type):
             # Create the metric if it doesn't already exist
             result = connection.execute(
-                metrics_table
+                mtable
                 .select()
                 .where(
                     and_(
-                        metrics_table.c.pandas_datasource_id == target.pandas_datasource_id,
-                        metrics_table.c.metric_name == metric_name)))
+                        mtable.c.pandas_datasource_id == target.pandas_datasource_id,
+                        mtable.c.metric_name == metric_name)))
             if not result.rowcount:
                 connection.execute(
-                    metrics_table.insert(),
+                    mtable.insert(),
                     pandas_datasource_id=target.pandas_datasource_id,
                     metric_name=metric_name,
                     verbose_name=verbose_name,
@@ -869,15 +870,15 @@ def reconcile_column_metrics(mapper, connection, target):
         else:
             # Delete the metric if it exists and hasn't been customized
             connection.execute(
-                metrics_table
+                mtable
                 .delete()
                 .where(
                     and_(
-                        metrics_table.c.pandas_datasource_id == target.pandas_datasource_id,
-                        metrics_table.c.metric_name == metric_name,
-                        metrics_table.c.verbose_name == verbose_name,
-                        metrics_table.c.source == source,
-                        metrics_table.c.expression == expression)))
+                        mtable.c.pandas_datasource_id == target.pandas_datasource_id,
+                        mtable.c.metric_name == metric_name,
+                        mtable.c.verbose_name == verbose_name,
+                        mtable.c.source == source,
+                        mtable.c.expression == expression)))
 
 
 def reconcile_metric_column(mapper, connection, target):
@@ -885,18 +886,18 @@ def reconcile_metric_column(mapper, connection, target):
     Clear the metric attribute on a PandasColumn if the
     corresponding PandasMetric is deleted
     """
-    column_table = PandasColumn.__table__
+    ctable = PandasColumn.__table__
     try:
         metric_type, column_name = target.metric_name.split('__', 1)
-        if metric_type in column_table.c:
+        if metric_type in ctable.c:
             connection.execute(
-                column_table
+                ctable
                 .update()
                 .values(**{metric_type: False})
                 .where(
                     and_(
-                        column_table.c.pandas_datasource_id == target.pandas_datasource_id,
-                        column_table.c.column_name == column_name)))
+                        ctable.c.pandas_datasource_id == target.pandas_datasource_id,
+                        ctable.c.column_name == column_name)))
     except ValueError:
         # Metric name doesn't contain __
         pass

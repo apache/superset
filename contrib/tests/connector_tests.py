@@ -62,7 +62,7 @@ class BaseConnectorTestCase(SupersetTestCase):
         | Region 1 | District A | Project A | 2001-04-30 10:00:00 | 15     |  11.00 | CategoryA |
         | Region 1 | District A | Project A | 2001-04-30 12:00:00 | 15     |  16.10 | CategoryB |
         | Region 2 | District C | Project C | 2001-04-30 13:00:00 | 15     |  18.50 | CategoryA |
-        """
+        """  # NOQA: E501
 
     def assertFrameEqual(self, frame1, frame2, msg=None):
         # We don't care about the index, because it is
@@ -116,7 +116,7 @@ class BaseConnectorTestCase(SupersetTestCase):
         self.assertEqual(result, self.df['project'].unique()[:1].tolist())
 
     def test_get_query_str(self):
-        parameters = {
+        p = {
             'groupby': ['project'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -131,11 +131,11 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.get_query_str(parameters)
+        result = self.datasource.get_query_str(p)
         self.assertIn('project', result)
 
     def test_summary_single_metric(self):
-        parameters = {
+        p = {
             'groupby': [],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -150,7 +150,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
@@ -158,7 +158,7 @@ class BaseConnectorTestCase(SupersetTestCase):
         self.assertEqual(result.df, expected_df)
 
     def test_summary_multiple_metrics(self):
-        parameters = {
+        p = {
             'groupby': [],
             'metrics': ['sum__value', 'avg__value', 'value_percentage', 'ratio'],
             'granularity': 'received',
@@ -174,7 +174,7 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
         }
         self.df['ratio'] = self.df['value'] / self.df['value2']
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
@@ -188,7 +188,7 @@ class BaseConnectorTestCase(SupersetTestCase):
         self.assertEqual(result.df, expected_df)
 
     def test_from_to_dttm(self):
-        parameters = {
+        p = {
             'groupby': [],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -203,7 +203,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
@@ -212,7 +212,7 @@ class BaseConnectorTestCase(SupersetTestCase):
         self.assertEqual(result.df, expected_df)
 
     def test_filter_eq_string(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -229,21 +229,21 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[self.df['district'] == 'District A']
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = expected_df.sort_values(['sum__value'], ascending=False)
         self.assertEqual(result.df, expected_df)
 
     def test_filter_eq_num(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -260,21 +260,21 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[self.df['value'] == 85]
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = expected_df.sort_values(['sum__value'], ascending=False)
         self.assertEqual(result.df, expected_df)
 
     def test_filter_eq_date(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -291,21 +291,21 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[self.df['received'] == datetime.datetime(2001, 2, 28)]
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = expected_df.sort_values(['sum__value'], ascending=False)
         self.assertEqual(result.df, expected_df)
 
     def test_filter_gte(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -322,21 +322,21 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[self.df['value'] >= 70]
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = expected_df.sort_values(['sum__value'], ascending=False)
         self.assertEqual(result.df, expected_df)
 
     def test_filter_in_num(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -353,23 +353,23 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[~((self.df['value'] != 32) &
                                   (self.df['value'] != 35))]
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = (expected_df.sort_values(['sum__value'], ascending=False)
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
     def test_filter_in_str(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -386,23 +386,23 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[~((self.df['project'] != 'Project A') &
                                   (self.df['project'] != 'Project C'))]
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = (expected_df.sort_values(['sum__value'], ascending=False)
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
     def test_filter_not_in_num(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -419,23 +419,23 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[((self.df['value'] != 32) &
                                  (self.df['value'] != 35))]
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = (expected_df.sort_values(['sum__value'], ascending=False)
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
     def test_filter_not_in_str(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -452,22 +452,22 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
                            .loc[((self.df['project'] != 'Project A') &
                                  (self.df['project'] != 'Project C'))]
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = expected_df.sort_values(['sum__value'], ascending=False)
         self.assertEqual(result.df, expected_df)
 
     def test_columns_only(self):
-        parameters = {
+        p = {
             'groupby': [],
             'metrics': [],
             'granularity': 'received',
@@ -483,16 +483,16 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
             'columns': ['project', 'region', 'received', 'value'],
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = self.df[parameters['columns']].copy()
+        expected_df = self.df[p['columns']].copy()
         expected_df['received'] = expected_df['received'].astype(str)
         self.assertEqual(result.df, expected_df)
 
     def test_orderby_with_columns(self):
-        parameters = {
+        p = {
             'groupby': [],
             'metrics': [],
             'granularity': 'received',
@@ -512,7 +512,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 ['region', True],
             ],
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
@@ -520,12 +520,12 @@ class BaseConnectorTestCase(SupersetTestCase):
                            .sort_values(['project', 'region'],
                                         ascending=[False, True])
                            .reset_index(drop=True)
-                       [parameters['columns']])
+                       [p['columns']])
         expected_df['received'] = expected_df['received'].astype(str)
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_only(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': [],
             'granularity': 'received',
@@ -540,11 +540,11 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = (self.df.groupby(parameters['groupby'])
+        expected_df = (self.df.groupby(p['groupby'])
                               .size()
                               .reset_index()
                               .sort_values([0], ascending=False)
@@ -552,7 +552,7 @@ class BaseConnectorTestCase(SupersetTestCase):
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_single_metric(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -567,19 +567,19 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = (self.df.groupby(parameters['groupby'])['value']
+        expected_df = (self.df.groupby(p['groupby'])['value']
                               .sum()
                               .reset_index()
                               .sort_values(['value'], ascending=False))
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_multiple_metrics(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value', 'avg__value', 'value_percentage', 'ratio'],
             'granularity': 'received',
@@ -595,25 +595,25 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
         }
         self.df['ratio'] = self.df['value'] / self.df['value2']
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = (self.df.groupby(parameters['groupby'])
+        expected_df = (self.df.groupby(p['groupby'])
                            .aggregate(OrderedDict([('value', ['sum', 'mean']),
                                                    ('ratio', ['mean'])])))
-        expected_df['value_percentage'] = (self.df.groupby(parameters['groupby'])
+        expected_df['value_percentage'] = (self.df.groupby(p['groupby'])
                                                   .apply(lambda x: sum(x['value']) /
                                                          sum(x['value'] + x['value2'])))
         expected_df = expected_df.reset_index()
-        expected_df.columns = (parameters['groupby'] +
+        expected_df.columns = (p['groupby'] +
                                ['sum__value', 'avg__value', 'ratio', 'value_percentage'])
-        expected_df = (expected_df[parameters['groupby'] + parameters['metrics']]
+        expected_df = (expected_df[p['groupby'] + p['metrics']]
                        .sort_values(['sum__value'], ascending=False))
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_ratio_metric(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['ratio'],
             'granularity': 'received',
@@ -629,19 +629,19 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
         }
         self.df['ratio'] = self.df['value'] / self.df['value2']
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = (self.df.groupby(parameters['groupby'])['ratio']
+        expected_df = (self.df.groupby(p['groupby'])['ratio']
                               .mean()
                               .reset_index()
                               .sort_values(['ratio'], ascending=False))
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_value_percentage_metric(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['value_percentage'],
             'granularity': 'received',
@@ -656,20 +656,20 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = (self.df.groupby(parameters['groupby'])
+        expected_df = (self.df.groupby(p['groupby'])
                               .apply(lambda x: sum(x['value']) /
                                      sum(x['value'] + x['value2']))
                               .reset_index()
                               .sort_values([0], ascending=False))
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_category_percentage_metric(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['category_percentage'],
             'granularity': 'received',
@@ -684,21 +684,21 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': None,
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = (self.df.groupby(parameters['groupby'])['category']
+        expected_df = (self.df.groupby(p['groupby'])['category']
                               .value_counts(normalize=True)
-                              .reset_index(parameters['groupby'])
+                              .reset_index(p['groupby'])
                               .loc['CategoryA']
                               .reset_index(drop=True)
                               .sort_values(['category'], ascending=False))
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         self.assertEqual(result.df, expected_df)
 
     def test_groupby_ascending_order(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value', 'avg__value'],
             'granularity': 'received',
@@ -714,19 +714,19 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
             'order_desc': False,
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        expected_df = (self.df.groupby(parameters['groupby'])
+        expected_df = (self.df.groupby(p['groupby'])
                            .aggregate({'value': ['sum', 'mean']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = expected_df.sort_values(['sum__value'], ascending=True)
         self.assertEqual(result.df, expected_df)
 
     def test_timeseries_single_metric(self):
-        parameters = {
+        p = {
             'groupby': [],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -744,27 +744,27 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
             'order_desc': True,
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        time_grain = PandasDatasource.GRAINS[parameters['extras']['time_grain_sqla']]
-        expected_df = (self.df.groupby(parameters['groupby'] +
-                                       [pd.Grouper(key=parameters['granularity'],
+        time_grain = PandasDatasource.GRAINS[p['extras']['time_grain_sqla']]
+        expected_df = (self.df.groupby(p['groupby'] +
+                                       [pd.Grouper(key=p['granularity'],
                                                    freq=time_grain)])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = (parameters['groupby'] +
+        expected_df.columns = (p['groupby'] +
                                ['__timestamp'] +
-                               parameters['metrics'])
+                               p['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
-        expected_df = (expected_df.sort_values(parameters['metrics'][0],
-                                               ascending=(not parameters['order_desc']))
+        expected_df = (expected_df.sort_values(p['metrics'][0],
+                                               ascending=(not p['order_desc']))
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
     def test_timeseries_multiple_metrics(self):
-        parameters = {
+        p = {
             'groupby': [],
             'metrics': ['sum__value', 'avg__value'],
             'granularity': 'received',
@@ -782,26 +782,26 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
             'order_desc': True,
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        time_grain = PandasDatasource.GRAINS[parameters['extras']['time_grain_sqla']]
-        expected_df = (self.df.groupby(parameters['groupby'] +
-                                       [pd.Grouper(key=parameters['granularity'],
+        time_grain = PandasDatasource.GRAINS[p['extras']['time_grain_sqla']]
+        expected_df = (self.df.groupby(p['groupby'] +
+                                       [pd.Grouper(key=p['granularity'],
                                                    freq=time_grain)])
                            .aggregate({'value': ['sum', 'mean']})
                            .reset_index())
-        expected_df.columns = (parameters['groupby'] +
+        expected_df.columns = (p['groupby'] +
                                ['__timestamp'] +
-                               parameters['metrics'])
+                               p['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
-        expected_df = (expected_df.sort_values(parameters['metrics'][0],
-                                               ascending=(not parameters['order_desc'])))
+        expected_df = (expected_df.sort_values(p['metrics'][0],
+                                               ascending=(not p['order_desc'])))
         self.assertEqual(result.df, expected_df)
 
     def test_timeseries_groupby(self):
-        parameters = {
+        p = {
             'groupby': ['project'],
             'metrics': ['sum__value', 'avg__value'],
             'granularity': 'received',
@@ -818,26 +818,26 @@ class BaseConnectorTestCase(SupersetTestCase):
                 'time_grain_sqla': 'day',
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        time_grain = PandasDatasource.GRAINS[parameters['extras']['time_grain_sqla']]
-        expected_df = (self.df.groupby(parameters['groupby'] +
-                                       [pd.Grouper(key=parameters['granularity'],
+        time_grain = PandasDatasource.GRAINS[p['extras']['time_grain_sqla']]
+        expected_df = (self.df.groupby(p['groupby'] +
+                                       [pd.Grouper(key=p['granularity'],
                                                    freq=time_grain)])
                            .aggregate({'value': ['sum', 'mean']})
                            .reset_index())
-        expected_df.columns = (parameters['groupby'] +
+        expected_df.columns = (p['groupby'] +
                                ['__timestamp'] +
-                               parameters['metrics'])
+                               p['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
         expected_df = (expected_df.sort_values(['sum__value'], ascending=False)
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
     def test_timeseries_limit(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'district'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -855,32 +855,32 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
             'order_desc': True,
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        time_grain = PandasDatasource.GRAINS[parameters['extras']['time_grain_sqla']]
-        limit_df = (self.df.groupby(parameters['groupby'])
+        time_grain = PandasDatasource.GRAINS[p['extras']['time_grain_sqla']]
+        limit_df = (self.df.groupby(p['groupby'])
                            .aggregate({'value': 'mean'})
-                           .sort_values('value', ascending=(not parameters['order_desc']))
-                           .iloc[:parameters['timeseries_limit']])
-        source_df = self.df.set_index(parameters['groupby'])
+                           .sort_values('value', ascending=(not p['order_desc']))
+                           .iloc[:p['timeseries_limit']])
+        source_df = self.df.set_index(p['groupby'])
         expected_df = (source_df[source_df.index.isin(limit_df.index)]
-                       .groupby(parameters['groupby'] + [pd.Grouper(key=parameters['granularity'],
+                       .groupby(p['groupby'] + [pd.Grouper(key=p['granularity'],
                                 freq=time_grain)])
                        .aggregate({'value': ['sum']})
                        .reset_index())
-        expected_df.columns = (parameters['groupby'] +
+        expected_df.columns = (p['groupby'] +
                                ['__timestamp'] +
-                               parameters['metrics'])
+                               p['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
         expected_df = (expected_df.sort_values(['sum__value'],
-                                               ascending=(not parameters['order_desc']))
+                                               ascending=(not p['order_desc']))
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
     def test_timeseries_limit_ascending_order(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'district'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -898,27 +898,27 @@ class BaseConnectorTestCase(SupersetTestCase):
             },
             'order_desc': False,
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
-        time_grain = PandasDatasource.GRAINS[parameters['extras']['time_grain_sqla']]
-        limit_df = (self.df.groupby(parameters['groupby'])
+        time_grain = PandasDatasource.GRAINS[p['extras']['time_grain_sqla']]
+        limit_df = (self.df.groupby(p['groupby'])
                            .aggregate({'value': 'mean'})
-                           .sort_values('value', ascending=(not parameters['order_desc']))
-                           .iloc[:parameters['timeseries_limit']])
-        source_df = self.df.set_index(parameters['groupby'])
+                           .sort_values('value', ascending=(not p['order_desc']))
+                           .iloc[:p['timeseries_limit']])
+        source_df = self.df.set_index(p['groupby'])
         expected_df = (source_df[source_df.index.isin(limit_df.index)]
-                       .groupby(parameters['groupby'] + [pd.Grouper(key=parameters['granularity'],
+                       .groupby(p['groupby'] + [pd.Grouper(key=p['granularity'],
                                 freq=time_grain)])
                        .aggregate({'value': ['sum']})
                        .reset_index())
-        expected_df.columns = (parameters['groupby'] +
+        expected_df.columns = (p['groupby'] +
                                ['__timestamp'] +
-                               parameters['metrics'])
+                               p['metrics'])
         expected_df['__timestamp'] = expected_df['__timestamp'].astype(str)
         expected_df = (expected_df.sort_values(['sum__value'],
-                                               ascending=(not parameters['order_desc']))
+                                               ascending=(not p['order_desc']))
                                   .reset_index(drop=True))
         self.assertEqual(result.df, expected_df)
 
@@ -1012,7 +1012,7 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
         self.datasource.calc_category_percentage = calc_category_percentage
 
     def test_post_aggregation_filter(self):
-        parameters = {
+        p = {
             'groupby': ['project', 'region'],
             'metrics': ['sum__value'],
             'granularity': 'received',
@@ -1029,15 +1029,15 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
                 ],
             },
         }
-        result = self.datasource.query(parameters)
+        result = self.datasource.query(p)
         self.assertIsInstance(result, QueryResult)
         self.assertEqual(result.error_message, None)
         self.assertEqual(result.status, QueryStatus.SUCCESS)
         expected_df = (self.df
-                           .groupby(parameters['groupby'])
+                           .groupby(p['groupby'])
                            .aggregate({'value': ['sum']})
                            .reset_index())
-        expected_df.columns = parameters['groupby'] + parameters['metrics']
+        expected_df.columns = p['groupby'] + p['metrics']
         expected_df = (expected_df.loc[expected_df['sum__value'] >= 150]
                                   .sort_values(['sum__value'], ascending=False))
         self.assertEqual(result.df, expected_df)
