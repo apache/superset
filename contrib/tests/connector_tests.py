@@ -14,15 +14,14 @@ import markdown
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from sqlalchemy import Date
+from tests.base_tests import SupersetTestCase
 
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.models.core import Database
 from superset.models.helpers import QueryResult
 from superset.utils import QueryStatus
-
-from tests.base_tests import SupersetTestCase
-from superset.models.core import Database
-from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
-from contrib.connectors.pandas.models import (
-    PandasDatasource, PandasColumn, PandasMetric)
+from ..connectors.pandas.models import (
+    PandasColumn, PandasDatasource, PandasMetric)
 
 
 class BaseConnectorTestCase(SupersetTestCase):
@@ -43,7 +42,7 @@ class BaseConnectorTestCase(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         if cls is BaseConnectorTestCase:
-            raise unittest.SkipTest("Skip tests from BaseConnectorTestCase")
+            raise unittest.SkipTest('Skip tests from BaseConnectorTestCase')
         super(BaseConnectorTestCase, cls).setUpClass()
 
     data = """
@@ -100,8 +99,7 @@ class BaseConnectorTestCase(SupersetTestCase):
                 _md.append(line.strip())
         md = '\n'.join(_md)
         return io.StringIO(
-            markdown.markdown(md, extensions=['markdown.extensions.tables'])
-        )
+            markdown.markdown(md, extensions=['markdown.extensions.tables']))
 
     def md_to_df(self, md_raw):
         """
@@ -512,7 +510,7 @@ class BaseConnectorTestCase(SupersetTestCase):
             'orderby': [
                 ['project', False],
                 ['region', True],
-            ]
+            ],
         }
         result = self.datasource.query(parameters)
         self.assertIsInstance(result, QueryResult)
@@ -943,10 +941,10 @@ class SqlaConnectorTestCase(BaseConnectorTestCase):
         SqlMetric(metric_name='ratio', metric_type='avg',
                   expression='AVG(value/value2)'),
         SqlMetric(metric_name='value_percentage', metric_type='custom',
-                  expression="SUM(value)/SUM(value + value2)"),
+                  expression='SUM(value)/SUM(value + value2)'),
         SqlMetric(metric_name='category_percentage', metric_type='custom',
                   expression="SUM(CASE WHEN category='CategoryA' THEN 1 ELSE 0 END)/"
-                             "CAST(COUNT(*) AS REAL)"),
+                             'CAST(COUNT(*) AS REAL)'),
     ]
 
     def setUp(self):
@@ -977,9 +975,9 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
         PandasColumn(column_name='received', type='datetime64[D]'),
         PandasColumn(column_name='value', type='int64'),
         PandasColumn(column_name='ratio', type='float64',
-                     expression="value / value2"),
+                     expression='value / value2'),
         PandasColumn(column_name='inverse_ratio', type='float64',
-                     expression="value2 / value"),
+                     expression='value2 / value'),
     ]
 
     metrics = [
@@ -992,7 +990,7 @@ class PandasConnectorTestCase(BaseConnectorTestCase):
         PandasMetric(metric_name='value_percentage', metric_type='custom',
                      source=None, expression='calc_value_percentage'),
         PandasMetric(metric_name='category_percentage', metric_type='custom',
-                     source='category', expression="calc_category_percentage"),
+                     source='category', expression='calc_category_percentage'),
     ]
 
     def setUp(self):

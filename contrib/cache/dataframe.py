@@ -15,7 +15,6 @@ except ImportError:  # pragma: no cover
 
 import pandas as pd
 from six import u
-
 from werkzeug.contrib.cache import FileSystemCache
 from werkzeug.posixemulation import rename
 

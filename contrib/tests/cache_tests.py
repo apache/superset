@@ -12,10 +12,9 @@ import time
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
-
 from tests.base_tests import SupersetTestCase
 
-from contrib.cache.dataframe import DataFrameCache
+from ..cache.dataframe import DataFrameCache
 
 
 class DataFrameCacheTestCase(SupersetTestCase):

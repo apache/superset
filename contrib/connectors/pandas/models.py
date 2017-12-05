@@ -6,33 +6,31 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 from datetime import datetime
 import hashlib
-import logging
 from io import BytesIO
-from past.builtins import basestring
-import requests
+import logging
 try:
     from urllib.parse import urlparse
 except ImportError:
     from urlparse import urlparse
 
-import pandas as pd
-from pandas.api.types import (
-    is_string_dtype, is_numeric_dtype, is_datetime64_any_dtype)
-
-from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, and_, or_
-)
-import sqlalchemy as sa
-from sqlalchemy.orm import backref, relationship
-from sqlalchemy_utils import ChoiceType, JSONType
-
 from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
+import pandas as pd
+from pandas.api.types import (
+    is_datetime64_any_dtype, is_numeric_dtype, is_string_dtype)
+from past.builtins import basestring
+import requests
+import sqlalchemy as sa
+from sqlalchemy import (
+    and_, Column, ForeignKey, Integer, or_, String, Text,
+)
+from sqlalchemy.orm import backref, relationship
+from sqlalchemy_utils import ChoiceType, JSONType
 
-from superset import dataframe_cache, db, utils, sm
+from superset import dataframe_cache, db, sm, utils
 from superset.connectors.base.models import (
-    BaseDatasource, BaseColumn, BaseMetric)
+    BaseColumn, BaseDatasource, BaseMetric)
 from superset.models.helpers import QueryResult, set_perm
 from superset.utils import QueryStatus
 
@@ -240,12 +238,12 @@ class PandasDatasource(Model, BaseDatasource):
 
     def get_perm(self):
         return (
-            "pandas.{obj.name}"
-            "(id:{obj.id})").format(obj=self)
+            'pandas.{obj.name}'
+            '(id:{obj.id})').format(obj=self)
 
     @property
     def dttm_cols(self):
-        l = [c.column_name for c in self.columns if c.is_dttm]
+        l = [c.column_name for c in self.columns if c.is_dttm]  # noqa: E741
         if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
@@ -268,8 +266,8 @@ class PandasDatasource(Model, BaseDatasource):
         return df.to_html(
             index=False,
             classes=(
-                "dataframe table table-striped table-bordered "
-                "table-condensed"))
+                'dataframe table table-striped table-bordered '
+                'table-condensed'))
 
     @property
     def data(self):
@@ -419,7 +417,7 @@ class PandasDatasource(Model, BaseDatasource):
                     # col_obj is None, probably because the col is a metric,
                     # in which case it is numeric anyway
                     pass
-                query += "({col} {op} {eq})".format(col=col, op=op, eq=eq)
+                query += '({col} {op} {eq})'.format(col=col, op=op, eq=eq)
         return query
 
     def get_agg_function(self, expr):
@@ -488,8 +486,8 @@ class PandasDatasource(Model, BaseDatasource):
         # Standard tests (copied from SqlaTable)
         if not granularity and is_timeseries:
             raise Exception(_(
-                "Datetime column not provided as part table configuration "
-                "and is required by this type of chart"))
+                'Datetime column not provided as part table configuration '
+                'and is required by this type of chart'))
 
         # Filter the DataFrame by the time column, and resample if necessary
         timestamp_cols = []
