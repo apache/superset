@@ -40,6 +40,6 @@ const vizMap = {
   deck_screengrid: require('./deckgl/screengrid.jsx'),
   deck_grid: require('./deckgl/grid.jsx'),
   deck_hex: require('./deckgl/hex.jsx'),
-  rose: require('./rose.jsx'),
+  rose: require('./rose.js'),
 };
 export default vizMap;

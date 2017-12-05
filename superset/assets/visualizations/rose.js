@@ -523,8 +523,9 @@ function roseVis(slice, payload) {
           endAngle: nArcSt.pie[segments[0] + d.arcId].endAngle,
         })(d))
         .style('opacity', d =>
-          state.disabled[d.arcId] || arcSt.pie[segments[0] + d.arcId].percent < labelThreshold ?
-          0 : 1);
+          state.disabled[d.arcId] ||
+          (arcSt.pie[segments[0] + d.arcId].percent < labelThreshold)
+          ? 0 : 1);
     }
   }
 
