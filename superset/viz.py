@@ -214,8 +214,6 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
-        if self.form_data.get('cache_timeout'):
-            return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
         if (
@@ -229,44 +227,50 @@ class BaseViz(object):
             self.get_payload(force),
             default=utils.json_int_dttm_ser, ignore_nan=True)
 
-    @property
-    def cache_key(self):
-        form_data = self.form_data.copy()
-        merge_extra_filters(form_data)
-        s = str([(k, form_data[k]) for k in sorted(form_data.keys())])
-        return hashlib.md5(s.encode('utf-8')).hexdigest()
+    def cache_key(self, query_obj):
+        """
+        The cache key is the datasource/query string tuple associated with the
+        object which needs to be fully deterministic.
+        """
+
+        return hashlib.md5(
+            json.dumps((
+                self.datasource.id,
+                self.datasource.get_query_str(query_obj),
+            )).encode('utf-8'),
+        ).hexdigest()
 
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
-        cache_key = self.cache_key
-        payload = None
+        query_obj = self.query_obj()
+        cache_key = self.cache_key(query_obj)
+        cached_dttm = None
+        data = None
+        stacktrace = None
+        rowcount = None
         if not force and cache:
-            payload = cache.get(cache_key)
+            cache_value = cache.get(cache_key)
+            if cache_value:
+                stats_logger.incr('loaded_from_cache')
+                is_cached = True
+                try:
+                    cache_value = zlib.decompress(cache_value)
+                    if PY3:
+                        cache_value = cache_value.decode('utf-8')
+                    cache_value = json.loads(cache_value)
+                    data = cache_value['data']
+                    cached_dttm = cache_value['dttm']
+                except Exception as e:
+                    logging.error('Error reading cache: ' +
+                                  utils.error_msg_from_exception(e))
+                    data = None
+                logging.info('Serving from cache')
 
-        if payload:
-            stats_logger.incr('loaded_from_cache')
-            is_cached = True
-            try:
-                cached_data = zlib.decompress(payload)
-                if PY3:
-                    cached_data = cached_data.decode('utf-8')
-                payload = json.loads(cached_data)
-            except Exception as e:
-                logging.error('Error reading cache: ' +
-                              utils.error_msg_from_exception(e))
-                payload = None
-                return []
-            logging.info('Serving from cache')
-
-        if not payload:
+        if not data:
             stats_logger.incr('loaded_from_source')
-            data = None
             is_cached = False
-            cache_timeout = self.cache_timeout
-            stacktrace = None
-            rowcount = None
             try:
-                df = self.get_df()
+                df = self.get_df(query_obj)
                 if not self.error_message:
                     data = self.get_data(df)
                 rowcount = len(df.index) if df is not None else 0
@@ -277,37 +281,40 @@ class BaseViz(object):
                 self.status = utils.QueryStatus.FAILED
                 data = None
                 stacktrace = traceback.format_exc()
-            payload = {
-                'cache_key': cache_key,
-                'cache_timeout': cache_timeout,
-                'data': data,
-                'error': self.error_message,
-                'form_data': self.form_data,
-                'query': self.query,
-                'status': self.status,
-                'stacktrace': stacktrace,
-                'rowcount': rowcount,
-            }
-            payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
-            logging.info('Caching for the next {} seconds'.format(
-                cache_timeout))
-            data = self.json_dumps(payload)
-            if PY3:
-                data = bytes(data, 'utf-8')
-            if cache and self.status != utils.QueryStatus.FAILED:
+
+            if data and cache and self.status != utils.QueryStatus.FAILED:
+                cached_dttm = datetime.utcnow().isoformat().split('.')[0]
                 try:
+                    cache_value = json.dumps({
+                        'data': data,
+                        'dttm': cached_dttm,
+                    })
+                    if PY3:
+                        cache_value = bytes(cache_value, 'utf-8')
                     cache.set(
                         cache_key,
-                        zlib.compress(data),
-                        timeout=cache_timeout)
+                        zlib.compress(cache_value),
+                        timeout=self.cache_timeout)
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logging.warning('Could not cache key {}'.format(cache_key))
                     logging.exception(e)
                     cache.delete(cache_key)
-        payload['is_cached'] = is_cached
-        return payload
+
+        return {
+            'cache_key': cache_key,
+            'cached_dttm': cached_dttm,
+            'cache_timeout': self.cache_timeout,
+            'data': data,
+            'error': self.error_message,
+            'form_data': self.form_data,
+            'is_cached': is_cached,
+            'query': self.query,
+            'status': self.status,
+            'stacktrace': stacktrace,
+            'rowcount': rowcount,
+        }
 
     def json_dumps(self, obj):
         return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)

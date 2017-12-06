@@ -340,7 +340,6 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice('Girls', db.session)
         data = self.get_json_resp(
             '/superset/warm_up_cache?slice_id={}'.format(slc.id))
-
         assert data == [{'slice_id': slc.id, 'slice_name': slc.slice_name}]
 
         data = self.get_json_resp(
