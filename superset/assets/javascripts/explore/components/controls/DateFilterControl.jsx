@@ -58,23 +58,23 @@ export default class DateFilterControl extends React.Component {
     }
   }
   onControlChange(target, opt) {
-    this.setState({ [target]: opt.value }, this.onChange);
+    this.setState({ [target]: opt.value });
   }
   onNumberChange(event) {
-    this.setState({ num: event.target.value }, this.onChange);
+    this.setState({ num: event.target.value });
   }
   onFreeChange(event) {
-    this.setState({ free: event.target.value }, this.onChange);
+    this.setState({ free: event.target.value });
   }
   setType(type) {
-    this.setState({ type }, this.onChange);
+    this.setState({ type });
   }
   setValue(val) {
-    this.setState({ type: 'free', free: val }, this.onChange);
+    this.setState({ type: 'free', free: val });
     this.close();
   }
   setDatetime(dttm) {
-    this.setState({ dttm: dttm.format().substring(0, 19) }, this.onChange);
+    this.setState({ dttm: dttm.format().substring(0, 19) });
   }
   close() {
     let val;
