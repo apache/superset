@@ -1302,7 +1302,7 @@ class DistributionBarViz(DistributionPieViz):
                 if isinstance(x, (tuple, list)):
                     x = ', '.join([str(s) for s in x])
                 else:
-                    x = str(x)
+                    x = str(x.encode('utf8'))
                 values.append({
                     'x': x,
                     'y': v,
