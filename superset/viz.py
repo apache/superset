@@ -1300,7 +1300,7 @@ class DistributionBarViz(DistributionPieViz):
             for i, v in ys.iteritems():
                 x = i
                 if isinstance(x, (tuple, list)):
-                    x = ', '.join([str(s) for s in x])
+                    x = ', '.join([str(s.encode('utf8')) for s in x])
                 else:
                     x = str(x.encode('utf8'))
                 values.append({
