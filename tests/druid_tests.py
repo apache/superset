@@ -12,7 +12,7 @@ from mock import Mock, patch
 
 from superset import db, security, sm
 from superset.connectors.druid.models import (
-    DruidCluster, DruidDatasource, DruidMetric,
+    DruidCluster, DruidDatasource,
 )
 from .base_tests import SupersetTestCase
 
@@ -327,91 +327,6 @@ class DruidTests(SupersetTestCase):
         pv = sm.get_session.query(sm.permissionview_model).filter_by(
             permission=permission, view_menu=view_menu).first()
         assert pv is not None
-
-    def test_metrics_and_post_aggs(self):
-        """
-        Test generation of metrics and post-aggregations from an initial list
-        of superset metrics (which may include the results of either). This
-        primarily tests that specifying a post-aggregator metric will also
-        require the raw aggregation of the associated druid metric column.
-        """
-        metrics_dict = {
-            'unused_count': DruidMetric(
-                metric_name='unused_count',
-                verbose_name='COUNT(*)',
-                metric_type='count',
-                json=json.dumps({'type': 'count', 'name': 'unused_count'}),
-            ),
-            'some_sum': DruidMetric(
-                metric_name='some_sum',
-                verbose_name='SUM(*)',
-                metric_type='sum',
-                json=json.dumps({'type': 'sum', 'name': 'sum'}),
-            ),
-            'a_histogram': DruidMetric(
-                metric_name='a_histogram',
-                verbose_name='APPROXIMATE_HISTOGRAM(*)',
-                metric_type='approxHistogramFold',
-                json=json.dumps(
-                    {'type': 'approxHistogramFold', 'name': 'a_histogram'},
-                ),
-            ),
-            'aCustomMetric': DruidMetric(
-                metric_name='aCustomMetric',
-                verbose_name='MY_AWESOME_METRIC(*)',
-                metric_type='aCustomType',
-                json=json.dumps(
-                    {'type': 'customMetric', 'name': 'aCustomMetric'},
-                ),
-            ),
-            'quantile_p95': DruidMetric(
-                metric_name='quantile_p95',
-                verbose_name='P95(*)',
-                metric_type='postagg',
-                json=json.dumps({
-                    'type': 'quantile',
-                    'probability': 0.95,
-                    'name': 'p95',
-                    'fieldName': 'a_histogram',
-                }),
-            ),
-            'aCustomPostAgg': DruidMetric(
-                metric_name='aCustomPostAgg',
-                verbose_name='CUSTOM_POST_AGG(*)',
-                metric_type='postagg',
-                json=json.dumps({
-                    'type': 'customPostAgg',
-                    'name': 'aCustomPostAgg',
-                    'field': {
-                        'type': 'fieldAccess',
-                        'fieldName': 'aCustomMetric',
-                    },
-                }),
-            ),
-        }
-
-        metrics = ['some_sum']
-        all_metrics, post_aggs = DruidDatasource._metrics_and_post_aggs(
-            metrics, metrics_dict)
-
-        assert all_metrics == ['some_sum']
-        assert post_aggs == {}
-
-        metrics = ['quantile_p95']
-        all_metrics, post_aggs = DruidDatasource._metrics_and_post_aggs(
-            metrics, metrics_dict)
-
-        result_postaggs = set(['quantile_p95'])
-        assert all_metrics == ['a_histogram']
-        assert set(post_aggs.keys()) == result_postaggs
-
-        metrics = ['aCustomPostAgg']
-        all_metrics, post_aggs = DruidDatasource._metrics_and_post_aggs(
-            metrics, metrics_dict)
-
-        result_postaggs = set(['aCustomPostAgg'])
-        assert all_metrics == ['aCustomMetric']
-        assert set(post_aggs.keys()) == result_postaggs
 
 
 if __name__ == '__main__':
