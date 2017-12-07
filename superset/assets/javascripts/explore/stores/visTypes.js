@@ -1121,7 +1121,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['all_columns_x', 'all_columns_y'],
-          ['metric'],
+          ['metric', 'row_limit'],
         ],
       },
       {
