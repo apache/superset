@@ -13,6 +13,7 @@ const propTypes = {
   leftNode: PropTypes.node,
   onClick: PropTypes.func,
   hovered: PropTypes.bool,
+  tooltipOnClick: PropTypes.func,
 };
 
 const defaultProps = {
@@ -32,6 +33,7 @@ export default class ControlHeader extends React.Component {
                 label={t('description')}
                 tooltip={this.props.description}
                 placement="top"
+                onClick={this.props.tooltipOnClick}
               />
               {' '}
             </span>
