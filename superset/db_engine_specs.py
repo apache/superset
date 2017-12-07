@@ -319,7 +319,7 @@ class PostgresEngineSpec(BaseEngineSpec):
 
 
 class Db2EngineSpec(BaseEngineSpec):
-    engine = 'ibm_db_sa'
+    engine = 'db2'
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain('second', _('second'),
