@@ -25,6 +25,7 @@ from flask_babel import lazy_gettext as _
 from markdown import markdown
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
 import simplejson as json
 from six import PY3, string_types
 from six.moves import reduce
@@ -947,14 +948,23 @@ class NVD3TimeSeriesViz(NVD3Viz):
             elif title_suffix and isinstance(series_title, (list, tuple)):
                 series_title = series_title + (title_suffix,)
 
+            values = []
+            for ds in df.index:
+                if ds in ys:
+                    d = {
+                        'x': ds,
+                        'y': ys[ds],
+                    }
+                else:
+                    d = {}
+                values.append(d)
+
             d = {
                 'key': series_title,
-                'classed': classed,
-                'values': [
-                    {'x': ds, 'y': ys[ds] if ds in ys else None}
-                    for ds in df.index
-                ],
+                'values': values,
             }
+            if classed:
+                d['classed'] = classed
             chart_data.append(d)
         return chart_data
 
@@ -1134,6 +1144,47 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     viz_type = 'bar'
     sort_series = True
     verbose_name = _('Time Series - Bar Chart')
+
+
+class NVD3TimePivotViz(NVD3TimeSeriesViz):
+
+    """Time Series - Periodicity Pivot"""
+
+    viz_type = 'time_pivot'
+    sort_series = True
+    verbose_name = _('Time Series - Period Pivot')
+
+    def query_obj(self):
+        d = super(NVD3TimePivotViz, self).query_obj()
+        d['metrics'] = [self.form_data.get('metric')]
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        df = self.process_data(df)
+        freq = to_offset(fd.get('freq'))
+        freq.normalize = True
+        df[DTTM_ALIAS] = df.index.map(freq.rollback)
+        df['ranked'] = df[DTTM_ALIAS].rank(method='dense', ascending=False) - 1
+        df.ranked = df.ranked.map(int)
+        df['series'] = '-' + df.ranked.map(str)
+        df['series'] = df['series'].str.replace('-0', 'current')
+        rank_lookup = {
+            row['series']: row['ranked']
+            for row in df.to_dict(orient='records')
+        }
+        max_ts = df[DTTM_ALIAS].max()
+        max_rank = df['ranked'].max()
+        df[DTTM_ALIAS] = df.index + (max_ts - df[DTTM_ALIAS])
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            columns='series',
+            values=fd.get('metric'))
+        chart_data = self.to_series(df)
+        for serie in chart_data:
+            serie['rank'] = rank_lookup[serie['key']]
+            serie['perc'] = 1 - (serie['rank'] / (max_rank + 1))
+        return chart_data
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):

@@ -18,6 +18,7 @@ const vizMap = {
   horizon: require('./horizon.js'),
   iframe: require('./iframe.js'),
   line: require('./nvd3_vis.js'),
+  time_pivot: require('./nvd3_vis.js'),
   mapbox: require('./mapbox.jsx'),
   markup: require('./markup.js'),
   para: require('./parallel_coordinates.js'),
