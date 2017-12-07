@@ -195,6 +195,50 @@ export const visTypes = {
     },
   },
 
+  time_pivot: {
+    label: t('Time Series - Periodicity Pivot'),
+    showOnExplore: true,
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['metric', 'freq'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['show_legend', 'line_interpolation'],
+          ['color_picker', null],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_axis_showminmax', 'x_axis_format'],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_showminmax', 'y_log_scale'],
+          ['y_axis_format', 'y_axis_bounds'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
+  },
+
   dual_line: {
     label: t('Dual Axis Line Chart'),
     requiresTime: true,
