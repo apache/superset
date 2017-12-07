@@ -346,9 +346,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby', 'size'],
-          ['row_limit'],
+          ['spatial', 'size'],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -377,9 +376,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby', 'size'],
-          ['row_limit'],
+          ['spatial', 'size'],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -408,9 +406,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby', 'size'],
-          ['row_limit'],
+          ['spatial', 'size'],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -443,9 +440,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby'],
-          ['row_limit'],
+          ['spatial', 'size'],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -470,14 +466,6 @@ export const visTypes = {
       },
     ],
     controlOverrides: {
-      all_columns_x: {
-        label: t('Longitude Column'),
-        validators: [v.nonEmpty],
-      },
-      all_columns_y: {
-        label: t('Latitude Column'),
-        validators: [v.nonEmpty],
-      },
       dimension: {
         label: t('Categorical Color'),
         description: t('Pick a dimension from which categorical colors are defined'),

@@ -23,7 +23,7 @@ export default function PopoverSection({ title, isSelected, children, onSelect, 
         &nbsp;
         <i className={isSelected ? 'fa fa-check text-primary' : ''} />
       </div>
-      <div>
+      <div className="m-t-5 m-l-5">
         {children}
       </div>
     </div>);
