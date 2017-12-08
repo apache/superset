@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 import json
 import logging
+import os
 import pickle
 import re
 import time
@@ -16,7 +17,7 @@ from urllib import parse
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
 )
-from flask_appbuilder import expose
+from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
@@ -27,21 +28,26 @@ import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
+from unidecode import unidecode
 from werkzeug.routing import BaseConverter
+from werkzeug.utils import secure_filename
 
 from superset import (
     app, appbuilder, cache, db, results_backend, security, sm, sql_lab, utils,
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
+from superset.forms import CsvToDatabaseForm
 from superset.legacy import cast_form_data
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
 from .base import (
-    api, BaseSupersetView, CsvResponse, DeleteMixin, get_error_msg,
-    get_user_roles, json_error_response, SupersetFilter, SupersetModelView,
+    api, BaseSupersetView, CsvResponse, DeleteMixin,
+    generate_download_headers, get_error_msg, get_user_roles,
+    json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 
 config = app.config
@@ -130,14 +136,6 @@ class SliceFilter(SupersetFilter):
         return query.filter(self.model.perm.in_(perms))
 
 
-class DatabaseFilter(SupersetFilter):
-    def apply(self, query, func):
-        if self.has_all_datasource_access():
-            return query
-        perms = self.get_view_menus('database_access')
-        return query.filter(self.model.perm.in_(perms))
-
-
 class DashboardFilter(SupersetFilter):
 
     """List dashboards for which users have access to at least one slice"""
@@ -165,16 +163,9 @@ class DashboardFilter(SupersetFilter):
         return query
 
 
-def generate_download_headers(extension):
-    filename = datetime.now().strftime('%Y%m%d_%H%M%S')
-    content_disp = 'attachment; filename={}.{}'.format(filename, extension)
-    headers = {
-        'Content-Disposition': content_disp,
-    }
-    return headers
 
 
-class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
+class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
 
     list_title = _('List Databases')
@@ -211,7 +202,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     ]
     add_template = 'superset/models/database/add.html'
     edit_template = 'superset/models/database/edit.html'
-    base_filters = [['perm', DatabaseFilter, lambda:[]]]
     base_order = ('changed_on', 'desc')
     description_columns = {
         'sqlalchemy_uri': utils.markdown(
@@ -314,6 +304,71 @@ class DatabaseAsync(DatabaseView):
 appbuilder.add_view_no_menu(DatabaseAsync)
 
 
+class CsvToDatabaseView(SimpleFormView):
+    form = CsvToDatabaseForm
+    form_title = _('CSV to Database configuration')
+    add_columns = ['database', 'schema', 'table_name']
+
+    def form_get(self, form):
+        form.sep.data = ','
+        form.header.data = 0
+        form.mangle_dupe_cols.data = True
+        form.skipinitialspace.data = False
+        form.skip_blank_lines.data = True
+        form.parse_dates.data = True
+        form.infer_datetime_format.data = True
+        form.decimal.data = '.'
+        form.if_exists.data = 'append'
+        all_datasources = (
+            db.session.query(
+                models.Database.sqlalchemy_uri,
+                models.Database.database_name)
+            .all()
+        )
+        form.con.choices += all_datasources
+
+    def form_post(self, form):
+        def _upload_file(csv_file):
+            if csv_file and csv_file.filename:
+                filename = secure_filename(csv_file.filename)
+                csv_file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
+                return filename
+
+        csv_file = form.csv_file.data
+        _upload_file(csv_file)
+        table = SqlaTable(table_name=form.name.data)
+        database = (
+            db.session.query(models.Database)
+            .filter_by(sqlalchemy_uri=form.data.get('con'))
+            .one()
+        )
+        table.database = database
+        table.database_id = database.id
+        try:
+            database.db_engine_spec.create_table_from_csv(form, table)
+        except Exception as e:
+            os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
+            flash(e, 'error')
+            return redirect('/tablemodelview/list/')
+
+        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
+        # Go back to welcome page / splash screen
+        db_name = (
+            db.session.query(models.Database.database_name)
+            .filter_by(sqlalchemy_uri=form.data.get('con'))
+            .one()
+        )
+        message = _('CSV file "{0}" uploaded to table "{1}" in '
+                    'database "{2}"'.format(form.csv_file.data.filename,
+                                            form.name.data,
+                                            db_name[0]))
+        flash(message, 'info')
+        return redirect('/tablemodelview/list/')
+
+
+appbuilder.add_view_no_menu(CsvToDatabaseView)
+
+
 class DatabaseTablesAsync(DatabaseView):
     list_columns = ['id', 'all_table_names', 'all_schema_names']
 
@@ -360,7 +415,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'datasource_link': _('Datasource'),
     }
     search_columns = (
-        'slice_name', 'description', 'viz_type', 'owners',
+        'slice_name', 'description', 'viz_type', 'datasource_name', 'owners',
     )
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
@@ -451,7 +506,7 @@ appbuilder.add_view_no_menu(SliceAsync)
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'id', 'slice_name', 'slice_link', 'viz_type',
-        'owners', 'modified', 'changed_on']
+        'datasource_link', 'owners', 'modified', 'changed_on']
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -515,7 +570,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         obj.slug = obj.slug.strip() or None
         if obj.slug:
             obj.slug = obj.slug.replace(' ', '-')
-            obj.slug = re.sub(r'[^a-zA-Z0-9\-]+', '', obj.slug)
+            obj.slug = re.sub(r'[^\w\-]+', '', obj.slug)
         if g.user not in obj.owners:
             obj.owners.append(g.user)
         utils.validate_json(obj.json_metadata)
@@ -1036,8 +1091,9 @@ class Superset(BaseSupersetView):
 
         return json_success(viz_obj.json_dumps(payload), status=status)
 
-    @expose('/import_dashboards', methods=['GET', 'POST'])
     @log_this
+    @has_access
+    @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
         """Overrides the dashboards using pickled instances from the file."""
         f = request.files.get('file')
@@ -1180,7 +1236,10 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
         payload = json.dumps(
-            datasource.values_for_column(column),
+            datasource.values_for_column(
+                column,
+                config.get('FILTER_SELECT_ROW_LIMIT', 10000),
+            ),
             default=utils.json_int_dttm_ser)
         return json_success(payload)
 
@@ -2225,7 +2284,7 @@ class Superset(BaseSupersetView):
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
-            'attachment; filename={}.csv'.format(query.name))
+            'attachment; filename={}.csv'.format(unidecode(query.name)))
         logging.info('Ready to return response')
         return response
 
@@ -2464,6 +2523,16 @@ appbuilder.add_link(
     category='SQL Lab',
     category_label=__('SQL Lab'),
 )
+
+appbuilder.add_link(
+    'Upload a CSV',
+    label=__('Upload a CSV'),
+    href='/csvtodatabaseview/form',
+    icon='fa-upload',
+    category='Sources',
+    category_label=__('Sources'),
+    category_icon='fa-wrench',)
+appbuilder.add_separator('Sources')
 
 
 @app.after_request

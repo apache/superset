@@ -228,6 +228,7 @@ export const controls = {
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
       ['dark_blue', 'light/dark blue'],
+      ['pink_grey', 'pink/white/grey'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
@@ -430,6 +431,30 @@ export const controls = {
     ],
     description: t('The country code standard that Superset should expect ' +
     'to find in the [country] column'),
+  },
+
+  freq: {
+    type: 'SelectControl',
+    label: t('Frequency'),
+    default: 'W-MON',
+    freeForm: true,
+    clearable: false,
+    choices: [
+      ['AS', 'Year (freq=AS)'],
+      ['52W-MON', '52 weeks starting Monday (freq=52W-MON)'],
+      ['W-SUN', '1 week starting Sunday (freq=W-SUN)'],
+      ['W-MON', '1 week starting Monday (freq=W-MON)'],
+      ['D', 'Day (freq=D)'],
+      ['4W-MON', '4 weeks (freq=4W-MON)'],
+    ],
+    description: t(
+      `The periodicity over which to pivot time. Users can provide
+      "Pandas" offset alias.
+      Click on the info bubble for more details on accepted "freq" expressions.`),
+    tooltipOnClick: () => {
+      window.open(
+        'https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases');
+    },
   },
 
   groupby: groupByControl,
@@ -729,6 +754,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Row limit'),
+    validators: [v.integer],
     default: null,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
@@ -737,6 +763,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Series limit'),
+    validators: [v.integer],
     choices: formatSelectOptions(SERIES_LIMITS),
     default: 50,
     description: t('Limits the number of time series that get displayed'),

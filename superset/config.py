@@ -41,6 +41,8 @@ with open(PACKAGE_FILE) as package_file:
 
 ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
+# max rows retrieved by filter select auto complete
+FILTER_SELECT_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2
 SUPERSET_CELERY_WORKERS = 32
 
@@ -186,6 +188,10 @@ TABLE_NAMES_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 ENABLE_CORS = False
 CORS_OPTIONS = {}
 
+# Allowed format types for upload on Database view
+# TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
+ALLOWED_EXTENSIONS = set(['csv'])
+
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv method
 # note: index option should not be overridden
 CSV_EXPORT = {
@@ -296,6 +302,14 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
 
+# The S3 bucket where you want to store your external hive tables created
+# from CSV files. For example, 'companyname-superset'
+CSV_TO_HIVE_UPLOAD_S3_BUCKET = None
+
+# The directory within the bucket specified above that will
+# contain all the external tables
+CSV_TO_HIVE_UPLOAD_DIRECTORY = 'EXTERNAL_HIVE_TABLES/'
+
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
 # meaning values for existing keys get overwritten by the content of this
@@ -307,6 +321,12 @@ JINJA_CONTEXT_ADDONS = {}
 ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
 CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
+
+# If a callable is specified, it will be called at app startup while passing
+# a reference to the Flask app. This can be used to alter the Flask app
+# in whatever way.
+# example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
+FLASK_APP_MUTATOR = None
 
 
 # smtp server configuration

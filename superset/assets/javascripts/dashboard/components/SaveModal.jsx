@@ -13,7 +13,7 @@ const propTypes = {
   css: PropTypes.string,
   dashboard: PropTypes.object.isRequired,
   triggerNode: PropTypes.node.isRequired,
-  readFilters: PropTypes.func,
+  filters: PropTypes.object.isRequired,
   serialize: PropTypes.func,
   onSave: PropTypes.func,
 };
@@ -81,7 +81,7 @@ class SaveModal extends React.PureComponent {
       css: this.state.css,
       expanded_slices: dashboard.metadata.expanded_slices || {},
       dashboard_title: dashboard.dashboard_title,
-      default_filters: this.props.readFilters(),
+      default_filters: JSON.stringify(this.props.filters),
       duplicate_slices: this.state.duplicateSlices,
     };
     let url = null;
@@ -106,6 +106,7 @@ class SaveModal extends React.PureComponent {
     return (
       <ModalTrigger
         ref={(modal) => { this.modal = modal; }}
+        isMenuItem
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save Dashboard')}
         modalBody={

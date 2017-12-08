@@ -1,6 +1,7 @@
 import d3 from 'd3';
 
 export const brandColor = '#00A699';
+export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
 
 // Color related utility functions go in this object
 export const bnbColors = [
@@ -101,19 +102,43 @@ export const spectrums = {
     '#1B4150',
     '#092935',
   ],
+  pink_grey: [
+    '#E70B81',
+    '#FAFAFA',
+    '#666666',
+  ],
 };
 
+/**
+ * Get a color from a scheme specific palette (scheme)
+ * The function cycles through the palette while memoizing labels
+ * association to colors. If the function is called twice with the
+ * same string, it will return the same color.
+ *
+ * @param {string} s - The label for which we want to get a color
+ * @param {string} scheme - The palette name, or "scheme"
+ * @param {string} forcedColor - A color that the caller wants to
+    forcibly associate to a label.
+ */
 export const getColorFromScheme = (function () {
-  // Color factory
   const seen = {};
-  return function (s, scheme) {
+  const forcedColors = {};
+  return function (s, scheme, forcedColor) {
     if (!s) {
       return;
     }
     const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
-    let stringifyS = String(s);
+    let stringifyS = String(s).toLowerCase();
     // next line is for superset series that should have the same color
     stringifyS = stringifyS.replace('---', '');
+
+    if (forcedColor && !forcedColors[stringifyS]) {
+      forcedColors[stringifyS] = forcedColor;
+    }
+    if (forcedColors[stringifyS]) {
+      return forcedColors[stringifyS];
+    }
+
     if (seen[selectedScheme] === undefined) {
       seen[selectedScheme] = {};
     }

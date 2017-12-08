@@ -34,7 +34,7 @@ class RefreshIntervalModal extends React.PureComponent {
     return (
       <ModalTrigger
         triggerNode={this.props.triggerNode}
-        isButton
+        isMenuItem
         modalTitle={t('Refresh Interval')}
         modalBody={
           <div>

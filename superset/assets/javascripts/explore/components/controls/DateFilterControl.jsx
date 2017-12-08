@@ -58,12 +58,25 @@ export default class DateFilterControl extends React.Component {
     }
   }
   onControlChange(target, opt) {
-    this.setState({ [target]: opt.value }, this.onChange);
+    this.setState({ [target]: opt.value });
   }
   onNumberChange(event) {
-    this.setState({ num: event.target.value }, this.onChange);
+    this.setState({ num: event.target.value });
   }
-  onChange() {
+  onFreeChange(event) {
+    this.setState({ free: event.target.value });
+  }
+  setType(type) {
+    this.setState({ type });
+  }
+  setValue(val) {
+    this.setState({ type: 'free', free: val });
+    this.close();
+  }
+  setDatetime(dttm) {
+    this.setState({ dttm: dttm.format().substring(0, 19) });
+  }
+  close() {
     let val;
     if (this.state.type === 'rel') {
       val = `${this.state.num} ${this.state.grain} ${this.state.rel}`;
@@ -73,21 +86,6 @@ export default class DateFilterControl extends React.Component {
       val = this.state.free;
     }
     this.props.onChange(val);
-  }
-  onFreeChange(event) {
-    this.setState({ free: event.target.value }, this.onChange);
-  }
-  setType(type) {
-    this.setState({ type }, this.onChange);
-  }
-  setValue(val) {
-    this.setState({ type: 'free', free: val }, this.onChange);
-    this.close();
-  }
-  setDatetime(dttm) {
-    this.setState({ dttm: dttm.format().substring(0, 19) }, this.onChange);
-  }
-  close() {
     this.refs.trigger.hide();
   }
   renderPopover() {

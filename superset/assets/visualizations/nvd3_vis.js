@@ -166,6 +166,13 @@ function nvd3Vis(slice, payload) {
         chart.xAxis.staggerLabels(false);
         break;
 
+      case 'time_pivot':
+        chart = nv.models.lineChart();
+        chart.xScale(d3.time.scale.utc());
+        chart.interpolate(fd.line_interpolation);
+        chart.xAxis.staggerLabels(false);
+        break;
+
       case 'dual_line':
         chart = nv.models.multiChart();
         chart.interpolate('linear');
@@ -337,7 +344,7 @@ function nvd3Vis(slice, payload) {
       chart.xScale(d3.scale.log());
     }
     const isTimeSeries = [
-      'line', 'dual_line', 'area', 'compare', 'bar'].indexOf(vizType) >= 0;
+      'line', 'dual_line', 'area', 'compare', 'bar', 'time_pivot'].indexOf(vizType) >= 0;
     // if x axis format is a date format, rotate label 90 degrees
     if (isTimeSeries) {
       chart.xAxis.rotateLabels(45);
@@ -375,7 +382,16 @@ function nvd3Vis(slice, payload) {
     setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax);
     setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax);
 
-    if (vizType !== 'bullet') {
+    if (vizType === 'time_pivot') {
+      chart.color((d) => {
+        const c = fd.color_picker;
+        let alpha = 1;
+        if (d.rank > 0) {
+          alpha = d.perc * 0.5;
+        }
+        return `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
+      });
+    } else if (vizType !== 'bullet') {
       chart.color(d => getColorFromScheme(d[colorKey], fd.color_scheme));
     }
     if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {

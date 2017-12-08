@@ -13,6 +13,7 @@ from sqlalchemy import (
     select, String, Text,
 )
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
@@ -31,6 +32,7 @@ class TableColumn(Model, BaseColumn):
     """ORM object for table columns, each table can have multiple columns"""
 
     __tablename__ = 'table_columns'
+    __table_args__ = (UniqueConstraint('table_id', 'column_name'),)
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
         'SqlaTable',
@@ -47,6 +49,7 @@ class TableColumn(Model, BaseColumn):
         'filterable', 'expression', 'description', 'python_date_format',
         'database_expression',
     )
+    export_parent = 'table'
 
     @property
     def sqla_col(self):
@@ -101,18 +104,19 @@ class TableColumn(Model, BaseColumn):
         If database_expression is not empty, the internal dttm
         will be parsed as the sql sentence for the database to convert
         """
-
-        tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
+        tf = self.python_date_format
         if self.database_expression:
             return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
-        elif tf == 'epoch_s':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds())
-        elif tf == 'epoch_ms':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
+        elif tf:
+            if tf == 'epoch_s':
+                return str((dttm - datetime(1970, 1, 1)).total_seconds())
+            elif tf == 'epoch_ms':
+                return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
+            return "'{}'".format(dttm.strftime(tf))
         else:
             s = self.table.database.db_engine_spec.convert_dttm(
                 self.type or '', dttm)
-            return s or "'{}'".format(dttm.strftime(tf))
+            return s or "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
 
 
 class SqlMetric(Model, BaseMetric):
@@ -120,6 +124,7 @@ class SqlMetric(Model, BaseMetric):
     """ORM object for metrics, each table can have multiple metrics"""
 
     __tablename__ = 'sql_metrics'
+    __table_args__ = (UniqueConstraint('table_id', 'metric_name'),)
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
         'SqlaTable',
@@ -130,6 +135,7 @@ class SqlMetric(Model, BaseMetric):
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'table_id', 'expression',
         'description', 'is_restricted', 'd3format')
+    export_parent = 'table'
 
     @property
     def sqla_col(self):
@@ -162,6 +168,8 @@ class SqlaTable(Model, BaseDatasource):
     column_class = TableColumn
 
     __tablename__ = 'tables'
+    __table_args__ = (UniqueConstraint('database_id', 'table_name'),)
+
     table_name = Column(String(250))
     main_dttm_col = Column(String(250))
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
@@ -179,15 +187,13 @@ class SqlaTable(Model, BaseDatasource):
     sql = Column(Text)
 
     baselink = 'tablemodelview'
+
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
         'sql', 'params')
-
-    __table_args__ = (
-        sa.UniqueConstraint(
-            'database_id', 'schema', 'table_name',
-            name='_customer_location_uc'),)
+    export_parent = 'database'
+    export_children = ['metrics', 'columns']
 
     def __repr__(self):
         return self.name

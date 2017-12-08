@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 import json
 import logging
-from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -22,13 +22,15 @@ import requests
 from six import string_types
 import sqlalchemy as sa
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, or_, String, Text,
+    Boolean, Column, DateTime, ForeignKey, Integer, or_, String, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
 
 from superset import conf, db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
+from superset.models.helpers import (
+  AuditMixinNullable, ImportMixin, QueryResult, set_perm,
+)
 from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher, MetricPermException,
 )
@@ -60,7 +62,7 @@ class CustomPostAggregator(Postaggregator):
         self.post_aggregator = post_aggregator
 
 
-class DruidCluster(Model, AuditMixinNullable):
+class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     """ORM object referencing the Druid clusters"""
 
@@ -80,6 +82,11 @@ class DruidCluster(Model, AuditMixinNullable):
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
+
+    export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
+                     'coordinator_endpoint', 'broker_host', 'broker_port',
+                     'broker_endpoint', 'cache_timeout')
+    export_children = ['datasources']
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
@@ -122,9 +129,9 @@ class DruidCluster(Model, AuditMixinNullable):
             ds_refresh.append(datasource_name)
         else:
             return
-        self.refresh_async(ds_refresh, merge_flag, refreshAll)
+        self.refresh(ds_refresh, merge_flag, refreshAll)
 
-    def refresh_async(self, datasource_names, merge_flag, refreshAll):
+    def refresh(self, datasource_names, merge_flag, refreshAll):
         """
         Fetches metadata for the specified datasources andm
         merges to the Superset database
@@ -157,7 +164,7 @@ class DruidCluster(Model, AuditMixinNullable):
         session.flush()
 
         # Prepare multithreaded executation
-        pool = Pool()
+        pool = ThreadPool()
         ds_refresh = list(ds_map.values())
         metadata = pool.map(_fetch_metadata_for, ds_refresh)
         pool.close()
@@ -169,7 +176,7 @@ class DruidCluster(Model, AuditMixinNullable):
             if cols:
                 col_objs_list = (
                     session.query(DruidColumn)
-                    .filter(DruidColumn.datasource_name == datasource.datasource_name)
+                    .filter(DruidColumn.datasource_id == datasource.id)
                     .filter(or_(DruidColumn.column_name == col for col in cols))
                 )
                 col_objs = {col.column_name: col for col in col_objs_list}
@@ -179,7 +186,7 @@ class DruidCluster(Model, AuditMixinNullable):
                     col_obj = col_objs.get(col, None)
                     if not col_obj:
                         col_obj = DruidColumn(
-                            datasource_name=datasource.datasource_name,
+                            datasource_id=datasource.id,
                             column_name=col)
                         with session.no_autoflush:
                             session.add(col_obj)
@@ -219,10 +226,11 @@ class DruidColumn(Model, BaseColumn):
     """ORM model for storing Druid datasource column metadata"""
 
     __tablename__ = 'columns'
+    __table_args__ = (UniqueConstraint('column_name', 'datasource_id'),)
 
-    datasource_name = Column(
-        String(255),
-        ForeignKey('datasources.datasource_name'))
+    datasource_id = Column(
+        Integer,
+        ForeignKey('datasources.id'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
@@ -231,10 +239,11 @@ class DruidColumn(Model, BaseColumn):
     dimension_spec_json = Column(Text)
 
     export_fields = (
-        'datasource_name', 'column_name', 'is_active', 'type', 'groupby',
+        'datasource_id', 'column_name', 'is_active', 'type', 'groupby',
         'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json',
+        'description', 'dimension_spec_json', 'verbose_name',
     )
+    export_parent = 'datasource'
 
     def __repr__(self):
         return self.column_name
@@ -334,15 +343,14 @@ class DruidColumn(Model, BaseColumn):
         metrics = self.get_metrics()
         dbmetrics = (
             db.session.query(DruidMetric)
-            .filter(DruidCluster.cluster_name == self.datasource.cluster_name)
-            .filter(DruidMetric.datasource_name == self.datasource_name)
+            .filter(DruidMetric.datasource_id == self.datasource_id)
             .filter(or_(
                 DruidMetric.metric_name == m for m in metrics
             ))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics.values():
-            metric.datasource_name = self.datasource_name
+            metric.datasource_id = self.datasource_id
             if not dbmetrics.get(metric.metric_name, None):
                 db.session.add(metric)
 
@@ -350,7 +358,7 @@ class DruidColumn(Model, BaseColumn):
     def import_obj(cls, i_column):
         def lookup_obj(lookup_column):
             return db.session.query(DruidColumn).filter(
-                DruidColumn.datasource_name == lookup_column.datasource_name,
+                DruidColumn.datasource_id == lookup_column.datasource_id,
                 DruidColumn.column_name == lookup_column.column_name).first()
 
         return import_util.import_simple_obj(db.session, i_column, lookup_obj)
@@ -361,9 +369,10 @@ class DruidMetric(Model, BaseMetric):
     """ORM object referencing Druid metrics for a datasource"""
 
     __tablename__ = 'metrics'
-    datasource_name = Column(
-        String(255),
-        ForeignKey('datasources.datasource_name'))
+    __table_args__ = (UniqueConstraint('metric_name', 'datasource_id'),)
+    datasource_id = Column(
+        Integer,
+        ForeignKey('datasources.id'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship(
         'DruidDatasource',
@@ -372,9 +381,10 @@ class DruidMetric(Model, BaseMetric):
     json = Column(Text)
 
     export_fields = (
-        'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
+        'metric_name', 'verbose_name', 'metric_type', 'datasource_id',
         'json', 'description', 'is_restricted', 'd3format',
     )
+    export_parent = 'datasource'
 
     @property
     def expression(self):
@@ -400,7 +410,7 @@ class DruidMetric(Model, BaseMetric):
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
             return db.session.query(DruidMetric).filter(
-                DruidMetric.datasource_name == lookup_metric.datasource_name,
+                DruidMetric.datasource_id == lookup_metric.datasource_id,
                 DruidMetric.metric_name == lookup_metric.metric_name).first()
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
@@ -410,6 +420,7 @@ class DruidDatasource(Model, BaseDatasource):
     """ORM object referencing Druid datasources (tables)"""
 
     __tablename__ = 'datasources'
+    __table_args__ = (UniqueConstraint('datasource_name', 'cluster_name'),)
 
     type = 'druid'
     query_langtage = 'json'
@@ -420,7 +431,7 @@ class DruidDatasource(Model, BaseDatasource):
     baselink = 'druiddatasourcemodelview'
 
     # Columns
-    datasource_name = Column(String(255), unique=True)
+    datasource_name = Column(String(255))
     is_hidden = Column(Boolean, default=False)
     fetch_values_from = Column(String(100))
     cluster_name = Column(
@@ -432,11 +443,15 @@ class DruidDatasource(Model, BaseDatasource):
         sm.user_model,
         backref=backref('datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
+    UniqueConstraint('cluster_name', 'datasource_name')
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
         'cluster_name', 'offset', 'cache_timeout', 'params',
     )
+
+    export_parent = 'cluster'
+    export_children = ['columns', 'metrics']
 
     @property
     def database(self):
@@ -519,7 +534,7 @@ class DruidDatasource(Model, BaseDatasource):
          superset instances. Audit metadata isn't copies over.
         """
         def lookup_datasource(d):
-            return db.session.query(DruidDatasource).join(DruidCluster).filter(
+            return db.session.query(DruidDatasource).filter(
                 DruidDatasource.datasource_name == d.datasource_name,
                 DruidCluster.cluster_name == d.cluster_name,
             ).first()
@@ -556,19 +571,26 @@ class DruidDatasource(Model, BaseDatasource):
         v2nums = [int_or_0(n) for n in v2.split('.')]
         v1nums = (v1nums + [0, 0, 0])[:3]
         v2nums = (v2nums + [0, 0, 0])[:3]
-        return v1nums[0] > v2nums[0] or \
-            (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or \
-            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and v1nums[2] > v2nums[2])
+        return (
+                   v1nums[0] > v2nums[0] or
+                   (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
+                   (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
+                       v1nums[2] > v2nums[2])
+               )
 
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
         logging.info('Syncing datasource [{}]'.format(self.datasource_name))
         client = self.cluster.get_pydruid_client()
-        results = client.time_boundary(datasource=self.datasource_name)
-        if not results:
-            return
-        max_time = results[0]['result']['maxTime']
-        max_time = dparse(max_time)
+        try:
+            results = client.time_boundary(datasource=self.datasource_name)
+        except IOError:
+            results = None
+        if results:
+            max_time = results[0]['result']['maxTime']
+            max_time = dparse(max_time)
+        else:
+            max_time = datetime.now()
         # Query segmentMetadata for 7 days back. However, due to a bug,
         # we need to set this interval to more than 1 day ago to exclude
         # realtime segments, which triggered a bug (fixed in druid 0.8.2).
@@ -616,13 +638,12 @@ class DruidDatasource(Model, BaseDatasource):
             metrics.update(col.get_metrics())
         dbmetrics = (
             db.session.query(DruidMetric)
-            .filter(DruidCluster.cluster_name == self.cluster_name)
-            .filter(DruidMetric.datasource_name == self.datasource_name)
+            .filter(DruidMetric.datasource_id == self.id)
             .filter(or_(DruidMetric.metric_name == m for m in metrics))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics.values():
-            metric.datasource_name = self.datasource_name
+            metric.datasource_id = self.id
             if not dbmetrics.get(metric.metric_name, None):
                 with db.session.no_autoflush:
                     db.session.add(metric)
@@ -657,7 +678,7 @@ class DruidDatasource(Model, BaseDatasource):
         dimensions = druid_config['dimensions']
         col_objs = (
             session.query(DruidColumn)
-            .filter(DruidColumn.datasource_name == druid_config['name'])
+            .filter(DruidColumn.datasource_id == datasource.id)
             .filter(or_(DruidColumn.column_name == dim for dim in dimensions))
         )
         col_objs = {col.column_name: col for col in col_objs}
@@ -665,7 +686,7 @@ class DruidDatasource(Model, BaseDatasource):
             col_obj = col_objs.get(dim, None)
             if not col_obj:
                 col_obj = DruidColumn(
-                    datasource_name=druid_config['name'],
+                    datasource_id=datasource.id,
                     column_name=dim,
                     groupby=True,
                     filterable=True,
@@ -677,7 +698,7 @@ class DruidDatasource(Model, BaseDatasource):
         # Import Druid metrics
         metric_objs = (
             session.query(DruidMetric)
-            .filter(DruidMetric.datasource_name == druid_config['name'])
+            .filter(DruidMetric.datasource_id == datasource.id)
             .filter(or_(DruidMetric.metric_name == spec['name']
                     for spec in druid_config['metrics_spec']))
         )
@@ -765,73 +786,123 @@ class DruidDatasource(Model, BaseDatasource):
         return granularity
 
     @staticmethod
-    def _metrics_and_post_aggs(metrics, metrics_dict):
-        all_metrics = []
-        post_aggs = {}
+    def get_post_agg(mconf):
+        """
+        For a metric specified as `postagg` returns the
+        kind of post aggregation for pydruid.
+        """
+        if mconf.get('type') == 'javascript':
+            return JavascriptPostAggregator(
+                name=mconf.get('name', ''),
+                field_names=mconf.get('fieldNames', []),
+                function=mconf.get('function', ''))
+        elif mconf.get('type') == 'quantile':
+            return Quantile(
+                mconf.get('name', ''),
+                mconf.get('probability', ''),
+            )
+        elif mconf.get('type') == 'quantiles':
+            return Quantiles(
+                mconf.get('name', ''),
+                mconf.get('probabilities', ''),
+            )
+        elif mconf.get('type') == 'fieldAccess':
+            return Field(mconf.get('name'))
+        elif mconf.get('type') == 'constant':
+            return Const(
+                mconf.get('value'),
+                output_name=mconf.get('name', ''),
+            )
+        elif mconf.get('type') == 'hyperUniqueCardinality':
+            return HyperUniqueCardinality(
+                mconf.get('name'),
+            )
+        elif mconf.get('type') == 'arithmetic':
+            return Postaggregator(
+                mconf.get('fn', '/'),
+                mconf.get('fields', []),
+                mconf.get('name', ''))
+        else:
+            return CustomPostAggregator(
+                mconf.get('name', ''),
+                mconf)
 
-        def recursive_get_fields(_conf):
-            _type = _conf.get('type')
-            _field = _conf.get('field')
-            _fields = _conf.get('fields')
+    @staticmethod
+    def find_postaggs_for(postagg_names, metrics_dict):
+        """Return a list of metrics that are post aggregations"""
+        postagg_metrics = [
+            metrics_dict[name] for name in postagg_names
+            if metrics_dict[name].metric_type == 'postagg'
+        ]
+        # Remove post aggregations that were found
+        for postagg in postagg_metrics:
+            postagg_names.remove(postagg.metric_name)
+        return postagg_metrics
 
-            field_names = []
-            if _type in ['fieldAccess', 'hyperUniqueCardinality',
-                         'quantile', 'quantiles']:
-                field_names.append(_conf.get('fieldName', ''))
+    @staticmethod
+    def recursive_get_fields(_conf):
+        _type = _conf.get('type')
+        _field = _conf.get('field')
+        _fields = _conf.get('fields')
+        field_names = []
+        if _type in ['fieldAccess', 'hyperUniqueCardinality',
+                     'quantile', 'quantiles']:
+            field_names.append(_conf.get('fieldName', ''))
+        if _field:
+            field_names += DruidDatasource.recursive_get_fields(_field)
+        if _fields:
+            for _f in _fields:
+                field_names += DruidDatasource.recursive_get_fields(_f)
+        return list(set(field_names))
 
-            if _field:
-                field_names += recursive_get_fields(_field)
+    @staticmethod
+    def resolve_postagg(postagg, post_aggs, agg_names, visited_postaggs, metrics_dict):
+        mconf = postagg.json_obj
+        required_fields = set(
+            DruidDatasource.recursive_get_fields(mconf)
+            + mconf.get('fieldNames', []))
+        # Check if the fields are already in aggs
+        # or is a previous postagg
+        required_fields = set([
+            field for field in required_fields
+            if field not in visited_postaggs and field not in agg_names
+        ])
+        # First try to find postaggs that match
+        if len(required_fields) > 0:
+            missing_postaggs = DruidDatasource.find_postaggs_for(
+                required_fields, metrics_dict)
+            for missing_metric in required_fields:
+                agg_names.add(missing_metric)
+            for missing_postagg in missing_postaggs:
+                # Add to visited first to avoid infinite recursion
+                # if post aggregations are cyclicly dependent
+                visited_postaggs.add(missing_postagg.metric_name)
+            for missing_postagg in missing_postaggs:
+                DruidDatasource.resolve_postagg(
+                    missing_postagg, post_aggs, agg_names, visited_postaggs, metrics_dict)
+        post_aggs[postagg.metric_name] = DruidDatasource.get_post_agg(postagg.json_obj)
 
-            if _fields:
-                for _f in _fields:
-                    field_names += recursive_get_fields(_f)
-
-            return list(set(field_names))
-
+    @staticmethod
+    def metrics_and_post_aggs(metrics, metrics_dict):
+        # Separate metrics into those that are aggregations
+        # and those that are post aggregations
+        agg_names = set()
+        postagg_names = []
         for metric_name in metrics:
-            metric = metrics_dict[metric_name]
-            if metric.metric_type != 'postagg':
-                all_metrics.append(metric_name)
+            if metrics_dict[metric_name].metric_type != 'postagg':
+                agg_names.add(metric_name)
             else:
-                mconf = metric.json_obj
-                all_metrics += recursive_get_fields(mconf)
-                all_metrics += mconf.get('fieldNames', [])
-                if mconf.get('type') == 'javascript':
-                    post_aggs[metric_name] = JavascriptPostAggregator(
-                        name=mconf.get('name', ''),
-                        field_names=mconf.get('fieldNames', []),
-                        function=mconf.get('function', ''))
-                elif mconf.get('type') == 'quantile':
-                    post_aggs[metric_name] = Quantile(
-                        mconf.get('name', ''),
-                        mconf.get('probability', ''),
-                    )
-                elif mconf.get('type') == 'quantiles':
-                    post_aggs[metric_name] = Quantiles(
-                        mconf.get('name', ''),
-                        mconf.get('probabilities', ''),
-                    )
-                elif mconf.get('type') == 'fieldAccess':
-                    post_aggs[metric_name] = Field(mconf.get('name'))
-                elif mconf.get('type') == 'constant':
-                    post_aggs[metric_name] = Const(
-                        mconf.get('value'),
-                        output_name=mconf.get('name', ''),
-                    )
-                elif mconf.get('type') == 'hyperUniqueCardinality':
-                    post_aggs[metric_name] = HyperUniqueCardinality(
-                        mconf.get('name'),
-                    )
-                elif mconf.get('type') == 'arithmetic':
-                    post_aggs[metric_name] = Postaggregator(
-                        mconf.get('fn', '/'),
-                        mconf.get('fields', []),
-                        mconf.get('name', ''))
-                else:
-                    post_aggs[metric_name] = CustomPostAggregator(
-                        mconf.get('name', ''),
-                        mconf)
-        return all_metrics, post_aggs
+                postagg_names.append(metric_name)
+        # Create the post aggregations, maintain order since postaggs
+        # may depend on previous ones
+        post_aggs = OrderedDict()
+        visited_postaggs = set()
+        for postagg_name in postagg_names:
+            postagg = metrics_dict[postagg_name]
+            visited_postaggs.add(postagg_name)
+            DruidDatasource.resolve_postagg(
+                postagg, post_aggs, agg_names, visited_postaggs, metrics_dict)
+        return list(agg_names), post_aggs
 
     def values_for_column(self,
                           column_name,
@@ -919,7 +990,7 @@ class DruidDatasource(Model, BaseDatasource):
 
         columns_dict = {c.column_name: c for c in self.columns}
 
-        all_metrics, post_aggs = self._metrics_and_post_aggs(
+        all_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
             metrics_dict)
 
@@ -950,6 +1021,7 @@ class DruidDatasource(Model, BaseDatasource):
                 dimensions.append(dim_spec)
             else:
                 dimensions.append(column_name)
+        extras = extras or {}
         qry = dict(
             datasource=self.datasource_name,
             dimensions=dimensions,
@@ -974,8 +1046,7 @@ class DruidDatasource(Model, BaseDatasource):
         if len(groupby) == 0 and not having_filters:
             del qry['dimensions']
             client.timeseries(**qry)
-
-        if (
+        elif (
             not having_filters and
             len(groupby) == 1 and
             order_desc and
@@ -1015,7 +1086,7 @@ class DruidDatasource(Model, BaseDatasource):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        elif len(groupby) > 1 or having_filters or not order_desc:
+        elif len(groupby) > 0:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             if timeseries_limit and is_timeseries:
