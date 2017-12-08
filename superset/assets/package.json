@@ -57,6 +57,7 @@
     "datatables.net-bs": "^1.10.15",
     "deck.gl": "^4.1.5",
     "distributions": "^1.0.0",
+    "fastdom": "^1.0.6",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "jed": "^1.1.1",
