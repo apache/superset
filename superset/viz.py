@@ -1302,7 +1302,7 @@ class DistributionBarViz(DistributionPieViz):
                 if isinstance(x, (tuple, list)):
                     x = ', '.join([text_type(s) for s in x])
                 else:
-                    x = text_type(s)
+                    x = text_type(x)
                 values.append({
                     'x': x,
                     'y': v,
