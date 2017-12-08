@@ -104,18 +104,19 @@ class TableColumn(Model, BaseColumn):
         If database_expression is not empty, the internal dttm
         will be parsed as the sql sentence for the database to convert
         """
-
-        tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
+        tf = self.python_date_format
         if self.database_expression:
             return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
-        elif tf == 'epoch_s':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds())
-        elif tf == 'epoch_ms':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
+        elif tf:
+            if tf == 'epoch_s':
+                return str((dttm - datetime(1970, 1, 1)).total_seconds())
+            elif tf == 'epoch_ms':
+                return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
+            return "'{}'".format(dttm.strftime(tf))
         else:
             s = self.table.database.db_engine_spec.convert_dttm(
                 self.type or '', dttm)
-            return s or "'{}'".format(dttm.strftime(tf))
+            return s or "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
 
 
 class SqlMetric(Model, BaseMetric):
