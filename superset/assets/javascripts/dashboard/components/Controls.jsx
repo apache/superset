@@ -65,8 +65,11 @@ class Controls extends React.PureComponent {
     };
     this.refresh = this.refresh.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
+    this.updateDom = this.updateDom.bind(this);
   }
   componentWillMount() {
+    this.updateDom(this.state.css);
+
     $.get('/csstemplateasyncmodelview/api/read', (data) => {
       const cssTemplates = data.result.map(row => ({
         value: row.template_name,
@@ -88,8 +91,27 @@ class Controls extends React.PureComponent {
     this.setState({ currentModal });
   }
   changeCss(css) {
-    this.setState({ css });
+    this.setState({ css }, () => {
+      this.updateDom(css);
+    });
     this.props.onChange();
+  }
+  updateDom(css) {
+    const className = 'CssEditor-css';
+    const head = document.head || document.getElementsByTagName('head')[0];
+    let style = document.querySelector('.' + className);
+
+    if (!style) {
+      style = document.createElement('style');
+      style.className = className;
+      style.type = 'text/css';
+      head.appendChild(style);
+    }
+    if (style.styleSheet) {
+      style.styleSheet.cssText = css;
+    } else {
+      style.innerHTML = css;
+    }
   }
   render() {
     const { dashboard, userId, filters,
@@ -175,7 +197,7 @@ class Controls extends React.PureComponent {
                   faIcon="css3"
                 />
               }
-              initialCss={dashboard.css}
+              initialCss={this.state.css}
               templates={this.state.cssTemplates}
               onChange={this.changeCss.bind(this)}
             />
