@@ -1,0 +1,118 @@
+#---------------------------------------------------------
+# Superset specific config
+#---------------------------------------------------------
+import os
+import re
+import logging
+from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH
+from flask_appbuilder.security.views import AuthOAuthView, expose, as_unicode
+from flask_appbuilder.security.sqla.manager import SecurityManager
+from flask import flash, redirect, session, url_for, request, g, make_response, jsonify, abort
+from flask_login import login_user
+basedir = os.path.abspath(os.path.dirname(__file__))
+
+log = logging.getLogger("SKAuthOAuthView")
+class SKAuthOAuthView(AuthOAuthView):
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    template_folder = base_dir + '/templates'
+    login_template = 'login_oauth.html'
+
+    def add_role_if_missing(self, sm, user_id, role_name):
+        found_role = sm.find_role(role_name)
+        session = sm.get_session
+        user = session.query(sm.user_model).get(user_id)
+        if found_role and found_role not in user.roles:
+            user.roles += [found_role]
+            session.commit()
+
+    @expose('/oauth-authorized/<provider>')
+    def oauth_authorized(self, provider):
+        log.debug("Authorized init")
+        resp = self.appbuilder.sm.oauth_remotes[provider].authorized_response()
+        if resp is None:
+            flash(u'You denied the request to sign in.', 'warning')
+            return redirect('login')
+        log.debug('OAUTH Authorized resp: {0}'.format(resp))
+        # Retrieves specific user info from the provider
+        try:
+            self.appbuilder.sm.set_oauth_session(provider, resp)
+            userinfo = self.appbuilder.sm.oauth_user_info(provider)
+        except Exception as e:
+            log.error("Error returning OAuth user info: {0}".format(e))
+            user = None
+        else:
+            log.debug("User info retrieved from {0}: {1}".format(provider, userinfo))
+            # User email is not whitelisted
+            if provider in self.appbuilder.sm.oauth_whitelists:
+                whitelist = self.appbuilder.sm.oauth_whitelists[provider]
+                allow = False
+                for e in whitelist:
+                    if re.search(e, userinfo['email']):
+                        allow = True
+                        break
+                if not allow:
+                    flash(u'You are not authorized.', 'warning')
+                    return redirect('login')
+            else:
+                log.debug('No whitelist for OAuth provider')
+            user = self.appbuilder.sm.auth_user_oauth(userinfo)
+            self.add_role_if_missing(self.appbuilder.sm, user.id, 'Sk User')
+
+        if user is None:
+            flash(as_unicode(self.invalid_login_message), 'warning')
+            return redirect('login')
+        else:
+            login_user(user)
+            return redirect(self.appbuilder.get_url_for_index)
+
+class SKSecurityManager(SecurityManager):
+    authoauthview = SKAuthOAuthView
+
+
+
+ROW_LIMIT = 5000
+SUPERSET_WORKERS = 4
+
+SUPERSET_WEBSERVER_PORT = 8080
+#---------------------------------------------------------
+
+#---------------------------------------------------------
+# Flask App Builder configuration
+#---------------------------------------------------------
+# Your App secret key
+#SECRET_KEY = '\2\1q.cemcjwl;wdcmjehlfkrilskevmalq;ekdkwlei1-34ms\1\2\e\y\y\h'
+
+# The SQLAlchemy connection string to your database backend
+# This connection defines the path to the database that stores your
+# superset metadata (slices, connections, tables, dashboards, ...).
+# Note that the connection information to connect to the datasources
+# you want to explore are managed directly in the web UI
+SQLALCHEMY_DATABASE_URI = 'mysql://USERNAME:PASSWORD@35.197.112.245/DBNAME'
+
+# Flask-WTF flag for CSRF
+WTF_CSRF_ENABLED = True
+# Add endpoints that need to be exempt from CSRF protection
+WTF_CSRF_EXEMPT_LIST = []
+
+# Set this API key to enable Mapbox visualizations
+MAPBOX_API_KEY = ''
+AUTH_TYPE=AUTH_OAUTH
+AUTH_USER_REGISTRATION=True
+AUTH_USER_REGISTRATION_ROLE="Gamma"
+CUSTOM_SECURITY_MANAGER = SKSecurityManager
+
+OAUTH_PROVIDERS = [
+    {'name':'google', 'icon':'fa-google', 'token_key':'access_token',
+        'whitelist': ['@shopkick.com'],
+        'remote_app': {
+            'consumer_key':'XXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com',
+            'consumer_secret':'XXXXXXXXXXXXXXXXXXXXXXXXXX',
+            'base_url':'https://www.googleapis.com/oauth2/v2/',
+            'request_token_params':{
+              'scope': 'email profile'
+            },
+            'request_token_url':None,
+            'access_token_url':'https://accounts.google.com/o/oauth2/token',
+            'authorize_url':'https://accounts.google.com/o/oauth2/auth'}
+    }
+]
