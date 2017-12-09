@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
 import simplejson as json
-from six import PY3, string_types
+from six import PY3, string_types, text_type
 from six.moves import reduce
 
 from superset import app, cache, get_manifest_file, utils
@@ -1300,9 +1300,9 @@ class DistributionBarViz(DistributionPieViz):
             for i, v in ys.iteritems():
                 x = i
                 if isinstance(x, (tuple, list)):
-                    x = ', '.join([str(s) for s in x])
+                    x = ', '.join([text_type(s) for s in x])
                 else:
-                    x = str(x)
+                    x = text_type(x)
                 values.append({
                     'x': x,
                     'y': v,
