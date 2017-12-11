@@ -1001,7 +1001,6 @@ class DruidDatasource(Model, BaseDatasource):
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
             extras=None,  # noqa
-            select=None,  # noqa
             columns=None, phase=2, client=None, form_data=None,
             order_desc=True):
         """Runs a query against Druid and returns a dataframe.
@@ -1056,7 +1055,17 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = 'descending' if order_desc else 'ascending'
 
-        if len(groupby) == 0 and not having_filters:
+        if columns:
+            del qry['post_aggregations']
+            del qry['aggregations']
+            qry['dimensions'] = columns
+            qry['metrics'] = []
+            qry['granularity'] = 'all'
+            qry['paging_spec'] = {
+                'threshold': row_limit,
+            }
+            client.select(**qry)
+        elif len(groupby) == 0 and not having_filters:
             logging.info('Running timeseries query for no groupby values')
             del qry['dimensions']
             client.timeseries(**qry)
@@ -1195,8 +1204,11 @@ class DruidDatasource(Model, BaseDatasource):
         cols = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += [col for col in query_obj['groupby'] if col in df.columns]
-        cols += [col for col in query_obj['metrics'] if col in df.columns]
+        cols += query_obj.get('groupby') or []
+        cols += query_obj.get('columns') or []
+        cols += query_obj.get('metrics') or []
+
+        cols = [col for col in cols if col in df.columns]
         df = df[cols]
 
         time_offset = DruidDatasource.time_offset(query_obj['granularity'])
