@@ -226,7 +226,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIn('dimensions', client.groupby.call_args_list[0][1])
         self.assertEqual(['col1'], client.groupby.call_args_list[0][1]['dimensions'])
         # order_desc but timeseries and dimension spec
-        spec = {'spec': 1}
+        # calls topn with single dimension spec 'dimension'
+        spec = {'outputName': 'hello', 'dimension': 'matcho'}
         spec_json = json.dumps(spec)
         col3 = DruidColumn(column_name='col3', dimension_spec_json=spec_json)
         ds.columns.append(col3)
@@ -238,13 +239,14 @@ class DruidFuncTestCase(unittest.TestCase):
             client=client, order_desc=True, timeseries_limit=5,
             filter=[], row_limit=100,
         )
-        self.assertEqual(0, len(client.topn.call_args_list))
-        self.assertEqual(2, len(client.groupby.call_args_list))
+        self.assertEqual(2, len(client.topn.call_args_list))
+        self.assertEqual(0, len(client.groupby.call_args_list))
         self.assertEqual(0, len(client.timeseries.call_args_list))
-        self.assertIn('dimensions', client.groupby.call_args_list[0][1])
-        self.assertIn('dimensions', client.groupby.call_args_list[1][1])
-        self.assertEqual([spec], client.groupby.call_args_list[0][1]['dimensions'])
-        self.assertEqual([spec], client.groupby.call_args_list[1][1]['dimensions'])
+        self.assertIn('dimension', client.topn.call_args_list[0][1])
+        self.assertIn('dimension', client.topn.call_args_list[1][1])
+        # uses dimension for pre query and full spec for final query
+        self.assertEqual('matcho', client.topn.call_args_list[0][1]['dimension'])
+        self.assertEqual(spec, client.topn.call_args_list[1][1]['dimension'])
 
     def test_run_query_multiple_groupby(self):
         client = Mock()
