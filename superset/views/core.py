@@ -1479,20 +1479,20 @@ class Superset(BaseSupersetView):
 
             configuration = {}
 
-            if database and uri:
+            if uri:
                 url = make_url(uri)
                 db_engine = models.Database.get_db_engine_spec_for_backend(
                     url.get_backend_name())
                 db_engine.patch()
+                if database:
+                    masked_url = database.get_password_masked_url_from_uri(uri)
+                    logging.info('Superset.testconn(). Masked URL: {0}'.format(masked_url))
 
-                masked_url = database.get_password_masked_url_from_uri(uri)
-                logging.info('Superset.testconn(). Masked URL: {0}'.format(masked_url))
-
-                configuration.update(
-                    db_engine.get_configuration_for_impersonation(uri,
-                                                                  impersonate_user,
-                                                                  username),
-                )
+                    configuration.update(
+                        db_engine.get_configuration_for_impersonation(uri,
+                                                                      impersonate_user,
+                                                                      username),
+                    )
 
             connect_args = (
                 request.json
