@@ -381,6 +381,7 @@ class SqlaTable(Model, BaseDatasource):
         }
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
+        db_engine_spec.patch()
 
         orderby = orderby or []
 
