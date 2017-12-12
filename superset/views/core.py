@@ -441,18 +441,18 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
-        'cache_timeout': _("Cache Timeout"),
-        'creator': _("Creator"),
-        'dashboards': _("Dashboards"),
-        'datasource_link': _("Datasource"),
-        'description': _("Description"),
-        'modified': _("Last Modified"),
-        'owners': _("Owners"),
-        'params': _("Parameters"),
-        'slice_link': _("Chart"),
-        'slice_name': _("Name"),
-        'table': _("Table"),
-        'viz_type': _("Visualization Type"),
+        'cache_timeout': _('Cache Timeout'),
+        'creator': _('Creator'),
+        'dashboards': _('Dashboards'),
+        'datasource_link': _('Datasource'),
+        'description': _('Description'),
+        'modified': _('Last Modified'),
+        'owners': _('Owners'),
+        'params': _('Parameters'),
+        'slice_link': _('Chart'),
+        'slice_name': _('Name'),
+        'table': _('Table'),
+        'viz_type': _('Visualization Type'),
     }
 
     def pre_add(self, obj):
