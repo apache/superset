@@ -486,7 +486,7 @@ appbuilder.add_view(
     'Charts',
     label=__('Charts'),
     icon='fa-bar-chart',
-    category="",
+    category='',
     category_icon='',)
 
 
