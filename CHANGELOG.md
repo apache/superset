@@ -1,5 +1,19 @@
 ## Change Log
 
+### 0.22.1
+Fixes 0.22.0
+
+### 0.22.0
+Bad empty release
+
+### 0.21.2 (2017/12/11 21:18 +00:00)
+- [#3974](https://github.com/apache/incubator-superset/pull/3974) [Bugfix] `_add_filters_from_pre_query` doesn't handle dim specs (#3974) (@Mogball)
+- [#4041](https://github.com/apache/incubator-superset/pull/4041) [API] Deprecate /update_role/ API endpoint (#4041) (@john-bodley)
+- [#4030](https://github.com/apache/incubator-superset/pull/4030) resolve python2 str() issue (#4030) (@timifasubaa)
+
+### 0.21.1
+Bad-empty release
+
 ### 0.21.0 (2017/12/08 09:11 +00:00)
 - [#4031](https://github.com/apache/incubator-superset/pull/4031) apply custom css for dashboard initially load (#4031) (@graceguo-supercat)
 - [#3891](https://github.com/apache/incubator-superset/pull/3891) [BUGFIX]: Fixing dttm_sql_literal to use python_date_format when specified. (#3891) (@fabianmenges)
