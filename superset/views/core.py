@@ -553,17 +553,17 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     edit_form_query_rel_fields = add_form_query_rel_fields
     label_columns = {
-        'dashboard_link': _("Dashboard"),
-        'dashboard_title': _("Title"),
-        'slug': _("Slug"),
-        'slices': _("Charts"),
-        'owners': _("Owners"),
-        'creator': _("Creator"),
-        'modified': _("Modified"),
-        'position_json': _("Position JSON"),
-        'css': _("CSS"),
-        'json_metadata': _("JSON Metadata"),
-        'table_names': _("Underlying Tables"),
+        'dashboard_link': _('Dashboard'),
+        'dashboard_title': _('Title'),
+        'slug': _('Slug'),
+        'slices': _('Charts'),
+        'owners': _('Owners'),
+        'creator': _('Creator'),
+        'modified': _('Modified'),
+        'position_json': _('Position JSON'),
+        'css': _('CSS'),
+        'json_metadata': _('JSON Metadata'),
+        'table_names': _('Underlying Tables'),
     }
 
     def pre_add(self, obj):
