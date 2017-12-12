@@ -243,7 +243,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
-        'slices': _('Associated Slices'),
+        'slices': _('Associated Charts'),
         'datasource_link': _('Data Source'),
         'cluster': _('Cluster'),
         'description': _('Description'),
