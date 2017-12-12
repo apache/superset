@@ -1484,6 +1484,7 @@ class Superset(BaseSupersetView):
                 db_engine = models.Database.get_db_engine_spec_for_backend(
                     url.get_backend_name())
                 db_engine.patch()
+
                 masked_url = database.get_password_masked_url_from_uri(uri)
                 logging.info('Superset.testconn(). Masked URL: {0}'.format(masked_url))
 
