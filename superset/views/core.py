@@ -483,9 +483,9 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     SliceModelView,
-    "Charts",
-    label=__("Charts"),
-    icon="fa-bar-chart",
+    'Charts',
+    label=__('Charts'),
+    icon='fa-bar-chart',
     category="",
     category_icon='',)
 
