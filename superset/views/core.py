@@ -405,10 +405,10 @@ appbuilder.add_view(
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
 
-    list_title = _('List Slices')
-    show_title = _('Show Slice')
-    add_title = _('Add Slice')
-    edit_title = _('Edit Slice')
+    list_title = _('List Charts')
+    show_title = _('Show Chart')
+    add_title = _('Add Chart')
+    edit_title = _('Edit Chart')
 
     can_add = False
     label_columns = {
@@ -441,18 +441,18 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
-        'cache_timeout': _('Cache Timeout'),
-        'creator': _('Creator'),
-        'dashboards': _('Dashboards'),
-        'datasource_link': _('Datasource'),
-        'description': _('Description'),
-        'modified': _('Last Modified'),
-        'owners': _('Owners'),
-        'params': _('Parameters'),
-        'slice_link': _('Slice'),
-        'slice_name': _('Name'),
-        'table': _('Table'),
-        'viz_type': _('Visualization Type'),
+        'cache_timeout': _("Cache Timeout"),
+        'creator': _("Creator"),
+        'dashboards': _("Dashboards"),
+        'datasource_link': _("Datasource"),
+        'description': _("Description"),
+        'modified': _("Last Modified"),
+        'owners': _("Owners"),
+        'params': _("Parameters"),
+        'slice_link': _("Chart"),
+        'slice_name': _("Name"),
+        'table': _("Table"),
+        'viz_type': _("Visualization Type"),
     }
 
     def pre_add(self, obj):
@@ -483,10 +483,10 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     SliceModelView,
-    'Slices',
-    label=__('Slices'),
-    icon='fa-bar-chart',
-    category='',
+    "Charts",
+    label=__("Charts"),
+    icon="fa-bar-chart",
+    category="",
     category_icon='',)
 
 
@@ -496,7 +496,7 @@ class SliceAsync(SliceModelView):  # noqa
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
-        'slice_link': _('Slice'),
+        'slice_link': _('Chart'),
     }
 
 
@@ -553,17 +553,17 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     }
     edit_form_query_rel_fields = add_form_query_rel_fields
     label_columns = {
-        'dashboard_link': _('Dashboard'),
-        'dashboard_title': _('Title'),
-        'slug': _('Slug'),
-        'slices': _('Slices'),
-        'owners': _('Owners'),
-        'creator': _('Creator'),
-        'modified': _('Modified'),
-        'position_json': _('Position JSON'),
-        'css': _('CSS'),
-        'json_metadata': _('JSON Metadata'),
-        'table_names': _('Underlying Tables'),
+        'dashboard_link': _("Dashboard"),
+        'dashboard_title': _("Title"),
+        'slug': _("Slug"),
+        'slices': _("Charts"),
+        'owners': _("Owners"),
+        'creator': _("Creator"),
+        'modified': _("Modified"),
+        'position_json': _("Position JSON"),
+        'css': _("CSS"),
+        'json_metadata': _("JSON Metadata"),
+        'table_names': _("Underlying Tables"),
     }
 
     def pre_add(self, obj):
