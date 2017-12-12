@@ -1479,7 +1479,7 @@ class Superset(BaseSupersetView):
 
             configuration = {}
 
-            if uri and database:
+            if database and uri:
                 url = make_url(uri)
                 db_engine = models.Database.get_db_engine_spec_for_backend(
                     url.get_backend_name())
