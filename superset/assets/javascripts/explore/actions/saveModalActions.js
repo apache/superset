@@ -46,9 +46,15 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
-export function saveSlice(formData, params) {
+export function saveSlice(formData, requestParams) {
   return (dispatch) => {
-    const { url, payload } = getExploreUrlAndPayload(formData, 'base', false, null, params);
+    const { url, payload } = getExploreUrlAndPayload({
+      formData,
+      endpointType: 'base',
+      force: false,
+      curUrl: null,
+      requestParams,
+    });
     return $.ajax({
       type: 'POST',
       url,
