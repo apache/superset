@@ -47,8 +47,7 @@ def connect(*args, **kwargs):
     if 'transportMode' in kwargs and kwargs['transportMode'] == 'http':
         params = ['host', 'username', 'password', 'port', 'httpPath', 'transportMode']
         kwargs['thrift_transport'] = add_http_mode(
-            **dict(filter(lambda i: i[0] in params, kwargs.iteritems())),
-        )
+            **dict(filter(lambda i: i[0] in params, kwargs.iteritems())))
         # remove unnecessary keys
         for param in params:
             kwargs.pop(param, None)
