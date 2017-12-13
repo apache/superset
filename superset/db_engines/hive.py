@@ -46,19 +46,19 @@ def fetch_logs(self, max_rows=1024,
 def connect(*args, **kwargs):
     if 'transportMode' in kwargs and kwargs['transportMode'] == 'http':
         params = ['host', 'username', 'password', 'port',
-		  'httpPath', 'transportMode']
+                  'httpPath', 'transportMode']
         kwargs['thrift_transport'] = add_http_mode_support(**dict(filter(lambda i: i[0] in params, kwargs.iteritems())))
-        #remove unnecessary keys
+        # remove unnecessary keys
         for param in params:
             kwargs.pop(param, None)
     return hive.Connection(*args, **kwargs)
 
-def add_http_mode_support(username="", password="", port=10001,
-			  httpPath="/cliservice", host="127.0.0.1",
-                          transportMode="http"):
-    ap = "%s:%s" % (username, password)
+def add_http_mode_support(username='', password='', port=10001,
+			  httpPath='/cliservice', host='127.0.0.1',
+                          transportMode='http'):
+    ap = '%s:%s' % (username, password)
     import base64
     from thrift.transport.THttpClient import THttpClient
     _transport = THttpClient(host, port=port, path=httpPath)
-    _transport.setCustomHeaders({"Authorization": "Basic "+base64.b64encode(ap).strip()})
+    _transport.setCustomHeaders({'Authorization': 'Basic '+base64.b64encode(ap).strip()})
     return _transport
