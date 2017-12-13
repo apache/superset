@@ -548,7 +548,7 @@ class CoreTests(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username='gamma')
-        assert 'List Slice' in self.get_resp('/slicemodelview/list/')
+        assert 'List Charts' in self.get_resp('/slicemodelview/list/')
         assert 'List Dashboard' in self.get_resp('/dashboardmodelview/list/')
 
     def test_csv_endpoint(self):
