@@ -64,5 +64,3 @@ def add_http_mode_support(username="", password="", port=10001,
     _transport.setCustomHeaders({"Authorization": "Basic "+base64.b64encode(ap).strip()})
 
     return _transport
-
-
