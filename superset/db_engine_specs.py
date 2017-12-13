@@ -789,7 +789,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
         hive.connect = patched_hive.connect
 
-
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
