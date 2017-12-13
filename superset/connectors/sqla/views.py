@@ -210,7 +210,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
-        'slices': _('Associated Slices'),
+        'slices': _('Associated Charts'),
         'link': _('Table'),
         'changed_by_': _('Changed By'),
         'database': _('Database'),
