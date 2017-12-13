@@ -119,7 +119,8 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       },
       timeout: timeout * 1000,
     });
-
+    dispatch(chartUpdateStarted(queryRequest, payload, key));
+    dispatch(triggerQuery(false, key));
     const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, key)))
       .then(() => queryRequest)
       .then(queryResponse => dispatch(chartUpdateSucceeded(queryResponse, key)))
@@ -149,7 +150,5 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       dispatch(triggerQuery(false, key)),
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
-    dispatch(chartUpdateStarted(queryRequest, payload, key));
-    dispatch(triggerQuery(false, key));
   };
 }
