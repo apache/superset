@@ -12,7 +12,7 @@ import random
 import textwrap
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, DateTime, Float, String
+from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 
 from superset import app, db, utils
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -1499,3 +1499,33 @@ def load_flights():
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
+
+def load_paris_iris_geojson():
+    tbl_name = 'paris_iris_mapping'
+
+    with gzip.open(os.path.join(DATA_FOLDER, 'paris_iris.json.gz')) as f:
+        df = pd.read_json(f)
+        df['features'] = df.features.map(json.dumps)
+
+
+    df.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'color': String(255),
+            'name': String(255),
+            'features': Text,
+            'type': Text,
+        },
+        index=False)
+    print("Creating table {} reference".format(tbl_name))
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Map of Paris"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()

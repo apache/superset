@@ -138,8 +138,9 @@ class Chart extends React.PureComponent {
 
   renderViz() {
     const viz = visMap[this.props.vizType];
+    viz(this, this.props.queryResponse, this.props.setControlValue);
     try {
-      viz(this, this.props.queryResponse, this.props.setControlValue);
+      // viz(this, this.props.queryResponse, this.props.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }

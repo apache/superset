@@ -1883,6 +1883,36 @@ class DeckHex(BaseDeckGLViz):
     viz_type = 'deck_hex'
     verbose_name = _('Deck.gl - 3D HEX')
 
+class DeckGeoJson(BaseDeckGLViz):
+
+    """deck.gl's GeoJSONLayer"""
+
+    viz_type = 'deck_geojson'
+    verbose_name = _('Deck.gl - GeoJSON')
+
+    def query_obj(self):
+        d = super(DeckGeoJson, self).query_obj()
+        d['columns'] = [self.form_data.get('geojson')]
+        d['metrics'] = []
+        d['groupby'] = []
+
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+
+        # TODO: Need to merge all shapes into 1 big feature collection
+        # Assuming df is an array of features
+        geojson = {
+            'type': 'FeatureCollection',
+            'features': [json.loads(item) for item in df.get(fd.get('line_column'))]
+        }
+
+        return {
+            'geojson': geojson,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY')
+        }
+
 
 class EventFlowViz(BaseViz):
 

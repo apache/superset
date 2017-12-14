@@ -504,6 +504,16 @@ export const controls = {
     }),
   },
 
+  geojson: {
+    type: 'SelectControl',
+    label: t('GeoJSON'),
+    validators: [v.nonEmpty],
+    description: t('Select the geojson column'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   all_columns_x: {
     type: 'SelectControl',
     label: 'X',
