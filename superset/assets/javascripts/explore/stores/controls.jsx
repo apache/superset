@@ -392,6 +392,14 @@ export const controls = {
     description: t('Show data points as circle markers on the lines'),
   },
 
+  show_lines: {
+    type: 'CheckboxControl',
+    label: t('Show Lines'),
+    renderTrigger: true,
+    default: true,
+    description: t('Show lines between data points'),
+  },
+
   show_bar_value: {
     type: 'CheckboxControl',
     label: t('Bar Values'),
@@ -644,6 +652,33 @@ export const controls = {
     }),
   },
 
+  columns_and_metrics_x: {
+    type: 'SelectControl',
+    label: t('X Axis'),
+    default: null,
+    description: t('Column or metric to display'),
+    mapStateToProps: (state) => {
+      let choices = [];
+      if (state.controls && state.datasource) {
+        const gbSet = new Set(state.controls.groupby.value);
+        const gbSelectables = state.datasource.all_cols.filter(elem => gbSet.has(elem[0]));
+
+        const mSet = new Set(state.controls.metrics.value);
+        const mSelectables = state.datasource.metrics_combo.filter(elem => mSet.has(elem[0]));
+
+        const cSet = new Set(state.controls.all_columns.value);
+        const cSelectables = state.datasource.all_cols.filter(elem => cSet.has(elem[0]));
+        choices = [...gbSelectables, ...mSelectables, ...cSelectables];
+      } else {
+        const formValue = (state.form_data || {}).columns_and_metrics_x || [];
+        choices = [[formValue, formValue]];
+      }
+      return {
+        choices,
+      };
+    },
+  },
+
   all_columns_y: {
     type: 'SelectControl',
     label: 'Y',
@@ -652,6 +687,59 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
+  },
+
+  columns_and_metrics_y: {
+    type: 'SelectControl',
+    multi: true,
+    label: t('Y Axis'),
+    default: [],
+    description: t('Columns or metrics to display'),
+    mapStateToProps: (state) => {
+      let choices = [];
+      if (state.controls && state.datasource) {
+        const gbSet = new Set(state.controls.groupby.value);
+        const gbSelectables = state.datasource.all_cols.filter(elem => gbSet.has(elem[0]));
+
+        const mSet = new Set(state.controls.metrics.value);
+        const mSelectables = state.datasource.metrics_combo.filter(elem => mSet.has(elem[0]));
+
+        const cSet = new Set(state.controls.all_columns.value);
+        const cSelectables = state.datasource.all_cols.filter(elem => cSet.has(elem[0]));
+        choices = [...gbSelectables, ...mSelectables, ...cSelectables];
+      } else {
+        const formValues = (state.form_data || {}).columns_and_metrics_y || [];
+        choices = formValues.map(fv => [fv, fv]);
+      }
+      return {
+        choices,
+      };
+    },
+  },
+
+  slice_by: {
+    type: 'SelectControl',
+    multi: true,
+    label: t('Slice By'),
+    default: [],
+    description: t('Columns to slice by'),
+    mapStateToProps: (state) => {
+      let choices = [];
+      if (state.controls && state.datasource) {
+        const gbSet = new Set(state.controls.groupby.value);
+        const gbSelectables = state.datasource.all_cols.filter(elem => gbSet.has(elem[0]));
+
+        const cSet = new Set(state.controls.all_columns.value);
+        const cSelectables = state.datasource.all_cols.filter(elem => cSet.has(elem[0]));
+        choices = [...gbSelectables, ...cSelectables];
+      } else {
+        const formValues = (state.form_data || {}).slice_by || [];
+        choices = formValues.map(fv => [fv, fv]);
+      }
+      return {
+        choices,
+      };
+    },
   },
 
   druid_time_origin: {

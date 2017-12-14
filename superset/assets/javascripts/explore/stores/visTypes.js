@@ -156,6 +156,77 @@ export const visTypes = {
     ],
   },
 
+  line_xy: {
+    label: t('XY - Line Chart'),
+    controlPanelSections: [
+      {
+        label: t('Axis Options'),
+        description: t('Select which columns or metrics to plot'),
+        expanded: true,
+        controlSetRows: [
+          ['columns_and_metrics_x'],
+          ['columns_and_metrics_y'],
+          ['slice_by'],
+        ],
+      },
+      {
+        label: t('GROUP BY'),
+        description: t('Use this section if you want a query that aggregates'),
+        controlSetRows: [
+          ['groupby'],
+          ['metrics'],
+          ['limit', 'timeseries_limit_metric'],
+          ['order_desc', null],
+        ],
+      },
+      {
+        label: t('NOT GROUPED BY'),
+        description: t('Use this section if you want to query atomic rows'),
+        controlSetRows: [
+          ['all_columns'],
+        ],
+      },
+      {
+        label: t('Row Limit'),
+        controlSetRows: [
+          ['row_limit'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        controlSetRows: [
+          ['color_scheme'],
+          ['show_brush', 'show_legend'],
+          ['show_lines', 'show_markers'],
+          ['line_interpolation', 'contribution'],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_axis_showminmax', 'x_axis_format'],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_showminmax', 'y_log_scale'],
+          ['y_axis_format', 'y_axis_bounds'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      metrics: {
+        validators: [],
+      },
+      time_grain_sqla: {
+        default: null,
+      },
+    },
+  },
+
   line: {
     label: t('Time Series - Line Chart'),
     showOnExplore: true,

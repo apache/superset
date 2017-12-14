@@ -986,6 +986,82 @@ class BigNumberTotalViz(BaseViz):
         }
 
 
+class NVD3LineXYViz(NVD3Viz):
+
+    """A rich line chart component with customizable X & Y axes"""
+
+    viz_type = 'line_xy'
+    verbose_name = _('XY Line Chart')
+    sort_series = False
+    is_timeseries = True
+
+    def query_obj(self):
+        d = super(NVD3LineXYViz, self).query_obj()
+        fd = self.form_data
+
+        if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
+            raise Exception(_(
+                'Choose either fields to [Group By] and [Metrics] or '
+                '[Columns], not both'))
+
+        x_field = fd.get('columns_and_metrics_x')
+        y_fields = fd.get('columns_and_metrics_y')
+
+        if x_field and y_fields:
+            if fd.get('all_columns'):
+                d['columns'] = fd.get('all_columns')
+            d['orderby'] = [(x_field, True)]
+        else:
+            raise Exception(_("X and Y columns must be defined"))
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+
+        x_field = fd.get('columns_and_metrics_x')
+        y_fields = fd.get('columns_and_metrics_y')
+        sliceby_keys = fd.get('slice_by')
+
+        if self.datasource.type == 'druid':
+            df = df.sort_values(x_field)
+
+        result_list = []
+
+        if len(sliceby_keys) > 0:
+            df = df.groupby(sliceby_keys)
+
+        for y_field in y_fields:
+            if len(sliceby_keys) > 0:
+                for key, rows in df:
+                    key_list = [key, y_field]
+                    if len(sliceby_keys) > 1:
+                        key_list = key.append(y_field)
+                    vals_as_strings = map(lambda val: str(val), key_list)
+                    key_string = ', '.join(vals_as_strings)
+                    series = self.convert_rows(x_field, y_field, key_string, rows)
+                    result_list.append(series)
+            else:
+                series = self.convert_rows(x_field, y_field, y_field, df)
+                result_list.append(series)
+        return result_list
+
+    @staticmethod
+    def convert_rows(x_field, y_field, key, rows):
+        values = []
+        for row in rows.to_dict(orient='records'):
+            value = {
+                'x': row[x_field],
+                'y': row[y_field]
+            }
+            values.append(value)
+
+        series = {
+            'key': key,
+            'values': values
+        }
+        return series
+
+
 class NVD3TimeSeriesViz(NVD3Viz):
 
     """A rich line chart component with tons of options"""
