@@ -29,12 +29,12 @@ from superset.utils import DTTM_ALIAS, QueryStatus
 
 
 class AnnotationDatasource(BaseDatasource):
-
     """ Dummy object so we can query annotations using 'Viz' objects just like
         regular datasources.
     """
 
-    cache_timeout = 0;
+    cache_timeout = 0
+
     def query(self, query_obj):
         df = None
         error_message = None
@@ -49,7 +49,7 @@ class AnnotationDatasource(BaseDatasource):
             status = QueryStatus.FAILED
             logging.exception(e)
             error_message = (
-            utils.error_msg_from_exception(e))
+                utils.error_msg_from_exception(e))
         return QueryResult(
             status=status,
             df=df,
@@ -62,6 +62,7 @@ class AnnotationDatasource(BaseDatasource):
 
     def values_for_column(self, column_name, limit=10000):
         raise NotImplementedError()
+
 
 class TableColumn(Model, BaseColumn):
 

@@ -41,7 +41,6 @@ from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.forms import CsvToDatabaseForm
 from superset.legacy import cast_form_data
 import superset.models.core as models
-from superset.models.annotations import Annotation
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
@@ -967,19 +966,15 @@ class Superset(BaseSupersetView):
             )
             return viz_obj
 
-
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
-        endpoint = (
-            '/superset/explore/{}/{}?form_data={}'
-                .format(
+        endpoint = '/superset/explore/{}/{}?form_data={}'.format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
                 parse.quote(json.dumps(viz_obj.form_data)),
             )
-        )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
         return redirect(endpoint)
@@ -1039,7 +1034,7 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access_api
-    @expose("/slice_json/<slice_id>")
+    @expose('/slice_json/<slice_id>')
     def slice_json(self, slice_id):
         try:
             viz_obj = self.get_viz(slice_id)
@@ -1059,39 +1054,36 @@ class Superset(BaseSupersetView):
 
     @log_this
     @has_access_api
-    @expose("/annotation_json/<layer_id>")
+    @expose('/annotation_json/<layer_id>')
     def annotation_json(self, layer_id):
         form_data = self.get_form_data()
         form_data['layer_id'] = layer_id
         form_data['filters'] = [{'col': 'layer_id',
-                                 'op':'==',
+                                 'op': '==',
                                  'val': layer_id}]
-
         datasource = AnnotationDatasource()
         viz_obj = viz.viz_types['table'](
           datasource,
           form_data=form_data,
         )
         try:
-          payload = viz_obj.get_payload(force=False)
+            payload = viz_obj.get_payload(force=False)
         except Exception as e:
-          logging.exception(e)
-          return json_error_response(utils.error_msg_from_exception(e))
-
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e))
         status = 200
         if payload.get('status') == QueryStatus.FAILED:
-          status = 400
-
+            status = 400
         return json_success(viz_obj.json_dumps(payload), status=status)
 
     @log_this
     @has_access_api
-    @expose("/explore_json/<datasource_type>/<datasource_id>/")
+    @expose('/explore_json/<datasource_type>/<datasource_id>/')
     def explore_json(self, datasource_type, datasource_id):
         try:
-            csv = request.args.get("csv") == "true"
-            query = request.args.get("query") == "true"
-            force = request.args.get("force") == "true"
+            csv = request.args.get('csv') == 'true'
+            query = request.args.get('query') == 'true'
+            force = request.args.get('force') == 'true'
             form_data = self.get_form_data()
         except Exception as e:
                 return json_error_response(
@@ -1709,8 +1701,8 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/user_slices", methods=['GET'])
-    @expose("/user_slices/<user_id>/", methods=['GET'])
+    @expose('/user_slices', methods=['GET'])
+    @expose('/user_slices/<user_id>/', methods=['GET'])
     def user_slices(self, user_id=None):
         """List of slices a user created, or faved"""
         if not user_id:
@@ -1731,7 +1723,7 @@ class Superset(BaseSupersetView):
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
                     FavStar.user_id == user_id,
-                )
+                ),
             )
             .order_by(Slice.slice_name.asc())
         )
@@ -1741,14 +1733,15 @@ class Superset(BaseSupersetView):
             'url': o.Slice.slice_url,
             'form_data': o.Slice.form_data,
             'dttm': o.dttm if o.dttm else o.Slice.changed_on,
-            'viz_type': o.Slice.viz_type
+            'viz_type': o.Slice.viz_type,
         } for o in qry.all()]
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
-    @expose("/created_slices", methods=['GET'])
+    @expose('/created_slices', methods=['GET'])
+    @expose('/created_slices/<user_id>/', methods=['GET'])
     def created_slices(self, user_id=None):
         """List of slices created by this user"""
         if not user_id:
@@ -1769,15 +1762,15 @@ class Superset(BaseSupersetView):
             'title': o.slice_name,
             'url': o.slice_url,
             'dttm': o.changed_on,
-            'viz_type': o.viz_type
+            'viz_type': o.viz_type,
         } for o in qry.all()]
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
-    @expose("/fave_slices", methods=['GET'])
-    @expose("/fave_slices/<user_id>/", methods=['GET'])
+    @expose('/fave_slices', methods=['GET'])
+    @expose('/fave_slices/<user_id>/', methods=['GET'])
     def fave_slices(self, user_id=None):
         """Favorite slices for a user"""
         if not user_id:
@@ -1806,7 +1799,7 @@ class Superset(BaseSupersetView):
                 'title': o.Slice.slice_name,
                 'url': o.Slice.slice_url,
                 'dttm': o.dttm,
-                'viz_type': o.Slice.viz_type
+                'viz_type': o.Slice.viz_type,
             }
             if o.Slice.created_by:
                 user = o.Slice.created_by

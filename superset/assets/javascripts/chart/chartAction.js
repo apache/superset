@@ -48,7 +48,7 @@ export function annotationQuerySuccess(annotation, queryResponse, key) {
 
 export const ANNOTATION_QUERY_STARTED = 'ANNOTATION_QUERY_STARTED';
 export function annotationQueryStarted(annotation, queryRequest, key) {
-  return {type: ANNOTATION_QUERY_STARTED, annotation, queryRequest, key };
+  return { type: ANNOTATION_QUERY_STARTED, annotation, queryRequest, key };
 }
 
 export const ANNOTATION_QUERY_FAILED = 'ANNOTATION_QUERY_FAILED';

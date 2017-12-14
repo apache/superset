@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { OverlayTrigger, Popover, ListGroup, ListGroupItem } from 'react-bootstrap';
 import { connect } from 'react-redux';
-import { getChartKey } from '../../exploreUtils'
+import { getChartKey } from '../../exploreUtils';
 import { runAnnotationQuery } from '../../../chart/chartAction';
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 
@@ -158,13 +158,13 @@ AnnotationLayerControl.defaultProps = defaultProps;
 
 // Tried to hook this up through stores/control.jsx instead of using redux
 // directly, could not figure out how to get access to the color_scheme
-function mapStateToProps({charts, explore}) {
+function mapStateToProps({ charts, explore }) {
   const chartKey = getChartKey(explore);
   return {
     colorScheme: (explore.controls || {}).color_scheme.value,
     annotationError: charts[chartKey].annotationError,
     annotationQuery: charts[chartKey].annotationQuery,
-    vizType: explore.controls['viz_type'].value,
+    vizType: explore.controls.viz_type.value,
   };
 }
 

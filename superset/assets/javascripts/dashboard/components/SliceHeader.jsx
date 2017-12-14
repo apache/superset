@@ -67,18 +67,18 @@ class SliceHeader extends React.PureComponent {
             />
             {!!Object.values(this.props.annotationQuery || {}).length &&
               <TooltipWrapper
-                  label="annotations-loading"
-                  placement="top"
-                  tooltip={annoationsLoading}
+                label="annotations-loading"
+                placement="top"
+                tooltip={annoationsLoading}
               >
-                <i className="fa fa-refresh warning"/>
+                <i className="fa fa-refresh warning" />
               </TooltipWrapper>
             }
             {!!Object.values(this.props.annotationError || {}).length &&
               <TooltipWrapper
-                  label="annoation-errors"
-                  placement="top"
-                  tooltip={annoationsError}
+                label="annoation-errors"
+                placement="top"
+                tooltip={annoationsError}
               >
                 <i className="fa fa-exclamation-circle danger" />
               </TooltipWrapper>

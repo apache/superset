@@ -615,8 +615,8 @@ function nvd3Vis(slice, payload) {
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.EVENT &&
             slice.annotationData && slice.annotationData[x.name]
-          )).forEach((e, index) => {
-            e = applyNativeColumns(e);
+          )).forEach((config, index) => {
+            const e = applyNativeColumns(config);
             // Add event annotation layer
             const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
@@ -655,8 +655,8 @@ function nvd3Vis(slice, payload) {
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.INTERVAL &&
             slice.annotationData && slice.annotationData[x.name]
-          )).forEach((e, index) => {
-            e = applyNativeColumns(e);
+          )).forEach((config, index) => {
+            const e = applyNativeColumns(config);
             // Add interval annotation layer
             const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);

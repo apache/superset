@@ -85,7 +85,7 @@ class GridCell extends React.PureComponent {
     const {
       exploreChartUrl, exportCSVUrl, isExpanded, isLoading, isCached, cachedDttm,
       removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
-      chartKey, slice, datasource, formData, timeout, annotationQuery
+      chartKey, slice, datasource, formData, timeout, annotationQuery,
     } = this.props;
     return (
       <div

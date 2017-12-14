@@ -17,7 +17,7 @@ export const ANNOTATION_TYPE_LABELS = {
 //  POINT_ANNOTATION: 'POINT_ANNOTATION',
 };
 
-export function getAnnotationTypeLabel(annotationType){
+export function getAnnotationTypeLabel(annotationType) {
   return ANNOTATION_TYPE_LABELS[annotationType];
 }
 
@@ -25,30 +25,30 @@ export const DEFAULT_ANNOTATION_TYPE = ANNOTATION_TYPES.FORMULA;
 
 export const ANNOTATION_SOURCE_TYPES = {
   NATIVE: 'NATIVE',
-  ...VIZ_TYPES
+  ...VIZ_TYPES,
 };
 
-export function getAnnotationSourceTypeLabels(sourceType){
+export function getAnnotationSourceTypeLabels(sourceType) {
   return ANNOTATION_SOURCE_TYPES.NATIVE === sourceType ? 'Superset annotation' :
       vizTypes[sourceType].label;
 }
 
 export function requiresQuery(annotationSourceType) {
-  return !!annotationSourceType
+  return !!annotationSourceType;
 }
 
 // Map annotation type to annotation source type
 const SUPPORTED_SOURCE_TYPE_MAP = {
   [ANNOTATION_TYPES.EVENT]: [
     ANNOTATION_SOURCE_TYPES.NATIVE,
-    ANNOTATION_SOURCE_TYPES.table
+    ANNOTATION_SOURCE_TYPES.table,
   ],
   [ANNOTATION_TYPES.INTERVAL]: [
     ANNOTATION_SOURCE_TYPES.NATIVE,
-    ANNOTATION_SOURCE_TYPES.table
+    ANNOTATION_SOURCE_TYPES.table,
   ],
   [ANNOTATION_TYPES.TIME_SERIES]: [
-    ANNOTATION_SOURCE_TYPES.line
+    ANNOTATION_SOURCE_TYPES.line,
   ],
 };
 
@@ -74,7 +74,7 @@ const SUPPORTED_ANNOTATIONS = {
   ],
 };
 
-export function getSupportedAnnotationTypes(vizType){
+export function getSupportedAnnotationTypes(vizType) {
   return SUPPORTED_ANNOTATIONS[vizType] || [];
 }
 
@@ -85,11 +85,11 @@ const NATIVE_COLUMN_NAMES = {
   descriptionColumns: ['long_descr'],
 };
 
-export function applyNativeColumns(annotation){
+export function applyNativeColumns(annotation) {
   if (annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-    annotation = {...annotation, ...NATIVE_COLUMN_NAMES};
+    return { ...annotation, ...NATIVE_COLUMN_NAMES };
   }
-  return annotation
+  return annotation;
 }
 
 export default ANNOTATION_TYPES;

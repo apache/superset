@@ -61,7 +61,7 @@ class BaseViz(object):
             'token', 'token_' + uuid.uuid4().hex[:8])
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
-        self.time_shift = 0
+        self.time_shift = timedelta()
 
         self.status = None
         self.error_message = None
@@ -159,7 +159,7 @@ class BaseViz(object):
 
         since = form_data.get('since', '')
         until = form_data.get('until', 'now')
-        time_shift = form_data.get("time_shift", "")
+        time_shift = form_data.get('time_shift', '')
 
         # Backward compatibility hack
         if since:

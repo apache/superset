@@ -141,7 +141,7 @@ export default class AnnotationLayer extends React.PureComponent {
   isValidForm() {
     const {
       name, annotationType, sourceType,
-      value, timeColumn, intervalEndColumn
+      value, timeColumn, intervalEndColumn,
     } = this.state;
     const errors = [nonEmpty(name), nonEmpty(annotationType), nonEmpty(value)];
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
@@ -213,7 +213,7 @@ export default class AnnotationLayer extends React.PureComponent {
             valueOptions: data.filter(
                 x => getSupportedSourceTypes(annotationType)
                 .find(v => v === x.viz_type))
-                .map(x => ({ value: x.id, label: x.title, slice: x })
+                .map(x => ({ value: x.id, label: x.title, slice: x }),
               ),
           }),
         );
@@ -446,64 +446,64 @@ export default class AnnotationLayer extends React.PureComponent {
       colorScheme.push(color);
     }
     return (
-        <PopoverSection
-          isSelected
-          onSelect={() => {}}
-          title="Display configuration"
-          info="Configure your how you overlay is displayed here."
-        >
-          <SelectControl
-            name="annotation-layer-stroke"
-            label="Style"
+      <PopoverSection
+        isSelected
+        onSelect={() => {}}
+        title="Display configuration"
+        info="Configure your how you overlay is displayed here."
+      >
+        <SelectControl
+          name="annotation-layer-stroke"
+          label="Style"
             // see '../../../../visualizations/nvd3_vis.css'
-            options={[
+          options={[
               { value: 'solid', label: 'Solid' },
               { value: 'dashed', label: 'Dashed' },
               { value: 'longDashed', label: 'Long Dashed' },
               { value: 'dotted', label: 'Dotted' },
-            ]}
-            value={style}
-            onChange={v => this.setState({ style: v })}
-          />
-          <SelectControl
-            name="annotation-layer-opacity"
-            label="Opacity"
+          ]}
+          value={style}
+          onChange={v => this.setState({ style: v })}
+        />
+        <SelectControl
+          name="annotation-layer-opacity"
+          label="Opacity"
             // see '../../../../visualizations/nvd3_vis.css'
-            options={[
+          options={[
               { value: '', label: 'Solid' },
               { value: 'opacityLow', label: '0.2' },
               { value: 'opacityMedium', label: '0.5' },
               { value: 'opacityHigh', label: '0.8' },
-            ]}
-            value={opacity}
-            onChange={v => this.setState({ opacity: v })}
-          />
-          <div>
-            <ControlHeader label="Color" />
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <CompactPicker
-                color={color}
-                colors={colorScheme}
-                onChangeComplete={v => this.setState({ color: v.hex })}
-              />
-              <Button
-                style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
-                bsStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
-                bsSize="xsmall"
-                onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
-              >
-                Automatic Color
-              </Button>
-            </div>
+          ]}
+          value={opacity}
+          onChange={v => this.setState({ opacity: v })}
+        />
+        <div>
+          <ControlHeader label="Color" />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <CompactPicker
+              color={color}
+              colors={colorScheme}
+              onChangeComplete={v => this.setState({ color: v.hex })}
+            />
+            <Button
+              style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}
+              bsStyle={color === AUTOMATIC_COLOR ? 'success' : 'default'}
+              bsSize="xsmall"
+              onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
+            >
+              Automatic Color
+            </Button>
           </div>
-          <TextControl
-            name="annotation-layer-stroke-width"
-            label="Line Width"
-            isInt
-            value={width}
-            onChange={v => this.setState({ width: v })}
-          />
-        </PopoverSection>
+        </div>
+        <TextControl
+          name="annotation-layer-stroke-width"
+          label="Line Width"
+          isInt
+          value={width}
+          onChange={v => this.setState({ width: v })}
+        />
+      </PopoverSection>
     );
   }
 
@@ -553,14 +553,14 @@ export default class AnnotationLayer extends React.PureComponent {
               />
               {!!getSupportedSourceTypes(annotationType).length &&
                 <SelectControl
-                    hovered
-                    description="Choose the source of your annotations"
-                    label="Annotation Source"
-                    name="annotation-source-type"
-                    options={getSupportedSourceTypes(annotationType).map(
-                        x => ({ value: x, label: getAnnotationSourceTypeLabels(x)}))}
-                    value={sourceType}
-                    onChange={this.handleAnnotationSourceType}
+                  hovered
+                  description="Choose the source of your annotations"
+                  label="Annotation Source"
+                  name="annotation-source-type"
+                  options={getSupportedSourceTypes(annotationType).map(
+                        x => ({ value: x, label: getAnnotationSourceTypeLabels(x) }))}
+                  value={sourceType}
+                  onChange={this.handleAnnotationSourceType}
                 />
               }
               { this.renderValueConfiguration() }
