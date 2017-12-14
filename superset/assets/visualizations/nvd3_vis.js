@@ -7,7 +7,9 @@ import mathjs from 'mathjs';
 import d3tip from 'd3-tip';
 
 import { getColorFromScheme } from '../javascripts/modules/colors';
-import AnnotationTypes from '../javascripts/modules/AnnotationTypes';
+import AnnotationTypes, {
+  applyNativeColumns,
+} from '../javascripts/modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
 
 // CSS
@@ -608,61 +610,13 @@ function nvd3Vis(slice, payload) {
               '<div>' + body.join(', ') + '</div>';
           });
 
-        // Native annotations layers
-        annotationLayers.filter(x => (
-          x.annotationType === AnnotationTypes.NATIVE && payload && payload.annotations
-        )).forEach((e, index) => {
-          const annotations = payload.annotations
-            .filter(x => x.layer_id === e.value);
-          if (annotations.length) {
-            let annotationLayer;
-            let minStep;
-            if (vizType === VIZ_TYPES.bar) {
-              minStep = chart.xAxis.range()[1] - chart.xAxis.range()[0];
-              annotationLayer = d3.select(slice.selector).select('.nv-barsWrap')
-                .insert('g', ':first-child')
-                .attr('class', `native-bar-annotation-layer-${index}`);
-            } else {
-              minStep = 1;
-              annotationLayer = d3.select(slice.selector).select('.nv-wrap').append('g')
-                .attr('class', `nv-native-annotation-layer-${index}`);
-            }
-            const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
-            const tip = tipFactory(
-              {
-                name: e.name,
-                titleColumn: 'short_descr',
-                descriptionColumns: ['long_descr'],
-              });
-
-            annotationLayer.selectAll('rect')
-              .data(annotations)
-              .enter()
-              .append('rect')
-              .attr('x', d => (xScale(d.start_dttm)))
-              .attr('y', 0)
-              .attr('width', (d) => {
-                const w = xScale(d.end_dttm) - xScale(d.start_dttm);
-                return w === 0 ? minStep : w;
-              })
-              .attr('height', annotationHeight)
-              .attr('class', `${e.opacity} ${e.style}`)
-              .style('stroke-width', e.width)
-              .style('stroke', aColor)
-              .style('fill', aColor)
-              .style('fill-opacity', 0.2)
-              .on('mouseover', tip.show)
-              .on('mouseout', tip.hide)
-              .call(tip);
-          }
-        });
-
         if (slice.annotationData && Object.keys(slice.annotationData).length) {
           // Event annotations
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.EVENT &&
             slice.annotationData && slice.annotationData[x.name]
           )).forEach((e, index) => {
+            e = applyNativeColumns(e);
             // Add event annotation layer
             const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
@@ -702,6 +656,7 @@ function nvd3Vis(slice, payload) {
             x.annotationType === AnnotationTypes.INTERVAL &&
             slice.annotationData && slice.annotationData[x.name]
           )).forEach((e, index) => {
+            e = applyNativeColumns(e);
             // Add interval annotation layer
             const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);

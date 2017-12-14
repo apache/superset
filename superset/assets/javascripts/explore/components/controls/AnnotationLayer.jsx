@@ -12,9 +12,13 @@ import CheckboxControl from './CheckboxControl';
 
 import AnnotationTypes, {
   DEFAULT_ANNOTATION_TYPE,
+  ANNOTATION_SOURCE_TYPES,
+  getAnnotationSourceTypeLabels,
+  getAnnotationTypeLabel,
+  getSupportedSourceTypes,
+  getSupportedAnnotationTypes,
   requiresQuery,
-  supportedSliceTypes }
-  from '../../../modules/AnnotationTypes';
+} from '../../../modules/AnnotationTypes';
 
 import { ALL_COLOR_SCHEMES } from '../../../modules/colors';
 import PopoverSection from '../../../components/PopoverSection';
@@ -27,6 +31,7 @@ const AUTOMATIC_COLOR = '';
 const propTypes = {
   name: PropTypes.string,
   annotationType: PropTypes.string,
+  sourceType: PropTypes.string,
   color: PropTypes.string,
   opacity: PropTypes.string,
   style: PropTypes.string,
@@ -38,6 +43,7 @@ const propTypes = {
   descriptionColumns: PropTypes.arrayOf(PropTypes.string),
   timeColumn: PropTypes.string,
   intervalEndColumn: PropTypes.string,
+  vizType: PropTypes.string,
 
   error: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -50,6 +56,7 @@ const propTypes = {
 const defaultProps = {
   name: '',
   annotationType: DEFAULT_ANNOTATION_TYPE,
+  sourceType: '',
   color: AUTOMATIC_COLOR,
   opacity: '',
   style: 'solid',
@@ -70,7 +77,7 @@ const defaultProps = {
 export default class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
-    const { name, annotationType,
+    const { name, annotationType, sourceType,
       color, opacity, style, width, value,
       overrides, show, titleColumn, descriptionColumns,
       timeColumn, intervalEndColumn } = props;
@@ -79,6 +86,7 @@ export default class AnnotationLayer extends React.PureComponent {
       name,
       oldName: !this.props.name ? null : name,
       annotationType,
+      sourceType,
       value,
       overrides,
       show,
@@ -102,18 +110,20 @@ export default class AnnotationLayer extends React.PureComponent {
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
+    this.handleAnnotationSourceType =
+        this.handleAnnotationSourceType.bind(this);
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
   }
 
   componentDidMount() {
-    const { annotationType, isLoadingOptions } = this.state;
-    this.fetchOptions(annotationType, isLoadingOptions);
+    const { annotationType, sourceType, isLoadingOptions } = this.state;
+    this.fetchOptions(annotationType, sourceType, isLoadingOptions);
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.annotationType !== this.state.annotationType) {
-      this.fetchOptions(this.state.annotationType, true);
+    if (prevState.sourceType !== this.state.sourceType) {
+      this.fetchOptions(this.state.annotationType, this.state.sourceType, true);
     }
   }
 
@@ -129,22 +139,37 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   isValidForm() {
-    const { name, annotationType, value, timeColumn, intervalEndColumn } = this.state;
+    const {
+      name, annotationType, sourceType,
+      value, timeColumn, intervalEndColumn
+    } = this.state;
     const errors = [nonEmpty(name), nonEmpty(annotationType), nonEmpty(value)];
-    if (annotationType === AnnotationTypes.EVENT) {
-      errors.push(nonEmpty(timeColumn));
-    }
-    if (annotationType === AnnotationTypes.INTERVAL) {
-      errors.push(nonEmpty(timeColumn));
-      errors.push(nonEmpty(intervalEndColumn));
+    if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE) {
+      if (annotationType === AnnotationTypes.EVENT) {
+        errors.push(nonEmpty(timeColumn));
+      }
+      if (annotationType === AnnotationTypes.INTERVAL) {
+        errors.push(nonEmpty(timeColumn));
+        errors.push(nonEmpty(intervalEndColumn));
+      }
     }
     errors.push(this.isValidFormula(value, annotationType));
     return !errors.filter(x => x).length;
   }
 
+
   handleAnnotationType(annotationType) {
     this.setState({
       annotationType,
+      sourceType: null,
+      validationErrors: {},
+      value: null,
+    });
+  }
+
+  handleAnnotationSourceType(sourceType) {
+    this.setState({
+      sourceType,
       isLoadingOptions: true,
       validationErrors: {},
       value: null,
@@ -158,13 +183,13 @@ export default class AnnotationLayer extends React.PureComponent {
       intervalEndColumn: null,
       timeColumn: null,
       titleColumn: null,
-      overrides: {},
+      overrides: { since: null, until: null },
     });
   }
 
-  fetchOptions(annotationType, isLoadingOptions) {
+  fetchOptions(annotationType, sourceType, isLoadingOptions) {
     if (isLoadingOptions === true) {
-      if (annotationType === AnnotationTypes.NATIVE) {
+      if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
         $.ajax({
           type: 'GET',
           url: '/annotationlayermodelview/api/read?',
@@ -178,7 +203,7 @@ export default class AnnotationLayer extends React.PureComponent {
             valueOptions: layers,
           });
         });
-      } else if (requiresQuery(annotationType)) {
+      } else if (requiresQuery(sourceType)) {
         $.ajax({
           type: 'GET',
           url: '/superset/user_slices',
@@ -186,12 +211,17 @@ export default class AnnotationLayer extends React.PureComponent {
           this.setState({
             isLoadingOptions: false,
             valueOptions: data.filter(
-                x => supportedSliceTypes(annotationType)
+                x => getSupportedSourceTypes(annotationType)
                 .find(v => v === x.viz_type))
                 .map(x => ({ value: x.id, label: x.title, slice: x })
               ),
           }),
         );
+      } else {
+        this.setState({
+          isLoadingOptions: false,
+          valueOptions: [],
+        });
       }
     }
   }
@@ -221,24 +251,28 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   renderValueConfiguration() {
-    const { annotationType, value, valueOptions, isLoadingOptions } = this.state;
+    const { annotationType, sourceType, value,
+      valueOptions, isLoadingOptions } = this.state;
     let label = '';
     let description = '';
-    if (annotationType === AnnotationTypes.NATIVE) {
-      label = 'Annotation Layer';
-      description = 'Select the Annotation Layer you would like to use.';
-    } else if (requiresQuery(annotationType)) {
-      label = 'Slice';
-      description = `Use a pre defined Superset Slice as a source for annotations and overlays. 
+    if (requiresQuery(sourceType)) {
+      if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
+        label = 'Annotation Layer';
+        description = 'Select the Annotation Layer you would like to use.';
+      } else {
+        label = 'Slice';
+        description = `Use a pre defined Superset Slice as a source for annotations and overlays. 
         'your Slice must be one of these visualization types:
-        '[${supportedSliceTypes(annotationType).map(x => vizTypes[x].label).join(', ')}]'`;
+        '[${getSupportedSourceTypes(sourceType)
+            .map(x => vizTypes[x].label).join(', ')}]'`;
+      }
     } else if (annotationType === AnnotationTypes.FORMULA) {
       label = 'Formula';
       description = `Expects a formula with depending time parameter 'x'
         in milliseconds since epoch. mathjs is used to evaluate the formulas.
         Example: '2x+5'`;
     }
-    if (requiresQuery(annotationType) || annotationType === AnnotationTypes.NATIVE) {
+    if (requiresQuery(sourceType)) {
       return (
         <SelectControl
           name="annotation-layer-value"
@@ -273,10 +307,10 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   renderSliceConfiguration() {
-    const { annotationType, value, valueOptions, overrides, titleColumn,
+    const { annotationType, sourceType, value, valueOptions, overrides, titleColumn,
       timeColumn, intervalEndColumn, descriptionColumns } = this.state;
     const slice = (valueOptions.find(x => x.value === value) || {}).slice;
-    if (requiresQuery(annotationType) && slice) {
+    if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE && slice) {
       const columns = (slice.form_data.groupby || []).concat(
         (slice.form_data.all_columns || [])).map(x => ({ value: x, label: x }));
       const timeColumnOptions = slice.form_data.include_time ?
@@ -474,7 +508,8 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew, name, annotationType, show } = this.state;
+    const { isNew, name, annotationType,
+      sourceType, show } = this.state;
     const isValid = this.isValidForm();
     return (
       <div>
@@ -511,17 +546,23 @@ export default class AnnotationLayer extends React.PureComponent {
                 description="Choose the Annotation Layer Type"
                 label="Annotation Layer Type"
                 name="annotation-layer-type"
-                options={[
-                  { value: AnnotationTypes.FORMULA, label: 'Formula' },
-                  { value: AnnotationTypes.NATIVE, label: 'Superset Annotation' },
-                  { value: AnnotationTypes.EVENT, label: 'Event' },
-                  { value: AnnotationTypes.INTERVAL, label: 'Interval' },
-                  { value: AnnotationTypes.TIME_SERIES, label: 'Time Series' },
-                  //{ value: AnnotationTypes.POINT_ANNOTATION, label: 'Point Annotations' },
-                ]}
+                options={getSupportedAnnotationTypes(this.props.vizType).map(
+                    x => ({ value: x, label: getAnnotationTypeLabel(x) }))}
                 value={annotationType}
                 onChange={this.handleAnnotationType}
               />
+              {!!getSupportedSourceTypes(annotationType).length &&
+                <SelectControl
+                    hovered
+                    description="Choose the source of your annotations"
+                    label="Annotation Source"
+                    name="annotation-source-type"
+                    options={getSupportedSourceTypes(annotationType).map(
+                        x => ({ value: x, label: getAnnotationSourceTypeLabels(x)}))}
+                    value={sourceType}
+                    onChange={this.handleAnnotationSourceType}
+                />
+              }
               { this.renderValueConfiguration() }
             </PopoverSection>
           </div>

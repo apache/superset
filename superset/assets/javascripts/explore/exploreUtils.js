@@ -6,12 +6,13 @@ export function getChartKey(explore) {
   return slice ? ('slice_' + slice.slice_id) : 'slice';
 }
 
-export function getSliceJsonUrl(slice_id, form_data) {
+export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
   if (slice_id === null || slice_id === undefined) {
     return null;
   }
   const uri = URI(window.location.search);
-  return uri.pathname(`/superset/slice_json/${slice_id}`)
+  const endpoint = isNative ? 'annotation_json' : 'slice_json';
+  return uri.pathname(`/superset/${endpoint}/${slice_id}`)
     .search({
       form_data: JSON.stringify(form_data,
         (key, value) => value === null ? undefined : value),

@@ -15,6 +15,7 @@ const propTypes = {
   colorScheme: PropTypes.string.isRequired,
   annotationError: PropTypes.object,
   annotationQuery: PropTypes.object,
+  vizType: PropTypes.string,
 
   validationErrors: PropTypes.array,
   name: PropTypes.string.isRequired,
@@ -25,6 +26,7 @@ const propTypes = {
 };
 
 const defaultProps = {
+  vizType: '',
   value: [],
   annotationError: {},
   annotationQuery: {},
@@ -80,6 +82,7 @@ class AnnotationLayerControl extends React.PureComponent {
           {...annotation}
           error={error}
           colorScheme={this.props.colorScheme}
+          vizType={this.props.vizType}
           addAnnotationLayer={this.addAnnotationLayer}
           removeAnnotationLayer={this.removeAnnotationLayer}
           close={() => this.refs[parent].hide()}
@@ -161,6 +164,7 @@ function mapStateToProps({charts, explore}) {
     colorScheme: (explore.controls || {}).color_scheme.value,
     annotationError: charts[chartKey].annotationError,
     annotationQuery: charts[chartKey].annotationQuery,
+    vizType: explore.controls['viz_type'].value,
   };
 }
 

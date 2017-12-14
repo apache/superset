@@ -37,10 +37,11 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.forms import CsvToDatabaseForm
 from superset.legacy import cast_form_data
 import superset.models.core as models
+from superset.models.annotations import Annotation
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
@@ -1055,6 +1056,33 @@ class Superset(BaseSupersetView):
         return self.generate_json(datasource_type=datasource_type,
                                   datasource_id=datasource_id,
                                   form_data=form_data)
+
+    @log_this
+    @has_access_api
+    @expose("/annotation_json/<layer_id>")
+    def annotation_json(self, layer_id):
+        form_data = self.get_form_data()
+        form_data['layer_id'] = layer_id
+        form_data['filters'] = [{'col': 'layer_id',
+                                 'op':'==',
+                                 'val': layer_id}]
+
+        datasource = AnnotationDatasource()
+        viz_obj = viz.viz_types['table'](
+          datasource,
+          form_data=form_data,
+        )
+        try:
+          payload = viz_obj.get_payload(force=False)
+        except Exception as e:
+          logging.exception(e)
+          return json_error_response(utils.error_msg_from_exception(e))
+
+        status = 200
+        if payload.get('status') == QueryStatus.FAILED:
+          status = 400
+
+        return json_success(viz_obj.json_dumps(payload), status=status)
 
     @log_this
     @has_access_api

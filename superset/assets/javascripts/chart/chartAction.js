@@ -1,5 +1,5 @@
-import { getExploreUrl, getSliceJsonUrl } from '../explore/exploreUtils';
-import { requiresQuery } from '../modules/AnnotationTypes';
+import { getExploreUrl, getAnnotationJsonUrl } from '../explore/exploreUtils';
+import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 
 const $ = window.$ = require('jquery');
 
@@ -61,15 +61,17 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     const sliceKey = key || Object.keys(getState().charts)[0];
     const fd = formData || getState().charts[sliceKey].latestQueryFormData;
 
-    if (!requiresQuery(annotation.annotationType)) {
+    if (!requiresQuery(annotation.sourceType)) {
       return Promise.resolve();
     }
+
     const sliceFormData = Object.keys(annotation.overrides)
       .reduce((d, k) => ({
         ...d,
         [k]: annotation.overrides[k] || fd[k],
       }), {});
-    const url = getSliceJsonUrl(annotation.value, sliceFormData, 'json');
+    const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
+    const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
     const queryRequest = $.ajax({
       url,
       dataType: 'json',
