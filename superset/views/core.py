@@ -12,7 +12,7 @@ import pickle
 import re
 import time
 import traceback
-from urllib import parse
+import six.moves.urllib as urllib
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -493,7 +493,7 @@ appbuilder.add_view(
 
 class SliceAsync(SliceModelView):  # noqa
     list_columns = [
-        'slice_link', 'viz_type',
+        'id', 'slice_link', 'viz_type', 'slice_name',
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
@@ -979,7 +979,7 @@ class Superset(BaseSupersetView):
         endpoint = '/superset/explore/{}/{}?form_data={}'.format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
-                parse.quote(json.dumps(viz_obj.form_data)),
+                urllib.quote(json.dumps(viz_obj.form_data)),
             )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
