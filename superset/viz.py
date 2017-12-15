@@ -22,6 +22,7 @@ import zlib
 from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
+import geohash
 from markdown import markdown
 import numpy as np
 import pandas as pd
@@ -1790,7 +1791,7 @@ class BaseDeckGLViz(BaseViz):
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
-        return [self.metric]
+        return [self.metric] if self.metric else []
 
     def get_properties(self, d):
         return {
@@ -1799,22 +1800,60 @@ class BaseDeckGLViz(BaseViz):
 
     def get_position(self, d):
         return [
-            d.get(self.form_data.get('longitude')),
-            d.get(self.form_data.get('latitude')),
+            d.get('lon'),
+            d.get('lat'),
         ]
 
     def query_obj(self):
         d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
 
-        d['groupby'] = [fd.get('longitude'), fd.get('latitude')]
-        if fd.get('dimension'):
-            d['groupby'] += [fd.get('dimension')]
+        gb = []
 
-        d['metrics'] = self.get_metrics()
+        spatial = fd.get('spatial')
+        if spatial.get('type') == 'latlong':
+            gb += [spatial.get('lonCol')]
+            gb += [spatial.get('latCol')]
+        elif spatial.get('type') == 'delimited':
+            gb += [spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            gb += [spatial.get('geohashCol')]
+
+        if fd.get('dimension'):
+            gb += [fd.get('dimension')]
+
+        metrics = self.get_metrics()
+        if metrics:
+            d['groupby'] = gb
+            d['metrics'] = self.get_metrics()
+        else:
+            d['columns'] = gb
         return d
 
     def get_data(self, df):
+        fd = self.form_data
+        spatial = fd.get('spatial')
+        if spatial.get('type') == 'latlong':
+            df = df.rename(columns={
+                spatial.get('lonCol'): 'lon',
+                spatial.get('latCol'): 'lat'})
+        elif spatial.get('type') == 'delimited':
+            cols = ['lon', 'lat']
+            if spatial.get('reverseCheckbox'):
+                cols.reverse()
+            df[cols] = (
+                df[spatial.get('lonlatCol')]
+                .str
+                .split(spatial.get('delimiter'), expand=True)
+                .astype(np.float64)
+            )
+            del df[spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+            df['lat'] = latlong.apply(lambda x: x[0])
+            df['lon'] = latlong.apply(lambda x: x[1])
+            del df['geohash']
+
         features = []
         for d in df.to_dict(orient='records'):
             d = dict(position=self.get_position(d), **self.get_properties(d))
@@ -1833,15 +1872,15 @@ class DeckScatterViz(BaseDeckGLViz):
     verbose_name = _('Deck.gl - Scatter plot')
 
     def query_obj(self):
-        self.point_radius_fixed = self.form_data.get('point_radius_fixed')
+        fd = self.form_data
+        self.point_radius_fixed = (
+            fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
         return super(DeckScatterViz, self).query_obj()
 
     def get_metrics(self):
         if self.point_radius_fixed.get('type') == 'metric':
-            self.metric = self.point_radius_fixed.get('value')
-        else:
-            self.metric = 'count'
-        return [self.metric]
+            return [self.point_radius_fixed.get('value')]
+        return None
 
     def get_properties(self, d):
         return {
@@ -1856,7 +1895,6 @@ class DeckScatterViz(BaseDeckGLViz):
         self.dim = self.form_data.get('dimension')
         if self.point_radius_fixed.get('type') != 'metric':
             self.fixed_value = self.point_radius_fixed.get('value')
-
         return super(DeckScatterViz, self).get_data(df)
 
 

@@ -91,7 +91,7 @@ export default class DateFilterControl extends React.Component {
   renderPopover() {
     return (
       <Popover id="filter-popover">
-        <div style={{ width: '240px' }}>
+        <div style={{ width: '250px' }}>
           <PopoverSection
             title="Fixed"
             isSelected={this.state.type === 'fix'}

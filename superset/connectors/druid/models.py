@@ -988,6 +988,19 @@ class DruidDatasource(Model, BaseDatasource):
                 dimensions.append(column_name)
         return dimensions
 
+    def intervals_from_dttms(self, from_dttm, to_dttm):
+        # Couldn't find a way to just not filter on time...
+        from_dttm = from_dttm or datetime(1901, 1, 1)
+        to_dttm = to_dttm or datetime(2101, 1, 1)
+
+        # add tzinfo to native datetime with config
+        from_dttm = from_dttm.replace(tzinfo=DRUID_TZ)
+        to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
+        return '{}/{}'.format(
+            from_dttm.isoformat() if from_dttm else '',
+            to_dttm.isoformat() if to_dttm else '',
+        )
+
     def run_query(  # noqa / druid
             self,
             groupby, metrics,
@@ -1001,23 +1014,26 @@ class DruidDatasource(Model, BaseDatasource):
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
             extras=None,  # noqa
-            select=None,  # noqa
             columns=None, phase=2, client=None, form_data=None,
             order_desc=True):
         """Runs a query against Druid and returns a dataframe.
         """
         # TODO refactor into using a TBD Query object
         client = client or self.cluster.get_pydruid_client()
+        row_limit = row_limit or conf.get('ROW_LIMIT')
 
         if not is_timeseries:
             granularity = 'all'
+
+        if (
+                granularity == 'all' or
+                timeseries_limit is None or
+                timeseries_limit == 0):
+            phase = 1
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
 
-        # add tzinfo to native datetime with config
-        from_dttm = from_dttm.replace(tzinfo=DRUID_TZ)
-        to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
-        timezone = from_dttm.tzname()
+        timezone = from_dttm.tzname() if from_dttm else None
 
         query_str = ''
         metrics_dict = {m.metric_name: m for m in self.metrics}
@@ -1043,7 +1059,7 @@ class DruidDatasource(Model, BaseDatasource):
                 origin=extras.get('druid_time_origin'),
             ),
             post_aggregations=post_aggs,
-            intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
+            intervals=self.intervals_from_dttms(from_dttm, to_dttm),
         )
 
         filters = DruidDatasource.get_filters(filter, self.num_cols)
@@ -1056,14 +1072,22 @@ class DruidDatasource(Model, BaseDatasource):
 
         order_direction = 'descending' if order_desc else 'ascending'
 
-        if len(groupby) == 0 and not having_filters:
+        if columns:
+            del qry['post_aggregations']
+            del qry['aggregations']
+            qry['dimensions'] = columns
+            qry['metrics'] = []
+            qry['granularity'] = 'all'
+            qry['limit'] = row_limit
+            client.scan(**qry)
+        elif len(groupby) == 0 and not having_filters:
             logging.info('Running timeseries query for no groupby values')
             del qry['dimensions']
             client.timeseries(**qry)
         elif (
-            not having_filters and
-            len(groupby) == 1 and
-            order_desc
+                not having_filters and
+                len(groupby) == 1 and
+                order_desc
         ):
             dim = list(qry.get('dimensions'))[0]
             logging.info('Running two-phase topn query for dimension [{}]'.format(dim))
@@ -1121,9 +1145,8 @@ class DruidDatasource(Model, BaseDatasource):
                 pre_qry['limit_spec'] = {
                     'type': 'default',
                     'limit': min(timeseries_limit, row_limit),
-                    'intervals': (
-                        inner_from_dttm.isoformat() + '/' +
-                        inner_to_dttm.isoformat()),
+                    'intervals': self.intervals_from_dttms(
+                        inner_from_dttm, inner_to_dttm),
                     'columns': [{
                         'dimension': order_by,
                         'direction': order_direction,
@@ -1195,8 +1218,11 @@ class DruidDatasource(Model, BaseDatasource):
         cols = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += [col for col in query_obj['groupby'] if col in df.columns]
-        cols += [col for col in query_obj['metrics'] if col in df.columns]
+        cols += query_obj.get('groupby') or []
+        cols += query_obj.get('columns') or []
+        cols += query_obj.get('metrics') or []
+
+        cols = [col for col in cols if col in df.columns]
         df = df[cols]
 
         time_offset = DruidDatasource.time_offset(query_obj['granularity'])
