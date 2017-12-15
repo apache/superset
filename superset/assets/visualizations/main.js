@@ -41,5 +41,6 @@ const vizMap = {
   deck_screengrid: require('./deckgl/screengrid.jsx'),
   deck_grid: require('./deckgl/grid.jsx'),
   deck_hex: require('./deckgl/hex.jsx'),
+  deck_path: require('./deckgl/path.jsx'),
 };
 export default vizMap;

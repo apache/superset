@@ -30,6 +30,7 @@ from pandas.tseries.frequencies import to_offset
 import simplejson as json
 from six import PY3, string_types, text_type
 from six.moves import reduce
+import polyline
 
 from superset import app, cache, get_manifest_file, utils
 from superset.utils import DTTM_ALIAS, merge_extra_filters
@@ -1814,13 +1815,14 @@ class BaseDeckGLViz(BaseViz):
         gb = []
 
         spatial = fd.get('spatial')
-        if spatial.get('type') == 'latlong':
-            gb += [spatial.get('lonCol')]
-            gb += [spatial.get('latCol')]
-        elif spatial.get('type') == 'delimited':
-            gb += [spatial.get('lonlatCol')]
-        elif spatial.get('type') == 'geohash':
-            gb += [spatial.get('geohashCol')]
+        if spatial:
+            if spatial.get('type') == 'latlong':
+                gb += [spatial.get('lonCol')]
+                gb += [spatial.get('latCol')]
+            elif spatial.get('type') == 'delimited':
+                gb += [spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                gb += [spatial.get('geohashCol')]
 
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
@@ -1881,8 +1883,10 @@ class DeckScatterViz(BaseDeckGLViz):
         return super(DeckScatterViz, self).query_obj()
 
     def get_metrics(self):
+        self.metric = None
         if self.point_radius_fixed.get('type') == 'metric':
-            return [self.point_radius_fixed.get('value')]
+            self.metric = self.point_radius_fixed.get('value')
+            return [self.metric]
         return None
 
     def get_properties(self, d):
@@ -1915,6 +1919,36 @@ class DeckGrid(BaseDeckGLViz):
 
     viz_type = 'deck_grid'
     verbose_name = _('Deck.gl - 3D Grid')
+
+
+class DeckPathViz(BaseDeckGLViz):
+
+    """deck.gl's PathLayer"""
+
+    viz_type = 'deck_path'
+    verbose_name = _('Deck.gl - Paths')
+    deser_map = {
+        'json': json.loads,
+        'polyline': polyline.decode,
+    }
+
+    def query_obj(self):
+        d = super(DeckPathViz, self).query_obj()
+        d['groupby'] = []
+        d['metrics'] = []
+        d['columns'] = [self.form_data.get('line_column')]
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        deser = self.deser_map[fd.get('line_type')]
+        paths = [deser(s) for s in df[fd.get('line_column')]]
+
+        d = {
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'paths': paths,
+        }
+        return d
 
 
 class DeckHex(BaseDeckGLViz):

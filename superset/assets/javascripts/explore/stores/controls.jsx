@@ -1723,5 +1723,37 @@ export const controls = {
       t('Partitions whose height to parent height proportions are ' +
       'below this value are pruned'),
   },
+
+  line_column: {
+    type: 'SelectControl',
+    label: t('Lines column'),
+    default: null,
+    description: t('The database columns that contains lines information'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+    validators: [v.nonEmpty],
+  },
+  line_type: {
+    type: 'SelectControl',
+    label: t('Lines encoding'),
+    clearable: false,
+    default: 'json',
+    description: t('The encoding format of the lines'),
+    choices: [
+      ['polyline', 'Polyline'],
+      ['json', 'JSON'],
+    ],
+  },
+
+  line_width: {
+    type: 'TextControl',
+    label: t('Line width'),
+    renderTrigger: true,
+    isInt: true,
+    default: 10,
+    description: t('The width of the lines'),
+  },
+
 };
 export default controls;
