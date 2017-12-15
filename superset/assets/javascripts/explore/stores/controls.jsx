@@ -1446,7 +1446,7 @@ export const controls = {
   viewport: {
     type: 'ViewportControl',
     label: t('Viewport'),
-    renderTrigger: true,
+    renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
     default: defaultViewport,
