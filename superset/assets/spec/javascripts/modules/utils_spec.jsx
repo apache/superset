@@ -2,7 +2,7 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import {
   tryNumify, slugify, formatSelectOptionsForRange, d3format,
-  d3FormatPreset, d3TimeFormatPreset,
+  d3FormatPreset, d3TimeFormatPreset, defaultNumberFormatter,
 } from '../../../javascripts/modules/utils';
 
 describe('utils', () => {
@@ -51,5 +51,22 @@ describe('utils', () => {
     it('returns a working time formatter', () => {
       expect(d3FormatPreset('smart_date')(0)).to.equal('1970');
     });
+  });
+  describe('d3TimeFormatPreset', () => {
+    expect(defaultNumberFormatter(10)).to.equal('10');
+    expect(defaultNumberFormatter(1)).to.equal('1');
+    expect(defaultNumberFormatter(1.0)).to.equal('1');
+    expect(defaultNumberFormatter(10.0)).to.equal('10');
+    expect(defaultNumberFormatter(10001)).to.equal('10.0k');
+    expect(defaultNumberFormatter(111000000)).to.equal('111M');
+    expect(defaultNumberFormatter(0.23)).to.equal('230m');
+
+    expect(defaultNumberFormatter(-10)).to.equal('-10');
+    expect(defaultNumberFormatter(-1)).to.equal('-1');
+    expect(defaultNumberFormatter(-1.0)).to.equal('-1');
+    expect(defaultNumberFormatter(-10.0)).to.equal('-10');
+    expect(defaultNumberFormatter(-10001)).to.equal('-10.0k');
+    expect(defaultNumberFormatter(-111000000)).to.equal('-111M');
+    expect(defaultNumberFormatter(-0.23)).to.equal('-230m');
   });
 });
