@@ -1941,19 +1941,15 @@ class DeckGeoJson(BaseDeckGLViz):
 
     def get_data(self, df):
         fd = self.form_data
-
-        # TODO: Need to merge all shapes into 1 big feature collection
-        # Assuming df is an array of features
         geojson = {
             'type': 'FeatureCollection',
-            'features': [json.loads(item) for item in df.get(fd.get('line_column'))]
+            'features': [json.loads(item) for item in df[fd.get('geojson')]]
         }
-
+        
         return {
             'geojson': geojson,
             'mapboxApiKey': config.get('MAPBOX_API_KEY')
         }
-
 
 class EventFlowViz(BaseViz):
 
