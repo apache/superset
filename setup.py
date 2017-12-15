@@ -58,6 +58,7 @@ setup(
         'flask-wtf==0.14.2',
         'flower==0.9.1',
         'future>=0.16.0, <0.17',
+        'python-geohash==0.8.5',
         'humanize==0.5.1',
         'gunicorn==19.7.1',
         'idna==2.5',

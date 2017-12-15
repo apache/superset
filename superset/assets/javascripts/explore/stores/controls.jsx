@@ -482,6 +482,16 @@ export const controls = {
     }),
   },
 
+  spatial: {
+    type: 'SpatialControl',
+    label: t('Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),

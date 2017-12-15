@@ -24,6 +24,7 @@ const propTypes = {
   valueRenderer: PropTypes.func,
   valueKey: PropTypes.string,
   options: PropTypes.array,
+  placeholder: PropTypes.string,
 };
 
 const defaultProps = {
@@ -105,10 +106,11 @@ export default class SelectControl extends React.PureComponent {
   }
   render() {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
+    const placeholder = this.props.placeholder || t('Select %s', this.state.options.length);
     const selectProps = {
       multi: this.props.multi,
       name: `select-${this.props.name}`,
-      placeholder: t('Select %s', this.state.options.length),
+      placeholder,
       options: this.state.options,
       value: this.props.value,
       labelKey: 'label',

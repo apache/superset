@@ -13,6 +13,7 @@ import textwrap
 
 import pandas as pd
 from sqlalchemy import BigInteger, Date, DateTime, Float, String
+import geohash
 
 from superset import app, db, utils
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -1017,6 +1018,9 @@ def load_long_lat_data():
     pdf['date'] = datetime.datetime.now().date()
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
+    pdf['geohash'] = pdf[['LAT', 'LON']].apply(
+        lambda x: geohash.encode(*x), axis=1)
+    pdf['delimited'] = pdf['LAT'].map(str).str.cat(pdf['LON'].map(str), sep=',')
     pdf.to_sql(  # pylint: disable=no-member
         'long_lat',
         db.engine,
@@ -1036,6 +1040,8 @@ def load_long_lat_data():
             'date': Date(),
             'occupancy': Float(),
             'radius_miles': Float(),
+            'geohash': String(12),
+            'delimited': String(60),
         },
         index=False)
     print("Done loading table!")
@@ -1233,8 +1239,11 @@ def load_deck_dash():
     slices = []
     tbl = db.session.query(TBL).filter_by(table_name='long_lat').first()
     slice_data = {
-        "longitude": "LON",
-        "latitude": "LAT",
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "color_picker": {
             "r": 205,
             "g": 0,
@@ -1281,8 +1290,11 @@ def load_deck_dash():
         "point_unit": "square_m",
         "filters": [],
         "row_limit": 5000,
-        "longitude": "LON",
-        "latitude": "LAT",
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "mapbox_style": "mapbox://styles/mapbox/dark-v9",
         "granularity_sqla": "date",
         "size": "count",
@@ -1290,10 +1302,12 @@ def load_deck_dash():
         "since": "2014-01-01",
         "point_radius": "Auto",
         "until": "now",
-        "color_picker": {"a": 1,
-        "r": 14,
-        "b": 0,
-        "g": 255},
+        "color_picker": {
+            "a": 1,
+            "r": 14,
+            "b": 0,
+            "g": 255,
+        },
         "grid_size": 20,
         "where": "",
         "having": "",
@@ -1321,10 +1335,13 @@ def load_deck_dash():
     slices.append(slc)
 
     slice_data = {
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "filters": [],
         "row_limit": 5000,
-        "longitude": "LON",
-        "latitude": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/streets-v9",
         "granularity_sqla": "date",
         "size": "count",
@@ -1367,10 +1384,13 @@ def load_deck_dash():
     slices.append(slc)
 
     slice_data = {
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "filters": [],
         "row_limit": 5000,
-        "longitude": "LON",
-        "latitude": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",
         "granularity_sqla": "date",
         "size": "count",

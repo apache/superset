@@ -42,7 +42,7 @@ def parse_manifest_json():
         with open(MANIFEST_FILE, 'r') as f:
             manifest = json.load(f)
     except Exception:
-        print('no manifest file found at ' + MANIFEST_FILE)
+        pass
 
 
 def get_manifest_file(filename):
