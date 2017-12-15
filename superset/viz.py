@@ -273,11 +273,13 @@ class BaseViz(object):
             cache_timeout = self.cache_timeout
             stacktrace = None
             annotations = []
+            rowcount = None
             try:
                 df = self.get_df()
                 if not self.error_message:
                     data = self.get_data(df)
                 annotations = self.get_annotations()
+                rowcount = len(df.index)
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -295,6 +297,7 @@ class BaseViz(object):
                 'status': self.status,
                 'stacktrace': stacktrace,
                 'annotations': annotations,
+                'rowcount': rowcount,
             }
             payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
             logging.info('Caching for the next {} seconds'.format(
