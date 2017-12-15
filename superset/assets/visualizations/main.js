@@ -4,7 +4,8 @@
 export const VIZ_TYPES = {
   area: 'area',
   bar: 'bar',
-  big_numberbig_number_total: 'big_numberbig_number_total',
+  big_number: 'big_number',
+  big_number_total: 'big_number_total',
   box_plot: 'box_plot',
   bubble: 'bubble',
   bullet: 'bullet',
