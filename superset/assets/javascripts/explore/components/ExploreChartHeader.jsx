@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 
 import { chartPropType } from '../../chart/chartReducer';
 import ExploreActionButtons from './ExploreActionButtons';
+import RowCountLabel from './RowCountLabel';
 import EditableTitle from '../../components/EditableTitle';
 import AlteredSliceTag from '../../components/AlteredSliceTag';
 import FaveStar from '../../components/FaveStar';
@@ -66,11 +67,12 @@ class ExploreChartHeader extends React.PureComponent {
   }
 
   render() {
+    const formData = this.props.form_data;
     const queryResponse = this.props.chart.queryResponse;
     const data = {
-      csv_endpoint: getExploreUrl(this.props.form_data, 'csv'),
-      json_endpoint: getExploreUrl(this.props.form_data, 'json'),
-      standalone_endpoint: getExploreUrl(this.props.form_data, 'standalone'),
+      csv_endpoint: getExploreUrl(formData, 'csv'),
+      json_endpoint: getExploreUrl(formData, 'json'),
+      standalone_endpoint: getExploreUrl(formData, 'standalone'),
     };
 
     return (
@@ -109,13 +111,20 @@ class ExploreChartHeader extends React.PureComponent {
         {this.props.chart.sliceFormData &&
           <AlteredSliceTag
             origFormData={this.props.chart.sliceFormData}
-            currentFormData={this.props.form_data}
+            currentFormData={formData}
           />
         }
         <div className="pull-right">
+          {this.props.chart.chartStatus === 'success' && queryResponse &&
+            <RowCountLabel
+              rowcount={queryResponse.rowcount}
+              limit={formData.row_limit}
+            />
+          }
           {this.props.chart.chartStatus === 'success' &&
           queryResponse &&
           queryResponse.is_cached &&
+
           <CachedLabel
             onClick={this.runQuery.bind(this)}
             cachedTimestamp={queryResponse.cached_dttm}
@@ -133,7 +142,7 @@ class ExploreChartHeader extends React.PureComponent {
             canDownload={this.props.can_download}
             chartStatus={this.props.chart.chartStatus}
             queryResponse={queryResponse}
-            queryEndpoint={getExploreUrl(this.props.form_data, 'query')}
+            queryEndpoint={getExploreUrl(formData, 'query')}
           />
         </div>
       </div>
