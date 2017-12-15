@@ -10,6 +10,7 @@ import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
 import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
+import SpatialControl from './SpatialControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
@@ -29,6 +30,7 @@ const controlMap = {
   HiddenControl,
   SelectAsyncControl,
   SelectControl,
+  SpatialControl,
   TextAreaControl,
   TextControl,
   TimeSeriesColumnControl,
