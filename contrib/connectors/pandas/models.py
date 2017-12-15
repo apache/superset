@@ -102,7 +102,7 @@ class PandasColumn(Model, BaseColumn):
     def data(self):
         attrs = (
             'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby')
+            'filterable', 'groupby', 'is_dttm')
         return {s: getattr(self, s) for s in attrs}
 
     def get_perm(self):
