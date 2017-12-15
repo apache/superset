@@ -1073,7 +1073,7 @@ class OracleEngineSpec(PostgresEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return (
-            """TO_TIMESTAMP('{}', 'YYYY-MM-DD'T'HH24:MI:SS.ff6')"""
+            """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
 
