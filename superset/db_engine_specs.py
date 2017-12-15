@@ -1217,6 +1217,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return schemas
 
 
+class DruidEngineSpec(BaseEngineSpec):
+    """Engine spec for Druid.io"""
+    engine = 'druid'
+    limit_method = LimitMethod.FETCH_MANY
+
+
 engines = {
     o.engine: o for o in globals().values()
     if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}

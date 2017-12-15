@@ -482,6 +482,16 @@ export const controls = {
     }),
   },
 
+  spatial: {
+    type: 'SpatialControl',
+    label: t('Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),
@@ -1446,7 +1456,7 @@ export const controls = {
   viewport: {
     type: 'ViewportControl',
     label: t('Viewport'),
-    renderTrigger: true,
+    renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
     default: defaultViewport,
