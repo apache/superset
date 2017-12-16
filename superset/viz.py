@@ -1925,6 +1925,7 @@ class DeckHex(BaseDeckGLViz):
     viz_type = 'deck_hex'
     verbose_name = _('Deck.gl - 3D HEX')
 
+
 class DeckGeoJson(BaseDeckGLViz):
 
     """deck.gl's GeoJSONLayer"""
@@ -1943,13 +1944,14 @@ class DeckGeoJson(BaseDeckGLViz):
         fd = self.form_data
         geojson = {
             'type': 'FeatureCollection',
-            'features': [json.loads(item) for item in df[fd.get('geojson')]]
+            'features': [json.loads(item) for item in df[fd.get('geojson')]],
         }
 
         return {
             'geojson': geojson,
-            'mapboxApiKey': config.get('MAPBOX_API_KEY')
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
+
 
 class EventFlowViz(BaseViz):
 
