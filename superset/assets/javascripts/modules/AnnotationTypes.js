@@ -6,7 +6,6 @@ export const ANNOTATION_TYPES = {
   EVENT: 'EVENT',
   INTERVAL: 'INTERVAL',
   TIME_SERIES: 'TIME_SERIES',
-//  POINT_ANNOTATION: 'POINT_ANNOTATION',
 };
 
 export const ANNOTATION_TYPE_LABELS = {
@@ -14,7 +13,6 @@ export const ANNOTATION_TYPE_LABELS = {
   EVENT: 'Event',
   INTERVAL: 'Interval',
   TIME_SERIES: 'Time Series',
-//  POINT_ANNOTATION: 'POINT_ANNOTATION',
 };
 
 export function getAnnotationTypeLabel(annotationType) {

@@ -89,7 +89,6 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
           dispatch(annotationQueryFailed(annotation, err.responseJSON, sliceKey));
         }
       });
-      // .then(() => dispatch(renderTriggered(true, sliceKey)));
   };
 }
 
