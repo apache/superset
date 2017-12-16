@@ -1813,14 +1813,15 @@ class BaseDeckGLViz(BaseViz):
 
         gb = []
 
-        spatial = fd.get('spatial')
-        if spatial.get('type') == 'latlong':
-            gb += [spatial.get('lonCol')]
-            gb += [spatial.get('latCol')]
-        elif spatial.get('type') == 'delimited':
-            gb += [spatial.get('lonlatCol')]
-        elif spatial.get('type') == 'geohash':
-            gb += [spatial.get('geohashCol')]
+        if fd.get('spatial'):
+            spatial = fd.get('spatial')
+            if spatial.get('type') == 'latlong':
+                gb += [spatial.get('lonCol')]
+                gb += [spatial.get('latCol')]
+            elif spatial.get('type') == 'delimited':
+                gb += [spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                gb += [spatial.get('geohashCol')]
 
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
@@ -1936,7 +1937,6 @@ class DeckGeoJson(BaseDeckGLViz):
         d['columns'] = [self.form_data.get('geojson')]
         d['metrics'] = []
         d['groupby'] = []
-
         return d
 
     def get_data(self, df):
@@ -1945,7 +1945,7 @@ class DeckGeoJson(BaseDeckGLViz):
             'type': 'FeatureCollection',
             'features': [json.loads(item) for item in df[fd.get('geojson')]]
         }
-        
+
         return {
             'geojson': geojson,
             'mapboxApiKey': config.get('MAPBOX_API_KEY')
