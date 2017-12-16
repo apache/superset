@@ -311,9 +311,9 @@ export default class AnnotationLayer extends React.PureComponent {
       timeColumn, intervalEndColumn, descriptionColumns } = this.state;
     const slice = (valueOptions.find(x => x.value === value) || {}).slice;
     if (sourceType !== ANNOTATION_SOURCE_TYPES.NATIVE && slice) {
-      const columns = (slice.form_data.groupby || []).concat(
-        (slice.form_data.all_columns || [])).map(x => ({ value: x, label: x }));
-      const timeColumnOptions = slice.form_data.include_time ?
+      const columns = (slice.data.groupby || []).concat(
+        (slice.data.all_columns || [])).map(x => ({ value: x, label: x }));
+      const timeColumnOptions = slice.data.include_time ?
         [{ value: '__timestamp', label: '__timestamp' }].concat(columns) : columns;
       return (
         <div style={{ marginRight: '2rem' }}>

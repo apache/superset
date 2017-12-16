@@ -1731,7 +1731,7 @@ class Superset(BaseSupersetView):
             'id': o.Slice.id,
             'title': o.Slice.slice_name,
             'url': o.Slice.slice_url,
-            'form_data': o.Slice.form_data,
+            'data': o.Slice.form_data,
             'dttm': o.dttm if o.dttm else o.Slice.changed_on,
             'viz_type': o.Slice.viz_type,
         } for o in qry.all()]
