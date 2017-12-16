@@ -599,6 +599,19 @@ function nvd3Vis(slice, payload) {
       }
     }
 
+    // clean up tooltips when switching to another viz
+    const container = $(slice.selector);
+    if (!container.data('observed')) {
+      container.data('observed', true); // limit to one observer
+      const observer = new MutationObserver(() => {
+        container.data('observed', false);
+        $('.nvtooltip').remove();
+        observer.disconnect();
+      });
+      const cfg = { attributes: true, attributeFilter: ['class'] };
+      observer.observe(container[0], cfg);
+    }
+
     // on scroll, hide tooltips. throttle to only 4x/second.
     $(window).scroll(throttle(hideTooltips, 250));
 
