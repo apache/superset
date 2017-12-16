@@ -83,6 +83,8 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       .catch((err) => {
         if (err.statusText === 'timeout') {
           dispatch(annotationQueryFailed(annotation, { error: 'Query Timeout' }, sliceKey));
+        } else if ((err.responseJSON.error || '').toLowerCase().startsWith('no data')) {
+          dispatch(annotationQuerySuccess(annotation, err, sliceKey));
         } else if (err.statusText !== 'abort') {
           dispatch(annotationQueryFailed(annotation, err.responseJSON, sliceKey));
         }
