@@ -144,10 +144,10 @@ export const dashboard = function (state = {}, action) {
         '__time_grain', '__time_origin', '__granularity'];
       if (filterKeys.indexOf(col) >= 0 ||
         selectedSlice.formData.groupby.indexOf(col) !== -1) {
-
         let newFilter = {};
         if (!(sliceId in filters)) {
-          newFilter = { [col]: vals }
+          // Straight up set the filters if none existed for the slice
+          newFilter = { [col]: vals };
         } else if (filters[sliceId] && !(col in filters[sliceId]) || !merge) {
           newFilter = { ...filters[sliceId], [col]: vals };
           // d3.merge pass in array of arrays while some value form filter components
@@ -169,9 +169,11 @@ export const dashboard = function (state = {}, action) {
     [actions.REMOVE_FILTER]() {
       const { sliceId, col, vals, refresh } = action;
       const excluded = new Set(vals);
-      const valFilter = (val) => !excluded.has(val);
+      const valFilter = val => !excluded.has(val);
 
       let filters = state.filters;
+      // Have to be careful not to modify the dashboard state so that
+      // the render actually triggers
       if (sliceId in state.filters && col in state.filters[sliceId]) {
         const newFilter = filters[sliceId][col].filter(valFilter);
         filters = { ...filters, [sliceId]: newFilter };
