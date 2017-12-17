@@ -106,8 +106,8 @@ class Chart extends React.PureComponent {
     this.props.clearFilter();
   }
 
-  removeFilter(col, vals) {
-    this.props.removeFilter(col, vals);
+  removeFilter(col, vals, refresh = true) {
+    this.props.removeFilter(col, vals, refresh);
   }
 
   clearError() {
