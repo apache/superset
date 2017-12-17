@@ -13,8 +13,8 @@ export function clearFilter(sliceId) {
 }
 
 export const REMOVE_FILTER = 'REMOVE_FILTER';
-export function removeFilter(sliceId, col, vals) {
-  return { type: REMOVE_FILTER, sliceId, col, vals };
+export function removeFilter(sliceId, col, vals, refresh = true) {
+  return { type: REMOVE_FILTER, sliceId, col, vals, refresh };
 }
 
 export const UPDATE_DASHBOARD_LAYOUT = 'UPDATE_DASHBOARD_LAYOUT';
