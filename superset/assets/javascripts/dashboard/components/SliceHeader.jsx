@@ -19,6 +19,8 @@ const propTypes = {
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
   editMode: PropTypes.bool,
+  annotationQuery: PropTypes.object,
+  annotationError: PropTypes.object,
 };
 
 const defaultProps = {
@@ -50,6 +52,8 @@ class SliceHeader extends React.PureComponent {
     const refreshTooltip = isCached ?
       t('Served from data cached %s . Click to force refresh.', cachedWhen) :
       t('Force refresh data');
+    const annoationsLoading = t('Annotation layers are still loading.');
+    const annoationsError = t('One ore more annotation layers failed loading.');
 
     return (
       <div className="row chart-header">
@@ -61,6 +65,24 @@ class SliceHeader extends React.PureComponent {
               onSaveTitle={this.onSaveTitle}
               noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
             />
+            {!!Object.values(this.props.annotationQuery || {}).length &&
+              <TooltipWrapper
+                label="annotations-loading"
+                placement="top"
+                tooltip={annoationsLoading}
+              >
+                <i className="fa fa-refresh warning" />
+              </TooltipWrapper>
+            }
+            {!!Object.values(this.props.annotationError || {}).length &&
+              <TooltipWrapper
+                label="annoation-errors"
+                placement="top"
+                tooltip={annoationsError}
+              >
+                <i className="fa fa-exclamation-circle danger" />
+              </TooltipWrapper>
+            }
           </div>
           <div className="chart-controls">
             <div id={'controls_' + slice.slice_id} className="pull-right">
