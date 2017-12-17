@@ -1,3 +1,4 @@
+import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 import CollectionControl from './CollectionControl';
@@ -18,6 +19,7 @@ import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 
 const controlMap = {
+  AnnotationLayerControl,
   BoundsControl,
   CheckboxControl,
   CollectionControl,

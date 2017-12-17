@@ -10,6 +10,7 @@ import StackTraceMessage from '../components/StackTraceMessage';
 import visMap from '../../visualizations/main';
 
 const propTypes = {
+  annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartKey: PropTypes.string.isRequired,
   containerId: PropTypes.string.isRequired,
@@ -47,8 +48,8 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-
     // these properties are used by visualizations
+    this.annotationData = props.annotationData;
     this.containerId = props.containerId;
     this.selector = `#${this.containerId}`;
     this.formData = props.formData;
@@ -71,6 +72,7 @@ class Chart extends React.PureComponent {
   }
 
   componentWillReceiveProps(nextProps) {
+    this.annotationData = nextProps.annotationData;
     this.containerId = nextProps.containerId;
     this.selector = `#${this.containerId}`;
     this.formData = nextProps.formData;
@@ -82,6 +84,7 @@ class Chart extends React.PureComponent {
         this.props.queryResponse &&
         this.props.chartStatus === 'success' &&
         !this.props.queryResponse.error && (
+        prevProps.annotationData !== this.props.annotationData ||
         prevProps.queryResponse !== this.props.queryResponse ||
         prevProps.height !== this.props.height ||
         prevProps.width !== this.props.width ||

@@ -164,6 +164,8 @@ class GridLayout extends React.Component {
             clearFilter={this.props.clearFilter}
             removeFilter={this.props.removeFilter}
             editMode={this.props.editMode}
+            annotationQuery={currentChart.annotationQuery}
+            annotationError={currentChart.annotationError}
           />
         </div>);
     });

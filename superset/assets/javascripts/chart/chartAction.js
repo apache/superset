@@ -1,5 +1,5 @@
-import { getExploreUrl } from '../explore/exploreUtils';
-import { t } from '../locales';
+import { getExploreUrl, getAnnotationJsonUrl } from '../explore/exploreUtils';
+import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 
 const $ = window.$ = require('jquery');
 
@@ -41,6 +41,57 @@ export function removeChart(key) {
   return { type: REMOVE_CHART, key };
 }
 
+export const ANNOTATION_QUERY_SUCCESS = 'ANNOTATION_QUERY_SUCCESS';
+export function annotationQuerySuccess(annotation, queryResponse, key) {
+  return { type: ANNOTATION_QUERY_SUCCESS, annotation, queryResponse, key };
+}
+
+export const ANNOTATION_QUERY_STARTED = 'ANNOTATION_QUERY_STARTED';
+export function annotationQueryStarted(annotation, queryRequest, key) {
+  return { type: ANNOTATION_QUERY_STARTED, annotation, queryRequest, key };
+}
+
+export const ANNOTATION_QUERY_FAILED = 'ANNOTATION_QUERY_FAILED';
+export function annotationQueryFailed(annotation, queryResponse, key) {
+  return { type: ANNOTATION_QUERY_FAILED, annotation, queryResponse, key };
+}
+
+export function runAnnotationQuery(annotation, timeout = 60, formData = null, key) {
+  return function (dispatch, getState) {
+    const sliceKey = key || Object.keys(getState().charts)[0];
+    const fd = formData || getState().charts[sliceKey].latestQueryFormData;
+
+    if (!requiresQuery(annotation.sourceType)) {
+      return Promise.resolve();
+    }
+
+    const sliceFormData = Object.keys(annotation.overrides)
+      .reduce((d, k) => ({
+        ...d,
+        [k]: annotation.overrides[k] || fd[k],
+      }), {});
+    const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
+    const url = getAnnotationJsonUrl(annotation.value, sliceFormData, isNative);
+    const queryRequest = $.ajax({
+      url,
+      dataType: 'json',
+      timeout: timeout * 1000,
+    });
+    dispatch(annotationQueryStarted(annotation, queryRequest, sliceKey));
+    return queryRequest
+      .then(queryResponse => dispatch(annotationQuerySuccess(annotation, queryResponse, sliceKey)))
+      .catch((err) => {
+        if (err.statusText === 'timeout') {
+          dispatch(annotationQueryFailed(annotation, { error: 'Query Timeout' }, sliceKey));
+        } else if ((err.responseJSON.error || '').toLowerCase().startsWith('no data')) {
+          dispatch(annotationQuerySuccess(annotation, err, sliceKey));
+        } else if (err.statusText !== 'abort') {
+          dispatch(annotationQueryFailed(annotation, err.responseJSON, sliceKey));
+        }
+      });
+  };
+}
+
 export const TRIGGER_QUERY = 'TRIGGER_QUERY';
 export function triggerQuery(value = true, key) {
   return { type: TRIGGER_QUERY, value, key };
@@ -60,32 +111,23 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       url,
       dataType: 'json',
       timeout: timeout * 1000,
-      success: (queryResponse =>
-        dispatch(chartUpdateSucceeded(queryResponse, key))
-      ),
-      error: ((xhr) => {
-        if (xhr.statusText === 'timeout') {
-          dispatch(chartUpdateTimeout(xhr.statusText, timeout, key));
-        } else {
-          let error = '';
-          if (!xhr.responseText) {
-            const status = xhr.status;
-            if (status === 0) {
-              // This may happen when the worker in gunicorn times out
-              error += (
-                t('The server could not be reached. You may want to ' +
-                  'verify your connection and try again.'));
-            } else {
-              error += (t('An unknown error occurred. (Status: %s )', status));
-            }
-          }
-          const errorResponse = Object.assign({}, xhr.responseJSON, error);
-          dispatch(chartUpdateFailed(errorResponse, key));
-        }
-      }),
     });
 
-    dispatch(chartUpdateStarted(queryRequest, key));
-    dispatch(triggerQuery(false, key));
+    const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, key)))
+      .then(() => queryRequest)
+      .then(queryResponse => dispatch(chartUpdateSucceeded(queryResponse, key)))
+      .catch((err) => {
+        if (err.statusText === 'timeout') {
+          dispatch(chartUpdateTimeout(err.statusText, timeout, key));
+        } else if (err.statusText !== 'abort') {
+          dispatch(chartUpdateFailed(err.responseJSON, key));
+        }
+      });
+    const annotationLayers = formData.annotation_layers || [];
+    return Promise.all([
+      queryPromise,
+      dispatch(triggerQuery(false, key)),
+      ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
+    ]);
   };
 }
