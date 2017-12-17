@@ -21,10 +21,47 @@ import sqlparse
 from superset import db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
+from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import QueryResult
 from superset.models.helpers import set_perm
 from superset.utils import DTTM_ALIAS, QueryStatus
+
+
+class AnnotationDatasource(BaseDatasource):
+    """ Dummy object so we can query annotations using 'Viz' objects just like
+        regular datasources.
+    """
+
+    cache_timeout = 0
+
+    def query(self, query_obj):
+        df = None
+        error_message = None
+        qry = db.session.query(Annotation)
+        qry = qry.filter(Annotation.layer_id == query_obj['filter'][0]['val'])
+        qry = qry.filter(Annotation.start_dttm >= query_obj['from_dttm'])
+        qry = qry.filter(Annotation.end_dttm <= query_obj['to_dttm'])
+        status = QueryStatus.SUCCESS
+        try:
+            df = pd.read_sql_query(qry.statement, db.engine)
+        except Exception as e:
+            status = QueryStatus.FAILED
+            logging.exception(e)
+            error_message = (
+                utils.error_msg_from_exception(e))
+        return QueryResult(
+            status=status,
+            df=df,
+            duration=0,
+            query='',
+            error_message=error_message)
+
+    def get_query_str(self, query_obj):
+        raise NotImplementedError()
+
+    def values_for_column(self, column_name, limit=10000):
+        raise NotImplementedError()
 
 
 class TableColumn(Model, BaseColumn):

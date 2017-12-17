@@ -23,14 +23,16 @@ describe('chart actions', () => {
   });
 
   it('should handle query timeout', () => {
-    ajaxStub.yieldsTo('error', { statusText: 'timeout' });
+    ajaxStub.rejects({ statusText: 'timeout' });
     request = actions.runQuery({});
-    request(dispatch, sinon.stub().returns({
+    const promise = request(dispatch, sinon.stub().returns({
       explore: {
         controls: [],
       },
     }));
-    expect(dispatch.callCount).to.equal(3);
-    expect(dispatch.args[0][0].type).to.equal(actions.CHART_UPDATE_TIMEOUT);
+    promise.then(() => {
+      expect(dispatch.callCount).to.equal(3);
+      expect(dispatch.args[0][0].type).to.equal(actions.CHART_UPDATE_TIMEOUT);
+    });
   });
 });

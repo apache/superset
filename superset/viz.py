@@ -61,7 +61,7 @@ class BaseViz(object):
             'token', 'token_' + uuid.uuid4().hex[:8])
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
-        self.annotation_layers = []
+        self.time_shift = timedelta()
 
         self.status = None
         self.error_message = None
@@ -121,6 +121,7 @@ class BaseViz(object):
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
+                df[DTTM_ALIAS] += self.time_shift
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
@@ -158,6 +159,7 @@ class BaseViz(object):
 
         since = form_data.get('since', '')
         until = form_data.get('until', 'now')
+        time_shift = form_data.get('time_shift', '')
 
         # Backward compatibility hack
         if since:
@@ -166,15 +168,15 @@ class BaseViz(object):
             if (len(since_words) == 2 and since_words[1] in grains):
                 since += ' ago'
 
-        from_dttm = utils.parse_human_datetime(since)
+        self.time_shift = utils.parse_human_timedelta(time_shift)
 
-        to_dttm = utils.parse_human_datetime(until)
+        from_dttm = utils.parse_human_datetime(since) - self.time_shift
+        to_dttm = utils.parse_human_datetime(until) - self.time_shift
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_('From date cannot be larger than to date'))
 
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
-        self.annotation_layers = form_data.get('annotation_layers') or []
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -227,23 +229,6 @@ class BaseViz(object):
         s = str([(k, form_data[k]) for k in sorted(form_data.keys())])
         return hashlib.md5(s.encode('utf-8')).hexdigest()
 
-    def get_annotations(self):
-        """Fetches the annotations for the specified layers and date range"""
-        annotations = []
-        if self.annotation_layers:
-            from superset.models.annotations import Annotation
-            from superset import db
-            qry = (
-                db.session
-                .query(Annotation)
-                .filter(Annotation.layer_id.in_(self.annotation_layers)))
-            if self.from_dttm:
-                qry = qry.filter(Annotation.start_dttm >= self.from_dttm)
-            if self.to_dttm:
-                qry = qry.filter(Annotation.end_dttm <= self.to_dttm)
-            annotations = [o.data for o in qry.all()]
-        return annotations
-
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
@@ -272,13 +257,11 @@ class BaseViz(object):
             is_cached = False
             cache_timeout = self.cache_timeout
             stacktrace = None
-            annotations = []
             rowcount = None
             try:
                 df = self.get_df()
                 if not self.error_message:
                     data = self.get_data(df)
-                annotations = self.get_annotations()
                 rowcount = len(df.index)
             except Exception as e:
                 logging.exception(e)
@@ -296,7 +279,6 @@ class BaseViz(object):
                 'query': self.query,
                 'status': self.status,
                 'stacktrace': stacktrace,
-                'annotations': annotations,
                 'rowcount': rowcount,
             }
             payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
