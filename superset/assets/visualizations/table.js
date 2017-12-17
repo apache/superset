@@ -66,6 +66,7 @@ function tableVis(slice, payload) {
       return d;
     });
 
+  const filters = slice.getFilters();
   table.append('tbody')
     .selectAll('tr')
     .data(data.records)
@@ -119,6 +120,7 @@ function tableVis(slice, payload) {
     .attr('data-sort', function (d) {
       return (d.isMetric) ? d.val : null;
     })
+    .classed('filtered', d => filters && filters[d.col] && filters[d.col].indexOf(d.val) >= 0)
     .on('click', function (d) {
       if (!d.isMetric && fd.table_filter) {
         const td = d3.select(this);
