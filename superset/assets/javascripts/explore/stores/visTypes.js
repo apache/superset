@@ -440,7 +440,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['geojson'],
-          ['row_limit']
+          ['row_limit'],
         ],
       },
       {

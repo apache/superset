@@ -8,11 +8,11 @@ function DeckGeoJsonLayer(slice, payload, setControlValue) {
   const fd = slice.formData;
   const c = fd.color_picker;
   const data = payload.data.geojson.features.map(d => ({
-      ...d,
-      properties: {
-        fillColor: [c.r, c.g, c.b, 255 * c.a],
-        elevation: 2000
-      },
+    ...d,
+    properties: {
+      fillColor: [c.r, c.g, c.b, 255 * c.a],
+      elevation: 2000,
+    },
   }));
 
   const layer = new GeoJsonLayer({
