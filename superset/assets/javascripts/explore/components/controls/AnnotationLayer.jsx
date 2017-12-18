@@ -104,6 +104,7 @@ export default class AnnotationLayer extends React.PureComponent {
       isNew: !this.props.name,
       isLoadingOptions: true,
       valueOptions: [],
+      validationErrors: {},
     };
     this.submitAnnotation = this.submitAnnotation.bind(this);
     this.deleteAnnotation = this.deleteAnnotation.bind(this);
@@ -235,11 +236,17 @@ export default class AnnotationLayer extends React.PureComponent {
 
   applyAnnotation() {
     if (this.state.name.length) {
-      const annotation = { ...this.state };
-      annotation.color = annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
+      const annotation = {};
+      Object.keys(this.state).forEach((k) => {
+        if (this.state[k] !== null) {
+          annotation[k] = this.state[k];
+        }
+      });
       delete annotation.isNew;
       delete annotation.valueOptions;
       delete annotation.isLoadingOptions;
+      delete annotation.validationErrors;
+      annotation.color = annotation.color === AUTOMATIC_COLOR ? null : annotation.color;
       this.props.addAnnotationLayer(annotation);
       this.setState({ isNew: false, oldName: this.state.name });
     }
