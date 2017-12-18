@@ -184,6 +184,13 @@ export const visTypes = {
           ['y_axis_format', 'y_axis_bounds'],
         ],
       },
+      {
+        label: t('Code'),
+        controlSetRows: [
+          ['js_data'],
+          ['js_chart'],
+        ],
+      },
       sections.NVD3TimeSeries[1],
       sections.annotations,
     ],
