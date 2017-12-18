@@ -683,8 +683,8 @@ function nvd3Vis(slice, payload) {
                   x: d => Math.min(xScale(new Date(d[e.timeColumn])),
                     xScale(new Date(d[e.intervalEndColumn]))),
                   y: 0,
-                  width: d => Math.abs(xScale(new Date(d[e.intervalEndColumn])) -
-                    xScale(new Date(d[e.timeColumn]))),
+                  width: d => Math.max(Math.abs(xScale(new Date(d[e.intervalEndColumn])) -
+                    xScale(new Date(d[e.timeColumn]))), 1),
                   height: annotationHeight,
                 })
                 .attr('class', `${e.opacity} ${e.style}`)
