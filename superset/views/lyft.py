@@ -21,7 +21,11 @@ import superset.models.core as models
 from superset.views.core import Superset
 from superset.utils import QueryStatus
 from .base import (
+<<<<<<< HEAD
     json_error_response
+=======
+    json_error_response, generate_download_headers, CsvResponse,
+>>>>>>> 06d5029b... Moved lyft specific endpoints into its own file
 )
 
 config = app.config
@@ -117,5 +121,44 @@ class Lyft(Superset):
 
         return json_success(json.dumps(bootstrap_data))
 
+<<<<<<< HEAD
+=======
+    def generate_json(self, datasource_type, datasource_id, form_data,
+                      csv=False, query=False, force=False):
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                form_data=form_data)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                stacktrace=traceback.format_exc())
+
+        if csv:
+            return CsvResponse(
+                viz_obj.get_csv(),
+                status=200,
+                headers=generate_download_headers('csv'),
+                mimetype='application/csv')
+
+        if query:
+            return self.get_query_string_response(viz_obj)
+
+        try:
+            payload = viz_obj.get_payload(
+                force=force)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e))
+
+        status = 200
+        if payload.get('status') == QueryStatus.FAILED:
+            status = 400
+
+        return json_success(viz_obj.json_dumps(payload), status=status)
+
+>>>>>>> 06d5029b... Moved lyft specific endpoints into its own file
 
 appbuilder.add_view_no_menu(Lyft)
