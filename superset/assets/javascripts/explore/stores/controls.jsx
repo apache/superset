@@ -516,7 +516,7 @@ export const controls = {
 
   geojson: {
     type: 'SelectControl',
-    label: t('GeoJSON'),
+    label: t('GeoJson Column'),
     validators: [v.nonEmpty],
     description: t('Select the geojson column'),
     mapStateToProps: state => ({

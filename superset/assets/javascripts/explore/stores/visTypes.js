@@ -449,20 +449,7 @@ export const visTypes = {
           ['mapbox_style', 'viewport'],
         ],
       },
-      {
-        label: t('Grid'),
-        controlSetRows: [
-          ['grid_size', 'color_picker'],
-        ],
-      },
     ],
-    controlOverrides: {
-      size: {
-        label: t('Weight'),
-        description: t("Metric used as a weight for the grid's coloring"),
-        validators: [v.nonEmpty],
-      },
-    },
   },
 
   deck_scatter: {
