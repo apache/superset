@@ -188,4 +188,10 @@ flask_app_mutator = app.config.get('FLASK_APP_MUTATOR')
 if flask_app_mutator:
     flask_app_mutator(app)
 
+
+def create_app(script_info=None):
+    app.shell_context_processor({'app': app, 'db': db})
+    return app
+
+
 from superset import views  # noqa
