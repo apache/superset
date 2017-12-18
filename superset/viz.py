@@ -262,7 +262,7 @@ class BaseViz(object):
                 df = self.get_df()
                 if not self.error_message:
                     data = self.get_data(df)
-                rowcount = len(df.index)
+                rowcount = len(df.index) if df is not None else 0
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -523,7 +523,7 @@ class MarkupViz(BaseViz):
     is_timeseries = False
 
     def get_df(self):
-        return True
+        return None
 
     def get_data(self, df):
         markup_type = self.form_data.get('markup_type')
