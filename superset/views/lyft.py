@@ -60,33 +60,20 @@ class Lyft(Superset):
     @expose('/lyft_explore_json/<datasource_type>/<datasource_id>/')
     def lyft_explore_json(self, datasource_type, datasource_id):
         try:
-            viz_obj = self.get_viz(
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                args=request.args)
-
+            csv = request.args.get('csv') == 'true'
+            query = request.args.get('query') == 'true'
+            force = request.args.get('force') == 'true'
+            form_data = self.get_form_data()
         except Exception as e:
-            logging.exception(e)
-            return json_error_response(
-                utils.error_msg_from_exception(e),
-                stacktrace=traceback.format_exc())
-
-        if request.args.get('query') == 'true':
-            return self.get_query_string_response(viz_obj)
-
-        payload = {}
-        try:
-            payload = viz_obj.get_payload(
-                force=request.args.get('force') == 'true')
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
-
-        status = 200
-        if payload.get('status') == QueryStatus.FAILED:
-            status = 400
-
-        return json_success(viz_obj.json_dumps(payload), status=status)
+                return json_error_response(
+                    utils.error_msg_from_exception(e),
+                    stacktrace=traceback.format_exc())
+        return self.generate_json(datasource_type=datasource_type,
+                                  datasource_id=datasource_id,
+                                  form_data=form_data,
+                                  csv=csv,
+                                  query=query,
+                                  force=force)
 
     @log_this
     @expose('/lyft_dashboard_json/<dashboard_id>/')
