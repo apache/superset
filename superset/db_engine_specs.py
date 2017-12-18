@@ -1181,11 +1181,12 @@ class BQEngineSpec(BaseEngineSpec):
 
     @classmethod
     def fetch_data(cls, cursor, limit):
-        data = super(BQEngineSpec,cls).fetch_data(cursor, limit)
+        data = super(BQEngineSpec, cls).fetch_data(cursor, limit)
         from google.cloud.bigquery._helpers import Row
-        if len(data) != 0 and isinstance(data[0],Row):
+        if len(data) != 0 and isinstance(data[0], Row):
             data = [r.values() for r in data]
         return data
+
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
