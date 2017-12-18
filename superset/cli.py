@@ -10,51 +10,41 @@ from subprocess import Popen
 from sys import stdout
 
 from colorama import Fore, Style
-from flask_migrate import MigrateCommand
-from flask_script import Manager
+from flask.cli import FlaskGroup
 from pathlib2 import Path
 import yaml
+import click
 
-from superset import app, db, dict_import_export_util, security, utils
+from superset import app, db, dict_import_export_util, security, utils, create_app
 
 config = app.config
 celery_app = utils.get_celery_app(config)
 
-manager = Manager(app)
-manager.add_command('db', MigrateCommand)
+manager = FlaskGroup(create_app=create_app)
 
 
-@manager.command
+@app.cli.command()
 def init():
     """Inits the Superset application"""
     security.sync_role_definitions()
 
 
-@manager.option(
-    '-d', '--debug', action='store_true',
-    help='Start the web server in debug mode')
-@manager.option(
-    '-n', '--no-reload', action='store_false', dest='no_reload',
-    default=config.get('FLASK_USE_RELOAD'),
-    help="Don't use the reloader in debug mode")
-@manager.option(
-    '-a', '--address', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
-    help='Specify the address to which to bind the web server')
-@manager.option(
-    '-p', '--port', default=config.get('SUPERSET_WEBSERVER_PORT'),
-    help='Specify the port on which to run the web server')
-@manager.option(
-    '-w', '--workers',
-    default=config.get('SUPERSET_WORKERS', 2),
-    help='Number of gunicorn web server workers to fire up')
-@manager.option(
-    '-t', '--timeout', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
-    help='Specify the timeout (seconds) for the gunicorn web server')
-@manager.option(
-    '-s', '--socket', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
-    help='Path to a UNIX socket as an alternative to address:port, e.g. '
-         '/var/run/superset.sock. '
-         'Will override the address and port values.')
+@app.cli.command()
+@click.option('--debug', '-d', is_flag=True, help="Start the web server in debug mode")
+@click.option('--no-reload', '-n', is_flag=True, default=config.get('FLASK_USE_RELOAD'),
+              help="Don't use the reloader in debug mode")
+@click.option('--address', '-a', default=config.get('SUPERSET_WEBSERVER_ADDRESS'),
+              help="Specify the address to which to bind the web server")
+@click.option('--port', '-p', default=config.get('SUPERSET_WEBSERVER_PORT'),
+              help="Specify the port on which to run the web server")
+@click.option('--workers', '-w', default=config.get('SUPERSET_WORKERS', 2),
+              help="Number of gunicorn web server workers to fire up")
+@click.option('--timeout', '-t', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
+              help="Specify the timeout (seconds) for the gunicorn web server")
+@click.option('--socket', '-s', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
+              help='Path to a UNIX socket as an alternative to address:port, e.g. '
+                   '/var/run/superset.sock. '
+                   'Will override the address and port values.')
 def runserver(debug, no_reload, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
     debug = debug or config.get('DEBUG')
@@ -88,9 +78,8 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
         Popen(cmd, shell=True).wait()
 
 
-@manager.option(
-    '-v', '--verbose', action='store_true',
-    help='Show extra information')
+@app.cli.command()
+@click.option('--verbose', '-v', is_flag=True, help="Show extra information")
 def version(verbose):
     """Prints the current version number"""
     print(Fore.BLUE + '-=' * 15)
@@ -102,9 +91,8 @@ def version(verbose):
     print(Style.RESET_ALL)
 
 
-@manager.option(
-    '-t', '--load-test-data', action='store_true',
-    help='Load additional test data')
+@app.cli.command()
+@click.option('--load-test-data', is_flag=True, help="Load additional test data")
 def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     from superset import data
@@ -147,20 +135,11 @@ def load_examples(load_test_data):
     data.load_flights()
 
 
-@manager.option(
-    '-d', '--datasource',
-    help=(
-        'Specify which datasource name to load, if omitted, all '
-        'datasources will be refreshed'
-    ),
-)
-@manager.option(
-    '-m', '--merge',
-    help=(
-        "Specify using 'merge' property during operation. "
-        'Default value is False '
-    ),
-)
+@app.cli.command()
+@click.option('--datasource', '-d', help='Specify which datasource name to load, if omitted, all '
+                                         'datasources will be refreshed')
+@click.option('--merge', '-m', is_flag=True,
+              help="Specify using 'merge' property during operation. Default value is False. ")
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
@@ -181,17 +160,18 @@ def refresh_druid(datasource, merge):
     session.commit()
 
 
-@manager.option(
-    '-p', '--path', dest='path',
+@app.cli.command()
+@click.option(
+    '--path', '-p',
     help='Path to a single YAML file or path containing multiple YAML '
          'files to import (*.yaml or *.yml)')
-@manager.option(
-    '-s', '--sync', dest='sync', default='',
+@click.option(
+    '--sync', '-s', default='',
     help='comma seperated list of element types to synchronize '
          'e.g. "metrics,columns" deletes metrics and columns in the DB '
          'that are not specified in the YAML file')
-@manager.option(
-    '-r', '--recursive', dest='recursive', action='store_true',
+@click.option(
+    '--recursive', '-r',
     help='recursively search the path for yaml files')
 def import_datasources(path, sync, recursive=False):
     """Import datasources from YAML"""
@@ -219,17 +199,18 @@ def import_datasources(path, sync, recursive=False):
             logging.error(e)
 
 
-@manager.option(
-    '-f', '--datasource-file', default=None, dest='datasource_file',
+@app.cli.command()
+@click.option(
+    '--datasource-file', '-f', default=None,
     help='Specify the the file to export to')
-@manager.option(
-    '-p', '--print', action='store_true', dest='print_stdout',
+@click.option(
+    '--print', '-p',
     help='Print YAML to stdout')
-@manager.option(
-    '-b', '--back-references', action='store_true', dest='back_references',
+@click.option(
+    '--back-references', '-b',
     help='Include parent back references')
-@manager.option(
-    '-d', '--include-defaults', action='store_true', dest='include_defaults',
+@click.option(
+    '--include-defaults', '-d',
     help='Include fields containing defaults')
 def export_datasources(print_stdout, datasource_file,
                        back_references, include_defaults):
@@ -247,8 +228,9 @@ def export_datasources(print_stdout, datasource_file,
             yaml.safe_dump(data, data_stream, default_flow_style=False)
 
 
-@manager.option(
-    '-b', '--back-references', action='store_false',
+@app.cli.command()
+@click.option(
+    '--back-references', '-b',
     help='Include parent back references')
 def export_datasource_schema(back_references):
     """Export datasource YAML schema to stdout"""
@@ -257,7 +239,7 @@ def export_datasource_schema(back_references):
     yaml.safe_dump(data, stdout, default_flow_style=False)
 
 
-@manager.command
+@app.cli.command()
 def update_datasources_cache():
     """Refresh sqllab datasources cache"""
     from superset.models.core import Database
@@ -270,8 +252,9 @@ def update_datasources_cache():
             print('{}'.format(e.message))
 
 
-@manager.option(
-    '-w', '--workers',
+@app.cli.command()
+@click.option(
+    '--workers', '-w',
     type=int,
     help='Number of celery server workers to fire up')
 def worker(workers):
@@ -286,14 +269,15 @@ def worker(workers):
     worker.start()
 
 
-@manager.option(
+@app.cli.command()
+@click.option(
     '-p', '--port',
     default='5555',
-    help=('Port on which to start the Flower process'))
-@manager.option(
+    help='Port on which to start the Flower process')
+@click.option(
     '-a', '--address',
     default='localhost',
-    help=('Address on which to run the service'))
+    help='Address on which to run the service')
 def flower(port, address):
     """Runs a Celery Flower web server
 
