@@ -146,6 +146,9 @@ def load_examples(load_test_data):
     print('Loading flights data')
     data.load_flights()
 
+    print('Loading bart lines data')
+    data.load_bart_lines()
+
 
 @manager.option(
     '-d', '--datasource',
