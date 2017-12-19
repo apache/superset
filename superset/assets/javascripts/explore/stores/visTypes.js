@@ -397,6 +397,30 @@ export const visTypes = {
     },
   },
 
+  deck_path: {
+    label: t('Deck.gl - Grid'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['line_column', 'line_type'],
+          ['row_limit', null],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['color_picker', 'line_width'],
+          ['reverse_long_lat', null],
+        ],
+      },
+    ],
+  },
+
   deck_screengrid: {
     label: t('Deck.gl - Screen grid'),
     requiresTime: true,
