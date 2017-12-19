@@ -910,9 +910,13 @@ export const controls = {
   },
 
   where: {
-    type: 'TextControl',
+    type: 'TextAreaControl',
     label: t('Custom WHERE clause'),
     default: '',
+    language: 'sql',
+    minLines: 2,
+    maxLines: 10,
+    offerEditInModal: false,
     description: t('The text in this box gets included in your query\'s WHERE ' +
     'clause, as an AND to other criteria. You can include ' +
     'complex expression, parenthesis and anything else ' +
@@ -920,9 +924,13 @@ export const controls = {
   },
 
   having: {
-    type: 'TextControl',
+    type: 'TextAreaControl',
     label: t('Custom HAVING clause'),
     default: '',
+    language: 'sql',
+    minLines: 2,
+    maxLines: 10,
+    offerEditInModal: false,
     description: t('The text in this box gets included in your query\'s HAVING ' +
     'clause, as an AND to other criteria. You can include ' +
     'complex expression, parenthesis and anything else ' +

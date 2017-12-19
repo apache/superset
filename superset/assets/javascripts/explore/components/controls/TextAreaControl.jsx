@@ -22,6 +22,9 @@ const propTypes = {
   value: PropTypes.string,
   height: PropTypes.number,
   language: PropTypes.oneOf([null, 'json', 'html', 'sql', 'markdown']),
+  minLines: PropTypes.number,
+  maxLines: PropTypes.number,
+  offerEditInModal: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -30,6 +33,9 @@ const defaultProps = {
   onChange: () => {},
   value: '',
   height: 250,
+  minLines: 10,
+  maxLines: 10,
+  offerEditInModal: true,
 };
 
 export default class TextAreaControl extends React.Component {
@@ -46,8 +52,8 @@ export default class TextAreaControl extends React.Component {
           mode={this.props.language}
           theme="textmate"
           style={{ border: '1px solid #CCC' }}
-          minLines={inModal ? 40 : 10}
-          maxLines={inModal ? 1000 : 10}
+          minLines={inModal ? 40 : this.props.minLines}
+          maxLines={inModal ? 1000 : this.props.maxLines}
           onChange={this.onAceChange.bind(this)}
           width="100%"
           editorProps={{ $blockScrolling: true }}
@@ -73,16 +79,17 @@ export default class TextAreaControl extends React.Component {
       <div>
         {controlHeader}
         {this.renderEditor()}
-        <ModalTrigger
-          bsSize="large"
-          modalTitle={controlHeader}
-          triggerNode={
-            <Button bsSize="small" className="m-t-5">
-              {t('Edit')} <strong>{this.props.language}</strong> {t('in modal')}
-            </Button>
-          }
-          modalBody={this.renderEditor(true)}
-        />
+        {this.props.offerEditInModal &&
+          <ModalTrigger
+            bsSize="large"
+            modalTitle={controlHeader}
+            triggerNode={
+              <Button bsSize="small" className="m-t-5">
+                {t('Edit')} <strong>{this.props.language}</strong> {t('in modal')}
+              </Button>
+            }
+            modalBody={this.renderEditor(true)}
+          />}
       </div>
     );
   }
