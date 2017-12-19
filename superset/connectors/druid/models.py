@@ -1130,7 +1130,7 @@ class DruidDatasource(Model, BaseDatasource):
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
             logging.info('Phase 2 Complete')
-        elif len(groupby) > 0:
+        elif len(groupby) > 0 or having_filters:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
             logging.info('Running groupby query for dimensions [{}]'.format(dimensions))
