@@ -1,12 +1,11 @@
 // A safe alternative to JS's eval
 import vm from 'vm';
-import moment from 'moment';
-import d3 from 'd3';
 import _ from 'underscore';
 
+// Objects exposed here should be treated like a public API
+// if `underscore` had backwards incompatible changes in a future release, we'd
+// have to be careful about bumping the library as those changes could break user charts
 const GLOBAL_CONTEXT = {
-  moment,
-  d3,
   console,
   _,
 };

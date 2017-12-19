@@ -7,7 +7,6 @@ import mathjs from 'mathjs';
 import d3tip from 'd3-tip';
 
 import { getColorFromScheme } from '../javascripts/modules/colors';
-import sandboxedEval from '../javascripts/modules/sandbox';
 import AnnotationTypes, {
   applyNativeColumns,
 } from '../javascripts/modules/AnnotationTypes';
@@ -97,7 +96,6 @@ function formatLabel(column, verbose_map) {
 /* eslint-enable camelcase */
 
 function nvd3Vis(slice, payload) {
-  const fd = slice.formData;
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
@@ -131,6 +129,7 @@ function nvd3Vis(slice, payload) {
   }
 
   let width = slice.width();
+  const fd = slice.formData;
 
   const barchartWidth = function () {
     let bars;
@@ -725,9 +724,6 @@ function nvd3Vis(slice, payload) {
         .attr('height', height)
         .attr('width', width)
         .call(chart);
-    }
-    if (fd.js_chart) {
-      sandboxedEval(fd.js_chart, { foo: 'bar' })(chart);
     }
     return chart;
   };
