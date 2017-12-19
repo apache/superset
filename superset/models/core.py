@@ -629,6 +629,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 effective_username = g.user.username
         return effective_username
 
+    @utils.memoized(
+        watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
     def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
@@ -662,10 +664,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return create_engine(url, **params)
 
     def get_reserved_words(self):
-        return self.get_sqla_engine().dialect.preparer.reserved_words
+        return self.get_dialect().preparer.reserved_words
 
     def get_quoter(self):
-        return self.get_sqla_engine().dialect.identifier_preparer.quote
+        return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
@@ -813,6 +815,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return engine.has_table(
             table.table_name, table.schema or None)
 
+    @utils.memoized
     def get_dialect(self):
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()

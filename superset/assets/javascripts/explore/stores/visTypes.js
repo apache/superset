@@ -45,7 +45,7 @@ export const sections = {
     description: t('This section exposes ways to include snippets of SQL in your query'),
   },
   annotations: {
-    label: t('Annotations'),
+    label: t('Annotations and Layers'),
     expanded: true,
     controlSetRows: [
       ['annotation_layers'],
