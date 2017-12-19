@@ -1186,6 +1186,14 @@ class BQEngineSpec(BaseEngineSpec):
             return "{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        data = super(BQEngineSpec, cls).fetch_data(cursor, limit)
+        from google.cloud.bigquery._helpers import Row  # pylint: disable=import-error
+        if len(data) != 0 and isinstance(data[0], Row):
+            data = [r.values() for r in data]
+        return data
+
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
