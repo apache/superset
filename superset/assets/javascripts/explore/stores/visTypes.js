@@ -406,7 +406,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['line_column', 'line_type'],
-          ['row_limit', null]
+          ['row_limit', null],
         ],
       },
       {
@@ -415,7 +415,7 @@ export const visTypes = {
         controlSetRows: [
           ['mapbox_style', 'viewport'],
           ['color_picker', 'line_width'],
-          ['reverse_long_lat', null]
+          ['reverse_long_lat', null],
         ],
       },
     ],
