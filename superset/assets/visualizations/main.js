@@ -42,6 +42,7 @@ export const VIZ_TYPES = {
   deck_screengrid: 'deck_screengrid',
   deck_grid: 'deck_grid',
   deck_hex: 'deck_hex',
+  deck_path: 'deck_path',
 };
 
 const vizMap = {
@@ -86,5 +87,6 @@ const vizMap = {
   [VIZ_TYPES.deck_screengrid]: require('./deckgl/screengrid.jsx'),
   [VIZ_TYPES.deck_grid]: require('./deckgl/grid.jsx'),
   [VIZ_TYPES.deck_hex]: require('./deckgl/hex.jsx'),
+  [VIZ_TYPES.deck_path]: require('./deckgl/path.jsx'),
 };
 export default vizMap;
