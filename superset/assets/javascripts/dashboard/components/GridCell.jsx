@@ -31,6 +31,7 @@ const propTypes = {
   clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   editMode: PropTypes.bool,
+  annotationQuery: PropTypes.object,
 };
 
 const defaultProps = {
@@ -84,7 +85,7 @@ class GridCell extends React.PureComponent {
     const {
       exploreChartUrl, exportCSVUrl, isExpanded, isLoading, isCached, cachedDttm,
       removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
-      chartKey, slice, datasource, formData, timeout,
+      chartKey, slice, datasource, formData, timeout, annotationQuery,
     } = this.props;
     return (
       <div
@@ -104,6 +105,7 @@ class GridCell extends React.PureComponent {
             toggleExpandSlice={toggleExpandSlice}
             forceRefresh={forceRefresh}
             editMode={this.props.editMode}
+            annotationQuery={annotationQuery}
           />
         </div>
         <div

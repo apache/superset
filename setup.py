@@ -5,7 +5,7 @@ import subprocess
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'assets')
+PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
@@ -58,15 +58,18 @@ setup(
         'flask-wtf==0.14.2',
         'flower==0.9.1',
         'future>=0.16.0, <0.17',
+        'python-geohash==0.8.5',
         'humanize==0.5.1',
         'gunicorn==19.7.1',
         'idna==2.5',
         'markdown==2.6.8',
         'pandas==0.20.3',
         'parsedatetime==2.0.0',
+        'pathlib2==2.3.0',
         'pydruid==0.3.1',
         'PyHive>=0.4.0',
         'python-dateutil==2.6.0',
+        'pyyaml>=3.11',
         'requests==2.17.3',
         'simplejson==3.10.0',
         'six==1.10.0',
@@ -75,6 +78,11 @@ setup(
         'sqlparse==0.2.3',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
+        'unidecode>=0.04.21',
+        # PandasConnector deps
+        # @TODO sort into main deps
+        # prior to merge. Currently,
+        # separate to minimize merge conflicts
         'beautifulsoup4==4.6.0',
         'bottleneck==1.2.1',
         'feather-format==0.4.0',
@@ -104,3 +112,4 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
 )
+

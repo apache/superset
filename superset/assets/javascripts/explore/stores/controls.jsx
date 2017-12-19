@@ -135,30 +135,12 @@ export const controls = {
       choices: (state.datasource) ? state.datasource.order_by_choices : [],
     }),
   },
-
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
     type: 'ColorPickerControl',
     default: colorPrimary,
     renderTrigger: true,
-  },
-
-  annotation_layers: {
-    type: 'SelectAsyncControl',
-    multi: true,
-    label: t('Annotation Layers'),
-    default: [],
-    description: t('Annotation layers to overlay on the visualization'),
-    dataEndpoint: '/annotationlayermodelview/api/read?',
-    placeholder: t('Select a annotation layer'),
-    onAsyncErrorMessage: t('Error while fetching annotation layers'),
-    mutator: (data) => {
-      if (!data || !data.result) {
-        return [];
-      }
-      return data.result.map(layer => ({ value: layer.id, label: layer.name }));
-    },
   },
 
   metric: {
@@ -433,6 +415,30 @@ export const controls = {
     'to find in the [country] column'),
   },
 
+  freq: {
+    type: 'SelectControl',
+    label: t('Frequency'),
+    default: 'W-MON',
+    freeForm: true,
+    clearable: false,
+    choices: [
+      ['AS', 'Year (freq=AS)'],
+      ['52W-MON', '52 weeks starting Monday (freq=52W-MON)'],
+      ['W-SUN', '1 week starting Sunday (freq=W-SUN)'],
+      ['W-MON', '1 week starting Monday (freq=W-MON)'],
+      ['D', 'Day (freq=D)'],
+      ['4W-MON', '4 weeks (freq=4W-MON)'],
+    ],
+    description: t(
+      `The periodicity over which to pivot time. Users can provide
+      "Pandas" offset alias.
+      Click on the info bubble for more details on accepted "freq" expressions.`),
+    tooltipOnClick: () => {
+      window.open(
+        'https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases');
+    },
+  },
+
   groupby: groupByControl,
   dimension: {
     ...groupByControl,
@@ -453,6 +459,16 @@ export const controls = {
     label: t('Columns'),
     default: [],
     description: t('Columns to display'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  spatial: {
+    type: 'SpatialControl',
+    label: t('Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
@@ -1412,7 +1428,7 @@ export const controls = {
   viewport: {
     type: 'ViewportControl',
     label: t('Viewport'),
-    renderTrigger: true,
+    renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
     default: defaultViewport,
@@ -1525,6 +1541,14 @@ export const controls = {
     mapStateToProps: state => ({
       datasource: state.datasource,
     }),
+  },
+
+  annotation_layers: {
+    type: 'AnnotationLayerControl',
+    label: '',
+    default: [],
+    description: 'Annotation Layers',
+    renderTrigger: true,
   },
 
   having_filters: {

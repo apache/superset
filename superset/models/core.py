@@ -28,6 +28,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
@@ -248,25 +249,23 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         )
 
     @classmethod
-    def import_obj(cls, slc_to_import, import_time=None):
+    def import_obj(cls, slc_to_import, slc_to_override, import_time=None):
         """Inserts or overrides slc in the database.
 
         remote_id and import_time fields in params_dict are set to track the
         slice origin and ensure correct overrides for multiple imports.
         Slice.perm is used to find the datasources and connect them.
+
+        :param Slice slc_to_import: Slice object to import
+        :param Slice slc_to_override: Slice to replace, id matches remote_id
+        :returns: The resulting id for the imported slice
+        :rtype: int
         """
         session = db.session
         make_transient(slc_to_import)
         slc_to_import.dashboards = []
         slc_to_import.alter_params(
             remote_id=slc_to_import.id, import_time=import_time)
-
-        # find if the slice was already imported
-        slc_to_override = None
-        for slc in session.query(Slice).all():
-            if ('remote_id' in slc.params_dict and
-                    slc.params_dict['remote_id'] == slc_to_import.id):
-                slc_to_override = slc
 
         slc_to_import = slc_to_import.copy()
         params = slc_to_import.params_dict
@@ -432,10 +431,16 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         new_timed_refresh_immune_slices = []
         new_expanded_slices = {}
         i_params_dict = dashboard_to_import.params_dict
+        remote_id_slice_map = {
+            slc.params_dict['remote_id']: slc
+            for slc in session.query(Slice).all()
+            if 'remote_id' in slc.params_dict
+        }
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
                 slc.to_json(), dashboard_to_import.dashboard_title))
-            new_slc_id = Slice.import_obj(slc, import_time=import_time)
+            remote_slc = remote_id_slice_map.get(slc.id)
+            new_slc_id = Slice.import_obj(slc, remote_slc, import_time=import_time)
             old_to_new_slc_id_dict[slc.id] = new_slc_id
             # update json metadata that deals with slice ids
             new_slc_id_str = '{}'.format(new_slc_id)
@@ -533,12 +538,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         })
 
 
-class Database(Model, AuditMixinNullable):
+class Database(Model, AuditMixinNullable, ImportMixin):
 
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
     type = 'table'
+    __table_args__ = (UniqueConstraint('database_name'),)
 
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
@@ -563,6 +569,10 @@ class Database(Model, AuditMixinNullable):
     perm = Column(String(1000))
     custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
     impersonate_user = Column(Boolean, default=False)
+    export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
+                     'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+                     'allow_ctas', 'extra')
+    export_children = ['tables']
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name
@@ -619,6 +629,8 @@ class Database(Model, AuditMixinNullable):
                 effective_username = g.user.username
         return effective_username
 
+    @utils.memoized(
+        watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
     def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
@@ -652,10 +664,10 @@ class Database(Model, AuditMixinNullable):
         return create_engine(url, **params)
 
     def get_reserved_words(self):
-        return self.get_sqla_engine().dialect.preparer.reserved_words
+        return self.get_dialect().preparer.reserved_words
 
     def get_quoter(self):
-        return self.get_sqla_engine().dialect.identifier_preparer.quote
+        return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
@@ -803,6 +815,7 @@ class Database(Model, AuditMixinNullable):
         return engine.has_table(
             table.table_name, table.schema or None)
 
+    @utils.memoized
     def get_dialect(self):
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()

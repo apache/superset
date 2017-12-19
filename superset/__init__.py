@@ -42,7 +42,7 @@ def parse_manifest_json():
         with open(MANIFEST_FILE, 'r') as f:
             manifest = json.load(f)
     except Exception:
-        print('no manifest file found at ' + MANIFEST_FILE)
+        pass
 
 
 def get_manifest_file(filename):
@@ -166,5 +166,11 @@ results_backend = app.config.get('RESULTS_BACKEND')
 module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
 module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
 ConnectorRegistry.register_sources(module_datasource_map)
+
+# Hook that provides administrators a handle on the Flask APP
+# after initialization
+flask_app_mutator = app.config.get('FLASK_APP_MUTATOR')
+if flask_app_mutator:
+    flask_app_mutator(app)
 
 from superset import views  # noqa

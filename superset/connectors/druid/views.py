@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import logging
 
 from flask import flash, Markup, redirect
@@ -14,7 +15,7 @@ from superset.utils import has_access
 from superset.views.base import (
     BaseSupersetView, DatasourceFilter, DeleteMixin,
     get_datasource_exist_error_mgs, ListWidgetWithCheckboxes, SupersetModelView,
-    validate_json,
+    validate_json, YamlExportMixin,
 )
 from . import models
 
@@ -61,9 +62,28 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             True),
     }
 
+    def pre_update(self, col):
+        # If a dimension spec JSON is given, ensure that it is
+        # valid JSON and that `outputName` is specified
+        if col.dimension_spec_json:
+            try:
+                dimension_spec = json.loads(col.dimension_spec_json)
+            except ValueError as e:
+                raise ValueError('Invalid Dimension Spec JSON: ' + str(e))
+            if not isinstance(dimension_spec, dict):
+                raise ValueError('Dimension Spec must be a JSON object')
+            if 'outputName' not in dimension_spec:
+                raise ValueError('Dimension Spec does not contain `outputName`')
+            if 'dimension' not in dimension_spec:
+                raise ValueError('Dimension Spec is missing `dimension`')
+            # `outputName` should be the same as the `column_name`
+            if dimension_spec['outputName'] != col.column_name:
+                raise ValueError(
+                    '`outputName` [{}] unequal to `column_name` [{}]'
+                    .format(dimension_spec['outputName'], col.column_name))
+
     def post_update(self, col):
         col.generate_metrics()
-        utils.validate_json(col.dimension_spec_json)
 
     def post_add(self, col):
         self.post_update(col)
@@ -122,7 +142,7 @@ class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
-class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
+class DruidClusterModelView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
 
     list_title = _('List Druid Cluster')
@@ -168,7 +188,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
+class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
 
     list_title = _('List Druid Datasource')
@@ -223,7 +243,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin):  # noqa
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
-        'slices': _('Associated Slices'),
+        'slices': _('Associated Charts'),
         'datasource_link': _('Data Source'),
         'cluster': _('Cluster'),
         'description': _('Description'),

@@ -181,6 +181,11 @@ If the load balancer is inserting X-Forwarded-For/X-Forwarded-Proto headers, you
 should set `ENABLE_PROXY_FIX = True` in the superset config file to extract and use
 the headers.
 
+In case that the reverse proxy is used for providing ssl encryption, 
+an explicit definition of the `X-Forwarded-Proto` may be required.
+For the Apache webserver this can be set as follows: ::
+
+    RequestHeader set X-Forwarded-Proto "https"
 
 Configuration
 -------------
@@ -498,6 +503,11 @@ look something like:
     RESULTS_BACKEND = RedisCache(
         host='localhost', port=6379, key_prefix='superset_results')
 
+Note that it's important that all the worker nodes and web servers in
+the Superset cluster share a common metadata database.
+This means that SQLite will not work in this context since it has
+limited support for concurrency and
+typically lives on the local file system.
 
 Also note that SQL Lab supports Jinja templating in queries, and that it's
 possible to overload

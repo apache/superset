@@ -33,7 +33,7 @@ const colTypeOptions = [
 export default class TimeSeriesColumnControl extends React.Component {
   constructor(props) {
     super(props);
-    const state = Object.assign({}, props);
+    const state = { ...props };
     delete state.onChange;
     this.state = state;
     this.onChange = this.onChange.bind(this);
@@ -61,7 +61,7 @@ export default class TimeSeriesColumnControl extends React.Component {
     return (
       <Row style={{ marginTop: '5px' }}>
         <Col md={5}>
-          {label}{' '}
+          {`${label} `}
           <InfoTooltipWithTrigger
             placement="top"
             tooltip={tooltip}
@@ -75,7 +75,7 @@ export default class TimeSeriesColumnControl extends React.Component {
   renderPopover() {
     return (
       <Popover id="ts-col-popo" title="Column Configuration">
-        <div style={{ width: '280px' }}>
+        <div style={{ width: 300 }}>
           {this.formRow(
             'Label',
             'The column header label',
@@ -166,13 +166,11 @@ export default class TimeSeriesColumnControl extends React.Component {
             />,
           )}
           {this.state.colType !== 'spark' && this.formRow(
-            'Bounds',
+            'Color bounds',
             (
-              'Number bounds used for color coding from red to green. ' +
-              'Reverse the number for green to red. To get boolean ' +
-              'red or green without spectrum, you can use either only ' +
-              'min, or max, depending on whether small or big should be ' +
-              'green or red.'
+              `Number bounds used for color encoding from red to blue.
+              Reverse the numbers for blue to red. To get pure red or blue,
+              you can enter either only min or max.`
             ),
             'bounds',
             <BoundsControl
@@ -181,14 +179,25 @@ export default class TimeSeriesColumnControl extends React.Component {
             />,
           )}
           {this.formRow(
-            'D3 format',
-            'D3 format string',
+            'Number format',
+            'Optional d3 number format string',
             'd3-format',
             <FormControl
               value={this.state.d3format}
               onChange={this.onTextInputChange.bind(this, 'd3format')}
               bsSize="small"
-              placeholder="D3 format string"
+              placeholder="Number format string"
+            />,
+          )}
+          {this.state.colType === 'spark' && this.formRow(
+            'Date format',
+            'Optional d3 date format string',
+            'date-format',
+            <FormControl
+              value={this.state.dateFormat}
+              onChange={this.onTextInputChange.bind(this, 'dateFormat')}
+              bsSize="small"
+              placeholder="Date format string"
             />,
           )}
         </div>

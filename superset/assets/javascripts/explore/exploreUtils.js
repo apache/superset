@@ -1,12 +1,29 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
 
+export function getChartKey(explore) {
+  const slice = explore.slice;
+  return slice ? ('slice_' + slice.slice_id) : 'slice';
+}
+
+export function getAnnotationJsonUrl(slice_id, form_data, isNative) {
+  if (slice_id === null || slice_id === undefined) {
+    return null;
+  }
+  const uri = URI(window.location.search);
+  const endpoint = isNative ? 'annotation_json' : 'slice_json';
+  return uri.pathname(`/superset/${endpoint}/${slice_id}`)
+    .search({
+      form_data: JSON.stringify(form_data,
+        (key, value) => value === null ? undefined : value),
+    }).toString();
+}
+
 export function getExploreUrl(form_data, endpointType = 'base', force = false,
   curUrl = null, requestParams = {}) {
   if (!form_data.datasource) {
     return null;
   }
-
 
   // The search params from the window.location are carried through,
   // but can be specified with curUrl (used for unit tests to spoof

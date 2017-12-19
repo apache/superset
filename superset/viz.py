@@ -22,11 +22,13 @@ import zlib
 from dateutil import relativedelta as rdelta
 from flask import request
 from flask_babel import lazy_gettext as _
+import geohash
 from markdown import markdown
 import numpy as np
 import pandas as pd
+from pandas.tseries.frequencies import to_offset
 import simplejson as json
-from six import PY3, string_types
+from six import PY3, string_types, text_type
 from six.moves import reduce
 
 from superset import app, cache, get_manifest_file, utils
@@ -59,7 +61,7 @@ class BaseViz(object):
             'token', 'token_' + uuid.uuid4().hex[:8])
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
-        self.annotation_layers = []
+        self.time_shift = timedelta()
 
         self.status = None
         self.error_message = None
@@ -119,6 +121,7 @@ class BaseViz(object):
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
+                df[DTTM_ALIAS] += self.time_shift
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
@@ -156,6 +159,7 @@ class BaseViz(object):
 
         since = form_data.get('since', '')
         until = form_data.get('until', 'now')
+        time_shift = form_data.get('time_shift', '')
 
         # Backward compatibility hack
         if since:
@@ -164,15 +168,15 @@ class BaseViz(object):
             if (len(since_words) == 2 and since_words[1] in grains):
                 since += ' ago'
 
-        from_dttm = utils.parse_human_datetime(since)
+        self.time_shift = utils.parse_human_timedelta(time_shift)
 
-        to_dttm = utils.parse_human_datetime(until)
+        from_dttm = utils.parse_human_datetime(since) - self.time_shift
+        to_dttm = utils.parse_human_datetime(until) - self.time_shift
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_('From date cannot be larger than to date'))
 
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
-        self.annotation_layers = form_data.get('annotation_layers') or []
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -225,23 +229,6 @@ class BaseViz(object):
         s = str([(k, form_data[k]) for k in sorted(form_data.keys())])
         return hashlib.md5(s.encode('utf-8')).hexdigest()
 
-    def get_annotations(self):
-        """Fetches the annotations for the specified layers and date range"""
-        annotations = []
-        if self.annotation_layers:
-            from superset.models.annotations import Annotation
-            from superset import db
-            qry = (
-                db.session
-                .query(Annotation)
-                .filter(Annotation.layer_id.in_(self.annotation_layers)))
-            if self.from_dttm:
-                qry = qry.filter(Annotation.start_dttm >= self.from_dttm)
-            if self.to_dttm:
-                qry = qry.filter(Annotation.end_dttm <= self.to_dttm)
-            annotations = [o.data for o in qry.all()]
-        return annotations
-
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
@@ -270,12 +257,12 @@ class BaseViz(object):
             is_cached = False
             cache_timeout = self.cache_timeout
             stacktrace = None
-            annotations = []
+            rowcount = None
             try:
                 df = self.get_df()
                 if not self.error_message:
                     data = self.get_data(df)
-                annotations = self.get_annotations()
+                rowcount = len(df.index) if df is not None else 0
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -292,7 +279,7 @@ class BaseViz(object):
                 'query': self.query,
                 'status': self.status,
                 'stacktrace': stacktrace,
-                'annotations': annotations,
+                'rowcount': rowcount,
             }
             payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
             logging.info('Caching for the next {} seconds'.format(
@@ -536,7 +523,7 @@ class MarkupViz(BaseViz):
     is_timeseries = False
 
     def get_df(self):
-        return True
+        return None
 
     def get_data(self, df):
         markup_type = self.form_data.get('markup_type')
@@ -947,14 +934,23 @@ class NVD3TimeSeriesViz(NVD3Viz):
             elif title_suffix and isinstance(series_title, (list, tuple)):
                 series_title = series_title + (title_suffix,)
 
+            values = []
+            for ds in df.index:
+                if ds in ys:
+                    d = {
+                        'x': ds,
+                        'y': ys[ds],
+                    }
+                else:
+                    d = {}
+                values.append(d)
+
             d = {
                 'key': series_title,
-                'classed': classed,
-                'values': [
-                    {'x': ds, 'y': ys[ds] if ds in ys else None}
-                    for ds in df.index
-                ],
+                'values': values,
             }
+            if classed:
+                d['classed'] = classed
             chart_data.append(d)
         return chart_data
 
@@ -1136,6 +1132,47 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     verbose_name = _('Time Series - Bar Chart')
 
 
+class NVD3TimePivotViz(NVD3TimeSeriesViz):
+
+    """Time Series - Periodicity Pivot"""
+
+    viz_type = 'time_pivot'
+    sort_series = True
+    verbose_name = _('Time Series - Period Pivot')
+
+    def query_obj(self):
+        d = super(NVD3TimePivotViz, self).query_obj()
+        d['metrics'] = [self.form_data.get('metric')]
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        df = self.process_data(df)
+        freq = to_offset(fd.get('freq'))
+        freq.normalize = True
+        df[DTTM_ALIAS] = df.index.map(freq.rollback)
+        df['ranked'] = df[DTTM_ALIAS].rank(method='dense', ascending=False) - 1
+        df.ranked = df.ranked.map(int)
+        df['series'] = '-' + df.ranked.map(str)
+        df['series'] = df['series'].str.replace('-0', 'current')
+        rank_lookup = {
+            row['series']: row['ranked']
+            for row in df.to_dict(orient='records')
+        }
+        max_ts = df[DTTM_ALIAS].max()
+        max_rank = df['ranked'].max()
+        df[DTTM_ALIAS] = df.index + (max_ts - df[DTTM_ALIAS])
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            columns='series',
+            values=fd.get('metric'))
+        chart_data = self.to_series(df)
+        for serie in chart_data:
+            serie['rank'] = rank_lookup[serie['key']]
+            serie['perc'] = 1 - (serie['rank'] / (max_rank + 1))
+        return chart_data
+
+
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
 
     """A line chart component where you can compare the % change over time"""
@@ -1249,9 +1286,9 @@ class DistributionBarViz(DistributionPieViz):
             for i, v in ys.iteritems():
                 x = i
                 if isinstance(x, (tuple, list)):
-                    x = ', '.join([str(s) for s in x])
+                    x = ', '.join([text_type(s) for s in x])
                 else:
-                    x = str(x)
+                    x = text_type(x)
                 values.append({
                     'x': x,
                     'y': v,
@@ -1739,7 +1776,7 @@ class BaseDeckGLViz(BaseViz):
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
-        return [self.metric]
+        return [self.metric] if self.metric else []
 
     def get_properties(self, d):
         return {
@@ -1748,22 +1785,60 @@ class BaseDeckGLViz(BaseViz):
 
     def get_position(self, d):
         return [
-            d.get(self.form_data.get('longitude')),
-            d.get(self.form_data.get('latitude')),
+            d.get('lon'),
+            d.get('lat'),
         ]
 
     def query_obj(self):
         d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
 
-        d['groupby'] = [fd.get('longitude'), fd.get('latitude')]
-        if fd.get('dimension'):
-            d['groupby'] += [fd.get('dimension')]
+        gb = []
 
-        d['metrics'] = self.get_metrics()
+        spatial = fd.get('spatial')
+        if spatial.get('type') == 'latlong':
+            gb += [spatial.get('lonCol')]
+            gb += [spatial.get('latCol')]
+        elif spatial.get('type') == 'delimited':
+            gb += [spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            gb += [spatial.get('geohashCol')]
+
+        if fd.get('dimension'):
+            gb += [fd.get('dimension')]
+
+        metrics = self.get_metrics()
+        if metrics:
+            d['groupby'] = gb
+            d['metrics'] = self.get_metrics()
+        else:
+            d['columns'] = gb
         return d
 
     def get_data(self, df):
+        fd = self.form_data
+        spatial = fd.get('spatial')
+        if spatial.get('type') == 'latlong':
+            df = df.rename(columns={
+                spatial.get('lonCol'): 'lon',
+                spatial.get('latCol'): 'lat'})
+        elif spatial.get('type') == 'delimited':
+            cols = ['lon', 'lat']
+            if spatial.get('reverseCheckbox'):
+                cols.reverse()
+            df[cols] = (
+                df[spatial.get('lonlatCol')]
+                .str
+                .split(spatial.get('delimiter'), expand=True)
+                .astype(np.float64)
+            )
+            del df[spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+            df['lat'] = latlong.apply(lambda x: x[0])
+            df['lon'] = latlong.apply(lambda x: x[1])
+            del df['geohash']
+
         features = []
         for d in df.to_dict(orient='records'):
             d = dict(position=self.get_position(d), **self.get_properties(d))
@@ -1782,15 +1857,15 @@ class DeckScatterViz(BaseDeckGLViz):
     verbose_name = _('Deck.gl - Scatter plot')
 
     def query_obj(self):
-        self.point_radius_fixed = self.form_data.get('point_radius_fixed')
+        fd = self.form_data
+        self.point_radius_fixed = (
+            fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
         return super(DeckScatterViz, self).query_obj()
 
     def get_metrics(self):
         if self.point_radius_fixed.get('type') == 'metric':
-            self.metric = self.point_radius_fixed.get('value')
-        else:
-            self.metric = 'count'
-        return [self.metric]
+            return [self.point_radius_fixed.get('value')]
+        return None
 
     def get_properties(self, d):
         return {
@@ -1805,7 +1880,6 @@ class DeckScatterViz(BaseDeckGLViz):
         self.dim = self.form_data.get('dimension')
         if self.point_radius_fixed.get('type') != 'metric':
             self.fixed_value = self.point_radius_fixed.get('value')
-
         return super(DeckScatterViz, self).get_data(df)
 
 

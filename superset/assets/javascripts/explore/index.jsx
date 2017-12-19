@@ -7,6 +7,7 @@ import thunk from 'redux-thunk';
 
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
+import { getChartKey } from './exploreUtils';
 import AlertsWrapper from '../components/AlertsWrapper';
 import { getControlsState, getFormDataFromControls } from './stores/store';
 import { initJQueryAjax } from '../modules/utils';
@@ -41,7 +42,7 @@ const sliceFormData = slice ?
   getFormDataFromControls(getControlsState(bootstrapData, slice.form_data))
   :
   null;
-const chartKey = slice ? ('slice_' + slice.slice_id) : 'slice';
+const chartKey = getChartKey(bootstrappedState);
 const initState = {
   charts: {
     [chartKey]: {

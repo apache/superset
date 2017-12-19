@@ -146,3 +146,11 @@ div.widget:hover .chart-controls {
 .slice_container .alert {
     margin: 10px;
 }
+
+i.danger {
+  color: red;
+}
+
+i.warning {
+  color: orange;
+}

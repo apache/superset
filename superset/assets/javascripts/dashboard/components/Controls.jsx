@@ -13,12 +13,12 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  filters: PropTypes.object.isRequired,
   slices: PropTypes.array,
   userId: PropTypes.string.isRequired,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
-  readFilters: PropTypes.func,
   renderSlices: PropTypes.func,
   serialize: PropTypes.func,
   startPeriodicRender: PropTypes.func,
@@ -65,8 +65,11 @@ class Controls extends React.PureComponent {
     };
     this.refresh = this.refresh.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
+    this.updateDom = this.updateDom.bind(this);
   }
   componentWillMount() {
+    this.updateDom(this.state.css);
+
     $.get('/csstemplateasyncmodelview/api/read', (data) => {
       const cssTemplates = data.result.map(row => ({
         value: row.template_name,
@@ -88,12 +91,31 @@ class Controls extends React.PureComponent {
     this.setState({ currentModal });
   }
   changeCss(css) {
-    this.setState({ css });
+    this.setState({ css }, () => {
+      this.updateDom(css);
+    });
     this.props.onChange();
   }
+  updateDom(css) {
+    const className = 'CssEditor-css';
+    const head = document.head || document.getElementsByTagName('head')[0];
+    let style = document.querySelector('.' + className);
+
+    if (!style) {
+      style = document.createElement('style');
+      style.className = className;
+      style.type = 'text/css';
+      head.appendChild(style);
+    }
+    if (style.styleSheet) {
+      style.styleSheet.cssText = css;
+    } else {
+      style.innerHTML = css;
+    }
+  }
   render() {
-    const { dashboard, userId,
-      addSlicesToDashboard, startPeriodicRender, readFilters,
+    const { dashboard, userId, filters,
+      addSlicesToDashboard, startPeriodicRender,
       serialize, onSave, editMode } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
@@ -123,7 +145,7 @@ class Controls extends React.PureComponent {
           />
           <SaveModal
             dashboard={dashboard}
-            readFilters={readFilters}
+            filters={filters}
             serialize={serialize}
             onSave={onSave}
             css={this.state.css}
@@ -175,7 +197,7 @@ class Controls extends React.PureComponent {
                   faIcon="css3"
                 />
               }
-              initialCss={dashboard.css}
+              initialCss={this.state.css}
               templates={this.state.cssTemplates}
               onChange={this.changeCss.bind(this)}
             />

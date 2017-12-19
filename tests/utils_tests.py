@@ -8,7 +8,7 @@ import numpy
 
 from superset.utils import (
     base_json_conv, datetime_f, json_int_dttm_ser, json_iso_dttm_ser,
-    JSONEncodedDict, merge_extra_filters, parse_human_timedelta,
+    JSONEncodedDict, memoized, merge_extra_filters, parse_human_timedelta,
     SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
 )
 
@@ -219,3 +219,77 @@ class UtilsTestCase(unittest.TestCase):
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
         with self.assertRaises(SupersetException):
             validate_json(invalid)
+
+    def test_memoized_on_functions(self):
+        watcher = {'val': 0}
+
+        @memoized
+        def test_function(a, b, c):
+            watcher['val'] += 1
+            return a * b * c
+        result1 = test_function(1, 2, 3)
+        result2 = test_function(1, 2, 3)
+        self.assertEquals(result1, result2)
+        self.assertEquals(watcher['val'], 1)
+
+    def test_memoized_on_methods(self):
+
+        class test_class:
+            def __init__(self, num):
+                self.num = num
+                self.watcher = 0
+
+            @memoized
+            def test_method(self, a, b, c):
+                self.watcher += 1
+                return a * b * c * self.num
+
+        instance = test_class(5)
+        result1 = instance.test_method(1, 2, 3)
+        result2 = instance.test_method(1, 2, 3)
+        self.assertEquals(result1, result2)
+        self.assertEquals(instance.watcher, 1)
+        instance.num = 10
+        self.assertEquals(result2, instance.test_method(1, 2, 3))
+
+    def test_memoized_on_methods_with_watches(self):
+
+        class test_class:
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+                self.watcher = 0
+
+            @memoized(watch=('x', 'y'))
+            def test_method(self, a, b, c):
+                self.watcher += 1
+                return a * b * c * self.x * self.y
+
+        instance = test_class(3, 12)
+        result1 = instance.test_method(1, 2, 3)
+        result2 = instance.test_method(1, 2, 3)
+        self.assertEquals(result1, result2)
+        self.assertEquals(instance.watcher, 1)
+        result3 = instance.test_method(2, 3, 4)
+        self.assertEquals(instance.watcher, 2)
+        result4 = instance.test_method(2, 3, 4)
+        self.assertEquals(instance.watcher, 2)
+        self.assertEquals(result3, result4)
+        self.assertNotEqual(result3, result1)
+        instance.x = 1
+        result5 = instance.test_method(2, 3, 4)
+        self.assertEqual(instance.watcher, 3)
+        self.assertNotEqual(result5, result4)
+        result6 = instance.test_method(2, 3, 4)
+        self.assertEqual(instance.watcher, 3)
+        self.assertEqual(result6, result5)
+        instance.x = 10
+        instance.y = 10
+        result7 = instance.test_method(2, 3, 4)
+        self.assertEqual(instance.watcher, 4)
+        self.assertNotEqual(result7, result6)
+        instance.x = 3
+        instance.y = 12
+        result8 = instance.test_method(1, 2, 3)
+        self.assertEqual(instance.watcher, 4)
+        self.assertEqual(result1, result8)

@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.21.0dev",
+  "version": "0.23.0dev",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -15,6 +15,7 @@
     "prod": "NODE_ENV=production node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
     "build": "NODE_ENV=production webpack --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
+    "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx .",
     "sync-backend": "babel-node --presets env javascripts/syncBackend.js"
   },
   "repository": {
@@ -39,8 +40,8 @@
   },
   "homepage": "http://superset.apache.org/",
   "dependencies": {
-    "@data-ui/event-flow": "0.0.8",
-    "@data-ui/sparkline": "0.0.47",
+    "@data-ui/event-flow": "^0.0.8",
+    "@data-ui/sparkline": "^0.0.49",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "brace": "^0.10.0",
@@ -57,12 +58,14 @@
     "datatables.net-bs": "^1.10.15",
     "deck.gl": "^4.1.5",
     "distributions": "^1.0.0",
+    "fastdom": "^1.0.6",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "jed": "^1.1.1",
     "jquery": "3.1.1",
     "lodash.throttle": "^4.1.1",
     "luma.gl": "^4.0.5",
+    "mathjs": "^3.16.3",
     "moment": "2.18.1",
     "mustache": "^2.2.1",
     "nvd3": "1.8.6",

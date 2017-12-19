@@ -14,14 +14,10 @@ export function getInitialState(bootstrapData) {
   delete common.language_pack;
 
   const dashboard = { ...bootstrapData.dashboard_data };
-  const filters = {};
+  let filters = {};
   try {
     // allow request parameter overwrite dashboard metadata
-    const filterData = JSON.parse(getParam('preselect_filters') || dashboard.metadata.default_filters);
-    for (const key in filterData) {
-      const sliceId = parseInt(key, 10);
-      filters[sliceId] = filterData[key];
-    }
+    filters = JSON.parse(getParam('preselect_filters') || dashboard.metadata.default_filters);
   } catch (e) {
     //
   }
@@ -87,7 +83,7 @@ export function getInitialState(bootstrapData) {
   };
 }
 
-const dashboard = function (state = {}, action) {
+export const dashboard = function (state = {}, action) {
   const actionHandlers = {
     [actions.UPDATE_DASHBOARD_TITLE]() {
       const newDashboard = { ...state.dashboard, dashboard_title: action.title };
@@ -98,11 +94,22 @@ const dashboard = function (state = {}, action) {
       return { ...state, dashboard: newDashboard };
     },
     [actions.REMOVE_SLICE]() {
-      const newLayout = state.dashboard.layout.filter(function (reactPos) {
-        return reactPos.i !== String(action.slice.slice_id);
-      });
+      const key = String(action.slice.slice_id);
+      const newLayout = state.dashboard.layout.filter(reactPos => (reactPos.i !== key));
       const newDashboard = removeFromArr(state.dashboard, 'slices', action.slice, 'slice_id');
-      return { ...state, dashboard: { ...newDashboard, layout: newLayout } };
+      // if this slice is a filter
+      const newFilter = { ...state.filters };
+      let refresh = false;
+      if (state.filters[key]) {
+        delete newFilter[key];
+        refresh = true;
+      }
+      return {
+        ...state,
+        dashboard: { ...newDashboard, layout: newLayout },
+        filters: newFilter,
+        refresh,
+      };
     },
     [actions.TOGGLE_FAVE_STAR]() {
       return { ...state, isStarred: action.isStarred };
@@ -131,52 +138,47 @@ const dashboard = function (state = {}, action) {
         return state;
       }
 
-      let filters;
+      let filters = state.filters;
       const { sliceId, col, vals, merge, refresh } = action;
       const filterKeys = ['__from', '__to', '__time_col',
         '__time_grain', '__time_origin', '__granularity'];
       if (filterKeys.indexOf(col) >= 0 ||
         selectedSlice.formData.groupby.indexOf(col) !== -1) {
-        if (!(sliceId in state.filters)) {
-          filters = { ...state.filters, [sliceId]: {} };
-        }
-
         let newFilter = {};
-        if (state.filters[sliceId] && !(col in state.filters[sliceId]) || !merge) {
-          newFilter = { ...state.filters[sliceId], [col]: vals };
+        if (!(sliceId in filters)) {
+          // Straight up set the filters if none existed for the slice
+          newFilter = { [col]: vals };
+        } else if (filters[sliceId] && !(col in filters[sliceId]) || !merge) {
+          newFilter = { ...filters[sliceId], [col]: vals };
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return
-        } else if (state.filters[sliceId][col] instanceof Array) {
-          newFilter[col] = d3.merge([state.filters[sliceId][col], vals]);
+        } else if (filters[sliceId][col] instanceof Array) {
+          newFilter[col] = d3.merge([filters[sliceId][col], vals]);
         } else {
-          newFilter[col] = d3.merge([[state.filters[sliceId][col]], vals])[0] || '';
+          newFilter[col] = d3.merge([[filters[sliceId][col]], vals])[0] || '';
         }
-        filters = { ...state.filters, [sliceId]: newFilter };
+        filters = { ...filters, [sliceId]: newFilter };
       }
       return { ...state, filters, refresh };
     },
     [actions.CLEAR_FILTER]() {
       const newFilters = { ...state.filters };
       delete newFilters[action.sliceId];
-
-      return { ...state.dashboard, filter: newFilters, refresh: true };
+      return { ...state, filter: newFilters, refresh: true };
     },
     [actions.REMOVE_FILTER]() {
-      const newFilters = { ...state.filters };
-      const { sliceId, col, vals } = action;
+      const { sliceId, col, vals, refresh } = action;
+      const excluded = new Set(vals);
+      const valFilter = val => !excluded.has(val);
 
-      if (sliceId in state.filters) {
-        if (col in state.filters[sliceId]) {
-          const a = [];
-          newFilters[sliceId][col].forEach(function (v) {
-            if (vals.indexOf(v) < 0) {
-              a.push(v);
-            }
-          });
-          newFilters[sliceId][col] = a;
-        }
+      let filters = state.filters;
+      // Have to be careful not to modify the dashboard state so that
+      // the render actually triggers
+      if (sliceId in state.filters && col in state.filters[sliceId]) {
+        const newFilter = filters[sliceId][col].filter(valFilter);
+        filters = { ...filters, [sliceId]: newFilter };
       }
-      return { ...state.dashboard, filter: newFilters, refresh: true };
+      return { ...state, filters, refresh };
     },
 
     // slice reducer
@@ -185,7 +187,7 @@ const dashboard = function (state = {}, action) {
         state.dashboard, 'slices',
         action.slice, { slice_name: action.sliceName },
         'slice_id');
-      return { ...state.dashboard, dashboard: newDashboard };
+      return { ...state, dashboard: newDashboard };
     },
   };
 
