@@ -73,7 +73,7 @@ setup(
         'pyyaml>=3.11',
         'requests==2.17.3',
         'simplejson==3.10.0',
-        'six==1.10.0',
+        'six==1.11.0',
         'sqlalchemy==1.1.9',
         'sqlalchemy-utils==0.32.16',
         'sqlparse==0.2.3',

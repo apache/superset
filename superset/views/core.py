@@ -12,7 +12,7 @@ import pickle
 import re
 import time
 import traceback
-import six.moves.urllib as urllib
+from urllib import parse
 
 from flask import (
     flash, g, Markup, redirect, render_template, request, Response, url_for,
@@ -979,7 +979,7 @@ class Superset(BaseSupersetView):
         endpoint = '/superset/explore/{}/{}?form_data={}'.format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
-                urllib.quote(json.dumps(viz_obj.form_data)),
+                parse.quote(json.dumps(viz_obj.form_data)),
             )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
