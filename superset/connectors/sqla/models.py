@@ -609,6 +609,25 @@ class SqlaTable(Model, BaseDatasource):
             logging.exception(e)
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))
+            
+        def oracle_adjustment(df):
+            # SQLAlchemy is returning lower cased columns for
+            # oracle dbs, but the exepcted return is upper case
+            # this makes that adjustment.
+            # agg metrics are excluded from this re-casting
+            _tmp = []
+            for col in df.columns:
+                if col not in query_obj['metrics']:
+                    _tmp.append(col.upper())
+                else:
+                    _tmp.append(col)
+            df.columns = _tmp
+            return df
+
+        if hasattr(self.database.db_engine_spec, 'engine') and \
+            self.database.db_engine_spec.engine == 'oracle':
+                df = oracle_adjustment(df)
+
 
         return QueryResult(
             status=status,
