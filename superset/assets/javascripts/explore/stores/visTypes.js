@@ -449,6 +449,13 @@ export const visTypes = {
           ['mapbox_style', 'viewport'],
         ],
       },
+      {
+        label: t('GeoJson Settings'),
+        controlSetRows: [
+          ['fill_color_picker', null],
+          ['stroke_color_picker', null],
+        ],
+      },
     ],
   },
 

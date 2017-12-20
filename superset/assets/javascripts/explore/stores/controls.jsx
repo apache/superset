@@ -143,6 +143,22 @@ export const controls = {
     renderTrigger: true,
   },
 
+  fill_color_picker: {
+    label: t('Fill Color'),
+    description: t('Use to set fill color of geojson'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
+  stroke_color_picker: {
+    label: t('Stroke Color'),
+    description: t('Use to set stroke color of geojson'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
   metric: {
     type: 'SelectControl',
     label: t('Metric'),

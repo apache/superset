@@ -4,15 +4,29 @@ import { GeoJsonLayer } from 'deck.gl';
 
 import DeckGLContainer from './DeckGLContainer';
 
+const propertyMap = {
+  color: 'fillColor',
+  fill: 'fillColor',
+  'fill-color': 'fillColor',
+  'stroke-color': 'strokeColor',
+  'stroke-width': 'strokeWidth',
+}
+
+const convertGeoJsonProps = (p) => {
+  const obj = {}
+  Object.entries(p).forEach(
+    ([key, value]) => { obj[(propertyMap[key]) ? propertyMap[key] : key] = value }
+  );
+  return obj
+}
+
 function DeckGeoJsonLayer(slice, payload, setControlValue) {
   const fd = slice.formData;
-  const c = fd.color_picker;
+  const fillColor = fd.fill_color_picker;
+  const strokeColor = fd.stroke_color_picker;
   const data = payload.data.geojson.features.map(d => ({
     ...d,
-    properties: {
-      fillColor: [c.r, c.g, c.b, 255 * c.a],
-      elevation: 2000,
-    },
+    properties: convertGeoJsonProps(d.properties),
   }));
 
   const layer = new GeoJsonLayer({
