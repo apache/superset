@@ -455,6 +455,35 @@ export const visTypes = {
     },
   },
 
+  deck_geojson: {
+    label: t('Deck.gl - geoJson'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['geojson'],
+          ['row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('GeoJson Settings'),
+        controlSetRows: [
+          ['fill_color_picker', null],
+          ['stroke_color_picker', null],
+          ['point_radius_scale', null],
+        ],
+      },
+    ],
+  },
+
   deck_scatter: {
     label: t('Deck.gl - Scatter plot'),
     requiresTime: true,

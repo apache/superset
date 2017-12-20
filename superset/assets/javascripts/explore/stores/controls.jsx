@@ -143,6 +143,22 @@ export const controls = {
     renderTrigger: true,
   },
 
+  fill_color_picker: {
+    label: t('Fill Color'),
+    description: t('Use to set fill color of geojson'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
+  stroke_color_picker: {
+    label: t('Stroke Color'),
+    description: t('Use to set stroke color of geojson'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
   metric: {
     type: 'SelectControl',
     label: t('Metric'),
@@ -494,6 +510,25 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
+  },
+
+  geojson: {
+    type: 'SelectControl',
+    label: t('GeoJson Column'),
+    validators: [v.nonEmpty],
+    description: t('Select the geojson column'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  point_radius_scale: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Point Radius Scale'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([0,100,200,300,500]),
   },
 
   all_columns_x: {
