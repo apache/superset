@@ -454,6 +454,7 @@ export const visTypes = {
         controlSetRows: [
           ['fill_color_picker', null],
           ['stroke_color_picker', null],
+          ['point_radius_scale', null],
         ],
       },
     ],

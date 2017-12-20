@@ -24,6 +24,7 @@ function DeckGeoJsonLayer(slice, payload, setControlValue) {
   const fd = slice.formData;
   const fillColor = fd.fill_color_picker;
   const strokeColor = fd.stroke_color_picker;
+  const pointRadiusScale = fd.point_radius_scale;
   const data = payload.data.geojson.features.map(d => ({
     ...d,
     properties: convertGeoJsonProps(d.properties),
@@ -35,7 +36,7 @@ function DeckGeoJsonLayer(slice, payload, setControlValue) {
     filled: true,
     stroked: false,
     extruded: true,
-    pointRadiusScale: 100,
+    pointRadiusScale: pointRadiusScale,
   });
 
   const viewport = {

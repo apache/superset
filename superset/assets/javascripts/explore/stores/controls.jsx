@@ -522,6 +522,15 @@ export const controls = {
     }),
   },
 
+  point_radius_scale: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Point Radius Scale'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([0,100,200,300,500]),
+  },
+
   all_columns_x: {
     type: 'SelectControl',
     label: 'X',
