@@ -36,7 +36,7 @@ const timeColumnOption = {
   verbose_name: 'Time',
   column_name: '__timestamp',
   description: t(
-  'A reference to the [Time] configuration, taking granularity into ' +
+   'A reference to the [Time] configuration, taking granularity into ' +
   'account'),
 };
 const sortAxisChoices = [
@@ -528,7 +528,7 @@ export const controls = {
     label: t('Point Radius Scale'),
     validators: [v.integer],
     default: null,
-    choices: formatSelectOptions([0,100,200,300,500]),
+    choices: formatSelectOptions([0, 100, 200, 300, 500]),
   },
 
   all_columns_x: {
