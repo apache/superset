@@ -43,4 +43,6 @@ export const VIZ_TYPES = {
   deck_grid: 'deck_grid',
   deck_hex: 'deck_hex',
   deck_geojson: 'deck_geojson',
+  deck_path: 'deck_path',
 };
+

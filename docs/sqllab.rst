@@ -48,17 +48,25 @@ Available macros
 
 We expose certain modules from Python's standard library in
 Superset's Jinja context:
+
 - ``time``: ``time``
 - ``datetime``: ``datetime.datetime``
 - ``uuid``: ``uuid``
 - ``random``: ``random``
 - ``relativedelta``: ``dateutil.relativedelta.relativedelta``
-- more to come!
 
 `Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/>`_ can be also be applied where needed.
-
 
 .. autoclass:: superset.jinja_context.PrestoTemplateProcessor
     :members:
 
 .. autofunction:: superset.jinja_context.url_param
+
+Extending macros
+''''''''''''''''
+
+As mentioned in the `Installation & Configuration`_ documentation,
+it's possible for administrators to expose more more macros in their
+environment using the configuration variable ``JINJA_CONTEXT_ADDONS``.
+All objects referenced in this dictionary will become available for users
+to integrate in their queries in **SQL Lab**.

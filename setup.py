@@ -66,6 +66,7 @@ setup(
         'pandas==0.20.3',
         'parsedatetime==2.0.0',
         'pathlib2==2.3.0',
+        'polyline==1.3.2',
         'pydruid==0.3.1',
         'PyHive>=0.4.0',
         'python-dateutil==2.6.0',
