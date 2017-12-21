@@ -18,8 +18,8 @@ const convertGeoJsonColorProps = (p, colors) => {
   Object.entries(p).forEach(
     ([key, value]) => {
       if (propertyMap[key]) {
-        const colorObj = colors[mappedColorKey];
-        obj[mappedColorKey] = (colorObj[3] > 0) ? colorObj : hexToRGB(value);
+        const colorObj = colors[propertyMap[key]];
+        obj[propertyMap[key]] = (colorObj[3] > 0) ? colorObj : hexToRGB(value);
       } else {
         obj[key] = value;
       }
