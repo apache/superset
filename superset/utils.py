@@ -735,7 +735,8 @@ def merge_extra_filters(form_data):
             return f['col'] + '__' + f['op']
         existing_filters = {}
         for existing in form_data['filters']:
-            existing_filters[get_filter_key(existing)] = existing['val']
+            if existing['col'] is not None:
+                existing_filters[get_filter_key(existing)] = existing['val']
         for filtr in form_data['extra_filters']:
             # Pull out time filters/options and merge into form data
             if date_options.get(filtr['col']):
