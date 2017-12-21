@@ -607,6 +607,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: t('Code'),
+        expanded: true,
         controlSetRows: [
           ['markup_type'],
           ['code'],

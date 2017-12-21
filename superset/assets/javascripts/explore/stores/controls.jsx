@@ -46,6 +46,15 @@ const sortAxisChoices = [
   ['value_desc', 'sum(value) descending'],
 ];
 
+const sandboxUrl = 'https://github.com/apache/incubator-superset/blob/master/superset/assets/javascripts/modules/sandbox.js';
+const sandboxedEvalInfo = (
+  <span>
+    {t('While this runs in a ')}
+    <a href="https://nodejs.org/api/vm.html#vm_script_runinnewcontext_sandbox_options">sandboxed vm</a>
+    , {t('a set of')}<a href={sandboxUrl}> useful objects are in context </a>
+    {t('to be used where necessary.')}
+  </span>);
+
 const groupByControl = {
   type: 'SelectControl',
   multi: true,
@@ -1759,5 +1768,18 @@ export const controls = {
     default: false,
   },
 
+  js_data: {
+    type: 'TextAreaControl',
+    label: t('Javascript data mutator'),
+    description: t('Define a function that receives intercepts the data objects and can mutate it'),
+    language: 'javascript',
+    default: '',
+    height: 100,
+    aboveEditorSection: (
+      <p>
+        Define a function that intercepts the <code>data</code> object passed to the visualization
+        and returns a similarly shaped object. {sandboxedEvalInfo}
+      </p>),
+  },
 };
 export default controls;
