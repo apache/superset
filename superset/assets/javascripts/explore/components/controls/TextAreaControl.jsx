@@ -7,6 +7,7 @@ import 'brace/mode/sql';
 import 'brace/mode/json';
 import 'brace/mode/html';
 import 'brace/mode/markdown';
+import 'brace/mode/javascript';
 
 import 'brace/theme/textmate';
 
@@ -16,24 +17,21 @@ import { t } from '../../../locales';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
-  label: PropTypes.string,
-  description: PropTypes.string,
   onChange: PropTypes.func,
   value: PropTypes.string,
   height: PropTypes.number,
-  language: PropTypes.oneOf([null, 'json', 'html', 'sql', 'markdown']),
   minLines: PropTypes.number,
   maxLines: PropTypes.number,
   offerEditInModal: PropTypes.bool,
+  language: PropTypes.oneOf([null, 'json', 'html', 'sql', 'markdown', 'javascript']),
+  aboveEditorSection: PropTypes.node,
 };
 
 const defaultProps = {
-  label: null,
-  description: null,
   onChange: () => {},
   value: '',
   height: 250,
-  minLines: 10,
+  minLines: 3,
   maxLines: 10,
   offerEditInModal: true,
 };
@@ -73,6 +71,14 @@ export default class TextAreaControl extends React.Component {
         />
       </FormGroup>);
   }
+  renderModalBody() {
+    return (
+      <div>
+        <div>{this.props.aboveEditorSection}</div>
+        {this.renderEditor(true)}
+      </div>
+    );
+  }
   render() {
     const controlHeader = <ControlHeader {...this.props} />;
     return (
@@ -88,7 +94,7 @@ export default class TextAreaControl extends React.Component {
                 {t('Edit')} <strong>{this.props.language}</strong> {t('in modal')}
               </Button>
             }
-            modalBody={this.renderEditor(true)}
+            modalBody={this.renderModalBody(true)}
           />}
       </div>
     );

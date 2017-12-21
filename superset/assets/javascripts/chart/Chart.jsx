@@ -8,6 +8,7 @@ import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import StackTraceMessage from '../components/StackTraceMessage';
 import visMap from '../../visualizations/main';
+import sandboxedEval from '../modules/sandbox';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -141,8 +142,15 @@ class Chart extends React.PureComponent {
 
   renderViz() {
     const viz = visMap[this.props.vizType];
+    const fd = this.props.formData;
+    const qr = this.props.queryResponse;
     try {
-      viz(this, this.props.queryResponse, this.props.setControlValue);
+      // Executing user-defined data mutator function
+      if (fd.js_data) {
+        qr.data = sandboxedEval(fd.js_data)(qr.data);
+      }
+      // [re]rendering the visualization
+      viz(this, qr, this.props.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
