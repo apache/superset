@@ -463,8 +463,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['geojson'],
-          ['row_limit'],
+          ['geojson', 'row_limit'],
         ],
       },
       {
@@ -476,8 +475,7 @@ export const visTypes = {
       {
         label: t('GeoJson Settings'),
         controlSetRows: [
-          ['fill_color_picker', null],
-          ['stroke_color_picker', null],
+          ['fill_color_picker', 'stroke_color_picker'],
           ['point_radius_scale', null],
         ],
       },
