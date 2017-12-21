@@ -1,9 +1,32 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { GeoJsonLayer } from 'deck.gl';
+import { hexToRGB } from '../../javascripts/modules/colors';
 
 import DeckGLContainer from './DeckGLContainer';
 
+const propertyMap = {
+  color: 'fillColor',
+  fill: 'fillColor',
+  'fill-color': 'fillColor',
+  'stroke-color': 'strokeColor',
+  'stroke-width': 'strokeWidth',
+};
+
+const convertGeoJsonColorProps = (p, colors) => {
+  const obj = {};
+  Object.entries(p).forEach(
+    ([key, value]) => {
+      if (propertyMap[key]) {
+        const colorObj = colors[mappedColorKey];
+        obj[mappedColorKey] = (colorObj[3] > 0) ? colorObj : hexToRGB(value);
+      } else {
+        obj[key] = value;
+      }
+    },
+  );
+  return obj;
+};
 
 function DeckGeoJsonLayer(slice, payload, setControlValue) {
   const fd = slice.formData;
@@ -11,10 +34,10 @@ function DeckGeoJsonLayer(slice, payload, setControlValue) {
   const sc = fd.stroke_color_picker;
   const data = payload.data.geojson.features.map(d => ({
     ...d,
-    properties: {
+    properties: convertGeoJsonColorProps(d.properties, {
       fillColor: [fc.r, fc.g, fc.b, 255 * fc.a],
       strokeColor: [sc.r, sc.g, sc.b, 255 * sc.a],
-    },
+    }),
   }));
 
   const layer = new GeoJsonLayer({
