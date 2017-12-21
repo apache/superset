@@ -145,7 +145,7 @@ export const controls = {
 
   fill_color_picker: {
     label: t('Fill Color'),
-    description: t('Use to set fill color of geojson'),
+    description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
     type: 'ColorPickerControl',
     default: colorPrimary,
     renderTrigger: true,
@@ -153,7 +153,7 @@ export const controls = {
 
   stroke_color_picker: {
     label: t('Stroke Color'),
-    description: t('Use to set stroke color of geojson'),
+    description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
     type: 'ColorPickerControl',
     default: colorPrimary,
     renderTrigger: true,

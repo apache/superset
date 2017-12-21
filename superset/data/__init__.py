@@ -1529,7 +1529,6 @@ def load_paris_iris_geojson():
         df = pd.read_json(f)
         df['features'] = df.features.map(json.dumps)
 
-
     df.to_sql(
         tbl_name,
         db.engine,
@@ -1551,7 +1550,7 @@ def load_paris_iris_geojson():
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
- 
+
 
 def load_bart_lines():
     tbl_name = 'bart_lines'
@@ -1581,6 +1580,3 @@ def load_bart_lines():
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
-
-
-
