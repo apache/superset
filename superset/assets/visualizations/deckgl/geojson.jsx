@@ -6,9 +6,11 @@ import { hexToRGB } from '../../javascripts/modules/colors';
 import DeckGLContainer from './DeckGLContainer';
 
 const propertyMap = {
+  fillColor: 'fillColor',
   color: 'fillColor',
   fill: 'fillColor',
   'fill-color': 'fillColor',
+  strokeColor: 'strokeColor',
   'stroke-color': 'strokeColor',
   'stroke-width': 'strokeWidth',
 };
@@ -25,7 +27,12 @@ const convertGeoJsonColorProps = (p, colors) => {
       }
     },
   );
-  return obj;
+
+  return {
+    ...obj,
+    fillColor: (obj.fillColor) ? obj.fillColor : colors.fillColor,
+    strokeColor: (obj.strokeColor) ? obj.strokeColor : colors.strokeColor,
+  };
 };
 
 function DeckGeoJsonLayer(slice, payload, setControlValue) {
@@ -34,10 +41,11 @@ function DeckGeoJsonLayer(slice, payload, setControlValue) {
   const sc = fd.stroke_color_picker;
   const data = payload.data.geojson.features.map(d => ({
     ...d,
-    properties: convertGeoJsonColorProps(d.properties, {
-      fillColor: [fc.r, fc.g, fc.b, 255 * fc.a],
-      strokeColor: [sc.r, sc.g, sc.b, 255 * sc.a],
-    }),
+    properties: convertGeoJsonColorProps(
+      d.properties, {
+        fillColor: [fc.r, fc.g, fc.b, 255 * fc.a],
+        strokeColor: [sc.r, sc.g, sc.b, 255 * sc.a],
+      }),
   }));
 
   const layer = new GeoJsonLayer({
