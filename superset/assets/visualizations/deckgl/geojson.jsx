@@ -16,22 +16,13 @@ const propertyMap = {
 };
 
 const convertGeoJsonColorProps = (p, colors) => {
-  const obj = {};
-  Object.entries(p).forEach(
-    ([key, value]) => {
-      if (propertyMap[key]) {
-        const colorObj = colors[propertyMap[key]];
-        obj[propertyMap[key]] = (colorObj[3] > 0) ? colorObj : hexToRGB(value);
-      } else {
-        obj[key] = value;
-      }
-    },
-  );
+  const obj = Object.assign(...Object.keys(p).map(k => ({
+    [(propertyMap[k]) ? propertyMap[k] : k]: p[k] })));
 
   return {
     ...obj,
-    fillColor: (obj.fillColor) ? obj.fillColor : colors.fillColor,
-    strokeColor: (obj.strokeColor) ? obj.strokeColor : colors.strokeColor,
+    fillColor: (colors.fillColor[3] !== 0) ? colors.fillColor : hexToRGB(obj.fillColor),
+    strokeColor: (colors.strokeColor[3] !== 0) ? colors.strokeColor : hexToRGB(obj.strokeColor),
   };
 };
 
