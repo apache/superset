@@ -1522,6 +1522,36 @@ def load_flights():
     obj.fetch_metadata()
 
 
+def load_paris_iris_geojson():
+    tbl_name = 'paris_iris_mapping'
+
+    with gzip.open(os.path.join(DATA_FOLDER, 'paris_iris.json.gz')) as f:
+        df = pd.read_json(f)
+        df['features'] = df.features.map(json.dumps)
+
+    df.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'color': String(255),
+            'name': String(255),
+            'features': Text,
+            'type': Text,
+        },
+        index=False)
+    print("Creating table {} reference".format(tbl_name))
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Map of Paris"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()
+
+
 def load_bart_lines():
     tbl_name = 'bart_lines'
     with gzip.open(os.path.join(DATA_FOLDER, 'bart-lines.json.gz')) as f:

@@ -36,7 +36,7 @@ const timeColumnOption = {
   verbose_name: 'Time',
   column_name: '__timestamp',
   description: t(
-  'A reference to the [Time] configuration, taking granularity into ' +
+   'A reference to the [Time] configuration, taking granularity into ' +
   'account'),
 };
 const sortAxisChoices = [
@@ -147,6 +147,22 @@ export const controls = {
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
+  fill_color_picker: {
+    label: t('Fill Color'),
+    description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
+  stroke_color_picker: {
+    label: t('Stroke Color'),
+    description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
     type: 'ColorPickerControl',
     default: colorPrimary,
     renderTrigger: true,
@@ -503,6 +519,25 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
+  },
+
+  geojson: {
+    type: 'SelectControl',
+    label: t('GeoJson Column'),
+    validators: [v.nonEmpty],
+    description: t('Select the geojson column'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  point_radius_scale: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Point Radius Scale'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([0, 100, 200, 300, 500]),
   },
 
   all_columns_x: {
