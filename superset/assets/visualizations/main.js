@@ -43,6 +43,7 @@ export const VIZ_TYPES = {
   deck_grid: 'deck_grid',
   deck_hex: 'deck_hex',
   deck_path: 'deck_path',
+  deck_geojson: 'deck_geojson',
 };
 
 const vizMap = {
@@ -88,5 +89,6 @@ const vizMap = {
   [VIZ_TYPES.deck_grid]: require('./deckgl/grid.jsx'),
   [VIZ_TYPES.deck_hex]: require('./deckgl/hex.jsx'),
   [VIZ_TYPES.deck_path]: require('./deckgl/path.jsx'),
+  [VIZ_TYPES.deck_geojson]: require('./deckgl/geojson.jsx'),
 };
 export default vizMap;
