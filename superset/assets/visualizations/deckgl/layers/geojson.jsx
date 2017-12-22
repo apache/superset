@@ -1,5 +1,3 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
 import { GeoJsonLayer } from 'deck.gl';
 import { hexToRGB } from '../../../javascripts/modules/colors';
 
@@ -38,7 +36,7 @@ export default function geoJsonLayer(formData, payload) {
       }),
   }));
 
-  return GeoJsonLayer({
+  return new GeoJsonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
     filled: true,
