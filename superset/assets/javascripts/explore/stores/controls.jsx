@@ -1816,6 +1816,7 @@ export const controls = {
         Define a function that intercepts the <code>data</code> object passed to the visualization
         and returns a similarly shaped object. {sandboxedEvalInfo}
       </p>),
+  },
 
   deck_slices: {
     type: 'SelectAsyncControl',
