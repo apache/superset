@@ -97,13 +97,19 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression).label(name)
         return col
 
-    def get_time_filter(self, start_dttm, end_dttm):
+    def get_time_filter(self, start_dttm, end_dttm, grain):
         col = self.sqla_col.label('__time')
         l = []  # noqa: E741
         if start_dttm:
-            l.append(col >= text(self.dttm_sql_literal(start_dttm)))
+            if grain:
+                l.append(col >= text(grain.function.format(col="'%s'" % start_dttm)))
+            else:
+                l.append(col >= text(self.dttm_sql_literal(start_dttm)))
         if end_dttm:
-            l.append(col <= text(self.dttm_sql_literal(end_dttm)))
+            if grain:
+                l.append(col <= text(grain.function.format(col="'%s'" % end_dttm)))
+            else:
+                l.append(col <= text(self.dttm_sql_literal(end_dttm)))
         return and_(*l)
 
     def get_timestamp_expression(self, time_grain):
@@ -122,7 +128,7 @@ class TableColumn(Model, BaseColumn):
                     expr = db_spec.epoch_ms_to_dttm().format(col=expr)
             grain = self.table.database.grains_dict().get(time_grain, '{col}')
             expr = grain.function.format(col=expr)
-        return literal_column(expr, type_=DateTime).label(DTTM_ALIAS)
+        return literal_column(expr, type_=DateTime).label(DTTM_ALIAS), grain
 
     @classmethod
     def import_obj(cls, i_column):
@@ -471,9 +477,10 @@ class SqlaTable(Model, BaseDatasource):
             dttm_col = cols[granularity]
             time_grain = extras.get('time_grain_sqla')
             time_filters = []
+            grain = None
 
             if is_timeseries:
-                timestamp = dttm_col.get_timestamp_expression(time_grain)
+                timestamp, grain = dttm_col.get_timestamp_expression(time_grain)
                 select_exprs += [timestamp]
                 groupby_exprs += [timestamp]
 
@@ -482,8 +489,8 @@ class SqlaTable(Model, BaseDatasource):
                     self.main_dttm_col in self.dttm_cols and \
                     self.main_dttm_col != dttm_col.column_name:
                 time_filters.append(cols[self.main_dttm_col].
-                                    get_time_filter(from_dttm, to_dttm))
-            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+                                    get_time_filter(from_dttm, to_dttm, grain))
+            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm, grain))
 
         select_exprs += metrics_exprs
         qry = sa.select(select_exprs)
@@ -562,7 +569,6 @@ class SqlaTable(Model, BaseDatasource):
 
         if row_limit:
             qry = qry.limit(row_limit)
-
         if is_timeseries and \
                 timeseries_limit and groupby and not time_groupby_inline:
             # some sql dialects require for order by expressions
