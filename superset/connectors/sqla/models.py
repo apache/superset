@@ -97,26 +97,26 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression).label(name)
         return col
 
-    def get_time_filter(self, start_dttm, end_dttm, grain):
+    def apply_time_filter_with_grain(self, dttm, grain):
+        if grain:
+            return text(grain.function.format(col="'%s'" % dttm))
+        return text(self.dttm_sql_literal(dttm))
+
+    def get_time_filter(self, start_dttm, end_dttm, grain=None):
         col = self.sqla_col.label('__time')
         l = []  # noqa: E741
         if start_dttm:
-            if grain:
-                l.append(col >= text(grain.function.format(col="'%s'" % start_dttm)))
-            else:
-                l.append(col >= text(self.dttm_sql_literal(start_dttm)))
+            l.append(col >= self.apply_time_filter_with_grain(start_dttm, grain))
         if end_dttm:
-            if grain:
-                l.append(col <= text(grain.function.format(col="'%s'" % end_dttm)))
-            else:
-                l.append(col <= text(self.dttm_sql_literal(end_dttm)))
+            l.append(col <= self.apply_time_filter_with_grain(end_dttm, grain))
         return and_(*l)
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
+        grain = None
         expr = self.expression or self.column_name
         if not self.expression and not time_grain:
-            return column(expr, type_=DateTime).label(DTTM_ALIAS)
+            return column(expr, type_=DateTime).label(DTTM_ALIAS), grain
         if time_grain:
             pdf = self.python_date_format
             if pdf in ('epoch_s', 'epoch_ms'):
