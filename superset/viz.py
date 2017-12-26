@@ -1824,15 +1824,16 @@ class BaseDeckGLViz(BaseViz):
 
         gb = []
 
-        spatial = fd.get('spatial')
-        if spatial:
-            if spatial.get('type') == 'latlong':
-                gb += [spatial.get('lonCol')]
-                gb += [spatial.get('latCol')]
-            elif spatial.get('type') == 'delimited':
-                gb += [spatial.get('lonlatCol')]
-            elif spatial.get('type') == 'geohash':
-                gb += [spatial.get('geohashCol')]
+        for spatial_key in ['spatial', 'start_spatial', 'end_spatial']:
+            spatial = fd.get(spatial_key)
+            if spatial:
+                if spatial.get('type') == 'latlong':
+                    gb += [spatial.get('lonCol')]
+                    gb += [spatial.get('latCol')]
+                elif spatial.get('type') == 'delimited':
+                    gb += [spatial.get('lonlatCol')]
+                elif spatial.get('type') == 'geohash':
+                    gb += [spatial.get('geohashCol')]
 
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
@@ -1994,6 +1995,42 @@ class DeckGeoJson(BaseDeckGLViz):
 
         return {
             'geojson': geojson,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+        }
+
+
+class DeckArc(BaseDeckGLViz):
+
+    """deck.gl's Arc Layer"""
+
+    viz_type = 'deck_arc'
+    verbose_name = _('Deck.gl - Arc')
+
+    def query_obj(self):
+        d = super(DeckArc, self).query_obj()
+        from pprint import pprint
+        pprint(d)
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        start_lat = df[fd.get('start_spatial').get('latCol')]
+        start_lon = df[fd.get('start_spatial').get('lonCol')]
+        end_lat = df[fd.get('end_spatial').get('latCol')]
+        end_lon = df[fd.get('end_spatial').get('lonCol')]
+        source_pos = list(zip(start_lat, start_lon))
+        target_pos = list(zip(end_lat, end_lon))
+
+        data = []
+        for pos in list(zip(source_pos, target_pos)):
+            data.append({
+                         'sourcePosition': pos[1],
+                         'targetPosition': pos[0],
+                         'color': [255, 0, 0],
+                         })
+
+        return {
+            'arcs': data,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 
