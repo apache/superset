@@ -1790,12 +1790,9 @@ class DeckGLMultiLayer(BaseViz):
         from superset import db
         slice_ids = fd.get('deck_slices')
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
-        data = []
-        for slc in slices:
-            data.append(slc.data)
         return {
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-            'slices': data,
+            'slices': [slc.data for slc in slices],
         }
 
 

@@ -1824,7 +1824,7 @@ export const controls = {
     label: t('deck.gl charts'),
     validators: [v.nonEmpty],
     default: [],
-    description: t('Pick a set of deck.gl slices to layer on top of one another'),
+    description: t('Pick a set of deck.gl charts to layer on top of one another'),
     dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=deck_',
     placeholder: t('Select charts'),
     onAsyncErrorMessage: t('Error while fetching charts'),
