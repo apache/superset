@@ -15,6 +15,7 @@ const UserInfo = ({ user }) => (
         email={user.email}
         width="100%"
         height=""
+        size="220"
         alt={t('Profile picture provided by Gravatar')}
         className="img-rounded"
         style={{ borderRadius: 15 }}
