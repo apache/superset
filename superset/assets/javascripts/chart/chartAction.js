@@ -120,7 +120,20 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         if (err.statusText === 'timeout') {
           dispatch(chartUpdateTimeout(err.statusText, timeout, key));
         } else if (err.statusText !== 'abort') {
-          dispatch(chartUpdateFailed(err.responseJSON, key));
+          let errObject;
+          if (err.responseJSON) {
+            errObject = err.responseJSON;
+          } else if (err.stack) {
+            errObject = {
+              error: 'Unexpected error: ' + err.description,
+              stacktrace: err.stack,
+            };
+          } else {
+            errObject = {
+              error: 'Unexpected error.',
+            };
+          }
+          dispatch(chartUpdateFailed(errObject, key));
         }
       });
     const annotationLayers = formData.annotation_layers || [];
