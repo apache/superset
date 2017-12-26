@@ -65,7 +65,7 @@ Superset's Jinja context:
 Extending macros
 ''''''''''''''''
 
-As mentioned in the `Installation & Configuration`_ documentation,
+As mentioned in the `Installation & Configuration <https://superset.incubator.apache.org/installation.html#installation-configuration>`_ documentation,
 it's possible for administrators to expose more more macros in their
 environment using the configuration variable ``JINJA_CONTEXT_ADDONS``.
 All objects referenced in this dictionary will become available for users
