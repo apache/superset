@@ -338,6 +338,21 @@ export const visTypes = {
     },
   },
 
+  deck_multi: {
+    label: t('Deck.gl - Multiple Layers'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['deck_slices', null],
+        ],
+      },
+    ],
+  },
+
   deck_hex: {
     label: t('Deck.gl - Hexagons'),
     requiresTime: true,
@@ -398,7 +413,7 @@ export const visTypes = {
   },
 
   deck_path: {
-    label: t('Deck.gl - Grid'),
+    label: t('Deck.gl - Paths'),
     requiresTime: true,
     controlPanelSections: [
       {

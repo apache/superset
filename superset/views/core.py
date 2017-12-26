@@ -493,7 +493,7 @@ appbuilder.add_view(
 
 class SliceAsync(SliceModelView):  # noqa
     list_columns = [
-        'slice_link', 'viz_type',
+        'id', 'slice_link', 'viz_type', 'slice_name',
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',

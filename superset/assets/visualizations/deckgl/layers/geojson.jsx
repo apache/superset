@@ -1,9 +1,6 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
 import { GeoJsonLayer } from 'deck.gl';
-import { hexToRGB } from '../../javascripts/modules/colors';
+import { hexToRGB } from '../../../javascripts/modules/colors';
 
-import DeckGLContainer from './DeckGLContainer';
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -26,8 +23,8 @@ const convertGeoJsonColorProps = (p, colors) => {
   };
 };
 
-function DeckGeoJsonLayer(slice, payload, setControlValue) {
-  const fd = slice.formData;
+export default function geoJsonLayer(formData, payload) {
+  const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
   const data = payload.data.geojson.features.map(d => ({
@@ -39,29 +36,12 @@ function DeckGeoJsonLayer(slice, payload, setControlValue) {
       }),
   }));
 
-  const layer = new GeoJsonLayer({
-    id: 'geojson-layer',
+  return new GeoJsonLayer({
+    id: `path-layer-${fd.slice_id}`,
     data,
     filled: true,
     stroked: false,
     extruded: true,
     pointRadiusScale: fd.point_radius_scale,
   });
-
-  const viewport = {
-    ...fd.viewport,
-    width: slice.width(),
-    height: slice.height(),
-  };
-  ReactDOM.render(
-    <DeckGLContainer
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
-      viewport={viewport}
-      layers={[layer]}
-      mapStyle={fd.mapbox_style}
-      setControlValue={setControlValue}
-    />,
-    document.getElementById(slice.containerId),
-  );
 }
-module.exports = DeckGeoJsonLayer;
