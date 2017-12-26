@@ -1389,6 +1389,7 @@ export const controls = {
   mapbox_style: {
     type: 'SelectControl',
     label: t('Map Style'),
+    clearable: false,
     renderTrigger: true,
     choices: [
       ['mapbox://styles/mapbox/streets-v9', 'Streets'],
@@ -1815,6 +1816,24 @@ export const controls = {
         Define a function that intercepts the <code>data</code> object passed to the visualization
         and returns a similarly shaped object. {sandboxedEvalInfo}
       </p>),
+  },
+
+  deck_slices: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('deck.gl charts'),
+    validators: [v.nonEmpty],
+    default: [],
+    description: t('Pick a set of deck.gl charts to layer on top of one another'),
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=deck_',
+    placeholder: t('Select charts'),
+    onAsyncErrorMessage: t('Error while fetching charts'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
+    },
   },
 };
 export default controls;
