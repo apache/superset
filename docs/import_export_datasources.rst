@@ -72,7 +72,7 @@ In order to import datasources from a YAML file(s), run: ::
     superset import_datasources -p <path or filename>
 
 If you supply a path all files ending with ``*.yaml`` or ``*.yml`` will be parsed.
-You can apply additional falgs e.g.: ::
+You can apply additional flags e.g.: ::
 
     superset import_datasources -p <path> -r
 
