@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-12-27 22:21+0800\n"
+"PO-Revision-Date: 2017-12-27 22:46+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -473,11 +473,11 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:133
 msgid "view results"
-msgstr ""
+msgstr "展示结果"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:136
 msgid "Data preview"
-msgstr ""
+msgstr "数据预览"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:176
 msgid "Visualize the data out of this query"
@@ -608,7 +608,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditor.jsx:131
 msgid "new table name"
-msgstr ""
+msgstr "新表名称"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:90
 msgid "Error while fetching table list"
@@ -871,19 +871,19 @@ msgstr "不要刷新"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:20
 msgid "10 seconds"
-msgstr ""
+msgstr "10秒钟"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:21
 msgid "30 seconds"
-msgstr ""
+msgstr "30秒钟"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:22
 msgid "1 minute"
-msgstr ""
+msgstr "1分钟"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:23
 msgid "5 minutes"
-msgstr ""
+msgstr "5分钟"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:38
 msgid "Refresh Interval"
