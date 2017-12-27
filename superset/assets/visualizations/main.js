@@ -1,4 +1,5 @@
 /* eslint-disable global-require */
+import deckglFactory from './deckgl/factory';
 
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
@@ -42,6 +43,9 @@ export const VIZ_TYPES = {
   deck_screengrid: 'deck_screengrid',
   deck_grid: 'deck_grid',
   deck_hex: 'deck_hex',
+  deck_path: 'deck_path',
+  deck_geojson: 'deck_geojson',
+  deck_multi: 'deck_multi',
 };
 
 const vizMap = {
@@ -82,9 +86,12 @@ const vizMap = {
   [VIZ_TYPES.event_flow]: require('./EventFlow.jsx'),
   [VIZ_TYPES.paired_ttest]: require('./paired_ttest.jsx'),
   [VIZ_TYPES.partition]: require('./partition.js'),
-  [VIZ_TYPES.deck_scatter]: require('./deckgl/scatter.jsx'),
-  [VIZ_TYPES.deck_screengrid]: require('./deckgl/screengrid.jsx'),
-  [VIZ_TYPES.deck_grid]: require('./deckgl/grid.jsx'),
-  [VIZ_TYPES.deck_hex]: require('./deckgl/hex.jsx'),
+  [VIZ_TYPES.deck_scatter]: deckglFactory,
+  [VIZ_TYPES.deck_screengrid]: deckglFactory,
+  [VIZ_TYPES.deck_grid]: deckglFactory,
+  [VIZ_TYPES.deck_hex]: deckglFactory,
+  [VIZ_TYPES.deck_path]: deckglFactory,
+  [VIZ_TYPES.deck_geojson]: deckglFactory,
+  [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
 };
 export default vizMap;

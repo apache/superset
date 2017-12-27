@@ -119,6 +119,23 @@ class UtilsTestCase(unittest.TestCase):
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
 
+    def test_merge_extra_filters_ignores_nones(self):
+        form_data = {
+            'filters': [
+                {'col': None, 'op': 'in', 'val': ''},
+            ],
+            'extra_filters': [
+                {'col': 'B', 'op': '==', 'val': []},
+            ],
+        }
+        expected = {
+            'filters': [
+                {'col': None, 'op': 'in', 'val': ''},
+            ],
+        }
+        merge_extra_filters(form_data)
+        self.assertEquals(form_data, expected)
+
     def test_merge_extra_filters_ignores_equal_filters(self):
         form_data = {
             'extra_filters': [

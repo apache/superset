@@ -338,6 +338,21 @@ export const visTypes = {
     },
   },
 
+  deck_multi: {
+    label: t('Deck.gl - Multiple Layers'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['deck_slices', null],
+        ],
+      },
+    ],
+  },
+
   deck_hex: {
     label: t('Deck.gl - Hexagons'),
     requiresTime: true,
@@ -397,6 +412,30 @@ export const visTypes = {
     },
   },
 
+  deck_path: {
+    label: t('Deck.gl - Paths'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['line_column', 'line_type'],
+          ['row_limit', null],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['color_picker', 'line_width'],
+          ['reverse_long_lat', null],
+        ],
+      },
+    ],
+  },
+
   deck_screengrid: {
     label: t('Deck.gl - Screen grid'),
     requiresTime: true,
@@ -429,6 +468,33 @@ export const visTypes = {
         validators: [v.nonEmpty],
       },
     },
+  },
+
+  deck_geojson: {
+    label: t('Deck.gl - geoJson'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['geojson', 'row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('GeoJson Settings'),
+        controlSetRows: [
+          ['fill_color_picker', 'stroke_color_picker'],
+          ['point_radius_scale', null],
+        ],
+      },
+    ],
   },
 
   deck_scatter: {
@@ -583,6 +649,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: t('Code'),
+        expanded: true,
         controlSetRows: [
           ['markup_type'],
           ['code'],

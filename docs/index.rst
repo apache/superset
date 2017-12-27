@@ -25,10 +25,10 @@ intelligence web application
     endorsed by the ASF.
 
 Overview
-=======================================
+========
 
 Features
----------
+--------
 
 - A rich set of data visualizations
 - An easy-to-use interface for exploring and visualizing data
@@ -61,7 +61,7 @@ Features
 
 
 Contents
----------
+--------
 
 .. toctree::
     :maxdepth: 2

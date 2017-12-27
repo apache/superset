@@ -27,6 +27,7 @@ from markdown import markdown
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
+import polyline
 import simplejson as json
 from six import PY3, string_types, text_type
 from six.moves import reduce
@@ -85,6 +86,8 @@ class BaseViz(object):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
             query_obj = self.query_obj()
+        if not query_obj:
+            return None
 
         self.error_msg = ''
         self.results = None
@@ -262,7 +265,7 @@ class BaseViz(object):
                 df = self.get_df()
                 if not self.error_message:
                     data = self.get_data(df)
-                rowcount = len(df.index)
+                rowcount = len(df.index) if df is not None else 0
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -523,7 +526,7 @@ class MarkupViz(BaseViz):
     is_timeseries = False
 
     def get_df(self):
-        return True
+        return None
 
     def get_data(self, df):
         markup_type = self.form_data.get('markup_type')
@@ -1767,6 +1770,32 @@ class MapboxViz(BaseViz):
         }
 
 
+class DeckGLMultiLayer(BaseViz):
+
+    """Pile on multiple DeckGL layers"""
+
+    viz_type = 'deck_multi'
+    verbose_name = _('Deck.gl - Multiple Layers')
+
+    is_timeseries = False
+    credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
+
+    def query_obj(self):
+        return None
+
+    def get_data(self, df):
+        fd = self.form_data
+        # Late imports to avoid circular import issues
+        from superset.models.core import Slice
+        from superset import db
+        slice_ids = fd.get('deck_slices')
+        slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        return {
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'slices': [slc.data for slc in slices],
+        }
+
+
 class BaseDeckGLViz(BaseViz):
 
     """Base class for deck.gl visualizations"""
@@ -1796,13 +1825,14 @@ class BaseDeckGLViz(BaseViz):
         gb = []
 
         spatial = fd.get('spatial')
-        if spatial.get('type') == 'latlong':
-            gb += [spatial.get('lonCol')]
-            gb += [spatial.get('latCol')]
-        elif spatial.get('type') == 'delimited':
-            gb += [spatial.get('lonlatCol')]
-        elif spatial.get('type') == 'geohash':
-            gb += [spatial.get('geohashCol')]
+        if spatial:
+            if spatial.get('type') == 'latlong':
+                gb += [spatial.get('lonCol')]
+                gb += [spatial.get('latCol')]
+            elif spatial.get('type') == 'delimited':
+                gb += [spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                gb += [spatial.get('geohashCol')]
 
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
@@ -1818,26 +1848,27 @@ class BaseDeckGLViz(BaseViz):
     def get_data(self, df):
         fd = self.form_data
         spatial = fd.get('spatial')
-        if spatial.get('type') == 'latlong':
-            df = df.rename(columns={
-                spatial.get('lonCol'): 'lon',
-                spatial.get('latCol'): 'lat'})
-        elif spatial.get('type') == 'delimited':
-            cols = ['lon', 'lat']
-            if spatial.get('reverseCheckbox'):
-                cols.reverse()
-            df[cols] = (
-                df[spatial.get('lonlatCol')]
-                .str
-                .split(spatial.get('delimiter'), expand=True)
-                .astype(np.float64)
-            )
-            del df[spatial.get('lonlatCol')]
-        elif spatial.get('type') == 'geohash':
-            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-            df['lat'] = latlong.apply(lambda x: x[0])
-            df['lon'] = latlong.apply(lambda x: x[1])
-            del df['geohash']
+        if spatial:
+            if spatial.get('type') == 'latlong':
+                df = df.rename(columns={
+                    spatial.get('lonCol'): 'lon',
+                    spatial.get('latCol'): 'lat'})
+            elif spatial.get('type') == 'delimited':
+                cols = ['lon', 'lat']
+                if spatial.get('reverseCheckbox'):
+                    cols.reverse()
+                df[cols] = (
+                    df[spatial.get('lonlatCol')]
+                    .str
+                    .split(spatial.get('delimiter'), expand=True)
+                    .astype(np.float64)
+                )
+                del df[spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+                df['lat'] = latlong.apply(lambda x: x[0])
+                df['lon'] = latlong.apply(lambda x: x[1])
+                del df['geohash']
 
         features = []
         for d in df.to_dict(orient='records'):
@@ -1863,8 +1894,10 @@ class DeckScatterViz(BaseDeckGLViz):
         return super(DeckScatterViz, self).query_obj()
 
     def get_metrics(self):
+        self.metric = None
         if self.point_radius_fixed.get('type') == 'metric':
-            return [self.point_radius_fixed.get('value')]
+            self.metric = self.point_radius_fixed.get('value')
+            return [self.metric]
         return None
 
     def get_properties(self, d):
@@ -1899,12 +1932,70 @@ class DeckGrid(BaseDeckGLViz):
     verbose_name = _('Deck.gl - 3D Grid')
 
 
+class DeckPathViz(BaseDeckGLViz):
+
+    """deck.gl's PathLayer"""
+
+    viz_type = 'deck_path'
+    verbose_name = _('Deck.gl - Paths')
+    deser_map = {
+        'json': json.loads,
+        'polyline': polyline.decode,
+    }
+
+    def query_obj(self):
+        d = super(DeckPathViz, self).query_obj()
+        d['groupby'] = []
+        d['metrics'] = []
+        d['columns'] = [self.form_data.get('line_column')]
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        deser = self.deser_map[fd.get('line_type')]
+        paths = [deser(s) for s in df[fd.get('line_column')]]
+        if fd.get('reverse_long_lat'):
+            paths = [[(point[1], point[0]) for point in path] for path in paths]
+        d = {
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'paths': paths,
+        }
+        return d
+
+
 class DeckHex(BaseDeckGLViz):
 
     """deck.gl's DeckLayer"""
 
     viz_type = 'deck_hex'
     verbose_name = _('Deck.gl - 3D HEX')
+
+
+class DeckGeoJson(BaseDeckGLViz):
+
+    """deck.gl's GeoJSONLayer"""
+
+    viz_type = 'deck_geojson'
+    verbose_name = _('Deck.gl - GeoJSON')
+
+    def query_obj(self):
+        d = super(DeckGeoJson, self).query_obj()
+        d['columns'] = [self.form_data.get('geojson')]
+        d['metrics'] = []
+        d['groupby'] = []
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        geojson = {
+            'type': 'FeatureCollection',
+            'features': [json.loads(item) for item in df[fd.get('geojson')]],
+        }
+
+        return {
+            'geojson': geojson,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+        }
 
 
 class EventFlowViz(BaseViz):
