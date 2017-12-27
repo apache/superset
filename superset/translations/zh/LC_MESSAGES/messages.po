@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-12-27 14:59+0800\n"
+"PO-Revision-Date: 2017-12-27 20:23+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -2252,7 +2252,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:781
 #: superset/assets/javascripts/explore/stores/visTypes.js:993
 msgid "Chart Options"
-msgstr ""
+msgstr "图表选项"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:126
 msgid "Breakdowns"
