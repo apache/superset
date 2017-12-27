@@ -5,10 +5,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Apache Superset v0.0.1\n"
+"Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-12-27 11:46+0800\n"
+"PO-Revision-Date: 2017-12-27 14:25+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -360,7 +360,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/actions.js:157
 msgid "Could not connect to server"
-msgstr ""
+msgstr "无法连接服务器"
 
 #: superset/assets/javascripts/SqlLab/actions.js:162
 msgid "Your session timed out, please refresh your page and try again."
@@ -368,11 +368,11 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/actions.js:181
 msgid "Query was stopped."
-msgstr ""
+msgstr "查询被终止。"
 
 #: superset/assets/javascripts/SqlLab/actions.js:184
 msgid "Failed at stopping query."
-msgstr ""
+msgstr "无法终止查询。"
 
 #: superset/assets/javascripts/SqlLab/actions.js:297 superset/assets/javascripts/SqlLab/actions.js:310
 msgid "Error occurred while fetching table metadata"
@@ -392,7 +392,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/constants.js:30
 msgid "Pick a chart type!"
-msgstr ""
+msgstr "选择一个图表类型！"
 
 #: superset/assets/javascripts/SqlLab/constants.js:31
 msgid "To use this chart type you need at least one column flagged as a date"
@@ -409,16 +409,16 @@ msgstr ""
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:49
 #: superset/assets/javascripts/SqlLab/reducers.js:11
 msgid "Untitled Query"
-msgstr ""
+msgstr "未命名的查询"
 
 #: superset/assets/javascripts/SqlLab/reducers.js:44
 #, python-format
 msgid "Copy of %s"
-msgstr ""
+msgstr "%s 的副本"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:30
 msgid "share query"
-msgstr ""
+msgstr "分享查询"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:33
 msgid "copy URL to clipboard"
@@ -439,7 +439,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/QueryHistory.jsx:28
 msgid "No query history yet..."
-msgstr ""
+msgstr "暂无历史查询..."
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:106
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:66
@@ -642,7 +642,7 @@ msgstr ""
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:190
 #, python-format
 msgid "Add a table (%s)"
-msgstr ""
+msgstr "增加一张表 (%s)"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:203
 msgid "Type to search ..."
@@ -650,7 +650,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:226
 msgid "Reset State"
-msgstr ""
+msgstr "状态重置"
 
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:105
 msgid "Enter a new title for the tab"
@@ -659,23 +659,23 @@ msgstr ""
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:124
 #, python-format
 msgid "Untitled Query %s"
-msgstr ""
+msgstr "未命名的查询 %s"
 
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:170
 msgid "close tab"
-msgstr ""
+msgstr "关闭标签"
 
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:173
 msgid "rename tab"
-msgstr ""
+msgstr "重命名标签"
 
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:181
 msgid "expand tool bar"
-msgstr ""
+msgstr "展开工具栏"
 
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:181
 msgid "hide tool bar"
-msgstr ""
+msgstr "隐藏工具栏"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:75
 msgid "Copy partition query to clipboard"
@@ -754,33 +754,33 @@ msgstr "选择 ..."
 
 #: superset/assets/javascripts/components/CachedLabel.jsx:26
 msgid "Loaded data cached"
-msgstr ""
+msgstr "数据缓存已加载"
 
 #: superset/assets/javascripts/components/CachedLabel.jsx:29
 msgid "Loaded from cache"
-msgstr ""
+msgstr "从缓存中加载"
 
 #: superset/assets/javascripts/components/CachedLabel.jsx:33
 msgid "Click to force-refresh"
-msgstr ""
+msgstr "点击强制刷新"
 
 #: superset/assets/javascripts/components/CopyToClipboard.jsx:21
 #: superset/assets/javascripts/explore/components/EmbedCodeButton.jsx:67
 #: superset/assets/javascripts/explore/components/URLShortLinkButton.jsx:37
 msgid "Copy to clipboard"
-msgstr ""
+msgstr "复制到剪贴板"
 
 #: superset/assets/javascripts/components/CopyToClipboard.jsx:65
 msgid "Not successful"
-msgstr ""
+msgstr "未成功"
 
 #: superset/assets/javascripts/components/CopyToClipboard.jsx:68
 msgid "Sorry, your browser does not support copying. Use Ctrl / Cmd + C!"
-msgstr ""
+msgstr "抱歉，您的浏览器不支持复制操作。使用 Ctrl / Cmd + C！"
 
 #: superset/assets/javascripts/components/CopyToClipboard.jsx:79
 msgid "Copied!"
-msgstr ""
+msgstr "复制成功！"
 
 #: superset/assets/javascripts/components/EditableTitle.jsx:13 superset/views/core.py:475
 #: superset/views/core.py:542
@@ -803,7 +803,7 @@ msgstr "点击 收藏/取消收藏"
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:42
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:59
 msgid "You have unsaved changes."
-msgstr "您有一些未保存的修改"
+msgstr "您有一些未保存的修改。"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:59
 msgid "Click the"
@@ -820,7 +820,7 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:169
 msgid "Click to force refresh"
-msgstr ""
+msgstr "点击强制刷新"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:353
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:100
@@ -867,7 +867,7 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:19
 msgid "Don't refresh"
-msgstr ""
+msgstr "不要刷新"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:20
 msgid "10 seconds"
@@ -1201,7 +1201,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:50
 msgid "Group by"
-msgstr ""
+msgstr "分组"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:53
 msgid "One or many controls to group by"
@@ -1245,7 +1245,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:125 superset/views/annotations.py:47
 msgid "Annotation Layers"
-msgstr ""
+msgstr "注解层"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:127
 msgid "Annotation layers to overlay on the visualization"
@@ -1271,11 +1271,11 @@ msgstr "选择一个指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:156
 msgid "Right Axis Metric"
-msgstr ""
+msgstr "右轴指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:160
 msgid "Choose a metric for right axis"
-msgstr ""
+msgstr "为右轴选择一个指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:171
 msgid "Stacked Style"
@@ -1691,7 +1691,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:789
 msgid "URL"
-msgstr ""
+msgstr "URL 地址"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:790
 msgid ""
@@ -1788,7 +1788,7 @@ msgstr "Markup 格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:917
 msgid "Pick your favorite markup language"
-msgstr "选择您最爱的 markup 语言"
+msgstr "选择您最爱的 Markup 语言"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:922
 msgid "Rotation"
@@ -1812,7 +1812,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:949
 msgid "What should be shown on the label?"
-msgstr ""
+msgstr "什么应该被显示在标签上？"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:954
 #: superset/assets/javascripts/explore/stores/visTypes.js:376
@@ -1842,7 +1842,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:991
 msgid "Font Size To"
-msgstr ""
+msgstr "字型大小到"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:993
 msgid "Font size for the biggest value in the list"
@@ -2008,7 +2008,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1161
 msgid "label"
-msgstr ""
+msgstr "标签"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1163
 msgid ""
@@ -2159,7 +2159,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1360
 msgid "Cache Timeout (seconds)"
-msgstr ""
+msgstr "缓存超时（秒）"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1362
 msgid "The number of seconds before expiring the cache"
@@ -2206,7 +2206,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:16
 msgid "Datasource & Chart Type"
-msgstr ""
+msgstr "数据源 & 图表类型"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:45
 msgid "This section exposes ways to include snippets of SQL in your query"
@@ -2214,7 +2214,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:48 superset/views/annotations.py:55
 msgid "Annotations"
-msgstr ""
+msgstr "注解"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:66
 msgid "Advanced Analytics"
@@ -2631,7 +2631,7 @@ msgstr ""
 
 #: superset/connectors/druid/models.py:1073
 msgid "No data was returned."
-msgstr "没有数据"
+msgstr "没有返回任何数据。"
 
 #: superset/connectors/druid/views.py:28
 msgid "List Druid Column"
@@ -2697,7 +2697,7 @@ msgstr "编辑 Druid 指标"
 #: superset/connectors/druid/views.py:100 superset/connectors/sqla/views.py:115
 msgid ""
 "Whether the access to this metric is restricted to certain roles. Only roles with the permission "
-"'metric access on XXX (the name of this metric)' are allowed to access this metric"
+"'metric access on XXX (the name of this metric)' are allowed to access this metric."
 msgstr "是否访问受限。只有有权限的用户才能访问。"
 
 #: superset/connectors/druid/views.py:108 superset/connectors/sqla/views.py:81
@@ -2715,7 +2715,7 @@ msgstr "Druid 数据源"
 
 #: superset/connectors/druid/views.py:112 superset/connectors/sqla/views.py:138
 msgid "Warning Message"
-msgstr ""
+msgstr "告警信息"
 
 #: superset/connectors/druid/views.py:129
 msgid "List Druid Cluster"
@@ -2859,7 +2859,7 @@ msgstr "Druid 数据源"
 
 #: superset/connectors/druid/views.py:312
 msgid "Scan New Datasources"
-msgstr ""
+msgstr "扫描新的数据源"
 
 #: superset/connectors/druid/views.py:320
 msgid "Refresh Druid Metadata"
@@ -2879,7 +2879,7 @@ msgstr "'{}'是无效的"
 
 #: superset/connectors/sqla/models.py:590
 msgid "Table [{}] doesn't seem to exist in the specified database, couldn't fetch column information"
-msgstr ""
+msgstr "指定的数据库中似乎不存在 [{}] 表，无法获取列信息"
 
 #: superset/connectors/sqla/views.py:27
 msgid "List Columns"
@@ -2949,7 +2949,7 @@ msgstr "SQL表达式"
 
 #: superset/connectors/sqla/views.py:136
 msgid "D3 Format"
-msgstr ""
+msgstr "D3 格式"
 
 #: superset/connectors/sqla/views.py:137
 msgid "Is Restricted"
@@ -3022,16 +3022,16 @@ msgstr "表名"
 
 #: superset/connectors/sqla/views.py:224
 msgid "Fetch Values Predicate"
-msgstr ""
+msgstr "取值谓词"
 
 #: superset/connectors/sqla/views.py:226
 msgid "Main Datetime Column"
-msgstr ""
+msgstr "主日期列"
 
 #: superset/connectors/sqla/views.py:242
 msgid ""
 "Table [{}] could not be found, please double check your database connection, schema, and table name"
-msgstr ""
+msgstr "找不到 [{}] 表，请仔细检查您的数据库连接、Schema 和 表名"
 
 #: superset/connectors/sqla/views.py:255
 msgid ""
@@ -3057,11 +3057,11 @@ msgstr "登录"
 
 #: superset/templates/appbuilder/general/widgets/base_list.html:37
 msgid "Record Count"
-msgstr ""
+msgstr "记录数"
 
 #: superset/templates/appbuilder/general/widgets/base_list.html:46
 msgid "No records found"
-msgstr ""
+msgstr "没有找到任何记录"
 
 #: superset/templates/superset/import_dashboards.html:11
 msgid "Import"
@@ -3074,7 +3074,7 @@ msgstr "不能访问!"
 #: superset/templates/superset/request_access.html:7
 #, python-format
 msgid "You do not have permissions to access the datasource(s): %(name)s."
-msgstr "您没有权限访问数据源(s): %(name)s"
+msgstr "您没有权限访问数据源(s): %(name)s。"
 
 #: superset/templates/superset/request_access.html:13
 msgid "Request Permissions"
@@ -3178,7 +3178,7 @@ msgstr "在SQL编辑器中允许CREATE TABLE AS选项"
 
 #: superset/views/core.py:222
 msgid "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab"
-msgstr "允许用户在SQL编辑器中运行非SELECT语句（UPDATE，DELETE，CREATE，...）"
+msgstr "允许用户在 SQL 编辑器中运行非 SELECT 语句（UPDATE，DELETE，CREATE，...）"
 
 #: superset/views/core.py:226
 msgid ""
@@ -3229,7 +3229,7 @@ msgstr "允许异步运行"
 
 #: superset/views/core.py:255
 msgid "Impersonate queries to the database"
-msgstr ""
+msgstr "模拟对数据库的查询"
 
 #: superset/views/core.py:273
 msgid "Import Dashboards"
@@ -3326,9 +3326,9 @@ msgstr "编辑仪表盘"
 #: superset/views/core.py:451
 msgid ""
 "This json object describes the positioning of the widgets in the dashboard. It is dynamically "
-"generated when adjusting the widgets size and positions by using drag & drop in the dashboard view"
+"generated when adjusting the widgets size and positions by using drag & drop in the dashboard view."
 msgstr ""
-"这个JSON对象描述了部件在看板中的位置。它是动态生成的，可以通过拖放，在看板中调整整部件的大小和位置。"
+"这个 JSON 对象描述了部件在看板中的位置。它是动态生成的，可以通过拖放，在看板中调整整部件的大小和位置。"
 
 #: superset/views/core.py:456
 msgid ""
@@ -3349,7 +3349,7 @@ msgstr ""
 
 #: superset/views/core.py:466
 msgid "Owners is a list of users who can alter the dashboard."
-msgstr "“所有者”是一组可以修改看板的用户列表"
+msgstr "“所有者”是一组可以修改看板的用户列表。"
 
 #: superset/views/core.py:474 superset/views/core.py:541
 msgid "Dashboard"
@@ -3431,7 +3431,7 @@ msgstr "找不到用户 %(name)s，请您让管理员创建一个。"
 #: superset/views/core.py:1810
 #, python-format
 msgid "Can't find DruidCluster with cluster_name = '%(name)s'"
-msgstr "不能找到具有cluster_name = '%(name)s'的 Druid 集群"
+msgstr "不能找到具有 cluster_name = '%(name)s' 的 Druid 集群"
 
 #: superset/views/core.py:2071
 msgid "Query record was not created as expected."
@@ -3459,15 +3459,15 @@ msgstr "查询搜索"
 
 #: superset/views/sql_lab.py:20
 msgid "Status"
-msgstr ""
+msgstr "状态"
 
 #: superset/views/sql_lab.py:21
 msgid "Start Time"
-msgstr ""
+msgstr "开始时间"
 
 #: superset/views/sql_lab.py:22 superset/views/sql_lab.py:58
 msgid "End Time"
-msgstr ""
+msgstr "结束时间"
 
 #: superset/views/sql_lab.py:28
 msgid "Queries"
