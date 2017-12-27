@@ -123,7 +123,7 @@ msgstr "[Superset] 允许访问数据源 %(name)s "
 
 #: superset/viz.py:50
 msgid "Viz is missing a datasource"
-msgstr "Viz缺少一个数据源"
+msgstr "Viz 缺少一个数据源"
 
 #: superset/viz.py:181
 msgid "From date cannot be larger than to date"
@@ -249,21 +249,21 @@ msgstr "请在左右轴上选择不同的指标"
 #: superset/assets/javascripts/explore/stores/visTypes.js:238
 #: superset/viz.py:1076
 msgid "Time Series - Bar Chart"
-msgstr "时间序列-柱状图"
+msgstr "时间序列 - 柱状图"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:274
 #: superset/viz.py:1084
 msgid "Time Series - Percent Change"
-msgstr "时间序列-百分比变化"
+msgstr "时间序列 - 百分比变化"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:297
 #: superset/viz.py:1092
 msgid "Time Series - Stacked"
-msgstr "时间序列-堆积图"
+msgstr "时间序列 - 堆积图"
 
 #: superset/viz.py:1101
 msgid "Distribution - NVD3 - Pie Chart"
-msgstr "分布-饼图"
+msgstr "分布 - NVD3 - 饼图"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:647
 #: superset/viz.py:1119
@@ -277,11 +277,11 @@ msgstr "必须指定一个数字列"
 #: superset/assets/javascripts/explore/stores/visTypes.js:96
 #: superset/viz.py:1144
 msgid "Distribution - Bar Chart"
-msgstr "分布-柱状图"
+msgstr "分布 - 柱状图"
 
 #: superset/viz.py:1155
 msgid "Can't have overlap between Series and Breakdowns"
-msgstr "Series和Breakdown之间不能有重叠"
+msgstr "Series 和 Breakdown 之间不能有重叠"
 
 #: superset/viz.py:1157
 msgid "Pick at least one metric"
@@ -289,7 +289,7 @@ msgstr "选择至少一个指标"
 
 #: superset/viz.py:1159
 msgid "Pick at least one field for [Series]"
-msgstr "为[序列]选择至少一个字段"
+msgstr "为 [序列] 选择至少一个字段"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:679
 #: superset/viz.py:1212
@@ -303,7 +303,7 @@ msgstr "蛇形图"
 
 #: superset/viz.py:1252
 msgid "Pick exactly 2 columns as [Source / Target]"
-msgstr "为[来源/目标]选择两个列"
+msgstr "为 [来源 / 目标] 选择两个列"
 
 #: superset/viz.py:1283
 msgid ""
@@ -318,7 +318,7 @@ msgstr "有向图"
 
 #: superset/viz.py:1301
 msgid "Pick exactly 2 columns to 'Group By'"
-msgstr ""
+msgstr "为 “Group By” 选择两个列"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:808
 #: superset/viz.py:1348
@@ -337,7 +337,7 @@ msgstr "筛选"
 
 #: superset/viz.py:1434
 msgid "Pick at least one filter field"
-msgstr ""
+msgstr "选择至少一个过滤字段"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:909
 #: superset/viz.py:1461
@@ -386,15 +386,15 @@ msgstr "事件流"
 
 #: superset/viz.py:1706
 msgid "Time Series - Paired t-test"
-msgstr ""
+msgstr "时间序列 - 配对t检验"
 
 #: superset/assets/javascripts/SqlLab/actions.js:57
 msgid "Your query was saved"
-msgstr ""
+msgstr "您的查询已保存"
 
 #: superset/assets/javascripts/SqlLab/actions.js:58
 msgid "Your query could not be saved"
-msgstr ""
+msgstr "您的查询无法保存"
 
 #: superset/assets/javascripts/SqlLab/actions.js:111
 msgid "Failed at retrieving results from the results backend"
@@ -573,7 +573,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:236
 msgid "Loading..."
-msgstr ""
+msgstr "加载中..."
 
 #: superset/assets/javascripts/SqlLab/components/RunQueryActionButton.jsx:19
 msgid "Run Selected Query"
@@ -620,7 +620,7 @@ msgstr ""
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:155
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:222
 msgid "Save"
-msgstr ""
+msgstr "保存"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:102
 #: superset/templates/superset/request_access.html:16
@@ -629,24 +629,24 @@ msgstr "取消"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:123
 msgid "Save Query"
-msgstr ""
+msgstr "保存查询"
 
 #: superset/assets/javascripts/SqlLab/components/SouthPane.jsx:52
 msgid "Run a query to display results here"
-msgstr ""
+msgstr "运行一个查询，以在此显示结果"
 
 #: superset/assets/javascripts/SqlLab/components/SouthPane.jsx:57
 #, python-format
 msgid "Preview for %s"
-msgstr ""
+msgstr "预览 %s"
 
 #: superset/assets/javascripts/SqlLab/components/SouthPane.jsx:81
 msgid "Results"
-msgstr ""
+msgstr "结果"
 
 #: superset/assets/javascripts/SqlLab/components/SouthPane.jsx:87
 msgid "Query History"
-msgstr ""
+msgstr "历史查询"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditor.jsx:123
 msgid "Create table as with query results"
@@ -670,11 +670,11 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:159
 msgid "Database:"
-msgstr ""
+msgstr "数据库："
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:163
 msgid "Select a database"
-msgstr ""
+msgstr "选择一个数据库"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:170
 #, python-format
@@ -779,24 +779,24 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:248
 msgid "Chart Type"
-msgstr ""
+msgstr "图表类型"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:251
 msgid "[Chart Type]"
-msgstr ""
+msgstr "[图表类型]"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:259
 msgid "Datasource Name"
-msgstr ""
+msgstr "数据库名称"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:263
 msgid "datasource name"
-msgstr ""
+msgstr "数据库名称"
 
 #: superset/assets/javascripts/components/AsyncSelect.jsx:23
 #: superset/assets/javascripts/explore/components/controls/SelectAsyncControl.jsx:26
 msgid "Select ..."
-msgstr ""
+msgstr "选择 ..."
 
 #: superset/assets/javascripts/components/CachedLabel.jsx:26
 msgid "Loaded data cached"
@@ -835,7 +835,7 @@ msgstr "标题"
 
 #: superset/assets/javascripts/components/EditableTitle.jsx:92
 msgid "click to edit title"
-msgstr ""
+msgstr "点击编辑标题"
 
 #: superset/assets/javascripts/components/EditableTitle.jsx:93
 msgid "You don't have the rights to alter this title."
@@ -844,12 +844,12 @@ msgstr ""
 #: superset/assets/javascripts/components/FaveStar.jsx:32
 #: superset/assets/javascripts/modules/superset.js:33
 msgid "Click to favorite/unfavorite"
-msgstr ""
+msgstr "点击 收藏/取消收藏"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:42
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:59
 msgid "You have unsaved changes."
-msgstr ""
+msgstr "您有一些未保存的修改"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:59
 msgid "Click the"
@@ -871,7 +871,7 @@ msgstr ""
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:353
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:100
 msgid "Error"
-msgstr ""
+msgstr "异常"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:354
 #, python-format
@@ -897,11 +897,11 @@ msgstr ""
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:65
 msgid "Load a template"
-msgstr ""
+msgstr "加载一个模板"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:68
 msgid "Load a CSS template"
-msgstr ""
+msgstr "加载一个 CSS 模板"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:80
 #: superset/views/core.py:482
@@ -968,7 +968,7 @@ msgstr ""
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:135
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:210
 msgid "[dashboard name]"
-msgstr ""
+msgstr "[看板名称]"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:142
 #: superset/views/core.py:379
@@ -1243,7 +1243,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:56
 msgid "Network error."
-msgstr ""
+msgstr "网络异常。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:36
 msgid "A reference to the [Time] configuration, taking granularity into account"
@@ -1317,11 +1317,11 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:832
 #: superset/connectors/druid/views.py:106 superset/connectors/sqla/views.py:130
 msgid "Metric"
-msgstr "度量"
+msgstr "指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:143
 msgid "Choose the metric"
-msgstr ""
+msgstr "选择一个指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:156
 msgid "Right Axis Metric"
@@ -1444,7 +1444,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/controls.jsx:338
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:345
@@ -1818,7 +1818,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:850
 msgid "Timestamp Format"
-msgstr "時間戳記格式"
+msgstr "时间戳格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:856
 msgid "Series Height"
@@ -1839,15 +1839,15 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/controls.jsx:874
 #: superset/assets/javascripts/explore/stores/controls.jsx:884
 msgid "X Axis Format"
-msgstr "X 軸格式"
+msgstr "X 轴格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:894
 msgid "Y Axis Format"
-msgstr "Y 軸格式"
+msgstr "Y 轴格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:904
 msgid "Right Axis Format"
-msgstr "右軸格式"
+msgstr "右轴格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:912
 msgid "Markup Type"
@@ -1855,11 +1855,11 @@ msgstr "Markup 格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:917
 msgid "Pick your favorite markup language"
-msgstr "選擇你喜愛的markup語言"
+msgstr "选择您最爱的 markup 语言"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:922
 msgid "Rotation"
-msgstr "迴轉"
+msgstr "反转"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:925
 msgid "Rotation to apply to words in the cloud"
@@ -1885,11 +1885,11 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:376
 #: superset/assets/javascripts/explore/stores/visTypes.js:414
 msgid "Code"
-msgstr "代碼"
+msgstr "代码"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:955
 msgid "Put your code here"
-msgstr "請放入你的代碼"
+msgstr "把您的代码放在这里"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:964
 msgid "Aggregation function"
@@ -1903,7 +1903,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:983
 msgid "Font Size From"
-msgstr "字型大小從"
+msgstr "字型大小从"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:985
 msgid "Font size for the smallest value in the list"
@@ -2035,7 +2035,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1119
 msgid "Contribution"
-msgstr "貢獻"
+msgstr "贡献"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1121
 msgid "Compute the contribution to the total"
@@ -2619,7 +2619,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1111
 msgid "Meta data"
-msgstr ""
+msgstr "元数据"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1112
 msgid "Select any columns for meta data inspection"
@@ -2634,31 +2634,31 @@ msgstr ""
 #: superset/assets/javascripts/modules/superset.js:133
 #, python-format
 msgid "An unknown error occurred. (Status: %s )"
-msgstr ""
+msgstr "出现未知错误。（状态：%s）"
 
 #: superset/assets/javascripts/profile/components/App.jsx:24
 msgid "Favorites"
-msgstr ""
+msgstr "收藏"
 
 #: superset/assets/javascripts/profile/components/App.jsx:30
 msgid "Created Content"
-msgstr ""
+msgstr "创建内容"
 
 #: superset/assets/javascripts/profile/components/App.jsx:37
 msgid "Recent Activity"
-msgstr ""
+msgstr "近期活动"
 
 #: superset/assets/javascripts/profile/components/App.jsx:42
 msgid "Security & Access"
-msgstr ""
+msgstr "安全 & 访问"
 
 #: superset/assets/javascripts/profile/components/CreatedContent.jsx:33
 msgid "No slices"
-msgstr ""
+msgstr "没有切片"
 
 #: superset/assets/javascripts/profile/components/CreatedContent.jsx:49
 msgid "No dashboards"
-msgstr ""
+msgstr "没有看板"
 
 #: superset/assets/javascripts/profile/components/CreatedContent.jsx:58
 #: superset/assets/javascripts/profile/components/Favorites.jsx:59
@@ -2708,7 +2708,7 @@ msgstr ""
 
 #: superset/assets/visualizations/EventFlow.jsx:56
 msgid "Sorry, there appears to be no data"
-msgstr ""
+msgstr "对不起，似乎没有数据"
 
 #: superset/assets/visualizations/filter_box.jsx:106
 #, python-format
@@ -2721,19 +2721,19 @@ msgstr "没有数据"
 
 #: superset/connectors/druid/views.py:28
 msgid "List Druid Column"
-msgstr "Druid列的列表"
+msgstr "Druid 列的列表"
 
 #: superset/connectors/druid/views.py:29
 msgid "Show Druid Column"
-msgstr "显示Druid列"
+msgstr "显示 Druid 列"
 
 #: superset/connectors/druid/views.py:30
 msgid "Add Druid Column"
-msgstr "添加Druid列"
+msgstr "添加 Druid 列"
 
 #: superset/connectors/druid/views.py:31
 msgid "Edit Druid Column"
-msgstr "编辑Druid列"
+msgstr "编辑 Druid 列"
 
 #: superset/connectors/druid/views.py:43 superset/connectors/sqla/views.py:80
 msgid "Column"
@@ -2768,19 +2768,19 @@ msgstr "该列是否在浏览视图的`过滤器`部分显示。"
 
 #: superset/connectors/druid/views.py:80
 msgid "List Druid Metric"
-msgstr "Druid指标列表"
+msgstr "Druid 指标列表"
 
 #: superset/connectors/druid/views.py:81
 msgid "Show Druid Metric"
-msgstr "显示Druid指标"
+msgstr "显示 Druid 指标"
 
 #: superset/connectors/druid/views.py:82
 msgid "Add Druid Metric"
-msgstr "添加Druid指标"
+msgstr "添加 Druid 指标"
 
 #: superset/connectors/druid/views.py:83
 msgid "Edit Druid Metric"
-msgstr "编辑Druid指标"
+msgstr "编辑 Druid 指标"
 
 #: superset/connectors/druid/views.py:100 superset/connectors/sqla/views.py:115
 msgid ""
@@ -2800,7 +2800,7 @@ msgstr "JSON"
 
 #: superset/connectors/druid/views.py:111
 msgid "Druid Datasource"
-msgstr "Druid数据源"
+msgstr "Druid 数据源"
 
 #: superset/connectors/druid/views.py:112 superset/connectors/sqla/views.py:138
 msgid "Warning Message"
@@ -2808,19 +2808,19 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:129
 msgid "List Druid Cluster"
-msgstr "Druid集群列表"
+msgstr "Druid 集群列表"
 
 #: superset/connectors/druid/views.py:130
 msgid "Show Druid Cluster"
-msgstr "显示Druid集群"
+msgstr "显示 Druid 集群"
 
 #: superset/connectors/druid/views.py:131
 msgid "Add Druid Cluster"
-msgstr "添加Druid集群"
+msgstr "添加 Druid 集群"
 
 #: superset/connectors/druid/views.py:132
 msgid "Edit Druid Cluster"
-msgstr "编辑Druid集群"
+msgstr "编辑 Druid 集群"
 
 #: superset/connectors/druid/views.py:143
 #: superset/connectors/druid/views.py:227
@@ -2853,7 +2853,7 @@ msgstr "代理端点"
 
 #: superset/connectors/druid/views.py:164
 msgid "Druid Clusters"
-msgstr "Druid集群"
+msgstr "Druid 集群"
 
 #: superset/connectors/druid/views.py:167
 #: superset/connectors/druid/views.py:267
@@ -2865,19 +2865,19 @@ msgstr "数据源"
 
 #: superset/connectors/druid/views.py:174
 msgid "List Druid Datasource"
-msgstr "Druid数据源列表"
+msgstr "Druid 数据源列表"
 
 #: superset/connectors/druid/views.py:175
 msgid "Show Druid Datasource"
-msgstr "显示Druid数据源"
+msgstr "显示 Druid 数据源"
 
 #: superset/connectors/druid/views.py:176
 msgid "Add Druid Datasource"
-msgstr "添加Druid数据源"
+msgstr "添加 Druid 数据源"
 
 #: superset/connectors/druid/views.py:177
 msgid "Edit Druid Datasource"
-msgstr "编辑Druid数据源"
+msgstr "编辑 Druid 数据源"
 
 #: superset/connectors/druid/views.py:196 superset/connectors/sqla/views.py:176
 msgid ""
@@ -2948,7 +2948,7 @@ msgstr "缓存时间"
 
 #: superset/connectors/druid/views.py:265
 msgid "Druid Datasources"
-msgstr "Druid数据源"
+msgstr "Druid 数据源"
 
 #: superset/connectors/druid/views.py:312
 msgid "Scan New Datasources"
@@ -2956,7 +2956,7 @@ msgstr ""
 
 #: superset/connectors/druid/views.py:320
 msgid "Refresh Druid Metadata"
-msgstr "刷新Druid元数据"
+msgstr "刷新 Druid 元数据"
 
 #: superset/connectors/sqla/models.py:394
 msgid ""
@@ -3049,7 +3049,7 @@ msgstr ""
 
 #: superset/connectors/sqla/views.py:137
 msgid "Is Restricted"
-msgstr ""
+msgstr "受限的"
 
 #: superset/connectors/sqla/views.py:155
 msgid "List Tables"
@@ -3115,7 +3115,7 @@ msgstr "偏移"
 
 #: superset/connectors/sqla/views.py:223
 msgid "Table Name"
-msgstr ""
+msgstr "表名"
 
 #: superset/connectors/sqla/views.py:224
 msgid "Fetch Values Predicate"
@@ -3199,7 +3199,7 @@ msgstr "数据源%(name)s 已存在"
 
 #: superset/views/base.py:221
 msgid "json isn't valid"
-msgstr ""
+msgstr "无效 JSON"
 
 #: superset/views/base.py:272
 msgid "Delete"
@@ -3329,11 +3329,11 @@ msgstr "扩展"
 
 #: superset/views/core.py:253
 msgid "Allow Run Sync"
-msgstr ""
+msgstr "允许同步运行"
 
 #: superset/views/core.py:254
 msgid "Allow Run Async"
-msgstr ""
+msgstr "允许异步运行"
 
 #: superset/views/core.py:255
 msgid "Impersonate queries to the database"
@@ -3544,7 +3544,7 @@ msgstr "找不到用户'%(name)'，请您让管理员创建一个。"
 #: superset/views/core.py:1810
 #, python-format
 msgid "Can't find DruidCluster with cluster_name = '%(name)s'"
-msgstr "不能找到具有cluster_name = '%(name)s'的Druid集群"
+msgstr "不能找到具有cluster_name = '%(name)s'的 Druid 集群"
 
 #: superset/views/core.py:2071
 msgid "Query record was not created as expected."
@@ -4318,10 +4318,10 @@ msgstr "已保存查询"
 #~ msgstr "坐标上显示项目名称"
 
 #~ msgid "Color Metric"
-#~ msgstr "颜色度量"
+#~ msgstr "颜色指标"
 
 #~ msgid "A metric to use for color"
-#~ msgstr "颜色度量项目"
+#~ msgstr "颜色指标项目"
 
 #~ msgid "Country Name"
 #~ msgstr "国家名"
@@ -5126,7 +5126,7 @@ msgstr "已保存查询"
 #~ msgstr "国家的3个字母代码"
 
 #~ msgid "Metric for color"
-#~ msgstr "色彩度量项"
+#~ msgstr "色彩指标项"
 
 #~ msgid "Metric that defines the color of the country"
 #~ msgstr "国家颜色表示的统计项"
@@ -5135,7 +5135,7 @@ msgstr "已保存查询"
 #~ msgstr "气泡大小"
 
 #~ msgid "Metric that defines the size of the bubble"
-#~ msgstr "气泡大小表示的度量项"
+#~ msgstr "气泡大小表示的指标项"
 
 #~ msgid "Filter Box"
 #~ msgstr "提示器"
@@ -5151,7 +5151,7 @@ msgstr "已保存查询"
 #~ msgstr "您要过滤的控件。注意，只有被检查为\"filterable\"的列才会出现在这个列表中。"
 
 #~ msgid "Axis & Metrics"
-#~ msgstr "轴和度量"
+#~ msgstr "轴和指标"
 
 #~ msgid "Heatmap Options"
 #~ msgstr "热力图选项"
