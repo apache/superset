@@ -123,11 +123,11 @@ msgstr "[Superset] 允许访问数据源 %(name)s "
 
 #: superset/viz.py:50
 msgid "Viz is missing a datasource"
-msgstr ""
+msgstr "Viz缺少一个数据源"
 
 #: superset/viz.py:181
 msgid "From date cannot be larger than to date"
-msgstr ""
+msgstr "起始时间不可以大于当前时间"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:334
 #: superset/viz.py:369
@@ -136,11 +136,11 @@ msgstr "表视图"
 
 #: superset/viz.py:381
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
-msgstr ""
+msgstr "在“时间”部分选择一个粒度，或取消选中“包括时间”"
 
 #: superset/viz.py:391
 msgid "Choose either fields to [Group By] and [Metrics] or [Columns], not both"
-msgstr ""
+msgstr "为[分组]和[指标]或[列]选择任何的字段，或者两个都不选"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:386
 #: superset/viz.py:430
@@ -148,16 +148,16 @@ msgid "Pivot Table"
 msgstr "透视表"
 
 #: superset/viz.py:444
-msgid "Please choose at least one \"Group by\" field "
-msgstr ""
+msgid "Please choose at least one \"Group by\" field"
+msgstr "请至少选择一个“分组”字段"
 
 #: superset/viz.py:446
 msgid "Please choose at least one metric"
-msgstr ""
+msgstr "请至少选择一个指标"
 
 #: superset/viz.py:450
 msgid "'Group By' and 'Columns' can't overlap"
-msgstr ""
+msgstr "“分组”和“列”不能重叠"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:373
 #: superset/viz.py:483
@@ -196,7 +196,7 @@ msgstr "气泡图"
 
 #: superset/viz.py:734
 msgid "Pick a metric for x, y and size"
-msgstr ""
+msgstr "为x轴，y轴和大小选择一个指标"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:574
 #: superset/viz.py:760
@@ -205,7 +205,7 @@ msgstr "子弹图"
 
 #: superset/viz.py:786
 msgid "Pick a metric to display"
-msgstr ""
+msgstr "选择一个指标来显示"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:597
 #: superset/viz.py:809
@@ -214,7 +214,7 @@ msgstr "数字和趋势线"
 
 #: superset/viz.py:817 superset/viz.py:846
 msgid "Pick a metric!"
-msgstr ""
+msgstr "选择一个指标！"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:622
 #: superset/viz.py:838
@@ -228,7 +228,7 @@ msgstr "时间序列-折线图"
 
 #: superset/viz.py:913 superset/viz.py:1058
 msgid "Pick a time granularity for your time series"
-msgstr ""
+msgstr "为您的时间序列选择一个时间粒度"
 
 #: superset/viz.py:1001
 msgid "Time Series - Dual Axis Line Chart"
@@ -236,15 +236,15 @@ msgstr "时间序列-双轴线图"
 
 #: superset/viz.py:1011
 msgid "Pick a metric for left axis!"
-msgstr ""
+msgstr "为左轴选择一个指标！"
 
 #: superset/viz.py:1013
 msgid "Pick a metric for right axis!"
-msgstr ""
+msgstr "为右轴选择一个指标！"
 
 #: superset/viz.py:1015
 msgid "Please choose different metrics on left and right axis"
-msgstr ""
+msgstr "请在左右轴上选择不同的指标"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:238
 #: superset/viz.py:1076
@@ -272,7 +272,7 @@ msgstr "直方图"
 
 #: superset/viz.py:1129
 msgid "Must have one numeric column specified"
-msgstr ""
+msgstr "必须指定一个数字列"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:96
 #: superset/viz.py:1144
@@ -281,15 +281,15 @@ msgstr "分布-柱状图"
 
 #: superset/viz.py:1155
 msgid "Can't have overlap between Series and Breakdowns"
-msgstr ""
+msgstr "Series和Breakdown之间不能有重叠"
 
 #: superset/viz.py:1157
 msgid "Pick at least one metric"
-msgstr ""
+msgstr "选择至少一个指标"
 
 #: superset/viz.py:1159
 msgid "Pick at least one field for [Series]"
-msgstr ""
+msgstr "为[序列]选择至少一个字段"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:679
 #: superset/viz.py:1212
@@ -303,7 +303,7 @@ msgstr "蛇形图"
 
 #: superset/viz.py:1252
 msgid "Pick exactly 2 columns as [Source / Target]"
-msgstr ""
+msgstr "为[来源/目标]选择两个列"
 
 #: superset/viz.py:1283
 msgid ""
@@ -2966,7 +2966,7 @@ msgstr "缺少时间字段"
 
 #: superset/connectors/sqla/models.py:398
 msgid "Empty query?"
-msgstr ""
+msgstr "查询为空？"
 
 #: superset/connectors/sqla/models.py:401
 msgid "Metric '{}' is not valid"
