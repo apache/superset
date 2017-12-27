@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-12-27 14:25+0800\n"
+"PO-Revision-Date: 2017-12-27 14:59+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -364,7 +364,7 @@ msgstr "无法连接服务器"
 
 #: superset/assets/javascripts/SqlLab/actions.js:162
 msgid "Your session timed out, please refresh your page and try again."
-msgstr ""
+msgstr "您的会话已超时，请刷新页面后，再重试。"
 
 #: superset/assets/javascripts/SqlLab/actions.js:181
 msgid "Query was stopped."
@@ -422,7 +422,7 @@ msgstr "分享查询"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:33
 msgid "copy URL to clipboard"
-msgstr ""
+msgstr "拷贝 URL 到剪切板"
 
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:61
 msgid "Raw SQL"
@@ -435,7 +435,7 @@ msgstr ""
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:83
 #: superset/assets/javascripts/explore/stores/visTypes.js:40
 msgid "SQL"
-msgstr ""
+msgstr "SQL"
 
 #: superset/assets/javascripts/SqlLab/components/QueryHistory.jsx:28
 msgid "No query history yet..."
@@ -444,12 +444,12 @@ msgstr "暂无历史查询..."
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:106
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:66
 msgid "It seems you don't have access to any database"
-msgstr ""
+msgstr "貌似您没有访问到任何数据库"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:154
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:89
 msgid "Search Results"
-msgstr ""
+msgstr "搜索结果"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:160
 msgid "[From]-"
@@ -497,7 +497,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:67
 msgid ".CSV"
-msgstr ""
+msgstr ".CSV"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:78
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:241
@@ -513,7 +513,7 @@ msgstr "表"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:162
 msgid "was created"
-msgstr ""
+msgstr "已创建"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:169
 msgid "Query in a new tab"
@@ -525,7 +525,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:230
 msgid "Track Job"
-msgstr ""
+msgstr "跟踪任务"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:236
 msgid "Loading..."
@@ -545,11 +545,11 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/RunQueryActionButton.jsx:57
 msgid "Stop"
-msgstr ""
+msgstr "停止"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:16
 msgid "Undefined"
-msgstr ""
+msgstr "未命名"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:66 superset/views/sql_lab.py:53
 msgid "Label"
@@ -557,7 +557,7 @@ msgstr "标签"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:71
 msgid "Label for your query"
-msgstr ""
+msgstr "为您的查询设置标签"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:81 superset/connectors/druid/views.py:107
 #: superset/connectors/druid/views.py:228 superset/connectors/sqla/views.py:82
@@ -568,7 +568,7 @@ msgstr "描述"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:85
 msgid "Write a description for your query"
-msgstr ""
+msgstr "为您的查询写一段描述"
 
 #: superset/assets/javascripts/SqlLab/components/SaveQuery.jsx:99
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:155
@@ -725,11 +725,11 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:166
 msgid "Creating a data source and popping a new tab"
-msgstr ""
+msgstr "创建数据源，并弹出一个新的标签页"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:196
 msgid "No results available for this query"
-msgstr ""
+msgstr "没有可用于此查询的结果"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:248
 msgid "Chart Type"
@@ -793,7 +793,7 @@ msgstr "点击编辑标题"
 
 #: superset/assets/javascripts/components/EditableTitle.jsx:93
 msgid "You don't have the rights to alter this title."
-msgstr ""
+msgstr "你没有权利改变这个标题。"
 
 #: superset/assets/javascripts/components/FaveStar.jsx:32
 #: superset/assets/javascripts/modules/superset.js:33
@@ -807,7 +807,7 @@ msgstr "您有一些未保存的修改。"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:59
 msgid "Click the"
-msgstr ""
+msgstr "点击"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:61
 msgid "button on the top right to save your changes."
@@ -1838,7 +1838,7 @@ msgstr "字型大小从"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:985
 msgid "Font size for the smallest value in the list"
-msgstr ""
+msgstr "列表中最小值的字体大小"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:991
 msgid "Font Size To"
@@ -1846,7 +1846,7 @@ msgstr "字型大小到"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:993
 msgid "Font size for the biggest value in the list"
-msgstr ""
+msgstr "列表中最大值的字体大小"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:998
 msgid "Instant Filtering"
@@ -2590,15 +2590,15 @@ msgstr "切片"
 
 #: superset/assets/javascripts/profile/components/Favorites.jsx:34
 msgid "No favorite slices yet, go click on stars!"
-msgstr ""
+msgstr "暂无收藏的切片，去点击星星吧！"
 
 #: superset/assets/javascripts/profile/components/Favorites.jsx:50
 msgid "No favorite dashboards yet, go click on stars!"
-msgstr ""
+msgstr "暂无收藏的看板，去点击星星吧！"
 
 #: superset/assets/javascripts/profile/components/Security.jsx:14
 msgid "Roles"
-msgstr ""
+msgstr "角色"
 
 #: superset/assets/javascripts/profile/components/Security.jsx:23 superset/views/core.py:284
 msgid "Databases"
@@ -2606,7 +2606,7 @@ msgstr "数据库"
 
 #: superset/assets/javascripts/profile/components/Security.jsx:34
 msgid "Datasources"
-msgstr ""
+msgstr "数据源"
 
 #: superset/assets/javascripts/profile/components/UserInfo.jsx:18
 msgid "Profile picture provided by Gravatar"
@@ -2618,7 +2618,7 @@ msgstr ""
 
 #: superset/assets/javascripts/profile/components/UserInfo.jsx:43
 msgid "id:"
-msgstr ""
+msgstr "id:"
 
 #: superset/assets/visualizations/EventFlow.jsx:56
 msgid "Sorry, there appears to be no data"
@@ -2627,7 +2627,7 @@ msgstr "对不起，似乎没有数据"
 #: superset/assets/visualizations/filter_box.jsx:106
 #, python-format
 msgid "Select [%s]"
-msgstr ""
+msgstr "选择 [%s]"
 
 #: superset/connectors/druid/models.py:1073
 msgid "No data was returned."
@@ -3188,7 +3188,7 @@ msgstr "当在SQL编辑器中允许CREATE TABLE AS选项时，此选项可以此
 
 #: superset/views/core.py:238
 msgid "All the queries in Sql Lab are going to be executed on behalf of currently authorized user."
-msgstr ""
+msgstr "SQL Lab 中所有的查询都将被当前授权用户执行。"
 
 #: superset/views/core.py:243
 msgid "Expose in SQL Lab"
@@ -3435,11 +3435,11 @@ msgstr "不能找到具有 cluster_name = '%(name)s' 的 Druid 集群"
 
 #: superset/views/core.py:2071
 msgid "Query record was not created as expected."
-msgstr ""
+msgstr "查询记录没有按预期创建。"
 
 #: superset/views/core.py:2357
 msgid "Template Name"
-msgstr ""
+msgstr "模板名称"
 
 #: superset/views/core.py:2368
 msgid "CSS Templates"
