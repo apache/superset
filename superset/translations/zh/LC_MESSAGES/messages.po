@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-12-28 09:42+0800\n"
+"PO-Revision-Date: 2017-12-28 10:01+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -296,7 +296,7 @@ msgstr "世界地图"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:80 superset/viz.py:1426
 msgid "Filters"
-msgstr "筛选"
+msgstr "过滤"
 
 #: superset/viz.py:1434
 msgid "Pick at least one filter field"
@@ -2664,7 +2664,7 @@ msgstr "可分组"
 
 #: superset/connectors/druid/views.py:47 superset/connectors/sqla/views.py:84
 msgid "Filterable"
-msgstr "可筛选"
+msgstr "可过滤"
 
 #: superset/connectors/druid/views.py:48 superset/connectors/sqla/views.py:86
 msgid "Count Distinct"
