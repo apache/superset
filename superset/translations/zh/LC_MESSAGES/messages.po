@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-12-27 22:46+0800\n"
+"PO-Revision-Date: 2017-12-28 09:42+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -2497,43 +2497,43 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1061
 msgid "Tooltip"
-msgstr ""
+msgstr "提示"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1062
 msgid "Show a tooltip when hovering over points and clusters describing the label"
-msgstr ""
+msgstr "鼠标悬停在描述标签的点和簇上时，可以显示对应的提示"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1066
 msgid "One or many controls to group by. If grouping, latitude and longitude columns must be present."
-msgstr ""
+msgstr "使用一个或多个控件来分组。一旦分组，则纬度和经度列必须存在。"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1077
 msgid "Event definition"
-msgstr ""
+msgstr "事件定义"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1087
 msgid "Additional meta data"
-msgstr ""
+msgstr "额外的元数据"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1095
 msgid "Column containing entity ids"
-msgstr ""
+msgstr "包含实体标识的列"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1096
 msgid "e.g., a \"user id\" column"
-msgstr ""
+msgstr "包含事件名称的列"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1099
 msgid "Column containing event names"
-msgstr ""
+msgstr "包含事件名称的列"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1107
 msgid "Event count limit"
-msgstr ""
+msgstr "事件计数限制"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1108
 msgid "The maximum number of events to return, equivalent to number of rows"
-msgstr ""
+msgstr "要返回的最大事件数量，相当于行数"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1111
 msgid "Meta data"
@@ -2541,11 +2541,11 @@ msgstr "元数据"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1112
 msgid "Select any columns for meta data inspection"
-msgstr ""
+msgstr "选择任何列用来对元数据进行探查"
 
 #: superset/assets/javascripts/modules/superset.js:130
 msgid "The server could not be reached. You may want to verify your connection and try again."
-msgstr ""
+msgstr "服务器不可达。您可能需要验证连接并重试。"
 
 #: superset/assets/javascripts/modules/superset.js:133
 #, python-format
