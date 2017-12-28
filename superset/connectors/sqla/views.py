@@ -238,7 +238,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
                     get_datasource_exist_error_mgs(table.full_name))
 
         # Fail before adding if the table can't be found
-        if not table.database.has_table(table):
+        try:
+            table.get_sqla_table_object()         
+        except Exception as e:
             raise Exception(_(
                 'Table [{}] could not be found, '
                 'please double check your '
