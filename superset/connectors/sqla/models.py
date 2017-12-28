@@ -542,7 +542,9 @@ class SqlaTable(Model, BaseDatasource):
             where = extras.get('where')
             if where:
                 where = template_processor.process_template(where)
-                where_clause_and += [sa.text('({})'.format(where))]
+                # fix the issue of cannot pass multi-byte text in where clause
+                # where_clause_and += [sa.text('({})'.format(where))]
+                where_clause_and += [sa.text(u'({})'.format(where.encode('utf-8').decode('utf-8')))]
             having = extras.get('having')
             if having:
                 having = template_processor.process_template(having)
@@ -609,6 +611,20 @@ class SqlaTable(Model, BaseDatasource):
             logging.exception(e)
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))
+
+        #fix for oracle db columns name matching issue - copied from cooleasyhan's fix for KeyError 953
+        def cols_adjustment(df):
+            _tmp = []
+            for col in df.columns:
+                if col not in query_obj['metrics']:
+                    _tmp.append(self.database.db_engine_spec.format_column_name(col))
+                else:
+                    _tmp.append(col)
+        
+            df.columns = _tmp
+            return df
+        
+        df = cols_adjustment(df)
 
         return QueryResult(
             status=status,

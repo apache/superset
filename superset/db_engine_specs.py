@@ -212,6 +212,11 @@ class BaseEngineSpec(object):
         """
         return uri
 
+    # fix for oracle columns name issue, copied from cooleasyhan's fix for KeyError 953
+    @classmethod
+    def format_column_name(cls, col_name):
+        return col_name
+
     @classmethod
     def patch(cls):
         pass
@@ -314,7 +319,8 @@ class PostgresEngineSpec(BaseEngineSpec):
     def get_table_names(cls, schema, inspector):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
-        tables.extend(inspector.get_foreign_table_names(schema))
+        # this is also being called from oracle db and caused the issue to fetch tables, remove here
+        #tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
 
 
@@ -1075,6 +1081,11 @@ class OracleEngineSpec(PostgresEngineSpec):
         return (
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
+
+    # fix for oracle column name issue, copied from cooleasyhan's fix for KeyError 953
+    @classmethod
+    def format_column_name(cls, col_name):
+        return col_name.upper()
 
 
 class VerticaEngineSpec(PostgresEngineSpec):
