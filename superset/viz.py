@@ -2027,7 +2027,6 @@ class DeckArc(BaseDeckGLViz):
             data.append({
                          'sourcePosition': pos[0],
                          'targetPosition': pos[1],
-                         'color': [255, 0, 0],
                          })
 
         return {

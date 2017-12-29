@@ -515,6 +515,12 @@ export const visTypes = {
           ['mapbox_style', 'viewport'],
         ],
       },
+      {
+        label: t('Arc'),
+        controlSetRows: [
+          ['color_picker', null],
+        ],
+      },
     ],
   },
 
