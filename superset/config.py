@@ -94,10 +94,10 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = 'Superset'
+APP_NAME = 'Select Data Explorer'
 
 # Uncomment to setup an App icon
-APP_ICON = '/static/assets/images/superset-logo@2x.png'
+APP_ICON = '/static/assets/images/Select_logo_130x65.png'
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
