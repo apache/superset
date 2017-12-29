@@ -519,6 +519,7 @@ export const visTypes = {
         label: t('Arc'),
         controlSetRows: [
           ['color_picker', null],
+          ['stroke_width', null],
         ],
       },
     ],

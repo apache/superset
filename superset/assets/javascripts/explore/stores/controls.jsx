@@ -560,6 +560,15 @@ export const controls = {
     choices: formatSelectOptions([0, 100, 200, 300, 500]),
   },
 
+  stroke_width: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Stroke Width'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([1, 2, 3, 4, 5]),
+  },
+
   all_columns_x: {
     type: 'SelectControl',
     label: 'X',

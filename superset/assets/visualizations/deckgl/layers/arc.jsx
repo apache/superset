@@ -11,9 +11,6 @@ export default function arcLayer(formData, payload) {
   return new ArcLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
-    filled: true,
-    stroked: false,
-    extruded: true,
-    pointRadiusScale: fd.point_radius_scale,
+    strokeWidth: (fd.stroke_width) ? fd.stroke_width : 3,
   });
 }
