@@ -12,6 +12,7 @@ function countryMapChart(slice, payload) {
   let resultText;
   const container = slice.container;
   const data = payload.data;
+  const format = d3.format(fd.number_format);
 
   const colorScaler = colorScalerFactory(fd.linear_color_scheme, data, v => v.metric);
   const colorMap = {};
@@ -91,7 +92,7 @@ function countryMapChart(slice, payload) {
 
   const updateMetrics = function (region) {
     if (region.length > 0) {
-      resultText.text(d3.format(',')(region[0].metric));
+      resultText.text(format(region[0].metric));
     }
   };
 

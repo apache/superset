@@ -28,6 +28,8 @@ import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import OperationalError
+from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
@@ -36,7 +38,7 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.forms import CsvToDatabaseForm
 from superset.legacy import cast_form_data
 import superset.models.core as models
@@ -44,8 +46,9 @@ from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
 from .base import (
-    api, BaseSupersetView, CsvResponse, DeleteMixin, get_error_msg,
-    get_user_roles, json_error_response, SupersetFilter, SupersetModelView,
+    api, BaseSupersetView, CsvResponse, DeleteMixin,
+    generate_download_headers, get_error_msg, get_user_roles,
+    json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 
 config = app.config
@@ -161,16 +164,9 @@ class DashboardFilter(SupersetFilter):
         return query
 
 
-def generate_download_headers(extension):
-    filename = datetime.now().strftime('%Y%m%d_%H%M%S')
-    content_disp = 'attachment; filename={}.{}'.format(filename, extension)
-    headers = {
-        'Content-Disposition': content_disp,
-    }
-    return headers
 
 
-class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
+class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
 
     list_title = _('List Databases')
@@ -410,17 +406,17 @@ appbuilder.add_view(
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
 
-    list_title = _('List Slices')
-    show_title = _('Show Slice')
-    add_title = _('Add Slice')
-    edit_title = _('Edit Slice')
+    list_title = _('List Charts')
+    show_title = _('Show Chart')
+    add_title = _('Add Chart')
+    edit_title = _('Edit Chart')
 
     can_add = False
     label_columns = {
         'datasource_link': _('Datasource'),
     }
     search_columns = (
-        'slice_name', 'description', 'viz_type', 'owners',
+        'slice_name', 'description', 'viz_type', 'datasource_name', 'owners',
     )
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
@@ -454,7 +450,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         'modified': _('Last Modified'),
         'owners': _('Owners'),
         'params': _('Parameters'),
-        'slice_link': _('Slice'),
+        'slice_link': _('Chart'),
         'slice_name': _('Name'),
         'table': _('Table'),
         'viz_type': _('Visualization Type'),
@@ -488,8 +484,8 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     SliceModelView,
-    'Slices',
-    label=__('Slices'),
+    'Charts',
+    label=__('Charts'),
     icon='fa-bar-chart',
     category='',
     category_icon='',)
@@ -497,11 +493,11 @@ appbuilder.add_view(
 
 class SliceAsync(SliceModelView):  # noqa
     list_columns = [
-        'slice_link', 'viz_type',
+        'id', 'slice_link', 'viz_type', 'slice_name',
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
-        'slice_link': _('Slice'),
+        'slice_link': _('Chart'),
     }
 
 
@@ -561,7 +557,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'dashboard_link': _('Dashboard'),
         'dashboard_title': _('Title'),
         'slug': _('Slug'),
-        'slices': _('Slices'),
+        'slices': _('Charts'),
         'owners': _('Owners'),
         'creator': _('Creator'),
         'modified': _('Modified'),
@@ -575,7 +571,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         obj.slug = obj.slug.strip() or None
         if obj.slug:
             obj.slug = obj.slug.replace(' ', '-')
-            obj.slug = re.sub(r'[^a-zA-Z0-9\-]+', '', obj.slug)
+            obj.slug = re.sub(r'[^\w\-]+', '', obj.slug)
         if g.user not in obj.owners:
             obj.owners.append(g.user)
         utils.validate_json(obj.json_metadata)
@@ -659,6 +655,11 @@ appbuilder.add_view(
 
 @app.route('/health')
 def health():
+    try:
+        db.session.execute('SELECT 1')
+    except OperationalError:
+        return Response('BAD', status=500)
+
     return 'OK'
 
 
@@ -740,58 +741,6 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
-    @api
-    @has_access_api
-    @expose('/update_role/', methods=['POST'])
-    def update_role(self):
-        """Assigns a list of found users to the given role."""
-        data = request.get_json(force=True)
-        gamma_role = sm.find_role('Gamma')
-
-        username_set = set()
-        user_data_dict = {}
-        for user_data in data['users']:
-            username = user_data['username']
-            if not username:
-                continue
-            user_data_dict[username] = user_data
-            username_set.add(username)
-
-        existing_users = db.session.query(sm.user_model).filter(
-            sm.user_model.username.in_(username_set)).all()
-        missing_users = username_set.difference(
-            set([u.username for u in existing_users]))
-        logging.info('Missing users: {}'.format(missing_users))
-
-        created_users = []
-        for username in missing_users:
-            user_data = user_data_dict[username]
-            user = sm.find_user(email=user_data['email'])
-            if not user:
-                logging.info('Adding user: {}.'.format(user_data))
-                sm.add_user(
-                    username=user_data['username'],
-                    first_name=user_data['first_name'],
-                    last_name=user_data['last_name'],
-                    email=user_data['email'],
-                    role=gamma_role,
-                )
-                sm.get_session.commit()
-                user = sm.find_user(username=user_data['username'])
-            existing_users.append(user)
-            created_users.append(user.username)
-
-        role_name = data['role_name']
-        role = sm.find_role(role_name)
-        role.user = existing_users
-        sm.get_session.commit()
-        return self.json_response({
-            'role': role_name,
-            '# missing users': len(missing_users),
-            '# granted': len(existing_users),
-            'created_users': created_users,
-        }, status=201)
-
     def json_response(self, obj, status=200):
         return Response(
             json.dumps(obj, default=utils.json_int_dttm_ser),
@@ -1003,7 +952,7 @@ class Superset(BaseSupersetView):
     def get_viz(
             self,
             slice_id=None,
-            args=None,
+            form_data=None,
             datasource_type=None,
             datasource_id=None):
         if slice_id:
@@ -1014,7 +963,6 @@ class Superset(BaseSupersetView):
             )
             return slc.get_viz()
         else:
-            form_data = self.get_form_data()
             viz_type = form_data.get('viz_type', 'table')
             datasource = ConnectorRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
@@ -1028,14 +976,11 @@ class Superset(BaseSupersetView):
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
-        endpoint = (
-            '/superset/explore/{}/{}?form_data={}'
-            .format(
+        endpoint = '/superset/explore/{}/{}?form_data={}'.format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
                 parse.quote(json.dumps(viz_obj.form_data)),
             )
-        )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
         return redirect(endpoint)
@@ -1054,15 +999,13 @@ class Superset(BaseSupersetView):
             status=200,
             mimetype='application/json')
 
-    @log_this
-    @has_access_api
-    @expose('/explore_json/<datasource_type>/<datasource_id>/')
-    def explore_json(self, datasource_type, datasource_id):
+    def generate_json(self, datasource_type, datasource_id, form_data,
+                      csv=False, query=False, force=False):
         try:
             viz_obj = self.get_viz(
                 datasource_type=datasource_type,
                 datasource_id=datasource_id,
-                args=request.args)
+                form_data=form_data)
         except Exception as e:
             logging.exception(e)
             return json_error_response(
@@ -1072,20 +1015,19 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(viz_obj.datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
 
-        if request.args.get('csv') == 'true':
+        if csv:
             return CsvResponse(
                 viz_obj.get_csv(),
                 status=200,
                 headers=generate_download_headers('csv'),
                 mimetype='application/csv')
 
-        if request.args.get('query') == 'true':
+        if query:
             return self.get_query_string_response(viz_obj)
 
-        payload = {}
         try:
             payload = viz_obj.get_payload(
-                force=request.args.get('force') == 'true')
+                force=force)
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
@@ -1096,8 +1038,73 @@ class Superset(BaseSupersetView):
 
         return json_success(viz_obj.json_dumps(payload), status=status)
 
-    @expose('/import_dashboards', methods=['GET', 'POST'])
     @log_this
+    @has_access_api
+    @expose('/slice_json/<slice_id>')
+    def slice_json(self, slice_id):
+        try:
+            viz_obj = self.get_viz(slice_id)
+            datasource_type = viz_obj.datasource.type
+            datasource_id = viz_obj.datasource.id
+            form_data = viz_obj.form_data
+            # This allows you to override the saved slice form data with
+            # data from the current request (e.g. change the time window)
+            form_data.update(self.get_form_data())
+        except Exception as e:
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                stacktrace=traceback.format_exc())
+        return self.generate_json(datasource_type=datasource_type,
+                                  datasource_id=datasource_id,
+                                  form_data=form_data)
+
+    @log_this
+    @has_access_api
+    @expose('/annotation_json/<layer_id>')
+    def annotation_json(self, layer_id):
+        form_data = self.get_form_data()
+        form_data['layer_id'] = layer_id
+        form_data['filters'] = [{'col': 'layer_id',
+                                 'op': '==',
+                                 'val': layer_id}]
+        datasource = AnnotationDatasource()
+        viz_obj = viz.viz_types['table'](
+          datasource,
+          form_data=form_data,
+        )
+        try:
+            payload = viz_obj.get_payload(force=False)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e))
+        status = 200
+        if payload.get('status') == QueryStatus.FAILED:
+            status = 400
+        return json_success(viz_obj.json_dumps(payload), status=status)
+
+    @log_this
+    @has_access_api
+    @expose('/explore_json/<datasource_type>/<datasource_id>/')
+    def explore_json(self, datasource_type, datasource_id):
+        try:
+            csv = request.args.get('csv') == 'true'
+            query = request.args.get('query') == 'true'
+            force = request.args.get('force') == 'true'
+            form_data = self.get_form_data()
+        except Exception as e:
+                return json_error_response(
+                    utils.error_msg_from_exception(e),
+                    stacktrace=traceback.format_exc())
+        return self.generate_json(datasource_type=datasource_type,
+                                  datasource_id=datasource_id,
+                                  form_data=form_data,
+                                  csv=csv,
+                                  query=query,
+                                  force=force)
+
+    @log_this
+    @has_access
+    @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
         """Overrides the dashboards using pickled instances from the file."""
         f = request.files.get('file')
@@ -1700,9 +1707,51 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose('/user_slices', methods=['GET'])
+    @expose('/user_slices/<user_id>/', methods=['GET'])
+    def user_slices(self, user_id=None):
+        """List of slices a user created, or faved"""
+        if not user_id:
+            user_id = g.user.id
+        Slice = models.Slice  # noqa
+        FavStar = models.FavStar # noqa
+        qry = (
+            db.session.query(Slice,
+                             FavStar.dttm).join(
+                models.FavStar,
+                sqla.and_(
+                    models.FavStar.user_id == int(user_id),
+                    models.FavStar.class_name == 'slice',
+                    models.Slice.id == models.FavStar.obj_id,
+                ),
+                isouter=True).filter(
+                sqla.or_(
+                    Slice.created_by_fk == user_id,
+                    Slice.changed_by_fk == user_id,
+                    FavStar.user_id == user_id,
+                ),
+            )
+            .order_by(Slice.slice_name.asc())
+        )
+        payload = [{
+            'id': o.Slice.id,
+            'title': o.Slice.slice_name,
+            'url': o.Slice.slice_url,
+            'data': o.Slice.form_data,
+            'dttm': o.dttm if o.dttm else o.Slice.changed_on,
+            'viz_type': o.Slice.viz_type,
+        } for o in qry.all()]
+        return json_success(
+            json.dumps(payload, default=utils.json_int_dttm_ser))
+
+    @api
+    @has_access_api
+    @expose('/created_slices', methods=['GET'])
     @expose('/created_slices/<user_id>/', methods=['GET'])
-    def created_slices(self, user_id):
+    def created_slices(self, user_id=None):
         """List of slices created by this user"""
+        if not user_id:
+            user_id = g.user.id
         Slice = models.Slice  # noqa
         qry = (
             db.session.query(Slice)
@@ -1719,15 +1768,19 @@ class Superset(BaseSupersetView):
             'title': o.slice_name,
             'url': o.slice_url,
             'dttm': o.changed_on,
+            'viz_type': o.viz_type,
         } for o in qry.all()]
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
+    @expose('/fave_slices', methods=['GET'])
     @expose('/fave_slices/<user_id>/', methods=['GET'])
-    def fave_slices(self, user_id):
+    def fave_slices(self, user_id=None):
         """Favorite slices for a user"""
+        if not user_id:
+            user_id = g.user.id
         qry = (
             db.session.query(
                 models.Slice,
@@ -1752,6 +1805,7 @@ class Superset(BaseSupersetView):
                 'title': o.Slice.slice_name,
                 'url': o.Slice.slice_url,
                 'dttm': o.dttm,
+                'viz_type': o.Slice.viz_type,
             }
             if o.Slice.created_by:
                 user = o.Slice.created_by
@@ -2161,6 +2215,8 @@ class Superset(BaseSupersetView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema') or None
+        template_params = json.loads(
+            request.form.get('templateParams') or '{}')
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
@@ -2212,7 +2268,9 @@ class Superset(BaseSupersetView):
             try:
                 sql_lab.get_sql_results.delay(
                     query_id=query_id, return_results=False,
-                    store_results=not query.select_as_cta, user_name=g.user.username)
+                    store_results=not query.select_as_cta,
+                    user_name=g.user.username,
+                    template_params=template_params)
             except Exception as e:
                 logging.exception(e)
                 msg = (
@@ -2241,7 +2299,8 @@ class Superset(BaseSupersetView):
                                error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
-                    query_id=query_id, return_results=True)
+                    query_id=query_id, return_results=True,
+                    template_params=template_params)
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))
@@ -2288,7 +2347,7 @@ class Superset(BaseSupersetView):
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
-            'attachment; filename={}.csv'.format(query.name))
+            'attachment; filename={}.csv'.format(unidecode(query.name)))
         logging.info('Ready to return response')
         return response
 

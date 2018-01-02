@@ -1,6 +1,7 @@
 import d3 from 'd3';
 
 export const brandColor = '#00A699';
+export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
 
 // Color related utility functions go in this object
 export const bnbColors = [
@@ -100,6 +101,11 @@ export const spectrums = {
     '#357E9B',
     '#1B4150',
     '#092935',
+  ],
+  pink_grey: [
+    '#E70B81',
+    '#FAFAFA',
+    '#666666',
   ],
 };
 

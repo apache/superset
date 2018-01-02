@@ -65,12 +65,12 @@ export default function chartReducer(charts = {}, action) {
       return { ...state,
         chartStatus: 'failed',
         chartAlert: (
-        `<strong>${t('Query timeout')}</strong> - ` +
-        t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
-        t('Perhaps your data has grown, your database is under unusual load, ' +
-          'or you are simply querying a data source that is too large ' +
-          'to be processed within the timeout range. ' +
-          'If that is the case, we recommend that you summarize your data further.')),
+            `<strong>${t('Query timeout')}</strong> - ` +
+            t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
+            t('Perhaps your data has grown, your database is under unusual load, ' +
+                'or you are simply querying a data source that is too large ' +
+                'to be processed within the timeout range. ' +
+                'If that is the case, we recommend that you summarize your data further.')),
       };
     },
     [actions.CHART_UPDATE_FAILED](state) {
@@ -86,6 +86,53 @@ export default function chartReducer(charts = {}, action) {
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };
+    },
+    [actions.ANNOTATION_QUERY_STARTED](state) {
+      if (state.annotationQuery &&
+        state.annotationQuery[action.annotation.name]) {
+        state.annotationQuery[action.annotation.name].abort();
+      }
+      const annotationQuery = {
+        ...state.annotationQuery,
+        [action.annotation.name]: action.queryRequest,
+      };
+      return {
+        ...state,
+        annotationQuery,
+      };
+    },
+    [actions.ANNOTATION_QUERY_SUCCESS](state) {
+      const annotationData = {
+        ...state.annotationData,
+        [action.annotation.name]: action.queryResponse.data,
+      };
+      const annotationError = { ...state.annotationError };
+      delete annotationError[action.annotation.name];
+      const annotationQuery = { ...state.annotationQuery };
+      delete annotationQuery[action.annotation.name];
+      return {
+        ...state,
+        annotationData,
+        annotationError,
+        annotationQuery,
+      };
+    },
+    [actions.ANNOTATION_QUERY_FAILED](state) {
+      const annotationData = { ...state.annotationData };
+      delete annotationData[action.annotation.name];
+      const annotationError = {
+        ...state.annotationError,
+        [action.annotation.name]: action.queryResponse ?
+          action.queryResponse.error : t('Network error.'),
+      };
+      const annotationQuery = { ...state.annotationQuery };
+      delete annotationQuery[action.annotation.name];
+      return {
+        ...state,
+        annotationData,
+        annotationError,
+        annotationQuery,
+      };
     },
   };
 

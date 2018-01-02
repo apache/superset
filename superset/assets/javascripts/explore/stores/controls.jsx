@@ -36,7 +36,7 @@ const timeColumnOption = {
   verbose_name: 'Time',
   column_name: '__timestamp',
   description: t(
-  'A reference to the [Time] configuration, taking granularity into ' +
+   'A reference to the [Time] configuration, taking granularity into ' +
   'account'),
 };
 const sortAxisChoices = [
@@ -45,6 +45,15 @@ const sortAxisChoices = [
   ['value_asc', 'sum(value) ascending'],
   ['value_desc', 'sum(value) descending'],
 ];
+
+const sandboxUrl = 'https://github.com/apache/incubator-superset/blob/master/superset/assets/javascripts/modules/sandbox.js';
+const sandboxedEvalInfo = (
+  <span>
+    {t('While this runs in a ')}
+    <a href="https://nodejs.org/api/vm.html#vm_script_runinnewcontext_sandbox_options">sandboxed vm</a>
+    , {t('a set of')}<a href={sandboxUrl}> useful objects are in context </a>
+    {t('to be used where necessary.')}
+  </span>);
 
 const groupByControl = {
   type: 'SelectControl',
@@ -135,7 +144,6 @@ export const controls = {
       choices: (state.datasource) ? state.datasource.order_by_choices : [],
     }),
   },
-
   color_picker: {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
@@ -144,21 +152,20 @@ export const controls = {
     renderTrigger: true,
   },
 
-  annotation_layers: {
-    type: 'SelectAsyncControl',
-    multi: true,
-    label: t('Annotation Layers'),
-    default: [],
-    description: t('Annotation layers to overlay on the visualization'),
-    dataEndpoint: '/annotationlayermodelview/api/read?',
-    placeholder: t('Select a annotation layer'),
-    onAsyncErrorMessage: t('Error while fetching annotation layers'),
-    mutator: (data) => {
-      if (!data || !data.result) {
-        return [];
-      }
-      return data.result.map(layer => ({ value: layer.id, label: layer.name }));
-    },
+  fill_color_picker: {
+    label: t('Fill Color'),
+    description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
+  },
+
+  stroke_color_picker: {
+    label: t('Stroke Color'),
+    description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
+    type: 'ColorPickerControl',
+    default: colorPrimary,
+    renderTrigger: true,
   },
 
   metric: {
@@ -228,6 +235,7 @@ export const controls = {
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
       ['dark_blue', 'light/dark blue'],
+      ['pink_grey', 'pink/white/grey'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
@@ -432,6 +440,30 @@ export const controls = {
     'to find in the [country] column'),
   },
 
+  freq: {
+    type: 'SelectControl',
+    label: t('Frequency'),
+    default: 'W-MON',
+    freeForm: true,
+    clearable: false,
+    choices: [
+      ['AS', 'Year (freq=AS)'],
+      ['52W-MON', '52 weeks starting Monday (freq=52W-MON)'],
+      ['W-SUN', '1 week starting Sunday (freq=W-SUN)'],
+      ['W-MON', '1 week starting Monday (freq=W-MON)'],
+      ['D', 'Day (freq=D)'],
+      ['4W-MON', '4 weeks (freq=4W-MON)'],
+    ],
+    description: t(
+      `The periodicity over which to pivot time. Users can provide
+      "Pandas" offset alias.
+      Click on the info bubble for more details on accepted "freq" expressions.`),
+    tooltipOnClick: () => {
+      window.open(
+        'https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases');
+    },
+  },
+
   groupby: groupByControl,
   dimension: {
     ...groupByControl,
@@ -457,6 +489,16 @@ export const controls = {
     }),
   },
 
+  spatial: {
+    type: 'SpatialControl',
+    label: t('Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),
@@ -477,6 +519,25 @@ export const controls = {
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
+  },
+
+  geojson: {
+    type: 'SelectControl',
+    label: t('GeoJson Column'),
+    validators: [v.nonEmpty],
+    description: t('Select the geojson column'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  point_radius_scale: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Point Radius Scale'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([0, 100, 200, 300, 500]),
   },
 
   all_columns_x: {
@@ -893,9 +954,13 @@ export const controls = {
   },
 
   where: {
-    type: 'TextControl',
+    type: 'TextAreaControl',
     label: t('Custom WHERE clause'),
     default: '',
+    language: 'sql',
+    minLines: 2,
+    maxLines: 10,
+    offerEditInModal: false,
     description: t('The text in this box gets included in your query\'s WHERE ' +
     'clause, as an AND to other criteria. You can include ' +
     'complex expression, parenthesis and anything else ' +
@@ -903,9 +968,13 @@ export const controls = {
   },
 
   having: {
-    type: 'TextControl',
+    type: 'TextAreaControl',
     label: t('Custom HAVING clause'),
     default: '',
+    language: 'sql',
+    minLines: 2,
+    maxLines: 10,
+    offerEditInModal: false,
     description: t('The text in this box gets included in your query\'s HAVING ' +
     'clause, as an AND to other criteria. You can include ' +
     'complex expression, parenthesis and anything else ' +
@@ -1320,6 +1389,7 @@ export const controls = {
   mapbox_style: {
     type: 'SelectControl',
     label: t('Map Style'),
+    clearable: false,
     renderTrigger: true,
     choices: [
       ['mapbox://styles/mapbox/streets-v9', 'Streets'],
@@ -1411,7 +1481,7 @@ export const controls = {
   viewport: {
     type: 'ViewportControl',
     label: t('Viewport'),
-    renderTrigger: true,
+    renderTrigger: false,
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
     default: defaultViewport,
@@ -1524,6 +1594,14 @@ export const controls = {
     mapStateToProps: state => ({
       datasource: state.datasource,
     }),
+  },
+
+  annotation_layers: {
+    type: 'AnnotationLayerControl',
+    label: '',
+    default: [],
+    description: 'Annotation Layers',
+    renderTrigger: true,
   },
 
   having_filters: {
@@ -1687,6 +1765,75 @@ export const controls = {
     description:
       t('Partitions whose height to parent height proportions are ' +
       'below this value are pruned'),
+  },
+
+  line_column: {
+    type: 'SelectControl',
+    label: t('Lines column'),
+    default: null,
+    description: t('The database columns that contains lines information'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+    validators: [v.nonEmpty],
+  },
+  line_type: {
+    type: 'SelectControl',
+    label: t('Lines encoding'),
+    clearable: false,
+    default: 'json',
+    description: t('The encoding format of the lines'),
+    choices: [
+      ['polyline', 'Polyline'],
+      ['json', 'JSON'],
+    ],
+  },
+
+  line_width: {
+    type: 'TextControl',
+    label: t('Line width'),
+    renderTrigger: true,
+    isInt: true,
+    default: 10,
+    description: t('The width of the lines'),
+  },
+
+  reverse_long_lat: {
+    type: 'CheckboxControl',
+    label: t('Reverse Lat & Long'),
+    default: false,
+  },
+
+  js_data: {
+    type: 'TextAreaControl',
+    label: t('Javascript data mutator'),
+    description: t('Define a function that receives intercepts the data objects and can mutate it'),
+    language: 'javascript',
+    default: '',
+    height: 100,
+    aboveEditorSection: (
+      <p>
+        Define a function that intercepts the <code>data</code> object passed to the visualization
+        and returns a similarly shaped object. {sandboxedEvalInfo}
+      </p>),
+  },
+
+  deck_slices: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('deck.gl charts'),
+    validators: [v.nonEmpty],
+    default: [],
+    description: t('Pick a set of deck.gl charts to layer on top of one another'),
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=deck_',
+    placeholder: t('Select charts'),
+    onAsyncErrorMessage: t('Error while fetching charts'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
+    },
   },
 };
 export default controls;

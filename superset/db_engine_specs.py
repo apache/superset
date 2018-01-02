@@ -615,6 +615,13 @@ class PrestoEngineSpec(BaseEngineSpec):
                 error_dict.get('errorLocation'),
                 error_dict.get('message'),
             )
+        if (
+                type(e).__name__ == 'DatabaseError' and
+                hasattr(e, 'args') and
+                len(e.args) > 0
+        ):
+            error_dict = e.args[0]
+            return error_dict.get('message')
         return utils.error_msg_from_exception(e)
 
     @classmethod
@@ -1066,7 +1073,7 @@ class OracleEngineSpec(PostgresEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return (
-            """TO_TIMESTAMP('{}', 'YYYY-MM-DD'T'HH24:MI:SS.ff6')"""
+            """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
 
@@ -1179,6 +1186,14 @@ class BQEngineSpec(BaseEngineSpec):
             return "{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        data = super(BQEngineSpec, cls).fetch_data(cursor, limit)
+        from google.cloud.bigquery._helpers import Row  # pylint: disable=import-error
+        if len(data) != 0 and isinstance(data[0], Row):
+            data = [r.values() for r in data]
+        return data
+
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
@@ -1208,6 +1223,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas
+
+
+class DruidEngineSpec(BaseEngineSpec):
+    """Engine spec for Druid.io"""
+    engine = 'druid'
+    limit_method = LimitMethod.FETCH_MANY
 
 
 engines = {

@@ -10,13 +10,13 @@ import { t } from '../../locales';
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  filters: PropTypes.object.isRequired,
   userId: PropTypes.string.isRequired,
   isStarred: PropTypes.bool,
   addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
   fetchFaveStar: PropTypes.func,
-  readFilters: PropTypes.func,
   renderSlices: PropTypes.func,
   saveFaveStar: PropTypes.func,
   serialize: PropTypes.func,
@@ -95,11 +95,11 @@ class Header extends React.PureComponent {
           {this.renderEditButton()}
           <Controls
             dashboard={dashboard}
+            filters={this.props.filters}
             userId={this.props.userId}
             addSlicesToDashboard={this.props.addSlicesToDashboard}
             onSave={this.props.onSave}
             onChange={this.props.onChange}
-            readFilters={this.props.readFilters}
             renderSlices={this.props.renderSlices}
             serialize={this.props.serialize}
             startPeriodicRender={this.props.startPeriodicRender}

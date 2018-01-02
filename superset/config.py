@@ -58,9 +58,9 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-# SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -321,6 +321,12 @@ JINJA_CONTEXT_ADDONS = {}
 ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
 CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
+
+# If a callable is specified, it will be called at app startup while passing
+# a reference to the Flask app. This can be used to alter the Flask app
+# in whatever way.
+# example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
+FLASK_APP_MUTATOR = None
 
 
 # smtp server configuration

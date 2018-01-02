@@ -12,7 +12,9 @@ import random
 import textwrap
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, DateTime, Float, String
+from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
+import geohash
+import polyline
 
 from superset import app, db, utils
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -1017,6 +1019,9 @@ def load_long_lat_data():
     pdf['date'] = datetime.datetime.now().date()
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
+    pdf['geohash'] = pdf[['LAT', 'LON']].apply(
+        lambda x: geohash.encode(*x), axis=1)
+    pdf['delimited'] = pdf['LAT'].map(str).str.cat(pdf['LON'].map(str), sep=',')
     pdf.to_sql(  # pylint: disable=no-member
         'long_lat',
         db.engine,
@@ -1036,6 +1041,8 @@ def load_long_lat_data():
             'date': Date(),
             'occupancy': Float(),
             'radius_miles': Float(),
+            'geohash': String(12),
+            'delimited': String(60),
         },
         index=False)
     print("Done loading table!")
@@ -1233,8 +1240,11 @@ def load_deck_dash():
     slices = []
     tbl = db.session.query(TBL).filter_by(table_name='long_lat').first()
     slice_data = {
-        "longitude": "LON",
-        "latitude": "LAT",
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "color_picker": {
             "r": 205,
             "g": 0,
@@ -1281,8 +1291,11 @@ def load_deck_dash():
         "point_unit": "square_m",
         "filters": [],
         "row_limit": 5000,
-        "longitude": "LON",
-        "latitude": "LAT",
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "mapbox_style": "mapbox://styles/mapbox/dark-v9",
         "granularity_sqla": "date",
         "size": "count",
@@ -1290,10 +1303,12 @@ def load_deck_dash():
         "since": "2014-01-01",
         "point_radius": "Auto",
         "until": "now",
-        "color_picker": {"a": 1,
-        "r": 14,
-        "b": 0,
-        "g": 255},
+        "color_picker": {
+            "a": 1,
+            "r": 14,
+            "b": 0,
+            "g": 255,
+        },
         "grid_size": 20,
         "where": "",
         "having": "",
@@ -1321,10 +1336,13 @@ def load_deck_dash():
     slices.append(slc)
 
     slice_data = {
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "filters": [],
         "row_limit": 5000,
-        "longitude": "LON",
-        "latitude": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/streets-v9",
         "granularity_sqla": "date",
         "size": "count",
@@ -1367,10 +1385,13 @@ def load_deck_dash():
     slices.append(slc)
 
     slice_data = {
+        "spatial": {
+            "type": "latlong",
+            "lonCol": "LON",
+            "latCol": "LAT",
+        },
         "filters": [],
         "row_limit": 5000,
-        "longitude": "LON",
-        "latitude": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",
         "granularity_sqla": "date",
         "size": "count",
@@ -1499,3 +1520,63 @@ def load_flights():
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
+
+
+def load_paris_iris_geojson():
+    tbl_name = 'paris_iris_mapping'
+
+    with gzip.open(os.path.join(DATA_FOLDER, 'paris_iris.json.gz')) as f:
+        df = pd.read_json(f)
+        df['features'] = df.features.map(json.dumps)
+
+    df.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'color': String(255),
+            'name': String(255),
+            'features': Text,
+            'type': Text,
+        },
+        index=False)
+    print("Creating table {} reference".format(tbl_name))
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Map of Paris"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()
+
+
+def load_bart_lines():
+    tbl_name = 'bart_lines'
+    with gzip.open(os.path.join(DATA_FOLDER, 'bart-lines.json.gz')) as f:
+        df = pd.read_json(f, encoding='latin-1')
+        df['path_json'] = df.path.map(json.dumps)
+        df['polyline'] = df.path.map(polyline.encode)
+        del df['path']
+    df.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'color': String(255),
+            'name': String(255),
+            'polyline': Text,
+            'path_json': Text,
+        },
+        index=False)
+    print("Creating table {} reference".format(tbl_name))
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "BART lines"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()

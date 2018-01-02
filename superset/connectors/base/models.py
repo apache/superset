@@ -157,6 +157,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         return {
             'all_cols': utils.choicify(self.column_names),
             'column_formats': self.column_formats,
+            'database': self.database.data,  # pylint: disable=no-member
             'edit_url': self.url,
             'filter_select': self.filter_select_enabled,
             'filterable_cols': utils.choicify(self.filterable_column_names),
@@ -222,7 +223,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     num_types = (
         'DOUBLE', 'FLOAT', 'INT', 'BIGINT',
-        'LONG', 'REAL', 'NUMERIC', 'DECIMAL',
+        'LONG', 'REAL', 'NUMERIC', 'DECIMAL', 'MONEY',
     )
     date_types = ('DATE', 'TIME', 'DATETIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
@@ -256,7 +257,7 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
     def data(self):
         attrs = (
             'column_name', 'verbose_name', 'description', 'expression',
-            'filterable', 'groupby', 'is_dttm')
+            'filterable', 'groupby', 'is_dttm', 'type')
         return {s: getattr(self, s) for s in attrs}
 
 

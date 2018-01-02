@@ -35,3 +35,32 @@ text.nv-axislabel {
 text.nv-axislabel {
   font-size: 14px !important;
 }
+
+g.solid path, line.solid {
+  stroke-dasharray: unset;
+}
+
+g.dashed path, line.dashed {
+  stroke-dasharray: 5, 5;
+}
+
+g.longDashed path, line.longDashed {
+  stroke-dasharray: 10, 2;
+}
+
+g.dotted path, line.dotted {
+  stroke-dasharray: 1, 1;
+}
+
+g.opacityLow path, line.opacityLow {
+  stroke-opacity: .2
+}
+
+g.opacityMedium path, line.opacityMedium {
+  stroke-opacity: .5
+}
+
+g.opacityHigh path, line.opacityHigh {
+  stroke-opacity: .8
+}
+
