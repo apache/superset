@@ -582,6 +582,13 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.verbose_name if self.verbose_name else self.database_name
 
     @property
+    def data(self):
+        return {
+            'name': self.database_name,
+            'backend': self.backend,
+        }
+
+    @property
     def unique_name(self):
         return self.database_name
 

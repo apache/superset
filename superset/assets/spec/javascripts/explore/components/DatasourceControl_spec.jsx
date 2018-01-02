@@ -15,6 +15,12 @@ const defaultProps = {
     type: 'table',
     uid: '1__table',
     id: 1,
+    columns: [],
+    metrics: [],
+    database: {
+      backend: 'mysql',
+      name: 'main',
+    },
   },
   onChange: sinon.spy(),
 };

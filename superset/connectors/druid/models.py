@@ -91,6 +91,13 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
 
+    @property
+    def data(self):
+        return {
+            'name': self.cluster_name,
+            'backend': 'druid',
+        }
+
     def get_pydruid_client(self):
         cli = PyDruid(
             'http://{0}:{1}/'.format(self.broker_host, self.broker_port),
