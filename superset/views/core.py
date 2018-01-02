@@ -187,7 +187,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user']
     search_exclude_columns = (
         'password', 'tables', 'created_by', 'changed_by', 'queries',
-        'saved_queries', )
+        'saved_queries')
     edit_columns = add_columns
     show_columns = [
         'tables',
@@ -281,7 +281,7 @@ appbuilder.add_link(
     icon='fa-cloud-upload',
     category='Manage',
     category_label=__('Manage'),
-    category_icon='fa-wrench',)
+    category_icon='fa-wrench')
 
 
 appbuilder.add_view(
@@ -291,7 +291,7 @@ appbuilder.add_view(
     icon='fa-database',
     category='Sources',
     category_label=__('Sources'),
-    category_icon='fa-database',)
+    category_icon='fa-database')
 
 
 class DatabaseAsync(DatabaseView):
@@ -400,7 +400,7 @@ appbuilder.add_view(
     label=__('Access requests'),
     category='Security',
     category_label=__('Security'),
-    icon='fa-table',)
+    icon='fa-table')
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
@@ -488,7 +488,7 @@ appbuilder.add_view(
     label=__('Charts'),
     icon='fa-bar-chart',
     category='',
-    category_icon='',)
+    category_icon='')
 
 
 class SliceAsync(SliceModelView):  # noqa
@@ -615,7 +615,7 @@ appbuilder.add_view(
     label=__('Dashboards'),
     icon='fa-dashboard',
     category='',
-    category_icon='',)
+    category_icon='')
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
@@ -2594,7 +2594,7 @@ appbuilder.add_link(
     icon='fa-upload',
     category='Sources',
     category_label=__('Sources'),
-    category_icon='fa-wrench',)
+    category_icon='fa-wrench')
 appbuilder.add_separator('Sources')
 
 

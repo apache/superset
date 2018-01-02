@@ -185,7 +185,8 @@ appbuilder.add_view(
     icon='fa-cubes',
     category='Sources',
     category_label=__('Sources'),
-    category_icon='fa-database',)
+    category_icon='fa-database',
+)
 
 
 class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
@@ -348,4 +349,4 @@ appbuilder.add_link(
     icon='fa-cog')
 
 
-appbuilder.add_separator('Sources', )
+appbuilder.add_separator('Sources')
