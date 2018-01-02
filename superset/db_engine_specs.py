@@ -806,7 +806,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         table_name = form.name.data
         filename = form.csv_file.data.filename
 
-        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_BUCKET']
+        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
         if not bucket_path:
             logging.info('No upload bucket specified')
