@@ -28,8 +28,6 @@ if 'SUPERSET_HOME' in os.environ:
     DATA_DIR = os.environ['SUPERSET_HOME']
 else:
     DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
 
 # ---------------------------------------------------------
 # Superset specific config
