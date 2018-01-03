@@ -240,7 +240,7 @@ def execute_sql(
                 limit=query.limit,
                 schema=database.force_ctas_schema,
                 show_cols=False,
-                latest_partition=False, ))
+                latest_partition=False))
     query.end_time = utils.now_as_float()
     session.merge(query)
     session.flush()

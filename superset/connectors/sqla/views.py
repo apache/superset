@@ -294,6 +294,7 @@ appbuilder.add_view(
     label=__('Tables'),
     category='Sources',
     category_label=__('Sources'),
-    icon='fa-table',)
+    icon='fa-table',
+)
 
 appbuilder.add_separator('Sources')
