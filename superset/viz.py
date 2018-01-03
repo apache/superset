@@ -1818,22 +1818,73 @@ class BaseDeckGLViz(BaseViz):
             d.get('lat'),
         ]
 
+    def process_spatial_query_obj(self, spatial_key):
+        fd = self.form_data
+        gb = []
+        spatial = fd.get(spatial_key)
+
+        if spatial is None:
+            raise Exception(_('Bad spatial key'))
+
+        if spatial.get('type') == 'latlong':
+            gb += [spatial.get('lonCol')]
+            gb += [spatial.get('latCol')]
+        elif spatial.get('type') == 'delimited':
+            gb += [spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            gb += [spatial.get('geohashCol')]
+
+        return gb
+
+    def process_spatial_data_obj(self, df, spatial_key):
+        fd = self.form_data
+        spatial = fd.get(spatial_key)
+        if spatial is None:
+            raise Exception(_('Bad spatial key'))
+
+        if spatial.get('type') == 'latlong':
+            df = df.rename(columns={
+                spatial.get('lonCol'): 'lon',
+                spatial.get('latCol'): 'lat'})
+        elif spatial.get('type') == 'delimited':
+            cols = ['lon', 'lat']
+            if spatial.get('reverseCheckbox'):
+                cols.reverse()
+            df[cols] = (
+                df[spatial.get('lonlatCol')]
+                .str
+                .split(spatial.get('delimiter'), expand=True)
+                .astype(np.float64)
+            )
+            del df[spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+            df['lat'] = latlong.apply(lambda x: x[0])
+            df['lon'] = latlong.apply(lambda x: x[1])
+            del df['geohash']
+
+        features = []
+        for d in df.to_dict(orient='records'):
+            d = dict(position=self.get_position(d), **self.get_properties(d))
+            features.append(d)
+
+        return features
+
     def query_obj(self):
         d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
 
         gb = []
 
-        for spatial_key in ['spatial', 'start_spatial', 'end_spatial']:
-            spatial = fd.get(spatial_key)
-            if spatial:
-                if spatial.get('type') == 'latlong':
-                    gb += [spatial.get('lonCol')]
-                    gb += [spatial.get('latCol')]
-                elif spatial.get('type') == 'delimited':
-                    gb += [spatial.get('lonlatCol')]
-                elif spatial.get('type') == 'geohash':
-                    gb += [spatial.get('geohashCol')]
+        spatial = fd.get('spatial')
+        if spatial:
+            if spatial.get('type') == 'latlong':
+                gb += [spatial.get('lonCol')]
+                gb += [spatial.get('latCol')]
+            elif spatial.get('type') == 'delimited':
+                gb += [spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                gb += [spatial.get('geohashCol')]
 
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
@@ -1848,29 +1899,29 @@ class BaseDeckGLViz(BaseViz):
 
     def get_data(self, df):
         fd = self.form_data
-        for spatial_key in ['spatial', 'start_spatial', 'end_spatial']:
-            spatial = fd.get('spatial')
-            if spatial:
-                if spatial.get('type') == 'latlong':
-                    df = df.rename(columns={
-                        spatial.get('lonCol'): 'lon',
-                        spatial.get('latCol'): 'lat'})
-                elif spatial.get('type') == 'delimited':
-                    cols = ['lon', 'lat']
-                    if spatial.get('reverseCheckbox'):
-                        cols.reverse()
-                    df[cols] = (
-                        df[spatial.get('lonlatCol')]
-                        .str
-                        .split(spatial.get('delimiter'), expand=True)
-                        .astype(np.float64)
-                    )
-                    del df[spatial.get('lonlatCol')]
-                elif spatial.get('type') == 'geohash':
-                    latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-                    df['lat'] = latlong.apply(lambda x: x[0])
-                    df['lon'] = latlong.apply(lambda x: x[1])
-                    del df['geohash']
+
+        spatial = fd.get('spatial')
+        if spatial:
+            if spatial.get('type') == 'latlong':
+                df = df.rename(columns={
+                    spatial.get('lonCol'): 'lon',
+                    spatial.get('latCol'): 'lat'})
+            elif spatial.get('type') == 'delimited':
+                cols = ['lon', 'lat']
+                if spatial.get('reverseCheckbox'):
+                    cols.reverse()
+                df[cols] = (
+                    df[spatial.get('lonlatCol')]
+                    .str
+                    .split(spatial.get('delimiter'), expand=True)
+                    .astype(np.float64)
+                )
+                del df[spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+                df['lat'] = latlong.apply(lambda x: x[0])
+                df['lon'] = latlong.apply(lambda x: x[1])
+                del df['geohash']
 
         features = []
         for d in df.to_dict(orient='records'):
@@ -2009,8 +2060,18 @@ class DeckArc(BaseDeckGLViz):
 
     def query_obj(self):
         d = super(DeckArc, self).query_obj()
-        from pprint import pprint
-        pprint(d)
+
+        gb = []
+        for spatial_key in ['start_spatial', 'end_spatial']:
+            gb += self.process_spatial_query_obj(spatial_key)
+
+        metrics = self.get_metrics()
+        if metrics:
+            d['groupby'] = gb
+            d['metrics'] = self.get_metrics()
+        else:
+            d['columns'] = gb
+
         return d
 
     def get_data(self, df):
