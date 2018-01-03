@@ -1012,7 +1012,7 @@ class NVD3LineXYViz(NVD3Viz):
                 d['columns'] = fd.get('all_columns')
             d['orderby'] = [(x_field, True)]
         else:
-            raise Exception(_("X and Y columns must be defined"))
+            raise Exception(_('X and Y columns must be defined'))
         return d
 
     def get_data(self, df):
@@ -1051,13 +1051,13 @@ class NVD3LineXYViz(NVD3Viz):
         for row in rows.to_dict(orient='records'):
             value = {
                 'x': row[x_field],
-                'y': row[y_field]
+                'y': row[y_field],
             }
             values.append(value)
 
         series = {
             'key': key,
-            'values': values
+            'values': values,
         }
         return series
 
