@@ -349,8 +349,7 @@ class SqlaTable(Model, BaseDatasource):
 
         engine = self.database.get_sqla_engine()
         sql = '{}'.format(
-            qry.compile(
-                engine, compile_kwargs={'literal_binds': True}, ),
+            qry.compile(engine, compile_kwargs={'literal_binds': True}),
         )
 
         df = pd.read_sql_query(sql=sql, con=engine)
