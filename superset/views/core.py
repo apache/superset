@@ -619,7 +619,10 @@ appbuilder.add_view(
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
-    list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
+    list_columns = [
+        'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
+        'changed_on', 'url', 'changed_by_name',
+    ]
     label_columns = {
         'dashboard_link': _('Dashboard'),
         'dashboard_title': _('Title'),
@@ -2457,8 +2460,15 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
+        payload = {
+            'common': self.common_bootsrap_payload(),
+        }
         return self.render_template(
-            'superset/welcome.html', entry='welcome', utils=utils)
+            'superset/basic.html',
+            entry='welcome',
+            title='Superset',
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+        )
 
     @has_access
     @expose('/profile/<username>/')
@@ -2504,7 +2514,6 @@ class Superset(BaseSupersetView):
         return self.render_template(
             'superset/basic.html',
             title=user.username + "'s profile",
-            navbar_container=True,
             entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
