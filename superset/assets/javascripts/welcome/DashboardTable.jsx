@@ -6,6 +6,8 @@ import { Table, Tr, Td, Thead, Th, unsafe } from 'reactable';
 
 import '../../stylesheets/reactable-pagination.css';
 
+const $ = window.$ = require('jquery');
+
 const propTypes = {
   search: PropTypes.string,
 };

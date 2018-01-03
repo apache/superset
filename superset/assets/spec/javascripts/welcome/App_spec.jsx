@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, Col, Row, Tab } from 'react-bootstrap';
+import { Panel, Col, Row } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';

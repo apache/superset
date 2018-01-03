@@ -250,7 +250,7 @@ class AuditMixinNullable(AuditMixin):
 
     def changed_by_name(self):
         if self.created_by:
-            return escape("{}".format(self.created_by))
+            return escape('{}'.format(self.created_by))
         return ''
 
     @renders('created_by')

@@ -1,31 +1,31 @@
 import React from 'react';
-import { Panel, Col, Row, Tab } from 'react-bootstrap';
-import { shallow } from 'enzyme';
+import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
+import DashboardTable from '../../../javascripts/welcome/DashboardTable';
+
 const $ = window.$ = require('jquery');
 
-import App from '../../../javascripts/welcome/DashboardTable';
 
 describe('DashboardTable', () => {
   const mockedProps = {};
-  let ajaxStub;
+  let stub;
   beforeEach(() => {
-    //dispatch = sinon.spy();
-    ajaxStub = sinon.stub($, 'ajax');
+    stub = sinon.stub($, 'getJSON');
   });
   afterEach(() => {
-    ajaxStub.restore();
+    stub.restore();
   });
 
   it('is valid', () => {
     expect(
-      React.isValidElement(<App {...mockedProps} />),
+      React.isValidElement(<DashboardTable {...mockedProps} />),
     ).to.equal(true);
   });
   it('renders', () => {
-    const wrapper = shallow(<App {...mockedProps} />);
-    expect(ajaxStub.callCount).to.equal(1);
+    const wrapper = mount(<DashboardTable {...mockedProps} />);
+    expect(stub.callCount).to.equal(1);
+    expect(wrapper.find('img')).to.have.length(1);
   });
 });
