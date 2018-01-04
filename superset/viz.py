@@ -1859,8 +1859,8 @@ class BaseDeckGLViz(BaseViz):
             del df[spatial.get('lonlatCol')]
         elif spatial.get('type') == 'geohash':
             latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-            df['lat'] = latlong.apply(lambda x: x[0])
-            df['lon'] = latlong.apply(lambda x: x[1])
+            df['coordinate'] = (latlong.apply(lambda x: x[0]),
+                                latlong.apply(lambda x: x[1]))
             del df['geohash']
 
         features = []
