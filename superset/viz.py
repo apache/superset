@@ -1818,21 +1818,27 @@ class BaseDeckGLViz(BaseViz):
             d.get('lat'),
         ]
 
-    def process_spatial_query_obj(self, spatial_key):
+    def process_spatial_query_obj(self):
         fd = self.form_data
         gb = []
-        spatial = fd.get(spatial_key)
 
-        if spatial is None:
-            raise ValueError(_('Bad spatial key'))
+        from pprint import pprint
+        pprint(self.spatial_keys)
+        pprint(fd)
 
-        if spatial.get('type') == 'latlong':
-            gb += [spatial.get('lonCol')]
-            gb += [spatial.get('latCol')]
-        elif spatial.get('type') == 'delimited':
-            gb += [spatial.get('lonlatCol')]
-        elif spatial.get('type') == 'geohash':
-            gb += [spatial.get('geohashCol')]
+        for key in self.spatial_keys:
+            spatial = fd.get(key)
+
+            if spatial is None:
+                raise ValueError(_('Bad spatial key'))
+
+            if spatial.get('type') == 'latlong':
+                gb += [spatial.get('lonCol')]
+                gb += [spatial.get('latCol')]
+            elif spatial.get('type') == 'delimited':
+                gb += [spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                gb += [spatial.get('geohashCol')]
 
         return gb
 
@@ -2060,11 +2066,8 @@ class DeckArc(BaseDeckGLViz):
 
     def query_obj(self):
         d = super(DeckArc, self).query_obj()
-
-        gb = []
-        for spatial_key in ['start_spatial', 'end_spatial']:
-            gb += self.process_spatial_query_obj(spatial_key)
-
+        self.spatial_keys = ['start_spatial', 'end_spatial']
+        gb = self.process_spatial_query_obj()
         metrics = self.get_metrics()
         if metrics:
             d['groupby'] = gb
