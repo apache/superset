@@ -1802,6 +1802,7 @@ class BaseDeckGLViz(BaseViz):
 
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
+    spatial_control_keys = []
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
