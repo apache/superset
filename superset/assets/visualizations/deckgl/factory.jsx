@@ -6,7 +6,7 @@ import layerGenerators from './layers';
 
 export default function deckglFactory(slice, payload, setControlValue) {
   const fd = slice.formData;
-  const layer = layerGenerators[fd.viz_type](fd, payload);
+  const layer = layerGenerators[fd.viz_type](fd, payload, slice);
   const viewport = {
     ...fd.viewport,
     width: slice.width(),
