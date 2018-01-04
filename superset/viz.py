@@ -2075,13 +2075,20 @@ class DeckArc(BaseDeckGLViz):
         return d
 
     def get_data(self, df):
+        fd = self.form_data
+        start_lat = df[fd.get('start_spatial').get('latCol')]
+        start_lon = df[fd.get('start_spatial').get('lonCol')]
+        end_lat = df[fd.get('end_spatial').get('latCol')]
+        end_lon = df[fd.get('end_spatial').get('lonCol')]
+        source_pos = list(zip(start_lon, start_lat))
+        target_pos = list(zip(end_lon, end_lat))
+
         data = []
-        for item in self.process_spatial_data_obj(df):
-            pos = item.get('position')
+        for pos in list(zip(source_pos, target_pos)):
             data.append({
-                'sourcePosition': pos[0],
-                'targetPosition': pos[1],
-            })
+                         'sourcePosition': pos[0],
+                         'targetPosition': pos[1],
+                         })
 
         return {
             'arcs': data,
