@@ -218,9 +218,11 @@ function nvd3Vis(slice, payload) {
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
         if (fd.order_bars) {
-          data.forEach((d) => {
-            d.values.sort((a, b) => tryNumify(a.x) < tryNumify(b.x) ? -1 : 1);
-          });
+          // we sort the x-values from the first dataset so multiple dist_bar 
+          // charts on a dashboard sort the same way.
+          data[0].values.sort(
+            (a, b) => a.x < b.x ? -1 : 1
+          );
         }
         if (fd.show_bar_value) {
           setTimeout(function () {
