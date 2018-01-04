@@ -1838,32 +1838,34 @@ class BaseDeckGLViz(BaseViz):
 
         return gb
 
-    def process_spatial_data_obj(self, df, spatial_key):
+    def process_spatial_data_obj(self, df):
         fd = self.form_data
-        spatial = fd.get(spatial_key)
-        if spatial is None:
-            raise ValueError(_('Bad spatial key'))
+        for key in self.spatial_control_keys:
+            spatial = fd.get(key)
 
-        if spatial.get('type') == 'latlong':
-            df = df.rename(columns={
-                spatial.get('lonCol'): 'lon',
-                spatial.get('latCol'): 'lat'})
-        elif spatial.get('type') == 'delimited':
-            cols = ['lon', 'lat']
-            if spatial.get('reverseCheckbox'):
-                cols.reverse()
-            df[cols] = (
-                df[spatial.get('lonlatCol')]
-                .str
-                .split(spatial.get('delimiter'), expand=True)
-                .astype(np.float64)
-            )
-            del df[spatial.get('lonlatCol')]
-        elif spatial.get('type') == 'geohash':
-            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-            df['coordinate'] = (latlong.apply(lambda x: x[0]),
-                                latlong.apply(lambda x: x[1]))
-            del df['geohash']
+            if spatial is None:
+                raise ValueError(_('Bad spatial key'))
+
+            if spatial.get('type') == 'latlong':
+                df = df.rename(columns={
+                    spatial.get('lonCol'): 'lon',
+                    spatial.get('latCol'): 'lat'})
+            elif spatial.get('type') == 'delimited':
+                cols = ['lon', 'lat']
+                if spatial.get('reverseCheckbox'):
+                    cols.reverse()
+                df[cols] = (
+                    df[spatial.get('lonlatCol')]
+                    .str
+                    .split(spatial.get('delimiter'), expand=True)
+                    .astype(np.float64)
+                )
+                del df[spatial.get('lonlatCol')]
+            elif spatial.get('type') == 'geohash':
+                latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+                df['coordinate'] = (latlong.apply(lambda x: x[0]),
+                                    latlong.apply(lambda x: x[1]))
+                del df['geohash']
 
         features = []
         for d in df.to_dict(orient='records'):
