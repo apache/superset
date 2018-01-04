@@ -1903,7 +1903,6 @@ class BaseDeckGLViz(BaseViz):
 
     def get_data(self, df):
         fd = self.form_data
-
         spatial = fd.get('spatial')
         if spatial:
             if spatial.get('type') == 'latlong':
