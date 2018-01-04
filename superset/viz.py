@@ -1824,7 +1824,7 @@ class BaseDeckGLViz(BaseViz):
         spatial = fd.get(spatial_key)
 
         if spatial is None:
-            raise Exception(_('Bad spatial key'))
+            raise ValueError(_('Bad spatial key'))
 
         if spatial.get('type') == 'latlong':
             gb += [spatial.get('lonCol')]
@@ -1840,7 +1840,7 @@ class BaseDeckGLViz(BaseViz):
         fd = self.form_data
         spatial = fd.get(spatial_key)
         if spatial is None:
-            raise Exception(_('Bad spatial key'))
+            raise ValueError(_('Bad spatial key'))
 
         if spatial.get('type') == 'latlong':
             df = df.rename(columns={
