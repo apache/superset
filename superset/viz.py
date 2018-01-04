@@ -1822,11 +1822,7 @@ class BaseDeckGLViz(BaseViz):
         fd = self.form_data
         gb = []
 
-        from pprint import pprint
-        pprint(self.spatial_keys)
-        pprint(fd)
-
-        for key in self.spatial_keys:
+        for key in self.spatial_control_keys:
             spatial = fd.get(key)
 
             if spatial is None:
@@ -2066,7 +2062,7 @@ class DeckArc(BaseDeckGLViz):
 
     def query_obj(self):
         d = super(DeckArc, self).query_obj()
-        self.spatial_keys = ['start_spatial', 'end_spatial']
+        self.spatial_control_keys = ['start_spatial', 'end_spatial']
         gb = self.process_spatial_query_obj()
         metrics = self.get_metrics()
         if metrics:
