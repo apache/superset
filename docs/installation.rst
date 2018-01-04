@@ -282,6 +282,8 @@ Here's a list of some of the recommended packages.
 |  ClickHouse   | ``pip install                       | ``clickhouse://``                               |
 |               | sqlalchemy-clickhouse``             |                                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Kylin        | ``pip install kylinpy``             | ``kylin://``                                    |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
