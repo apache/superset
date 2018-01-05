@@ -62,6 +62,7 @@ class BaseEngineSpec(object):
     time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
     time_secondary_columns = False
+    inner_joins = True
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -823,7 +824,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             [s + ' STRING ' for s in column_names])
 
         s3 = boto3.client('s3')
-        location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
+        location = os.path.join('s3a://', bucket_path,
+                                upload_prefix, table_name)
         s3.upload_file(
             upload_path, 'airbnb-superset',
             os.path.join(upload_prefix, table_name, filename))
@@ -1221,6 +1223,7 @@ class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
     limit_method = LimitMethod.FETCH_MANY
+    inner_joins = False
 
 
 engines = {
