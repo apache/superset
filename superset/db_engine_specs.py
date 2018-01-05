@@ -502,7 +502,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
-        if selected_schema:
+        if selected_schema and database:
             if '/' in database:
                 database = database.split('/')[0] + '/' + selected_schema
             else:
