@@ -39,6 +39,7 @@ export default class DatasourceControl extends React.PureComponent {
     this.onEnterModal = this.onEnterModal.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
     this.changeSearch = this.changeSearch.bind(this);
+    this.setSearchRef = this.setSearchRef.bind(this);
     this.selectDatasource = this.selectDatasource.bind(this);
   }
   onChange(vizType) {
