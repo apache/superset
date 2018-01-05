@@ -323,9 +323,9 @@ class SqlaTable(Model, BaseDatasource):
         return get_template_processor(
             table=self, database=self.database, **kwargs)
 
-    def get_query_str(self, query_obj, prequeries=None, is_prequery=False):
+    def get_query_str(self, query_obj):
         engine = self.database.get_sqla_engine()
-        qry = self.get_sqla_query(prequeries=prequeries, is_prequery=is_prequery, **query_obj)
+        qry = self.get_sqla_query(**query_obj)
         sql = six.text_type(
             qry.compile(
                 engine,
@@ -334,8 +334,8 @@ class SqlaTable(Model, BaseDatasource):
         )
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
-        if is_prequery and prequeries is not None:
-            prequeries.append(sql)
+        if query_obj['is_prequery']:
+            query_obj['prequeries'].append(sql)
         return sql
 
     def get_sqla_table(self):
@@ -565,6 +565,8 @@ class SqlaTable(Model, BaseDatasource):
             else:
                 # run subquery to get top groups
                 subquery_obj = {
+                    'prequeries': prequeries,
+                    'is_prequery': True,
                     'is_timeseries': False,
                     'row_limit': timeseries_limit,
                     'groupby': groupby,
@@ -579,7 +581,7 @@ class SqlaTable(Model, BaseDatasource):
                     'form_data': form_data,
                     'order_desc': True,
                 }
-                result = self.query(subquery_obj, prequeries, is_prequery=True)
+                result = self.query(subquery_obj)
                 dimensions = [c for c in result.df.columns if c not in metrics]
                 top_groups = self._get_top_groups(result.df, dimensions)
                 qry = qry.where(top_groups)
@@ -598,14 +600,9 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj, prequeries=None, is_prequery=False):
+    def query(self, query_obj):
         qry_start_dttm = datetime.now()
-
-        # run query storing any prequeries for 2-phase backends
-        if prequeries is None:
-            prequeries = []
-        sql = self.get_query_str(query_obj, prequeries, is_prequery)
-
+        sql = self.get_query_str(query_obj)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -618,9 +615,9 @@ class SqlaTable(Model, BaseDatasource):
                 self.database.db_engine_spec.extract_error_message(e))
 
         # if this is a main query with prequeries, combine them together
-        if not is_prequery and prequeries:
-            prequeries.append(sql)
-            sql = ';\n\n'.join(prequeries)
+        if not query_obj['is_prequery']:
+            query_obj['prequeries'].append(sql)
+            sql = ';\n\n'.join(query_obj['prequeries'])
         sql += ';'
 
         return QueryResult(

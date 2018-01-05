@@ -200,6 +200,8 @@ class BaseViz(object):
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
             'order_desc': order_desc,
+            'prequeries': [],
+            'is_prequery': False,
         }
         return d
 
