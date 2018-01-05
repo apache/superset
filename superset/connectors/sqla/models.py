@@ -602,7 +602,8 @@ class SqlaTable(Model, BaseDatasource):
         qry_start_dttm = datetime.now()
 
         # run query storing any prequeries for 2-phase backends
-        prequeries = prequeries or []
+        if prequeries is None:
+            prequeries = []
         sql = self.get_query_str(query_obj, prequeries, is_prequery)
 
         status = QueryStatus.SUCCESS
@@ -619,7 +620,8 @@ class SqlaTable(Model, BaseDatasource):
         # if this is a main query with prequeries, combine them together
         if not is_prequery and prequeries:
             prequeries.append(sql)
-            sql = ';\n\n'.join(prequeries) + ';'
+            sql = ';\n\n'.join(prequeries)
+        sql += ';'
 
         return QueryResult(
             status=status,

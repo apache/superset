@@ -993,7 +993,8 @@ class Superset(BaseSupersetView):
 
         if prequeries:
             prequeries.append(query)
-            query = ';\n\n'.join(prequeries) + ';'
+            query = ';\n\n'.join(prequeries)
+        query += ';'
 
         return Response(
             json.dumps({
