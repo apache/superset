@@ -323,9 +323,9 @@ class SqlaTable(Model, BaseDatasource):
         return get_template_processor(
             table=self, database=self.database, **kwargs)
 
-    def get_query_str(self, query_obj):
+    def get_query_str(self, query_obj, prequeries=None, is_prequery=False):
         engine = self.database.get_sqla_engine()
-        qry = self.get_sqla_query(**query_obj)
+        qry = self.get_sqla_query(prequeries=prequeries, is_prequery=is_prequery, **query_obj)
         sql = six.text_type(
             qry.compile(
                 engine,
@@ -334,6 +334,8 @@ class SqlaTable(Model, BaseDatasource):
         )
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
+        if is_prequery and prequeries is not None:
+            prequeries.append(sql)
         return sql
 
     def get_sqla_table(self):
@@ -369,7 +371,10 @@ class SqlaTable(Model, BaseDatasource):
             extras=None,
             columns=None,
             form_data=None,
-            order_desc=True):
+            order_desc=True,
+            prequeries=None,
+            is_prequery=False,
+        ):
         """Querying any sqla table from this common interface"""
         template_kwargs = {
             'from_dttm': from_dttm,
@@ -565,8 +570,8 @@ class SqlaTable(Model, BaseDatasource):
                     'groupby': groupby,
                     'metrics': metrics,
                     'granularity': granularity,
-                    'from_dttm': inner_from_dttm,
-                    'to_dttm': inner_to_dttm,
+                    'from_dttm': inner_from_dttm or from_dttm,
+                    'to_dttm': inner_to_dttm or to_dttm,
                     'filter': filter,
                     'orderby': orderby,
                     'extras': extras,
@@ -574,7 +579,7 @@ class SqlaTable(Model, BaseDatasource):
                     'form_data': form_data,
                     'order_desc': True,
                 }
-                result = self.query(subquery_obj)
+                result = self.query(subquery_obj, prequeries, is_prequery=True)
                 dimensions = [c for c in result.df.columns if c not in metrics]
                 top_groups = self._get_top_groups(result.df, dimensions)
                 qry = qry.where(top_groups)
@@ -584,7 +589,7 @@ class SqlaTable(Model, BaseDatasource):
     def _get_top_groups(self, df, dimensions):
         cols = {col.column_name: col for col in self.columns}
         groups = []
-        for _, row in df.iterrows():
+        for unused, row in df.iterrows():
             group = []
             for dimension in dimensions:
                 col_obj = cols.get(dimension)
@@ -593,9 +598,13 @@ class SqlaTable(Model, BaseDatasource):
 
         return or_(*groups)
 
-    def query(self, query_obj):
+    def query(self, query_obj, prequeries=None, is_prequery=False):
         qry_start_dttm = datetime.now()
-        sql = self.get_query_str(query_obj)
+
+        # run query storing any prequeries for 2-phase backends
+        prequeries = prequeries or []
+        sql = self.get_query_str(query_obj, prequeries, is_prequery)
+
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -606,6 +615,11 @@ class SqlaTable(Model, BaseDatasource):
             logging.exception(e)
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))
+
+        # if this is a main query with prequeries, combine them together
+        if not is_prequery and prequeries:
+            prequeries.append(sql)
+            sql = ';\n\n'.join(prequeries) + ';'
 
         return QueryResult(
             status=status,
