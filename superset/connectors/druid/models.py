@@ -1022,7 +1022,10 @@ class DruidDatasource(Model, BaseDatasource):
             orderby=None,
             extras=None,  # noqa
             columns=None, phase=2, client=None, form_data=None,
-            order_desc=True):
+            order_desc=True,
+            prequeries=None,
+            is_prequery=False,
+        ):
         """Runs a query against Druid and returns a dataframe.
         """
         # TODO refactor into using a TBD Query object

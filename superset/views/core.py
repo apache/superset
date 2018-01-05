@@ -991,6 +991,12 @@ class Superset(BaseSupersetView):
             query = viz_obj.datasource.get_query_str(query_obj)
         except Exception as e:
             return json_error_response(e)
+
+        if query_obj['prequeries']:
+            query_obj['prequeries'].append(query)
+            query = ';\n\n'.join(query_obj['prequeries'])
+        query += ';'
+
         return Response(
             json.dumps({
                 'query': query,
