@@ -62,6 +62,7 @@ class BaseEngineSpec(object):
     time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
     time_secondary_columns = False
+    inner_joins = True
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -1229,6 +1230,7 @@ class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
     limit_method = LimitMethod.FETCH_MANY
+    inner_joins = False
 
 
 engines = {
