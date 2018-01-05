@@ -824,8 +824,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             [s + ' STRING ' for s in column_names])
 
         s3 = boto3.client('s3')
-        location = os.path.join('s3a://', bucket_path,
-                                upload_prefix, table_name)
+        location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
         s3.upload_file(
             upload_path, 'airbnb-superset',
             os.path.join(upload_prefix, table_name, filename))

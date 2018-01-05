@@ -540,14 +540,12 @@ class SqlaTable(Model, BaseDatasource):
                     inner_from_dttm or from_dttm,
                     inner_to_dttm or to_dttm,
                 )
-                subq = subq.where(
-                    and_(*(where_clause_and + [inner_time_filter])))
+                subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
-                    timeseries_limit_metric = metrics_dict.get(
-                        timeseries_limit_metric)
+                    timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
                     ob = timeseries_limit_metric.sqla_col
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
