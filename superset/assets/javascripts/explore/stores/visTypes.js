@@ -45,7 +45,7 @@ export const sections = {
     description: t('This section exposes ways to include snippets of SQL in your query'),
   },
   annotations: {
-    label: t('Annotations'),
+    label: t('Annotations and Layers'),
     expanded: true,
     controlSetRows: [
       ['annotation_layers'],
@@ -338,6 +338,21 @@ export const visTypes = {
     },
   },
 
+  deck_multi: {
+    label: t('Deck.gl - Multiple Layers'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['deck_slices', null],
+        ],
+      },
+    ],
+  },
+
   deck_hex: {
     label: t('Deck.gl - Hexagons'),
     requiresTime: true,
@@ -346,9 +361,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby', 'size'],
-          ['row_limit'],
+          ['spatial', 'size'],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -364,7 +378,6 @@ export const visTypes = {
       size: {
         label: t('Height'),
         description: t('Metric used to control height'),
-        validators: [v.nonEmpty],
       },
     },
   },
@@ -377,9 +390,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby', 'size'],
-          ['row_limit'],
+          ['spatial', 'size'],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -400,6 +412,30 @@ export const visTypes = {
     },
   },
 
+  deck_path: {
+    label: t('Deck.gl - Paths'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['line_column', 'line_type'],
+          ['row_limit', null],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['color_picker', 'line_width'],
+          ['reverse_long_lat', null],
+        ],
+      },
+    ],
+  },
+
   deck_screengrid: {
     label: t('Deck.gl - Screen grid'),
     requiresTime: true,
@@ -408,9 +444,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby', 'size'],
-          ['row_limit'],
+          ['spatial', 'size'],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -435,6 +470,33 @@ export const visTypes = {
     },
   },
 
+  deck_geojson: {
+    label: t('Deck.gl - geoJson'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['geojson', 'row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('GeoJson Settings'),
+        controlSetRows: [
+          ['fill_color_picker', 'stroke_color_picker'],
+          ['point_radius_scale', null],
+        ],
+      },
+    ],
+  },
+
   deck_scatter: {
     label: t('Deck.gl - Scatter plot'),
     requiresTime: true,
@@ -443,9 +505,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['longitude', 'latitude'],
-          ['groupby'],
-          ['row_limit'],
+          ['spatial', null],
+          ['groupby', 'row_limit'],
         ],
       },
       {
@@ -470,17 +531,12 @@ export const visTypes = {
       },
     ],
     controlOverrides: {
-      all_columns_x: {
-        label: t('Longitude Column'),
-        validators: [v.nonEmpty],
-      },
-      all_columns_y: {
-        label: t('Latitude Column'),
-        validators: [v.nonEmpty],
-      },
       dimension: {
         label: t('Categorical Color'),
         description: t('Pick a dimension from which categorical colors are defined'),
+      },
+      size: {
+        validators: [],
       },
     },
   },
@@ -593,6 +649,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: t('Code'),
+        expanded: true,
         controlSetRows: [
           ['markup_type'],
           ['code'],

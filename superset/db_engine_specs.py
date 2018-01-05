@@ -806,7 +806,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         table_name = form.name.data
         filename = form.csv_file.data.filename
 
-        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_BUCKET']
+        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
         if not bucket_path:
             logging.info('No upload bucket specified')
@@ -1073,7 +1073,7 @@ class OracleEngineSpec(PostgresEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return (
-            """TO_TIMESTAMP('{}', 'YYYY-MM-DD'T'HH24:MI:SS.ff6')"""
+            """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
 
@@ -1186,6 +1186,14 @@ class BQEngineSpec(BaseEngineSpec):
             return "{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        data = super(BQEngineSpec, cls).fetch_data(cursor, limit)
+        from google.cloud.bigquery._helpers import Row  # pylint: disable=import-error
+        if len(data) != 0 and isinstance(data[0], Row):
+            data = [r.values() for r in data]
+        return data
+
 
 class ImpalaEngineSpec(BaseEngineSpec):
     """Engine spec for Cloudera's Impala"""
@@ -1215,6 +1223,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
         schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
                    if not row[0].startswith('_')]
         return schemas
+
+
+class DruidEngineSpec(BaseEngineSpec):
+    """Engine spec for Druid.io"""
+    engine = 'druid'
+    limit_method = LimitMethod.FETCH_MANY
 
 
 engines = {

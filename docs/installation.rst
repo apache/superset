@@ -148,7 +148,7 @@ around `gunicorn`, it doesn't expose all the options you may need,
 so you'll want to craft your own `gunicorn` command in your production
 environment. Here's an **async** setup known to work well: ::
 
-	gunicorn \
+ 　gunicorn \
 		-w 10 \
 		-k gevent \
 		--timeout 120 \
@@ -185,7 +185,7 @@ In case that the reverse proxy is used for providing ssl encryption,
 an explicit definition of the `X-Forwarded-Proto` may be required.
 For the Apache webserver this can be set as follows: ::
 
-    RequestHeader set X-Forwarded-Proto "https"
+　RequestHeader set X-Forwarded-Proto "https"
 
 Configuration
 -------------
@@ -281,6 +281,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  ClickHouse   | ``pip install                       | ``clickhouse://``                               |
 |               | sqlalchemy-clickhouse``             |                                                 |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Kylin        | ``pip install kylinpy``             | ``kylin://``                                    |
 +---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
@@ -399,7 +401,7 @@ metadata from your Druid cluster(s)
 
 
 CORS
------
+----
 
 The extra CORS Dependency must be installed:
 

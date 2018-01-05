@@ -39,7 +39,7 @@ ADMIN_ONLY_VIEW_MENUS = {
     'UserDBModelView',
 }
 
-ADMIN_ONLY_VIEW_MENUS = {
+ALPHA_ONLY_VIEW_MENUS = {
     'Upload a CSV'
 }
 

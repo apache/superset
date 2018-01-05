@@ -8,8 +8,10 @@ import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import StackTraceMessage from '../components/StackTraceMessage';
 import visMap from '../../visualizations/main';
+import sandboxedEval from '../modules/sandbox';
 
 const propTypes = {
+  annotationData: PropTypes.object,
   actions: PropTypes.object,
   chartKey: PropTypes.string.isRequired,
   containerId: PropTypes.string.isRequired,
@@ -47,8 +49,8 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-
     // these properties are used by visualizations
+    this.annotationData = props.annotationData;
     this.containerId = props.containerId;
     this.selector = `#${this.containerId}`;
     this.formData = props.formData;
@@ -71,6 +73,7 @@ class Chart extends React.PureComponent {
   }
 
   componentWillReceiveProps(nextProps) {
+    this.annotationData = nextProps.annotationData;
     this.containerId = nextProps.containerId;
     this.selector = `#${this.containerId}`;
     this.formData = nextProps.formData;
@@ -82,6 +85,7 @@ class Chart extends React.PureComponent {
         this.props.queryResponse &&
         this.props.chartStatus === 'success' &&
         !this.props.queryResponse.error && (
+        prevProps.annotationData !== this.props.annotationData ||
         prevProps.queryResponse !== this.props.queryResponse ||
         prevProps.height !== this.props.height ||
         prevProps.width !== this.props.width ||
@@ -103,8 +107,8 @@ class Chart extends React.PureComponent {
     this.props.clearFilter();
   }
 
-  removeFilter(col, vals) {
-    this.props.removeFilter(col, vals);
+  removeFilter(col, vals, refresh = true) {
+    this.props.removeFilter(col, vals, refresh);
   }
 
   clearError() {
@@ -138,8 +142,15 @@ class Chart extends React.PureComponent {
 
   renderViz() {
     const viz = visMap[this.props.vizType];
+    const fd = this.props.formData;
+    const qr = this.props.queryResponse;
     try {
-      viz(this, this.props.queryResponse, this.props.setControlValue);
+      // Executing user-defined data mutator function
+      if (fd.js_data) {
+        qr.data = sandboxedEval(fd.js_data)(qr.data);
+      }
+      // [re]rendering the visualization
+      viz(this, qr, this.props.setControlValue);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }

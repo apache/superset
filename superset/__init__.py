@@ -22,6 +22,9 @@ from superset import utils, config  # noqa
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
+if not os.path.exists(config.DATA_DIR):
+    os.makedirs(config.DATA_DIR)
+
 with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
     frontend_config = json.load(f)
 
@@ -42,7 +45,7 @@ def parse_manifest_json():
         with open(MANIFEST_FILE, 'r') as f:
             manifest = json.load(f)
     except Exception:
-        print('no manifest file found at ' + MANIFEST_FILE)
+        pass
 
 
 def get_manifest_file(filename):

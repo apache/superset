@@ -5,9 +5,13 @@ import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 const propTypes = {
   column: PropTypes.object.isRequired,
+  showType: PropTypes.bool,
+};
+const defaultProps = {
+  showType: false,
 };
 
-export default function ColumnOption({ column }) {
+export default function ColumnOption({ column, showType }) {
   return (
     <span>
       <span className="m-r-5 option-label">
@@ -29,6 +33,10 @@ export default function ColumnOption({ column }) {
           label={`expr-${column.column_name}`}
         />
       }
+      {showType &&
+        <span className="text-muted">{column.type}</span>
+      }
     </span>);
 }
 ColumnOption.propTypes = propTypes;
+ColumnOption.defaultProps = defaultProps;
