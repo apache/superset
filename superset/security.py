@@ -40,7 +40,7 @@ ADMIN_ONLY_VIEW_MENUS = {
 }
 
 ALPHA_ONLY_VIEW_MENUS = {
-    'Upload a CSV'
+    'Upload a CSV',
 }
 
 ADMIN_ONLY_PERMISSIONS = {
@@ -122,10 +122,9 @@ def is_alpha_only(pvm):
             pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
     return (
-        pvm.permission.name in ALPHA_ONLY_PERMISSIONS or 
-        pvm.view_menu.name in ALPHA_ONLY_VIEW_MENUS
+        pvm.view_menu.name in ALPHA_ONLY_VIEW_MENUS or
+        pvm.permission.name in ALPHA_ONLY_PERMISSIONS
     )
-
 
 
 def is_admin_pvm(pvm):
