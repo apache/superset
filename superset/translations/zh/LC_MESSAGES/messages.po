@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2018-01-08 15:14+0800\n"
+"PO-Revision-Date: 2018-01-08 17:47+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -176,7 +176,7 @@ msgstr "气泡图"
 
 #: superset/viz.py:734
 msgid "Pick a metric for x, y and size"
-msgstr "为x轴，y轴和大小选择一个指标"
+msgstr "为 x 轴，y 轴和大小选择一个指标"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:574 superset/viz.py:760
 msgid "Bullet Chart"
@@ -633,7 +633,7 @@ msgstr "选择一个数据库"
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:170
 #, python-format
 msgid "Select a schema (%s)"
-msgstr "选择一个模式 (%s)"
+msgstr "选择一个模式（%s）"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:175
 msgid "Schema:"
@@ -642,7 +642,7 @@ msgstr "模式："
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:190
 #, python-format
 msgid "Add a table (%s)"
-msgstr "增加一张表 (%s)"
+msgstr "增加一张表（%s）"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:203
 msgid "Type to search ..."
@@ -692,7 +692,7 @@ msgstr "表的键"
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:119
 #, python-format
 msgid "View keys & indexes (%s)"
-msgstr "查看键和索引 (%s)"
+msgstr "查看键和索引（%s）"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:135
 msgid "Sort columns alphabetically"
@@ -713,7 +713,7 @@ msgstr "删除表格预览"
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:90
 #, python-format
 msgid "%s is not right as a column name, please alias it (as in SELECT count(*))"
-msgstr "%s 不适合作为列名，请对其进行别名 (如 SELECT count(*))"
+msgstr "%s 不适合作为列名，请对其进行别名（如 SELECT count(*)）"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:91
 msgid "AS my_alias"
@@ -1747,23 +1747,23 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:831
 msgid "Comparison Period Lag"
-msgstr ""
+msgstr "比较期延迟"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:833
 msgid "Based on granularity, number of time periods to compare against"
-msgstr ""
+msgstr "根据粒度，比较的时间段数量"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:838
 msgid "Comparison suffix"
-msgstr ""
+msgstr "比较后缀"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:839
 msgid "Suffix to apply after the percentage display"
-msgstr ""
+msgstr "在显示百分比后应用后缀"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:845
 msgid "Table Timestamp Format"
-msgstr ""
+msgstr "表时间戳格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:850
 msgid "Timestamp Format"
@@ -1771,19 +1771,19 @@ msgstr "时间戳格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:856
 msgid "Series Height"
-msgstr ""
+msgstr "序列高度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:859
 msgid "Pixel height of each series"
-msgstr ""
+msgstr "每个序列的像素高度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:865
 msgid "Page Length"
-msgstr ""
+msgstr "页面长度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:868
 msgid "Rows per page, 0 means no pagination"
-msgstr ""
+msgstr "每页行数，0 表示没有分页"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:874
 #: superset/assets/javascripts/explore/stores/controls.jsx:884
@@ -1812,19 +1812,19 @@ msgstr "反转"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:925
 msgid "Rotation to apply to words in the cloud"
-msgstr ""
+msgstr "旋转适用于云中的单词"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:930
 msgid "Line Style"
-msgstr ""
+msgstr "线条样式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:935
 msgid "Line interpolation as defined by d3.js"
-msgstr ""
+msgstr "由 d3.js 定义的线插值"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:940
 msgid "Label Type"
-msgstr ""
+msgstr "标签类型"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:949
 msgid "What should be shown on the label?"
@@ -1842,11 +1842,11 @@ msgstr "把您的代码放在这里"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:964
 msgid "Aggregation function"
-msgstr ""
+msgstr "聚合功能"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:976
 msgid "Aggregate function to apply when pivoting and computing the total rows and columns"
-msgstr ""
+msgstr "在旋转和计算总的行和列时，应用聚合函数"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:983
 msgid "Font Size From"
@@ -1866,43 +1866,43 @@ msgstr "列表中最大值的字体大小"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:998
 msgid "Instant Filtering"
-msgstr ""
+msgstr "即时过滤"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1009
 msgid "Range Filter"
-msgstr ""
+msgstr "范围过滤"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1012
 msgid "Whether to display the time range interactive selector"
-msgstr ""
+msgstr "是否显示时间范围交互选择器"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1017
 msgid "Date Filter"
-msgstr ""
+msgstr "日期过滤器"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1019
 msgid "Whether to include a time filter"
-msgstr ""
+msgstr "是否包含时间过滤器"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1024
 msgid "Data Table"
-msgstr ""
+msgstr "数据表"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1026
 msgid "Whether to display the interactive data table"
-msgstr ""
+msgstr "是否显示交互式数据表"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1031
 msgid "Search Box"
-msgstr ""
+msgstr "搜索框"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1034
 msgid "Whether to include a client side search box"
-msgstr ""
+msgstr "是否包含客户端搜索框"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1039
 msgid "Table Filter"
-msgstr ""
+msgstr "表格过滤器"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:1041
 msgid "Whether to apply filter when table cell is clicked"
@@ -2626,11 +2626,11 @@ msgstr "数据源"
 
 #: superset/assets/javascripts/profile/components/UserInfo.jsx:18
 msgid "Profile picture provided by Gravatar"
-msgstr ""
+msgstr "资料图片由 Gravatar 提供"
 
 #: superset/assets/javascripts/profile/components/UserInfo.jsx:33
 msgid "joined"
-msgstr ""
+msgstr "joined"
 
 #: superset/assets/javascripts/profile/components/UserInfo.jsx:43
 msgid "id:"
@@ -3174,23 +3174,23 @@ msgstr "编辑数据库"
 
 #: superset/views/core.py:212
 msgid "Expose this DB in SQL Lab"
-msgstr "在SQL工具箱中公开这个数据库"
+msgstr "在 SQL 工具箱中公开这个数据库"
 
 #: superset/views/core.py:213
 msgid ""
 "Allow users to run synchronous queries, this is the default and should work well for queries that can "
 "be executed within a web request scope (<~1 minute)"
-msgstr "允许用户运行同步查询，这是默认值，可以很好地处理在web请求范围内执行的查询(<~1分钟)"
+msgstr "允许用户运行同步查询，这是默认值，可以很好地处理在web请求范围内执行的查询（<~ 1 分钟）"
 
 #: superset/views/core.py:217
 msgid ""
 "Allow users to run queries, against an async backend. This assumes that you have a Celery worker "
 "setup as well as a results backend."
-msgstr "允许用户对异步后端运行查询。 假设您有一个Celery工作者设置以及后端结果。"
+msgstr "允许用户对异步后端运行查询。 假设您有一个 Celery 工作者设置以及后端结果。"
 
 #: superset/views/core.py:221
 msgid "Allow CREATE TABLE AS option in SQL Lab"
-msgstr "在SQL编辑器中允许CREATE TABLE AS选项"
+msgstr "在 SQL 编辑器中允许 CREATE TABLE AS 选项"
 
 #: superset/views/core.py:222
 msgid "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab"
@@ -3200,7 +3200,7 @@ msgstr "允许用户在 SQL 编辑器中运行非 SELECT 语句（UPDATE，DELET
 msgid ""
 "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this "
 "schema"
-msgstr "当在SQL编辑器中允许CREATE TABLE AS选项时，此选项可以此模式中强制创建表"
+msgstr "当在 SQL 编辑器中允许 CREATE TABLE AS 选项时，此选项可以此模式中强制创建表"
 
 #: superset/views/core.py:238
 msgid "All the queries in Sql Lab are going to be executed on behalf of currently authorized user."
@@ -3208,7 +3208,7 @@ msgstr "SQL Lab 中所有的查询都将被当前授权用户执行。"
 
 #: superset/views/core.py:243
 msgid "Expose in SQL Lab"
-msgstr "在SQL工具箱中公开"
+msgstr "在 SQL 工具箱中公开"
 
 #: superset/views/core.py:244
 msgid "Allow CREATE TABLE AS"
@@ -3220,7 +3220,7 @@ msgstr "允许 DML"
 
 #: superset/views/core.py:246
 msgid "CTAS Schema"
-msgstr "CTAS模式"
+msgstr "CTAS 模式"
 
 #: superset/views/core.py:248 superset/views/core.py:371 superset/views/core.py:479
 #: superset/views/core.py:543
@@ -3305,7 +3305,7 @@ msgstr "当单击“保存”或“覆盖”按钮时，这些参数会在视图
 
 #: superset/views/core.py:364
 msgid "Duration (in seconds) of the caching timeout for this slice."
-msgstr "切片数据过期时间(秒)"
+msgstr "切片数据过期时间（秒）"
 
 #: superset/views/core.py:375
 msgid "Last Modified"
@@ -3354,7 +3354,7 @@ msgstr "可以在这里或者在看板视图修改单个看板的CSS样式"
 
 #: superset/views/core.py:460
 msgid "To get a readable URL for your dashboard"
-msgstr "为看板生成一个可读的URL"
+msgstr "为看板生成一个可读的 URL"
 
 #: superset/views/core.py:461
 msgid ""
@@ -3381,7 +3381,7 @@ msgstr "位置参数"
 
 #: superset/views/core.py:483
 msgid "JSON Metadata"
-msgstr "JSON模板"
+msgstr "JSON 模板"
 
 #: superset/views/core.py:484
 msgid "Underlying Tables"
@@ -3419,7 +3419,7 @@ msgstr "授予 %(user)s %(role)s 角色来访问 %(datasource)s 数据库"
 #: superset/views/core.py:873
 #, python-format
 msgid "Role %(r)s was extended to provide the access to the datasource %(ds)s"
-msgstr "扩展角色 %(r)s以提供对datasource %(ds)s的访问"
+msgstr "扩展角色 %(r)s 以提供对 datasource %(ds)s 的访问"
 
 #: superset/views/core.py:882
 msgid "You have no permission to approve this request"
@@ -3427,7 +3427,7 @@ msgstr "您没有权限批准此请求"
 
 #: superset/views/core.py:1646
 msgid "Malformed request. slice_id or table_name and db_name arguments are expected"
-msgstr "格式错误的请求。需要使用slice_id或table_name和db_name参数"
+msgstr "格式错误的请求。需要使用 slice_id 或 table_name 和 db_name 参数"
 
 #: superset/views/core.py:1652
 #, python-format
@@ -3459,15 +3459,15 @@ msgstr "模板名称"
 
 #: superset/views/core.py:2368
 msgid "CSS Templates"
-msgstr "CSS模板"
+msgstr "CSS 模板"
 
 #: superset/views/core.py:2379
 msgid "SQL Editor"
-msgstr "SQL编辑器"
+msgstr "SQL 编辑器"
 
 #: superset/views/core.py:2384 superset/views/core.py:2393
 msgid "SQL Lab"
-msgstr "SQL工具箱"
+msgstr "SQL 工具箱"
 
 #: superset/views/core.py:2388
 msgid "Query Search"
@@ -3507,11 +3507,11 @@ msgstr "编辑保存的查询"
 
 #: superset/views/sql_lab.py:59
 msgid "Pop Tab Link"
-msgstr ""
+msgstr "流行标签链接"
 
 #: superset/views/sql_lab.py:60
 msgid "Changed on"
-msgstr ""
+msgstr "改变为"
 
 #: superset/views/sql_lab.py:79
 msgid "Saved Queries"
