@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2018-01-08 11:57+0800\n"
+"PO-Revision-Date: 2018-01-08 15:14+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -1360,43 +1360,43 @@ msgstr "将数据点显示为线条上的圆形标记"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:312
 msgid "Bar Values"
-msgstr ""
+msgstr "条形栏的值"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:315
 msgid "Show the value on top of the bar"
-msgstr ""
+msgstr "显示栏上的值"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:320
 msgid "Sort Bars"
-msgstr ""
+msgstr "排序条形栏"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:322
 msgid "Sort bars by x labels."
-msgstr ""
+msgstr "按 x 标签排序。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:327
 msgid "Combine Metrics"
-msgstr ""
+msgstr "整合指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:329
 msgid ""
 "Display metrics side by side within each column, as opposed to each column being displayed side by "
 "side for each metric."
-msgstr ""
+msgstr "在每个列中并排显示指标，而不是每个指标并排显示每个列。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:335
 msgid "Extra Controls"
-msgstr ""
+msgstr "额外的控制"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:338
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like making multiBar charts "
 "stacked or side by side."
-msgstr ""
+msgstr "是否显示额外的控制。额外的控制包括，制作堆叠或并排的多条形图。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:345
 msgid "Reduce X ticks"
-msgstr ""
+msgstr "减少 X 轴的刻度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:348
 msgid ""
@@ -1404,123 +1404,125 @@ msgid ""
 "be missing. If false, a minimum width will be applied to columns and the width may overflow into an "
 "horizontal scroll."
 msgstr ""
+"减少要渲染的 X 轴刻度的数量。如果为 true，则 X 轴不会溢出，标签可能会丢失。如果为 false，则最小宽度将"
+"应用于列，并且宽度可能会溢出，并以水平滚动条展示。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:357
 msgid "Include Series"
-msgstr ""
+msgstr "包括序列"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:360
 msgid "Include series name as an axis"
-msgstr ""
+msgstr "包含序列名称作为一个轴"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:365
 msgid "Color Metric"
-msgstr ""
+msgstr "颜色指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:367
 msgid "A metric to use for color"
-msgstr ""
+msgstr "用于颜色的指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:374
 msgid "Country Name"
-msgstr ""
+msgstr "国家的名字"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:393
 msgid "The name of country that Superset should display"
-msgstr ""
+msgstr "Superset 应显示的国家名称"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:397
 msgid "Country Field Type"
-msgstr ""
+msgstr "国家字段的类型"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:405
 msgid "The country code standard that Superset should expect to find in the [country] column"
-msgstr ""
+msgstr "Superset 希望能够在 [国家] 栏中找到的 国家 / 地区 的标准代码"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:412
 #: superset/assets/javascripts/explore/stores/controls.jsx:419
 msgid "Columns"
-msgstr ""
+msgstr "列"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:413
 msgid "One or many controls to pivot as columns"
-msgstr ""
+msgstr "一个或多个控件作为主列"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:421
 #: superset/assets/javascripts/explore/stores/controls.jsx:431
 #: superset/assets/javascripts/explore/stores/controls.jsx:441
 msgid "Columns to display"
-msgstr ""
+msgstr "要显示的列"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:450
 msgid "Origin"
-msgstr ""
+msgstr "起点"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:456
 msgid ""
 "Defines the origin where time buckets start, accepts natural dates as in `now`, `sunday` or "
 "`1970-01-01`"
-msgstr ""
+msgstr "定义时间桶的起点，接受 `now`，`sunday` 或 `1970-01-01` 的自然日期"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:463
 msgid "Bottom Margin"
-msgstr ""
+msgstr "底部边距"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:467
 msgid "Bottom margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+msgstr "底部边距，以像素为单位，为轴标签留出更多空间"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:473
 msgid "Left Margin"
-msgstr ""
+msgstr "左边距"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:477
 msgid "Left margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+msgstr "左边距，以像素为单位，为轴标签留出更多空间"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:483
 msgid "Time Granularity"
-msgstr ""
+msgstr "可视化的时间粒度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:500
 msgid ""
 "The time granularity for the visualization. Note that you can type and use simple natural language as "
 "in `10 seconds`, `1 day` or `56 weeks`"
-msgstr ""
+msgstr "可视化的时间粒度。请注意，您可以输入和使用简单的自然语言，如 `10 秒`，`1 天` 或 `56 周`"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:507
 msgid "Domain"
-msgstr ""
+msgstr "域"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:510
 msgid "The time unit used for the grouping of blocks"
-msgstr ""
+msgstr "用于块分组的时间单位"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:515
 msgid "Subdomain"
-msgstr ""
+msgstr "子域"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:518
 msgid ""
 "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or "
 "equal to Time Grain"
-msgstr ""
+msgstr "每个块的时间单位。应该是比 domain_granularity 更小的单位。应该大于或等于 Time Grain"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:525
 msgid "Link Length"
-msgstr ""
+msgstr "链接长度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:528
 msgid "Link length in the force layout"
-msgstr ""
+msgstr "在力布局中的链接长度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:534
 msgid "Charge"
-msgstr ""
+msgstr "充电"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:548
 msgid "Charge in the force layout"
-msgstr ""
+msgstr "在力布局中充电"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:556
 msgid ""
@@ -1528,10 +1530,12 @@ msgid ""
 "DATETIME column in the table or. Also note that the filter below is applied against this column or "
 "expression"
 msgstr ""
+"可视化的时间列。请注意，您可以定义在表中返回 DATETIME 列的任意表达式。另请注意，下面的过滤器应用于此列"
+"或表达式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:568
 msgid "Time Grain"
-msgstr ""
+msgstr "时间的粒度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:570
 msgid ""
@@ -1539,109 +1543,111 @@ msgid ""
 "column and defines a new time granularity. The options here are defined on a per database engine "
 "basis in the Superset source code."
 msgstr ""
+"可视化的时间粒度。这将应用日期转换来更改时间列，并定义新的时间粒度。这里的选项是在 Superset 源代码中的"
+"每个数据库引擎基础上定义的。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:583
 msgid "Resample Rule"
-msgstr ""
+msgstr "重新取样规则"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:586
 msgid "Pandas resample rule"
-msgstr ""
+msgstr "Pandas 重新采样的规则"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:592
 msgid "Resample How"
-msgstr ""
+msgstr "如何重新采样"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:595
 msgid "Pandas resample how"
-msgstr ""
+msgstr "Pandas 如何重新采样的规则"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:601
 msgid "Resample Fill Method"
-msgstr ""
+msgstr "重新采样的填充方法"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:604
 msgid "Pandas resample fill method"
-msgstr ""
+msgstr "Pandas 重新采样的填充方法"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:610
 msgid "Since"
-msgstr ""
+msgstr "以来"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:611
 msgid "7 days ago"
-msgstr ""
+msgstr "7 天前"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:617
 msgid "Until"
-msgstr ""
+msgstr "直到"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:624
 msgid "Max Bubble Size"
-msgstr ""
+msgstr "最大泡泡的尺寸"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:632
 msgid "Whisker/outlier options"
-msgstr ""
+msgstr "（箱须图的）须 / 异常值选项"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:634
 msgid "Determines how whiskers and outliers are calculated."
-msgstr ""
+msgstr "确定如何计算（箱须图的）胡须和异常值。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:645
 msgid "Ratio"
-msgstr ""
+msgstr "比率"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:648
 msgid "Target aspect ratio for treemap tiles."
-msgstr ""
+msgstr "树形图中瓦片的目标高宽比。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:654
 #: superset/assets/javascripts/explore/stores/visTypes.js:616
 #: superset/assets/javascripts/explore/stores/visTypes.js:641
 #: superset/assets/javascripts/explore/stores/visTypes.js:790
 msgid "Number format"
-msgstr ""
+msgstr "数字格式"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:664
 msgid "Row limit"
-msgstr ""
+msgstr "行限制"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:672
 msgid "Series limit"
-msgstr ""
+msgstr "序列限制"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:675
 msgid "Limits the number of time series that get displayed"
-msgstr ""
+msgstr "限制显示的时间序列的数量"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:680
 msgid "Sort By"
-msgstr ""
+msgstr "Sort By（以什么排序）"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:682
 msgid "Metric used to define the top series"
-msgstr ""
+msgstr "用于定义顶级序列的指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:697
 msgid "Rolling"
-msgstr ""
+msgstr "滚动"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:700
 msgid "Defines a rolling window function to apply, works along with the [Periods] text box"
-msgstr ""
+msgstr "定义要应用的滚动窗口函数，与 [Periods] 文本框一起使用"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:706
 msgid "Periods"
-msgstr ""
+msgstr "期限"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:708
 msgid "Defines the size of the rolling window function, relative to the time granularity selected"
-msgstr ""
+msgstr "定义滚动窗口函数的大小，相对于所选的时间粒度"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:714
 msgid "Min Periods"
-msgstr ""
+msgstr "最小的期限"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:716
 msgid ""
@@ -1649,49 +1655,51 @@ msgid ""
 "sum on 7 days you may want your \"Min Period\" to be 7, so that all data points shown are the total "
 "of 7 periods. This will hide the \"ramp up\" taking place over the first 7 periods"
 msgstr ""
+"显示值所需的滚动周期的最小数量。例如，如果您想累积 7 天的总额，您可能希望您的“最短期限”为 7，以便显示"
+"的所有数据点都是 7 个期间的总和。这将隐藏掉前 7 个阶段的“加速”效果"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:725
 #: superset/assets/javascripts/explore/stores/visTypes.js:123
 msgid "Series"
-msgstr ""
+msgstr "序列"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:727
 msgid ""
 "Defines the grouping of entities. Each series is shown as a specific color on the chart and has a "
 "legend toggle"
-msgstr ""
+msgstr "定义实体的分组。每个系列在图表上显示为特定颜色，并有一个可切换的图例"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:737
 msgid "Entity"
-msgstr ""
+msgstr "实体"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:740
 msgid "This defines the element to be plotted on the chart"
-msgstr ""
+msgstr "这定义了要在图表上绘制的元素"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:748
 #: superset/assets/javascripts/explore/stores/visTypes.js:172
 #: superset/assets/javascripts/explore/stores/visTypes.js:547
 msgid "X Axis"
-msgstr ""
+msgstr "X 轴"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:749
 msgid "Metric assigned to the [X] axis"
-msgstr ""
+msgstr "分配给 [X] 轴的指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:762
 #: superset/assets/javascripts/explore/stores/visTypes.js:179
 #: superset/assets/javascripts/explore/stores/visTypes.js:555
 msgid "Y Axis"
-msgstr ""
+msgstr "Y 轴"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:765
 msgid "Metric assigned to the [Y] axis"
-msgstr ""
+msgstr "分配给 [Y] 轴的指标"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:776
 msgid "Bubble Size"
-msgstr ""
+msgstr "泡泡大小"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:789
 msgid "URL"
@@ -1701,19 +1709,19 @@ msgstr "URL 地址"
 msgid ""
 "The URL, this control is templated, so you can integrate {{ width }} and/or {{ height }} in your URL "
 "string."
-msgstr ""
+msgstr "URL 网址，此控件是模板化的，所以您可以在您的网址字符串中整合 {{ width }} 和 / 或 {{ height }}。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:797
 msgid "X Axis Label"
-msgstr ""
+msgstr "X 轴标签"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:804
 msgid "Y Axis Label"
-msgstr ""
+msgstr "Y 轴标签"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:811
 msgid "Custom WHERE clause"
-msgstr ""
+msgstr "自定义 WHERE 子句"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:813
 msgid ""
@@ -1721,10 +1729,12 @@ msgid ""
 "include complex expression, parenthesis and anything else supported by the backend it is directed "
 "towards."
 msgstr ""
+"此框中的文本被包含在查询的 WHERE 子句中，作为与其他条件的 AND 关联。你可以包含复杂的表达式、圆括号和任"
+"何后端支持的其他东西。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:821
 msgid "Custom HAVING clause"
-msgstr ""
+msgstr "自定义 HAVING 子句"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:823
 msgid ""
@@ -1732,6 +1742,8 @@ msgid ""
 "can include complex expression, parenthesis and anything else supported by the backend it is directed "
 "towards."
 msgstr ""
+"此框中的文本被包含在查询的 HAVING 子句中，作为与其他条件的 AND 关联。你可以包含复杂的表达式、圆括号和"
+"任何后端支持的其他东西。"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:831
 msgid "Comparison Period Lag"
