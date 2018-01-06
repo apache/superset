@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: benedictjin2016@gmail.com\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-12-28 10:01+0800\n"
+"PO-Revision-Date: 2018-01-08 11:03+0800\n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
@@ -276,7 +276,7 @@ msgstr "为 [来源 / 目标] 选择两个列"
 
 #: superset/viz.py:1283
 msgid "There's a loop in your Sankey, please provide a tree. Here's a faulty link: {}"
-msgstr ""
+msgstr "桑基图里面有一个循环，请提供一棵树。这是一个错误的链接：{}"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:743 superset/viz.py:1294 superset/viz.py:1315
 msgid "Directed Force Layout"
@@ -324,19 +324,19 @@ msgstr "箱图"
 
 #: superset/viz.py:1588
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
-msgstr ""
+msgstr "[Group By] 列必须要有 ‘count’字段作为 [标签]"
 
 #: superset/viz.py:1601
 msgid "Choice of [Label] must be present in [Group By]"
-msgstr ""
+msgstr "[标签] 的选择项必须出现在 [Group By]"
 
 #: superset/viz.py:1606
 msgid "Choice of [Point Radius] must be present in [Group By]"
-msgstr ""
+msgstr "[点半径] 的选择项必须出现在 [Group By]"
 
 #: superset/viz.py:1611
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
-msgstr ""
+msgstr "[经度] 和 [纬度] 的选择项必须出现在 [Group By]"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1073 superset/viz.py:1676
 msgid "Event flow"
@@ -356,7 +356,7 @@ msgstr "您的查询无法保存"
 
 #: superset/assets/javascripts/SqlLab/actions.js:111
 msgid "Failed at retrieving results from the results backend"
-msgstr ""
+msgstr "无法从结果后端检索到"
 
 #: superset/assets/javascripts/SqlLab/actions.js:157
 msgid "Could not connect to server"
@@ -376,19 +376,19 @@ msgstr "无法终止查询。"
 
 #: superset/assets/javascripts/SqlLab/actions.js:297 superset/assets/javascripts/SqlLab/actions.js:310
 msgid "Error occurred while fetching table metadata"
-msgstr ""
+msgstr "获取表格元数据时发生错误"
 
 #: superset/assets/javascripts/SqlLab/actions.js:364
 msgid "shared query"
-msgstr ""
+msgstr "已分享的查询"
 
 #: superset/assets/javascripts/SqlLab/actions.js:372 superset/assets/javascripts/SqlLab/actions.js:392
 msgid "The query couldn't be loaded"
-msgstr ""
+msgstr "这个查询无法被加载"
 
 #: superset/assets/javascripts/SqlLab/actions.js:426
 msgid "An error occurred while creating the data source"
-msgstr ""
+msgstr "创建数据源时发生错误"
 
 #: superset/assets/javascripts/SqlLab/constants.js:30
 msgid "Pick a chart type!"
@@ -396,15 +396,15 @@ msgstr "选择一个图表类型！"
 
 #: superset/assets/javascripts/SqlLab/constants.js:31
 msgid "To use this chart type you need at least one column flagged as a date"
-msgstr ""
+msgstr "要使用此图表类型，您至少需要一个标记为日期格式的列"
 
 #: superset/assets/javascripts/SqlLab/constants.js:32
 msgid "To use this chart type you need at least one dimension"
-msgstr ""
+msgstr "要使用此图表类型，您至少需要一个维度"
 
 #: superset/assets/javascripts/SqlLab/constants.js:33
 msgid "To use this chart type you need at least one aggregation function"
-msgstr ""
+msgstr "要使用这种图表类型，您至少需要一个聚合函数"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:49
 #: superset/assets/javascripts/SqlLab/reducers.js:11
@@ -426,11 +426,11 @@ msgstr "拷贝 URL 到剪切板"
 
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:61
 msgid "Raw SQL"
-msgstr ""
+msgstr "行 SQL"
 
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:71
 msgid "Source SQL"
-msgstr ""
+msgstr "源 SQL"
 
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:83
 #: superset/assets/javascripts/explore/stores/visTypes.js:40
@@ -453,15 +453,15 @@ msgstr "搜索结果"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:160
 msgid "[From]-"
-msgstr ""
+msgstr "[From]-"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:170
 msgid "[To]-"
-msgstr ""
+msgstr "[To]-"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:179
 msgid "[Query Status]"
-msgstr ""
+msgstr "[查询状态]"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:188
 msgid "Search"
@@ -469,7 +469,7 @@ msgstr "搜索"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:114
 msgid "Open in SQL Editor"
-msgstr ""
+msgstr "在 SQL 编辑器中打开"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:133
 msgid "view results"
@@ -481,19 +481,19 @@ msgstr "数据预览"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:176
 msgid "Visualize the data out of this query"
-msgstr ""
+msgstr "从这个查询中可视化数据"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:182
 msgid "Overwrite text in editor with a query on this table"
-msgstr ""
+msgstr "使用该表上的查询覆盖编辑器中的文本"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:188
 msgid "Run query in a new tab"
-msgstr ""
+msgstr "在新标签中运行查询"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:193
 msgid "Remove query from log"
-msgstr ""
+msgstr "从日志中删除查询"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:67
 msgid ".CSV"
@@ -503,7 +503,7 @@ msgstr ".CSV"
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:241
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:280
 msgid "Visualize"
-msgstr ""
+msgstr "可视化"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:162 superset/connectors/sqla/views.py:85
 #: superset/connectors/sqla/views.py:135 superset/connectors/sqla/views.py:214
@@ -517,11 +517,11 @@ msgstr "已创建"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:169
 msgid "Query in a new tab"
-msgstr ""
+msgstr "在新标签中查询"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:210
 msgid "Fetch data preview"
-msgstr ""
+msgstr "获取数据预览"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:230
 msgid "Track Job"
@@ -533,15 +533,15 @@ msgstr "加载中..."
 
 #: superset/assets/javascripts/SqlLab/components/RunQueryActionButton.jsx:19
 msgid "Run Selected Query"
-msgstr ""
+msgstr "运行选定的查询"
 
 #: superset/assets/javascripts/SqlLab/components/RunQueryActionButton.jsx:19
 msgid "Run Query"
-msgstr ""
+msgstr "运行查询"
 
 #: superset/assets/javascripts/SqlLab/components/RunQueryActionButton.jsx:22
 msgid "Run query asynchronously"
-msgstr ""
+msgstr "异步运行查询"
 
 #: superset/assets/javascripts/SqlLab/components/RunQueryActionButton.jsx:57
 msgid "Stop"
@@ -604,7 +604,7 @@ msgstr "历史查询"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditor.jsx:123
 msgid "Create table as with query results"
-msgstr ""
+msgstr "与查询结果一样创建表"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditor.jsx:131
 msgid "new table name"
@@ -612,15 +612,15 @@ msgstr "新表名称"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:90
 msgid "Error while fetching table list"
-msgstr ""
+msgstr "获取表列表时出错"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:131
 msgid "Error while fetching schema list"
-msgstr ""
+msgstr "获取模式列表时出错"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:153
 msgid "Error while fetching database list"
-msgstr ""
+msgstr "获取数据库列表时出错"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:159
 msgid "Database:"
@@ -633,11 +633,11 @@ msgstr "选择一个数据库"
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:170
 #, python-format
 msgid "Select a schema (%s)"
-msgstr ""
+msgstr "选择一个模式 (%s)"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:175
 msgid "Schema:"
-msgstr ""
+msgstr "模式："
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:190
 #, python-format
@@ -646,7 +646,7 @@ msgstr "增加一张表 (%s)"
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:203
 msgid "Type to search ..."
-msgstr ""
+msgstr "键入搜索 ..."
 
 #: superset/assets/javascripts/SqlLab/components/SqlEditorLeftBar.jsx:226
 msgid "Reset State"
@@ -654,7 +654,7 @@ msgstr "状态重置"
 
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:105
 msgid "Enter a new title for the tab"
-msgstr ""
+msgstr "输入标签的新标题"
 
 #: superset/assets/javascripts/SqlLab/components/TabbedSqlEditors.jsx:124
 #, python-format
@@ -679,49 +679,49 @@ msgstr "隐藏工具栏"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:75
 msgid "Copy partition query to clipboard"
-msgstr ""
+msgstr "将分区查询复制到剪贴板"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:94
 msgid "latest partition:"
-msgstr ""
+msgstr "最新分区："
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:110
 msgid "Keys for table"
-msgstr ""
+msgstr "表的键"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:119
 #, python-format
 msgid "View keys & indexes (%s)"
-msgstr ""
+msgstr "查看键和索引 (%s)"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:135
 msgid "Sort columns alphabetically"
-msgstr ""
+msgstr "对列按字母顺序进行排列"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:136
 msgid "Original table column order"
-msgstr ""
+msgstr "原始表列顺序"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:146
 msgid "Copy SELECT statement to clipboard"
-msgstr ""
+msgstr "将 SELECT 语句复制到剪贴板"
 
 #: superset/assets/javascripts/SqlLab/components/TableElement.jsx:152
 msgid "Remove table preview"
-msgstr ""
+msgstr "删除表格预览"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:90
 #, python-format
-msgid "%s is not right as a column name, please alias it (as in SELECT count(*) "
-msgstr ""
+msgid "%s is not right as a column name, please alias it (as in SELECT count(*))"
+msgstr "%s 不适合作为列名，请对其进行别名 (如 SELECT count(*))"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:91
 msgid "AS my_alias"
-msgstr ""
+msgstr "作为 my_alias"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:91
 msgid "using only alphanumeric characters and underscores"
-msgstr ""
+msgstr "只使用字母、数字、字符和下划线"
 
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:166
 msgid "Creating a data source and popping a new tab"
@@ -811,12 +811,12 @@ msgstr "点击"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:61
 msgid "button on the top right to save your changes."
-msgstr ""
+msgstr "请点击右上角的按钮，以保存您的更改。"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:164
 #, python-format
-msgid "Served from data cached %s . Click to force refresh."
-msgstr ""
+msgid "Served from data cached %s, click to force refresh."
+msgstr "来自数据缓存 %s，点击强制刷新。"
 
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:169
 msgid "Click to force refresh"
@@ -830,24 +830,24 @@ msgstr "异常"
 #: superset/assets/javascripts/dashboard/Dashboard.jsx:354
 #, python-format
 msgid "Sorry, there was an error adding slices to this dashboard: %s"
-msgstr ""
+msgstr "对不起，在此仪表板中添加切片时出错：%s"
 
 #: superset/assets/javascripts/dashboard/components/CodeModal.jsx:35
 msgid "Active Dashboard Filters"
-msgstr ""
+msgstr "活跃的仪表板过滤器"
 
 #: superset/assets/javascripts/dashboard/components/Controls.jsx:48
 #, python-format
 msgid "Checkout this dashboard: %s"
-msgstr ""
+msgstr "查看这个仪表板：%s"
 
 #: superset/assets/javascripts/dashboard/components/Controls.jsx:54
 msgid "Force refresh the whole dashboard"
-msgstr ""
+msgstr "强制刷新整个仪表板"
 
 #: superset/assets/javascripts/dashboard/components/Controls.jsx:94
 msgid "Edit this dashboard's properties"
-msgstr ""
+msgstr "编辑这个仪表板的属性"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:65
 msgid "Load a template"
@@ -863,7 +863,7 @@ msgstr "CSS"
 
 #: superset/assets/javascripts/dashboard/components/CssEditor.jsx:86
 msgid "Live CSS Editor"
-msgstr ""
+msgstr "现场 CSS 编辑器"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:19
 msgid "Don't refresh"
@@ -887,36 +887,36 @@ msgstr "5分钟"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:38
 msgid "Refresh Interval"
-msgstr ""
+msgstr "刷新间隔"
 
 #: superset/assets/javascripts/dashboard/components/RefreshIntervalModal.jsx:41
 msgid "Choose the refresh frequency for this dashboard"
-msgstr ""
+msgstr "选择此仪表板的刷新频率"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:63
 msgid "This dashboard was saved successfully."
-msgstr ""
+msgstr "该仪表板已成功保存。"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:69
 msgid "Sorry, there was an error saving this dashboard: "
-msgstr ""
+msgstr "抱歉，保存此信息中心时发生错误："
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:101
 msgid "You must pick a name for the new dashboard"
-msgstr ""
+msgstr "您必须为新的仪表板选择一个名称"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:115
 msgid "Save Dashboard"
-msgstr ""
+msgstr "保存仪表板"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:123
 #, python-format
 msgid "Overwrite Dashboard [%s]"
-msgstr ""
+msgstr "覆盖仪表板 [%s]"
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:131
 msgid "Save as:"
-msgstr ""
+msgstr "另存为："
 
 #: superset/assets/javascripts/dashboard/components/SaveModal.jsx:135
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:210
@@ -929,7 +929,7 @@ msgstr "名字"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:148
 msgid "Viz"
-msgstr ""
+msgstr "Viz"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:157 superset/views/core.py:480
 #: superset/views/core.py:544 superset/views/sql_lab.py:57
@@ -938,23 +938,23 @@ msgstr "已修改"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:167
 msgid "Add Slices"
-msgstr ""
+msgstr "添加切片"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:176
 msgid "Add a new slice to the dashboard"
-msgstr ""
+msgstr "向仪表板添加新的切片"
 
 #: superset/assets/javascripts/dashboard/components/SliceAdder.jsx:181
 msgid "Add Slices to Dashboard"
-msgstr ""
+msgstr "将切片添加到仪表板"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:37
 msgid "Move chart"
-msgstr ""
+msgstr "移动图表"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:40
 msgid "Force refresh data"
-msgstr ""
+msgstr "强制刷新数据"
 
 #: superset/assets/javascripts/dashboard/components/SliceCell.jsx:44
 msgid "Toggle chart description"
