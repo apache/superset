@@ -137,9 +137,16 @@ function viz(slice, payload) {
       } else {
         const recent = reversedData[0][metric];
         let v;
+        let errorMsg;
         if (column.colType === 'time') {
           // Time lag ratio
-          v = reversedData[parseInt(column.timeLag, 10)][metric];
+          const timeLag = parseInt(column.timeLag, 10);
+          const totalLag = Object.keys(reversedData).length;
+          if (timeLag > totalLag) {
+            errorMsg = `The time lag set at ${timeLag} exceeds the length of data at ${reversedData.length}. No data available.`;
+          } else {
+            v = reversedData[timeLag][metric];
+          }
           if (column.comparisonType === 'diff') {
             v = recent - v;
           } else if (column.comparisonType === 'perc') {
@@ -175,11 +182,11 @@ function viz(slice, payload) {
         }
         row[column.key] = {
           data: v,
-          display: (
-            <div style={{ color }}>
+          display: errorMsg ?
+            (<div>{errorMsg}</div>) :
+            (<div style={{ color }}>
               <FormattedNumber num={v} format={column.d3format} />
-            </div>
-          ),
+            </div>),
           style: color && {
             boxShadow: `inset 0px -2.5px 0px 0px ${color}`,
             borderRight: '2px solid #fff',
