@@ -21,7 +21,7 @@ const config = {
     explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/index.jsx'],
     dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/index.jsx'],
     sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],
-    welcome: ['babel-polyfill', APP_DIR + '/javascripts/welcome.js'],
+    welcome: ['babel-polyfill', APP_DIR + '/javascripts/welcome/index.jsx'],
     profile: ['babel-polyfill', APP_DIR + '/javascripts/profile/index.jsx'],
   },
   output: {
