@@ -39,6 +39,10 @@ ADMIN_ONLY_VIEW_MENUS = {
     'UserDBModelView',
 }
 
+ALPHA_ONLY_VIEW_MENUS = {
+    'Upload a CSV',
+}
+
 ADMIN_ONLY_PERMISSIONS = {
     'all_database_access',
     'can_sql_json',  # TODO: move can_sql_json to sql_lab role
@@ -117,7 +121,10 @@ def is_alpha_only(pvm):
     if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
             pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
-    return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
+    return (
+        pvm.view_menu.name in ALPHA_ONLY_VIEW_MENUS or
+        pvm.permission.name in ALPHA_ONLY_PERMISSIONS
+    )
 
 
 def is_admin_pvm(pvm):
