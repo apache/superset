@@ -767,3 +767,8 @@ def merge_extra_filters(form_data):
                     form_data['filters'] += [filtr]
         # Remove extra filters from the form data since no longer needed
         del form_data['extra_filters']
+
+
+def get_update_perms_flag():
+    val = os.environ.get('SUPERSET_UPDATE_PERMS')
+    return val.lower() not in ('0', 'false', 'no') if val else True
