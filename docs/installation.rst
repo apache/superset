@@ -167,6 +167,27 @@ work on Windows so the `superset runserver` command is not expected to work
 in that context. Also note that the development web
 server (`superset runserver -d`) is not intended for production use.
 
+Flask-AppBuilder Permissions
+----------------------------
+
+By default every time the Flask-AppBuilder (FAB) app is initialized the
+permissions and views are added automatically to the backend and associated with
+the ‘Admin’ role. The issue however is when you are running multiple concurrent
+workers this creates a lot of contention and race conditions when defining
+permissions and views.
+
+To alleviate this issue, the automatic updating of permissions can be disabled
+by setting the :envvar:`SUPERSET_UPDATE_PERMS` environment variable to `0`.
+The value `1` enables it, `0` disables it. Note if undefined the functionality
+is enabled to maintain backwards compatibility.
+
+In a production environment initialization could take on the following form:
+
+  export SUPERSET_UPDATE_PERMS=1
+  superset init
+
+  export SUPERSET_UPDATE_PERMS=0
+  gunicorn -w 10 ... superset:app
 
 Configuration behind a load balancer
 ------------------------------------
@@ -181,7 +202,7 @@ If the load balancer is inserting X-Forwarded-For/X-Forwarded-Proto headers, you
 should set `ENABLE_PROXY_FIX = True` in the superset config file to extract and use
 the headers.
 
-In case that the reverse proxy is used for providing ssl encryption, 
+In case that the reverse proxy is used for providing ssl encryption,
 an explicit definition of the `X-Forwarded-Proto` may be required.
 For the Apache webserver this can be set as follows: ::
 

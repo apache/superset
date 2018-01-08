@@ -152,7 +152,9 @@ appbuilder = AppBuilder(
     db.session,
     base_template='superset/base.html',
     indexview=MyIndexView,
-    security_manager_class=app.config.get('CUSTOM_SECURITY_MANAGER'))
+    security_manager_class=app.config.get('CUSTOM_SECURITY_MANAGER'),
+    update_perms=utils.get_update_perms_flag(),
+)
 
 sm = appbuilder.sm
 
