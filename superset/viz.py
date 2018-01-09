@@ -1858,6 +1858,8 @@ class BaseDeckGLViz(BaseViz):
             df['lon'] = latlong.apply(lambda x: x[1])
             del df['geohash']
 
+        return df
+
     def query_obj(self):
         d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
@@ -1880,12 +1882,13 @@ class BaseDeckGLViz(BaseViz):
 
     def get_data(self, df):
         for key in self.spatial_control_keys:
-            self.process_spatial_data_obj(key, df)
+            df = self.process_spatial_data_obj(key, df)
 
         features = []
         for d in df.to_dict(orient='records'):
             d = dict(position=self.get_position(d), **self.get_properties(d))
             features.append(d)
+
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
