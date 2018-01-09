@@ -37,6 +37,10 @@ ADMIN_ONLY_VIEW_MENUS = {
     'RoleModelView',
     'Security',
     'UserDBModelView',
+    'UserLDAPModelView',
+    'UserOAuthModelView',
+    'UserOIDModelView',
+    'UserRemoteUserModelView',
 }
 
 ALPHA_ONLY_VIEW_MENUS = {
