@@ -315,11 +315,13 @@ class CoreTests(SupersetTestCase):
         def custom_password_store(uri):
             return 'password_store_test'
 
-        database.custom_password_store = custom_password_store
+        models.custom_password_store = custom_password_store
         conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
         if conn_pre.password:
             assert conn.password == 'password_store_test'
             assert conn.password != conn_pre.password
+        # Disable for password store for later tests
+        models.custom_password_store = None
 
     def test_databaseview_edit(self, username='admin'):
         # validate that sending a password-masked uri does not over-write the decrypted
