@@ -198,7 +198,7 @@ export const visTypes = {
           ['color_scheme'],
           ['show_brush', 'show_legend'],
           ['hide_lines', 'show_markers'],
-          ['line_interpolation', 'contribution'],
+          ['line_interpolation'],
         ],
       },
       {

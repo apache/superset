@@ -163,7 +163,13 @@ function nvd3Vis(slice, payload) {
     switch (vizType) {
       case 'line_xy':
         fd.rich_tooltip = false;
-        chart = nv.models.lineChart();
+        if (fd.show_brush) {
+          chart = nv.models.lineWithFocusChart();
+          chart.focus.xScale(d3.scale.linear());
+          chart.x2Axis.staggerLabels(false);
+        } else {
+          chart = nv.models.lineChart();
+        }
         chart.xScale(d3.scale.linear());
         chart.interpolate(fd.line_interpolation);
         chart.xAxis.staggerLabels(false);
