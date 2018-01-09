@@ -392,12 +392,12 @@ export const controls = {
     description: t('Show data points as circle markers on the lines'),
   },
 
-  show_lines: {
+  hide_lines: {
     type: 'CheckboxControl',
-    label: t('Show Lines'),
+    label: t('Hide Lines'),
     renderTrigger: true,
-    default: true,
-    description: t('Show lines between data points'),
+    default: false,
+    description: t('Hide lines between data points'),
   },
 
   show_bar_value: {

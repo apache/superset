@@ -197,7 +197,7 @@ export const visTypes = {
         controlSetRows: [
           ['color_scheme'],
           ['show_brush', 'show_legend'],
-          ['show_lines', 'show_markers'],
+          ['hide_lines', 'show_markers'],
           ['line_interpolation', 'contribution'],
         ],
       },

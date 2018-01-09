@@ -477,7 +477,7 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    if (!fd.show_lines) {
+    if (fd.hide_lines) {
       svg.selectAll('.nv-line')
       .style('stroke-width', 0);
     }
