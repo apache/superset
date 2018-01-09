@@ -66,6 +66,32 @@ function tableVis(slice, payload) {
       return d;
     });
 
+  if ( (fd.include_summary) && (data.records.length > 1) ) {
+    table.append('tfoot').append('tr')
+      .selectAll('td')      
+      .data(value => data.summary.map((c) => {
+        const val = c;
+        let html;
+        const isMetric = !isNaN(parseFloat(c)) && isFinite(c);
+        if (typeof (val) === 'string') {
+          html = `<span class="summary-line">${val}</span>`;
+        }
+        if (isMetric) {
+          html = d3.format('0.3s')(val);
+        }
+        return {
+          col: c,
+          val,
+          html,
+          isMetric,
+        };
+      }))
+      .enter()
+      .append('td')       
+      .html(d => d.html ? d.html : d.val)
+      .classed('text-right', d => d.isMetric);
+  }
+
   const filters = slice.getFilters();
   table.append('tbody')
     .selectAll('tr')

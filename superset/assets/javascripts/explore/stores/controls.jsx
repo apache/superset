@@ -822,6 +822,13 @@ export const controls = {
     description: t('Whether to sort descending or ascending'),
   },
 
+  include_summary: {
+    type: 'CheckboxControl',
+    label: t('Summary Line'),
+    default: false,
+    description: t('Includes a summary line'),
+  },
+
   rolling_type: {
     type: 'SelectControl',
     label: t('Rolling'),

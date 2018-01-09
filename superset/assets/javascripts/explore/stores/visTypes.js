@@ -589,7 +589,7 @@ export const visTypes = {
           ['metrics'],
           ['percent_metrics'],
           ['include_time'],
-          ['timeseries_limit_metric', 'order_desc'],
+          ['timeseries_limit_metric', 'order_desc', 'include_summary'],
         ],
       },
       {

@@ -415,6 +415,7 @@ class TableViz(BaseViz):
 
         return dict(
             records=df.to_dict(orient='records'),
+            summary=['Summary',df[fd['metrics']].sum().values[0]],
             columns=list(df.columns),
         )
 
