@@ -21,11 +21,7 @@ import superset.models.core as models
 from superset.views.core import Superset
 from superset.utils import QueryStatus
 from .base import (
-<<<<<<< HEAD
-    json_error_response
-=======
     json_error_response, generate_download_headers, CsvResponse,
->>>>>>> 06d5029b... Moved lyft specific endpoints into its own file
 )
 
 config = app.config
@@ -121,8 +117,6 @@ class Lyft(Superset):
 
         return json_success(json.dumps(bootstrap_data))
 
-<<<<<<< HEAD
-=======
     def generate_json(self, datasource_type, datasource_id, form_data,
                       csv=False, query=False, force=False):
         try:
@@ -159,6 +153,5 @@ class Lyft(Superset):
 
         return json_success(viz_obj.json_dumps(payload), status=status)
 
->>>>>>> 06d5029b... Moved lyft specific endpoints into its own file
 
 appbuilder.add_view_no_menu(Lyft)
