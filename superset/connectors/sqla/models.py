@@ -193,7 +193,7 @@ class TableColumn(Model, BaseColumn):
                 metric_type='count_distinct',
                 expression='COUNT(DISTINCT {})'.format(quoted),
             ))
-            return {m.metric_name: m for m in metrics}
+        return {m.metric_name: m for m in metrics}
 
 
 class SqlMetric(Model, BaseMetric):
@@ -747,7 +747,7 @@ class SqlaTable(Model, BaseDatasource):
             self.columns.append(dbcol)
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
-            metrics += col.get_metrics.values()
+            metrics += dbcol.get_metrics().values()
 
         metrics.append(M(
             metric_name='count',
