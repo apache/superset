@@ -173,8 +173,10 @@ class BaseViz(object):
 
         self.time_shift = utils.parse_human_timedelta(time_shift)
 
-        from_dttm = utils.parse_human_datetime(since) - self.time_shift
-        to_dttm = utils.parse_human_datetime(until) - self.time_shift
+        since = utils.parse_human_datetime(since)
+        until = utils.parse_human_datetime(until)
+        from_dttm = None if since is None else (since - self.time_shift)
+        to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_('From date cannot be larger than to date'))
 
