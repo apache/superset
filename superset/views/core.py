@@ -1351,11 +1351,17 @@ class Superset(BaseSupersetView):
         modelview_to_model = {
             'TableColumnInlineView':
                 ConnectorRegistry.sources['table'].column_class,
+            'DruidColumnInlineView':
+                ConnectorRegistry.sources['druid'].column_class,
         }
         model = modelview_to_model[model_view]
-        obj = db.session.query(model).filter_by(id=id_).first()
-        if obj:
-            setattr(obj, attr, value == 'true')
+        col = db.session.query(model).filter_by(id=id_).first()
+        checked = value == 'true'
+        if col:
+            setattr(col, attr, checked)
+            if checked:
+                metrics = col.get_metrics().values()
+                col.datasource.add_missing_metrics(metrics)
             db.session.commit()
         return json_success('OK')
 
