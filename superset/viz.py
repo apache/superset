@@ -1882,7 +1882,6 @@ class BaseDeckGLViz(BaseViz):
 
         features = []
         for d in df.to_dict(orient='records'):
-            print(d)
             feature = dict(
                 position=self.get_position(d),
                 props=self.get_js_columns(d),
@@ -1961,9 +1960,9 @@ class DeckPathViz(BaseDeckGLViz):
         d = super(DeckPathViz, self).query_obj()
         line_col = self.form_data.get('line_column')
         if d['metrics']:
-            d['groupby'] += [line_col]
+            d['groupby'].append(line_col)
         else:
-            d['columns'] += [line_col]
+            d['columns'].append(line_col)
         return d
 
     def get_properties(self, d):
