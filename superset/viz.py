@@ -1814,7 +1814,7 @@ class BaseDeckGLViz(BaseViz):
         }
 
     def get_position(self, d):
-        return [float(coor) for coor in d.get('lonlat').split(',')]
+        raise Exception('Not implemented in child class!')
 
     def process_spatial_query_obj(self, key, group_by):
         spatial = self.form_data.get(key)
@@ -1830,35 +1830,59 @@ class BaseDeckGLViz(BaseViz):
             group_by += [spatial.get('geohashCol')]
 
     def process_spatial_data_obj(self, key, df):
+        # from pprint import pprint
+
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
 
+        # d = {'lonlatCol': ['36.89461,-76.20121999999999'], 'geohashCol': ['dq9ccurywvu1']}
+        # df = pd.DataFrame(data=d)
+        # spatial['type'] = 'delimited'
+        # spatial['geohashCol'] = 'geohashCol'
+        # spatial['lonlatCol'] = 'lonlatCol'
+        # spatial['delimiter'] = ','
+        # spatial['reverseCheckbox'] = True
+        # pprint(df)
+
         if spatial.get('type') == 'latlong':
-            df['lonlat'] = df[spatial.get('lonCol')].map(str) + ',' + \
-                df[spatial.get('latCol')].map(str)
-            df = df.rename(columns={
-                spatial.get('lonCol'): 'lon',
-                spatial.get('latCol'): 'lat'})
+            df[key] = list(zip(df[spatial.get('lonCol')], df[spatial.get('latCol')]))
+
+            # df['lonlat'] = df[spatial.get('lonCol')].map(str) + ',' + \
+            #     df[spatial.get('latCol')].map(str)
+            # df = df.rename(columns={
+            #     spatial.get('lonCol'): 'lon',
+            #     spatial.get('latCol'): 'lat'})
         elif spatial.get('type') == 'delimited':
-            cols = ['lon', 'lat']
+            df[key] = (df[spatial.get('lonlatCol')].str.split(spatial.get('delimiter')))
+
+            # cols = ['lon', 'lat']
             if spatial.get('reverseCheckbox'):
-                cols.reverse()
-            df[cols] = (
-                df[spatial.get('lonlatCol')]
-                .str
-                .split(spatial.get('delimiter'), expand=True)
-                .astype(np.float64)
-            )
-            df['lonlat'] = df['lon'].map(str) + ',' + df['lat'].map(str)
+                df[key] = [list(reversed(item))for item in df[key]]
+
+            # pprint('>' * 20)
+            # pprint(df[key])
+            # pprint('>' * 20)
+
+            # df[cols] = (
+            #     df[spatial.get('lonlatCol')]
+            #     .str
+            #     .split(spatial.get('delimiter'), expand=True)
+            #     .astype(np.float64)
+            # )
+            # df['lonlat'] = df['lon'].map(str) + ',' + df['lat'].map(str)
             del df[spatial.get('lonlatCol')]
         elif spatial.get('type') == 'geohash':
             latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-            df['lat'] = latlong.apply(lambda x: x[0])
-            df['lon'] = latlong.apply(lambda x: x[1])
-            df['lonlat'] = latlong.apply(lambda x: x[0]).map(str) + ',' + \
-                latlong.apply(lambda x: x[1]).map(str)
+            # df['lat'] = latlong.apply(lambda x: x[0])
+            # df['lon'] = latlong.apply(lambda x: x[1])
+            # df['lonlat'] = latlong.apply(lambda x: x[0]).map(str) + ',' + \
+            #     latlong.apply(lambda x: x[1]).map(str)
+            df[key] = list(zip(latlong.apply(lambda x: x[0]),
+                               latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
+
+        # pprint(df)
 
         return df
 
@@ -1891,6 +1915,7 @@ class BaseDeckGLViz(BaseViz):
             d = dict(position=self.get_position(d), **self.get_properties(d))
             features.append(d)
 
+        return features
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
@@ -2028,24 +2053,19 @@ class DeckArc(BaseDeckGLViz):
     verbose_name = _('Deck.gl - Arc')
     spatial_control_keys = ['start_spatial', 'end_spatial']
 
+    def get_position(self, d):
+        deck_map = {
+            'start_spatial': 'sourcePosition',
+            'end_spatial': 'targetPosition',
+        }
+
+        return {deck_map[key]: d[key] for key in self.spatial_control_keys}
+
     def get_data(self, df):
-        arcs = []
-        start_end_df = [self.process_spatial_data_obj(key=key, df=df)
-                        for key in self.spatial_control_keys]
-
-        start_df = [[float(num) for num in item.split(',')]
-                    for item in start_end_df[0]['lonlat']]
-        end_df = [[float(num) for num in item.split(',')]
-                  for item in start_end_df[1]['lonlat']]
-
-        for pos in list(zip(start_df, end_df)):
-            arcs.append({
-                'sourcePosition': pos[0],
-                'targetPosition': pos[1],
-            })
+        d = super(DeckArc, self).get_data(df)
 
         return {
-            'arcs': arcs,
+            'arcs': [arc['position'] for arc in d],
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 
