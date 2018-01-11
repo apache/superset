@@ -629,13 +629,28 @@ function nvd3Vis(slice, payload) {
 
             const tip = tipFactory(e);
             const records = (slice.annotationData[e.name].records || []).map((r) => {
+<<<<<<< HEAD
               const timeColumn = new Date(moment.utc(r[e.timeColumn]));
+=======
+              const timeValue = new Date(r[e.timeColumn]);
+>>>>>>> [bugs] account for annotations in nvd3 x scale domain, fix dynamic width explore charts, allow 0 in text control
               return {
                 ...r,
-                [e.timeColumn]: timeColumn,
+                [e.timeColumn]: timeValue,
               };
-            }).filter(r => !Number.isNaN(r[e.timeColumn].getMilliseconds()));
+            }).filter((r) => {
+              const isValid = !Number.isNaN(r[e.timeColumn].getMilliseconds());
+              if (isValid) {
+                xMin = xMin < r[e.timeColumn] ? xMin : r[e.timeColumn];
+                xMax = xMax > r[e.timeColumn] ? xMax : r[e.timeColumn];
+              }
+              return isValid;
+            });
             if (records.length) {
+              const domain = [xMin, xMax];
+              xScale.domain(domain);
+              chart.xDomain(domain);
+
               annotations.selectAll('line')
                 .data(records)
                 .enter()
@@ -670,16 +685,29 @@ function nvd3Vis(slice, payload) {
             const tip = tipFactory(e);
 
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
-              const intervalEndColumn = new Date(moment.utc(r[e.intervalEndColumn]));
+              const timeValue = new Date(moment.utc(r[e.timeColumn]));
+              const intervalEndValue = new Date(moment.utc(r[e.intervalEndColumn]));
               return {
                 ...r,
-                [e.timeColumn]: timeColumn,
-                [e.intervalEndColumn]: intervalEndColumn,
+                [e.timeColumn]: timeValue,
+                [e.intervalEndColumn]: intervalEndValue,
               };
-            }).filter(r => !Number.isNaN(r[e.timeColumn].getMilliseconds()) &&
-              !Number.isNaN(r[e.intervalEndColumn].getMilliseconds()));
+            }).filter((r) => {
+              const isValid = (
+                !Number.isNaN(r[e.timeColumn].getMilliseconds()) &&
+                !Number.isNaN(r[e.intervalEndColumn].getMilliseconds())
+              );
+              if (isValid) {
+                xMin = xMin < r[e.timeColumn] ? xMin : r[e.timeColumn];
+                xMax = xMax > r[e.intervalEndColumn] ? xMax : r[e.intervalEndColumn];
+              }
+              return isValid;
+            });
             if (records.length) {
+              const domain = [xMin, xMax];
+              xScale.domain(domain);
+              chart.xDomain(domain);
+
               annotations.selectAll('rect')
                 .data(records)
                 .enter()

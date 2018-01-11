@@ -31,7 +31,7 @@ export default class TextControl extends React.Component {
     this.onChange = this.onChange.bind(this);
   }
   onChange(event) {
-    let value = event.target.value || '';
+    let value = typeof event.target.value !== 'undefined' ? event.target.value : '';
 
     // Validation & casting
     const errors = [];
@@ -54,7 +54,8 @@ export default class TextControl extends React.Component {
     this.props.onChange(value, errors);
   }
   render() {
-    const value = this.props.value ? this.props.value.toString() : '';
+    const { value: rawValue } = this.props;
+    const value = typeof rawValue !== 'undefined' && rawValue !== null ? rawValue.toString() : '';
     return (
       <div>
         <ControlHeader {...this.props} />
