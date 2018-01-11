@@ -37,7 +37,6 @@ export default function getLayer(formData, payload, slice) {
   return new ScatterplotLayer({
     id: `scatter-layer-${fd.slice_id}`,
     data,
-    pickable: true,
     fp64: true,
     outline: false,
     ...common.commonLayerProps(fd, slice),

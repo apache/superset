@@ -1201,14 +1201,14 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Range Filter'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('Whether to display the time range interactive selector'),
   },
 
   date_filter: {
     type: 'CheckboxControl',
     label: t('Date Filter'),
-    default: false,
+    default: true,
     description: t('Whether to include a time filter'),
   },
 
@@ -1868,6 +1868,22 @@ export const controls = {
     label: t('Extra data for JS'),
     default: [],
     description: t('List of extra columns made available in Javascript functions'),
+  },
+
+  stroked: {
+    type: 'CheckboxControl',
+    label: t('Stroked'),
+    renderTrigger: true,
+    description: t('Whether to display the stroke'),
+    default: false,
+  },
+
+  filled: {
+    type: 'CheckboxControl',
+    label: t('Filled'),
+    renderTrigger: true,
+    description: t('Whether to fill the objects'),
+    default: false,
   },
 };
 export default controls;

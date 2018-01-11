@@ -500,7 +500,18 @@ export const visTypes = {
         label: t('GeoJson Settings'),
         controlSetRows: [
           ['fill_color_picker', 'stroke_color_picker'],
+          ['filled', 'stroked'],
+          ['extruded', null],
           ['point_radius_scale', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
