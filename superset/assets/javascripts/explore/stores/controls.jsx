@@ -46,15 +46,6 @@ const sortAxisChoices = [
   ['value_desc', 'sum(value) descending'],
 ];
 
-const sandboxUrl = 'https://github.com/apache/incubator-superset/blob/master/superset/assets/javascripts/modules/sandbox.js';
-const sandboxedEvalInfo = (
-  <span>
-    {t('While this runs in a ')}
-    <a href="https://nodejs.org/api/vm.html#vm_script_runinnewcontext_sandbox_options">sandboxed vm</a>
-    , {t('a set of')}<a href={sandboxUrl}> useful objects are in context </a>
-    {t('to be used where necessary.')}
-  </span>);
-
 const groupByControl = {
   type: 'SelectControl',
   multi: true,
@@ -76,6 +67,35 @@ const groupByControl = {
     return newState;
   },
 };
+
+const sandboxUrl = (
+  'https://github.com/apache/incubator-superset/' +
+  'blob/master/superset/assets/javascripts/modules/sandbox.js');
+const jsFunctionInfo = (
+  <div>
+    {t('For more information about objects are in context in the scope of this function, refer to the')}
+    <a href={sandboxUrl}>
+      {t(" source code of Superset's sandboxed parser")}.
+    </a>.
+  </div>
+);
+function jsFunctionControl(label, description, extraDescr = null, height = 100, defaultText = '') {
+  return {
+    type: 'TextAreaControl',
+    language: 'javascript',
+    label,
+    description,
+    height,
+    default: defaultText,
+    aboveEditorSection: (
+      <div>
+        <p>{description}</p>
+        <p>{jsFunctionInfo}</p>
+        {extraDescr}
+      </div>
+    ),
+  };
+}
 
 export const controls = {
   datasource: {
@@ -1181,14 +1201,14 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Range Filter'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('Whether to display the time range interactive selector'),
   },
 
   date_filter: {
     type: 'CheckboxControl',
     label: t('Date Filter'),
-    default: false,
+    default: true,
     description: t('Whether to include a time filter'),
   },
 
@@ -1399,7 +1419,7 @@ export const controls = {
       ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
       ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
     ],
-    default: 'mapbox://styles/mapbox/streets-v9',
+    default: 'mapbox://styles/mapbox/light-v9',
     description: t('Base layer map style'),
   },
 
@@ -1804,20 +1824,6 @@ export const controls = {
     default: false,
   },
 
-  js_data: {
-    type: 'TextAreaControl',
-    label: t('Javascript data mutator'),
-    description: t('Define a function that receives intercepts the data objects and can mutate it'),
-    language: 'javascript',
-    default: '',
-    height: 100,
-    aboveEditorSection: (
-      <p>
-        Define a function that intercepts the <code>data</code> object passed to the visualization
-        and returns a similarly shaped object. {sandboxedEvalInfo}
-      </p>),
-  },
-
   deck_slices: {
     type: 'SelectAsyncControl',
     multi: true,
@@ -1834,6 +1840,50 @@ export const controls = {
       }
       return data.result.map(o => ({ value: o.id, label: o.slice_name }));
     },
+  },
+
+  js_datapoint_mutator: jsFunctionControl(
+    t('Javascript data point mutator'),
+    t('Define a javascript function that receives each data point and can alter it ' +
+      'before getting sent to the deck.gl layer'),
+  ),
+
+  js_data: jsFunctionControl(
+    t('Javascript data mutator'),
+    t('Define a function that receives intercepts the data objects and can mutate it'),
+  ),
+
+  js_tooltip: jsFunctionControl(
+    t('Javascript tooltip generator'),
+    t('Define a function that receives the input and outputs the content for a tooltip'),
+  ),
+
+  js_onclick_href: jsFunctionControl(
+    t('Javascript onClick href'),
+    t('Define a function that returns a URL to navigate to when user clicks'),
+  ),
+
+  js_columns: {
+    ...groupByControl,
+    label: t('Extra data for JS'),
+    default: [],
+    description: t('List of extra columns made available in Javascript functions'),
+  },
+
+  stroked: {
+    type: 'CheckboxControl',
+    label: t('Stroked'),
+    renderTrigger: true,
+    description: t('Whether to display the stroke'),
+    default: false,
+  },
+
+  filled: {
+    type: 'CheckboxControl',
+    label: t('Filled'),
+    renderTrigger: true,
+    description: t('Whether to fill the objects'),
+    default: false,
   },
 };
 export default controls;

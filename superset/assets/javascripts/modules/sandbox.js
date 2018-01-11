@@ -1,6 +1,7 @@
 // A safe alternative to JS's eval
 import vm from 'vm';
 import _ from 'underscore';
+import * as colors from './colors';
 
 // Objects exposed here should be treated like a public API
 // if `underscore` had backwards incompatible changes in a future release, we'd
@@ -8,6 +9,7 @@ import _ from 'underscore';
 const GLOBAL_CONTEXT = {
   console,
   _,
+  colors,
 };
 
 // Copied/modified from https://github.com/hacksparrow/safe-eval/blob/master/index.js
