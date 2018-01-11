@@ -4,6 +4,7 @@ import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/di
 import html from 'react-syntax-highlighter/dist/languages/htmlbars';
 import markdown from 'react-syntax-highlighter/dist/languages/markdown';
 import sql from 'react-syntax-highlighter/dist/languages/sql';
+import json from 'react-syntax-highlighter/dist/languages/json';
 import github from 'react-syntax-highlighter/dist/styles/github';
 import CopyToClipboard from './../../components/CopyToClipboard';
 
@@ -14,6 +15,7 @@ import { t } from '../../locales';
 registerLanguage('markdown', markdown);
 registerLanguage('html', html);
 registerLanguage('sql', sql);
+registerLanguage('json', json);
 
 const $ = window.$ = require('jquery');
 

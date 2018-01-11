@@ -430,7 +430,7 @@ class DruidDatasource(Model, BaseDatasource):
     __table_args__ = (UniqueConstraint('datasource_name', 'cluster_name'),)
 
     type = 'druid'
-    query_langtage = 'json'
+    query_language = 'json'
     cluster_class = DruidCluster
     metric_class = DruidMetric
     column_class = DruidColumn
