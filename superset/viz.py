@@ -1841,6 +1841,8 @@ class BaseDeckGLViz(BaseViz):
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
 
+        if fd.get('js_columns'):
+            gb += fd.get('js_columns')
         metrics = self.get_metrics()
         if metrics:
             d['groupby'] = gb
@@ -1848,6 +1850,10 @@ class BaseDeckGLViz(BaseViz):
         else:
             d['columns'] = gb
         return d
+
+    def get_js_columns(self, d):
+        cols = self.form_data.get('js_columns') or []
+        return {col: d.get(col) for col in cols}
 
     def get_data(self, df):
         fd = self.form_data
@@ -1876,8 +1882,11 @@ class BaseDeckGLViz(BaseViz):
 
         features = []
         for d in df.to_dict(orient='records'):
-            d = dict(position=self.get_position(d), **self.get_properties(d))
-            features.append(d)
+            feature = dict(
+                position=self.get_position(d),
+                props=self.get_js_columns(d),
+                **self.get_properties(d))
+            features.append(feature)
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
@@ -1949,22 +1958,22 @@ class DeckPathViz(BaseDeckGLViz):
 
     def query_obj(self):
         d = super(DeckPathViz, self).query_obj()
-        d['groupby'] = []
-        d['metrics'] = []
-        d['columns'] = [self.form_data.get('line_column')]
+        line_col = self.form_data.get('line_column')
+        if d['metrics']:
+            d['groupby'].append(line_col)
+        else:
+            d['columns'].append(line_col)
         return d
 
-    def get_data(self, df):
+    def get_properties(self, d):
         fd = self.form_data
         deser = self.deser_map[fd.get('line_type')]
-        paths = [deser(s) for s in df[fd.get('line_column')]]
+        path = deser(d[fd.get('line_column')])
         if fd.get('reverse_long_lat'):
-            paths = [[(point[1], point[0]) for point in path] for path in paths]
-        d = {
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-            'paths': paths,
+            path = (path[1], path[0])
+        return {
+            'path': path,
         }
-        return d
 
 
 class DeckHex(BaseDeckGLViz):
