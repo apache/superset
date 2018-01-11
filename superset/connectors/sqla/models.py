@@ -97,6 +97,10 @@ class TableColumn(Model, BaseColumn):
             col = literal_column(self.expression).label(name)
         return col
 
+    @property
+    def datasource(self):
+        return self.table
+
     def get_time_filter(self, start_dttm, end_dttm):
         col = self.sqla_col.label('__time')
         l = []  # noqa: E741
@@ -154,6 +158,42 @@ class TableColumn(Model, BaseColumn):
             s = self.table.database.db_engine_spec.convert_dttm(
                 self.type or '', dttm)
             return s or "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+
+    def get_metrics(self):
+        metrics = []
+        M = SqlMetric  # noqa
+        quoted = self.column_name
+        if self.sum:
+            metrics.append(M(
+                metric_name='sum__' + self.column_name,
+                metric_type='sum',
+                expression='SUM({})'.format(quoted),
+            ))
+        if self.avg:
+            metrics.append(M(
+                metric_name='avg__' + self.column_name,
+                metric_type='avg',
+                expression='AVG({})'.format(quoted),
+            ))
+        if self.max:
+            metrics.append(M(
+                metric_name='max__' + self.column_name,
+                metric_type='max',
+                expression='MAX({})'.format(quoted),
+            ))
+        if self.min:
+            metrics.append(M(
+                metric_name='min__' + self.column_name,
+                metric_type='min',
+                expression='MIN({})'.format(quoted),
+            ))
+        if self.count_distinct:
+            metrics.append(M(
+                metric_name='count_distinct__' + self.column_name,
+                metric_type='count_distinct',
+                expression='COUNT(DISTINCT {})'.format(quoted),
+            ))
+        return {m.metric_name: m for m in metrics}
 
 
 class SqlMetric(Model, BaseMetric):
@@ -702,47 +742,12 @@ class SqlaTable(Model, BaseDatasource):
                 dbcol.sum = dbcol.is_num
                 dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
+            else:
+                dbcol.type = datatype
             self.columns.append(dbcol)
             if not any_date_col and dbcol.is_time:
                 any_date_col = col.name
-
-            quoted = col.name
-            if dbcol.sum:
-                metrics.append(M(
-                    metric_name='sum__' + dbcol.column_name,
-                    verbose_name='sum__' + dbcol.column_name,
-                    metric_type='sum',
-                    expression='SUM({})'.format(quoted),
-                ))
-            if dbcol.avg:
-                metrics.append(M(
-                    metric_name='avg__' + dbcol.column_name,
-                    verbose_name='avg__' + dbcol.column_name,
-                    metric_type='avg',
-                    expression='AVG({})'.format(quoted),
-                ))
-            if dbcol.max:
-                metrics.append(M(
-                    metric_name='max__' + dbcol.column_name,
-                    verbose_name='max__' + dbcol.column_name,
-                    metric_type='max',
-                    expression='MAX({})'.format(quoted),
-                ))
-            if dbcol.min:
-                metrics.append(M(
-                    metric_name='min__' + dbcol.column_name,
-                    verbose_name='min__' + dbcol.column_name,
-                    metric_type='min',
-                    expression='MIN({})'.format(quoted),
-                ))
-            if dbcol.count_distinct:
-                metrics.append(M(
-                    metric_name='count_distinct__' + dbcol.column_name,
-                    verbose_name='count_distinct__' + dbcol.column_name,
-                    metric_type='count_distinct',
-                    expression='COUNT(DISTINCT {})'.format(quoted),
-                ))
-            dbcol.type = datatype
+            metrics += dbcol.get_metrics().values()
 
         metrics.append(M(
             metric_name='count',
@@ -750,16 +755,9 @@ class SqlaTable(Model, BaseDatasource):
             metric_type='count',
             expression='COUNT(*)',
         ))
-
-        dbmetrics = db.session.query(M).filter(M.table_id == self.id).filter(
-            or_(M.metric_name == metric.metric_name for metric in metrics))
-        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
-        for metric in metrics:
-            metric.table_id = self.id
-            if not dbmetrics.get(metric.metric_name, None):
-                db.session.add(metric)
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
+        self.add_missing_metrics(metrics)
         db.session.merge(self)
         db.session.commit()
 

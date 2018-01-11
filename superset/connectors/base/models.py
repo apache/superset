@@ -115,6 +115,13 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             if m.d3format
         }
 
+    def add_missing_metrics(self, metrics):
+        exisiting_metrics = {m.metric_name for m in self.metrics}
+        for metric in metrics:
+            if metric.metric_name not in exisiting_metrics:
+                metric.table_id = self.id
+                self.metrics += [metric]
+
     @property
     def metrics_combo(self):
         return sorted(
