@@ -519,6 +519,26 @@ export const controls = {
     }),
   },
 
+  start_spatial: {
+    type: 'SpatialControl',
+    label: t('Start Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  end_spatial: {
+    type: 'SpatialControl',
+    label: t('End Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),
@@ -558,6 +578,15 @@ export const controls = {
     validators: [v.integer],
     default: null,
     choices: formatSelectOptions([0, 100, 200, 300, 500]),
+  },
+
+  stroke_width: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Stroke Width'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([1, 2, 3, 4, 5]),
   },
 
   all_columns_x: {

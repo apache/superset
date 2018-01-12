@@ -517,6 +517,34 @@ export const visTypes = {
     ],
   },
 
+  deck_arc: {
+    label: t('Deck.gl - Arc'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['start_spatial', 'end_spatial'],
+          ['row_limit', null],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('Arc'),
+        controlSetRows: [
+          ['color_picker', null],
+          ['stroke_width', null],
+        ],
+      },
+    ],
+  },
+
   deck_scatter: {
     label: t('Deck.gl - Scatter plot'),
     requiresTime: true,
