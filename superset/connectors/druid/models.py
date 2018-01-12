@@ -1008,6 +1008,22 @@ class DruidDatasource(Model, BaseDatasource):
             to_dttm.isoformat() if to_dttm else '',
         )
 
+    @staticmethod
+    def _dimensions_to_values(dimensions):
+        """
+        Replace dimensions specs with their `dimension`
+        values, and ignore those without
+        """
+        values = []
+        for dimension in dimensions:
+            if isinstance(dimension, dict):
+                if 'dimension' in dimension:
+                    values.append(dimension['dimension'])
+            else:
+                values.append(dimension)
+
+        return values
+
     def run_query(  # noqa / druid
             self,
             groupby, metrics,
@@ -1111,12 +1127,9 @@ class DruidDatasource(Model, BaseDatasource):
             pre_qry['threshold'] = min(row_limit,
                                        timeseries_limit or row_limit)
             pre_qry['metric'] = order_by
-            if isinstance(dim, dict):
-                if 'dimension' in dim:
-                    pre_qry['dimension'] = dim['dimension']
-            else:
-                pre_qry['dimension'] = dim
+            pre_qry['dimension'] = self._dimensions_to_values(qry.get('dimensions'))[0]
             del pre_qry['dimensions']
+
             client.topn(**pre_qry)
             logging.info('Phase 1 Complete')
             query_str += '// Two phase query\n// Phase 1\n'
@@ -1146,11 +1159,17 @@ class DruidDatasource(Model, BaseDatasource):
             logging.info('Running groupby query for dimensions [{}]'.format(dimensions))
             if timeseries_limit and is_timeseries:
                 logging.info('Running two-phase query for timeseries')
-                order_by = metrics[0] if metrics else self.metrics[0]
+
+                pre_qry = deepcopy(qry)
+                pre_qry_dims = self._dimensions_to_values(qry['dimensions'])
+                pre_qry['dimensions'] = list(set(pre_qry_dims))
+
+                order_by = metrics[0] if metrics else pre_qry_dims[0]
+
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
+
                 # Limit on the number of timeseries, doing a two-phases query
-                pre_qry = deepcopy(qry)
                 pre_qry['granularity'] = 'all'
                 pre_qry['limit_spec'] = {
                     'type': 'default',
@@ -1162,16 +1181,6 @@ class DruidDatasource(Model, BaseDatasource):
                         'direction': order_direction,
                     }],
                 }
-                pre_qry_dims = []
-                # Replace dimensions specs with their `dimension`
-                # values, and ignore those without
-                for dim in qry['dimensions']:
-                    if isinstance(dim, dict):
-                        if 'dimension' in dim:
-                            pre_qry_dims.append(dim['dimension'])
-                    else:
-                        pre_qry_dims.append(dim)
-                pre_qry['dimensions'] = list(set(pre_qry_dims))
                 client.groupby(**pre_qry)
                 logging.info('Phase 1 Complete')
                 query_str += '// Two phase query\n// Phase 1\n'
@@ -1190,12 +1199,13 @@ class DruidDatasource(Model, BaseDatasource):
                 )
                 qry['limit_spec'] = None
             if row_limit:
+                dimension_values = self._dimensions_to_values(dimensions)
                 qry['limit_spec'] = {
                     'type': 'default',
                     'limit': row_limit,
                     'columns': [{
                         'dimension': (
-                            metrics[0] if metrics else self.metrics[0]),
+                            metrics[0] if metrics else dimension_values[0]),
                         'direction': order_direction,
                     }],
                 }
