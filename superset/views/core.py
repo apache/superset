@@ -1351,11 +1351,17 @@ class Superset(BaseSupersetView):
         modelview_to_model = {
             'TableColumnInlineView':
                 ConnectorRegistry.sources['table'].column_class,
+            'DruidColumnInlineView':
+                ConnectorRegistry.sources['druid'].column_class,
         }
         model = modelview_to_model[model_view]
-        obj = db.session.query(model).filter_by(id=id_).first()
-        if obj:
-            setattr(obj, attr, value == 'true')
+        col = db.session.query(model).filter_by(id=id_).first()
+        checked = value == 'true'
+        if col:
+            setattr(col, attr, checked)
+            if checked:
+                metrics = col.get_metrics().values()
+                col.datasource.add_missing_metrics(metrics)
             db.session.commit()
         return json_success('OK')
 
@@ -2310,12 +2316,14 @@ class Superset(BaseSupersetView):
                 data = sql_lab.get_sql_results(
                     query_id=query_id, return_results=True,
                     template_params=template_params)
+            payload = json.dumps(
+                data, default=utils.pessimistic_json_iso_dttm_ser)
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))
         if data.get('status') == QueryStatus.FAILED:
             return json_error_response(payload=data)
-        return json_success(json.dumps(data, default=utils.json_iso_dttm_ser))
+        return json_success(payload)
 
     @has_access
     @expose('/csv/<client_id>')

@@ -41,6 +41,7 @@ install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
+custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -567,7 +568,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     }
     """))
     perm = Column(String(1000))
-    custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
+
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
@@ -611,7 +612,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def set_sqlalchemy_uri(self, uri):
         conn = sqla.engine.url.make_url(uri.strip())
-        if conn.password != PASSWORD_MASK and not self.custom_password_store:
+        if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn.password = PASSWORD_MASK if conn.password else None
@@ -803,8 +804,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
-        if self.custom_password_store:
-            conn.password = self.custom_password_store(conn)
+        if custom_password_store:
+            conn.password = custom_password_store(conn)
         else:
             conn.password = self.password
         return str(conn)

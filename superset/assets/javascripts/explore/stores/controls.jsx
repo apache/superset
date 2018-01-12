@@ -519,6 +519,26 @@ export const controls = {
     }),
   },
 
+  start_spatial: {
+    type: 'SpatialControl',
+    label: t('Start Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  end_spatial: {
+    type: 'SpatialControl',
+    label: t('End Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),
@@ -558,6 +578,15 @@ export const controls = {
     validators: [v.integer],
     default: null,
     choices: formatSelectOptions([0, 100, 200, 300, 500]),
+  },
+
+  stroke_width: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Stroke Width'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([1, 2, 3, 4, 5]),
   },
 
   all_columns_x: {
@@ -1201,14 +1230,14 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Range Filter'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('Whether to display the time range interactive selector'),
   },
 
   date_filter: {
     type: 'CheckboxControl',
     label: t('Date Filter'),
-    default: false,
+    default: true,
     description: t('Whether to include a time filter'),
   },
 
@@ -1868,6 +1897,22 @@ export const controls = {
     label: t('Extra data for JS'),
     default: [],
     description: t('List of extra columns made available in Javascript functions'),
+  },
+
+  stroked: {
+    type: 'CheckboxControl',
+    label: t('Stroked'),
+    renderTrigger: true,
+    description: t('Whether to display the stroke'),
+    default: false,
+  },
+
+  filled: {
+    type: 'CheckboxControl',
+    label: t('Filled'),
+    renderTrigger: true,
+    description: t('Whether to fill the objects'),
+    default: false,
   },
 };
 export default controls;
