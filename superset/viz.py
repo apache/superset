@@ -946,7 +946,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if isinstance(series_title, string_types):
                 series_title += title_suffix
             elif title_suffix and isinstance(series_title, (list, tuple)):
-                series_title = series_title + (title_suffix,)
+                series_title = text_type(series_title[-1]) + title_suffix
 
             values = []
             for ds in df.index:
