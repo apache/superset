@@ -1806,6 +1806,7 @@ class BaseDeckGLViz(BaseViz):
 
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
+    spatial_control_keys = []
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
@@ -1817,26 +1818,48 @@ class BaseDeckGLViz(BaseViz):
         }
 
     def get_position(self, d):
-        return [
-            d.get('lon'),
-            d.get('lat'),
-        ]
+        raise Exception('Not implemented in child class!')
+
+    def process_spatial_query_obj(self, key, group_by):
+        spatial = self.form_data.get(key)
+        if spatial is None:
+            raise ValueError(_('Bad spatial key'))
+
+        if spatial.get('type') == 'latlong':
+            group_by += [spatial.get('lonCol')]
+            group_by += [spatial.get('latCol')]
+        elif spatial.get('type') == 'delimited':
+            group_by += [spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            group_by += [spatial.get('geohashCol')]
+
+    def process_spatial_data_obj(self, key, df):
+        spatial = self.form_data.get(key)
+        if spatial is None:
+            raise ValueError(_('Bad spatial key'))
+
+        if spatial.get('type') == 'latlong':
+            df[key] = list(zip(df[spatial.get('lonCol')], df[spatial.get('latCol')]))
+        elif spatial.get('type') == 'delimited':
+            df[key] = (df[spatial.get('lonlatCol')].str.split(spatial.get('delimiter')))
+            if spatial.get('reverseCheckbox'):
+                df[key] = [list(reversed(item))for item in df[key]]
+            del df[spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+            df[key] = list(zip(latlong.apply(lambda x: x[0]),
+                               latlong.apply(lambda x: x[1])))
+            del df[spatial.get('geohashCol')]
+
+        return df
 
     def query_obj(self):
         d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
-
         gb = []
 
-        spatial = fd.get('spatial')
-        if spatial:
-            if spatial.get('type') == 'latlong':
-                gb += [spatial.get('lonCol')]
-                gb += [spatial.get('latCol')]
-            elif spatial.get('type') == 'delimited':
-                gb += [spatial.get('lonlatCol')]
-            elif spatial.get('type') == 'geohash':
-                gb += [spatial.get('geohashCol')]
+        for key in self.spatial_control_keys:
+            self.process_spatial_query_obj(key, gb)
 
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
@@ -1849,6 +1872,7 @@ class BaseDeckGLViz(BaseViz):
             d['metrics'] = self.get_metrics()
         else:
             d['columns'] = gb
+
         return d
 
     def get_js_columns(self, d):
@@ -1856,29 +1880,8 @@ class BaseDeckGLViz(BaseViz):
         return {col: d.get(col) for col in cols}
 
     def get_data(self, df):
-        fd = self.form_data
-        spatial = fd.get('spatial')
-        if spatial:
-            if spatial.get('type') == 'latlong':
-                df = df.rename(columns={
-                    spatial.get('lonCol'): 'lon',
-                    spatial.get('latCol'): 'lat'})
-            elif spatial.get('type') == 'delimited':
-                cols = ['lon', 'lat']
-                if spatial.get('reverseCheckbox'):
-                    cols.reverse()
-                df[cols] = (
-                    df[spatial.get('lonlatCol')]
-                    .str
-                    .split(spatial.get('delimiter'), expand=True)
-                    .astype(np.float64)
-                )
-                del df[spatial.get('lonlatCol')]
-            elif spatial.get('type') == 'geohash':
-                latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-                df['lat'] = latlong.apply(lambda x: x[0])
-                df['lon'] = latlong.apply(lambda x: x[1])
-                del df['geohash']
+        for key in self.spatial_control_keys:
+            df = self.process_spatial_data_obj(key, df)
 
         features = []
         for d in df.to_dict(orient='records'):
@@ -1899,12 +1902,16 @@ class DeckScatterViz(BaseDeckGLViz):
 
     viz_type = 'deck_scatter'
     verbose_name = _('Deck.gl - Scatter plot')
+    spatial_control_keys = ['spatial']
 
     def query_obj(self):
         fd = self.form_data
         self.point_radius_fixed = (
             fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
         return super(DeckScatterViz, self).query_obj()
+
+    def get_position(self, d):
+        return d['spatial']
 
     def get_metrics(self):
         self.metric = None
@@ -1935,6 +1942,10 @@ class DeckScreengrid(BaseDeckGLViz):
 
     viz_type = 'deck_screengrid'
     verbose_name = _('Deck.gl - Screen Grid')
+    spatial_control_keys = ['spatial']
+
+    def get_position(self, d):
+        return d['spatial']
 
 
 class DeckGrid(BaseDeckGLViz):
@@ -1943,6 +1954,10 @@ class DeckGrid(BaseDeckGLViz):
 
     viz_type = 'deck_grid'
     verbose_name = _('Deck.gl - 3D Grid')
+    spatial_control_keys = ['spatial']
+
+    def get_position(self, d):
+        return d['spatial']
 
 
 class DeckPathViz(BaseDeckGLViz):
@@ -1955,6 +1970,10 @@ class DeckPathViz(BaseDeckGLViz):
         'json': json.loads,
         'polyline': polyline.decode,
     }
+    spatial_control_keys = ['spatial']
+
+    def get_position(self, d):
+        return d['spatial']
 
     def query_obj(self):
         d = super(DeckPathViz, self).query_obj()
@@ -1982,6 +2001,10 @@ class DeckHex(BaseDeckGLViz):
 
     viz_type = 'deck_hex'
     verbose_name = _('Deck.gl - 3D HEX')
+    spatial_control_keys = ['spatial']
+
+    def get_position(self, d):
+        return d['spatial']
 
 
 class DeckGeoJson(BaseDeckGLViz):
@@ -2007,6 +2030,32 @@ class DeckGeoJson(BaseDeckGLViz):
 
         return {
             'geojson': geojson,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+        }
+
+
+class DeckArc(BaseDeckGLViz):
+
+    """deck.gl's Arc Layer"""
+
+    viz_type = 'deck_arc'
+    verbose_name = _('Deck.gl - Arc')
+    spatial_control_keys = ['start_spatial', 'end_spatial']
+
+    def get_position(self, d):
+        deck_map = {
+            'start_spatial': 'sourcePosition',
+            'end_spatial': 'targetPosition',
+        }
+
+        return {deck_map[key]: d[key] for key in self.spatial_control_keys}
+
+    def get_data(self, df):
+        d = super(DeckArc, self).get_data(df)
+        arcs = d['features']
+
+        return {
+            'arcs': [arc['position'] for arc in arcs],
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 
