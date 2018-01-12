@@ -62,6 +62,7 @@ class BaseEngineSpec(object):
     time_groupby_inline = False
     limit_method = LimitMethod.FETCH_MANY
     time_secondary_columns = False
+    inner_joins = True
 
     @classmethod
     def fetch_data(cls, cursor, limit):
@@ -501,7 +502,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
-        if selected_schema:
+        if selected_schema and database:
             if '/' in database:
                 database = database.split('/')[0] + '/' + selected_schema
             else:
@@ -806,7 +807,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         table_name = form.name.data
         filename = form.csv_file.data.filename
 
-        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_BUCKET']
+        bucket_path = app.config['CSV_TO_HIVE_UPLOAD_S3_BUCKET']
 
         if not bucket_path:
             logging.info('No upload bucket specified')
@@ -1229,6 +1230,7 @@ class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
     limit_method = LimitMethod.FETCH_MANY
+    inner_joins = False
 
 
 engines = {

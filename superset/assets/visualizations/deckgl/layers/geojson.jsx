@@ -1,6 +1,8 @@
 import { GeoJsonLayer } from 'deck.gl';
-import { hexToRGB } from '../../../javascripts/modules/colors';
 
+import * as common from './common';
+import { hexToRGB } from '../../../javascripts/modules/colors';
+import sandboxedEval from '../../../javascripts/modules/sandbox';
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -23,11 +25,11 @@ const convertGeoJsonColorProps = (p, colors) => {
   };
 };
 
-export default function geoJsonLayer(formData, payload) {
+export default function geoJsonLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
-  const data = payload.data.geojson.features.map(d => ({
+  let data = payload.data.geojson.features.map(d => ({
     ...d,
     properties: convertGeoJsonColorProps(
       d.properties, {
@@ -36,12 +38,19 @@ export default function geoJsonLayer(formData, payload) {
       }),
   }));
 
+  if (fd.js_datapoint_mutator) {
+    // Applying user defined data mutator if defined
+    const jsFnMutator = sandboxedEval(fd.js_datapoint_mutator);
+    data = data.map(jsFnMutator);
+  }
+
   return new GeoJsonLayer({
     id: `path-layer-${fd.slice_id}`,
     data,
-    filled: true,
-    stroked: false,
-    extruded: true,
+    filled: fd.filled,
+    stroked: fd.stroked,
+    extruded: fd.extruded,
     pointRadiusScale: fd.point_radius_scale,
+    ...common.commonLayerProps(fd, slice),
   });
 }

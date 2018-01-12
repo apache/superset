@@ -252,6 +252,9 @@ table.table-no-hover tr:hover {
 .m-t-10 {
     margin-top: 10px;
 }
+.m-b-10 {
+    margin-bottom: 10px;
+}
 .m-l-5 {
     margin-left: 5px;
 }
@@ -398,4 +401,25 @@ g.annotation-container {
 }
 .stroke-primary {
   stroke: @brand-primary;
+}
+.reactable-header-sortable{
+    position:relative;
+    padding-right: 40px;
+}
+
+.reactable-header-sortable::before{
+    font: normal normal normal 14px/1 FontAwesome;
+    content: "\f0dc";
+    position: absolute;
+    top: 17px;
+    right: 15px;
+    color: @brand-primary;
+}
+.reactable-header-sort-asc::before{
+    content: "\f0de";
+    color: @brand-primary;
+}
+.reactable-header-sort-desc::before{
+    content: "\f0dd";
+    color: @brand-primary;
 }

@@ -553,7 +553,7 @@ function nvd3Vis(slice, payload) {
         } else {
           xMin = chart.xAxis.scale().domain()[0].valueOf();
           xMax = chart.xAxis.scale().domain()[1].valueOf();
-          xScale = chart.xScale();
+          xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
         }
 
         if (Array.isArray(formulas) && formulas.length) {
@@ -591,8 +591,8 @@ function nvd3Vis(slice, payload) {
           }));
           data.push(...formulaData);
         }
-
-        const annotationHeight = chart.yAxis.scale().range()[0];
+        const yAxis = chart.yAxis1 ? chart.yAxis1 : chart.yAxis;
+        const annotationHeight = yAxis.scale().range()[0];
         const tipFactory = layer => d3tip()
           .attr('class', 'd3-tip')
           .direction('n')

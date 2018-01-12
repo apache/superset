@@ -187,7 +187,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
         'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user']
     search_exclude_columns = (
         'password', 'tables', 'created_by', 'changed_by', 'queries',
-        'saved_queries', )
+        'saved_queries')
     edit_columns = add_columns
     show_columns = [
         'tables',
@@ -281,7 +281,7 @@ appbuilder.add_link(
     icon='fa-cloud-upload',
     category='Manage',
     category_label=__('Manage'),
-    category_icon='fa-wrench',)
+    category_icon='fa-wrench')
 
 
 appbuilder.add_view(
@@ -291,7 +291,7 @@ appbuilder.add_view(
     icon='fa-database',
     category='Sources',
     category_label=__('Sources'),
-    category_icon='fa-database',)
+    category_icon='fa-database')
 
 
 class DatabaseAsync(DatabaseView):
@@ -400,7 +400,7 @@ appbuilder.add_view(
     label=__('Access requests'),
     category='Security',
     category_label=__('Security'),
-    icon='fa-table',)
+    icon='fa-table')
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
@@ -488,7 +488,7 @@ appbuilder.add_view(
     label=__('Charts'),
     icon='fa-bar-chart',
     category='',
-    category_icon='',)
+    category_icon='')
 
 
 class SliceAsync(SliceModelView):  # noqa
@@ -615,11 +615,14 @@ appbuilder.add_view(
     label=__('Dashboards'),
     icon='fa-dashboard',
     category='',
-    category_icon='',)
+    category_icon='')
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
-    list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
+    list_columns = [
+        'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
+        'changed_on', 'url', 'changed_by_name',
+    ]
     label_columns = {
         'dashboard_link': _('Dashboard'),
         'dashboard_title': _('Title'),
@@ -991,6 +994,12 @@ class Superset(BaseSupersetView):
             query = viz_obj.datasource.get_query_str(query_obj)
         except Exception as e:
             return json_error_response(e)
+
+        if query_obj['prequeries']:
+            query_obj['prequeries'].append(query)
+            query = ';\n\n'.join(query_obj['prequeries'])
+        query += ';'
+
         return Response(
             json.dumps({
                 'query': query,
@@ -1342,11 +1351,17 @@ class Superset(BaseSupersetView):
         modelview_to_model = {
             'TableColumnInlineView':
                 ConnectorRegistry.sources['table'].column_class,
+            'DruidColumnInlineView':
+                ConnectorRegistry.sources['druid'].column_class,
         }
         model = modelview_to_model[model_view]
-        obj = db.session.query(model).filter_by(id=id_).first()
-        if obj:
-            setattr(obj, attr, value == 'true')
+        col = db.session.query(model).filter_by(id=id_).first()
+        checked = value == 'true'
+        if col:
+            setattr(col, attr, checked)
+            if checked:
+                metrics = col.get_metrics().values()
+                col.datasource.add_missing_metrics(metrics)
             db.session.commit()
         return json_success('OK')
 
@@ -2457,8 +2472,15 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
+        payload = {
+            'common': self.common_bootsrap_payload(),
+        }
         return self.render_template(
-            'superset/welcome.html', entry='welcome', utils=utils)
+            'superset/basic.html',
+            entry='welcome',
+            title='Superset',
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
+        )
 
     @has_access
     @expose('/profile/<username>/')
@@ -2504,7 +2526,6 @@ class Superset(BaseSupersetView):
         return self.render_template(
             'superset/basic.html',
             title=user.username + "'s profile",
-            navbar_container=True,
             entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
@@ -2594,7 +2615,7 @@ appbuilder.add_link(
     icon='fa-upload',
     category='Sources',
     category_label=__('Sources'),
-    category_icon='fa-wrench',)
+    category_icon='fa-wrench')
 appbuilder.add_separator('Sources')
 
 

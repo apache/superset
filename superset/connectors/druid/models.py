@@ -91,6 +91,13 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
 
+    @property
+    def data(self):
+        return {
+            'name': self.cluster_name,
+            'backend': 'druid',
+        }
+
     def get_pydruid_client(self):
         cli = PyDruid(
             'http://{0}:{1}/'.format(self.broker_host, self.broker_port),
@@ -423,7 +430,7 @@ class DruidDatasource(Model, BaseDatasource):
     __table_args__ = (UniqueConstraint('datasource_name', 'cluster_name'),)
 
     type = 'druid'
-    query_langtage = 'json'
+    query_language = 'json'
     cluster_class = DruidCluster
     metric_class = DruidMetric
     column_class = DruidColumn
@@ -1015,7 +1022,10 @@ class DruidDatasource(Model, BaseDatasource):
             orderby=None,
             extras=None,  # noqa
             columns=None, phase=2, client=None, form_data=None,
-            order_desc=True):
+            order_desc=True,
+            prequeries=None,
+            is_prequery=False,
+        ):
         """Runs a query against Druid and returns a dataframe.
         """
         # TODO refactor into using a TBD Query object

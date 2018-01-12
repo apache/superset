@@ -22,6 +22,9 @@ from superset import utils, config  # noqa
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
+if not os.path.exists(config.DATA_DIR):
+    os.makedirs(config.DATA_DIR)
+
 with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
     frontend_config = json.load(f)
 
@@ -149,7 +152,9 @@ appbuilder = AppBuilder(
     db.session,
     base_template='superset/base.html',
     indexview=MyIndexView,
-    security_manager_class=app.config.get('CUSTOM_SECURITY_MANAGER'))
+    security_manager_class=app.config.get('CUSTOM_SECURITY_MANAGER'),
+    update_perms=utils.get_update_perms_flag(),
+)
 
 sm = appbuilder.sm
 
