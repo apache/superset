@@ -1117,12 +1117,13 @@ class DruidDatasource(Model, BaseDatasource):
         ):
             dim = list(qry.get('dimensions'))[0]
             logging.info('Running two-phase topn query for dimension [{}]'.format(dim))
+            pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
+                pre_qry['aggregations'] = self.get_aggregations([timeseries_limit_metric])
             else:
                 order_by = list(qry['aggregations'].keys())[0]
             # Limit on the number of timeseries, doing a two-phases query
-            pre_qry = deepcopy(qry)
             pre_qry['granularity'] = 'all'
             pre_qry['threshold'] = min(row_limit,
                                        timeseries_limit or row_limit)
