@@ -1,3 +1,4 @@
+import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
 import CollectionControl from './CollectionControl';
@@ -10,6 +11,7 @@ import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
 import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
+import SpatialControl from './SpatialControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
@@ -17,6 +19,7 @@ import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 
 const controlMap = {
+  AnnotationLayerControl,
   BoundsControl,
   CheckboxControl,
   CollectionControl,
@@ -29,6 +32,7 @@ const controlMap = {
   HiddenControl,
   SelectAsyncControl,
   SelectControl,
+  SpatialControl,
   TextAreaControl,
   TextControl,
   TimeSeriesColumnControl,

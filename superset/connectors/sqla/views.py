@@ -12,12 +12,12 @@ from superset.connectors.base.views import DatasourceModelView
 from superset.utils import has_access
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
-    ListWidgetWithCheckboxes, SupersetModelView,
+    ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
 
 
-class TableColumnInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  # noqa
+class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
 
     list_title = _('List Columns')
@@ -94,7 +94,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
-class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  # noqa
+class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
 
     list_title = _('List Metrics')
@@ -148,7 +148,7 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView, DeleteMixin):  # 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
+class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
 
     list_title = _('List Tables')
@@ -210,7 +210,7 @@ class TableModelView(DatasourceModelView, DeleteMixin):  # noqa
     }
     base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
-        'slices': _('Associated Slices'),
+        'slices': _('Associated Charts'),
         'link': _('Table'),
         'changed_by_': _('Changed By'),
         'database': _('Database'),
@@ -294,6 +294,7 @@ appbuilder.add_view(
     label=__('Tables'),
     category='Sources',
     category_label=__('Sources'),
-    icon='fa-table',)
+    icon='fa-table',
+)
 
 appbuilder.add_separator('Sources')

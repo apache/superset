@@ -28,6 +28,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
@@ -40,6 +41,7 @@ install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
+custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -537,12 +539,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         })
 
 
-class Database(Model, AuditMixinNullable):
+class Database(Model, AuditMixinNullable, ImportMixin):
 
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
     type = 'table'
+    __table_args__ = (UniqueConstraint('database_name'),)
 
     id = Column(Integer, primary_key=True)
     verbose_name = Column(String(250), unique=True)
@@ -565,8 +568,12 @@ class Database(Model, AuditMixinNullable):
     }
     """))
     perm = Column(String(1000))
-    custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
+
     impersonate_user = Column(Boolean, default=False)
+    export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
+                     'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+                     'allow_ctas', 'extra')
+    export_children = ['tables']
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.database_name
@@ -574,6 +581,13 @@ class Database(Model, AuditMixinNullable):
     @property
     def name(self):
         return self.verbose_name if self.verbose_name else self.database_name
+
+    @property
+    def data(self):
+        return {
+            'name': self.database_name,
+            'backend': self.backend,
+        }
 
     @property
     def unique_name(self):
@@ -598,7 +612,7 @@ class Database(Model, AuditMixinNullable):
 
     def set_sqlalchemy_uri(self, uri):
         conn = sqla.engine.url.make_url(uri.strip())
-        if conn.password != PASSWORD_MASK and not self.custom_password_store:
+        if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn.password = PASSWORD_MASK if conn.password else None
@@ -623,6 +637,8 @@ class Database(Model, AuditMixinNullable):
                 effective_username = g.user.username
         return effective_username
 
+    @utils.memoized(
+        watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
     def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
@@ -656,10 +672,10 @@ class Database(Model, AuditMixinNullable):
         return create_engine(url, **params)
 
     def get_reserved_words(self):
-        return self.get_sqla_engine().dialect.preparer.reserved_words
+        return self.get_dialect().preparer.reserved_words
 
     def get_quoter(self):
-        return self.get_sqla_engine().dialect.identifier_preparer.quote
+        return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
@@ -788,8 +804,8 @@ class Database(Model, AuditMixinNullable):
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
-        if self.custom_password_store:
-            conn.password = self.custom_password_store(conn)
+        if custom_password_store:
+            conn.password = custom_password_store(conn)
         else:
             conn.password = self.password
         return str(conn)
@@ -807,6 +823,7 @@ class Database(Model, AuditMixinNullable):
         return engine.has_table(
             table.table_name, table.schema or None)
 
+    @utils.memoized
     def get_dialect(self):
         sqla_url = url.make_url(self.sqlalchemy_uri_decrypted)
         return sqla_url.get_dialect()()

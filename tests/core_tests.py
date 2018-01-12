@@ -315,11 +315,13 @@ class CoreTests(SupersetTestCase):
         def custom_password_store(uri):
             return 'password_store_test'
 
-        database.custom_password_store = custom_password_store
+        models.custom_password_store = custom_password_store
         conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
         if conn_pre.password:
             assert conn.password == 'password_store_test'
             assert conn.password != conn_pre.password
+        # Disable for password store for later tests
+        models.custom_password_store = None
 
     def test_databaseview_edit(self, username='admin'):
         # validate that sending a password-masked uri does not over-write the decrypted
@@ -548,7 +550,7 @@ class CoreTests(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username='gamma')
-        assert 'List Slice' in self.get_resp('/slicemodelview/list/')
+        assert 'List Charts' in self.get_resp('/slicemodelview/list/')
         assert 'List Dashboard' in self.get_resp('/dashboardmodelview/list/')
 
     def test_csv_endpoint(self):
@@ -833,18 +835,20 @@ class CoreTests(SupersetTestCase):
 
     def test_dataframe_timezone(self):
         tz = psycopg2.tz.FixedOffsetTimezone(offset=60, name=None)
-        data = [(datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
-                (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz,),)]
+        data = [
+            (datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
+            (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz),),
+        ]
         df = dataframe.SupersetDataFrame(pd.DataFrame(data=list(data),
-                                                      columns=['data', ]))
+                                                      columns=['data']))
         data = df.data
         self.assertDictEqual(
             data[0],
-            {'data': pd.Timestamp('2017-11-18 21:53:00.219225+0100', tz=tz), },
+            {'data': pd.Timestamp('2017-11-18 21:53:00.219225+0100', tz=tz)},
         )
         self.assertDictEqual(
             data[1],
-            {'data': pd.Timestamp('2017-11-18 22:06:30.061810+0100', tz=tz), },
+            {'data': pd.Timestamp('2017-11-18 22:06:30.061810+0100', tz=tz)},
         )
 
 

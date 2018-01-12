@@ -37,6 +37,14 @@ ADMIN_ONLY_VIEW_MENUS = {
     'RoleModelView',
     'Security',
     'UserDBModelView',
+    'UserLDAPModelView',
+    'UserOAuthModelView',
+    'UserOIDModelView',
+    'UserRemoteUserModelView',
+}
+
+ALPHA_ONLY_VIEW_MENUS = {
+    'Upload a CSV',
 }
 
 ADMIN_ONLY_PERMISSIONS = {
@@ -117,7 +125,10 @@ def is_alpha_only(pvm):
     if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
             pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
-    return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
+    return (
+        pvm.view_menu.name in ALPHA_ONLY_VIEW_MENUS or
+        pvm.permission.name in ALPHA_ONLY_PERMISSIONS
+    )
 
 
 def is_admin_pvm(pvm):

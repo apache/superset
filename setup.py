@@ -5,7 +5,7 @@ import subprocess
 from setuptools import find_packages, setup
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'assets')
+PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
@@ -49,7 +49,7 @@ setup(
         'colorama==0.3.9',
         'cryptography==1.9',
         'flask==0.12.2',
-        'flask-appbuilder==1.9.4',
+        'flask-appbuilder==1.9.5',
         'flask-cache==0.13.1',
         'flask-migrate==2.0.3',
         'flask-script==2.0.5',
@@ -58,23 +58,28 @@ setup(
         'flask-wtf==0.14.2',
         'flower==0.9.1',
         'future>=0.16.0, <0.17',
+        'python-geohash==0.8.5',
         'humanize==0.5.1',
         'gunicorn==19.7.1',
         'idna==2.5',
         'markdown==2.6.8',
         'pandas==0.20.3',
         'parsedatetime==2.0.0',
+        'pathlib2==2.3.0',
+        'polyline==1.3.2',
         'pydruid==0.3.1',
         'PyHive>=0.4.0',
         'python-dateutil==2.6.0',
+        'pyyaml>=3.11',
         'requests==2.17.3',
         'simplejson==3.10.0',
-        'six==1.10.0',
+        'six==1.11.0',
         'sqlalchemy==1.1.9',
         'sqlalchemy-utils==0.32.16',
         'sqlparse==0.2.3',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
+        'unidecode>=0.04.21',
     ],
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],

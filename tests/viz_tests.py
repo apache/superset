@@ -89,8 +89,12 @@ class BaseVizTestCase(unittest.TestCase):
         mock_call = df.__setitem__.mock_calls[2]
         self.assertEqual(mock_call[1][0], DTTM_ALIAS)
         self.assertFalse(mock_call[1][1].empty)
-        self.assertEqual(mock_call[1][1][0].hour, 6)
+        self.assertEqual(mock_call[1][1][0].hour, 7)
         mock_call = df.__setitem__.mock_calls[3]
+        self.assertEqual(mock_call[1][0], DTTM_ALIAS)
+        self.assertEqual(mock_call[1][1][0].hour, 6)
+        self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
+        mock_call = df.__setitem__.mock_calls[4]
         self.assertEqual(mock_call[1][0], DTTM_ALIAS)
         self.assertEqual(mock_call[1][1][0].hour, 7)
         self.assertEqual(mock_call[1][1].dtype, 'datetime64[ns]')
