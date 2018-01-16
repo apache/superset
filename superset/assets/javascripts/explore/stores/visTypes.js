@@ -627,6 +627,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['groupby', 'metrics'],
+          ['limit'],
           ['column_collection'],
           ['url'],
         ],
