@@ -1,0 +1,455 @@
+/* Header */
+.dashboard-component-header {
+  width: 100%;
+  line-height: 1em;
+  font-weight: 700;
+  background-color: inherit;
+  padding: 16px 0;
+  color: #263238;
+}
+
+.header-small {
+  font-size: 16px;
+}
+
+.header-medium {
+  font-size: 22px;
+}
+
+.header-large {
+  font-size: 32px;
+}
+
+  .dragdroppable-row .dragdroppable-row .dashboard-component-header,
+  .dragdroppable-row .dragdroppable-row .dashboard-component-divider {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+/* Chart */
+.dashboard-component-chart {
+  width: 100%;
+  height: 100%;
+  color: #879399;
+  background-color: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-component-chart .fa {
+  font-size: 100px;
+  opacity: 0.3;
+}
+
+.grid-container--resizing .dashboard-component-chart,
+.dashboard-builder--dragging .dashboard-component-chart,
+.dashboard-component-chart:hover {
+  box-shadow: inset 0 0 0 1px #CFD8DC;
+}
+
+/* Divider */
+.dashboard-component-divider {
+  width: 100%;
+  padding: 24px 0; /* this is padding not margin to enable a larger mouse target */
+  background-color: transparent;
+}
+
+.dashboard-component-divider:after {
+  content: "";
+  height: 1px;
+  width: 100%;
+  background-color: #CFD8DC;
+  display: block;
+}
+
+.new-component-placeholder.divider-placeholder:after {
+  content: "";
+  height: 2px;
+  width: 100%;
+  background-color: #CFD8DC;
+}
+
+.dragdroppable .dashboard-component-divider {
+  cursor: move;
+}
+
+/* Tabs -- this overwrites Superset bootstrap theme tab styling */
+.dashboard-component-tabs {
+  width: 100%;
+  background-color: white;
+}
+.dashboard-component-tabs .dashboard-component-tabs-content {
+  min-height: 48px;
+  margin-top: 1px;
+}
+
+.dashboard-component-tabs .nav-tabs {
+  border-bottom: none;
+}
+
+/* by moving padding from <a/> to <li/> we can restrict the selected tab indicator to text width */
+.dashboard-component-tabs .nav-tabs > li {
+  padding: 0 16px;
+}
+
+.dashboard-component-tabs .nav-tabs > li > a {
+  color: #263238;
+  border: none;
+  padding: 12px 0 14px 0;
+}
+
+.dashboard-component-tabs .nav-tabs > li.active > a {
+  border: none;
+}
+
+.dashboard-component-tabs .nav-tabs > li.active > a:after {
+  content: "";
+  position: absolute;
+  height: 3px;
+  width: 100%;
+  bottom: 0;
+  background: linear-gradient(to right, #E32464, #2C2261);
+}
+
+.dashboard-component-tabs .nav-tabs > li > a:hover {
+  border: none;
+  background: inherit;
+  color: #000000;
+}
+
+
+.dashboard-component-tabs .nav-tabs > li > a:focus {
+  outline: none;
+  background: #fff;
+}
+
+.dashboard-component-tabs .nav-tabs > li .dragdroppable-tab {
+  cursor: move;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator {
+  height: 40px !important;
+  top: -10px !important;
+  opacity: 0.5;
+}
+
+.dashboard-component-tabs .fa-plus-square {
+  background: linear-gradient(135deg, #E32464, #2C2261);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: initial;
+  font-size: 16px;
+}
+
+/* New components */
+.new-component {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  padding: 16px;
+  background: white;
+}
+
+.new-component-placeholder {
+  position: relative;
+  background: #f5f5f5;
+  width: 40px;
+  height: 40px;
+  margin-right: 16px;
+  box-shadow: 0 0 1px #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 1.5em;
+}
+
+/* Spacer */
+.grid-container {
+   flex-grow: 1;
+   min-width: 66%;
+   margin: 24px 32px;
+   height: 100%;
+   position: relative;
+}
+
+.new-component-placeholder.spacer-placeholder {
+  font-size: 1em;
+}
+
+.new-component-placeholder.fa-window-restore {
+  font-size: 1em;
+}
+
+.new-component-placeholder.spacer-placeholder:after {
+  content: "";
+  position: absolute;
+  height: 60%;
+  width: 60%;
+  border: 1px dashed #aaa;
+}
+
+/* columns and rows */
+.grid-column {
+  width: 100%;
+  min-height: 56px;
+}
+
+.grid-column > .hover-menu--top {
+  top: -20px;
+}
+
+.grid-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 100%;
+  height: fit-content;
+  background-color: transparent;
+}
+
+.grid-row--transparent {
+  background-color: transparent;
+}
+
+.grid-row--white {
+  background-color: #fff;
+}
+
+.dashboard-component-header.grid-row--white {
+  padding-left: 16px;
+}
+
+.grid-row.grid-row--empty {
+  align-items: center; /* this centers the empty note content */
+  height: 80px;
+}
+
+.grid-row--empty:after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  content: "Empty row";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #aaa;
+}
+
+.grid-column--empty:after {
+  content: "Empty column";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #CFD8DC;
+}
+
+/* spacer */
+.grid-spacer {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}
+
+.dragdroppable .grid-spacer {
+  cursor: move;
+}
+
+.dragdroppable:hover .grid-spacer {
+  box-shadow: inset 0 0 0 1px #CFD8DC;
+}
+
+/* popover menu */
+.with-popover-menu {
+  position: relative;
+  outline: none;
+}
+
+.grid-row.grid-row--empty .with-popover-menu { /* drop indicator doesn't show up without this */
+  width: 100%;
+  height: 100%;
+}
+
+.with-popover-menu--focused:after {
+  content: "";
+  position: absolute;
+  top: 1;
+  left: -1;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 0 2px #44C0FF;
+  pointer-events: none;
+  z-index: 9;
+}
+
+.popover-menu {
+  position: absolute;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  left: 1px;
+  top: -42px;
+  height: 40px;
+  padding: 0 16px;
+  background: #fff;
+  box-shadow: 0 1px 2px 1px rgba(0, 0, 0, 0.2);
+  font-size: 14px;
+  cursor: default;
+  z-index: 10;
+}
+
+.popover-menu .menu-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* vertical spacer after each menu item */
+.popover-menu .menu-item:not(:only-child):not(:last-child):after {
+  content: "";
+  width: 1;
+  height: 100%;
+  background: #CFD8DC;
+  margin: 0 16px;
+}
+
+.popover-menu .popover-dropdown.btn {
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: #000;
+}
+
+.popover-menu .popover-dropdown.btn:hover,
+.popover-menu .popover-dropdown.btn:active,
+.popover-menu .popover-dropdown.btn:focus,
+.hover-dropdown .btn:hover,
+.hover-dropdown .btn:active,
+.hover-dropdown .btn:focus {
+  background: initial;
+  box-shadow: none;
+}
+
+.hover-dropdown li.dropdown-item:hover a,
+.popover-menu li.dropdown-item:hover a {
+  background: #CFD8DC;
+}
+
+.popover-dropdown .caret { /* without this the caret doesn't take up full width / is clipped */
+  width: auto;
+  border-top-color: transparent;
+}
+
+
+.hover-dropdown li.dropdown-item.active a,
+.popover-menu li.dropdown-item.active a {
+  background: #fff;
+  font-weight: bold;
+  color: #000;
+}
+
+/* row style menu */
+.row-style-option {
+  display: inline-block;
+}
+
+.row-style-option:before {
+  content: "";
+  width: 1em;
+  height: 1em;
+  margin-right: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.row-style-option.grid-row--white {
+  padding-left: 0;
+  background: transparent;
+}
+
+.row-style-option.grid-row--white:before {
+  background: #fff;
+  border: 1px solid #CFD8DC;
+}
+
+.row-style-option.grid-row--transparent:before {
+  background: #CFD8DC;
+}
+
+/* hover menu */
+.hover-menu {
+  opacity: 0;
+  position: absolute;
+  z-index: 2;
+}
+
+.hover-menu--left {
+  width: 20px;
+  height: 100%;
+  top: 0;
+  left: -20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.hover-menu--left > :nth-child(n):not(:only-child):not(:last-child) {
+  margin-bottom: 8px;
+}
+
+.dragdroppable-row .dragdroppable-row .hover-menu--left {
+  left: 1px;
+}
+
+.hover-menu--top {
+  width: 100%;
+  height: 20px;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.hover-menu--top > :nth-child(n):not(:only-child):not(:last-child) {
+  margin-right: 8px;
+}
+
+.dragdroppable:hover .hover-menu,
+.dragdroppable .hover-menu:hover {
+  opacity: 1;
+}
+
+
+/* Menu fa buttons */
+.icon-button {
+  color: #879399;
+  font-size: 1em;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.icon-button:hover,
+.icon-button:active,
+.icon-button:focus {
+  color: #484848;
+  outline: none;
+  text-decoration: none;
+}

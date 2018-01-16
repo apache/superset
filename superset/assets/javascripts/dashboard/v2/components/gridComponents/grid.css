@@ -1,0 +1,17 @@
+/* Editing guides */
+.grid-column-guide {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background-color: rgba(68, 192, 255, 0.05);
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(68, 192, 255, 0.5);
+}
+
+.grid-row-guide {
+  position: absolute;
+  left: 0;
+  height: 1;
+  background-color: #44C0FF;
+  pointer-events: none;
+}
