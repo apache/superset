@@ -1,0 +1,60 @@
+.dragdroppable {
+  position: relative;
+}
+
+.dragdroppable--dragging {
+  opacity: 0.25;
+}
+
+.dragdroppable-row {
+  width: 100%;
+}
+
+.grid-container .dragdroppable-row:after,
+.grid-container .dragdroppable-column:after {
+  border: 1px dashed transparent;
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 1px;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+  .grid-container .dragdroppable-row:hover:after,
+  .grid-container .dragdroppable-column:hover:after {
+    border: 1px dashed #aaa;
+  }
+
+/* Drag handle */
+.drag-handle {
+  overflow: hidden;
+  width: 16px;
+  cursor: move;
+}
+
+.drag-handle--left {
+  width: 8px;
+}
+
+.drag-handle--top {
+  /*margin: 10px auto;*/
+}
+
+.drag-handle-dot {
+  float: left;
+  height: 2px;
+  margin: 1px;
+  width: 2px
+}
+
+.drag-handle-dot:after {
+  content: "";
+  background: #aaa;
+  float: left;
+  height: 2px;
+  margin: -1px;
+  width: 2px;
+}

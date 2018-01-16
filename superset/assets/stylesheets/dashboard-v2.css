@@ -1,0 +1,42 @@
+.dashboard-v2 {
+  margin-top: -20px;
+  position: relative;
+  color: #263238;
+}
+
+.dashboard-header {
+  background: white;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 2px;
+}
+
+.dashboard-builder {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  height: auto;
+}
+
+.dashboard-builder-sidepane {
+  background: white;
+  flex: 0 0 376px;
+  box-shadow: 0 0 0 1px #ccc; /* @TODO color */
+}
+
+.dashboard-builder-sidepane-header {
+  font-size: 16;
+  font-weight: 700;
+  border-bottom: 1px solid #ccc;
+  padding: 16px;
+}
+
+/* @TODO remove upon new theme */
+.btn.btn-primary {
+  background: #263238 !important;
+  color: white !important;
+}
