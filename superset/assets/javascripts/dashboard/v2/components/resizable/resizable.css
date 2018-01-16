@@ -1,0 +1,72 @@
+.grid-resizable-container {
+  background-color: transparent;
+  position: relative;
+}
+
+/* after ensures border visibility on top of any children */
+.grid-resizable-container--resizing:after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 0 2px #44C0FF;
+}
+
+.resize-handle {
+  opacity: 0;
+}
+
+  .grid-resizable-container:hover .resize-handle,
+  .grid-resizable-container--resizing .resize-handle {
+    opacity: 1;
+  }
+
+.resize-handle--bottom-right {
+  position: absolute;
+  border: solid;
+  border-width: 0 1.5px 1.5px 0;
+  border-right-color: #879399;
+  border-bottom-color: #879399;
+  right: 16;
+  bottom: 16;
+  width: 8px;
+  height: 8px;
+}
+
+.resize-handle--right {
+  width: 2px;
+  height: 20px;
+  right: -2px;
+  top: 47%;
+  position: absolute;
+  border-left: 1px solid #879399;
+  border-right: 1px solid #879399;
+}
+
+  .grid-spacer + span .resize-handle--right {
+    right: 3px;
+  }
+
+.resize-handle--bottom {
+  height: 2px;
+  width: 20px;
+  bottom: 10px;
+  left: 47%;
+  position: absolute;
+  border-top: 1px solid #879399;
+  border-bottom: 1px solid #879399;
+}
+
+.grid-resizable-container--resizing > span .resize-handle {
+  border-color: #44C0FF;
+}
+
+/* re-resizable sets an empty div to 100% width and height, which doesn't
+  play well with many 100% height containers we need
+ */
+.grid-resizable-container ~ div {
+  width: auto !important;
+  height: auto !important;
+}

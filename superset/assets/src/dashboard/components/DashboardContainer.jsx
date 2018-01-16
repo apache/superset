@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 
 import * as dashboardActions from '../actions';
 import * as chartActions from '../../chart/chartAction';
-import Dashboard from './Dashboard';
+import Dashboard from '../v2/components/Dashboard';
 
 function mapStateToProps({ charts, dashboard, impressionId }) {
   return {

@@ -208,6 +208,17 @@ div.widget {
     }
   }
 }
+/* brand icon */
+.navbar-brand > img.logo {
+  margin-left: 15px;
+  width: 36px;
+  display: inline;
+}
+.navbar-brand > span {
+  margin-left: 2px;
+  font-size: 15px;
+  font-weight: bold;
+}
 
 .navbar .alert {
     padding: 5px 10px;
@@ -228,23 +239,26 @@ table.table-no-hover tr:hover {
 }
 
 .editable-title input {
-    padding: 2px 6px 3px 6px;
+  outline: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding-left: 0;
 }
 
 .editable-title input[type="button"] {
     border-color: transparent;
     background: transparent;
+    font-size: inherit;
+    line-height: inherit;
     white-space: normal;
     text-align: left;
 }
 
-.editable-title input[type="button"]:hover {
+.editable-title--editable input[type="button"]:hover {
     cursor: text;
 }
 
-.editable-title input[type="button"]:focus {
-    outline: none;
-}
 .m-r-5 {
     margin-right: 5px;
 }

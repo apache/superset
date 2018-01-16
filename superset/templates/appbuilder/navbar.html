@@ -12,9 +12,11 @@
       </button>
       <a class="navbar-brand" href="/superset/profile/{{ current_user.username }}/">
         <img
-          width="126" src="{{ appbuilder.app_icon }}"
+          class="logo"
+          src="{{ appbuilder.app_icon }}"
           alt="{{ appbuilder.app_name }}"
         />
+        <span>Superset</span>
       </a>
     </div>
     <div class="navbar-collapse collapse">
@@ -47,4 +49,3 @@
     </div>
   </div>
 </div>
-
