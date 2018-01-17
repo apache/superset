@@ -243,12 +243,12 @@ class BaseViz(object):
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
         query_obj = self.query_obj()
-        cache_key = self.cache_key(query_obj)
+        cache_key = self.cache_key(query_obj) if query_obj else None
         cached_dttm = None
         data = None
         stacktrace = None
         rowcount = None
-        if not force and cache:
+        if cache_key and cache and not force:
             cache_value = cache.get(cache_key)
             if cache_value:
                 stats_logger.incr('loaded_from_cache')
@@ -536,7 +536,10 @@ class MarkupViz(BaseViz):
     verbose_name = _('Markup')
     is_timeseries = False
 
-    def get_df(self):
+    def query_obj(self):
+        return None
+
+    def get_df(self, query_obj=None):
         return None
 
     def get_data(self, df):
@@ -1573,7 +1576,10 @@ class IFrameViz(BaseViz):
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
 
-    def get_df(self):
+    def query_obj(self):
+        return None
+
+    def get_df(self, query_obj=None):
         return None
 
 
