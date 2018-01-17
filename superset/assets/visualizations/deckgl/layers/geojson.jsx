@@ -41,7 +41,7 @@ const recurseGeoJson = (node, propOverrides, jsFnMutator, extraProps) => {
       recurseGeoJson(obj, propOverrides, jsFnMutator, node.extraProps || extraProps);
     });
   }
-  if (node && node.properties) {
+  if (node && node.geometry) {
     const newNode = {
       ...node,
       properties: alterProps(node.properties, propOverrides),
