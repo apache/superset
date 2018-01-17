@@ -31,6 +31,7 @@ export const VIZ_TYPES = {
   sunburst: 'sunburst',
   table: 'table',
   time_table: 'time_table',
+  time_pivot: 'time_pivot',
   treemap: 'treemap',
   country_map: 'country_map',
   word_cloud: 'word_cloud',
