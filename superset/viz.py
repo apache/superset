@@ -1887,6 +1887,9 @@ class BaseDeckGLViz(BaseViz):
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 
+    def get_properties(self, d):
+        raise NotImplementedError()
+
 
 class DeckScatterViz(BaseDeckGLViz):
 
