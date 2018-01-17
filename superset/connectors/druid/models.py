@@ -1237,14 +1237,20 @@ class DruidDatasource(Model, BaseDatasource):
 
         # Reordering columns
         cols = []
+        groupby = query_obj.get('groupby') or []
+        columns = query_obj.get('columns') or []
+        metrics = query_obj.get('metrics') or []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += query_obj.get('groupby') or []
-        cols += query_obj.get('columns') or []
-        cols += query_obj.get('metrics') or []
+        cols += groupby
+        cols += columns
+        cols += metrics
 
         cols = [col for col in cols if col in df.columns]
         df = df[cols]
+
+        for col in groupby + columns:
+            df[col] = df[col].astype('str')
 
         time_offset = DruidDatasource.time_offset(query_obj['granularity'])
 
