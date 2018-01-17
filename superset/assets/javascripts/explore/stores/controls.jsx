@@ -575,7 +575,7 @@ export const controls = {
     type: 'SelectControl',
     label: t('Polygon Column'),
     validators: [v.nonEmpty],
-    description: t('Select the polygon column'),
+    description: t('Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points'),
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
