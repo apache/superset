@@ -1825,14 +1825,6 @@ class BaseDeckGLViz(BaseViz):
         self.metric = self.form_data.get('size')
         return [self.metric] if self.metric else []
 
-    def get_properties(self, d):
-        return {
-            'weight': d.get(self.metric) or 1,
-        }
-
-    def get_position(self, d):
-        raise Exception('Not implemented in child class!')
-
     def process_spatial_query_obj(self, key, group_by):
         spatial = self.form_data.get(key)
         if spatial is None:
@@ -1898,15 +1890,18 @@ class BaseDeckGLViz(BaseViz):
 
         features = []
         for d in df.to_dict(orient='records'):
-            feature = dict(
-                position=self.get_position(d),
-                props=self.get_js_columns(d),
-                **self.get_properties(d))
+            feature = self.get_properties(d)
+            extra_props = self.get_js_columns(d)
+            if extra_props:
+                feature['extraProps'] = extra_props
             features.append(feature)
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
+
+    def get_properties(self, d):
+        raise NotImplementedError()
 
 
 class DeckScatterViz(BaseDeckGLViz):
@@ -1923,9 +1918,6 @@ class DeckScatterViz(BaseDeckGLViz):
             fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
         return super(DeckScatterViz, self).query_obj()
 
-    def get_position(self, d):
-        return d['spatial']
-
     def get_metrics(self):
         self.metric = None
         if self.point_radius_fixed.get('type') == 'metric':
@@ -1937,6 +1929,7 @@ class DeckScatterViz(BaseDeckGLViz):
         return {
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
+            'position': d.get('spatial'),
         }
 
     def get_data(self, df):
@@ -1957,8 +1950,11 @@ class DeckScreengrid(BaseDeckGLViz):
     verbose_name = _('Deck.gl - Screen Grid')
     spatial_control_keys = ['spatial']
 
-    def get_position(self, d):
-        return d['spatial']
+    def get_properties(self, d):
+        return {
+            'position': d.get('spatial'),
+            'weight': d.get(self.metric) or 1,
+        }
 
 
 class DeckGrid(BaseDeckGLViz):
@@ -1969,8 +1965,11 @@ class DeckGrid(BaseDeckGLViz):
     verbose_name = _('Deck.gl - 3D Grid')
     spatial_control_keys = ['spatial']
 
-    def get_position(self, d):
-        return d['spatial']
+    def get_properties(self, d):
+        return {
+            'position': d.get('spatial'),
+            'weight': d.get(self.metric) or 1,
+        }
 
 
 class DeckPathViz(BaseDeckGLViz):
@@ -1984,9 +1983,6 @@ class DeckPathViz(BaseDeckGLViz):
         'polyline': polyline.decode,
     }
     spatial_control_keys = ['spatial']
-
-    def get_position(self, d):
-        return d['spatial']
 
     def query_obj(self):
         d = super(DeckPathViz, self).query_obj()
@@ -2016,8 +2012,11 @@ class DeckHex(BaseDeckGLViz):
     verbose_name = _('Deck.gl - 3D HEX')
     spatial_control_keys = ['spatial']
 
-    def get_position(self, d):
-        return d['spatial']
+    def get_properties(self, d):
+        return {
+            'position': d.get('spatial'),
+            'weight': d.get(self.metric) or 1,
+        }
 
 
 class DeckGeoJson(BaseDeckGLViz):
@@ -2029,22 +2028,14 @@ class DeckGeoJson(BaseDeckGLViz):
 
     def query_obj(self):
         d = super(DeckGeoJson, self).query_obj()
-        d['columns'] = [self.form_data.get('geojson')]
+        d['columns'] += [self.form_data.get('geojson')]
         d['metrics'] = []
         d['groupby'] = []
         return d
 
-    def get_data(self, df):
-        fd = self.form_data
-        geojson = {
-            'type': 'FeatureCollection',
-            'features': [json.loads(item) for item in df[fd.get('geojson')]],
-        }
-
-        return {
-            'geojson': geojson,
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-        }
+    def get_properties(self, d):
+        geojson = d.get(self.form_data.get('geojson'))
+        return json.loads(geojson)
 
 
 class DeckArc(BaseDeckGLViz):
@@ -2055,13 +2046,11 @@ class DeckArc(BaseDeckGLViz):
     verbose_name = _('Deck.gl - Arc')
     spatial_control_keys = ['start_spatial', 'end_spatial']
 
-    def get_position(self, d):
-        deck_map = {
-            'start_spatial': 'sourcePosition',
-            'end_spatial': 'targetPosition',
+    def get_properties(self, d):
+        return {
+            'sourcePosition': d.get('start_spatial'),
+            'targetPosition': d.get('end_spatial'),
         }
-
-        return {deck_map[key]: d[key] for key in self.spatial_control_keys}
 
     def get_data(self, df):
         d = super(DeckArc, self).get_data(df)
