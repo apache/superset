@@ -517,6 +517,44 @@ export const visTypes = {
     ],
   },
 
+  deck_polygon: {
+    label: t('Deck.gl - Polygon'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['polygon', 'row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('Polygon Settings'),
+        controlSetRows: [
+          ['fill_color_picker', 'stroke_color_picker'],
+          ['filled', 'stroked'],
+          ['extruded', null],
+          ['point_radius_scale', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
+    ],
+  },
+
   deck_arc: {
     label: t('Deck.gl - Arc'),
     requiresTime: true,

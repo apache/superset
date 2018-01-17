@@ -2067,6 +2067,28 @@ class DeckArc(BaseDeckGLViz):
         }
 
 
+class DeckPolygon(BaseDeckGLViz):
+
+    """deck.gl's Polygon Layer"""
+
+    viz_type = 'deck_polygon'
+    verbose_name = _('Deck.gl - Polygon')
+
+    def query_obj(self):
+        d = super(DeckPolygon, self).query_obj()
+        d['columns'] = [self.form_data.get('polygon')]
+        d['metrics'] = []
+        d['groupby'] = []
+        return d
+
+    def get_data(self, df):
+        fd = self.form_data
+        return {
+            'polygons': [{'polygon': json.loads(item)} for item in df[fd.get('polygon')]],
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+        }
+
+
 class EventFlowViz(BaseViz):
 
     """A visualization to explore patterns in event sequences"""
