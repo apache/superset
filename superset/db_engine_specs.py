@@ -212,7 +212,6 @@ class BaseEngineSpec(object):
         """
         return uri
 
-    # fix for oracle columns name issue, copied from cooleasyhan's fix for KeyError 953
     @classmethod
     def format_column_name(cls, col_name):
         return col_name
@@ -1081,12 +1080,10 @@ class OracleEngineSpec(PostgresEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
-    # fix for oracle column name issue, copied from cooleasyhan's fix for KeyError 953
     @classmethod
     def format_column_name(cls, col_name):
         return col_name.upper()
-    
-    # fix oracle list tables issue in sql lab
+
     @classmethod
     def get_table_names(cls, schema, inspector):
         tables = inspector.get_table_names(schema)
