@@ -1895,6 +1895,7 @@ class BaseDeckGLViz(BaseViz):
             if extra_props:
                 feature['extraProps'] = extra_props
             features.append(feature)
+
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
@@ -1982,7 +1983,6 @@ class DeckPathViz(BaseDeckGLViz):
         'json': json.loads,
         'polyline': polyline.decode,
     }
-    spatial_control_keys = ['spatial']
 
     def query_obj(self):
         d = super(DeckPathViz, self).query_obj()
@@ -2068,19 +2068,31 @@ class DeckPolygon(BaseDeckGLViz):
 
     viz_type = 'deck_polygon'
     verbose_name = _('Deck.gl - Polygon')
+    deser_map = {
+        'json': json.loads,
+        'polyline': polyline.decode,
+    }
+
+    def get_position(self, d):
+        return d[self.form_data.get('line_column')]
 
     def query_obj(self):
         d = super(DeckPolygon, self).query_obj()
-        d['columns'] = [self.form_data.get('polygon')]
-        d['metrics'] = []
-        d['groupby'] = []
+        line_col = self.form_data.get('line_column')
+        if d['metrics']:
+            d['groupby'].append(line_col)
+        else:
+            d['columns'].append(line_col)
         return d
 
-    def get_data(self, df):
+    def get_properties(self, d):
         fd = self.form_data
+        deser = self.deser_map[fd.get('line_type')]
+        polygon = deser(d[fd.get('line_column')])
+        if fd.get('reverse_long_lat'):
+            polygon = (polygon[1], polygon[0])
         return {
-            'polygons': [{'polygon': json.loads(item)} for item in df[fd.get('polygon')]],
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'polygon': polygon,
         }
 
 
