@@ -1899,6 +1899,7 @@ class BaseDeckGLViz(BaseViz):
             if extra_props:
                 feature['extraProps'] = extra_props
             features.append(feature)
+
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
@@ -1982,6 +1983,7 @@ class DeckPathViz(BaseDeckGLViz):
 
     viz_type = 'deck_path'
     verbose_name = _('Deck.gl - Paths')
+    deck_viz_key = 'path'
     deser_map = {
         'json': json.loads,
         'polyline': polyline.decode,
@@ -2003,8 +2005,17 @@ class DeckPathViz(BaseDeckGLViz):
         if fd.get('reverse_long_lat'):
             path = (path[1], path[0])
         return {
-            'path': path,
+            self.deck_viz_key: path,
         }
+
+
+class DeckPolygon(DeckPathViz):
+
+    """deck.gl's Polygon Layer"""
+
+    viz_type = 'deck_polygon'
+    deck_viz_key = 'polygon'
+    verbose_name = _('Deck.gl - Polygon')
 
 
 class DeckHex(BaseDeckGLViz):
