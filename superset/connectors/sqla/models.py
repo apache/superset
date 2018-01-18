@@ -610,7 +610,6 @@ class SqlaTable(Model, BaseDatasource):
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))
 
-        #fix for oracle db columns name matching issue - copied from cooleasyhan's fix for KeyError 953
         def cols_adjustment(df):
             _tmp = []
             for col in df.columns:
