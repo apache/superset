@@ -48,6 +48,7 @@ export const VIZ_TYPES = {
   deck_geojson: 'deck_geojson',
   deck_multi: 'deck_multi',
   deck_arc: 'deck_arc',
+  deck_polygon: 'deck_polygon',
 };
 
 const vizMap = {
@@ -95,6 +96,7 @@ const vizMap = {
   [VIZ_TYPES.deck_path]: deckglFactory,
   [VIZ_TYPES.deck_geojson]: deckglFactory,
   [VIZ_TYPES.deck_arc]: deckglFactory,
+  [VIZ_TYPES.deck_polygon]: deckglFactory,
   [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
 };
 export default vizMap;
