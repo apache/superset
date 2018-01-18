@@ -1979,6 +1979,7 @@ class DeckPathViz(BaseDeckGLViz):
 
     viz_type = 'deck_path'
     verbose_name = _('Deck.gl - Paths')
+    deck_viz_key = 'path'
     deser_map = {
         'json': json.loads,
         'polyline': polyline.decode,
@@ -2000,8 +2001,17 @@ class DeckPathViz(BaseDeckGLViz):
         if fd.get('reverse_long_lat'):
             path = (path[1], path[0])
         return {
-            'path': path,
+            self.deck_viz_key: path,
         }
+
+
+class DeckPolygon(DeckPathViz):
+
+    """deck.gl's Polygon Layer"""
+
+    viz_type = 'deck_polygon'
+    deck_viz_key = 'polygon'
+    verbose_name = _('Deck.gl - Polygon')
 
 
 class DeckHex(BaseDeckGLViz):
@@ -2059,40 +2069,6 @@ class DeckArc(BaseDeckGLViz):
         return {
             'arcs': [arc['position'] for arc in arcs],
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-        }
-
-
-class DeckPolygon(BaseDeckGLViz):
-
-    """deck.gl's Polygon Layer"""
-
-    viz_type = 'deck_polygon'
-    verbose_name = _('Deck.gl - Polygon')
-    deser_map = {
-        'json': json.loads,
-        'polyline': polyline.decode,
-    }
-
-    def get_position(self, d):
-        return d[self.form_data.get('line_column')]
-
-    def query_obj(self):
-        d = super(DeckPolygon, self).query_obj()
-        line_col = self.form_data.get('line_column')
-        if d['metrics']:
-            d['groupby'].append(line_col)
-        else:
-            d['columns'].append(line_col)
-        return d
-
-    def get_properties(self, d):
-        fd = self.form_data
-        deser = self.deser_map[fd.get('line_type')]
-        polygon = deser(d[fd.get('line_column')])
-        if fd.get('reverse_long_lat'):
-            polygon = (polygon[1], polygon[0])
-        return {
-            'polygon': polygon,
         }
 
 
