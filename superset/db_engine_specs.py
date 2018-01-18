@@ -319,8 +319,7 @@ class PostgresEngineSpec(BaseEngineSpec):
     def get_table_names(cls, schema, inspector):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
-        # this is also being called from oracle db and caused the issue to fetch tables, remove here
-        #tables.extend(inspector.get_foreign_table_names(schema))
+        tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
 
 
@@ -1086,6 +1085,12 @@ class OracleEngineSpec(PostgresEngineSpec):
     @classmethod
     def format_column_name(cls, col_name):
         return col_name.upper()
+    
+    # fix oracle list tables issue in sql lab
+    @classmethod
+    def get_table_names(cls, schema, inspector):
+        tables = inspector.get_table_names(schema)
+        return sorted(tables)
 
 
 class VerticaEngineSpec(PostgresEngineSpec):
