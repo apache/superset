@@ -2077,7 +2077,7 @@ class DeckArc(BaseDeckGLViz):
         arcs = d['features']
 
         return {
-            'arcs': [arc['position'] for arc in arcs],
+            'arcs': arcs,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
 
