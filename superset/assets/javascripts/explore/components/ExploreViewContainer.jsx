@@ -112,12 +112,12 @@ class ExploreViewContainer extends React.Component {
     if (isReplace) {
       history.replaceState(
         payload,
-        document.title,
+        title,
         longUrl);
     } else {
       history.pushState(
         payload,
-        document.title,
+        title,
         longUrl);
     }
 

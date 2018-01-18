@@ -13,124 +13,129 @@ describe('utils', () => {
     expect(uri1.toString()).to.equal(uri2.toString());
   }
 
-  it('generates proper base url', () => {
-    // This assertion is to show clearly the value of location.href
-    // in the context of unit tests.
-    expect(location.href).to.equal('about:blank');
+  describe('getExploreUrlAndPayload', () => {
+    it('generates proper base url', () => {
+      // This assertion is to show clearly the value of location.href
+      // in the context of unit tests.
+      expect(location.href).to.equal('about:blank');
 
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'base',
-      force: false,
-      curUrl: 'http://superset.com',
-    });
-    compareURI(
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'base',
+        force: false,
+        curUrl: 'http://superset.com',
+      });
+      compareURI(
         URI(url),
         URI('/superset/explore/table/1/'),
-    );
-    expect(payload).to.deep.equals(formData);
-  });
-  it('generates proper json url', () => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'json',
-      force: false,
-      curUrl: 'http://superset.com',
+      );
+      expect(payload).to.deep.equals(formData);
     });
-    compareURI(
+    it('generates proper json url', () => {
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        force: false,
+        curUrl: 'http://superset.com',
+      });
+      compareURI(
         URI(url),
         URI('/superset/explore_json/table/1/'),
-    );
-    expect(payload).to.deep.equals(formData);
-  });
-  it('generates proper json forced url', () => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'json',
-      force: true,
-      curUrl: 'superset.com',
+      );
+      expect(payload).to.deep.equals(formData);
     });
-    compareURI(
+    it('generates proper json forced url', () => {
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        force: true,
+        curUrl: 'superset.com',
+      });
+      compareURI(
         URI(url),
         URI('/superset/explore_json/table/1/')
           .search({ force: 'true' }),
-    );
-    expect(payload).to.deep.equals(formData);
-  });
-  it('generates proper csv URL', () => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'csv',
-      force: false,
-      curUrl: 'superset.com',
+      );
+      expect(payload).to.deep.equals(formData);
     });
-    compareURI(
+    it('generates proper csv URL', () => {
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'csv',
+        force: false,
+        curUrl: 'superset.com',
+      });
+      compareURI(
         URI(url),
         URI('/superset/explore_json/table/1/')
           .search({ csv: 'true' }),
-    );
-    expect(payload).to.deep.equals(formData);
-  });
-  it('generates proper standalone URL', () => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'standalone',
-      force: false,
-      curUrl: 'superset.com',
+      );
+      expect(payload).to.deep.equals(formData);
     });
-    compareURI(
+    it('generates proper standalone URL', () => {
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'standalone',
+        force: false,
+        curUrl: 'superset.com',
+      });
+      compareURI(
         URI(url),
         URI('/superset/explore/table/1/')
           .search({ standalone: 'true' }),
-    );
-    expect(payload).to.deep.equals(formData);
-  });
-  it('preserves main URLs params', () => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'json',
-      force: false,
-      curUrl: 'superset.com?foo=bar',
+      );
+      expect(payload).to.deep.equals(formData);
     });
-    compareURI(
+    it('preserves main URLs params', () => {
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        force: false,
+        curUrl: 'superset.com?foo=bar',
+      });
+      compareURI(
         URI(url),
         URI('/superset/explore_json/table/1/')
           .search({ foo: 'bar' }),
-    );
-    expect(payload).to.deep.equals(formData);
-  });
-  it('generate proper save slice url', () => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'json',
-      force: false,
-      curUrl: 'superset.com?foo=bar',
+      );
+      expect(payload).to.deep.equals(formData);
     });
-    compareURI(
-      URI(url),
-      URI('/superset/explore_json/table/1/')
-        .search({ foo: 'bar' }),
-    );
-    expect(payload).to.deep.equals(formData);
-  });
-  it('generate proper saveas slice url', () => {
-    const { url, payload } = getExploreUrlAndPayload({
-      formData,
-      endpointType: 'json',
-      force: false,
-      curUrl: 'superset.com?foo=bar',
+    it('generate proper save slice url', () => {
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        force: false,
+        curUrl: 'superset.com?foo=bar',
+      });
+      compareURI(
+        URI(url),
+        URI('/superset/explore_json/table/1/')
+          .search({ foo: 'bar' }),
+      );
+      expect(payload).to.deep.equals(formData);
     });
-    compareURI(
-      URI(url),
-      URI('/superset/explore_json/table/1/')
-        .search({ foo: 'bar' }),
-    );
-    expect(payload).to.deep.equals(formData);
+    it('generate proper saveas slice url', () => {
+      const { url, payload } = getExploreUrlAndPayload({
+        formData,
+        endpointType: 'json',
+        force: false,
+        curUrl: 'superset.com?foo=bar',
+      });
+      compareURI(
+        URI(url),
+        URI('/superset/explore_json/table/1/')
+          .search({ foo: 'bar' }),
+      );
+      expect(payload).to.deep.equals(formData);
+    });
   });
-  it('getExploreLongUrl generates proper base url with form_data', () => {
-    compareURI(
-      URI(getExploreLongUrl(formData, 'base', false, 'http://superset.com')),
-      URI('/superset/explore/table/1/').search({ form_data: sFormData }),
-    );
+
+  describe('getExploreLongUrl', () => {
+    it('generates proper base url with form_data', () => {
+      compareURI(
+        URI(getExploreLongUrl(formData, 'base')),
+        URI('/superset/explore/table/1/').search({ form_data: sFormData }),
+      );
+    });
   });
 });
