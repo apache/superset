@@ -136,11 +136,14 @@ def load_examples(load_test_data):
     print('Loading [Misc Charts] dashboard')
     data.load_misc_dashboard()
 
+    print('Loading [Paris GeoJson]')
+    data.load_paris_iris_geojson()
+
+    print('Loading [San Francisco population polygons]')
+    data.load_sf_population_polygons()
+
     print('Loading DECK.gl demo')
     data.load_deck_dash()
-
-    print('Loading Paris geojson data')
-    data.load_paris_iris_geojson()
 
     if load_test_data:
         print('Loading [Unicode test data]')
