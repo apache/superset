@@ -37,6 +37,11 @@ class SliceHeader extends React.PureComponent {
     super(props);
 
     this.onSaveTitle = this.onSaveTitle.bind(this);
+    this.onToggleExpandSlice = this.onToggleExpandSlice.bind(this);
+    this.exportCSV = this.props.exportCSV.bind(this, this.props.slice);
+    this.exploreChart = this.props.exploreChart.bind(this, this.props.slice);
+    this.forceRefresh = this.props.forceRefresh.bind(this, this.props.slice.slice_id);
+    this.removeSlice = this.props.removeSlice.bind(this, this.props.slice);
   }
 
   onSaveTitle(newTitle) {
@@ -45,10 +50,13 @@ class SliceHeader extends React.PureComponent {
     }
   }
 
+  onToggleExpandSlice() {
+    this.props.toggleExpandSlice(this.props.slice, !this.props.isExpanded);
+  }
+
   render() {
     const slice = this.props.slice;
     const isCached = this.props.isCached;
-    const isExpanded = !!this.props.isExpanded;
     const cachedWhen = moment.utc(this.props.cachedDttm).fromNow();
     const refreshTooltip = isCached ?
       t('Served from data cached %s . Click to force refresh.', cachedWhen) :
@@ -98,10 +106,7 @@ class SliceHeader extends React.PureComponent {
                   </TooltipWrapper>
                 </a>
               }
-              <a
-                className={`refresh ${isCached ? 'danger' : ''}`}
-                onClick={() => (this.props.forceRefresh(slice.slice_id))}
-              >
+              <a className={`refresh ${isCached ? 'danger' : ''}`} onClick={this.forceRefresh}>
                 <TooltipWrapper
                   placement="top"
                   label="refresh"
@@ -111,7 +116,7 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               {slice.description &&
-              <a onClick={() => this.props.toggleExpandSlice(slice, !isExpanded)}>
+              <a onClick={this.onToggleExpandSlice}>
                 <TooltipWrapper
                   placement="top"
                   label="description"
@@ -130,7 +135,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-pencil" />
                 </TooltipWrapper>
               </a>
-              <a className="exportCSV" onClick={() => (this.props.exportCSV(slice))}>
+              <a className="exportCSV" onClick={this.exportCSV}>
                 <TooltipWrapper
                   placement="top"
                   label="exportCSV"
@@ -139,7 +144,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-table" />
                 </TooltipWrapper>
               </a>
-              <a className="exploreChart" onClick={() => (this.props.exploreChart(slice))}>
+              <a className="exploreChart" onClick={this.exploreChart}>
                 <TooltipWrapper
                   placement="top"
                   label="exploreChart"
@@ -149,7 +154,7 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               {this.props.editMode &&
-                <a className="remove-chart" onClick={() => (this.props.removeSlice(slice))}>
+                <a className="remove-chart" onClick={this.removeSlice}>
                   <TooltipWrapper
                     placement="top"
                     label="close"
