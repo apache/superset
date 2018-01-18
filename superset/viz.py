@@ -282,7 +282,11 @@ class BaseViz(object):
                 data = None
                 stacktrace = traceback.format_exc()
 
-            if data and cache and self.status != utils.QueryStatus.FAILED:
+            if (
+                    data and
+                    cache_key and
+                    cache and
+                    self.status != utils.QueryStatus.FAILED):
                 cached_dttm = datetime.utcnow().isoformat().split('.')[0]
                 try:
                     cache_value = json.dumps({
