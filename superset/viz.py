@@ -1852,7 +1852,10 @@ class BaseDeckGLViz(BaseViz):
         elif spatial.get('type') == 'delimited':
             df[key] = (df[spatial.get('lonlatCol')].str.split(spatial.get('delimiter')))
             if spatial.get('reverseCheckbox'):
-                df[key] = [list(reversed(item))for item in df[key]]
+                df[key] = [
+                    tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
+                    for o in df[key]
+                ]
             del df[spatial.get('lonlatCol')]
         elif spatial.get('type') == 'geohash':
             latlong = df[spatial.get('geohashCol')].map(geohash.decode)
