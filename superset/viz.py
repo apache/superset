@@ -1986,7 +1986,6 @@ class DeckPathViz(BaseDeckGLViz):
         'json': json.loads,
         'polyline': polyline.decode,
     }
-    spatial_control_keys = ['spatial']
 
     def query_obj(self):
         d = super(DeckPathViz, self).query_obj()
