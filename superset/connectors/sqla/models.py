@@ -542,8 +542,6 @@ class SqlaTable(Model, BaseDatasource):
             where = extras.get('where')
             if where:
                 where = template_processor.process_template(where)
-                # fix the issue of cannot pass multi-byte text in where clause
-                # where_clause_and += [sa.text('({})'.format(where))]
                 where_clause_and += [sa.text(u'({})'.format(where.encode('utf-8').decode('utf-8')))]
             having = extras.get('having')
             if having:
