@@ -6,6 +6,7 @@ import deck_hex from './hex';
 import deck_scatter from './scatter';
 import deck_geojson from './geojson';
 import deck_arc from './arc';
+import deck_polygon from './polygon';
 
 const layerGenerators = {
   deck_grid,
@@ -15,5 +16,6 @@ const layerGenerators = {
   deck_scatter,
   deck_geojson,
   deck_arc,
+  deck_polygon,
 };
 export default layerGenerators;
