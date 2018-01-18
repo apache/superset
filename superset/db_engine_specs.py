@@ -283,7 +283,7 @@ class BaseEngineSpec(object):
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
 
-    engine = 'postgresqlbase'
+    engine = ''
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
