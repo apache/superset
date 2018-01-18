@@ -2072,43 +2072,6 @@ class DeckArc(BaseDeckGLViz):
         }
 
 
-<<<<<<< HEAD
-=======
-class DeckPolygon(BaseDeckGLViz):
-
-    """deck.gl's Polygon Layer"""
-
-    viz_type = 'deck_polygon'
-    verbose_name = _('Deck.gl - Polygon')
-    deser_map = {
-        'json': json.loads,
-        'polyline': polyline.decode,
-    }
-
-    def get_position(self, d):
-        return d[self.form_data.get('line_column')]
-
-    def query_obj(self):
-        d = super(DeckPolygon, self).query_obj()
-        line_col = self.form_data.get('line_column')
-        if d['metrics']:
-            d['groupby'].append(line_col)
-        else:
-            d['columns'].append(line_col)
-        return d
-
-    def get_properties(self, d):
-        fd = self.form_data
-        deser = self.deser_map[fd.get('line_type')]
-        polygon = deser(d[fd.get('line_column')])
-        if fd.get('reverse_long_lat'):
-            polygon = (polygon[1], polygon[0])
-        return {
-            'polygon': polygon,
-        }
-
-
->>>>>>> e549c9a763b6e7d1580acde20d78cba4a0c3c2c9
 class EventFlowViz(BaseViz):
 
     """A visualization to explore patterns in event sequences"""
