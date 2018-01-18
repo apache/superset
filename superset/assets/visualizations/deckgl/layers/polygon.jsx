@@ -6,7 +6,7 @@ import sandboxedEval from '../../../javascripts/modules/sandbox';
 export default function polygonLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.fill_color_picker;
-  let data = payload.data.polygons.map(d => ({
+  let data = payload.data.features.map(d => ({
     ...d,
     fillColor: [fc.r, fc.g, fc.b, 255 * fc.a],
   }));

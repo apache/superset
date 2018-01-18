@@ -525,13 +525,15 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['polygon', 'row_limit'],
+          ['line_column', 'line_type'],
+          ['row_limit', null],
         ],
       },
       {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          ['reverse_long_lat', null],
         ],
       },
       {
