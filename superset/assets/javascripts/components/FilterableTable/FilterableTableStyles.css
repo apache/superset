@@ -1,8 +1,12 @@
+.ReactVirtualized__Grid__innerScrollContainer {
+  border: 1px solid #ccc;
+}
 .ReactVirtualized__Table__headerRow {
   font-weight: 700;
   display: flex;
   flex-direction: row;
   align-items: center;
+  border: 1px solid #ccc;
 }
 .ReactVirtualized__Table__row {
   display: flex;
@@ -50,11 +54,6 @@
 }
 .even-row { background: #f2f2f2; }
 .odd-row { background: #ffffff; }
-.even-row,
-.odd-row {
-  border: none;
-}
 .filterable-table-container {
   overflow: auto;
-  border: 1px solid #ccc;
 }
