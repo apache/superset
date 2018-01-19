@@ -86,6 +86,8 @@ class BaseViz(object):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
             query_obj = self.query_obj()
+        if not query_obj:
+            return None
 
         self.error_msg = ''
         self.results = None
@@ -171,8 +173,10 @@ class BaseViz(object):
 
         self.time_shift = utils.parse_human_timedelta(time_shift)
 
-        from_dttm = utils.parse_human_datetime(since) - self.time_shift
-        to_dttm = utils.parse_human_datetime(until) - self.time_shift
+        since = utils.parse_human_datetime(since)
+        until = utils.parse_human_datetime(until)
+        from_dttm = None if since is None else (since - self.time_shift)
+        to_dttm = None if until is None else (until - self.time_shift)
         if from_dttm and to_dttm and from_dttm > to_dttm:
             raise Exception(_('From date cannot be larger than to date'))
 
@@ -203,13 +207,13 @@ class BaseViz(object):
             'timeseries_limit_metric': timeseries_limit_metric,
             'form_data': form_data,
             'order_desc': order_desc,
+            'prequeries': [],
+            'is_prequery': False,
         }
         return d
 
     @property
     def cache_timeout(self):
-        if self.form_data.get('cache_timeout'):
-            return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
         if (
@@ -223,44 +227,50 @@ class BaseViz(object):
             self.get_payload(force),
             default=utils.json_int_dttm_ser, ignore_nan=True)
 
-    @property
-    def cache_key(self):
-        form_data = self.form_data.copy()
-        merge_extra_filters(form_data)
-        s = str([(k, form_data[k]) for k in sorted(form_data.keys())])
-        return hashlib.md5(s.encode('utf-8')).hexdigest()
+    def cache_key(self, query_obj):
+        """
+        The cache key is the datasource/query string tuple associated with the
+        object which needs to be fully deterministic.
+        """
+
+        return hashlib.md5(
+            json.dumps((
+                self.datasource.id,
+                self.datasource.get_query_str(query_obj),
+            )).encode('utf-8'),
+        ).hexdigest()
 
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
-        cache_key = self.cache_key
-        payload = None
-        if not force and cache:
-            payload = cache.get(cache_key)
+        query_obj = self.query_obj()
+        cache_key = self.cache_key(query_obj) if query_obj else None
+        cached_dttm = None
+        data = None
+        stacktrace = None
+        rowcount = None
+        if cache_key and cache and not force:
+            cache_value = cache.get(cache_key)
+            if cache_value:
+                stats_logger.incr('loaded_from_cache')
+                is_cached = True
+                try:
+                    cache_value = zlib.decompress(cache_value)
+                    if PY3:
+                        cache_value = cache_value.decode('utf-8')
+                    cache_value = json.loads(cache_value)
+                    data = cache_value['data']
+                    cached_dttm = cache_value['dttm']
+                except Exception as e:
+                    logging.error('Error reading cache: ' +
+                                  utils.error_msg_from_exception(e))
+                    data = None
+                logging.info('Serving from cache')
 
-        if payload:
-            stats_logger.incr('loaded_from_cache')
-            is_cached = True
-            try:
-                cached_data = zlib.decompress(payload)
-                if PY3:
-                    cached_data = cached_data.decode('utf-8')
-                payload = json.loads(cached_data)
-            except Exception as e:
-                logging.error('Error reading cache: ' +
-                              utils.error_msg_from_exception(e))
-                payload = None
-                return []
-            logging.info('Serving from cache')
-
-        if not payload:
+        if not data:
             stats_logger.incr('loaded_from_source')
-            data = None
             is_cached = False
-            cache_timeout = self.cache_timeout
-            stacktrace = None
-            rowcount = None
             try:
-                df = self.get_df()
+                df = self.get_df(query_obj)
                 if not self.error_message:
                     data = self.get_data(df)
                 rowcount = len(df.index) if df is not None else 0
@@ -271,37 +281,44 @@ class BaseViz(object):
                 self.status = utils.QueryStatus.FAILED
                 data = None
                 stacktrace = traceback.format_exc()
-            payload = {
-                'cache_key': cache_key,
-                'cache_timeout': cache_timeout,
-                'data': data,
-                'error': self.error_message,
-                'form_data': self.form_data,
-                'query': self.query,
-                'status': self.status,
-                'stacktrace': stacktrace,
-                'rowcount': rowcount,
-            }
-            payload['cached_dttm'] = datetime.utcnow().isoformat().split('.')[0]
-            logging.info('Caching for the next {} seconds'.format(
-                cache_timeout))
-            data = self.json_dumps(payload)
-            if PY3:
-                data = bytes(data, 'utf-8')
-            if cache and self.status != utils.QueryStatus.FAILED:
+
+            if (
+                    data and
+                    cache_key and
+                    cache and
+                    self.status != utils.QueryStatus.FAILED):
+                cached_dttm = datetime.utcnow().isoformat().split('.')[0]
                 try:
+                    cache_value = json.dumps({
+                        'data': data,
+                        'dttm': cached_dttm,
+                    })
+                    if PY3:
+                        cache_value = bytes(cache_value, 'utf-8')
                     cache.set(
                         cache_key,
-                        zlib.compress(data),
-                        timeout=cache_timeout)
+                        zlib.compress(cache_value),
+                        timeout=self.cache_timeout)
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
                     # the key is too large or whatever other reasons
                     logging.warning('Could not cache key {}'.format(cache_key))
                     logging.exception(e)
                     cache.delete(cache_key)
-        payload['is_cached'] = is_cached
-        return payload
+
+        return {
+            'cache_key': cache_key,
+            'cached_dttm': cached_dttm,
+            'cache_timeout': self.cache_timeout,
+            'data': data,
+            'error': self.error_message,
+            'form_data': self.form_data,
+            'is_cached': is_cached,
+            'query': self.query,
+            'status': self.status,
+            'stacktrace': stacktrace,
+            'rowcount': rowcount,
+        }
 
     def json_dumps(self, obj):
         return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
@@ -523,7 +540,10 @@ class MarkupViz(BaseViz):
     verbose_name = _('Markup')
     is_timeseries = False
 
-    def get_df(self):
+    def query_obj(self):
+        return None
+
+    def get_df(self, query_obj=None):
         return None
 
     def get_data(self, df):
@@ -933,7 +953,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if isinstance(series_title, string_types):
                 series_title += title_suffix
             elif title_suffix and isinstance(series_title, (list, tuple)):
-                series_title = series_title + (title_suffix,)
+                series_title = text_type(series_title[-1]) + title_suffix
 
             values = []
             for ds in df.index:
@@ -1560,7 +1580,10 @@ class IFrameViz(BaseViz):
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
 
-    def get_df(self):
+    def query_obj(self):
+        return None
+
+    def get_df(self, query_obj=None):
         return None
 
 
@@ -1768,87 +1791,125 @@ class MapboxViz(BaseViz):
         }
 
 
+class DeckGLMultiLayer(BaseViz):
+
+    """Pile on multiple DeckGL layers"""
+
+    viz_type = 'deck_multi'
+    verbose_name = _('Deck.gl - Multiple Layers')
+
+    is_timeseries = False
+    credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
+
+    def query_obj(self):
+        return None
+
+    def get_data(self, df):
+        fd = self.form_data
+        # Late imports to avoid circular import issues
+        from superset.models.core import Slice
+        from superset import db
+        slice_ids = fd.get('deck_slices')
+        slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        return {
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'slices': [slc.data for slc in slices],
+        }
+
+
 class BaseDeckGLViz(BaseViz):
 
     """Base class for deck.gl visualizations"""
 
     is_timeseries = False
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
+    spatial_control_keys = []
 
     def get_metrics(self):
         self.metric = self.form_data.get('size')
         return [self.metric] if self.metric else []
 
-    def get_properties(self, d):
-        return {
-            'weight': d.get(self.metric) or 1,
-        }
+    def process_spatial_query_obj(self, key, group_by):
+        spatial = self.form_data.get(key)
+        if spatial is None:
+            raise ValueError(_('Bad spatial key'))
 
-    def get_position(self, d):
-        return [
-            d.get('lon'),
-            d.get('lat'),
-        ]
+        if spatial.get('type') == 'latlong':
+            group_by += [spatial.get('lonCol')]
+            group_by += [spatial.get('latCol')]
+        elif spatial.get('type') == 'delimited':
+            group_by += [spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            group_by += [spatial.get('geohashCol')]
+
+    def process_spatial_data_obj(self, key, df):
+        spatial = self.form_data.get(key)
+        if spatial is None:
+            raise ValueError(_('Bad spatial key'))
+
+        if spatial.get('type') == 'latlong':
+            df[key] = list(zip(df[spatial.get('lonCol')], df[spatial.get('latCol')]))
+        elif spatial.get('type') == 'delimited':
+            df[key] = (df[spatial.get('lonlatCol')].str.split(spatial.get('delimiter')))
+            if spatial.get('reverseCheckbox'):
+                df[key] = [
+                    tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
+                    for o in df[key]
+                ]
+            del df[spatial.get('lonlatCol')]
+        elif spatial.get('type') == 'geohash':
+            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+            df[key] = list(zip(latlong.apply(lambda x: x[0]),
+                               latlong.apply(lambda x: x[1])))
+            del df[spatial.get('geohashCol')]
+
+        return df
 
     def query_obj(self):
         d = super(BaseDeckGLViz, self).query_obj()
         fd = self.form_data
-
         gb = []
 
-        spatial = fd.get('spatial')
-        if spatial:
-            if spatial.get('type') == 'latlong':
-                gb += [spatial.get('lonCol')]
-                gb += [spatial.get('latCol')]
-            elif spatial.get('type') == 'delimited':
-                gb += [spatial.get('lonlatCol')]
-            elif spatial.get('type') == 'geohash':
-                gb += [spatial.get('geohashCol')]
+        for key in self.spatial_control_keys:
+            self.process_spatial_query_obj(key, gb)
 
         if fd.get('dimension'):
             gb += [fd.get('dimension')]
 
+        if fd.get('js_columns'):
+            gb += fd.get('js_columns')
         metrics = self.get_metrics()
         if metrics:
             d['groupby'] = gb
             d['metrics'] = self.get_metrics()
         else:
             d['columns'] = gb
+
         return d
 
+    def get_js_columns(self, d):
+        cols = self.form_data.get('js_columns') or []
+        return {col: d.get(col) for col in cols}
+
     def get_data(self, df):
-        fd = self.form_data
-        spatial = fd.get('spatial')
-        if spatial.get('type') == 'latlong':
-            df = df.rename(columns={
-                spatial.get('lonCol'): 'lon',
-                spatial.get('latCol'): 'lat'})
-        elif spatial.get('type') == 'delimited':
-            cols = ['lon', 'lat']
-            if spatial.get('reverseCheckbox'):
-                cols.reverse()
-            df[cols] = (
-                df[spatial.get('lonlatCol')]
-                .str
-                .split(spatial.get('delimiter'), expand=True)
-                .astype(np.float64)
-            )
-            del df[spatial.get('lonlatCol')]
-        elif spatial.get('type') == 'geohash':
-            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
-            df['lat'] = latlong.apply(lambda x: x[0])
-            df['lon'] = latlong.apply(lambda x: x[1])
-            del df['geohash']
+        for key in self.spatial_control_keys:
+            df = self.process_spatial_data_obj(key, df)
 
         features = []
         for d in df.to_dict(orient='records'):
-            d = dict(position=self.get_position(d), **self.get_properties(d))
-            features.append(d)
+            feature = self.get_properties(d)
+            extra_props = self.get_js_columns(d)
+            if extra_props:
+                feature['extraProps'] = extra_props
+            features.append(feature)
+
         return {
             'features': features,
             'mapboxApiKey': config.get('MAPBOX_API_KEY'),
         }
+
+    def get_properties(self, d):
+        raise NotImplementedError()
 
 
 class DeckScatterViz(BaseDeckGLViz):
@@ -1857,6 +1918,7 @@ class DeckScatterViz(BaseDeckGLViz):
 
     viz_type = 'deck_scatter'
     verbose_name = _('Deck.gl - Scatter plot')
+    spatial_control_keys = ['spatial']
 
     def query_obj(self):
         fd = self.form_data
@@ -1875,6 +1937,7 @@ class DeckScatterViz(BaseDeckGLViz):
         return {
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
+            'position': d.get('spatial'),
         }
 
     def get_data(self, df):
@@ -1893,6 +1956,13 @@ class DeckScreengrid(BaseDeckGLViz):
 
     viz_type = 'deck_screengrid'
     verbose_name = _('Deck.gl - Screen Grid')
+    spatial_control_keys = ['spatial']
+
+    def get_properties(self, d):
+        return {
+            'position': d.get('spatial'),
+            'weight': d.get(self.metric) or 1,
+        }
 
 
 class DeckGrid(BaseDeckGLViz):
@@ -1901,6 +1971,13 @@ class DeckGrid(BaseDeckGLViz):
 
     viz_type = 'deck_grid'
     verbose_name = _('Deck.gl - 3D Grid')
+    spatial_control_keys = ['spatial']
+
+    def get_properties(self, d):
+        return {
+            'position': d.get('spatial'),
+            'weight': d.get(self.metric) or 1,
+        }
 
 
 class DeckPathViz(BaseDeckGLViz):
@@ -1909,6 +1986,7 @@ class DeckPathViz(BaseDeckGLViz):
 
     viz_type = 'deck_path'
     verbose_name = _('Deck.gl - Paths')
+    deck_viz_key = 'path'
     deser_map = {
         'json': json.loads,
         'polyline': polyline.decode,
@@ -1916,22 +1994,31 @@ class DeckPathViz(BaseDeckGLViz):
 
     def query_obj(self):
         d = super(DeckPathViz, self).query_obj()
-        d['groupby'] = []
-        d['metrics'] = []
-        d['columns'] = [self.form_data.get('line_column')]
+        line_col = self.form_data.get('line_column')
+        if d['metrics']:
+            d['groupby'].append(line_col)
+        else:
+            d['columns'].append(line_col)
         return d
 
-    def get_data(self, df):
+    def get_properties(self, d):
         fd = self.form_data
         deser = self.deser_map[fd.get('line_type')]
-        paths = [deser(s) for s in df[fd.get('line_column')]]
+        path = deser(d[fd.get('line_column')])
         if fd.get('reverse_long_lat'):
-            paths = [[(point[1], point[0]) for point in path] for path in paths]
-        d = {
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-            'paths': paths,
+            path = (path[1], path[0])
+        return {
+            self.deck_viz_key: path,
         }
-        return d
+
+
+class DeckPolygon(DeckPathViz):
+
+    """deck.gl's Polygon Layer"""
+
+    viz_type = 'deck_polygon'
+    deck_viz_key = 'polygon'
+    verbose_name = _('Deck.gl - Polygon')
 
 
 class DeckHex(BaseDeckGLViz):
@@ -1940,6 +2027,56 @@ class DeckHex(BaseDeckGLViz):
 
     viz_type = 'deck_hex'
     verbose_name = _('Deck.gl - 3D HEX')
+    spatial_control_keys = ['spatial']
+
+    def get_properties(self, d):
+        return {
+            'position': d.get('spatial'),
+            'weight': d.get(self.metric) or 1,
+        }
+
+
+class DeckGeoJson(BaseDeckGLViz):
+
+    """deck.gl's GeoJSONLayer"""
+
+    viz_type = 'deck_geojson'
+    verbose_name = _('Deck.gl - GeoJSON')
+
+    def query_obj(self):
+        d = super(DeckGeoJson, self).query_obj()
+        d['columns'] += [self.form_data.get('geojson')]
+        d['metrics'] = []
+        d['groupby'] = []
+        return d
+
+    def get_properties(self, d):
+        geojson = d.get(self.form_data.get('geojson'))
+        return json.loads(geojson)
+
+
+class DeckArc(BaseDeckGLViz):
+
+    """deck.gl's Arc Layer"""
+
+    viz_type = 'deck_arc'
+    verbose_name = _('Deck.gl - Arc')
+    spatial_control_keys = ['start_spatial', 'end_spatial']
+
+    def get_properties(self, d):
+        return {
+            'sourcePosition': d.get('start_spatial'),
+            'targetPosition': d.get('end_spatial'),
+        }
+
+    def get_data(self, df):
+        d = super(DeckArc, self).get_data(df)
+        arcs = d['features']
+
+        return {
+            'arcs': [arc['position'] for arc in arcs],
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+        }
 
 
 class EventFlowViz(BaseViz):

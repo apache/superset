@@ -338,6 +338,21 @@ export const visTypes = {
     },
   },
 
+  deck_multi: {
+    label: t('Deck.gl - Multiple Layers'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['deck_slices', null],
+        ],
+      },
+    ],
+  },
+
   deck_hex: {
     label: t('Deck.gl - Hexagons'),
     requiresTime: true,
@@ -398,7 +413,7 @@ export const visTypes = {
   },
 
   deck_path: {
-    label: t('Deck.gl - Grid'),
+    label: t('Deck.gl - Paths'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -416,6 +431,15 @@ export const visTypes = {
           ['mapbox_style', 'viewport'],
           ['color_picker', 'line_width'],
           ['reverse_long_lat', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -455,6 +479,112 @@ export const visTypes = {
     },
   },
 
+  deck_geojson: {
+    label: t('Deck.gl - geoJson'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['geojson', 'row_limit'],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('GeoJson Settings'),
+        controlSetRows: [
+          ['fill_color_picker', 'stroke_color_picker'],
+          ['filled', 'stroked'],
+          ['extruded', null],
+          ['point_radius_scale', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
+    ],
+  },
+
+  deck_polygon: {
+    label: t('Deck.gl - Polygon'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['line_column', 'line_type'],
+          ['row_limit', null],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['reverse_long_lat', null],
+        ],
+      },
+      {
+        label: t('Polygon Settings'),
+        controlSetRows: [
+          ['fill_color_picker', 'stroke_color_picker'],
+          ['filled', 'stroked'],
+          ['extruded', null],
+          ['point_radius_scale', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
+    ],
+  },
+
+  deck_arc: {
+    label: t('Deck.gl - Arc'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['start_spatial', 'end_spatial'],
+          ['row_limit', null],
+        ],
+      },
+      {
+        label: t('Map'),
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+        ],
+      },
+      {
+        label: t('Arc'),
+        controlSetRows: [
+          ['color_picker', null],
+          ['stroke_width', null],
+        ],
+      },
+    ],
+  },
+
   deck_scatter: {
     label: t('Deck.gl - Scatter plot'),
     requiresTime: true,
@@ -485,6 +615,15 @@ export const visTypes = {
         controlSetRows: [
           ['color_picker', null],
           ['dimension', 'color_scheme'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -585,6 +724,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['groupby', 'metrics'],
+          ['limit'],
           ['column_collection'],
           ['url'],
         ],

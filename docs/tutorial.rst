@@ -23,7 +23,7 @@ Under the **Sources** menu, select the *Databases* option:
 .. image:: _static/img/tutorial/tutorial_01_sources_database.png
    :scale: 70%
 
-On the resulting page, click on the green plus sign, near the top left:
+On the resulting page, click on the green plus sign, near the top right:
 
 .. image:: _static/img/tutorial/tutorial_02_add_database.png
    :scale: 70%

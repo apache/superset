@@ -139,6 +139,9 @@ def load_examples(load_test_data):
     print('Loading DECK.gl demo')
     data.load_deck_dash()
 
+    print('Loading Paris geojson data')
+    data.load_paris_iris_geojson()
+
     if load_test_data:
         print('Loading [Unicode test data]')
         data.load_unicode_test_data()

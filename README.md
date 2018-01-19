@@ -6,7 +6,7 @@ Superset
 [![Coverage Status](https://coveralls.io/repos/apache/incubator-superset/badge.svg?branch=master&service=github)](https://coveralls.io/github/apache/incubator-superset?branch=master)
 [![PyPI](https://img.shields.io/pypi/pyversions/superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/superset)
 [![Requirements Status](https://requires.io/github/apache/incubator-superset/requirements.svg?branch=master)](https://requires.io/github/apache/incubator-superset/requirements/?branch=master)
-[![Join the chat at https://gitter.im/apache/incubator-superset](https://badges.gitter.im/apache/incubator-superset.svg)](https://gitter.im/apache/incubator-superset?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/airbnb/superset](https://badges.gitter.im/apache/incubator-superset.svg)](https://gitter.im/airbnb/superset?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.incubator.apache.org)
 [![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset/assets)](https://david-dm.org/apache/incubator-superset?path=superset/assets)
 
@@ -165,6 +165,7 @@ the world know they are using Superset. Join our growing community!
  - [Konfío](http://konfio.mx)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://cloudschooling.it)
+ - [Ona](https://ona.io)
  - [Pronto Tools](http://www.prontotools.io)
  - [Qunar](https://www.qunar.com/)
  - [Shopee](https://shopee.sg)
