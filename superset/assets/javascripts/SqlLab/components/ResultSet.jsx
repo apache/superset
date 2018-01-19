@@ -144,7 +144,8 @@ export default class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
-    const height = this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height;
+    const height = Math.max(0,
+      (this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height));
     let sql;
 
     if (this.props.showSql) {
