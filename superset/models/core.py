@@ -639,7 +639,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @utils.memoized(
         watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
-    def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
+    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         url = self.db_engine_spec.adjust_database_uri(url, schema)
