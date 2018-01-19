@@ -289,7 +289,7 @@ class BaseViz(object):
                     self.status != utils.QueryStatus.FAILED):
                 cached_dttm = datetime.utcnow().isoformat().split('.')[0]
                 try:
-                    cache_value = json.dumps({
+                    cache_value = self.json_dumps({
                         'data': data,
                         'dttm': cached_dttm,
                     })
