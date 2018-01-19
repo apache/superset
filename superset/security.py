@@ -225,7 +225,7 @@ def clean_perms():
     deleted_count = pvms.delete()
     sesh.commit()
     if deleted_count:
-        logging.info("Deleted {} faulty permissions".format(deleted_count))
+        logging.info('Deleted {} faulty permissions'.format(deleted_count))
 
 
 def sync_role_definitions():
