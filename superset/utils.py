@@ -42,6 +42,8 @@ import sqlalchemy as sa
 from sqlalchemy import event, exc, select
 from sqlalchemy.types import TEXT, TypeDecorator
 
+
+
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
 PY3K = sys.version_info >= (3, 0)
@@ -238,6 +240,42 @@ def parse_human_datetime(s):
 def dttm_from_timtuple(d):
     return datetime(
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
+
+
+def decode_dashboards(o):
+    """
+    Function to be passed into json.loads obj_hook parameter
+    Recreates the dashboard object from a json representation.
+    """
+    import superset.models.core as models
+    from superset.connectors.sqla.models import (
+        SqlaTable, SqlMetric, TableColumn,
+    )
+
+    if '__Dashboard__' in o:
+        d = models.Dashboard()
+        d.__dict__.update(o['__Dashboard__'])
+        return d
+    elif '__Slice__' in o:
+        d = models.Slice()
+        d.__dict__.update(o['__Slice__'])
+        return d
+    elif '__TableColumn__' in o:
+        d = TableColumn()
+        d.__dict__.update(o['__TableColumn__'])
+        return d
+    elif '__SqlaTable__' in o:
+        d = SqlaTable()
+        d.__dict__.update(o['__SqlaTable__'])
+        return d
+    elif '__SqlMetric__' in o:
+        d = SqlMetric()
+        d.__dict__.update(o['__SqlMetric__'])
+        return d
+    elif '__datetime__' in o:
+        return datetime.strptime(o['__datetime__'], '%Y-%m-%dT%H:%M:%S')
+    else:
+        return o
 
 
 def parse_human_timedelta(s):
