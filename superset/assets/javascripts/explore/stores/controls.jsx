@@ -660,13 +660,13 @@ export const controls = {
     mapStateToProps: (state) => {
       let choices = [];
       if (state.controls && state.datasource) {
-        const gbSet = new Set(state.controls.groupby.value);
+        const gbSet = new Set((state.controls.groupby || {}).value || []);
         const gbSelectables = state.datasource.all_cols.filter(elem => gbSet.has(elem[0]));
 
-        const mSet = new Set(state.controls.metrics.value);
+        const mSet = new Set((state.controls.metrics || {}).value || []);
         const mSelectables = state.datasource.metrics_combo.filter(elem => mSet.has(elem[0]));
 
-        const cSet = new Set(state.controls.all_columns.value);
+        const cSet = new Set((state.controls.all_columns || {}).value || []);
         const cSelectables = state.datasource.all_cols.filter(elem => cSet.has(elem[0]));
         choices = [...gbSelectables, ...mSelectables, ...cSelectables];
       } else {
@@ -698,13 +698,13 @@ export const controls = {
     mapStateToProps: (state) => {
       let choices = [];
       if (state.controls && state.datasource) {
-        const gbSet = new Set(state.controls.groupby.value);
+        const gbSet = new Set((state.controls.groupby || {}).value || []);
         const gbSelectables = state.datasource.all_cols.filter(elem => gbSet.has(elem[0]));
 
-        const mSet = new Set(state.controls.metrics.value);
+        const mSet = new Set((state.controls.metrics || {}).value || []);
         const mSelectables = state.datasource.metrics_combo.filter(elem => mSet.has(elem[0]));
 
-        const cSet = new Set(state.controls.all_columns.value);
+        const cSet = new Set((state.controls.all_columns || {}).value || []);
         const cSelectables = state.datasource.all_cols.filter(elem => cSet.has(elem[0]));
         choices = [...gbSelectables, ...mSelectables, ...cSelectables];
       } else {
@@ -726,10 +726,10 @@ export const controls = {
     mapStateToProps: (state) => {
       let choices = [];
       if (state.controls && state.datasource) {
-        const gbSet = new Set(state.controls.groupby.value);
+        const gbSet = new Set((state.controls.groupby || {}).value || []);
         const gbSelectables = state.datasource.all_cols.filter(elem => gbSet.has(elem[0]));
 
-        const cSet = new Set(state.controls.all_columns.value);
+        const cSet = new Set((state.controls.all_columns || {}).value || []);
         const cSelectables = state.datasource.all_cols.filter(elem => cSet.has(elem[0]));
         choices = [...gbSelectables, ...cSelectables];
       } else {
