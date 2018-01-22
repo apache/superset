@@ -43,7 +43,6 @@ from sqlalchemy import event, exc, select
 from sqlalchemy.types import TEXT, TypeDecorator
 
 
-
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
 PY3K = sys.version_info >= (3, 0)
@@ -276,6 +275,19 @@ def decode_dashboards(o):
         return datetime.strptime(o['__datetime__'], '%Y-%m-%dT%H:%M:%S')
     else:
         return o
+
+
+class DashboardEncoder(json.JSONEncoder):
+    # pylint: disable=E0202
+    def default(self, o):
+        try:
+            vals = {
+                k: v for k, v in o.__dict__.items() if k != '_sa_instance_state'}
+            return {'__{}__'.format(o.__class__.__name__): vals}
+        except Exception:
+            if type(o) == datetime:
+                return {'__datetime__': o.replace(microsecond=0).isoformat()}
+            return json.JSONEncoder.default(self, o)
 
 
 def parse_human_timedelta(s):

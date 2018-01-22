@@ -498,19 +498,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @classmethod
     def export_dashboards(cls, dashboard_ids):
-
-        class DashboardEncoder(json.JSONEncoder):
-            # pylint: disable=E0202
-            def default(self, o):
-                try:
-                    vals = {
-                        k: v for k, v in o.__dict__.items() if k != '_sa_instance_state'}
-                    return {'__{}__'.format(o.__class__.__name__): vals}
-                except Exception as e:
-                    if type(o) == datetime:
-                        return {'__datetime__': o.replace(microsecond=0).isoformat()}
-                    return json.JSONEncoder.default(self, o)
-
         copied_dashboards = []
         datasource_ids = set()
         for dashboard_id in dashboard_ids:
@@ -548,7 +535,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         return json.dumps({
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
-        }, cls=DashboardEncoder, indent=4)
+        }, cls=utils.DashboardEncoder, indent=4)
 
 
 class Database(Model, AuditMixinNullable, ImportMixin):

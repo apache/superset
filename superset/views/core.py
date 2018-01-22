@@ -37,9 +37,7 @@ from superset import (
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.connectors.sqla.models import (
-    AnnotationDatasource, SqlaTable, SqlMetric, TableColumn,
-)
+from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.forms import CsvToDatabaseForm
 from superset.legacy import cast_form_data
 import superset.models.core as models
@@ -1116,9 +1114,6 @@ class Superset(BaseSupersetView):
     @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
         """Overrides the dashboards using json instances from the file."""
-
-
-
         f = request.files.get('file')
         if request.method == 'POST' and f:
             current_tt = int(time.time())
