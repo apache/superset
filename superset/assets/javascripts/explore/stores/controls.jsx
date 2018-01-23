@@ -1486,6 +1486,7 @@ export const controls = {
   point_radius_fixed: {
     type: 'FixedOrMetricControl',
     label: t('Point Size'),
+    default: { type: 'fix', value: 1000 },
     description: t('Fixed point radius'),
     mapStateToProps: state => ({
       datasource: state.datasource,
