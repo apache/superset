@@ -373,6 +373,15 @@ export const visTypes = {
           ['grid_size', 'extruded'],
         ],
       },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
     ],
     controlOverrides: {
       size: {
