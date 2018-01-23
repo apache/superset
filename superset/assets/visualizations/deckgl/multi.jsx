@@ -32,11 +32,26 @@ function deckMulti(slice, payload, setControlValue) {
   };
   render();
   payload.data.slices.forEach((subslice) => {
-    const url = getExploreUrl(subslice.form_data, 'json');
+    // Filters applied to multi_deck are passed down to underlying charts
+    // note that dashboard contextual information (filter_immune_slices and such) aren't
+    // taken into consideration here
+    let filters = subslice.form_data.filters.concat(fd.filters);
+    if (fd.extra_filters) {
+      filters = filters.concat(fd.extra_filters);
+    }
+    const subsliceCopy = {
+      ...subslice,
+      form_data: {
+        ...subslice.form_data,
+        filters,
+      },
+    };
+
+    const url = getExploreUrl(subsliceCopy.form_data, 'json');
     $.get(url, (data) => {
       // Late import to avoid circular deps
-      const layer = layerGenerators[subslice.form_data.viz_type](subslice.form_data, data);
-      slice.subSlicesLayers[subslice.slice_id] = layer; // eslint-disable-line no-param-reassign
+      const layer = layerGenerators[subsliceCopy.form_data.viz_type](subsliceCopy.form_data, data);
+      slice.subSlicesLayers[subsliceCopy.slice_id] = layer; // eslint-disable-line no-param-reassign
       render();
     });
   });
