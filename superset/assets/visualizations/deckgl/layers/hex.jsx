@@ -14,7 +14,7 @@ export default function getLayer(formData, payload, slice) {
   if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
     const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    data = data.map(jsFnMutator);
+    data = jsFnMutator(data);
   }
 
   return new HexagonLayer({
