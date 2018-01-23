@@ -11,9 +11,9 @@ export default function getLayer(formData, payload, slice) {
     color: [c.r, c.g, c.b, 255 * c.a],
   }));
 
-  if (fd.js_datapoint_mutator) {
+  if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_datapoint_mutator);
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
     data = data.map(jsFnMutator);
   }
 
