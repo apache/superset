@@ -1,3 +1,9 @@
 .cal_heatmap .slice_container {
   padding: 10px;
+  position: static !important;
+}
+
+.cal_heatmap .slice_container .ch-tooltip {
+  margin-left: 20px;
+  margin-top: 5px;
 }
