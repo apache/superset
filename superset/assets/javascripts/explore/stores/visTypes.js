@@ -582,6 +582,15 @@ export const visTypes = {
           ['stroke_width', null],
         ],
       },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_datapoint_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
     ],
   },
 
