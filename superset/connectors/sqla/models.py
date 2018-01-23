@@ -413,7 +413,8 @@ class SqlaTable(Model, BaseDatasource):
         customer_order_column = query_obj.get('timeseries_limit_metric', None)
         is_timeseries = query_obj.get('is_timeseries', False)
         if is_timeseries:
-            customer_order_column = '__timestamp' if not customer_order_column else customer_order_column
+            if not customer_order_column:
+                customer_order_column = '__timestamp'
             left_index = sql.rfind('ORDER BY') + len('ORDER BY') + 1
             right_index = sql.rfind('DESC') - 1
             sql = sql[:left_index] + customer_order_column + sql[right_index:]
