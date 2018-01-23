@@ -1881,10 +1881,11 @@ export const controls = {
     },
   },
 
-  js_datapoint_mutator: jsFunctionControl(
-    t('Javascript data point mutator'),
-    t('Define a javascript function that receives each data point and can alter it ' +
-      'before getting sent to the deck.gl layer'),
+  js_data_mutator: jsFunctionControl(
+    t('Javascript data interceptor'),
+    t('Define a javascript function that receives the data array used in the visualization ' +
+      'and is expected to return a modified version of that array. This can be used ' +
+      'to alter properties of the data, filter, or enrich the array.'),
   ),
 
   js_data: jsFunctionControl(

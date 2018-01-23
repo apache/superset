@@ -14,9 +14,9 @@ export default function getLayer(formData, payload, slice) {
     color: fixedColor,
   }));
 
-  if (fd.js_datapoint_mutator) {
-    const jsFnMutator = sandboxedEval(fd.js_datapoint_mutator);
-    data = data.map(jsFnMutator);
+  if (fd.js_data_mutator) {
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
   }
 
   return new PathLayer({
