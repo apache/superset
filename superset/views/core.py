@@ -938,14 +938,14 @@ class Superset(BaseSupersetView):
 
     def get_form_data(self):
         d = {}
+        post_data = request.form.get('form_data')
+        request_args_data = request.args.get('form_data')
         # Supporting POST
-        if request.form.get('form_data'):
-            post_data = request.form.get('form_data')
+        if post_data:
             d.update(json.loads(post_data))
         # request params can overwrite post body
-        if request.args.get('form_data'):
-            request_param = request.args.get('form_data')
-            d.update(json.loads(request_param))
+        if request_args_data:
+            d.update(json.loads(request_args_data))
 
         if request.args.get('viz_type'):
             # Converting old URLs
