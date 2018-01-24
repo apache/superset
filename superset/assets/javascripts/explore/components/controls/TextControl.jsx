@@ -13,6 +13,7 @@ const propTypes = {
   ]),
   isFloat: PropTypes.bool,
   isInt: PropTypes.bool,
+  disabled: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -21,6 +22,7 @@ const defaultProps = {
   value: '',
   isInt: false,
   isFloat: false,
+  disabled: false,
 };
 
 export default class TextControl extends React.Component {
@@ -63,6 +65,7 @@ export default class TextControl extends React.Component {
             onChange={this.onChange}
             onFocus={this.props.onFocus}
             value={value}
+            disabled={this.props.disabled}
           />
         </FormGroup>
       </div>

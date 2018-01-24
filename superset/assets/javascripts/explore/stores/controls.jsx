@@ -331,6 +331,14 @@ export const controls = {
     default: false,
   },
 
+  autozoom: {
+    type: 'CheckboxControl',
+    label: t('Auto Zoom'),
+    default: true,
+    renderTrigger: true,
+    description: t('When checked, the map will zoom to your data after each query'),
+  },
+
   show_perc: {
     type: 'CheckboxControl',
     label: t('Show percentage'),
