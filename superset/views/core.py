@@ -988,16 +988,22 @@ class Superset(BaseSupersetView):
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj):
+        query = None
         try:
             query_obj = viz_obj.query_obj()
-            query = viz_obj.datasource.get_query_str(query_obj)
+            if query_obj:
+                query = viz_obj.datasource.get_query_str(query_obj)
         except Exception as e:
+            logging.exception(e)
             return json_error_response(e)
 
-        if query_obj['prequeries']:
+        if query_obj and query_obj['prequeries']:
             query_obj['prequeries'].append(query)
             query = ';\n\n'.join(query_obj['prequeries'])
-        query += ';'
+        if query:
+            query += ';'
+        else:
+            query = 'No query.'
 
         return Response(
             json.dumps({
@@ -1099,9 +1105,10 @@ class Superset(BaseSupersetView):
             force = request.args.get('force') == 'true'
             form_data = self.get_form_data()
         except Exception as e:
-                return json_error_response(
-                    utils.error_msg_from_exception(e),
-                    stacktrace=traceback.format_exc())
+            logging.exception(e)
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                stacktrace=traceback.format_exc())
         return self.generate_json(datasource_type=datasource_type,
                                   datasource_id=datasource_id,
                                   form_data=form_data,
