@@ -10,6 +10,7 @@ from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
+import numpy as np
 import pandas as pd
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
@@ -83,6 +84,26 @@ def get_session(nullpool):
     session = db.session()
     session.commit()  # HACK
     return session
+
+
+def convert_results_to_df(cursor_description, data):
+    """Convert raw query results to a DataFrame."""
+    column_names = (
+        [col[0] for col in cursor_description] if cursor_description else [])
+    column_names = dedup(column_names)
+
+    # check whether the result set has any nested dict columns
+    if data:
+        first_row = data[0]
+        has_dict_col = any([isinstance(c, dict) for c in first_row])
+        df_data = list(data) if has_dict_col else np.array(data)
+    else:
+        df_data = []
+
+    cdf = dataframe.SupersetDataFrame(
+        pd.DataFrame(df_data, columns=column_names))
+
+    return cdf
 
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
@@ -224,11 +245,7 @@ def execute_sql(
             },
             default=utils.json_iso_dttm_ser)
 
-    column_names = (
-        [col[0] for col in cursor_description] if cursor_description else [])
-    column_names = dedup(column_names)
-    cdf = dataframe.SupersetDataFrame(
-        pd.DataFrame(list(data), columns=column_names))
+    cdf = convert_results_to_df(cursor_description, data)
 
     query.rows = cdf.size
     query.progress = 100
