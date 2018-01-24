@@ -409,6 +409,15 @@ class SqlaTable(Model, BaseDatasource):
             ),
         )
         logging.info(sql)
+        # add customer order explore data at time series charts
+        customer_order_column = query_obj.get('timeseries_limit_metric', None)
+        is_timeseries = query_obj.get('is_timeseries', False)
+        if is_timeseries:
+            if not customer_order_column:
+                customer_order_column = '__timestamp'
+            left_index = sql.rfind('ORDER BY') + len('ORDER BY') + 1
+            right_index = sql.rfind('DESC') - 1
+            sql = sql[:left_index] + customer_order_column + sql[right_index:]
         sql = sqlparse.format(sql, reindent=True)
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
