@@ -11,10 +11,10 @@ export default function polygonLayer(formData, payload, slice) {
     fillColor: [fc.r, fc.g, fc.b, 255 * fc.a],
   }));
 
-  if (fd.js_datapoint_mutator) {
+  if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_datapoint_mutator);
-    data = data.map(jsFnMutator);
+    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    data = jsFnMutator(data);
   }
 
   return new PolygonLayer({
