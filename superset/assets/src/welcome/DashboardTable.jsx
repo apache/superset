@@ -53,7 +53,7 @@ class DashboardTable extends React.PureComponent {
           {this.state.dashboards.map(o => (
             <Tr key={o.id}>
               <Td column="dashboard" value={o.dashboard_title}>
-                <a href={o.url}>{o.dashboard_title}</a>
+                {o.dashboard_title}
               </Td>
               <Td column="creator" value={o.changed_by_name}>
                 {unsafe(o.creator)}
