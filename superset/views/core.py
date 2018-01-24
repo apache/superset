@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import json
 import logging
 import os
-import pickle
 import re
 import time
 import traceback
@@ -601,7 +600,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             ids = request.args.getlist('id')
             return Response(
                 models.Dashboard.export_dashboards(ids),
-                headers=generate_download_headers('pickle'),
+                headers=generate_download_headers('json'),
                 mimetype='application/text')
         return self.render_template(
             'superset/export_dashboards.html',
@@ -1114,15 +1113,14 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
-        """Overrides the dashboards using pickled instances from the file."""
+        """Overrides the dashboards using json instances from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
             current_tt = int(time.time())
-            data = pickle.load(f)
+            data = json.loads(f.stream.read(), object_hook=utils.decode_dashboards)
             # TODO: import DRUID datasources
             for table in data['datasources']:
-                ds_class = ConnectorRegistry.sources.get(table.type)
-                ds_class.import_obj(table, import_time=current_tt)
+                type(table).import_obj(table, import_time=current_tt)
             db.session.commit()
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(
