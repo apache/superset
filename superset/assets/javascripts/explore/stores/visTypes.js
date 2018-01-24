@@ -437,7 +437,7 @@ export const visTypes = {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],
@@ -509,7 +509,7 @@ export const visTypes = {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],
@@ -549,7 +549,7 @@ export const visTypes = {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],
@@ -621,7 +621,7 @@ export const visTypes = {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],

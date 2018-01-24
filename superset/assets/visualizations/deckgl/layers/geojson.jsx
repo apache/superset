@@ -35,10 +35,10 @@ const alterProps = (props, propOverrides) => {
   };
 };
 let features;
-const recurseGeoJson = (node, propOverrides, jsFnMutator, extraProps) => {
+const recurseGeoJson = (node, propOverrides, extraProps) => {
   if (node && node.features) {
     node.features.forEach((obj) => {
-      recurseGeoJson(obj, propOverrides, jsFnMutator, node.extraProps || extraProps);
+      recurseGeoJson(obj, propOverrides, node.extraProps || extraProps);
     });
   }
   if (node && node.geometry) {
@@ -46,9 +46,6 @@ const recurseGeoJson = (node, propOverrides, jsFnMutator, extraProps) => {
       ...node,
       properties: alterProps(node.properties, propOverrides),
     };
-    if (jsFnMutator) {
-      jsFnMutator(newNode);
-    }
     if (!newNode.extraProps) {
       newNode.extraProps = extraProps;
     }
@@ -70,14 +67,16 @@ export default function geoJsonLayer(formData, payload, slice) {
     propOverrides.strokeColor = strokeColor;
   }
 
+  features = [];
+  recurseGeoJson(payload.data, propOverrides);
+
   let jsFnMutator;
-  if (fd.js_datapoint_mutator) {
+  if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    jsFnMutator = sandboxedEval(fd.js_datapoint_mutator);
+    jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    features = jsFnMutator(features);
   }
 
-  features = [];
-  recurseGeoJson(payload.data, propOverrides, jsFnMutator);
   return new GeoJsonLayer({
     id: `geojson-layer-${fd.slice_id}`,
     filled: fd.filled,
