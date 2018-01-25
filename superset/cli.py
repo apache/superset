@@ -142,18 +142,18 @@ def load_examples(load_test_data):
     print('Loading [San Francisco population polygons]')
     data.load_sf_population_polygons()
 
-    print('Loading DECK.gl demo')
-    data.load_deck_dash()
-
-    if load_test_data:
-        print('Loading [Unicode test data]')
-        data.load_unicode_test_data()
-
     print('Loading flights data')
     data.load_flights()
 
     print('Loading bart lines data')
     data.load_bart_lines()
+
+    if load_test_data:
+        print('Loading [Unicode test data]')
+        data.load_unicode_test_data()
+
+    print('Loading DECK.gl demo')
+    data.load_deck_dash()
 
 
 @manager.option(
