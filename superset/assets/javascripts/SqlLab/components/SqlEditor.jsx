@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import throttle from 'lodash.throttle';
 import {
   Col,
   FormGroup,
@@ -52,6 +53,9 @@ class SqlEditor extends React.PureComponent {
       autorun: props.queryEditor.autorun,
       ctas: '',
     };
+
+    this.onResize = this.onResize.bind(this);
+    this.throttledResize = throttle(this.onResize, 250);
   }
   componentWillMount() {
     if (this.state.autorun) {
@@ -62,12 +66,16 @@ class SqlEditor extends React.PureComponent {
   }
   componentDidMount() {
     this.onResize();
+    window.addEventListener('resize', this.throttledResize);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.throttledResize);
   }
   onResize() {
     const height = this.sqlEditorHeight();
     this.setState({
-      editorPaneHeight: this.refs.ace.clientHeight,
-      southPaneHeight: height - this.refs.ace.clientHeight,
+      editorPaneHeight: this.props.queryEditor.height,
+      southPaneHeight: height - this.props.queryEditor.height,
       height,
     });
 
@@ -252,7 +260,7 @@ class SqlEditor extends React.PureComponent {
               split="horizontal"
               defaultSize={defaultNorthHeight}
               minSize={100}
-              onChange={this.onResize.bind(this)}
+              onChange={this.onResize}
             >
               <div ref="ace" style={{ width: '100%' }}>
                 <div>
@@ -273,7 +281,7 @@ class SqlEditor extends React.PureComponent {
                   editorQueries={this.props.editorQueries}
                   dataPreviewQueries={this.props.dataPreviewQueries}
                   actions={this.props.actions}
-                  height={this.state.southPaneHeight}
+                  height={this.state.southPaneHeight || 0}
                 />
               </div>
             </SplitPane>
