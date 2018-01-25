@@ -1922,6 +1922,7 @@ class DeckScatterViz(BaseDeckGLViz):
     viz_type = 'deck_scatter'
     verbose_name = _('Deck.gl - Scatter plot')
     spatial_control_keys = ['spatial']
+    is_timeseries = True
 
     def query_obj(self):
         fd = self.form_data
@@ -1941,11 +1942,13 @@ class DeckScatterViz(BaseDeckGLViz):
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
+            '__timestamp': d.get('__timestamp'),
         }
 
     def get_data(self, df):
         fd = self.form_data
-        self.point_radius_fixed = fd.get('point_radius_fixed')
+        self.point_radius_fixed = fd.get('point_radius_fixed') or {
+            'type': 'fix', 'value': 500}
         self.fixed_value = None
         self.dim = self.form_data.get('dimension')
         if self.point_radius_fixed.get('type') != 'metric':
