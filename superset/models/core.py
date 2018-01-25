@@ -9,7 +9,6 @@ from datetime import date, datetime
 import functools
 import json
 import logging
-import pickle
 import textwrap
 
 from flask import escape, g, Markup, request
@@ -395,7 +394,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
          be overridden or just copies over. Slices that belong to this
          dashboard will be wired to existing tables. This function can be used
          to import/export dashboards between multiple superset instances.
-         Audit metadata isn't copies over.
+         Audit metadata isn't copied over.
         """
         def alter_positions(dashboard, old_to_new_slc_id_dict):
             """ Updates slice_ids in the position json.
@@ -533,10 +532,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
 
-        return pickle.dumps({
+        return json.dumps({
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
-        })
+        }, cls=utils.DashboardEncoder, indent=4)
 
 
 class Database(Model, AuditMixinNullable, ImportMixin):

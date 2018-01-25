@@ -5,12 +5,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import json
-import pickle
 import unittest
 
 from sqlalchemy.orm.session import make_transient
 
-from superset import db
+from superset import db, utils
 from superset.connectors.druid.models import (
     DruidColumn, DruidDatasource, DruidMetric,
 )
@@ -205,13 +204,22 @@ class ImportExportTests(SupersetTestCase):
             .format(birth_dash.id)
         )
         resp = self.client.get(export_dash_url)
-        exported_dashboards = pickle.loads(resp.data)['dashboards']
+        exported_dashboards = json.loads(
+            resp.data.decode('utf-8'),
+            object_hook=utils.decode_dashboards,
+        )['dashboards']
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
             birth_dash.id,
-            json.loads(exported_dashboards[0].json_metadata)['remote_id'])
+            json.loads(
+                exported_dashboards[0].json_metadata,
+                object_hook=utils.decode_dashboards,
+            )['remote_id'])
 
-        exported_tables = pickle.loads(resp.data)['datasources']
+        exported_tables = json.loads(
+            resp.data.decode('utf-8'),
+            object_hook=utils.decode_dashboards,
+        )['datasources']
         self.assertEquals(1, len(exported_tables))
         self.assert_table_equals(
             self.get_table_by_name('birth_names'), exported_tables[0])
@@ -223,8 +231,12 @@ class ImportExportTests(SupersetTestCase):
             '/dashboardmodelview/export_dashboards_form?id={}&id={}&action=go'
             .format(birth_dash.id, world_health_dash.id))
         resp = self.client.get(export_dash_url)
-        exported_dashboards = sorted(pickle.loads(resp.data)['dashboards'],
-                                     key=lambda d: d.dashboard_title)
+        exported_dashboards = sorted(
+            json.loads(
+                resp.data.decode('utf-8'),
+                object_hook=utils.decode_dashboards,
+            )['dashboards'],
+            key=lambda d: d.dashboard_title)
         self.assertEquals(2, len(exported_dashboards))
         self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
@@ -239,7 +251,10 @@ class ImportExportTests(SupersetTestCase):
         )
 
         exported_tables = sorted(
-            pickle.loads(resp.data)['datasources'], key=lambda t: t.table_name)
+            json.loads(
+                resp.data.decode('utf-8'),
+                object_hook=utils.decode_dashboards)['datasources'],
+            key=lambda t: t.table_name)
         self.assertEquals(2, len(exported_tables))
         self.assert_table_equals(
             self.get_table_by_name('birth_names'), exported_tables[0])

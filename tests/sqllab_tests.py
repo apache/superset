@@ -12,6 +12,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import appbuilder, db, sm, utils
 from superset.models.sql_lab import Query
+from superset.sql_lab import convert_results_to_df
 from .base_tests import SupersetTestCase
 
 
@@ -199,6 +200,22 @@ class SqlLabTests(SupersetTestCase):
             client_id='2e2df3',
             user_name='admin',
             raise_on_error=True)
+
+    def test_df_conversion_no_dict(self):
+        cols = [['string_col'], ['int_col']]
+        data = [['a', 4]]
+        cdf = convert_results_to_df(cols, data)
+
+        self.assertEquals(len(data), cdf.size)
+        self.assertEquals(len(cols), len(cdf.columns))
+
+    def test_df_conversion_dict(self):
+        cols = [['string_col'], ['dict_col'], ['int_col']]
+        data = [['a', {'c1': 1, 'c2': 2, 'c3': 3}, 4]]
+        cdf = convert_results_to_df(cols, data)
+
+        self.assertEquals(len(data), cdf.size)
+        self.assertEquals(len(cols), len(cdf.columns))
 
 
 if __name__ == '__main__':
