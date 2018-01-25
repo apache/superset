@@ -1546,6 +1546,9 @@ class FilterBoxViz(BaseViz):
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
 
     def query_obj(self):
+        return None
+
+    def filter_query_obj(self):
         qry = super(FilterBoxViz, self).query_obj()
         groupby = self.form_data.get('groupby')
         if len(groupby) < 1 and not self.form_data.get('date_filter'):
@@ -1555,7 +1558,7 @@ class FilterBoxViz(BaseViz):
         return qry
 
     def get_data(self, df):
-        qry = self.query_obj()
+        qry = self.filter_query_obj()
         filters = [g for g in self.form_data['groupby']]
         d = {}
         for flt in filters:
