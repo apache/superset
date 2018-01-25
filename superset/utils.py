@@ -34,6 +34,7 @@ from flask_babel import gettext as __
 from flask_cache import Cache
 import markdown as md
 import numpy
+import pandas as pd
 import parsedatetime
 from past.builtins import basestring
 from pydruid.utils.having import Having
@@ -360,11 +361,7 @@ def json_iso_dttm_ser(obj, pessimistic=False):
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, datetime):
-        obj = obj.isoformat()
-    elif isinstance(obj, date):
-        obj = obj.isoformat()
-    elif isinstance(obj, time):
+    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
         obj = obj.isoformat()
     else:
         if pessimistic:
@@ -398,7 +395,7 @@ def json_int_dttm_ser(obj):
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, datetime):
+    if isinstance(obj, (datetime, pd.Timestamp)):
         obj = datetime_to_epoch(obj)
     elif isinstance(obj, date):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
