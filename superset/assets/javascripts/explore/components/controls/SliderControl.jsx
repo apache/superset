@@ -44,7 +44,7 @@ export default class SliderControl extends React.PureComponent {
     this.props.onChange(event.target.value);
   }
   formatter(value) {
-    return (new Date(value)).toString();
+    return (new Date(value)).toUTCString();
   }
   render() {
     return (
