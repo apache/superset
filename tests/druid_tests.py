@@ -55,6 +55,7 @@ GB_RESULT_SET = [
         'timestamp': '2012-01-01T00:00:00.000Z',
         'event': {
             'dim1': 'Canada',
+            'dim2': 0,
             'metric1': 12345678,
         },
     },
@@ -63,6 +64,7 @@ GB_RESULT_SET = [
         'timestamp': '2012-01-01T00:00:00.000Z',
         'event': {
             'dim1': 'USA',
+            'dim2': 'false',
             'metric1': 12345678 / 2,
         },
     },
@@ -152,7 +154,7 @@ class DruidTests(SupersetTestCase):
             'row_limit': 5000,
             'include_search': 'false',
             'metrics': ['count'],
-            'groupby': ['dim1', 'dim2d'],
+            'groupby': ['dim1', 'dim2'],
             'force': 'true',
         }
         # two groupby
@@ -162,6 +164,7 @@ class DruidTests(SupersetTestCase):
         )
         resp = self.get_json_resp(url)
         self.assertEqual('Canada', resp['data']['records'][0]['dim1'])
+        self.assertEqual('0', resp['data']['records'][0]['dim2'])
 
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = 'new_druid'
