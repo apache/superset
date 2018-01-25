@@ -373,6 +373,15 @@ export const visTypes = {
           ['grid_size', 'extruded'],
         ],
       },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
+        ],
+      },
     ],
     controlOverrides: {
       size: {
@@ -400,6 +409,15 @@ export const visTypes = {
           ['mapbox_style', 'viewport'],
           ['color_picker', null],
           ['grid_size', 'extruded'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -467,6 +485,15 @@ export const visTypes = {
         label: t('Grid'),
         controlSetRows: [
           ['grid_size', 'color_picker'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -580,6 +607,15 @@ export const visTypes = {
         controlSetRows: [
           ['color_picker', null],
           ['stroke_width', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
