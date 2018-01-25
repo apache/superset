@@ -78,6 +78,7 @@ function timeFrameOptions(state) {
     return {};
   }
 
+  // grain in microseconds
   const MIN = 60 * 1000;
   const HOUR = 60 * MIN;
   const DAY = 24 * HOUR;
@@ -92,8 +93,11 @@ function timeFrameOptions(state) {
     'month': MONTH,
     'year': YEAR,
   }[state.controls.time_grain_sqla.value];
-  let start = Date.parse(state.controls.since.value);
-  let end = Date.parse(state.controls.until.value);
+
+  // start and end date are in UTC
+  let start = Date.parse(state.controls.since.value + 'Z');
+  let end = Date.parse(state.controls.until.value + 'Z');
+
   return {
     start: start,
     step: grain,
