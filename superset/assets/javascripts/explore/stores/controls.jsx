@@ -68,6 +68,48 @@ const groupByControl = {
   },
 };
 
+function timeFrameOptions(state) {
+  if (
+    state.controls == null || 
+    state.controls.since == null ||
+    state.controls.until == null ||
+    state.controls.time_grain_sqla == null
+  ) {
+    return {};
+  }
+
+  const MIN = 60 * 1000;
+  const HOUR = 60 * MIN;
+  const DAY = 24 * HOUR;
+  const WEEK = 7 * DAY;
+  const MONTH = 30 * DAY;
+  const YEAR = 365 * DAY;
+  let grain = {
+    'min': MIN,
+    'hour': HOUR,
+    'day': DAY,
+    'week': WEEK,
+    'month': MONTH,
+    'year': YEAR,
+  }[state.controls.time_grain_sqla.value];
+  let start = Date.parse(state.controls.since.value);
+  let end = Date.parse(state.controls.until.value);
+  return {
+    start: start,
+    step: grain,
+    end: end,
+  }
+}
+
+const timeFrameControl = {
+  type: 'SliderControl',
+  renderTrigger: true,
+  label: t('Time frame'),
+  mapStateToProps: state => (timeFrameOptions(state)),
+  default: null,
+  description: 'Pick one',
+};
+
 const sandboxUrl = (
   'https://github.com/apache/incubator-superset/' +
   'blob/master/superset/assets/javascripts/modules/sandbox.js');
@@ -1907,6 +1949,12 @@ export const controls = {
     label: t('Extra data for JS'),
     default: [],
     description: t('List of extra columns made available in Javascript functions'),
+  },
+
+  time_frame: {
+    ...timeFrameControl,
+    label: t('Time frame for animation'),
+    description: t('Choose a given time frame to be displayed'),
   },
 
   stroked: {

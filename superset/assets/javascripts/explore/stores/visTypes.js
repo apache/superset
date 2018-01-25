@@ -595,6 +595,7 @@ export const visTypes = {
         controlSetRows: [
           ['spatial', null],
           ['groupby', 'row_limit'],
+          ['time_frame'],
         ],
       },
       {
