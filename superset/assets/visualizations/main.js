@@ -89,7 +89,7 @@ const vizMap = {
   [VIZ_TYPES.event_flow]: require('./EventFlow.jsx'),
   [VIZ_TYPES.paired_ttest]: require('./paired_ttest.jsx'),
   [VIZ_TYPES.partition]: require('./partition.js'),
-  [VIZ_TYPES.deck_scatter]: deckglFactory,
+  [VIZ_TYPES.deck_scatter]: require('./deckgl/scatter.jsx'),
   [VIZ_TYPES.deck_screengrid]: deckglFactory,
   [VIZ_TYPES.deck_grid]: deckglFactory,
   [VIZ_TYPES.deck_hex]: deckglFactory,
