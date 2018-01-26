@@ -11,13 +11,18 @@ from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
     BooleanField, IntegerField, SelectField, StringField)
 from wtforms.validators import DataRequired, NumberRange, Optional
+from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
-from superset import app
+from superset import app, db
 
 config = app.config
 
 
 class CsvToDatabaseForm(DynamicForm):
+    def all_db_items():
+        from superset.models import core as models
+        return db.session.query(models.Database)
+
     name = StringField(
         _('Table Name'),
         description=_('Name of table to be created from csv data.'),
@@ -28,12 +33,9 @@ class CsvToDatabaseForm(DynamicForm):
         description=_('Select a CSV file to be uploaded to a database.'),
         validators=[
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
-
-    con = SelectField(
-        _('Database'),
-        description=_('database in which to add above table.'),
-        validators=[DataRequired()],
-        choices=[])
+    con = QuerySelectField(
+         query_factory=all_db_items, 
+         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
     sep = StringField(
         _('Delimiter'),
         description=_('Delimiter used by CSV file (for whitespace use \s+).'),
