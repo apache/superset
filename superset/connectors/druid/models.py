@@ -91,6 +91,9 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
 
+    def __html__(self):
+        return self.__repr__()
+
     @property
     def data(self):
         return {
