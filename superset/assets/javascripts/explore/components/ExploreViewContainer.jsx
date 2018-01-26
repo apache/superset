@@ -79,7 +79,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   onStop() {
-    this.props.actions.chartUpdateStopped(this.props.chart.queryRequest);
+    return this.props.chart.queryRequest.abort();
   }
 
   getWidth() {
