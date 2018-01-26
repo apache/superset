@@ -24,11 +24,11 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
+from six import text_type
 import sqlalchemy as sqla
-import sqlalchemy.exc as sqla_exceptions
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
@@ -323,29 +323,28 @@ class CsvToDatabaseView(SimpleFormView):
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
-        utils.upload_file(csv_file)
-        table = SqlaTable(table_name=form.name.data)
-        table.database = form.data.get('con')
-        table.database_id = table.database.id
         try:
+            csv_file.save(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            table = SqlaTable(table_name=form.name.data)
+            table.database = form.data.get('con')
+            table.database_id = table.database.id
             table.database.db_engine_spec.create_table_from_csv(form, table)
-        except sqla_exceptions.IntegrityError:
-            os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
-            flash(
-                'Table name {} already exists. Please pick another'.format(
-                    form.name.data),
-                'warning')
-            return redirect('/csvtodatabaseview/form')
-
         except Exception as e:
-            os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
-            flash(str(e), 'error')
-            return redirect('csvtodatabaseview/form')
+            try:
+                os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            except OSError:
+                pass
+            message = u'Table name {} already exists. Please pick another'.format(
+                    form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+            flash(
+                message,
+                'danger')
+            return redirect('/csvtodatabaseview/form')
 
         os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
-        message = _('CSV file "{0}" uploaded to table "{1}" in '
+        message = _(u'CSV file "{0}" uploaded to table "{1}" in '
                     'database "{2}"'.format(csv_filename,
                                             form.name.data,
                                             db_name))

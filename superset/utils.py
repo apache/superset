@@ -513,17 +513,6 @@ def table_has_constraint(table, name, db):
     return False
 
 
-def upload_file(file):
-    """Takes in the name of the file to be uploaded and uploads that file"""
-
-    from superset import app
-    config = app.config
-    if not file or not file.filename:
-        raise Exception
-    file.save(os.path.join(config['UPLOAD_FOLDER'], file.filename))
-    assert file.filename in os.listdir(config['UPLOAD_FOLDER'])
-
-
 class timeout(object):
     """
     To be used in a ``with`` block and timeout its content.

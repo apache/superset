@@ -14,6 +14,7 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, NumberRange, Optional
 
 from superset import app, db
+from superset.models import core as models
 
 config = app.config
 
@@ -21,7 +22,6 @@ config = app.config
 class CsvToDatabaseForm(DynamicForm):
     # pylint: disable=E0211
     def all_db_items():
-        from superset.models import core as models
         return db.session.query(models.Database)
 
     name = StringField(
