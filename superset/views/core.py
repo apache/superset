@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import json
 import logging
 import os
-import pickle
 import re
 import time
 import traceback
@@ -300,6 +299,7 @@ class DatabaseAsync(DatabaseView):
         'allow_run_async', 'allow_run_sync', 'allow_dml',
     ]
 
+
 appbuilder.add_view_no_menu(DatabaseAsync)
 
 
@@ -318,7 +318,6 @@ class CsvToDatabaseView(SimpleFormView):
         form.infer_datetime_format.data = True
         form.decimal.data = '.'
         form.if_exists.data = 'append'
-        
 
     def form_post(self, form):
         csv_file = form.csv_file.data
@@ -326,18 +325,16 @@ class CsvToDatabaseView(SimpleFormView):
         csv_filename = form.csv_file.data.filename
         utils.upload_file(csv_file)
         table = SqlaTable(table_name=form.name.data)
-        database = (
-            db.session.query(models.Database)
-            .filter_by(id=form.data.get('con').id)
-            .one()
-        )
-        table.database = database
-        table.database_id = database.id
+        table.database = form.data.get('con')
+        table.database_id = table.database.id
         try:
-            database.db_engine_spec.create_table_from_csv(form, table)
-        except sqla_exceptions.IntegrityError as e1:
-            os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename)) # move this to a finally? 
-            flash("Table name {} already exists. Please pick another".format(form.name.data), 'warning')
+            table.database.db_engine_spec.create_table_from_csv(form, table)
+        except sqla_exceptions.IntegrityError:
+            os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            flash(
+                'Table name {} already exists. Please pick another'.format(
+                    form.name.data),
+                'warning')
             return redirect('/csvtodatabaseview/form')
 
         except Exception as e:
@@ -347,15 +344,11 @@ class CsvToDatabaseView(SimpleFormView):
 
         os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
         # Go back to welcome page / splash screen
-        db_name = (
-            db.session.query(models.Database.database_name)
-            .filter_by(id=form.data.get('con').id)
-            .one()
-        )
+        db_name = table.database.database_name
         message = _('CSV file "{0}" uploaded to table "{1}" in '
                     'database "{2}"'.format(csv_filename,
                                             form.name.data,
-                                            db_name[0]))
+                                            db_name))
         flash(message, 'info')
         return redirect('/tablemodelview/list/')
 
@@ -594,7 +587,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             ids = request.args.getlist('id')
             return Response(
                 models.Dashboard.export_dashboards(ids),
-                headers=generate_download_headers('pickle'),
+                headers=generate_download_headers('json'),
                 mimetype='application/text')
         return self.render_template(
             'superset/export_dashboards.html',
@@ -982,16 +975,22 @@ class Superset(BaseSupersetView):
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj):
+        query = None
         try:
             query_obj = viz_obj.query_obj()
-            query = viz_obj.datasource.get_query_str(query_obj)
+            if query_obj:
+                query = viz_obj.datasource.get_query_str(query_obj)
         except Exception as e:
+            logging.exception(e)
             return json_error_response(e)
 
-        if query_obj['prequeries']:
+        if query_obj and query_obj['prequeries']:
             query_obj['prequeries'].append(query)
             query = ';\n\n'.join(query_obj['prequeries'])
-        query += ';'
+        if query:
+            query += ';'
+        else:
+            query = 'No query.'
 
         return Response(
             json.dumps({
@@ -1093,9 +1092,10 @@ class Superset(BaseSupersetView):
             force = request.args.get('force') == 'true'
             form_data = self.get_form_data()
         except Exception as e:
-                return json_error_response(
-                    utils.error_msg_from_exception(e),
-                    stacktrace=traceback.format_exc())
+            logging.exception(e)
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                stacktrace=traceback.format_exc())
         return self.generate_json(datasource_type=datasource_type,
                                   datasource_id=datasource_id,
                                   form_data=form_data,
@@ -1107,15 +1107,14 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
-        """Overrides the dashboards using pickled instances from the file."""
+        """Overrides the dashboards using json instances from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
             current_tt = int(time.time())
-            data = pickle.load(f)
+            data = json.loads(f.stream.read(), object_hook=utils.decode_dashboards)
             # TODO: import DRUID datasources
             for table in data['datasources']:
-                ds_class = ConnectorRegistry.sources.get(table.type)
-                ds_class.import_obj(table, import_time=current_tt)
+                type(table).import_obj(table, import_time=current_tt)
             db.session.commit()
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(

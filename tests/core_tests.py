@@ -804,7 +804,7 @@ class CoreTests(SupersetTestCase):
         test_file.write('paul,2\n')
         test_file.close()
         main_db_uri = db.session.query(
-            models.Database.sqlalchemy_uri)\
+            models.Database)\
             .filter_by(database_name='main').all()
 
         test_file = open(filename, 'rb')
@@ -812,7 +812,7 @@ class CoreTests(SupersetTestCase):
             'csv_file': test_file,
             'sep': ',',
             'name': table_name,
-            'con': main_db_uri[0][0],
+            'con': main_db_uri,
             'if_exists': 'append',
             'index_label': 'test_label',
             'mangle_dupe_cols': False}

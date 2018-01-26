@@ -42,6 +42,14 @@ describe('DateFilterControl', () => {
       expect(wrapper.state().num).to.equal('90');
     }, 10);
   });
+  it('sets now and closes', () => {
+    const label = wrapper.find('.now').first();
+    label.simulate('click');
+    setTimeout(() => {
+      expect(wrapper.state().free).to.equal('now');
+      expect(wrapper.find('.popover')).to.have.length(0);
+    }, 10);
+  });
   it('renders 2 dimmed sections', () => {
     const label = wrapper.find('.label').first();
     label.simulate('click');

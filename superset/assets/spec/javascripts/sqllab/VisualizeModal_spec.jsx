@@ -27,7 +27,7 @@ describe('VisualizeModal', () => {
   const mockStore = configureStore(middlewares);
   const initialState = sqlLabReducer({}, {});
   initialState.common = {
-    SUPERSET_WEBSERVER_TIMEOUT: 45,
+    conf: { SUPERSET_WEBSERVER_TIMEOUT: 45 },
   };
   const store = mockStore(initialState);
   const mockedProps = {

@@ -10,8 +10,8 @@ from flask_babel import lazy_gettext as _
 from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (
     BooleanField, IntegerField, SelectField, StringField)
-from wtforms.validators import DataRequired, NumberRange, Optional
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
+from wtforms.validators import DataRequired, NumberRange, Optional
 
 from superset import app, db
 
@@ -19,6 +19,7 @@ config = app.config
 
 
 class CsvToDatabaseForm(DynamicForm):
+    # pylint: disable=E0211
     def all_db_items():
         from superset.models import core as models
         return db.session.query(models.Database)
@@ -34,7 +35,7 @@ class CsvToDatabaseForm(DynamicForm):
         validators=[
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
     con = QuerySelectField(
-         query_factory=all_db_items, 
+         query_factory=all_db_items,
          get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
     sep = StringField(
         _('Delimiter'),
@@ -51,7 +52,6 @@ class CsvToDatabaseForm(DynamicForm):
             ('fail', _('Fail')), ('replace', _('Replace')),
             ('append', _('Append'))],
         validators=[DataRequired()])
-
     schema = StringField(
         _('Schema'),
         description=_('Specify a schema (if database flavour supports this).'),
