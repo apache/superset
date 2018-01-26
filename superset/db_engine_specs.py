@@ -133,13 +133,14 @@ class BaseEngineSpec(object):
             'table': table,
             'df': df,
             'name': form.name.data,
-            'con': create_engine(form.con.data, echo=False),
+            'con': create_engine(form.con.data.sqlalchemy_uri, echo=False),
             'schema': form.schema.data,
             'if_exists': form.if_exists.data,
             'index': form.index.data,
             'index_label': form.index_label.data,
             'chunksize': 10000,
         }
+
         BaseEngineSpec.df_to_db(**df_to_db_kwargs)
 
     @classmethod
