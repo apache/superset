@@ -37,7 +37,7 @@ function getLayer(formData, payload, slice) {
   let data = payload.data.features;
 
   // filter data if a time frame is set
-  if (fd.time_frame != null) {
+  if (fd.time_grain_sqla != null && fd.time_frame != null) {
     data = data.filter(feature => feature.__timestamp === fd.time_frame);
   }
 
