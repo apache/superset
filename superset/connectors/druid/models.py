@@ -1040,7 +1040,7 @@ class DruidDatasource(Model, BaseDatasource):
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
             extras=None,  # noqa
-            columns=None, phase=2, client=None, form_data=None,
+            columns=None, phase=2, client=None,
             order_desc=True,
             prequeries=None,
             is_prequery=False,
