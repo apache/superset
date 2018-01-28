@@ -1504,7 +1504,6 @@ def load_deck_dash():
     merge_slice(slc)
     slices.append(slc)
 
-    flights_tbl = db.session.query(TBL).filter_by(table_name='flights').first()
     slice_data = {
             "datasource": "10__table",
             "viz_type": "deck_arc",
@@ -1558,7 +1557,7 @@ def load_deck_dash():
         slice_name="Arcs",
         viz_type='deck_arc',
         datasource_type='table',
-        datasource_id=flights_tbl.id,
+        datasource_id=db.session.query(TBL).filter_by(table_name='flights').first().id,
         params=get_slice_json(slice_data),
     )
     merge_slice(slc)
