@@ -49,4 +49,7 @@ function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckArc;
+module.exports = {
+  default: deckArc,
+  getLayer: getLayer,
+}

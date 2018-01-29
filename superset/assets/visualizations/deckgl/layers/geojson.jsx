@@ -77,7 +77,7 @@ function deckGeoJson(slice, payload, setControlValue) {
   );
 }
 
-export default function getLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -112,4 +112,7 @@ export default function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckGeoJson;
+module.exports = {
+  default: deckGeoJson,
+  getLayer: getLayer,
+}

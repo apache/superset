@@ -67,4 +67,7 @@ function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckScatter;
+module.exports = {
+  default: deckScatter,
+  getLayer: getLayer,
+};

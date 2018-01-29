@@ -52,4 +52,7 @@ function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckPath;
+module.exports = {
+  default: deckPath,
+  getLayer: getLayer,
+}

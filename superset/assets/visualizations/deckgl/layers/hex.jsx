@@ -56,4 +56,7 @@ function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckHex;
+module.exports = {
+  default: deckHex,
+  getLayer: getLayer,
+}

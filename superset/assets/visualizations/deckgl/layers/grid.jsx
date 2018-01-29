@@ -8,7 +8,7 @@ import { GridLayer } from 'deck.gl';
 import * as common from './common';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
-function deckGrid(slice, payload, setControlValue) {
+export default function deckGrid(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);
   const viewport = {
     ...slice.formData.viewport,
@@ -27,7 +27,7 @@ function deckGrid(slice, payload, setControlValue) {
   );
 }
 
-function getLayer(formData, payload, slice) {
+export function getLayer(formData, payload, slice) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
@@ -56,4 +56,7 @@ function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckGrid;
+module.exports = {
+  default: deckGrid,
+  getLayer: getLayer,
+}

@@ -56,4 +56,7 @@ function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckScreenGrid;
+module.exports = {
+  default: deckScreenGrid,
+  getLayer: getLayer,
+};

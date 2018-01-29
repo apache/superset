@@ -51,4 +51,7 @@ function getLayer(formData, payload, slice) {
   });
 }
 
-module.exports = deckPolygon;
+module.exports = {
+  default: deckPolygon,
+  getLayer: getLayer,
+}
