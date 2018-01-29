@@ -27,7 +27,7 @@ function deckArc(slice, payload, setControlValue) {
   );
 }
 
-function arcLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.color_picker;
   let data = payload.data.arcs.map(d => ({

@@ -27,7 +27,7 @@ function deckPolygon(slice, payload, setControlValue) {
   );
 }
 
-function polygonLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   let data = payload.data.features.map(d => ({
