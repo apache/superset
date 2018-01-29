@@ -1693,6 +1693,7 @@ def load_deck_dash():
 
 def load_flights():
     """Loading random time series data from a zip file in the repo"""
+    tbl_name = 'flights'
     with gzip.open(os.path.join(DATA_FOLDER, 'fligth_data.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding='latin-1')
 
@@ -1710,7 +1711,7 @@ def load_flights():
     pdf = pdf.join(airports, on='ORIGIN_AIRPORT', rsuffix='_ORIG')
     pdf = pdf.join(airports, on='DESTINATION_AIRPORT', rsuffix='_DEST')
     pdf.to_sql(
-        'flights',
+        tbl_name,
         db.engine,
         if_exists='replace',
         chunksize=500,
@@ -1718,17 +1719,15 @@ def load_flights():
             'ds': DateTime,
         },
         index=False)
-    print("Done loading table!")
-
-    print("Creating table [random_time_series] reference")
-    obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
-    if not obj:
-        obj = TBL(table_name='flights')
-    obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
-    db.session.merge(obj)
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Random set of flights in the US"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
     db.session.commit()
-    obj.fetch_metadata()
+    tbl.fetch_metadata()
+    print("Done loading table!")
 
 
 def load_paris_iris_geojson():

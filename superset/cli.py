@@ -142,10 +142,10 @@ def load_examples(load_test_data):
     print('Loading [San Francisco population polygons]')
     data.load_sf_population_polygons()
 
-    print('Loading flights data')
+    print('Loading [Flights data]')
     data.load_flights()
 
-    print('Loading bart lines data')
+    print('Loading [BART lines]')
     data.load_bart_lines()
 
     if load_test_data:
