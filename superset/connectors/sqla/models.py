@@ -409,15 +409,6 @@ class SqlaTable(Model, BaseDatasource):
             ),
         )
         logging.info(sql)
-        # add customer order explore data at time series charts
-        customer_order_column = query_obj.get('timeseries_limit_metric', None)
-        is_timeseries = query_obj.get('is_timeseries', False)
-        if is_timeseries:
-            if not customer_order_column:
-                customer_order_column = '__timestamp'
-            left_index = sql.rfind('ORDER BY') + len('ORDER BY') + 1
-            right_index = sql.rfind('DESC') - 1
-            sql = sql[:left_index] + customer_order_column + sql[right_index:]
         sql = sqlparse.format(sql, reindent=True)
         if query_obj['is_prequery']:
             query_obj['prequeries'].append(sql)
@@ -609,19 +600,21 @@ class SqlaTable(Model, BaseDatasource):
         if not orderby and not columns:
             orderby = [(main_metric_expr, not order_desc)]
 
-        for col, ascending in orderby:
-            direction = asc if ascending else desc
-            qry = qry.order_by(direction(col))
-
-        if row_limit:
-            qry = qry.limit(row_limit)
-
+        # specify time series column
         if is_timeseries and \
                 timeseries_limit and groupby and not time_groupby_inline:
             if self.database.db_engine_spec.inner_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
+
+                # customer order fields at time series chart, default __timestamp
+                order_col = '__timestamp'
+                if timeseries_limit_metric:
+                    order_col = timeseries_limit_metric
+                # replace with new order from page selected
+                orderby = [(order_col, not order_desc)]
+
                 inner_main_metric_expr = main_metric_expr.label('mme_inner__')
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs)
@@ -670,6 +663,13 @@ class SqlaTable(Model, BaseDatasource):
                 dimensions = [c for c in result.df.columns if c not in metrics]
                 top_groups = self._get_top_groups(result.df, dimensions)
                 qry = qry.where(top_groups)
+
+        for col, ascending in orderby:
+            direction = asc if ascending else desc
+            qry = qry.order_by(direction(col))
+
+        if row_limit:
+            qry = qry.limit(row_limit)
 
         return qry.select_from(tbl)
 
