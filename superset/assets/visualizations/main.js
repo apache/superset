@@ -1,6 +1,3 @@
-/* eslint-disable global-require */
-import deckglFactory from './deckgl/factory';
-
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
   area: 'area',
@@ -89,14 +86,14 @@ const vizMap = {
   [VIZ_TYPES.event_flow]: require('./EventFlow.jsx'),
   [VIZ_TYPES.paired_ttest]: require('./paired_ttest.jsx'),
   [VIZ_TYPES.partition]: require('./partition.js'),
-  [VIZ_TYPES.deck_scatter]: require('./deckgl/scatter.jsx'),
-  [VIZ_TYPES.deck_screengrid]: deckglFactory,
-  [VIZ_TYPES.deck_grid]: deckglFactory,
-  [VIZ_TYPES.deck_hex]: deckglFactory,
-  [VIZ_TYPES.deck_path]: deckglFactory,
-  [VIZ_TYPES.deck_geojson]: deckglFactory,
-  [VIZ_TYPES.deck_arc]: deckglFactory,
-  [VIZ_TYPES.deck_polygon]: deckglFactory,
+  [VIZ_TYPES.deck_scatter]: require('./deckgl/layers/scatter.jsx'),
+  [VIZ_TYPES.deck_screengrid]: require('./deckgl/layers/screengrid.jsx'),
+  [VIZ_TYPES.deck_grid]: require('./deckgl/layers/grid.jsx'),
+  [VIZ_TYPES.deck_hex]: require('./deckgl/layers/hex.jsx'),
+  [VIZ_TYPES.deck_path]: require('./deckgl/layers/path.jsx'),
+  [VIZ_TYPES.deck_geojson]: require('./deckgl/layers/geojson.jsx'),
+  [VIZ_TYPES.deck_arc]: require('./deckgl/layers/arc.jsx'),
+  [VIZ_TYPES.deck_polygon]: require('./deckgl/layers/polygon.jsx'),
   [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
 };
 export default vizMap;

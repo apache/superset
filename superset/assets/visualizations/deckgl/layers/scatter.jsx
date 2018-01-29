@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import DeckGLContainer from './DeckGLContainer';
+import DeckGLContainer from './../DeckGLContainer';
 
 import { ScatterplotLayer } from 'deck.gl';
 
-import * as common from './layers/common';
-import { getColorFromScheme, hexToRGB } from '../../javascripts/modules/colors';
-import { unitToRadius } from '../../javascripts/modules/geo';
-import sandboxedEval from '../../javascripts/modules/sandbox';
+import * as common from './common';
+import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
+import { unitToRadius } from '../../../javascripts/modules/geo';
+import sandboxedEval from '../../../javascripts/modules/sandbox';
 
 function deckScatter(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);

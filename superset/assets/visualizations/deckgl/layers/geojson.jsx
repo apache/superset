@@ -1,3 +1,8 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+import DeckGLContainer from './../DeckGLContainer';
+
 import { GeoJsonLayer } from 'deck.gl';
 
 import * as common from './common';
@@ -53,6 +58,25 @@ const recurseGeoJson = (node, propOverrides, extraProps) => {
   }
 };
 
+function deckGeoJson(slice, payload, setControlValue) {
+  const layer = getLayer(slice.formData, payload, slice);
+  const viewport = {
+    ...slice.formData.viewport,
+    width: slice.width(),
+    height: slice.height(),
+  };
+  ReactDOM.render(
+    <DeckGLContainer
+      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      viewport={viewport}
+      layers={[layer]}
+      mapStyle={slice.formData.mapbox_style}
+      setControlValue={setControlValue}
+    />,
+    document.getElementById(slice.containerId),
+  );
+}
+
 export default function geoJsonLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.fill_color_picker;
@@ -87,3 +111,5 @@ export default function geoJsonLayer(formData, payload, slice) {
     ...common.commonLayerProps(fd, slice),
   });
 }
+
+module.exports = deckGeoJson;
