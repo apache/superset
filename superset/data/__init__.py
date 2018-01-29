@@ -1433,6 +1433,194 @@ def load_deck_dash():
     merge_slice(slc)
     slices.append(slc)
 
+    polygon_tbl = db.session.query(TBL) \
+                    .filter_by(table_name='sf_population_polygons').first()
+    slice_data = {
+            "datasource": "11__table",
+            "viz_type": "deck_polygon",
+            "slice_id": 41,
+            "granularity_sqla": None,
+            "time_grain_sqla": None,
+            "since": "7 days ago",
+            "until": "now",
+            "line_column": "contour",
+            "line_type": "json",
+            "mapbox_style": "mapbox://styles/mapbox/light-v9",
+            "viewport": {
+                "longitude": -122.43388541747726,
+                "latitude": 37.752020331384834,
+                "zoom": 11.133995608594631,
+                "bearing": 37.89506450385642,
+                "pitch": 60,
+                "width": 667,
+                "height": 906,
+                "altitude": 1.5,
+                "maxZoom": 20,
+                "minZoom": 0,
+                "maxPitch": 60,
+                "minPitch": 0,
+                "maxLatitude": 85.05113,
+                "minLatitude": -85.05113
+            },
+            "reverse_long_lat": False,
+            "fill_color_picker": {
+                "r": 3,
+                "g": 65,
+                "b": 73,
+                "a": 1
+            },
+            "stroke_color_picker": {
+                "r": 0,
+                "g": 122,
+                "b": 135,
+                "a": 1
+            },
+            "filled": True,
+            "stroked": False,
+            "extruded": True,
+            "point_radius_scale": 100,
+            "js_columns": [
+                "population",
+                "area"
+            ],
+            "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
+             d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
+             return d;\n}",
+            "js_tooltip": "",
+            "js_onclick_href": "",
+            "where": "",
+            "having": "",
+            "filters": []
+        }
+
+    print("Creating Polygon slice")
+    slc = Slice(
+        slice_name="Polygons",
+        viz_type='deck_polygon',
+        datasource_type='table',
+        datasource_id=polygon_tbl.id,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+    slices.append(slc)
+
+    slice_data = {
+            "datasource": "10__table",
+            "viz_type": "deck_arc",
+            "slice_id": 42,
+            "granularity_sqla": "date",
+            "time_grain_sqla": "Time Column",
+            "since": "2014-01-01",
+            "until": "now",
+            "start_spatial": {
+                "type": "latlong",
+                "latCol": "LATITUDE",
+                "lonCol": "LONGITUDE"
+            },
+            "end_spatial": {
+                "type": "latlong",
+                "latCol": "LATITUDE_DEST",
+                "lonCol": "LONGITUDE_DEST"
+            },
+            "row_limit": 5000,
+            "mapbox_style": "mapbox://styles/mapbox/light-v9",
+            "viewport": {
+                "altitude": 1.5,
+                "bearing": 8.546256357301871,
+                "height": 642,
+                "latitude": 44.596651438714254,
+                "longitude": -91.84340711201104,
+                "maxLatitude": 85.05113,
+                "maxPitch": 60,
+                "maxZoom": 20,
+                "minLatitude": -85.05113,
+                "minPitch": 0,
+                "minZoom": 0,
+                "pitch": 60,
+                "width": 997,
+                "zoom": 2.929837070560775
+            },
+            "color_picker": {
+                "r": 0,
+                "g": 122,
+                "b": 135,
+                "a": 1
+            },
+            "stroke_width": 1,
+            "where": "",
+            "having": "",
+            "filters": []
+        }
+
+    print("Creating Arc slice")
+    slc = Slice(
+        slice_name="Arcs",
+        viz_type='deck_arc',
+        datasource_type='table',
+        datasource_id=db.session.query(TBL).filter_by(table_name='flights').first().id,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+    slices.append(slc)
+
+    slice_data = {
+        "datasource": "12__table",
+        "slice_id": 43,
+        "viz_type": "deck_path",
+        "time_grain_sqla": "Time Column",
+        "since": "7 days ago",
+        "until": "now",
+        "line_column": "path_json",
+        "line_type": "json",
+        "row_limit": 5000,
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "longitude": -122.18885402582598,
+            "latitude": 37.73671752604488,
+            "zoom": 9.51847667620428,
+            "bearing": 0,
+            "pitch": 0,
+            "width": 669,
+            "height": 1094,
+            "altitude": 1.5,
+            "maxZoom": 20,
+            "minZoom": 0,
+            "maxPitch": 60,
+            "minPitch": 0,
+            "maxLatitude": 85.05113,
+            "minLatitude": -85.05113
+        },
+        "color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "line_width": 150,
+        "reverse_long_lat": False,
+        "js_columns": [
+            "color"
+        ],
+        "js_datapoint_mutator": "d => {\n    return {\n        ...d,\n        color: \
+            colors.hexToRGB(d.extraProps.color),\n    }\n}",
+        "js_tooltip": "",
+        "js_onclick_href": "",
+        "where": "",
+        "having": "",
+        "filters": []
+    }
+
+    print("Creating Path slice")
+    slc = Slice(
+        slice_name="Path",
+        viz_type='deck_path',
+        datasource_type='table',
+        datasource_id=db.session.query(TBL).filter_by(table_name='bart_lines').first().id,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+    slices.append(slc)
+
     print("Creating a dashboard")
     title = "deck.gl Demo"
     dash = db.session.query(Dash).filter_by(dashboard_title=title).first()
@@ -1468,6 +1656,27 @@ def load_deck_dash():
             "size_x": 6,
             "size_y": 4,
             "slice_id": "40"
+        },
+        {
+            "col": 1,
+            "row": 4,
+            "size_x": 6,
+            "size_y": 4,
+            "slice_id": "41"
+        },
+        {
+            "col": 7,
+            "row": 4,
+            "size_x": 6,
+            "size_y": 4,
+            "slice_id": "42"
+        },
+        {
+            "col": 1,
+            "row": 5,
+            "size_x": 6,
+            "size_y": 4,
+            "slice_id": "43"
         }
     ]
     """)
@@ -1484,6 +1693,7 @@ def load_deck_dash():
 
 def load_flights():
     """Loading random time series data from a zip file in the repo"""
+    tbl_name = 'flights'
     with gzip.open(os.path.join(DATA_FOLDER, 'fligth_data.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding='latin-1')
 
@@ -1501,7 +1711,7 @@ def load_flights():
     pdf = pdf.join(airports, on='ORIGIN_AIRPORT', rsuffix='_ORIG')
     pdf = pdf.join(airports, on='DESTINATION_AIRPORT', rsuffix='_DEST')
     pdf.to_sql(
-        'flights',
+        tbl_name,
         db.engine,
         if_exists='replace',
         chunksize=500,
@@ -1509,17 +1719,15 @@ def load_flights():
             'ds': DateTime,
         },
         index=False)
-    print("Done loading table!")
-
-    print("Creating table [random_time_series] reference")
-    obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
-    if not obj:
-        obj = TBL(table_name='flights')
-    obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
-    db.session.merge(obj)
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Random set of flights in the US"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
     db.session.commit()
-    obj.fetch_metadata()
+    tbl.fetch_metadata()
+    print("Done loading table!")
 
 
 def load_paris_iris_geojson():
