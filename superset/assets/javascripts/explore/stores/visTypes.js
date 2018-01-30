@@ -1004,8 +1004,6 @@ export const visTypes = {
     ],
   },
 
-  // @TODO merge the two together into
-
   big_number: {
     label: t('Big Number with Trendline'),
     controlPanelSections: [

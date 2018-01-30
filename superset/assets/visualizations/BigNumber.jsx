@@ -8,8 +8,11 @@ import { getTextWidth } from '../javascripts/modules/visUtils';
 
 const fontFamily = '-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Open Sans,Helvetica Neue,sans-serif';
 
+const CONTAINER_PADDING = 16;
+
 const CONTAINER_STYLES = {
   fontFamily,
+  padding: CONTAINER_PADDING,
   overflow: 'hidden',
   display: 'flex',
   flexDirection: 'column',
@@ -41,10 +44,11 @@ const NUMBER_SIZE_SCALAR = 0.3;
 const CHART_SIZE_SCALAR = 0.2;
 const TEXT_SIZE_SCALAR = 0.1;
 
-function getMaxFontSize({ text, totalWidth, idealFontSize, fontWeight = 'normal' }) {
+// Returns the maximum font size (<= idealFontSize) that will fit within the available Width
+function getMaxFontSize({ text, availableWidth, idealFontSize, fontWeight = 'normal' }) {
   let fontSize = idealFontSize;
   let textWidth = getTextWidth(text, `${fontWeight} ${fontSize}px ${fontFamily}`);
-  while (textWidth > totalWidth) {
+  while (textWidth > availableWidth) {
     fontSize -= 2;
     textWidth = getTextWidth(text, `${fontWeight} ${fontSize}px ${fontFamily}`);
   }
@@ -78,6 +82,7 @@ function bigNumberVis(slice, payload) {
   const gradientId = `big_number_${containerId}`;
   const totalWidth = slice.width();
   const totalHeight = slice.height();
+  const availableWidth = totalWidth - 2 * CONTAINER_PADDING;
 
   const bigNumber = showTrendline ? data[data.length - 1][1] : data[0][0];
   let percentChange = null;
@@ -99,14 +104,14 @@ function bigNumberVis(slice, payload) {
 
   const bigNumberFontSize = getMaxFontSize({
     text: formattedBigNumber,
-    totalWidth,
+    availableWidth,
     idealFontSize: totalHeight * NUMBER_SIZE_SCALAR,
     fontWeight: BIG_NUMBER_STYLES.fontWeight,
   });
 
   const subheaderFontSize = formattedSubheader ? getMaxFontSize({
     text: formattedSubheader,
-    totalWidth,
+    availableWidth,
     idealFontSize: totalHeight * TEXT_SIZE_SCALAR,
     fontWeight: SUBHEADER_STYLES.fontWeight,
   }) : null;
@@ -127,7 +132,7 @@ function bigNumberVis(slice, payload) {
           ariaLabel={`Big number visualization ${subheader}`}
           xScale={{ type: 'timeUtc' }}
           yScale={{ type: 'linear' }}
-          width={totalWidth}
+          width={availableWidth}
           height={totalHeight * CHART_SIZE_SCALAR}
           margin={CHART_MARGIN}
           renderTooltip={renderTooltip}
