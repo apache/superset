@@ -54,8 +54,8 @@ export const VIZ_TYPES = {
 const vizMap = {
   [VIZ_TYPES.area]: require('./nvd3_vis.js'),
   [VIZ_TYPES.bar]: require('./nvd3_vis.js'),
-  [VIZ_TYPES.big_number]: require('./big_number.js'),
-  [VIZ_TYPES.big_number_total]: require('./big_number.js'),
+  [VIZ_TYPES.big_number]: require('./BigNumber.jsx'),
+  [VIZ_TYPES.big_number_total]: require('./BigNumber.jsx'),
   [VIZ_TYPES.box_plot]: require('./nvd3_vis.js'),
   [VIZ_TYPES.bubble]: require('./nvd3_vis.js'),
   [VIZ_TYPES.bullet]: require('./nvd3_vis.js'),
