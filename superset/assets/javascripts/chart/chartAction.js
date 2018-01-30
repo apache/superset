@@ -1,5 +1,6 @@
 import { getExploreUrl, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
+import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../logger';
 
 const $ = window.$ = require('jquery');
 
@@ -34,6 +35,11 @@ export function chartUpdateFailed(queryResponse, key) {
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
 export function chartRenderingFailed(error, key) {
   return { type: CHART_RENDERING_FAILED, error, key };
+}
+
+export const CHART_RENDERING_SUCCEEDED = 'CHART_RENDERING_SUCCEEDED';
+export function chartRenderingSucceeded(key) {
+  return { type: CHART_RENDERING_SUCCEEDED, key };
 }
 
 export const REMOVE_CHART = 'REMOVE_CHART';
@@ -107,16 +113,37 @@ export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false, timeout = 60, key) {
   return (dispatch) => {
     const url = getExploreUrl(formData, 'json', force);
+    let logStart;
     const queryRequest = $.ajax({
       url,
       dataType: 'json',
       timeout: timeout * 1000,
+      beforeSend: () => {
+        logStart = Logger.getTimestamp();
+      },
     });
 
     const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, key)))
       .then(() => queryRequest)
-      .then(queryResponse => dispatch(chartUpdateSucceeded(queryResponse, key)))
+      .then((queryResponse) => {
+        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
+          label: key,
+          is_cached: queryResponse.is_cached,
+          row_count: queryResponse.rowcount,
+          datasource: formData.datasource,
+          start_offset: logStart,
+          duration: Logger.getTimestamp() - logStart,
+        });
+        return dispatch(chartUpdateSucceeded(queryResponse, key));
+      })
       .catch((err) => {
+        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
+          label: key,
+          has_err: true,
+          datasource: formData.datasource,
+          start_offset: logStart,
+          duration: Logger.getTimestamp() - logStart,
+        });
         if (err.statusText === 'timeout') {
           dispatch(chartUpdateTimeout(err.statusText, timeout, key));
         } else if (err.statusText !== 'abort') {

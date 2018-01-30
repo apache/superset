@@ -5,6 +5,8 @@ import AlertsWrapper from '../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
 import Header from './Header';
 import { areObjectsEqual } from '../../reduxUtils';
+import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
+  LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
 import { t } from '../../locales';
 
 import '../../../stylesheets/dashboard.css';
@@ -21,6 +23,7 @@ const propTypes = {
   userId: PropTypes.string,
   isStarred: PropTypes.bool,
   editMode: PropTypes.bool,
+  impressionId: PropTypes.string,
 };
 
 const defaultProps = {
@@ -41,6 +44,14 @@ class Dashboard extends React.PureComponent {
     super(props);
     this.refreshTimer = null;
     this.firstLoad = true;
+    this.loadingLog = new ActionLog({
+      impressionId: props.impressionId,
+      actionType: LOG_ACTIONS_PAGE_LOAD,
+      source: 'dashboard',
+      sourceId: props.dashboard.id,
+      eventNames: [LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT],
+    });
+    Logger.start(this.loadingLog);
 
     // alert for unsaved changes
     this.state = { unsavedChanges: false };
@@ -68,8 +79,17 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    this.firstLoad = false;
     window.addEventListener('resize', this.rerenderCharts);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (this.firstLoad &&
+      Object.values(nextProps.slices)
+        .every(slice => (['rendered', 'failed', 'stopped'].indexOf(slice.chartStatus) > -1))
+    ) {
+      Logger.end(this.loadingLog);
+      this.firstLoad = false;
+    }
   }
 
   componentDidUpdate(prevProps) {
