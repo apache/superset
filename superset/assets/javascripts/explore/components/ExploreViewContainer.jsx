@@ -15,23 +15,36 @@ import { chartPropType } from '../../chart/chartReducer';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
+import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
+  LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  chartStatus: PropTypes.string,
   chart: PropTypes.shape(chartPropType).isRequired,
+  slice: PropTypes.object,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.bool.isRequired,
   timeout: PropTypes.number,
+  impressionId: PropTypes.string,
 };
 
 class ExploreViewContainer extends React.Component {
   constructor(props) {
     super(props);
+    this.firstLoad = true;
+    this.loadingLog = new ActionLog({
+      impressionId: props.impressionId,
+      actionType: LOG_ACTIONS_PAGE_LOAD,
+      source: 'slice',
+      sourceId: props.slice ? props.slice.slice_id : 0,
+      eventNames: [LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT],
+    });
+    Logger.start(this.loadingLog);
+
     this.state = {
       height: this.getHeight(),
       width: this.getWidth(),
@@ -44,6 +57,11 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentWillReceiveProps(np) {
+    if (this.firstLoad &&
+      ['rendered', 'failed', 'stopped'].indexOf(np.chart.chartStatus) > -1) {
+      Logger.end(this.loadingLog);
+      this.firstLoad = false;
+    }
     if (np.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
       this.props.actions.triggerQuery(true, this.props.chart.chartKey);
@@ -197,7 +215,7 @@ class ExploreViewContainer extends React.Component {
 
 ExploreViewContainer.propTypes = propTypes;
 
-function mapStateToProps({ explore, charts }) {
+function mapStateToProps({ explore, charts, impressionId }) {
   const form_data = getFormDataFromControls(explore.controls);
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
@@ -220,6 +238,7 @@ function mapStateToProps({ explore, charts }) {
     forcedHeight: explore.forced_height,
     chart,
     timeout: explore.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    impressionId,
   };
 }
 
