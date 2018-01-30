@@ -603,18 +603,18 @@ class SqlaTable(Model, BaseDatasource):
         # specify time series column
         if is_timeseries and \
                 timeseries_limit and groupby and not time_groupby_inline:
+
+            # customer order fields at time series chart, default __timestamp
+            order_col = '__timestamp'
+            if timeseries_limit_metric:
+                order_col = timeseries_limit_metric
+            # replace with new order from page selected
+            orderby = [(order_col, not order_desc)]
+
             if self.database.db_engine_spec.inner_joins:
                 # some sql dialects require for order by expressions
                 # to also be in the select clause -- others, e.g. vertica,
                 # require a unique inner alias
-
-                # customer order fields at time series chart, default __timestamp
-                order_col = '__timestamp'
-                if timeseries_limit_metric:
-                    order_col = timeseries_limit_metric
-                # replace with new order from page selected
-                orderby = [(order_col, not order_desc)]
-
                 inner_main_metric_expr = main_metric_expr.label('mme_inner__')
                 inner_select_exprs += [inner_main_metric_expr]
                 subq = select(inner_select_exprs)
