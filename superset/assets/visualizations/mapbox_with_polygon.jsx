@@ -43,7 +43,7 @@ class MapboxViz extends React.Component {
   }
   
   componentDidMount() {
-      var country = this.props.country.toLowerCase();
+      var country = this.props.country;
       requestJson('/static/assets/visualizations/countries/'+country+'.geojson', (error, response) => {
           if (!error) {
               var resp = this.props.dataResponse;
