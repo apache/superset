@@ -7,6 +7,7 @@ import { Tooltip } from 'react-bootstrap';
 import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
+import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
 import StackTraceMessage from '../components/StackTraceMessage';
 import visMap from '../../visualizations/main';
 import sandboxedEval from '../modules/sandbox';
@@ -171,6 +172,7 @@ class Chart extends React.PureComponent {
     const viz = visMap[this.props.vizType];
     const fd = this.props.formData;
     const qr = this.props.queryResponse;
+    const renderStart = Logger.getTimestamp();
     try {
       // Executing user-defined data mutator function
       if (fd.js_data) {
@@ -178,6 +180,13 @@ class Chart extends React.PureComponent {
       }
       // [re]rendering the visualization
       viz(this, qr, this.props.setControlValue);
+      Logger.append(LOG_ACTIONS_RENDER_EVENT, {
+        label: this.props.chartKey,
+        vis_type: this.props.vizType,
+        start_offset: renderStart,
+        duration: Logger.getTimestamp() - renderStart,
+      });
+      this.props.actions.chartRenderingSucceeded(this.props.chartKey);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
