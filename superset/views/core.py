@@ -1974,6 +1974,13 @@ class Superset(BaseSupersetView):
             bootstrap_data=json.dumps(bootstrap_data),
         )
 
+    @api
+    @has_access_api
+    @log_this
+    @expose('/log/', methods=['POST'])
+    def log(self):
+        return Response(status=200)
+
     @has_access
     @expose('/sync_druid/', methods=['POST'])
     @log_this
