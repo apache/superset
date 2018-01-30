@@ -85,7 +85,7 @@ function timeFrameOptions(state) {
   const WEEK = 7 * DAY;
   const MONTH = 30 * DAY;
   const YEAR = 365 * DAY;
-  let grain = {
+  const grain = {
     'min': MIN,
     'hour': HOUR,
     'day': DAY,
@@ -95,8 +95,8 @@ function timeFrameOptions(state) {
   }[state.controls.time_grain_sqla.value];
 
   // start and end date are in UTC
-  let start = Date.parse(state.controls.since.value + 'Z');
-  let end = Date.parse(state.controls.until.value + 'Z');
+  const start = Date.parse(state.controls.since.value + 'Z');
+  const end = Date.parse(state.controls.until.value + 'Z');
 
   return {
     start: start,

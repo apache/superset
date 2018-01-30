@@ -38,13 +38,49 @@ const defaultProps = {
 export default class SliderControl extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = {intervalId: null};
+
     this.onChange = this.onChange.bind(this);
+    this.play = this.play.bind(this);
+    this.pause = this.pause.bind(this);
+    this.step = this.step.bind(this);
+    this.getPlayIcon = this.getPlayIcon.bind(this);
   }
   onChange(event) {
     this.props.onChange(event.target.value);
+    if (this.state.intervalId != null) {
+      this.pause();
+    }
   }
   formatter(value) {
     return (new Date(value)).toUTCString();
+  }
+  play() {
+    if (this.state.intervalId != null) {
+      this.pause();
+    } else {
+      const id = setInterval(this.step, 500);
+      this.setState({intervalId: id});
+    }
+  }
+  pause() {
+    clearInterval(this.state.intervalId);
+    this.setState({intervalId: null});
+  }
+  step() {
+    let newTimestamp = this.props.value + this.props.step;
+    if (newTimestamp > this.props.end) {
+      // wrap around
+      newTimestamp -= this.props.end - this.props.start;
+    }
+    this.props.onChange(newTimestamp);
+  }
+  getPlayIcon() {
+    if (this.state.intervalId != null) {
+      return '⏸️';
+    } else {
+      return '▶️';
+    }
   }
   render() {
     return (
@@ -52,6 +88,8 @@ export default class SliderControl extends React.PureComponent {
         {this.props.showHeader &&
           <ControlHeader {...this.props} />
         }
+        <button type="button" onClick={this.play}>{this.getPlayIcon()}</button>
+        <button type="button" onClick={this.step}>⏩</button>
         <ReactBootstrapSlider
           value={this.props.value}
           formatter={this.formatter}
