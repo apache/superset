@@ -40,11 +40,15 @@ const CHART_MARGIN = {
   left: 4,
 };
 
-const NUMBER_SIZE_SCALAR = 0.3;
-const CHART_SIZE_SCALAR = 0.2;
-const TEXT_SIZE_SCALAR = 0.1;
+const TOOLTIP_STYLES = {
+  padding: '4px 8px',
+};
 
-// Returns the maximum font size (<= idealFontSize) that will fit within the available Width
+const NUMBER_SIZE_SCALAR = 0.275;
+const CHART_SIZE_SCALAR = 0.2;
+const TEXT_SIZE_SCALAR = 0.2;
+
+// Returns the maximum font size (<= idealFontSize) that will fit within the availableWidth
 function getMaxFontSize({ text, availableWidth, idealFontSize, fontWeight = 'normal' }) {
   let fontSize = idealFontSize;
   let textWidth = getTextWidth(text, `${fontWeight} ${fontSize}px ${fontFamily}`);
@@ -62,7 +66,7 @@ function renderTooltipFactory({ formatDate, formatValue }) {
     const value = formatValue(rawValue);
 
     return (
-      <div style={{ padding: '4px 8px' }}>
+      <div style={TOOLTIP_STYLES}>
         {formattedDate}
         <br />
         <strong>{value}</strong>
@@ -99,7 +103,7 @@ function bigNumberVis(slice, payload) {
   const formattedBigNumber = formatValue(bigNumber);
   const formattedData = showTrendline ? data.map(d => ({ x: d[0], y: d[1] })) : null;
   const formattedSubheader = percentChange === null ? subheader : (
-    `${formatPercentChange(percentChange)} ${compareSuffix}`
+    `${formatPercentChange(percentChange)} ${(compareSuffix || '').trim()}`
   );
 
   const bigNumberFontSize = getMaxFontSize({
