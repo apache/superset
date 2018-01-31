@@ -1,3 +1,5 @@
+/* eslint-disable global-require */
+
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
   area: 'area',

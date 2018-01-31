@@ -118,7 +118,7 @@ class ExploreChartHeader extends React.PureComponent {
           {this.props.chart.chartStatus === 'success' && queryResponse &&
             <RowCountLabel
               rowcount={queryResponse.rowcount}
-              limit={parseInt(formData.row_limit)}
+              limit={parseInt(formData.row_limit, 10)}
             />
           }
           {this.props.chart.chartStatus === 'success' &&

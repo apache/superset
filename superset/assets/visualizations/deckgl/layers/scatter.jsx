@@ -1,17 +1,19 @@
+/* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
+
 import React from 'react';
 import ReactDOM from 'react-dom';
 
+import { ScatterplotLayer } from 'deck.gl';
+
 import DeckGLContainer from '../DeckGLContainer';
 import PlaySlider from '../../PlaySlider';
-
-import { ScatterplotLayer } from 'deck.gl';
 
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
 import { unitToRadius } from '../../../javascripts/modules/geo';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
-function getStep(time_grain) {
+function getStep(timeGrain) {
   // grain in microseconds
   const MIN = 60 * 1000;
   const HOUR = 60 * MIN;
@@ -21,95 +23,15 @@ function getStep(time_grain) {
   const YEAR = 365 * DAY;
 
   const milliseconds = {
-    'min': MIN,
-    'hour': HOUR,
-    'day': DAY,
-    'week': WEEK,
-    'month': MONTH,
-    'year': YEAR,
-  }
-
-  return milliseconds[time_grain];
-}
-
-class DeckGLScatter extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = this.getStateFromProps(props);
-  }
-  getStateFromProps(props) {
-    const start = Date.parse(props.slice.formData.since + 'Z');
-    const end = Date.parse(props.slice.formData.until + 'Z');
-    const step = getStep(props.slice.formData.time_grain_sqla);
-      
-    return {
-      start,
-      end,
-      step,
-      values: [start, step != null ? start + step: end],
-    };
-  }
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.slice.formData != this.props.slice.formData) {
-      this.setState(this.getStateFromProps(nextProps));
-    }
-  }
-  filterPayload() {
-    const payload = Object.assign({}, this.props.payload);
-    payload.data = Object.assign({}, this.props.payload.data);
-    const features = payload.data.features;
-
-    const values = this.state.values;
-    let valid;
-    if (values[0] === values[1] || values[1] === this.props.end) {
-      valid = t => t.__timestamp >= values[0] && t.__timestamp <= values[1];
-    } else {
-      valid = t => t.__timestamp >= values[0] && t.__timestamp < values[1];
-    }
-    payload.data.features = features.filter(valid);
-
-    return payload;
-  }
-  render() {
-    const payload = this.filterPayload();
-    const layer = getLayer(this.props.slice.formData, payload, this.props.slice);
-    return (
-      <div>
-        <DeckGLContainer
-          mapboxApiAccessToken={payload.data.mapboxApiKey}
-          viewport={this.props.viewport}
-          layers={[layer]}
-          mapStyle={this.props.slice.formData.mapbox_style}
-          setControlValue={this.props.setControlValue}
-        />
-        <PlaySlider
-          start={this.state.start}
-          end={this.state.end}
-          step={this.state.step}
-          values={this.state.values}
-          onChange={newState => this.setState(newState)}
-          disabled={this.state.step == null}
-        />
-      </div>
-    );
-  }
-}
-
-function deckScatter(slice, payload, setControlValue) {
-  const viewport = {
-    ...slice.formData.viewport,
-    width: slice.width(),
-    height: slice.height(),
+    min: MIN,
+    hour: HOUR,
+    day: DAY,
+    week: WEEK,
+    month: MONTH,
+    year: YEAR,
   };
-  ReactDOM.render(
-    <DeckGLScatter
-      viewport={viewport}
-      slice={slice}
-      payload={payload}
-      setControlValue={setControlValue}
-      />,
-    document.getElementById(slice.containerId),
-  );
+
+  return milliseconds[timeGrain];
 }
 
 function getLayer(formData, payload, slice) {
@@ -148,6 +70,94 @@ function getLayer(formData, payload, slice) {
     outline: false,
     ...common.commonLayerProps(fd, slice),
   });
+}
+
+const propTypes = {
+  viewport: PropTypes.object.isRequired,
+  slice: PropTypes.object.isRequired,
+  payload: PropTypes.object.isRequired,
+  setControlValue: PropTypes.func.isRequired,
+};
+
+class DeckGLScatter extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = this.getStateFromProps(props);
+  }
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.slice.formData !== this.props.slice.formData) {
+      this.setState(this.getStateFromProps(nextProps));
+    }
+  }
+  getStateFromProps(props) {
+    const start = Date.parse(props.slice.formData.since + 'Z');
+    const end = Date.parse(props.slice.formData.until + 'Z');
+    const step = getStep(props.slice.formData.time_grain_sqla);
+    return {
+      start,
+      end,
+      step,
+      values: [start, step != null ? start + step : end],
+    };
+  }
+  filterPayload() {
+    const payload = Object.assign({}, this.props.payload);
+    payload.data = Object.assign({}, this.props.payload.data);
+    const features = payload.data.features;
+
+    const values = this.state.values;
+    let valid;
+    if (values[0] === values[1] || values[1] === this.state.end) {
+      valid = t => t.__timestamp >= values[0] && t.__timestamp <= values[1];
+    } else {
+      valid = t => t.__timestamp >= values[0] && t.__timestamp < values[1];
+    }
+    payload.data.features = features.filter(valid);
+
+    return payload;
+  }
+  render() {
+    const payload = this.filterPayload();
+    const layer = getLayer(this.props.slice.formData, payload, this.props.slice);
+    return (
+      <div>
+        <DeckGLContainer
+          mapboxApiAccessToken={payload.data.mapboxApiKey}
+          viewport={this.props.viewport}
+          layers={[layer]}
+          mapStyle={this.props.slice.formData.mapbox_style}
+          setControlValue={this.props.setControlValue}
+        />
+        <PlaySlider
+          start={this.state.start}
+          end={this.state.end}
+          step={this.state.step}
+          values={this.state.values}
+          onChange={newState => this.setState(newState)}
+          disabled={this.state.step == null}
+        />
+      </div>
+    );
+  }
+}
+
+DeckGLScatter.propTypes = propTypes;
+
+function deckScatter(slice, payload, setControlValue) {
+  const viewport = {
+    ...slice.formData.viewport,
+    width: slice.width(),
+    height: slice.height(),
+  };
+  ReactDOM.render(
+    <DeckGLScatter
+      viewport={viewport}
+      slice={slice}
+      payload={payload}
+      setControlValue={setControlValue}
+    />,
+    document.getElementById(slice.containerId),
+  );
 }
 
 module.exports = {
