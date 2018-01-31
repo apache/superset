@@ -1804,12 +1804,13 @@ class MapboxViz(BaseViz):
             'color': fd.get('mapbox_color'),
         }
 
+
 class MapboxWithPloygonViz(BaseViz):
 
     """Rich maps made with Mapbox"""
 
-    viz_type = "mapbox_with_polygon"
-    verbose_name = _("Mapbox With Ploygon")
+    viz_type = 'mapbox_with_polygon'
+    verbose_name = _('Mapbox With Ploygon')
     is_timeseries = False
     credits = (
         '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
@@ -1820,9 +1821,8 @@ class MapboxWithPloygonViz(BaseViz):
             self.form_data['metric']]
         qry['groupby'] = [self.form_data['entity']]
         return qry
-    
+
     def get_data(self, df):
-        from superset.data import countries
         fd = self.form_data
         cols = [fd.get('entity')]
         metric = fd.get('metric')
