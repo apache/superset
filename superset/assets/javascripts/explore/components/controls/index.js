@@ -11,7 +11,6 @@ import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
 import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
-import SliderControl from './SliderControl';
 import SpatialControl from './SpatialControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
@@ -33,7 +32,6 @@ const controlMap = {
   HiddenControl,
   SelectAsyncControl,
   SelectControl,
-  SliderControl,
   SpatialControl,
   TextAreaControl,
   TextControl,
