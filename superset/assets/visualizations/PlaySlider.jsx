@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 
 import BootstrapSlider from 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
+import './PlaySlider.css';
 
 const propTypes = {
   start: PropTypes.number.isRequired,
