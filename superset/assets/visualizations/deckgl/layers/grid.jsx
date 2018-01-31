@@ -1,9 +1,14 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
+
 import { GridLayer } from 'deck.gl';
+
+import DeckGLContainer from './../DeckGLContainer';
 
 import * as common from './common';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
-export default function getLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
@@ -31,3 +36,27 @@ export default function getLayer(formData, payload, slice) {
     ...common.commonLayerProps(fd, slice),
   });
 }
+
+function deckGrid(slice, payload, setControlValue) {
+  const layer = getLayer(slice.formData, payload, slice);
+  const viewport = {
+    ...slice.formData.viewport,
+    width: slice.width(),
+    height: slice.height(),
+  };
+  ReactDOM.render(
+    <DeckGLContainer
+      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      viewport={viewport}
+      layers={[layer]}
+      mapStyle={slice.formData.mapbox_style}
+      setControlValue={setControlValue}
+    />,
+    document.getElementById(slice.containerId),
+  );
+}
+
+module.exports = {
+  default: deckGrid,
+  getLayer,
+};
