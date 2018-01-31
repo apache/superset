@@ -15,10 +15,7 @@ export function chartUpdateSucceeded(queryResponse, key) {
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
-export function chartUpdateStopped(queryRequest, key) {
-  if (queryRequest) {
-    queryRequest.abort();
-  }
+export function chartUpdateStopped(key) {
   return { type: CHART_UPDATE_STOPPED, key };
 }
 
@@ -146,7 +143,9 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         });
         if (err.statusText === 'timeout') {
           dispatch(chartUpdateTimeout(err.statusText, timeout, key));
-        } else if (err.statusText !== 'abort') {
+        } else if (err.statusText === 'abort') {
+          dispatch(chartUpdateStopped(key));
+        } else {
           let errObject;
           if (err.responseJSON) {
             errObject = err.responseJSON;
