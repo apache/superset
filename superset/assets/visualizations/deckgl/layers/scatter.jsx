@@ -35,17 +35,24 @@ function getStep(time_grain) {
 class DeckGLScatter extends React.PureComponent {
   constructor(props) {
     super(props);
-
+    this.state = this.getStateFromProps(props);
+  }
+  getStateFromProps(props) {
     const start = Date.parse(props.slice.formData.since + 'Z');
     const end = Date.parse(props.slice.formData.until + 'Z');
     const step = getStep(props.slice.formData.time_grain_sqla);
       
-    this.state = {
+    return {
       start,
       end,
       step,
       values: [start, step != null ? start + step: end],
     };
+  }
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.slice.formData != this.props.slice.formData) {
+      this.setState(this.getStateFromProps(nextProps));
+    }
   }
   filterPayload() {
     const payload = Object.assign({}, this.props.payload);

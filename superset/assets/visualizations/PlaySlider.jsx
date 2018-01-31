@@ -6,9 +6,11 @@ import BootstrapSlider from 'bootstrap-slider/dist/css/bootstrap-slider.min.css'
 import ReactBootstrapSlider from 'react-bootstrap-slider';
 import './PlaySlider.css';
 
+import { t } from '../javascripts/locales';
+
 const propTypes = {
   start: PropTypes.number.isRequired,
-  step: PropTypes.number.isRequired,
+  step: PropTypes.number,
   end: PropTypes.number.isRequired,
   values: PropTypes.array.isRequired,
   onChange: PropTypes.func,
@@ -41,7 +43,7 @@ export default class PlaySlider extends React.PureComponent {
   }
   formatter(values) {
     if (this.state.step == null) {
-      return 'Please select a time grain in order to play through time';
+      return t('Please select a time grain in order to play through time');
     }
     if (!Array.isArray(values)) {
       values = [values];
