@@ -50,16 +50,16 @@ class MapboxViz extends React.Component {
           key = resp[i].country_id;
           dataMap[key] = resp[i].metric;
         }
-        const maxCount = d3.max(d3.values(dataMap));
-        const minCount = d3.min(d3.values(dataMap));
+        const max = d3.max(d3.values(dataMap));
+        const min = d3.min(d3.values(dataMap));
         const center = d3.geo.centroid(response);
         const longitude = center[0];
         const latitude = center[1];
         this.setState({
           geojson: response,
           dmap: dataMap,
-          maxCount: maxCount,
-          minCount: minCount,
+          maxCount: max,
+          minCount: min,
           viewport: {
             longitude,
             latitude,
@@ -78,11 +78,6 @@ class MapboxViz extends React.Component {
     this.props.setControlValue('viewport_zoom', viewport.zoom);
   }
 
-  initialize(gl) {
-    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE_MINUS_DST_ALPHA, gl.ONE);
-    gl.blendEquation(gl.FUNC_ADD);
-  }
-
   onHover(event) {
     let hoveredFeature = false;
     if (event !== undefined) {
@@ -95,6 +90,11 @@ class MapboxViz extends React.Component {
       hoveredFeature = false;
     }
   }
+
+  initialize(gl) {
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE_MINUS_DST_ALPHA, gl.ONE);
+    gl.blendEquation(gl.FUNC_ADD);
+  }  
 
   renderTooltip() {
     const { hoveredFeature, properties, x_coord, y_coord, dmap } = this.state;
