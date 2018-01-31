@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 
 import DeckGLContainer from '../DeckGLContainer';
+import PlaySlider from '../../PlaySlider';
 import BootstrapSlider from 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
 
@@ -33,58 +35,39 @@ function getStep(time_grain) {
   return milliseconds[time_grain];
 }
 
-class Slider extends React.PureComponent {
+class DeckGLScatter extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {value: this.props.start, intervalId: null};
 
-    this.onChange = this.onChange.bind(this);
-    this.play = this.play.bind(this);
-    this.pause = this.pause.bind(this);
-    this.step = this.step.bind(this);
-    this.getPlayIcon = this.getPlayIcon.bind(this);
+    const start = Date.parse(props.slice.formData.since + 'Z');
+    const end = Date.parse(props.slice.formData.until + 'Z');
+    const step = getStep(props.slice.formData.time_grain_sqla);
+      
+    this.state = {
+      start,
+      end,
+      step,
+      values: [start, step != null ? start + step: end],
+    };
   }
-  onChange(event) {
-    this.setState({value: event.target.value});
-    if (this.state.intervalId != null) {
-      this.pause();
-    }
-  }
-  formatter(value) {
-    return (new Date(value)).toUTCString();
-  }
-  play() {
-    if (this.state.intervalId != null) {
-      this.pause();
-    } else {
-      const id = setInterval(this.step, 500);
-      this.setState({intervalId: id});
-    }
-  }
-  pause() {
-    clearInterval(this.state.intervalId);
-    this.setState({intervalId: null});
-  }
-  step() {
-    let newTimestamp = this.state.value + this.props.step;
-    if (newTimestamp > this.props.end) {
-      // wrap around
-      newTimestamp -= this.props.end - this.props.start;
-    }
-    this.setState({value: newTimestamp});
-  }
-  getPlayIcon() {
-    if (this.state.intervalId != null) {
-      return '⏸️';
-    } else {
-      return '▶️';
-    }
+  filterPayload() {
+    const payload = Object.assign({}, this.props.payload);
+    payload.data = Object.assign({}, this.props.payload.data);
+    const features = payload.data.features;
+
+    const values = this.state.values;
+    let valid;
+    if (values[0] === values[1] || values[1] === this.props.end) {
+			valid = t => t.__timestamp >= values[0] && t.__timestamp <= values[1];
+		} else {
+			valid = t => t.__timestamp >= values[0] && t.__timestamp < values[1];
+		}
+		payload.data.features = features.filter(valid);
+
+    return payload;
   }
   render() {
-    let payload = Object.assign({}, this.props.payload);
-    payload.data = Object.assign({}, this.props.payload.data);
-    let features = payload.data.features.slice();
-    payload.data.features = features.filter(feature => feature.__timestamp === this.state.value);
+    const payload = this.filterPayload();
     const layer = getLayer(this.props.slice.formData, payload, this.props.slice);
     return (
       <div>
@@ -95,19 +78,14 @@ class Slider extends React.PureComponent {
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
         />
-        <button type="button" onClick={this.play}>{this.getPlayIcon()}</button>
-        <button type="button" onClick={this.step}>⏩</button>
-        <ReactBootstrapSlider
-          value={this.state.value}
-          formatter={this.formatter}
-          change={this.onChange}
-          min={this.props.start}
-          max={this.props.end}
-          step={this.props.step}
-          orientation="horizontal"
-          reversed={false}
-          disabled="enabled"
-        />
+        {this.state.step &&
+          <PlaySlider
+            start={this.state.start}
+            end={this.state.end}
+            step={this.state.step}
+            values={this.state.values}
+            onChange={newState => this.setState(newState)}
+        />}
       </div>
     );
   }
@@ -119,19 +97,12 @@ function deckScatter(slice, payload, setControlValue) {
     width: slice.width(),
     height: slice.height(),
   };
-  const start = Date.parse(slice.formData.since + 'Z');
-  const end = Date.parse(slice.formData.until + 'Z');
-  const step = getStep(slice.formData.time_grain_sqla);
-  console.log(slice);
   ReactDOM.render(
-    <Slider
+    <DeckGLScatter
       viewport={viewport}
       slice={slice}
       payload={payload}
       setControlValue={setControlValue}
-      start={start}
-      end={end}
-      step={step}
       />,
     document.getElementById(slice.containerId),
   );
@@ -142,14 +113,7 @@ function getLayer(formData, payload, slice) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
 
-  let data = payload.data.features;
-
-  // filter data if a time frame is set
-  //if (fd.time_grain_sqla != null && fd.time_frame != null) {
-  //  data = data.filter(feature => feature.__timestamp === fd.time_frame);
-  //}
-
-  data = data.map((d) => {
+  let data = payload.data.features.map((d) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {
       radius *= fd.multiplier;
@@ -184,5 +148,5 @@ function getLayer(formData, payload, slice) {
 
 module.exports = {
   default: deckScatter,
-  getLayer: getLayer,
+  getLayer,
 };
