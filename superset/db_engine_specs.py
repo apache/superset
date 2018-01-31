@@ -285,14 +285,14 @@ class PostgresEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('second', _('second'), "DATE_TRUNC('second', {col})"),
-        Grain('minute', _('minute'), "DATE_TRUNC('minute', {col})"),
-        Grain('hour', _('hour'), "DATE_TRUNC('hour', {col})"),
-        Grain('day', _('day'), "DATE_TRUNC('day', {col})"),
-        Grain('week', _('week'), "DATE_TRUNC('week', {col})"),
-        Grain('month', _('month'), "DATE_TRUNC('month', {col})"),
-        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', {col})"),
-        Grain('year', _('year'), "DATE_TRUNC('year', {col})"),
+        Grain('second', _('second'), "DATE_TRUNC('second', {col})::timestamp without time zone"),
+        Grain('minute', _('minute'), "DATE_TRUNC('minute', {col})::timestamp without time zone"),
+        Grain('hour', _('hour'), "DATE_TRUNC('hour', {col})::timestamp without time zone"),
+        Grain('day', _('day'), "DATE_TRUNC('day', {col})::timestamp without time zone"),
+        Grain('week', _('week'), "DATE_TRUNC('week', {col})::timestamp without time zone"),
+        Grain('month', _('month'), "DATE_TRUNC('month', {col})::timestamp without time zone"),
+        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', {col})::timestamp without time zone"),
+        Grain('year', _('year'), "DATE_TRUNC('year', {col})::timestamp without time zone"),
     )
 
     @classmethod
