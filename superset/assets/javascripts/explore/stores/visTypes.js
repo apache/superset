@@ -1507,7 +1507,7 @@ export const visTypes = {
       },
     ],
     controlOverrides: {
-    	entity: {
+      entity: {
         label: t('Codes of region/province/department'),
         description: t("It's the code of your region/province/department in your table. (see documentation for list of ISO 3166-1)"),
       },

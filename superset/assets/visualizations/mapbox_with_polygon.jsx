@@ -41,11 +41,13 @@ class MapboxViz extends React.Component {
   componentDidMount() {
     const country = this.props.country;
     requestJson('/static/assets/visualizations/countries/' + country + '.geojson', (error, response) => {
-      var resp = this.props.dataResponse;
-      var dataMap = [];
+      const resp = this.props.dataResponse;
+      const dataMap = [];
+      var i = 0;
+      var key = '';
       if (!error) {
-        for (var i = 0; i < resp.length; i++) {
-          var key = resp[i].country_id;
+        for (i = 0; i < resp.length; i++) {
+          key = resp[i].country_id;
           dataMap[key] = resp[i].metric;
         }
         const maxCount = d3.max(d3.values(dataMap));
@@ -53,13 +55,17 @@ class MapboxViz extends React.Component {
         const center = d3.geo.centroid(response);
         const longitude = center[0];
         const latitude = center[1];
-        this.setState({ geojson: response, dmap: dataMap, maxCount: maxCount, minCount: minCount,
+        this.setState({
+          geojson: response,
+          dmap: dataMap,
+          maxCount: maxCount,
+          minCount: minCount,
           viewport: {
             longitude,
             latitude,
             zoom: this.props.viewportZoom,
             startDragLngLat: [longitude, latitude],
-          }
+          },
         });
       }
     });
@@ -78,22 +84,22 @@ class MapboxViz extends React.Component {
   }
 
   _onHover(event) {
-    var hoveredFeature = false;
+    const hoveredFeature = false;
     if (event !== undefined) {
-      var properties = event.object.properties;
-      var x_coord = event.x;
-      var y_coord = event.y;
+      const properties = event.object.properties;
+      const xCoord = event.x;
+      const yCoord = event.y;
       hoveredFeature = true;
-      this.setState({ x_coord, y_coord, properties, hoveredFeature });
+      this.setState({ xCoord, yCoord, properties, hoveredFeature });
     } else {
       hoveredFeature = false;
     }
   }
 
   _renderTooltip() {
-    const {hoveredFeature, properties, x_coord, y_coord, dmap} = this.state;
+    const { hoveredFeature, properties, x_coord, y_coord, dmap } = this.state;
     return hoveredFeature && (
-      <div className="tooltip" style={{left: x_coord, top: y_coord}}>
+      <div className="tooltip" style={{ left: x_coord, top: y_coord }}>
         <div>ID: {properties.ISO}</div>
         <div>Region: {properties.NAME_2}</div>
         <div>Count: {dmap[properties.ISO]}</div>
@@ -101,21 +107,20 @@ class MapboxViz extends React.Component {
     );
   }
 
-  colorScale (r, rgb_color_scheme) {
-    if(isNaN(r)) {
-      return [211,211,211];
-    } else if(rgb_color_scheme === 'green_red') {
+  colorScale(r, rgbColorScheme) {
+    if (isNaN(r)) {
+      return [211, 211, 211];
+    } else if (rgbColorScheme === 'green_red') {
       return [r * 255, 200 * (1 - r), 50];
-    } else if(rgb_color_scheme === 'light_dark_blue') {
-      return [0, (1-r) * 255, 255];
-    } else {
-      return [255, 255, (1-r) * 200]; // white-yellow
+    } else if (rgbColorScheme === 'light_dark_blue') {
+      return [0, (1 - r) * 255, 255];
     }
+    return [255, 255, (1 - r) * 200]; // white-yellow
   }
 
   render() {
     const { geojson, dmap, minCount, maxCount} = this.state;
-    const rgb_color_scheme = this.props.rgb_color_scheme;
+    const rgbColorScheme = this.props.rgbColorScheme;
     const geosjsonLayer = new GeoJsonLayer({
       id: 'geojson-layer',
       data: geojson,
@@ -124,8 +129,9 @@ class MapboxViz extends React.Component {
       stroked: true,
       lineWidthMinPixels: 1,
       lineWidthScale: 2,
-      getFillColor: f => this.colorScale((( dmap[f.properties.ISO] - minCount ) / ( maxCount-minCount )), rgb_color_scheme ),      
-      pickable: true
+      getFillColor: f =>
+        this.colorScale(((dmap[f.properties.ISO] - minCount) / (maxCount - minCount)), rgbColorScheme ),
+      pickable: true,
     });
 
     return (
@@ -137,16 +143,16 @@ class MapboxViz extends React.Component {
         width={this.props.sliceWidth}
         height={this.props.sliceHeight}
         onChangeViewport={this.onViewportChange}
-      >        
-      <DeckGL
-        {...this.state.viewport}
-        layers={[geosjsonLayer]}
-        onWebGLInitialized={this.initialize}
-        onLayerHover={this._onHover}
-        width={this.props.sliceWidth}
-        height={this.props.sliceHeight}
-      />      
-      {this._renderTooltip()}
+      >
+        <DeckGL
+          {...this.state.viewport}
+          layers={[geosjsonLayer]}
+          onWebGLInitialized={this.initialize}
+          onLayerHover={this._onHover}
+          width={this.props.sliceWidth}
+          height={this.props.sliceHeight}
+        />
+        {this._renderTooltip()}
       </MapGL>
     );
   }
