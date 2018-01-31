@@ -230,7 +230,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         name = escape(self.slice_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
-    def get_viz(self):
+    def get_viz(self, force=False):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
 
         :return: object of the 'viz_type' type that is taken from the
@@ -246,6 +246,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return viz_types[slice_params.get('viz_type')](
             self.datasource,
             form_data=slice_params,
+            force=force,
         )
 
     @classmethod
