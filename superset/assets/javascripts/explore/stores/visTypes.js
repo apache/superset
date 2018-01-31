@@ -1518,7 +1518,7 @@ export const visTypes = {
       select_country: {
         label: t('GeoJSON Layer'),
         description: t('The name of GeoJSON Layer that Superset should display'),
-      }
+      },
     },
   },
 

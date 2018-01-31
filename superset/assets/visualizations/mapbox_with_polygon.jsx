@@ -31,11 +31,11 @@ class MapboxViz extends React.Component {
       properties: null,
       hoveredFeature: false,
       minCount: 0,
-      maxCount: 0
+      maxCount: 0,
     };
     this.onViewportChange = this.onViewportChange.bind(this);
-    this._onHover = this._onHover.bind(this);
-    this._renderTooltip = this._renderTooltip.bind(this);
+    this.onHover = this.onHover.bind(this);
+    this.renderTooltip = this.renderTooltip.bind(this);
   }
 
   componentDidMount() {
@@ -43,8 +43,8 @@ class MapboxViz extends React.Component {
     requestJson('/static/assets/visualizations/countries/' + country + '.geojson', (error, response) => {
       const resp = this.props.dataResponse;
       const dataMap = [];
-      var i = 0;
-      var key = '';
+      let i = 0;
+      let key = '';
       if (!error) {
         for (i = 0; i < resp.length; i++) {
           key = resp[i].country_id;
@@ -83,8 +83,8 @@ class MapboxViz extends React.Component {
     gl.blendEquation(gl.FUNC_ADD);
   }
 
-  _onHover(event) {
-    const hoveredFeature = false;
+  onHover(event) {
+    let hoveredFeature = false;
     if (event !== undefined) {
       const properties = event.object.properties;
       const xCoord = event.x;
@@ -96,7 +96,7 @@ class MapboxViz extends React.Component {
     }
   }
 
-  _renderTooltip() {
+  renderTooltip() {
     const { hoveredFeature, properties, x_coord, y_coord, dmap } = this.state;
     return hoveredFeature && (
       <div className="tooltip" style={{ left: x_coord, top: y_coord }}>
@@ -119,7 +119,7 @@ class MapboxViz extends React.Component {
   }
 
   render() {
-    const { geojson, dmap, minCount, maxCount} = this.state;
+    const { geojson, dmap, minCount, maxCount } = this.state;
     const rgbColorScheme = this.props.rgbColorScheme;
     const geosjsonLayer = new GeoJsonLayer({
       id: 'geojson-layer',
@@ -129,8 +129,8 @@ class MapboxViz extends React.Component {
       stroked: true,
       lineWidthMinPixels: 1,
       lineWidthScale: 2,
-      getFillColor: f =>
-        this.colorScale(((dmap[f.properties.ISO] - minCount) / (maxCount - minCount)), rgbColorScheme ),
+      getFillColor: f => this.colorScale(((dmap[f.properties.ISO] - minCount) /
+        (maxCount - minCount)), rgbColorScheme),
       pickable: true,
     });
 
@@ -148,11 +148,11 @@ class MapboxViz extends React.Component {
           {...this.state.viewport}
           layers={[geosjsonLayer]}
           onWebGLInitialized={this.initialize}
-          onLayerHover={this._onHover}
+          onLayerHover={this.onHover}
           width={this.props.sliceWidth}
           height={this.props.sliceHeight}
         />
-        {this._renderTooltip()}
+        {this.renderTooltip()}
       </MapGL>
     );
   }
@@ -167,6 +167,7 @@ MapboxViz.propTypes = {
   viewportLongitude: PropTypes.number,
   viewportZoom: PropTypes.number,
   country: PropTypes.string,
+  rgbColorScheme: PropTypes.string,
   dataResponse: PropTypes.array,
 };
 
