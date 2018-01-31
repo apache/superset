@@ -1,12 +1,12 @@
 /* eslint camelcase: 0 */
-import deck_grid from './grid';
-import deck_screengrid from './screengrid';
-import deck_path from './path';
-import deck_hex from './hex';
-import deck_scatter from './scatter';
-import deck_geojson from './geojson';
-import deck_arc from './arc';
-import deck_polygon from './polygon';
+import { getLayer as deck_grid } from './grid';
+import { getLayer as deck_screengrid } from './screengrid';
+import { getLayer as deck_path } from './path';
+import { getLayer as deck_hex } from './hex';
+import { getLayer as deck_scatter } from './scatter';
+import { getLayer as deck_geojson } from './geojson';
+import { getLayer as deck_arc } from './arc';
+import { getLayer as deck_polygon } from './polygon';
 
 const layerGenerators = {
   deck_grid,
