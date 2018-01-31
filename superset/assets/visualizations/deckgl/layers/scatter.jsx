@@ -75,14 +75,14 @@ class DeckGLScatter extends React.PureComponent {
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
         />
-        {this.state.step &&
-          <PlaySlider
-            start={this.state.start}
-            end={this.state.end}
-            step={this.state.step}
-            values={this.state.values}
-            onChange={newState => this.setState(newState)}
-        />}
+        <PlaySlider
+          start={this.state.start}
+          end={this.state.end}
+          step={this.state.step}
+          values={this.state.values}
+          onChange={newState => this.setState(newState)}
+          disabled={this.state.step == null}
+        />
       </div>
     );
   }

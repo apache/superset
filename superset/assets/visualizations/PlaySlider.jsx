@@ -13,11 +13,17 @@ const propTypes = {
   values: PropTypes.array.isRequired,
   onChange: PropTypes.func,
   intervalMilliseconds: PropTypes.number,
+  orientation: PropTypes.oneOf(['horizontal', 'vertical']),
+  reversed: PropTypes.bool,
+  disabled: PropTypes.bool,
 }
 
 const defaultProps = {
   onChange: () => {},
   intervalMilliseconds: 500,
+  orientation: 'horizontal',
+  reversed: false,
+  disabled: false,
 };
 
 export default class PlaySlider extends React.PureComponent {
@@ -26,13 +32,17 @@ export default class PlaySlider extends React.PureComponent {
 
     this.state = {intervalId: null};
 
+    this.formatter = this.formatter.bind(this);
     this.onChange = this.onChange.bind(this);
     this.play = this.play.bind(this);
     this.pause = this.pause.bind(this);
     this.step = this.step.bind(this);
-    this.getPlayIcon = this.getPlayIcon.bind(this);
+    this.getPlayClass = this.getPlayClass.bind(this);
   }
   formatter(values) {
+    if (this.state.step == null) {
+      return 'Please select a time grain in order to play through time';
+    }
     if (!Array.isArray(values)) {
       values = [values];
     }
@@ -64,29 +74,33 @@ export default class PlaySlider extends React.PureComponent {
     }
     this.props.onChange({values: values});
   }
-  getPlayIcon() {
-    if (this.state.intervalId != null) {
-      return '⏸️';
+  getPlayClass() {
+    if (this.state.intervalId == null) {
+      return 'fa fa-play fa-lg slider-button';
     } else {
-      return '▶️';
+      return 'fa fa-pause fa-lg slider-button';
     }
   }
   render() {
     return (
-      <div>
-        <button type="button" onClick={this.play}>{this.getPlayIcon()}</button>
-        <button type="button" onClick={this.step}>⏩</button>
-        <ReactBootstrapSlider
-          value={this.props.values}
-          formatter={this.formatter}
-          change={this.onChange}
-          min={this.props.start}
-          max={this.props.end}
-          step={this.props.step}
-          orientation="horizontal"
-          reversed={false}
-          disabled="enabled"
-        />
+      <div className="row play-slider">
+        <div className="col-8 col-sm-1 padded">
+          <i className={this.getPlayClass()} onClick={this.play} />
+          <i className="fa fa-step-forward fa-lg slider-button " onClick={this.step} />
+        </div>
+        <div className="col-4 col-sm-11 padded">
+          <ReactBootstrapSlider
+            value={this.props.values}
+            formatter={this.formatter}
+            change={this.onChange}
+            min={this.props.start}
+            max={this.props.end}
+            step={this.props.step}
+            orientation={this.props.orientation}
+            reversed={this.props.reversed}
+            disabled={this.props.disabled ? 'disabled' : 'enabled'}
+          />
+        </div>
       </div>
     );
   }
