@@ -113,7 +113,14 @@ function getLayer(formData, payload, slice) {
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
 
-  let data = payload.data.features.map((d) => {
+  let data = payload.data.features;
+
+  // filter data if a time frame is set
+  if (fd.time_grain_sqla != null && fd.time_frame != null) {
+    data = data.filter(feature => feature.__timestamp === fd.time_frame);
+  }
+
+  data = data.map((d) => {
     let radius = unitToRadius(fd.point_unit, d.radius) || 10;
     if (fd.multiplier) {
       radius *= fd.multiplier;
