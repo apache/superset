@@ -1477,49 +1477,50 @@ export const visTypes = {
       },
     },
   },
+
   mapbox_with_polygon: {
-	    label: t('Mapbox with Polygon'),
-	    controlPanelSections: [
-	      {
-            label: t('Query'),
-            expanded: true,
-            controlSetRows: [
-              ['entity'],
-              ['metric'],
-            ],
-          },
-          {
-              label: t('Options'),
-              controlSetRows: [
-                ['select_country'],
-                ['rgb_color_scheme'],
-                ['mapbox_style'],
-              ],
-          },
-	      {
-	        label: t('Viewport'),
-	        controlSetRows: [
-	          ['viewport_longitude'],
-	          ['viewport_latitude'],
-	          ['viewport_zoom'],
-	        ],
-	      },
-	    ],
-	    controlOverrides: {
+    label: t('Mapbox with Polygon'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['entity'],
+          ['metric'],
+        ],
+      },
+      {
+        label: t('Options'),
+        controlSetRows: [
+          ['select_country'],
+          ['rgb_color_scheme'],
+          ['mapbox_style'],
+        ],
+      },
+      {
+        label: t('Viewport'),
+        controlSetRows: [
+          ['viewport_longitude'],
+          ['viewport_latitude'],
+          ['viewport_zoom'],
+        ],
+      },
+    ],
+    controlOverrides: {
     	entity: {
-            label: t('Codes of region/province/department'),
-            description: t("It's the code of your region/province/department in your table. (see documentation for list of ISO 3166-1)"),
-          },
-          metric: {
-            label: t('Metric'),
-            description: t('Metric to display bottom title'),
-          },
-          select_country: {
-              label: t('GeoJSON Layer'),
-              description: t('The name of GeoJSON Layer that Superset should display'),
-          }
-	    },
-	  },
+        label: t('Codes of region/province/department'),
+        description: t("It's the code of your region/province/department in your table. (see documentation for list of ISO 3166-1)"),
+      },
+      metric: {
+        label: t('Metric'),
+        description: t('Metric to display bottom title'),
+      },
+      select_country: {
+        label: t('GeoJSON Layer'),
+        description: t('The name of GeoJSON Layer that Superset should display'),
+      }
+    },
+  },
 
   event_flow: {
     label: t('Event flow'),
