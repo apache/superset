@@ -94,17 +94,6 @@ class MapboxViz extends React.Component {
   initialize(gl) {
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE, gl.ONE_MINUS_DST_ALPHA, gl.ONE);
     gl.blendEquation(gl.FUNC_ADD);
-  }  
-
-  renderTooltip() {
-    const { hoveredFeature, properties, x_coord, y_coord, dmap } = this.state;
-    return hoveredFeature && (
-      <div className="tooltip" style={{ left: x_coord, top: y_coord }}>
-        <div>ID: {properties.ISO}</div>
-        <div>Region: {properties.NAME_2}</div>
-        <div>Count: {dmap[properties.ISO]}</div>
-      </div>
-    );
   }
 
   colorScale(r, rgbColorScheme) {
@@ -116,6 +105,17 @@ class MapboxViz extends React.Component {
       return [0, (1 - r) * 255, 255];
     }
     return [255, 255, (1 - r) * 200]; // white-yellow
+  }
+
+  renderTooltip() {
+    const { hoveredFeature, properties, x_coord, y_coord, dmap } = this.state;
+    return hoveredFeature && (
+      <div className="tooltip" style={{ left: x_coord, top: y_coord }}>
+        <div>ID: {properties.ISO}</div>
+        <div>Region: {properties.NAME_2}</div>
+        <div>Count: {dmap[properties.ISO]}</div>
+      </div>
+    );
   }
 
   render() {
