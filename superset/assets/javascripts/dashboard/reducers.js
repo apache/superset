@@ -1,5 +1,6 @@
 import { combineReducers } from 'redux';
 import d3 from 'd3';
+import shortid from 'shortid';
 
 import charts, { chart } from '../chart/chartReducer';
 import * as actions from './actions';
@@ -200,4 +201,5 @@ export const dashboard = function (state = {}, action) {
 export default combineReducers({
   charts,
   dashboard,
+  impressionId: () => (shortid.generate()),
 });
