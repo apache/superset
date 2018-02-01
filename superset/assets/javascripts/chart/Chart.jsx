@@ -87,7 +87,7 @@ class Chart extends React.PureComponent {
   componentDidUpdate(prevProps) {
     if (
         this.props.queryResponse &&
-        this.props.chartStatus === 'success' &&
+        ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
         !this.props.queryResponse.error && (
         prevProps.annotationData !== this.props.annotationData ||
         prevProps.queryResponse !== this.props.queryResponse ||
@@ -210,7 +210,7 @@ class Chart extends React.PureComponent {
         {!this.props.chartAlert &&
           <ChartBody
             containerId={this.containerId}
-            vizType={this.props.formData.viz_type}
+            vizType={this.props.vizType}
             height={this.height}
             width={this.width}
             ref={(inner) => {
