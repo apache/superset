@@ -55,6 +55,11 @@ export default function chartReducer(charts = {}, action) {
         chartAlert: t('Updating chart was stopped'),
       };
     },
+    [actions.CHART_RENDERING_SUCCEEDED](state) {
+      return { ...state,
+        chartStatus: 'rendered',
+      };
+    },
     [actions.CHART_RENDERING_FAILED](state) {
       return { ...state,
         chartStatus: 'failed',

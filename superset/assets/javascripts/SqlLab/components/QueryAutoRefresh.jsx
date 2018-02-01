@@ -22,7 +22,7 @@ class QueryAutoRefresh extends React.PureComponent {
     const queryKeys = Object.keys(queries);
     const queriesAsArray = queryKeys.map(key => queries[key]);
     return queriesAsArray.some(q =>
-      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0).length;
+      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0);
   }
   startTimer() {
     if (!(this.timer)) {

@@ -8,7 +8,7 @@ import DeckGLContainer from './../DeckGLContainer';
 import * as common from './common';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
-export function getLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice) {
   const fd = formData;
   const c = fd.color_picker;
   let data = payload.data.features.map(d => ({
@@ -37,7 +37,7 @@ export function getLayer(formData, payload, slice) {
   });
 }
 
-export default function deckGrid(slice, payload, setControlValue) {
+function deckGrid(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);
   const viewport = {
     ...slice.formData.viewport,

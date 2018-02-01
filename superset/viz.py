@@ -205,7 +205,6 @@ class BaseViz(object):
             'timeseries_limit': limit,
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
-            'form_data': form_data,
             'order_desc': order_desc,
             'prequeries': [],
             'is_prequery': False,
@@ -229,16 +228,22 @@ class BaseViz(object):
 
     def cache_key(self, query_obj):
         """
-        The cache key is the datasource/query string tuple associated with the
-        object which needs to be fully deterministic.
-        """
+        The cache key is made out of the key/values in `query_obj`
 
-        return hashlib.md5(
-            json.dumps((
-                self.datasource.id,
-                self.datasource.get_query_str(query_obj),
-            )).encode('utf-8'),
-        ).hexdigest()
+        We remove datetime bounds that are hard values,
+        and replace them with the use-provided inputs to bounds, which
+        may we time-relative (as in "5 days ago" or "now").
+        """
+        cache_dict = copy.deepcopy(query_obj)
+
+        for k in ['from_dttm', 'to_dttm']:
+            del cache_dict[k]
+
+        for k in ['since', 'until', 'datasource']:
+            cache_dict[k] = self.form_data.get(k)
+
+        json_data = self.json_dumps(cache_dict, sort_keys=True)
+        return hashlib.md5(json_data.encode('utf-8')).hexdigest()
 
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
@@ -320,8 +325,13 @@ class BaseViz(object):
             'rowcount': rowcount,
         }
 
-    def json_dumps(self, obj):
-        return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
+    def json_dumps(self, obj, sort_keys=False):
+        return json.dumps(
+            obj,
+            default=utils.json_int_dttm_ser,
+            ignore_nan=True,
+            sort_keys=sort_keys,
+        )
 
     @property
     def data(self):
@@ -431,9 +441,10 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
-    def json_dumps(self, obj):
+    def json_dumps(self, obj, sort_keys=False):
         if self.form_data.get('all_columns'):
-            return json.dumps(obj, default=utils.json_iso_dttm_ser)
+            return json.dumps(
+                obj, default=utils.json_iso_dttm_ser, sort_keys=sort_keys)
         else:
             return super(TableViz, self).json_dumps(obj)
 
