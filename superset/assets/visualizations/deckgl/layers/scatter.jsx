@@ -96,14 +96,16 @@ class DeckGLScatter extends React.PureComponent {
     }
   }
   getStateFromProps(props) {
+    const timeGrain = props.slice.formData.time_grain_sqla;  // TODO: druid support
     const start = Date.parse(props.slice.formData.since + 'Z');
     const end = Date.parse(props.slice.formData.until + 'Z');
-    const step = getStep(props.slice.formData.time_grain_sqla);
+    const step = timeGrain ? getStep(timeGrain) : getStep('min');
+    const values = timeGrain ? [start, start + step] : [start, end];
     return {
       start,
       end,
       step,
-      values: [start, step != null ? start + step : end],
+      values,
     };
   }
   filterPayload() {
@@ -140,7 +142,6 @@ class DeckGLScatter extends React.PureComponent {
           step={this.state.step}
           values={this.state.values}
           onChange={newState => this.setState(newState)}
-          disabled={this.state.step == null}
         />
       </div>
     );

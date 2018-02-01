@@ -13,7 +13,8 @@ const propTypes = {
   end: PropTypes.number.isRequired,
   values: PropTypes.array.isRequired,
   onChange: PropTypes.func,
-  intervalMilliseconds: PropTypes.number,
+  loopDuration: PropTypes.number,
+  maxFrames: PropTypes.number,
   orientation: PropTypes.oneOf(['horizontal', 'vertical']),
   reversed: PropTypes.bool,
   disabled: PropTypes.bool,
@@ -21,7 +22,8 @@ const propTypes = {
 
 const defaultProps = {
   onChange: () => {},
-  intervalMilliseconds: 500,
+  loopDuration: 15000,
+  maxFrames: 100,
   orientation: 'horizontal',
   reversed: false,
   disabled: false,
@@ -31,7 +33,18 @@ export default class PlaySlider extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    this.state = { intervalId: null };
+    const range = props.end - props.start;
+    const frames = Math.min(props.maxFrames, range / props.step);
+    const intervalMilliseconds = props.loopDuration / frames;
+    const width = range / frames;
+    let increment;
+    if (width < props.step) {
+      increment = props.step;
+    } else {
+      increment = width - (width % props.step);
+    }
+
+    this.state = { intervalId: null, intervalMilliseconds, increment };
 
     this.onChange = this.onChange.bind(this);
     this.play = this.play.bind(this);
@@ -59,7 +72,7 @@ export default class PlaySlider extends React.PureComponent {
     if (this.state.intervalId != null) {
       this.pause();
     } else {
-      const id = setInterval(this.step, this.props.intervalMilliseconds);
+      const id = setInterval(this.step, this.state.intervalMilliseconds);
       this.setState({ intervalId: id });
     }
   }
@@ -71,7 +84,7 @@ export default class PlaySlider extends React.PureComponent {
     if (this.props.disabled) {
       return;
     }
-    let values = this.props.values.map(value => value + this.props.step);
+    let values = this.props.values.map(value => value + this.state.increment);
     if (values[1] > this.props.end) {
       const cr = values[0] - this.props.start;
       values = values.map(value => value - cr);
@@ -79,10 +92,16 @@ export default class PlaySlider extends React.PureComponent {
     this.props.onChange({ values });
   }
   formatter(values) {
-    if (this.props.step == null) {
-      return t('Please select a time grain in order to play through time');
+    if (this.props.disabled) {
+      return t('Data has no time steps');
     }
-    const parts = Array.isArray(values) ? values : [values];
+
+    let parts = values;
+    if (!Array.isArray(values)) {
+      parts = [values];
+    } else if (values[0] === values[1]) {
+      parts = [values[0]];
+    }
     return parts.map(value => (new Date(value)).toUTCString()).join(' : ');
   }
   render() {
