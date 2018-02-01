@@ -1,5 +1,4 @@
 /* eslint-disable global-require */
-import deckglFactory from './deckgl/factory';
 
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
@@ -31,6 +30,7 @@ export const VIZ_TYPES = {
   sunburst: 'sunburst',
   table: 'table',
   time_table: 'time_table',
+  time_pivot: 'time_pivot',
   treemap: 'treemap',
   country_map: 'country_map',
   word_cloud: 'word_cloud',
@@ -46,6 +46,8 @@ export const VIZ_TYPES = {
   deck_path: 'deck_path',
   deck_geojson: 'deck_geojson',
   deck_multi: 'deck_multi',
+  deck_arc: 'deck_arc',
+  deck_polygon: 'deck_polygon',
   rose: 'rose',
 };
 
@@ -87,12 +89,14 @@ const vizMap = {
   [VIZ_TYPES.event_flow]: require('./EventFlow.jsx'),
   [VIZ_TYPES.paired_ttest]: require('./paired_ttest.jsx'),
   [VIZ_TYPES.partition]: require('./partition.js'),
-  [VIZ_TYPES.deck_scatter]: deckglFactory,
-  [VIZ_TYPES.deck_screengrid]: deckglFactory,
-  [VIZ_TYPES.deck_grid]: deckglFactory,
-  [VIZ_TYPES.deck_hex]: deckglFactory,
-  [VIZ_TYPES.deck_path]: deckglFactory,
-  [VIZ_TYPES.deck_geojson]: deckglFactory,
+  [VIZ_TYPES.deck_scatter]: require('./deckgl/layers/scatter.jsx').default,
+  [VIZ_TYPES.deck_screengrid]: require('./deckgl/layers/screengrid.jsx').default,
+  [VIZ_TYPES.deck_grid]: require('./deckgl/layers/grid.jsx').default,
+  [VIZ_TYPES.deck_hex]: require('./deckgl/layers/hex.jsx').default,
+  [VIZ_TYPES.deck_path]: require('./deckgl/layers/path.jsx').default,
+  [VIZ_TYPES.deck_geojson]: require('./deckgl/layers/geojson.jsx').default,
+  [VIZ_TYPES.deck_arc]: require('./deckgl/layers/arc.jsx').default,
+  [VIZ_TYPES.deck_polygon]: require('./deckgl/layers/polygon.jsx').default,
   [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
   [VIZ_TYPES.rose]: require('./rose.js'),
 };

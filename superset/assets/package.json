@@ -66,6 +66,7 @@
     "jquery": "3.1.1",
     "lodash.throttle": "^4.1.1",
     "luma.gl": "^5.0.1",
+    "mapbox-gl": "^0.43.0",
     "mathjs": "^3.16.3",
     "moment": "2.18.1",
     "mustache": "^2.2.1",

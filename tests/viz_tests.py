@@ -101,11 +101,8 @@ class BaseVizTestCase(unittest.TestCase):
 
     def test_cache_timeout(self):
         datasource = Mock()
-        form_data = {'cache_timeout': '10'}
-        test_viz = viz.BaseViz(datasource, form_data)
-        self.assertEqual(10, test_viz.cache_timeout)
-        del form_data['cache_timeout']
         datasource.cache_timeout = 156
+        test_viz = viz.BaseViz(datasource, form_data={})
         self.assertEqual(156, test_viz.cache_timeout)
         datasource.cache_timeout = None
         datasource.database = Mock()

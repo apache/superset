@@ -519,6 +519,26 @@ export const controls = {
     }),
   },
 
+  start_spatial: {
+    type: 'SpatialControl',
+    label: t('Start Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  end_spatial: {
+    type: 'SpatialControl',
+    label: t('End Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),
@@ -551,6 +571,16 @@ export const controls = {
     }),
   },
 
+  polygon: {
+    type: 'SelectControl',
+    label: t('Polygon Column'),
+    validators: [v.nonEmpty],
+    description: t('Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   point_radius_scale: {
     type: 'SelectControl',
     freeForm: true,
@@ -558,6 +588,15 @@ export const controls = {
     validators: [v.integer],
     default: null,
     choices: formatSelectOptions([0, 100, 200, 300, 500]),
+  },
+
+  stroke_width: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Stroke Width'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([1, 2, 3, 4, 5]),
   },
 
   all_columns_x: {
@@ -1201,7 +1240,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Range Filter'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Whether to display the time range interactive selector'),
   },
 
@@ -1447,6 +1486,7 @@ export const controls = {
   point_radius_fixed: {
     type: 'FixedOrMetricControl',
     label: t('Point Size'),
+    default: { type: 'fix', value: 1000 },
     description: t('Fixed point radius'),
     mapStateToProps: state => ({
       datasource: state.datasource,
@@ -1853,10 +1893,11 @@ export const controls = {
     },
   },
 
-  js_datapoint_mutator: jsFunctionControl(
-    t('Javascript data point mutator'),
-    t('Define a javascript function that receives each data point and can alter it ' +
-      'before getting sent to the deck.gl layer'),
+  js_data_mutator: jsFunctionControl(
+    t('Javascript data interceptor'),
+    t('Define a javascript function that receives the data array used in the visualization ' +
+      'and is expected to return a modified version of that array. This can be used ' +
+      'to alter properties of the data, filter, or enrich the array.'),
   ),
 
   js_data: jsFunctionControl(

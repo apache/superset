@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import { GridLayer } from 'deck.gl';
+import { PolygonLayer } from 'deck.gl';
 
 import DeckGLContainer from './../DeckGLContainer';
 
@@ -10,10 +10,10 @@ import sandboxedEval from '../../../javascripts/modules/sandbox';
 
 function getLayer(formData, payload, slice) {
   const fd = formData;
-  const c = fd.color_picker;
+  const fc = fd.fill_color_picker;
   let data = payload.data.features.map(d => ({
     ...d,
-    color: [c.r, c.g, c.b, 255 * c.a],
+    fillColor: [fc.r, fc.g, fc.b, 255 * fc.a],
   }));
 
   if (fd.js_data_mutator) {
@@ -22,22 +22,17 @@ function getLayer(formData, payload, slice) {
     data = jsFnMutator(data);
   }
 
-  return new GridLayer({
-    id: `grid-layer-${fd.slice_id}`,
+  return new PolygonLayer({
+    id: `path-layer-${fd.slice_id}`,
     data,
-    pickable: true,
-    cellSize: fd.grid_size,
-    minColor: [0, 0, 0, 0],
+    filled: fd.filled,
+    stroked: fd.stoked,
     extruded: fd.extruded,
-    maxColor: [c.r, c.g, c.b, 255 * c.a],
-    outline: false,
-    getElevationValue: points => points.reduce((sum, point) => sum + point.weight, 0),
-    getColorValue: points => points.reduce((sum, point) => sum + point.weight, 0),
     ...common.commonLayerProps(fd, slice),
   });
 }
 
-function deckGrid(slice, payload, setControlValue) {
+function deckPolygon(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);
   const viewport = {
     ...slice.formData.viewport,
@@ -57,6 +52,6 @@ function deckGrid(slice, payload, setControlValue) {
 }
 
 module.exports = {
-  default: deckGrid,
+  default: deckPolygon,
   getLayer,
 };

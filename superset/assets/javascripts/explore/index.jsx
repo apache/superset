@@ -5,6 +5,7 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 
+import shortid from 'shortid';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
 import { getChartKey } from './exploreUtils';
@@ -64,6 +65,7 @@ const initState = {
     saveModalAlert: null,
   },
   explore: bootstrappedState,
+  impressionId: shortid.generate(),
 };
 const store = createStore(rootReducer, initState,
   compose(applyMiddleware(thunk), initEnhancer(false)),

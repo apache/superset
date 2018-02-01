@@ -83,6 +83,18 @@ class CoreTests(SupersetTestCase):
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
+    def test_cache_key(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        viz = slc.viz
+        qobj = viz.query_obj()
+        cache_key = viz.cache_key(qobj)
+        self.assertEqual(cache_key, viz.cache_key(qobj))
+
+        qobj['groupby'] = []
+        self.assertNotEqual(cache_key, viz.cache_key(qobj))
+
     def test_slice_json_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -340,7 +352,6 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice('Girls', db.session)
         data = self.get_json_resp(
             '/superset/warm_up_cache?slice_id={}'.format(slc.id))
-
         assert data == [{'slice_id': slc.id, 'slice_name': slc.slice_name}]
 
         data = self.get_json_resp(
