@@ -2,6 +2,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import PropTypes from 'prop-types';
 
 import { ScatterplotLayer } from 'deck.gl';
 
@@ -85,8 +86,13 @@ class DeckGLScatter extends React.PureComponent {
     this.state = this.getStateFromProps(props);
   }
   componentWillReceiveProps(nextProps) {
-    if (nextProps.slice.formData !== this.props.slice.formData) {
-      this.setState(this.getStateFromProps(nextProps));
+    const nextState = this.getStateFromProps(nextProps);
+    if (
+      nextState.start !== this.state.start ||
+      nextState.end !== this.state.end ||
+      nextState.step !== this.state.step
+    ) {
+      this.setState(nextState);
     }
   }
   getStateFromProps(props) {

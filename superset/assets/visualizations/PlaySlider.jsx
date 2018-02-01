@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
 import './PlaySlider.css';
 
@@ -52,6 +53,9 @@ export default class PlaySlider extends React.PureComponent {
     return 'fa fa-pause fa-lg slider-button';
   }
   play() {
+    if (this.props.disabled) {
+      return;
+    }
     if (this.state.intervalId != null) {
       this.pause();
     } else {
@@ -64,6 +68,9 @@ export default class PlaySlider extends React.PureComponent {
     this.setState({ intervalId: null });
   }
   step() {
+    if (this.props.disabled) {
+      return;
+    }
     let values = this.props.values.map(value => value + this.props.step);
     if (values[1] > this.props.end) {
       const cr = values[0] - this.props.start;
@@ -72,7 +79,7 @@ export default class PlaySlider extends React.PureComponent {
     this.props.onChange({ values });
   }
   formatter(values) {
-    if (this.state.step == null) {
+    if (this.props.step == null) {
       return t('Please select a time grain in order to play through time');
     }
     const parts = Array.isArray(values) ? values : [values];

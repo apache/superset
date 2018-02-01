@@ -44,6 +44,7 @@
     "@data-ui/sparkline": "^0.0.49",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
+    "bootstrap-slider": "^10.0.0",
     "brace": "^0.10.0",
     "brfs": "^1.4.3",
     "cal-heatmap": "3.6.2",
