@@ -119,7 +119,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         endpoint = (
             'http://{obj.coordinator_host}:{obj.coordinator_port}/status'
         ).format(obj=self)
-        return json.loads(requests.get(endpoint).text)['version']
         ver = json.loads(requests.get(endpoint).text)['version']
         if ver is None:
             return "0"
