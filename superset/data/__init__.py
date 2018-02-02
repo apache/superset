@@ -1016,12 +1016,7 @@ def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding="utf-8")
-    start = datetime.datetime.now().replace(
-        hour=0, minute=0, second=0, microsecond=0)
-    pdf['date'] = [
-        start + datetime.timedelta(hours=i * 24 / (len(pdf) - 1))
-        for i in range(len(pdf))
-    ]
+    pdf['date'] = datetime.datetime.now().date()
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
     pdf['geohash'] = pdf[['LAT', 'LON']].apply(
@@ -1043,7 +1038,7 @@ def load_long_lat_data():
             'region': String(50),
             'postcode': Float(),
             'id': String(100),
-            'date': DateTime(),
+            'date': Date(),
             'occupancy': Float(),
             'radius_miles': Float(),
             'geohash': String(12),
@@ -1090,6 +1085,7 @@ def load_long_lat_data():
 
 
 def load_multiformat_time_series_data():
+
     """Loading time series data from a zip file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'multiformat_time_series.json.gz')) as f:
         pdf = pd.read_json(f)

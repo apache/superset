@@ -11,7 +11,7 @@ import { t } from '../javascripts/locales';
 
 const propTypes = {
   start: PropTypes.number.isRequired,
-  step: PropTypes.number,
+  step: PropTypes.number.isRequired,
   end: PropTypes.number.isRequired,
   values: PropTypes.array.isRequired,
   onChange: PropTypes.func,

@@ -1958,8 +1958,7 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_data(self, df):
         fd = self.form_data
-        self.point_radius_fixed = fd.get('point_radius_fixed') or {
-            'type': 'fix', 'value': 500}
+        self.point_radius_fixed = fd.get('point_radius_fixed')
         self.fixed_value = None
         self.dim = self.form_data.get('dimension')
         if self.point_radius_fixed.get('type') != 'metric':
