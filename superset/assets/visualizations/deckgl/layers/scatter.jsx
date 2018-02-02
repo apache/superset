@@ -16,15 +16,16 @@ import sandboxedEval from '../../../javascripts/modules/sandbox';
 
 function getStep(timeGrain) {
   // grain in microseconds
-  const MIN = 60 * 1000;
-  const HOUR = 60 * MIN;
+  const MINUTE = 60 * 1000;
+  const HOUR = 60 * MINUTE;
   const DAY = 24 * HOUR;
   const WEEK = 7 * DAY;
   const MONTH = 30 * DAY;
   const YEAR = 365 * DAY;
 
   const milliseconds = {
-    min: MIN,
+    'Time Column': MINUTE,
+    min: MINUTE,
     hour: HOUR,
     day: DAY,
     week: WEEK,
@@ -96,11 +97,26 @@ class DeckGLScatter extends React.PureComponent {
     }
   }
   getStateFromProps(props) {
-    const timeGrain = props.slice.formData.time_grain_sqla;  // TODO: druid support
-    const start = Date.parse(props.slice.formData.since + 'Z');
-    const end = Date.parse(props.slice.formData.until + 'Z');
+    const fd = props.slice.formData;
+    const timeGrain = fd.time_grain_sqla || fd.granularity;
     const step = timeGrain ? getStep(timeGrain) : getStep('min');
-    const values = timeGrain ? [start, start + step] : [start, end];
+
+    // find start and end based on the data
+    let start = props.payload.data.features[0].__timestamp;
+    let end = start;
+    props.payload.data.features.forEach((feature) => {
+      if (feature.__timestamp < start) {
+        start = feature.__timestamp;
+      }
+      if (feature.__timestamp > end) {
+        end = feature.__timestamp;
+      }
+    });
+    // truncate start and end to the closest step
+    start -= start % step;
+    end -= end % step - step;
+
+    const values = timeGrain != null ? [start, start + step] : [start, end];
     return {
       start,
       end,
