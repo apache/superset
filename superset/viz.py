@@ -1805,6 +1805,44 @@ class MapboxViz(BaseViz):
         }
 
 
+class MapboxWithPloygonViz(BaseViz):
+
+    """Rich maps made with Mapbox"""
+
+    viz_type = 'mapbox_with_polygon'
+    verbose_name = _('Mapbox With Ploygon')
+    is_timeseries = False
+    credits = (
+        '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
+
+    def query_obj(self):
+        qry = super(MapboxWithPloygonViz, self).query_obj()
+        qry['metrics'] = [
+            self.form_data['metric']]
+        qry['groupby'] = [self.form_data['entity']]
+        return qry
+
+    def get_data(self, df):
+        fd = self.form_data
+        cols = [fd.get('entity')]
+        metric = fd.get('metric')
+        cols += [metric]
+        ndf = df[cols]
+        df = ndf
+        df.columns = ['country_id', 'metric']
+        d = df.to_dict(orient='records')
+        return {
+            'dataResponse': d,
+            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
+            'mapStyle': fd.get('mapbox_style'),
+            'viewportLongitude': fd.get('viewport_longitude'),
+            'viewportLatitude': fd.get('viewport_latitude'),
+            'viewportZoom': fd.get('viewport_zoom'),
+            'country': fd.get('select_country'),
+            'rgb_color_scheme': fd.get('rgb_color_scheme'),
+        }
+
+
 class DeckGLMultiLayer(BaseViz):
 
     """Pile on multiple DeckGL layers"""
