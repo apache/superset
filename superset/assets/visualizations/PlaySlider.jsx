@@ -1,6 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import Mousetrap from 'mousetrap';
+
 import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
 import './PlaySlider.css';
@@ -52,6 +54,12 @@ export default class PlaySlider extends React.PureComponent {
     this.step = this.step.bind(this);
     this.getPlayClass = this.getPlayClass.bind(this);
     this.formatter = this.formatter.bind(this);
+  }
+  componentDidMount() {
+    Mousetrap.bind(['space'], this.play);
+  }
+  componentWillUnmount() {
+    Mousetrap.unbind(['space']);
   }
   onChange(event) {
     this.props.onChange({ values: event.target.value });

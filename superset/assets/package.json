@@ -70,6 +70,7 @@
     "mapbox-gl": "^0.43.0",
     "mathjs": "^3.16.3",
     "moment": "2.18.1",
+    "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
     "nvd3": "1.8.6",
     "po2json": "^0.4.5",
