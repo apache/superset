@@ -1961,6 +1961,9 @@ class Superset(BaseSupersetView):
             'common': self.common_bootsrap_payload(),
         }
 
+        if request.args.get('json') == 'true':
+            return json_success(json.dumps(bootstrap_data))
+
         return self.render_template(
             'superset/dashboard.html',
             entry='dashboard',
