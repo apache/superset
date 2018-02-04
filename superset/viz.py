@@ -15,6 +15,7 @@ import hashlib
 import inspect
 from itertools import product
 import logging
+import math
 import traceback
 import uuid
 import zlib
@@ -2182,6 +2183,32 @@ class PairedTTestViz(BaseViz):
             else:
                 data[key] = [d]
         return data
+
+
+class RoseViz(NVD3TimeSeriesViz):
+
+    viz_type = 'rose'
+    verbose_name = _('Time Series - Nightingale Rose Chart')
+    sort_series = False
+    is_timeseries = True
+
+    def get_data(self, df):
+        data = super(RoseViz, self).get_data(df)
+        result = {}
+        for datum in data:
+            key = datum['key']
+            for val in datum['values']:
+                timestamp = val['x'].value
+                if not result.get(timestamp):
+                    result[timestamp] = []
+                value = 0 if math.isnan(val['y']) else val['y']
+                result[timestamp].append({
+                    'key': key,
+                    'value': value,
+                    'name': ', '.join(key) if isinstance(key, list) else key,
+                    'time': val['x'],
+                })
+        return result
 
 
 class PartitionViz(NVD3TimeSeriesViz):
