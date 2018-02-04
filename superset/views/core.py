@@ -24,10 +24,11 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
+from six import text_type
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import IntegrityError, OperationalError
 from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
@@ -161,8 +162,6 @@ class DashboardFilter(SupersetFilter):
             ),
         )
         return query
-
-
 
 
 class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
@@ -319,49 +318,36 @@ class CsvToDatabaseView(SimpleFormView):
         form.infer_datetime_format.data = True
         form.decimal.data = '.'
         form.if_exists.data = 'append'
-        all_datasources = (
-            db.session.query(
-                models.Database.sqlalchemy_uri,
-                models.Database.database_name)
-            .all()
-        )
-        form.con.choices += all_datasources
 
     def form_post(self, form):
-        def _upload_file(csv_file):
-            if csv_file and csv_file.filename:
-                filename = secure_filename(csv_file.filename)
-                csv_file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
-                return filename
-
         csv_file = form.csv_file.data
-        _upload_file(csv_file)
-        table = SqlaTable(table_name=form.name.data)
-        database = (
-            db.session.query(models.Database)
-            .filter_by(sqlalchemy_uri=form.data.get('con'))
-            .one()
-        )
-        table.database = database
-        table.database_id = database.id
+        form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
+        csv_filename = form.csv_file.data.filename
         try:
-            database.db_engine_spec.create_table_from_csv(form, table)
+            csv_file.save(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            table = SqlaTable(table_name=form.name.data)
+            table.database = form.data.get('con')
+            table.database_id = table.database.id
+            table.database.db_engine_spec.create_table_from_csv(form, table)
         except Exception as e:
-            os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
-            flash(e, 'error')
-            return redirect('/tablemodelview/list/')
+            try:
+                os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            except OSError:
+                pass
+            message = u'Table name {} already exists. Please pick another'.format(
+                    form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+            flash(
+                message,
+                'danger')
+            return redirect('/csvtodatabaseview/form')
 
-        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_file.filename))
+        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
         # Go back to welcome page / splash screen
-        db_name = (
-            db.session.query(models.Database.database_name)
-            .filter_by(sqlalchemy_uri=form.data.get('con'))
-            .one()
-        )
-        message = _('CSV file "{0}" uploaded to table "{1}" in '
-                    'database "{2}"'.format(form.csv_file.data.filename,
+        db_name = table.database.database_name
+        message = _(u'CSV file "{0}" uploaded to table "{1}" in '
+                    'database "{2}"'.format(csv_filename,
                                             form.name.data,
-                                            db_name[0]))
+                                            db_name))
         flash(message, 'info')
         return redirect('/tablemodelview/list/')
 
