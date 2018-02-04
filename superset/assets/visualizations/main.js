@@ -48,6 +48,7 @@ export const VIZ_TYPES = {
   deck_multi: 'deck_multi',
   deck_arc: 'deck_arc',
   deck_polygon: 'deck_polygon',
+  rose: 'rose',
 };
 
 const vizMap = {
@@ -97,5 +98,6 @@ const vizMap = {
   [VIZ_TYPES.deck_arc]: require('./deckgl/layers/arc.jsx').default,
   [VIZ_TYPES.deck_polygon]: require('./deckgl/layers/polygon.jsx').default,
   [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
+  [VIZ_TYPES.rose]: require('./rose.js'),
 };
 export default vizMap;
