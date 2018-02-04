@@ -860,7 +860,7 @@ class Log(Model):
             if g.user:
                 user_id = g.user.get_id()
             d = request.args.to_dict()
-            post_data = request.form or {}
+            post_data = request.form.to_dict() or {}
             d.update(post_data)
             d.update(kwargs)
             slice_id = d.get('slice_id')
