@@ -867,9 +867,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'""".format(**locals())
-
         logging.info(form.con.data)
-        engine = create_engine(form.con.data)
+        engine = create_engine(form.con.data.sqlalchemy_uri)
         engine.execute(sql)
 
     @classmethod
