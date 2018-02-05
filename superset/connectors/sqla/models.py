@@ -113,7 +113,7 @@ class TableColumn(Model, BaseColumn):
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
         expr = self.expression or self.column_name
-        if not self.expression and not time_grain:
+        if not self.expression and (not time_grain or time_grain == u'Time Column'):
             return column(expr, type_=DateTime).label(DTTM_ALIAS)
         if time_grain:
             pdf = self.python_date_format
