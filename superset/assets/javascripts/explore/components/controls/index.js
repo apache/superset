@@ -4,11 +4,13 @@ import CheckboxControl from './CheckboxControl';
 import CollectionControl from './CollectionControl';
 import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
+import ColumnControl from './ColumnControl';
 import DatasourceControl from './DatasourceControl';
 import DateFilterControl from './DateFilterControl';
 import FilterControl from './FilterControl';
 import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
+import RowControl from './RowControl';
 import SelectAsyncControl from './SelectAsyncControl';
 import SelectControl from './SelectControl';
 import SpatialControl from './SpatialControl';
@@ -25,11 +27,13 @@ const controlMap = {
   CollectionControl,
   ColorPickerControl,
   ColorSchemeControl,
+  ColumnControl,
   DatasourceControl,
   DateFilterControl,
   FilterControl,
   FixedOrMetricControl,
   HiddenControl,
+  RowControl,
   SelectAsyncControl,
   SelectControl,
   SpatialControl,

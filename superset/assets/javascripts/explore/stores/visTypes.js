@@ -808,6 +808,21 @@ export const visTypes = {
         controlSetRows: [
           ['pandas_aggfunc', 'pivot_margins'],
           ['number_format', 'combine_metric'],
+          ['row_configuration_priority'],
+        ],
+      },
+      {
+        label: t('Column Configuration'),
+        description: 'Advanced configuration on columns',
+        controlSetRows: [
+          ['column_configuration'],
+        ],
+      },
+      {
+        label: 'Row Configuration',
+        description: 'Advanced configuration on rows',
+        controlSetRows: [
+          ['row_configuration'],
         ],
       },
     ],

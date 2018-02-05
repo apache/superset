@@ -1,6 +1,7 @@
 import { getExploreUrl, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../logger';
+import { setFetchColumns } from '../explore/actions/exploreActions';
 
 const $ = window.$ = require('jquery');
 
@@ -131,7 +132,9 @@ export function runQuery(formData, force = false, timeout = 60, key) {
           start_offset: logStart,
           duration: Logger.getTimestamp() - logStart,
         });
-        return dispatch(chartUpdateSucceeded(queryResponse, key));
+        return dispatch(chartUpdateSucceeded(queryResponse, key)) &&
+            // send the columns in queryresponse to the control
+            dispatch(setFetchColumns(queryResponse, key));
       })
       .catch((err) => {
         Logger.append(LOG_ACTIONS_LOAD_EVENT, {

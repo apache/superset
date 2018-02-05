@@ -8,6 +8,7 @@ const controlTypes = Object.keys(controlMap);
 const propTypes = {
   actions: PropTypes.object.isRequired,
   name: PropTypes.string.isRequired,
+  formData: PropTypes.object,
   type: PropTypes.oneOf(controlTypes).isRequired,
   hidden: PropTypes.bool,
   label: PropTypes.string.isRequired,
@@ -30,6 +31,7 @@ const propTypes = {
 
 const defaultProps = {
   renderTrigger: false,
+  formData: {},
   validators: [],
   hidden: false,
   validationErrors: [],
