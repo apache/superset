@@ -1182,6 +1182,11 @@ class Superset(BaseSupersetView):
                 "You don't have the rights to alter this slice",
                 status=400)
 
+        if action == 'saveas' and not slice_add_perm:
+            return json_error_response(
+                "You don't have the rights to create this slice",
+                status=400)
+
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
                 request.args,
@@ -1287,12 +1292,27 @@ class Superset(BaseSupersetView):
                 .filter_by(id=int(request.args.get('save_to_dashboard_id')))
                 .one()
             )
+
+            # check edit dashboard permissions
+            dash_overwrite_perm = is_owner(dash, g.user)
+            if not dash_overwrite_perm:
+                return json_error_response(
+                    "You don't have the rights to alter this dashboard",
+                    status=400)
+
             flash(
                 'Slice [{}] was added to dashboard [{}]'.format(
                     slc.slice_name,
                     dash.dashboard_title),
                 'info')
         elif request.args.get('add_to_dash') == 'new':
+            # check create dashboard permissions
+            dash_add_perm = self.can_access('can_add', 'DashboardModelView')
+            if not dash_add_perm:
+                return json_error_response(
+                    "You don't have the rights to create a dashboard",
+                    status=400)
+
             dash = models.Dashboard(
                 dashboard_title=request.args.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
