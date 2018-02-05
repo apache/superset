@@ -93,12 +93,21 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    if (!areObjectsEqual(prevProps.filters, this.props.filters) && this.props.refresh) {
-      const currentFilterKeys = Object.keys(this.props.filters);
-      if (currentFilterKeys.length) {
-        currentFilterKeys.forEach(key => (this.refreshExcept(key)));
-      } else {
-        this.refreshExcept();
+    if (this.props.refresh) {
+      let changedFilterKey;
+      const prevFiltersKeySet = new Set(Object.keys(prevProps.filters));
+      Object.keys(this.props.filters).some((key) => {
+        prevFiltersKeySet.delete(key);
+        if (prevProps.filters[key] === undefined ||
+          !areObjectsEqual(prevProps.filters[key], this.props.filters[key])) {
+          changedFilterKey = key;
+          return true;
+        }
+        return false;
+      });
+      // has changed filter or removed a filter?
+      if (!!changedFilterKey || prevFiltersKeySet.size) {
+        this.refreshExcept(changedFilterKey);
       }
     }
   }
