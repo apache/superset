@@ -207,7 +207,7 @@ class Chart extends React.PureComponent {
         />
         }
 
-        {!this.props.chartAlert &&
+        {!isLoading && !this.props.chartAlert &&
           <ChartBody
             containerId={this.containerId}
             vizType={this.props.vizType}
