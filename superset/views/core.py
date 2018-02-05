@@ -1189,7 +1189,8 @@ class Superset(BaseSupersetView):
                 slice_overwrite_perm,
                 slice_download_perm,
                 datasource_id,
-                datasource_type)
+                datasource_type,
+                datasource.name)
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
 
@@ -1255,7 +1256,7 @@ class Superset(BaseSupersetView):
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_overwrite_perm, slice_download_perm,
-            datasource_id, datasource_type):
+            datasource_id, datasource_type, datasource_name):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
@@ -1267,7 +1268,7 @@ class Superset(BaseSupersetView):
             slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(form_data)
-        slc.datasource_name = args.get('datasource_name')
+        slc.datasource_name = datasource_name
         slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
