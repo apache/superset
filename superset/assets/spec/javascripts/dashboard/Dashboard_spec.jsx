@@ -26,7 +26,7 @@ describe('Dashboard', () => {
   it('should render', () => {
     const wrapper = shallow(<Dashboard {...mockedProps} />);
     expect(wrapper.find('#dashboard-container')).to.have.length(1);
-    expect(wrapper.instance().getAllSlices()).to.have.length(2);
+    expect(wrapper.instance().getAllSlices()).to.have.length(3);
   });
 
   it('should handle metadata default_filters', () => {
@@ -51,10 +51,8 @@ describe('Dashboard', () => {
     it('should carry updated filter', () => {
       wrapper.setProps({
         filters: {
-          256: {
-            region: [],
-            country_name: ['France'],
-          },
+          256: { region: [] },
+          257: { country_name: ['France'] },
         },
       });
       const extraFilters = wrapper.instance().getFormDataExtra(selectedSlice).extra_filters;
@@ -74,7 +72,7 @@ describe('Dashboard', () => {
     });
 
     it('should not refresh filter slice', () => {
-      const filterKey = Object.keys(defaultFilters)[0];
+      const filterKey = Object.keys(defaultFilters)[1];
       wrapper.instance().refreshExcept(filterKey);
       expect(spy.callCount).to.equal(1);
       expect(spy.getCall(0).args[0].length).to.equal(1);
@@ -83,7 +81,102 @@ describe('Dashboard', () => {
     it('should refresh all slices', () => {
       wrapper.instance().refreshExcept();
       expect(spy.callCount).to.equal(1);
-      expect(spy.getCall(0).args[0].length).to.equal(2);
+      expect(spy.getCall(0).args[0].length).to.equal(3);
+    });
+  });
+
+  describe('componentDidUpdate', () => {
+    let wrapper;
+    let refreshExceptSpy;
+    let fetchSlicesStub;
+    let prevProp;
+    beforeEach(() => {
+      wrapper = shallow(<Dashboard {...mockedProps} />);
+      prevProp = wrapper.instance().props;
+      refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
+      fetchSlicesStub = sinon.stub(wrapper.instance(), 'fetchSlices');
+    });
+    afterEach(() => {
+      fetchSlicesStub.restore();
+      refreshExceptSpy.restore();
+    });
+
+    describe('should check if filter has change', () => {
+      beforeEach(() => {
+        refreshExceptSpy.reset();
+      });
+      it('no change', () => {
+        wrapper.setProps({
+          refresh: true,
+          filters: {
+            256: { region: [] },
+            257: { country_name: ['United States'] },
+          },
+        });
+        wrapper.instance().componentDidUpdate(prevProp);
+        expect(refreshExceptSpy.callCount).to.equal(0);
+      });
+
+      it('remove filter', () => {
+        wrapper.setProps({
+          refresh: true,
+          filters: {
+            256: { region: [] },
+          },
+        });
+        wrapper.instance().componentDidUpdate(prevProp);
+        expect(refreshExceptSpy.callCount).to.equal(1);
+      });
+
+      it('change filter', () => {
+        wrapper.setProps({
+          refresh: true,
+          filters: {
+            256: { region: [] },
+            257: { country_name: ['Canada'] },
+          },
+        });
+        wrapper.instance().componentDidUpdate(prevProp);
+        expect(refreshExceptSpy.callCount).to.equal(1);
+      });
+
+      it('add filter', () => {
+        wrapper.setProps({
+          refresh: true,
+          filters: {
+            256: { region: [] },
+            257: { country_name: ['Canada'] },
+            258: { another_filter: ['new'] },
+          },
+        });
+        wrapper.instance().componentDidUpdate(prevProp);
+        expect(refreshExceptSpy.callCount).to.equal(1);
+      });
+    });
+
+    it('should refresh if refresh flag is true', () => {
+      wrapper.setProps({
+        refresh: true,
+        filters: {
+          256: { region: ['Asian'] },
+        },
+      });
+      wrapper.instance().componentDidUpdate(prevProp);
+      const fetchArgs = fetchSlicesStub.lastCall.args[0];
+      expect(fetchArgs).to.have.length(2);
+    });
+
+    it('should not refresh filter_immune_slices', () => {
+      wrapper.setProps({
+        refresh: true,
+        filters: {
+          256: { region: [] },
+          257: { country_name: ['Canada'] },
+        },
+      });
+      wrapper.instance().componentDidUpdate(prevProp);
+      const fetchArgs = fetchSlicesStub.lastCall.args[0];
+      expect(fetchArgs).to.have.length(1);
     });
   });
 });
