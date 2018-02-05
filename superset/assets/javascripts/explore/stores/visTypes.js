@@ -158,25 +158,14 @@ export const visTypes = {
 
   line_xy: {
     label: t('XY - Line Chart'),
+    showOnExplore: true,
     controlPanelSections: [
-      {
-        label: t('Axis Options'),
-        description: t('Select which columns or metrics to plot'),
-        expanded: true,
-        controlSetRows: [
-          ['columns_and_metrics_x'],
-          ['columns_and_metrics_y'],
-          ['slice_by'],
-        ],
-      },
       {
         label: t('GROUP BY'),
         description: t('Use this section if you want a query that aggregates'),
         controlSetRows: [
           ['groupby'],
           ['metrics'],
-          ['limit', 'timeseries_limit_metric'],
-          ['order_desc', null],
         ],
       },
       {
@@ -190,6 +179,16 @@ export const visTypes = {
         label: t('Row Limit'),
         controlSetRows: [
           ['row_limit'],
+        ],
+      },
+      {
+        label: t('Axis Options'),
+        description: t('Select which columns or metrics from the query to plot'),
+        expanded: true,
+        controlSetRows: [
+          ['columns_and_metrics_x'],
+          ['columns_and_metrics_y'],
+          ['slice_by'],
         ],
       },
       {

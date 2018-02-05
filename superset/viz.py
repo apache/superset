@@ -992,8 +992,7 @@ class NVD3LineXYViz(NVD3Viz):
 
     viz_type = 'line_xy'
     verbose_name = _('XY Line Chart')
-    sort_series = False
-    is_timeseries = True
+    is_timeseries = False
 
     def query_obj(self):
         d = super(NVD3LineXYViz, self).query_obj()
