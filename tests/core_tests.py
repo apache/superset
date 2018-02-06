@@ -249,6 +249,13 @@ class CoreTests(SupersetTestCase):
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
+    def test_get_user_slices(self):
+        self.login(username='admin')
+        userid = appbuilder.sm.find_user('admin').id
+        url = '/sliceaddview/api/read?_flt_0_created_by={}'.format(userid)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
