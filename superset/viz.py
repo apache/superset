@@ -111,7 +111,7 @@ class BaseViz(object):
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
         if df is None or df.empty:
-            self.status = utils.QueryStatus.FAILED
+            self.status = utils.QueryStatus.FAILED.value
             if not self.error_message:
                 self.error_message = 'No data.'
             return pd.DataFrame()
@@ -278,7 +278,7 @@ class BaseViz(object):
                 logging.exception(e)
                 if not self.error_message:
                     self.error_message = str(e)
-                self.status = utils.QueryStatus.FAILED
+                self.status = utils.QueryStatus.FAILED.value
                 data = None
                 stacktrace = traceback.format_exc()
 
@@ -286,7 +286,7 @@ class BaseViz(object):
                     data and
                     cache_key and
                     cache and
-                    self.status != utils.QueryStatus.FAILED):
+                    self.status != utils.QueryStatus.FAILED.value):
                 cached_dttm = datetime.utcnow().isoformat().split('.')[0]
                 try:
                     cache_value = self.json_dumps({

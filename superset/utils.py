@@ -11,6 +11,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+from enum import Enum, unique
 import functools
 import json
 import logging
@@ -532,7 +533,8 @@ def pessimistic_connection_handling(some_engine):
             connection.should_close_with_result = save_should_close_with_result
 
 
-class QueryStatus(object):
+@unique
+class QueryStatus(Enum):
     """Enum-type class for query statuses"""
 
     STOPPED = 'stopped'

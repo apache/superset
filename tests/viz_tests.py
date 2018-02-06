@@ -48,7 +48,7 @@ class BaseVizTestCase(unittest.TestCase):
         self.assertEqual(type(result), pd.DataFrame)
         self.assertTrue(result.empty)
         self.assertEqual(test_viz.error_message, 'No data.')
-        self.assertEqual(test_viz.status, utils.QueryStatus.FAILED)
+        self.assertEqual(test_viz.status, utils.QueryStatus.FAILED.value)
 
     def test_get_df_handles_dttm_col(self):
         datasource = Mock()
