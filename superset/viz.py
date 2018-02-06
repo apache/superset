@@ -1359,9 +1359,9 @@ class SunburstViz(BaseViz):
         qry = super(SunburstViz, self).query_obj()
         fd = self.form_data
         qry['metrics'] = [fd['metric']]
-        sm = fd.get('secondary_metric')
-        if sm and sm != fd['metric']:
-            qry['metrics'].append(sm)
+        secondary_metric = fd.get('secondary_metric')
+        if secondary_metric and secondary_metric != fd['metric']:
+            qry['metrics'].append(secondary_metric)
         return qry
 
 
