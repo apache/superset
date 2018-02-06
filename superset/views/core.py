@@ -1294,7 +1294,7 @@ class Superset(BaseSupersetView):
             )
 
             # check edit dashboard permissions
-            dash_overwrite_perm = is_owner(dash, g.user)
+            dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
             if not dash_overwrite_perm:
                 return json_error_response(
                     "You don't have the rights to alter this dashboard",
