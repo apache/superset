@@ -738,7 +738,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/datasources/')
     def datasources(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        datasources = ConnectorRegistry.get_all_datasources(db.session, self.user_datasource_perms())
         datasources = [o.short_data for o in datasources]
         datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
