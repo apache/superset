@@ -78,6 +78,17 @@ def get_user_roles():
     return g.user.roles
 
 
+def get_user_datasource_perms():
+    datasource_perms = set()
+    for r in g.user.roles:
+        for perm in r.permissions:
+            if (
+                    perm.permission and
+                    'datasource_access' == perm.permission.name):
+                datasource_perms.add(perm.view_menu.name)
+    return datasource_perms
+
+
 class BaseSupersetView(BaseView):
     def can_access(self, permission_name, view_name, user=None):
         if not user:
@@ -143,16 +154,6 @@ class BaseSupersetView(BaseView):
             t for t in superset_query.tables if not
             self.datasource_access_by_fullname(database, t, schema)]
 
-    def user_datasource_perms(self):
-        datasource_perms = set()
-        for r in g.user.roles:
-            for perm in r.permissions:
-                if (
-                        perm.permission and
-                        'datasource_access' == perm.permission.name):
-                    datasource_perms.add(perm.view_menu.name)
-        return datasource_perms
-
     def schemas_accessible_by_user(self, database, schemas):
         if self.database_access(database) or self.all_datasource_access():
             return schemas
@@ -163,7 +164,7 @@ class BaseSupersetView(BaseView):
             if self.can_access('schema_access', schema_perm):
                 subset.add(schema)
 
-        perms = self.user_datasource_perms()
+        perms = get_user_datasource_perms()
         if perms:
             tables = (
                 db.session.query(SqlaTable)
@@ -187,7 +188,7 @@ class BaseSupersetView(BaseView):
             if self.can_access('schema_access', schema_perm):
                 return datasource_names
 
-        user_perms = self.user_datasource_perms()
+        user_perms = get_user_datasource_perms()
         user_datasources = ConnectorRegistry.query_datasources_by_permissions(
             db.session, database, user_perms)
         if schema:

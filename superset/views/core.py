@@ -49,7 +49,7 @@ from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin,
     generate_download_headers, get_error_msg, get_user_roles,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
-)
+    get_user_datasource_perms)
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -454,7 +454,8 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     @expose('/add', methods=['GET', 'POST'])
     @has_access
     def add(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session)
+        perms = get_user_datasource_perms()
+        datasources = ConnectorRegistry.get_all_datasources(db.session, perms)
         datasources = [
             {'value': str(d.id) + '__' + d.type, 'label': repr(d)}
             for d in datasources
@@ -738,7 +739,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/datasources/')
     def datasources(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session, self.user_datasource_perms())
+        datasources = ConnectorRegistry.get_all_datasources(db.session, get_user_datasource_perms())
         datasources = [o.short_data for o in datasources]
         datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
