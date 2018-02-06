@@ -1112,9 +1112,10 @@ export const visTypes = {
       },
       secondary_metric: {
         label: t('Secondary Metric'),
-        description: t('This secondary metric is used to ' +
+        default: null,
+        description: t('[optional] this secondary metric is used to ' +
         'define the color as a ratio against the primary metric. ' +
-        'If the two metrics match, color is mapped level groups'),
+        'When omitted, the color is categorical and based on labels'),
       },
       groupby: {
         label: t('Hierarchy'),
