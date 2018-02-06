@@ -493,6 +493,7 @@ class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'id', 'slice_name', 'slice_link', 'viz_type',
         'datasource_link', 'owners', 'modified', 'changed_on']
+    show_columns = list(set(SliceModelView.edit_columns + list_columns))
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -617,6 +618,17 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
 
 
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
+
+
+class DashboardAddView(DashboardModelView):  # noqa
+    list_columns = [
+        'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
+        'changed_on', 'url', 'changed_by_name',
+    ]
+    show_columns = list(set(DashboardModelView.edit_columns + list_columns))
+
+
+appbuilder.add_view_no_menu(DashboardAddView)
 
 
 class LogModelView(SupersetModelView):
