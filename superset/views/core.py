@@ -47,9 +47,9 @@ from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
 from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin,
-    generate_download_headers, get_error_msg, get_user_roles,
+    generate_download_headers, get_error_msg, get_user_datasource_perms, get_user_roles,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
-    get_user_datasource_perms)
+)
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -739,7 +739,8 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/datasources/')
     def datasources(self):
-        datasources = ConnectorRegistry.get_all_datasources(db.session, get_user_datasource_perms())
+        datasources = ConnectorRegistry.get_all_datasources(db.session,
+                                                            get_user_datasource_perms())
         datasources = [o.short_data for o in datasources]
         datasources = sorted(datasources, key=lambda o: o['name'])
         return self.json_response(datasources)
