@@ -28,7 +28,7 @@ from six import text_type
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
@@ -655,11 +655,6 @@ appbuilder.add_view(
 
 @app.route('/health')
 def health():
-    try:
-        db.session.execute('SELECT 1')
-    except OperationalError:
-        return Response('BAD', status=500)
-
     return 'OK'
 
 
