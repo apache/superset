@@ -60,7 +60,7 @@ export default class VizTypeControl extends React.PureComponent {
           alt={`viz-type-${vt}`}
           width="100%"
           className={`viztype-selector ${this.props.value === vt ? 'selected' : ''}`}
-          src={`/static/assets/images/viz_thumbnails/${vt}.png`}
+          src={`/static/assets/images/viz_small_thumbnails/${vt}.png`}
         />
         <div className="viztype-label">
           <strong>{visTypes[vt].label}</strong>
