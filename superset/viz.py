@@ -68,10 +68,10 @@ class BaseViz(object):
         self.status = None
         self.error_message = None
 
-    def get_fillna_for_type(self, col_type):
+    def get_fillna_for_col(self, col):
         """Returns the value for use as filler for a specific Column.type"""
-        if col_type:
-            if col_type == 'TEXT' or col_type.startswith('VARCHAR'):
+        if col:
+            if col.is_string:
                 return ' NULL'
         return self.default_fillna
 
@@ -79,8 +79,11 @@ class BaseViz(object):
         """Returns a dict or scalar that can be passed to DataFrame.fillna"""
         if columns is None:
             return self.default_fillna
-        columns_types = self.datasource.columns_types
-        fillna = {c: self.get_fillna_for_type(columns_types.get(c)) for c in columns}
+        columns_dict = {col.column_name: col for col in self.datasource.columns}
+        fillna = {
+            c: self.get_fillna_for_col(columns_dict.get(c))
+            for c in columns
+        }
         return fillna
 
     def get_df(self, query_obj=None):
