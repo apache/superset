@@ -288,14 +288,22 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('second', _('second'), "DATE_TRUNC('second', {col})"),
-        Grain('minute', _('minute'), "DATE_TRUNC('minute', {col})"),
-        Grain('hour', _('hour'), "DATE_TRUNC('hour', {col})"),
-        Grain('day', _('day'), "DATE_TRUNC('day', {col})"),
-        Grain('week', _('week'), "DATE_TRUNC('week', {col})"),
-        Grain('month', _('month'), "DATE_TRUNC('month', {col})"),
-        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', {col})"),
-        Grain('year', _('year'), "DATE_TRUNC('year', {col})"),
+        Grain('second', _('second'),
+              "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'"),
+        Grain('minute', _('minute'),
+              "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'"),
+        Grain('hour', _('hour'),
+              "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'"),
+        Grain('day', _('day'),
+              "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'"),
+        Grain('week', _('week'),
+              "DATE_TRUNC('week', {col}) AT TIME ZONE 'UTC'"),
+        Grain('month', _('month'),
+              "DATE_TRUNC('month', {col}) AT TIME ZONE 'UTC'"),
+        Grain('quarter', _('quarter'),
+              "DATE_TRUNC('quarter', {col}) AT TIME ZONE 'UTC'"),
+        Grain('year', _('year'),
+              "DATE_TRUNC('year', {col}) AT TIME ZONE 'UTC'"),
     )
 
     @classmethod
