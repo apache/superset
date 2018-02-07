@@ -411,6 +411,8 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('hour', _('hour'),
+              "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))"),
         Grain('day', _('day'), 'DATE({col})'),
         Grain('week', _('week'),
               "DATE({col}, -strftime('%w', {col}) || ' days')"),

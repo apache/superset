@@ -1016,7 +1016,12 @@ def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding="utf-8")
-    pdf['date'] = datetime.datetime.now().date()
+    start = datetime.datetime.now().replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    pdf['datetime'] = [
+        start + datetime.timedelta(hours=i * 24 / (len(pdf) - 1))
+        for i in range(len(pdf))
+    ]
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
     pdf['geohash'] = pdf[['LAT', 'LON']].apply(
@@ -1038,7 +1043,7 @@ def load_long_lat_data():
             'region': String(50),
             'postcode': Float(),
             'id': String(100),
-            'date': Date(),
+            'datetime': DateTime(),
             'occupancy': Float(),
             'radius_miles': Float(),
             'geohash': String(12),
@@ -1052,7 +1057,7 @@ def load_long_lat_data():
     obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
     if not obj:
         obj = TBL(table_name='long_lat')
-    obj.main_dttm_col = 'date'
+    obj.main_dttm_col = 'datetime'
     obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
