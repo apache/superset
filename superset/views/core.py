@@ -954,7 +954,9 @@ class Superset(BaseSupersetView):
             slice_id=None,
             form_data=None,
             datasource_type=None,
-            datasource_id=None):
+            datasource_id=None,
+            force=False,
+    ):
         if slice_id:
             slc = (
                 db.session.query(models.Slice)
@@ -969,6 +971,7 @@ class Superset(BaseSupersetView):
             viz_obj = viz.viz_types[viz_type](
                 datasource,
                 form_data=form_data,
+                force=force,
             )
             return viz_obj
 
@@ -1017,7 +1020,9 @@ class Superset(BaseSupersetView):
             viz_obj = self.get_viz(
                 datasource_type=datasource_type,
                 datasource_id=datasource_id,
-                form_data=form_data)
+                form_data=form_data,
+                force=force,
+            )
         except Exception as e:
             logging.exception(e)
             return json_error_response(
@@ -1038,7 +1043,7 @@ class Superset(BaseSupersetView):
             return self.get_query_string_response(viz_obj)
 
         try:
-            payload = viz_obj.get_payload(force=force)
+            payload = viz_obj.get_payload()
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
@@ -1082,9 +1087,10 @@ class Superset(BaseSupersetView):
         viz_obj = viz.viz_types['table'](
           datasource,
           form_data=form_data,
+          force=False,
         )
         try:
-            payload = viz_obj.get_payload(force=False)
+            payload = viz_obj.get_payload()
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
@@ -1876,8 +1882,8 @@ class Superset(BaseSupersetView):
 
         for slc in slices:
             try:
-                obj = slc.get_viz()
-                obj.get_json(force=True)
+                obj = slc.get_viz(force=True)
+                obj.get_json()
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(json.dumps(
