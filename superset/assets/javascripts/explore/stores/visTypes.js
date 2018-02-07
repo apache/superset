@@ -1541,6 +1541,25 @@ export const visTypes = {
     ],
   },
 
+  rose: {
+    label: t('Time Series - Nightingale Rose Chart'),
+    showOnExplore: true,
+    requiresTime: true,
+    controlPanelSections: [
+      sections.NVD3TimeSeries[0],
+      {
+        label: t('Chart Options'),
+        expanded: false,
+        controlSetRows: [
+          ['color_scheme'],
+          ['number_format', 'date_time_format'],
+          ['rich_tooltip', 'rose_area_proportion'],
+        ],
+      },
+      sections.NVD3TimeSeries[1],
+    ],
+  },
+
   partition: {
     label: 'Partition Diagram',
     showOnExplore: true,

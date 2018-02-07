@@ -74,7 +74,7 @@ class ExploreChartHeader extends React.PureComponent {
       json_endpoint: getExploreUrl(formData, 'json'),
       standalone_endpoint: getExploreUrl(formData, 'standalone'),
     };
-
+    const chartSucceeded = ['success', 'rendered'].indexOf(this.props.chart.chartStatus) > 0;
     return (
       <div
         id="slice-header"
@@ -115,21 +115,16 @@ class ExploreChartHeader extends React.PureComponent {
           />
         }
         <div className="pull-right">
-          {this.props.chart.chartStatus === 'success' && queryResponse &&
+          {chartSucceeded && queryResponse &&
             <RowCountLabel
               rowcount={queryResponse.rowcount}
               limit={formData.row_limit}
-            />
-          }
-          {this.props.chart.chartStatus === 'success' &&
-          queryResponse &&
-          queryResponse.is_cached &&
-
-          <CachedLabel
-            onClick={this.runQuery.bind(this)}
-            cachedTimestamp={queryResponse.cached_dttm}
-          />
-          }
+            />}
+          {chartSucceeded && queryResponse && queryResponse.is_cached &&
+            <CachedLabel
+              onClick={this.runQuery.bind(this)}
+              cachedTimestamp={queryResponse.cached_dttm}
+            />}
           <Timer
             startTime={this.props.chart.chartUpdateStartTime}
             endTime={this.props.chart.chartUpdateEndTime}

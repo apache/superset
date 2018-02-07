@@ -15,6 +15,7 @@ import hashlib
 import inspect
 from itertools import product
 import logging
+import math
 import traceback
 import uuid
 import zlib
@@ -67,10 +68,10 @@ class BaseViz(object):
         self.status = None
         self.error_message = None
 
-    def get_fillna_for_type(self, col_type):
+    def get_fillna_for_col(self, col):
         """Returns the value for use as filler for a specific Column.type"""
-        if col_type:
-            if col_type == 'TEXT' or col_type.startswith('VARCHAR'):
+        if col:
+            if col.is_string:
                 return ' NULL'
         return self.default_fillna
 
@@ -78,8 +79,11 @@ class BaseViz(object):
         """Returns a dict or scalar that can be passed to DataFrame.fillna"""
         if columns is None:
             return self.default_fillna
-        columns_types = self.datasource.columns_types
-        fillna = {c: self.get_fillna_for_type(columns_types.get(c)) for c in columns}
+        columns_dict = {col.column_name: col for col in self.datasource.columns}
+        fillna = {
+            c: self.get_fillna_for_col(columns_dict.get(c))
+            for c in columns
+        }
         return fillna
 
     def get_df(self, query_obj=None):
@@ -205,7 +209,6 @@ class BaseViz(object):
             'timeseries_limit': limit,
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
-            'form_data': form_data,
             'order_desc': order_desc,
             'prequeries': [],
             'is_prequery': False,
@@ -229,16 +232,22 @@ class BaseViz(object):
 
     def cache_key(self, query_obj):
         """
-        The cache key is the datasource/query string tuple associated with the
-        object which needs to be fully deterministic.
-        """
+        The cache key is made out of the key/values in `query_obj`
 
-        return hashlib.md5(
-            json.dumps((
-                self.datasource.id,
-                self.datasource.get_query_str(query_obj),
-            )).encode('utf-8'),
-        ).hexdigest()
+        We remove datetime bounds that are hard values,
+        and replace them with the use-provided inputs to bounds, which
+        may we time-relative (as in "5 days ago" or "now").
+        """
+        cache_dict = copy.deepcopy(query_obj)
+
+        for k in ['from_dttm', 'to_dttm']:
+            del cache_dict[k]
+
+        for k in ['since', 'until', 'datasource']:
+            cache_dict[k] = self.form_data.get(k)
+
+        json_data = self.json_dumps(cache_dict, sort_keys=True)
+        return hashlib.md5(json_data.encode('utf-8')).hexdigest()
 
     def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
@@ -320,8 +329,13 @@ class BaseViz(object):
             'rowcount': rowcount,
         }
 
-    def json_dumps(self, obj):
-        return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
+    def json_dumps(self, obj, sort_keys=False):
+        return json.dumps(
+            obj,
+            default=utils.json_int_dttm_ser,
+            ignore_nan=True,
+            sort_keys=sort_keys,
+        )
 
     @property
     def data(self):
@@ -431,9 +445,10 @@ class TableViz(BaseViz):
             columns=list(df.columns),
         )
 
-    def json_dumps(self, obj):
+    def json_dumps(self, obj, sort_keys=False):
         if self.form_data.get('all_columns'):
-            return json.dumps(obj, default=utils.json_iso_dttm_ser)
+            return json.dumps(
+                obj, default=utils.json_iso_dttm_ser, sort_keys=sort_keys)
         else:
             return super(TableViz, self).json_dumps(obj)
 
@@ -2171,6 +2186,32 @@ class PairedTTestViz(BaseViz):
             else:
                 data[key] = [d]
         return data
+
+
+class RoseViz(NVD3TimeSeriesViz):
+
+    viz_type = 'rose'
+    verbose_name = _('Time Series - Nightingale Rose Chart')
+    sort_series = False
+    is_timeseries = True
+
+    def get_data(self, df):
+        data = super(RoseViz, self).get_data(df)
+        result = {}
+        for datum in data:
+            key = datum['key']
+            for val in datum['values']:
+                timestamp = val['x'].value
+                if not result.get(timestamp):
+                    result[timestamp] = []
+                value = 0 if math.isnan(val['y']) else val['y']
+                result[timestamp].append({
+                    'key': key,
+                    'value': value,
+                    'name': ', '.join(key) if isinstance(key, list) else key,
+                    'time': val['x'],
+                })
+        return result
 
 
 class PartitionViz(NVD3TimeSeriesViz):

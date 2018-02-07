@@ -446,7 +446,6 @@ class SqlaTable(Model, BaseDatasource):
             orderby=None,
             extras=None,
             columns=None,
-            form_data=None,
             order_desc=True,
             prequeries=None,
             is_prequery=False,
@@ -458,7 +457,6 @@ class SqlaTable(Model, BaseDatasource):
             'metrics': metrics,
             'row_limit': row_limit,
             'to_dttm': to_dttm,
-            'form_data': form_data,
         }
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
@@ -654,7 +652,6 @@ class SqlaTable(Model, BaseDatasource):
                     'orderby': orderby,
                     'extras': extras,
                     'columns': columns,
-                    'form_data': form_data,
                     'order_desc': True,
                 }
                 result = self.query(subquery_obj)
