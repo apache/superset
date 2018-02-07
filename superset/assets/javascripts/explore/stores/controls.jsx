@@ -402,6 +402,7 @@ export const controls = {
     choices: [
       'Belgium',
       'Brazil',
+			'Canada',
       'China',
       'Egypt',
       'France',
