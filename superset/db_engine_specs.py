@@ -629,7 +629,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             stats = polled.get('stats', {})
 
             query = session.query(type(query)).filter_by(id=query.id).one()
-            if query.status == QueryStatus.STOPPED:
+            if query.status == QueryStatus.STOPPED.value:
                 cursor.cancel()
                 break
 
@@ -957,7 +957,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         job_id = None
         while polled.operationState in unfinished_states:
             query = session.query(type(query)).filter_by(id=query.id).one()
-            if query.status == QueryStatus.STOPPED:
+            if query.status == QueryStatus.STOPPED.value:
                 cursor.cancel()
                 break
 

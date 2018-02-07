@@ -292,7 +292,7 @@ class QueryResult(object):
             df,
             query,
             duration,
-            status=QueryStatus.SUCCESS,
+            status=QueryStatus.SUCCESS.value,
             error_message=None):
         self.df = df
         self.query = query

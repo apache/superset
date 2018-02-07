@@ -35,7 +35,7 @@ class Query(Model):
     # Store the tmp table into the DB only if the user asks for it.
     tmp_table_name = Column(String(256))
     user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
-    status = Column(String(16), default=QueryStatus.PENDING)
+    status = Column(String(16), default=QueryStatus.PENDING.value)
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))

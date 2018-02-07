@@ -121,7 +121,7 @@ def get_sql_results(
         sesh = get_session(not ctask.request.called_directly)
         query = get_query(query_id, sesh)
         query.error_message = str(e)
-        query.status = QueryStatus.FAILED
+        query.status = QueryStatus.FAILED.value
         query.tmp_table_name = None
         sesh.commit()
         raise
@@ -148,7 +148,7 @@ def execute_sql(
             resolutions at: {}'.format(msg, troubleshooting_link) \
             if troubleshooting_link else msg
         query.error_message = msg
-        query.status = QueryStatus.FAILED
+        query.status = QueryStatus.FAILED.value
         query.tmp_table_name = None
         session.commit()
         payload.update({
@@ -171,7 +171,6 @@ def execute_sql(
             return handle_error(
                 'Only `SELECT` statements can be used with the CREATE TABLE '
                 'feature.')
-            return
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
             query.tmp_table_name = 'tmp_{}_table_{}'.format(
@@ -194,7 +193,7 @@ def execute_sql(
         return handle_error(msg)
 
     query.executed_sql = executed_sql
-    query.status = QueryStatus.RUNNING
+    query.status = QueryStatus.RUNNING.value
     query.start_running_time = utils.now_as_float()
     session.merge(query)
     session.commit()
@@ -236,7 +235,7 @@ def execute_sql(
         conn.commit()
         conn.close()
 
-    if query.status == utils.QueryStatus.STOPPED:
+    if query.status == utils.QueryStatus.STOPPED.value:
         return json.dumps(
             {
                 'query_id': query.id,
@@ -249,7 +248,7 @@ def execute_sql(
 
     query.rows = cdf.size
     query.progress = 100
-    query.status = QueryStatus.SUCCESS
+    query.status = QueryStatus.SUCCESS.value
     if query.select_as_cta:
         query.select_sql = '{}'.format(
             database.select_star(

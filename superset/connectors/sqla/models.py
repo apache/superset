@@ -42,11 +42,11 @@ class AnnotationDatasource(BaseDatasource):
         qry = qry.filter(Annotation.layer_id == query_obj['filter'][0]['val'])
         qry = qry.filter(Annotation.start_dttm >= query_obj['from_dttm'])
         qry = qry.filter(Annotation.end_dttm <= query_obj['to_dttm'])
-        status = QueryStatus.SUCCESS
+        status = QueryStatus.SUCCESS.value
         try:
             df = pd.read_sql_query(qry.statement, db.engine)
         except Exception as e:
-            status = QueryStatus.FAILED
+            status = QueryStatus.FAILED.value
             logging.exception(e)
             error_message = (
                 utils.error_msg_from_exception(e))
@@ -676,13 +676,13 @@ class SqlaTable(Model, BaseDatasource):
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         sql = self.get_query_str(query_obj)
-        status = QueryStatus.SUCCESS
+        status = QueryStatus.SUCCESS.value
         error_message = None
         df = None
         try:
             df = self.database.get_df(sql, self.schema)
         except Exception as e:
-            status = QueryStatus.FAILED
+            status = QueryStatus.FAILED.value
             logging.exception(e)
             error_message = (
                 self.database.db_engine_spec.extract_error_message(e))

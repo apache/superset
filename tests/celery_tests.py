@@ -187,7 +187,7 @@ class CeleryTestCase(SupersetTestCase):
             "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name))
         result2 = self.run_sql(
             db_id, sql_where, '2', tmp_table='tmp_table_2', cta='true')
-        self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
+        self.assertEqual(QueryStatus.SUCCESS.value, result2['query']['state'])
         self.assertEqual([], result2['data'])
         self.assertEqual([], result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
@@ -203,12 +203,12 @@ class CeleryTestCase(SupersetTestCase):
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
             db_id, sql_empty_result, '3', tmp_table='tmp_table_3', cta='true')
-        self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
+        self.assertEqual(QueryStatus.SUCCESS.value, result3['query']['state'])
         self.assertEqual([], result3['data'])
         self.assertEqual([], result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
-        self.assertEqual(QueryStatus.SUCCESS, query3.status)
+        self.assertEqual(QueryStatus.SUCCESS.value, query3.status)
 
     def test_run_async_query(self):
         main_db = self.get_main_database(db.session)
@@ -218,15 +218,15 @@ class CeleryTestCase(SupersetTestCase):
             main_db.id, sql_where, '4', async='true', tmp_table='tmp_async_1',
             cta='true')
         assert result['query']['state'] in (
-            QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
+            QueryStatus.PENDING.value, QueryStatus.RUNNING.value, QueryStatus.SUCCESS.value)
 
         time.sleep(1)
 
         query = self.get_query_by_id(result['query']['serverId'])
         df = pd.read_sql_query(query.select_sql, con=eng)
-        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertEqual(QueryStatus.SUCCESS.value, query.status)
         self.assertEqual([{'name': 'Admin'}], df.to_dict(orient='records'))
-        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertEqual(QueryStatus.SUCCESS.value, query.status)
         self.assertTrue('FROM tmp_async_1' in query.select_sql)
         self.assertTrue('LIMIT 666' in query.select_sql)
         self.assertEqual(

@@ -1044,7 +1044,7 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
 
         status = 200
-        if payload.get('status') == QueryStatus.FAILED:
+        if payload.get('status') == QueryStatus.FAILED.value:
             status = 400
 
         return json_success(viz_obj.json_dumps(payload), status=status)
@@ -1089,7 +1089,7 @@ class Superset(BaseSupersetView):
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
         status = 200
-        if payload.get('status') == QueryStatus.FAILED:
+        if payload.get('status') == QueryStatus.FAILED.value:
             status = 400
         return json_success(viz_obj.json_dumps(payload), status=status)
 
@@ -2228,7 +2228,7 @@ class Superset(BaseSupersetView):
                 db.session.query(Query)
                 .filter_by(client_id=client_id).one()
             )
-            query.status = utils.QueryStatus.STOPPED
+            query.status = utils.QueryStatus.STOPPED.value
             db.session.commit()
         except Exception:
             pass
@@ -2275,7 +2275,7 @@ class Superset(BaseSupersetView):
             select_as_cta=request.form.get('select_as_cta') == 'true',
             start_time=utils.now_as_float(),
             tab_name=request.form.get('tab'),
-            status=QueryStatus.PENDING if async else QueryStatus.RUNNING,
+            status=QueryStatus.PENDING.value if async else QueryStatus.RUNNING.value,
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=tmp_table_name,
             user_id=int(g.user.get_id()),
@@ -2306,7 +2306,7 @@ class Superset(BaseSupersetView):
                     'Tell your administrator to verify the availability of '
                     'the message queue.'
                 )
-                query.status = QueryStatus.FAILED
+                query.status = QueryStatus.FAILED.value
                 query.error_message = msg
                 session.commit()
                 return json_error_response('{}'.format(msg))
@@ -2334,7 +2334,7 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))
-        if data.get('status') == QueryStatus.FAILED:
+        if data.get('status') == QueryStatus.FAILED.value:
             return json_error_response(payload=data)
         return json_success(payload)
 
