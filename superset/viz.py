@@ -1073,6 +1073,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             delta = utils.parse_human_timedelta(time_compare)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
+
+            if not query_object['from_dttm'] or not query_object['to_dttm']:
+                raise Exception(_(
+                    '`Since` and `Until` time bounds should be specified '
+                    'when using the `Time Shift` feature.'))
             query_object['from_dttm'] -= delta
             query_object['to_dttm'] -= delta
 
