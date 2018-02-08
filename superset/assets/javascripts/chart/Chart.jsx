@@ -2,13 +2,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
+import { Tooltip } from 'react-bootstrap';
 
 import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
+import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
 import StackTraceMessage from '../components/StackTraceMessage';
 import visMap from '../../visualizations/main';
 import sandboxedEval from '../modules/sandbox';
+import './chart.css';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -49,6 +52,7 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = {};
     // these properties are used by visualizations
     this.annotationData = props.annotationData;
     this.containerId = props.containerId;
@@ -83,7 +87,7 @@ class Chart extends React.PureComponent {
   componentDidUpdate(prevProps) {
     if (
         this.props.queryResponse &&
-        this.props.chartStatus === 'success' &&
+        ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
         !this.props.queryResponse.error && (
         prevProps.annotationData !== this.props.annotationData ||
         prevProps.queryResponse !== this.props.queryResponse ||
@@ -97,6 +101,10 @@ class Chart extends React.PureComponent {
 
   getFilters() {
     return this.props.getFilters();
+  }
+
+  setTooltip(tooltip) {
+    this.setState({ tooltip });
   }
 
   addFilter(col, vals, merge = true, refresh = true) {
@@ -140,10 +148,31 @@ class Chart extends React.PureComponent {
     return Mustache.render(s, context);
   }
 
+  renderTooltip() {
+    if (this.state.tooltip) {
+      /* eslint-disable react/no-danger */
+      return (
+        <Tooltip
+          className="chart-tooltip"
+          id="chart-tooltip"
+          placement="right"
+          positionTop={this.state.tooltip.y - 10}
+          positionLeft={this.state.tooltip.x + 30}
+          arrowOffsetTop={10}
+        >
+          <div dangerouslySetInnerHTML={{ __html: this.state.tooltip.content }} />
+        </Tooltip>
+      );
+      /* eslint-enable react/no-danger */
+    }
+    return null;
+  }
+
   renderViz() {
     const viz = visMap[this.props.vizType];
     const fd = this.props.formData;
     const qr = this.props.queryResponse;
+    const renderStart = Logger.getTimestamp();
     try {
       // Executing user-defined data mutator function
       if (fd.js_data) {
@@ -151,6 +180,13 @@ class Chart extends React.PureComponent {
       }
       // [re]rendering the visualization
       viz(this, qr, this.props.setControlValue);
+      Logger.append(LOG_ACTIONS_RENDER_EVENT, {
+        label: this.props.chartKey,
+        vis_type: this.props.vizType,
+        start_offset: renderStart,
+        duration: Logger.getTimestamp() - renderStart,
+      });
+      this.props.actions.chartRenderingSucceeded(this.props.chartKey);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
@@ -160,10 +196,10 @@ class Chart extends React.PureComponent {
     const isLoading = this.props.chartStatus === 'loading';
     return (
       <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}>
+        {this.renderTooltip()}
         {isLoading &&
           <Loading size={25} />
         }
-
         {this.props.chartAlert &&
         <StackTraceMessage
           message={this.props.chartAlert}
@@ -171,10 +207,10 @@ class Chart extends React.PureComponent {
         />
         }
 
-        {!this.props.chartAlert &&
+        {!isLoading && !this.props.chartAlert &&
           <ChartBody
             containerId={this.containerId}
-            vizType={this.props.formData.viz_type}
+            vizType={this.props.vizType}
             height={this.height}
             width={this.width}
             ref={(inner) => {

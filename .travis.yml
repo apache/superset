@@ -10,7 +10,6 @@ cache:
 env:
   global:
     - TRAVIS_CACHE=$HOME/.travis_cache/
-    - TRAVIS_NODE_VERSION="8.8.1"
   matrix:
     - TOX_ENV=flake8
     - TOX_ENV=javascript
@@ -19,8 +18,6 @@ env:
     - TOX_ENV=py34-sqlite
     - TOX_ENV=py27-mysql
     - TOX_ENV=py27-sqlite
-before_install:
-  - npm install -g npm@'>=5.4.1'
 before_script:
   - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
@@ -31,6 +28,4 @@ before_script:
 install:
   - pip install --upgrade pip
   - pip install tox tox-travis
-  - pip install --upgrade flake8
-  - rm -rf ~/.nvm && git clone https://github.com/creationix/nvm.git ~/.nvm && (cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`) && source ~/.nvm/nvm.sh && nvm install $TRAVIS_NODE_VERSION
 script: tox -e $TOX_ENV

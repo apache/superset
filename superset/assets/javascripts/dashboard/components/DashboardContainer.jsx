@@ -5,7 +5,7 @@ import * as dashboardActions from '../actions';
 import * as chartActions from '../../chart/chartAction';
 import Dashboard from './Dashboard';
 
-function mapStateToProps({ charts, dashboard }) {
+function mapStateToProps({ charts, dashboard, impressionId }) {
   return {
     initMessages: dashboard.common.flash_messages,
     timeout: dashboard.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
@@ -17,6 +17,7 @@ function mapStateToProps({ charts, dashboard }) {
     userId: dashboard.userId,
     isStarred: !!dashboard.isStarred,
     editMode: dashboard.editMode,
+    impressionId,
   };
 }
 

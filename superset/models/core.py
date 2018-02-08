@@ -9,7 +9,6 @@ from datetime import date, datetime
 import functools
 import json
 import logging
-import pickle
 import textwrap
 
 from flask import escape, g, Markup, request
@@ -41,6 +40,7 @@ install_aliases()
 from urllib import parse  # noqa
 
 config = app.config
+custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
 stats_logger = config.get('STATS_LOGGER')
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -230,7 +230,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         name = escape(self.slice_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
-    def get_viz(self):
+    def get_viz(self, force=False):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
 
         :return: object of the 'viz_type' type that is taken from the
@@ -246,6 +246,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return viz_types[slice_params.get('viz_type')](
             self.datasource,
             form_data=slice_params,
+            force=force,
         )
 
     @classmethod
@@ -394,7 +395,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
          be overridden or just copies over. Slices that belong to this
          dashboard will be wired to existing tables. This function can be used
          to import/export dashboards between multiple superset instances.
-         Audit metadata isn't copies over.
+         Audit metadata isn't copied over.
         """
         def alter_positions(dashboard, old_to_new_slc_id_dict):
             """ Updates slice_ids in the position json.
@@ -532,10 +533,10 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
 
-        return pickle.dumps({
+        return json.dumps({
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
-        })
+        }, cls=utils.DashboardEncoder, indent=4)
 
 
 class Database(Model, AuditMixinNullable, ImportMixin):
@@ -567,7 +568,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     }
     """))
     perm = Column(String(1000))
-    custom_password_store = config.get('SQLALCHEMY_CUSTOM_PASSWORD_STORE')
+
     impersonate_user = Column(Boolean, default=False)
     export_fields = ('database_name', 'sqlalchemy_uri', 'cache_timeout',
                      'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
@@ -611,7 +612,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def set_sqlalchemy_uri(self, uri):
         conn = sqla.engine.url.make_url(uri.strip())
-        if conn.password != PASSWORD_MASK and not self.custom_password_store:
+        if conn.password != PASSWORD_MASK and not custom_password_store:
             # do not over-write the password with the password mask
             self.password = conn.password
         conn.password = PASSWORD_MASK if conn.password else None
@@ -638,7 +639,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     @utils.memoized(
         watch=('impersonate_user', 'sqlalchemy_uri_decrypted', 'extra'))
-    def get_sqla_engine(self, schema=None, nullpool=False, user_name=None):
+    def get_sqla_engine(self, schema=None, nullpool=True, user_name=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         url = self.db_engine_spec.adjust_database_uri(url, schema)
@@ -803,8 +804,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
-        if self.custom_password_store:
-            conn.password = self.custom_password_store(conn)
+        if custom_password_store:
+            conn.password = custom_password_store(conn)
         else:
             conn.password = self.password
         return str(conn)
@@ -860,7 +861,7 @@ class Log(Model):
             if g.user:
                 user_id = g.user.get_id()
             d = request.args.to_dict()
-            post_data = request.form or {}
+            post_data = request.form.to_dict() or {}
             d.update(post_data)
             d.update(kwargs)
             slice_id = d.get('slice_id')

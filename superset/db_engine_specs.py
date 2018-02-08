@@ -42,6 +42,7 @@ from superset.utils import QueryStatus, SupersetTemplateException
 config = app.config
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
+hive_poll_interval = conf.get('HIVE_POLL_INTERVAL')
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -133,13 +134,14 @@ class BaseEngineSpec(object):
             'table': table,
             'df': df,
             'name': form.name.data,
-            'con': create_engine(form.con.data, echo=False),
+            'con': create_engine(form.con.data.sqlalchemy_uri, echo=False),
             'schema': form.schema.data,
             'if_exists': form.if_exists.data,
             'index': form.index.data,
             'index_label': form.index_label.data,
             'chunksize': 10000,
         }
+
         BaseEngineSpec.df_to_db(**df_to_db_kwargs)
 
     @classmethod
@@ -280,19 +282,29 @@ class BaseEngineSpec(object):
         return {}
 
 
-class PostgresEngineSpec(BaseEngineSpec):
-    engine = 'postgresql'
+class PostgresBaseEngineSpec(BaseEngineSpec):
+    """ Abstract class for Postgres 'like' databases """
+
+    engine = ''
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('second', _('second'), "DATE_TRUNC('second', {col})"),
-        Grain('minute', _('minute'), "DATE_TRUNC('minute', {col})"),
-        Grain('hour', _('hour'), "DATE_TRUNC('hour', {col})"),
-        Grain('day', _('day'), "DATE_TRUNC('day', {col})"),
-        Grain('week', _('week'), "DATE_TRUNC('week', {col})"),
-        Grain('month', _('month'), "DATE_TRUNC('month', {col})"),
-        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', {col})"),
-        Grain('year', _('year'), "DATE_TRUNC('year', {col})"),
+        Grain('second', _('second'),
+              "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'"),
+        Grain('minute', _('minute'),
+              "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'"),
+        Grain('hour', _('hour'),
+              "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'"),
+        Grain('day', _('day'),
+              "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'"),
+        Grain('week', _('week'),
+              "DATE_TRUNC('week', {col}) AT TIME ZONE 'UTC'"),
+        Grain('month', _('month'),
+              "DATE_TRUNC('month', {col}) AT TIME ZONE 'UTC'"),
+        Grain('quarter', _('quarter'),
+              "DATE_TRUNC('quarter', {col}) AT TIME ZONE 'UTC'"),
+        Grain('year', _('year'),
+              "DATE_TRUNC('year', {col}) AT TIME ZONE 'UTC'"),
     )
 
     @classmethod
@@ -311,12 +323,45 @@ class PostgresEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
+
+class PostgresEngineSpec(PostgresBaseEngineSpec):
+    engine = 'postgresql'
+
     @classmethod
     def get_table_names(cls, schema, inspector):
         """Need to consider foreign tables for PostgreSQL"""
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
+
+
+class VerticaEngineSpec(PostgresBaseEngineSpec):
+    engine = 'vertica'
+
+
+class RedshiftEngineSpec(PostgresBaseEngineSpec):
+    engine = 'redshift'
+
+
+class OracleEngineSpec(PostgresBaseEngineSpec):
+    engine = 'oracle'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('minute', _('minute'), "TRUNC(TO_DATE({col}), 'MI')"),
+        Grain('hour', _('hour'), "TRUNC(TO_DATE({col}), 'HH')"),
+        Grain('day', _('day'), "TRUNC(TO_DATE({col}), 'DDD')"),
+        Grain('week', _('week'), "TRUNC(TO_DATE({col}), 'WW')"),
+        Grain('month', _('month'), "TRUNC(TO_DATE({col}), 'MONTH')"),
+        Grain('quarter', _('quarter'), "TRUNC(TO_DATE({col}), 'Q')"),
+        Grain('year', _('year'), "TRUNC(TO_DATE({col}), 'YEAR')"),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return (
+            """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+        ).format(dttm.isoformat())
 
 
 class Db2EngineSpec(BaseEngineSpec):
@@ -367,6 +412,8 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('hour', _('hour'),
+              "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))"),
         Grain('day', _('day'), 'DATE({col})'),
         Grain('week', _('week'),
               "DATE({col}, -strftime('%w', {col}) || ' days')"),
@@ -831,9 +878,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'""".format(**locals())
-
         logging.info(form.con.data)
-        engine = create_engine(form.con.data)
+        engine = create_engine(form.con.data.sqlalchemy_uri)
         engine.execute(sql)
 
     @classmethod
@@ -948,7 +994,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
-            time.sleep(5)
+            time.sleep(hive_poll_interval)
             polled = cursor.poll()
 
     @classmethod
@@ -1044,42 +1090,6 @@ class MssqlEngineSpec(BaseEngineSpec):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
-
-
-class RedshiftEngineSpec(PostgresEngineSpec):
-    engine = 'redshift'
-
-
-class OracleEngineSpec(PostgresEngineSpec):
-    engine = 'oracle'
-
-    time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('minute', _('minute'),
-              "TRUNC(TO_DATE({col}), 'MI')"),
-        Grain('hour', _('hour'),
-              "TRUNC(TO_DATE({col}), 'HH')"),
-        Grain('day', _('day'),
-              "TRUNC(TO_DATE({col}), 'DDD')"),
-        Grain('week', _('week'),
-              "TRUNC(TO_DATE({col}), 'WW')"),
-        Grain('month', _('month'),
-              "TRUNC(TO_DATE({col}), 'MONTH')"),
-        Grain('quarter', _('quarter'),
-              "TRUNC(TO_DATE({col}), 'Q')"),
-        Grain('year', _('year'),
-              "TRUNC(TO_DATE({col}), 'YEAR')"),
-    )
-
-    @classmethod
-    def convert_dttm(cls, target_type, dttm):
-        return (
-            """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
-        ).format(dttm.isoformat())
-
-
-class VerticaEngineSpec(PostgresEngineSpec):
-    engine = 'vertica'
 
 
 class AthenaEngineSpec(BaseEngineSpec):
