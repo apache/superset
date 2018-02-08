@@ -463,6 +463,45 @@ export const visTypes = {
     ],
   },
 
+  deck_line: {
+    label: t('Deck.gl - Lines'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['subject', 'spatial'],
+          ['row_limit', null],
+        ],
+      },
+      {
+        label: t('Map'),
+        expanded: true,
+        controlSetRows: [
+          ['mapbox_style', 'viewport'],
+          ['color_picker', 'line_width'],
+          ['reverse_long_lat', null],
+        ],
+      },
+      {
+        label: t('Animation'),
+        expanded: true,
+        controlSetRows: [
+          ['animate', null],
+          ['tail_length', 'sequence_duration'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+        ],
+      },
+    ],
+  },
+
   deck_screengrid: {
     label: t('Deck.gl - Screen grid'),
     requiresTime: true,

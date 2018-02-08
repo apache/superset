@@ -11,10 +11,16 @@ const propTypes = {
   mapStyle: PropTypes.string,
   mapboxApiAccessToken: PropTypes.string.isRequired,
   onViewportChange: PropTypes.func,
+  renderFrequency: PropTypes.number,
+  overlayContent: PropTypes.func,
+  animate: PropTypes.bool,
 };
 const defaultProps = {
   mapStyle: 'light',
   onViewportChange: () => {},
+  overlayContent: () => {},
+  renderFrequency: 30,
+  animate: false,
 };
 
 export default class DeckGLContainer extends React.Component {
@@ -23,21 +29,30 @@ export default class DeckGLContainer extends React.Component {
     this.state = {
       viewport: props.viewport,
     };
-    this.tick = this.tick.bind(this);
+    this.viewportUpdateTick = this.viewportUpdateTick.bind(this);
     this.onViewportChange = this.onViewportChange.bind(this);
+    this.renderTick = this.renderTick.bind(this);
   }
   componentWillMount() {
-    const timer = setInterval(this.tick, 1000);
-    this.setState(() => ({ timer }));
+    const viewportUpdateTimer = setInterval(this.viewportUpdateTick, 1000);
+    this.setState(() => ({ viewportUpdateTimer }));
+    if (this.props.animate) {
+      this.setRenderTimer();
+    }
   }
   componentWillReceiveProps(nextProps) {
     this.setState(() => ({
       viewport: { ...nextProps.viewport },
       previousViewport: this.state.viewport,
     }));
+    if (nextProps.animate) {
+      this.setRenderTimer();
+    } else {
+      this.unsetRenderTimer();
+    }
   }
   componentWillUnmount() {
-    this.clearInterval(this.state.timer);
+    clearInterval(this.state.timer);
   }
   onViewportChange(viewport) {
     const vp = Object.assign({}, viewport);
@@ -48,7 +63,19 @@ export default class DeckGLContainer extends React.Component {
     this.setState(() => ({ viewport: newVp }));
     this.props.onViewportChange(newVp);
   }
-  tick() {
+  setRenderTimer() {
+    if (!this.state.renderTimer) {
+      const renderTimer = setInterval(this.renderTick, this.props.renderFrequency);
+      this.setState(() => ({ renderTimer }));
+    }
+  }
+  unsetRenderTimer() {
+    if (this.state.renderTimer) {
+      clearInterval(this.state.renderTimer);
+      this.setState({ renderTimer: null });
+    }
+  }
+  viewportUpdateTick() {
     // Limiting updating viewport controls through Redux at most 1*sec
     if (this.state.previousViewport !== this.state.viewport) {
       const setCV = this.props.setControlValue;
@@ -66,21 +93,48 @@ export default class DeckGLContainer extends React.Component {
     }
     return this.props.layers;
   }
+  renderTick() {
+    this.setState({ dttm: Date.now() });
+  }
+  renderOverlay() {
+    const content = this.props.overlayContent();
+    if (content) {
+      return (
+        <div style={{
+          position: 'absolute',
+          top: 5,
+          padding: 5,
+          left: 15,
+          zIndex: 1000,
+          fontSize: '12px',
+          backgroundColor: 'rgba(255, 255, 255, 0.75)',
+        }}
+        >
+          {content}
+        </div>
+      );
+    }
+    return null;
+  }
   render() {
     const { viewport } = this.state;
+
     return (
-      <MapGL
-        {...viewport}
-        mapStyle={this.props.mapStyle}
-        onViewportChange={this.onViewportChange}
-        mapboxApiAccessToken={this.props.mapboxApiAccessToken}
-      >
-        <DeckGL
+      <div>
+        {this.renderOverlay()}
+        <MapGL
           {...viewport}
-          layers={this.layers()}
-          initWebGLParameters
-        />
-      </MapGL>
+          mapStyle={this.props.mapStyle}
+          onViewportChange={this.onViewportChange}
+          mapboxApiAccessToken={this.props.mapboxApiAccessToken}
+        >
+          <DeckGL
+            {...viewport}
+            layers={this.layers()}
+            initWebGLParameters
+          />
+        </MapGL>
+      </div>
     );
   }
 }

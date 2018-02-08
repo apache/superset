@@ -48,6 +48,7 @@ export const VIZ_TYPES = {
   deck_multi: 'deck_multi',
   deck_arc: 'deck_arc',
   deck_polygon: 'deck_polygon',
+  deck_line: 'deck_line',
   rose: 'rose',
 };
 
@@ -94,6 +95,7 @@ const vizMap = {
   [VIZ_TYPES.deck_grid]: require('./deckgl/layers/grid.jsx').default,
   [VIZ_TYPES.deck_hex]: require('./deckgl/layers/hex.jsx').default,
   [VIZ_TYPES.deck_path]: require('./deckgl/layers/path.jsx').default,
+  [VIZ_TYPES.deck_line]: require('./deckgl/layers/line.jsx').default,
   [VIZ_TYPES.deck_geojson]: require('./deckgl/layers/geojson.jsx').default,
   [VIZ_TYPES.deck_arc]: require('./deckgl/layers/arc.jsx').default,
   [VIZ_TYPES.deck_polygon]: require('./deckgl/layers/polygon.jsx').default,

@@ -7,8 +7,10 @@ import { getLayer as deck_scatter } from './scatter';
 import { getLayer as deck_geojson } from './geojson';
 import { getLayer as deck_arc } from './arc';
 import { getLayer as deck_polygon } from './polygon';
+import { getLayer as deck_line } from './line';
 
 const layerGenerators = {
+  deck_line,
   deck_grid,
   deck_screengrid,
   deck_path,

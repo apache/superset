@@ -519,6 +519,18 @@ export const controls = {
     }),
   },
 
+  subject: {
+    type: 'SelectControl',
+    multi: false,
+    label: t('Subject'),
+    default: [],
+    description: t('The column identifying your subject or entity'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+    validators: [v.nonEmpty],
+  },
+
   spatial: {
     type: 'SpatialControl',
     label: t('Longitude & Latitude'),
@@ -1949,6 +1961,29 @@ export const controls = {
     renderTrigger: true,
     description: t('Whether to fill the objects'),
     default: false,
+  },
+  animate: {
+    type: 'CheckboxControl',
+    label: t('Animate'),
+    renderTrigger: true,
+    description: t('Whether to animate the paths'),
+    default: false,
+  },
+  tail_length: {
+    type: 'TextControl',
+    label: t('Tail Length'),
+    renderTrigger: true,
+    isInt: true,
+    default: 120,
+    description: t('Length of the tail, in seconds'),
+  },
+  sequence_duration: {
+    type: 'TextControl',
+    label: t('Sequence Duration'),
+    renderTrigger: true,
+    isInt: true,
+    default: 60,
+    description: t('Duration of the loop, in seconds'),
   },
 };
 export default controls;

@@ -1896,10 +1896,8 @@ class DeckGLMultiLayer(BaseViz):
         from superset import db
         slice_ids = fd.get('deck_slices')
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
-        return {
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-            'slices': [slc.data for slc in slices],
-        }
+        return self.insert_mapbox_api_key(
+            dict(slices=[slc.data for slc in slices]))
 
 
 class BaseDeckGLViz(BaseViz):
@@ -1946,7 +1944,6 @@ class BaseDeckGLViz(BaseViz):
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
-
         return df
 
     def query_obj(self):
@@ -1987,13 +1984,14 @@ class BaseDeckGLViz(BaseViz):
                 feature['extraProps'] = extra_props
             features.append(feature)
 
-        return {
-            'features': features,
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-        }
+        return self.insert_mapbox_api_key(dict(features=features))
 
     def get_properties(self, d):
         raise NotImplementedError()
+
+    def insert_mapbox_api_key(self, d):
+        d['mapboxApiKey'] = config.get('MAPBOX_API_KEY')
+        return d
 
 
 class DeckScatterViz(BaseDeckGLViz):
@@ -2096,6 +2094,69 @@ class DeckPathViz(BaseDeckGLViz):
         }
 
 
+class DeckLineViz(BaseDeckGLViz):
+
+    """deck.gl's PathLayer"""
+
+    viz_type = 'deck_line'
+    verbose_name = _('Deck.gl - Line')
+    deck_viz_key = 'line'
+    spatial_control_keys = ['spatial']
+
+    def query_obj(self):
+        d = super(DeckLineViz, self).query_obj()
+        fd = self.form_data
+
+        d['metrics'] = []
+        d['groupby'] = []
+        d['columns'] += [fd.get('subject'), d.get('granularity')]
+        self.granularity = d.get('granularity')
+        return d
+
+    def get_data(self, df):
+        df = self.process_spatial_data_obj('spatial', df)
+        df['dttm'] = pd.to_datetime(df[self.granularity])
+        fd = self.form_data
+        subject = fd.get('subject')
+        features = []
+
+        def process_subject(xdf):
+            xdf = xdf.sort_values('dttm')
+            del xdf[fd.get('subject')]
+            recs = xdf.to_dict(orient='records')
+            if len(recs) > 10:
+                points = []
+                for i in range(len(recs) - 1):
+                    source = recs[i].get('spatial')
+                    target = recs[i + 1].get('spatial')
+                    from geopy.distance import vincenty
+                    distance = vincenty(source, target).meters
+                    breakline = False
+                    if distance > 500:
+                        breakline = True
+                    if (
+                            source[0] != target[0] and source[1] != target[1] and
+                            not breakline
+                    ):
+                        d = {
+                            'dttm': recs[i].get('dttm'),
+                            'source': source,
+                            'target': target,
+                        }
+                        for col in fd.get('js_columns', []):
+                            d[col] = recs[i][col]
+                        points.append(d)
+                    if (i == len(recs) - 2 or breakline):
+                        if len(points) > 10:
+                            features.append({
+                                'subject': df[subject][0],
+                                'points': points,
+                            })
+                        points = []
+        df.groupby(subject).apply(process_subject)
+        return self.insert_mapbox_api_key(dict(features=features))
+
+
 class DeckPolygon(DeckPathViz):
 
     """deck.gl's Polygon Layer"""
@@ -2156,11 +2217,7 @@ class DeckArc(BaseDeckGLViz):
     def get_data(self, df):
         d = super(DeckArc, self).get_data(df)
         arcs = d['features']
-
-        return {
-            'arcs': arcs,
-            'mapboxApiKey': config.get('MAPBOX_API_KEY'),
-        }
+        return self.insert_mapbox_api_key(dict(arcs=arcs))
 
 
 class EventFlowViz(BaseViz):

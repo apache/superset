@@ -400,6 +400,8 @@ def json_int_dttm_ser(obj):
         obj = datetime_to_epoch(obj)
     elif isinstance(obj, date):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
+    elif isinstance(obj, (numpy.datetime64)):
+        obj = datetime_to_epoch(pd.to_datetime(obj))
     else:
         raise TypeError(
             'Unserializable object {} of type {}'.format(obj, type(obj)))
