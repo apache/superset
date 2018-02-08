@@ -1956,7 +1956,6 @@ class Superset(BaseSupersetView):
         )
 
     @api
-    @has_access_api
     @log_this
     @expose('/log/', methods=['POST'])
     def log(self):
