@@ -1524,7 +1524,7 @@ class ChordViz(BaseViz):
             matrix[(source, target)] = 0
         for source, target, value in df.to_records(index=False):
             matrix[(source, target)] = value
-        m = [[matrix[(n1, n2)] for n1 in nodes] for n2 in nodes]
+        m = [[matrix[(n1, n2)] for n2 in nodes] for n1 in nodes]
         return {
             'nodes': list(nodes),
             'matrix': m,
