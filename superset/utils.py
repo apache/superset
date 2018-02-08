@@ -33,6 +33,8 @@ from flask_appbuilder.const import (
 from flask_babel import gettext as __
 from flask_cache import Cache
 import markdown as md
+import bleach
+from bleach_whitelist import markdown_tags, markdown_attrs
 import numpy
 import pandas as pd
 import parsedatetime
@@ -438,6 +440,7 @@ def markdown(s, markup_wrap=False):
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',
     ])
+    s = bleach.clean(s, markdown_tags, markdown_attrs)
     if markup_wrap:
         s = Markup(s)
     return s
