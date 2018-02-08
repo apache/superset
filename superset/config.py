@@ -359,6 +359,9 @@ BLUEPRINTS = []
 # into a proxied one
 TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
 
+# Interval between consecutive polls when using Hive Engine
+HIVE_POLL_INTERVAL = 5
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
