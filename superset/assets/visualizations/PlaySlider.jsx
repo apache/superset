@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { Row, Col } from 'react-bootstrap';
 
 import Mousetrap from 'mousetrap';
 
@@ -114,12 +115,12 @@ export default class PlaySlider extends React.PureComponent {
   }
   render() {
     return (
-      <div className="row play-slider">
-        <div className="col-8 col-sm-1 padded">
+      <Row className="play-slider">
+        <Col md={1} className="padded">
           <i className={this.getPlayClass()} onClick={this.play} />
           <i className="fa fa-step-forward fa-lg slider-button " onClick={this.step} />
-        </div>
-        <div className="col-4 col-sm-11 padded">
+        </Col>
+        <Col md={11} className="padded">
           <ReactBootstrapSlider
             value={this.props.values}
             formatter={this.formatter}
@@ -131,8 +132,8 @@ export default class PlaySlider extends React.PureComponent {
             reversed={this.props.reversed}
             disabled={this.props.disabled ? 'disabled' : 'enabled'}
           />
-        </div>
-      </div>
+        </Col>
+      </Row>
     );
   }
 }
