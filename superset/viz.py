@@ -1407,24 +1407,22 @@ class SunburstViz(BaseViz):
         '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>')
 
     def get_data(self, df):
-
-        # if m1 == m2 duplicate the metric column
-        cols = self.form_data.get('groupby')
-        metric = self.form_data.get('metric')
-        secondary_metric = self.form_data.get('secondary_metric')
-        if metric == secondary_metric:
-            ndf = df
-            ndf.columns = [cols + ['m1', 'm2']]
-        else:
-            cols += [
-                self.form_data['metric'], self.form_data['secondary_metric']]
-            ndf = df[cols]
-        return json.loads(ndf.to_json(orient='values'))  # TODO fix this nonsense
+        fd = self.form_data
+        cols = fd.get('groupby')
+        metric = fd.get('metric')
+        secondary_metric = fd.get('secondary_metric')
+        if metric == secondary_metric or secondary_metric is None:
+            df.columns = cols + ['m1']
+            df['m2'] = df['m1']
+        return json.loads(df.to_json(orient='values'))
 
     def query_obj(self):
         qry = super(SunburstViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric'], self.form_data['secondary_metric']]
+        fd = self.form_data
+        qry['metrics'] = [fd['metric']]
+        secondary_metric = fd.get('secondary_metric')
+        if secondary_metric and secondary_metric != fd['metric']:
+            qry['metrics'].append(secondary_metric)
         return qry
 
 
