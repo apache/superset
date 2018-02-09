@@ -434,12 +434,12 @@ def error_msg_from_exception(e):
 
 
 def markdown(s, markup_wrap=False):
-    safe_markdown_tags = ["h1", "h2", "h3", "h4", "h5", "h6", "b", "i",
-                          "strong", "em", "tt", "p", "br", "span",
-                          "div", "blockquote", "code", "hr", "ul", "ol",
-                          "li", "dd", "dt", "img", "a"]
-    safe_markdown_attrs = {"img": ["src", "alt", "title"],
-                           "a": ["href", "alt", "title"]}
+    safe_markdown_tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'b', 'i',
+                          'strong', 'em', 'tt', 'p', 'br', 'span',
+                          'div', 'blockquote', 'code', 'hr', 'ul', 'ol',
+                          'li', 'dd', 'dt', 'img', 'a']
+    safe_markdown_attrs = {'img': ['src', 'alt', 'title'],
+                           'a': ['href', 'alt', 'title']}
     s = md.markdown(s or '', [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
