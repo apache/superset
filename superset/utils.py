@@ -21,6 +21,7 @@ import sys
 import uuid
 import zlib
 
+import bleach
 import celery
 from dateutil.parser import parse
 from flask import flash, Markup, redirect, render_template, request, url_for
@@ -33,8 +34,6 @@ from flask_appbuilder.const import (
 from flask_babel import gettext as __
 from flask_cache import Cache
 import markdown as md
-import bleach
-from bleach_whitelist import markdown_tags, markdown_attrs
 import numpy
 import pandas as pd
 import parsedatetime
@@ -435,12 +434,18 @@ def error_msg_from_exception(e):
 
 
 def markdown(s, markup_wrap=False):
+    safe_markdown_tags = ["h1", "h2", "h3", "h4", "h5", "h6", "b", "i",
+                          "strong", "em", "tt", "p", "br", "span",
+                          "div", "blockquote", "code", "hr", "ul", "ol",
+                          "li", "dd", "dt", "img", "a"]
+    safe_markdown_attrs = {"img": ["src", "alt", "title"],
+                           "a": ["href", "alt", "title"]}
     s = md.markdown(s or '', [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',
     ])
-    s = bleach.clean(s, markdown_tags, markdown_attrs)
+    s = bleach.clean(s, safe_markdown_tags, safe_markdown_attrs)
     if markup_wrap:
         s = Markup(s)
     return s

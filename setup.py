@@ -81,7 +81,6 @@ setup(
         'thrift-sasl>=0.2.1',
         'unidecode>=0.04.21',
         'bleach==2.1.2',
-        'bleach-whitelist==0.0.8',
     ],
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],
