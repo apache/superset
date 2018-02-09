@@ -221,7 +221,7 @@ def import_datasources(path, sync, recursive=False):
             with f.open() as data_stream:
                 dict_import_export_util.import_from_dict(
                     db.session,
-                    yaml.load(data_stream),
+                    yaml.safe_load(data_stream),
                     sync=sync_array)
         except Exception as e:
             logging.error('Error when importing datasources from file %s', f)
