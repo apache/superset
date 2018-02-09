@@ -1620,7 +1620,7 @@ class FilterBoxViz(BaseViz):
     cache_type = 'get_data'
 
     def query_obj(self):
-        return None
+        return self.filter_query_obj()
 
     def run_extra_queries(self):
         qry = self.filter_query_obj()
