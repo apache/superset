@@ -28,7 +28,7 @@ from six import text_type
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
@@ -493,6 +493,7 @@ class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'id', 'slice_name', 'slice_link', 'viz_type',
         'datasource_link', 'owners', 'modified', 'changed_on']
+    show_columns = list(set(SliceModelView.edit_columns + list_columns))
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -619,6 +620,17 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
+class DashboardAddView(DashboardModelView):  # noqa
+    list_columns = [
+        'id', 'dashboard_link', 'creator', 'modified', 'dashboard_title',
+        'changed_on', 'url', 'changed_by_name',
+    ]
+    show_columns = list(set(DashboardModelView.edit_columns + list_columns))
+
+
+appbuilder.add_view_no_menu(DashboardAddView)
+
+
 class LogModelView(SupersetModelView):
     datamodel = SQLAInterface(models.Log)
     list_columns = ('user', 'action', 'dttm')
@@ -643,11 +655,6 @@ appbuilder.add_view(
 
 @app.route('/health')
 def health():
-    try:
-        db.session.execute('SELECT 1')
-    except OperationalError:
-        return Response('BAD', status=500)
-
     return 'OK'
 
 
@@ -942,7 +949,9 @@ class Superset(BaseSupersetView):
             slice_id=None,
             form_data=None,
             datasource_type=None,
-            datasource_id=None):
+            datasource_id=None,
+            force=False,
+    ):
         if slice_id:
             slc = (
                 db.session.query(models.Slice)
@@ -957,6 +966,7 @@ class Superset(BaseSupersetView):
             viz_obj = viz.viz_types[viz_type](
                 datasource,
                 form_data=form_data,
+                force=force,
             )
             return viz_obj
 
@@ -1005,7 +1015,9 @@ class Superset(BaseSupersetView):
             viz_obj = self.get_viz(
                 datasource_type=datasource_type,
                 datasource_id=datasource_id,
-                form_data=form_data)
+                form_data=form_data,
+                force=force,
+            )
         except Exception as e:
             logging.exception(e)
             return json_error_response(
@@ -1026,7 +1038,7 @@ class Superset(BaseSupersetView):
             return self.get_query_string_response(viz_obj)
 
         try:
-            payload = viz_obj.get_payload(force=force)
+            payload = viz_obj.get_payload()
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
@@ -1070,9 +1082,10 @@ class Superset(BaseSupersetView):
         viz_obj = viz.viz_types['table'](
           datasource,
           form_data=form_data,
+          force=False,
         )
         try:
-            payload = viz_obj.get_payload(force=False)
+            payload = viz_obj.get_payload()
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
@@ -1179,7 +1192,12 @@ class Superset(BaseSupersetView):
 
         if action == 'overwrite' and not slice_overwrite_perm:
             return json_error_response(
-                "You don't have the rights to alter this slice",
+                _('You don\'t have the rights to ') + _('alter this ') + _('chart'),
+                status=400)
+
+        if action == 'saveas' and not slice_add_perm:
+            return json_error_response(
+                _('You don\'t have the rights to ') + _('create a ') + _('chart'),
                 status=400)
 
         if action in ('saveas', 'overwrite'):
@@ -1189,7 +1207,8 @@ class Superset(BaseSupersetView):
                 slice_overwrite_perm,
                 slice_download_perm,
                 datasource_id,
-                datasource_type)
+                datasource_type,
+                datasource.name)
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
 
@@ -1255,7 +1274,7 @@ class Superset(BaseSupersetView):
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_overwrite_perm, slice_download_perm,
-            datasource_id, datasource_type):
+            datasource_id, datasource_type, datasource_name):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
@@ -1267,7 +1286,7 @@ class Superset(BaseSupersetView):
             slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(form_data)
-        slc.datasource_name = args.get('datasource_name')
+        slc.datasource_name = datasource_name
         slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
@@ -1286,12 +1305,28 @@ class Superset(BaseSupersetView):
                 .filter_by(id=int(request.args.get('save_to_dashboard_id')))
                 .one()
             )
+
+            # check edit dashboard permissions
+            dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
+            if not dash_overwrite_perm:
+                return json_error_response(
+                    _('You don\'t have the rights to ') + _('alter this ') +
+                    _('dashboard'),
+                    status=400)
+
             flash(
                 'Slice [{}] was added to dashboard [{}]'.format(
                     slc.slice_name,
                     dash.dashboard_title),
                 'info')
         elif request.args.get('add_to_dash') == 'new':
+            # check create dashboard permissions
+            dash_add_perm = self.can_access('can_add', 'DashboardModelView')
+            if not dash_add_perm:
+                return json_error_response(
+                    _('You don\'t have the rights to ') + _('create a ') + _('dashboard'),
+                    status=400)
+
             dash = models.Dashboard(
                 dashboard_title=request.args.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
@@ -1863,8 +1898,8 @@ class Superset(BaseSupersetView):
 
         for slc in slices:
             try:
-                obj = slc.get_viz()
-                obj.get_json(force=True)
+                obj = slc.get_viz(force=True)
+                obj.get_json()
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(json.dumps(
@@ -1952,6 +1987,9 @@ class Superset(BaseSupersetView):
             'common': self.common_bootsrap_payload(),
         }
 
+        if request.args.get('json') == 'true':
+            return json_success(json.dumps(bootstrap_data))
+
         return self.render_template(
             'superset/dashboard.html',
             entry='dashboard',
@@ -1961,7 +1999,6 @@ class Superset(BaseSupersetView):
         )
 
     @api
-    @has_access_api
     @log_this
     @expose('/log/', methods=['POST'])
     def log(self):

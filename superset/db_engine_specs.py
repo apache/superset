@@ -42,6 +42,7 @@ from superset.utils import QueryStatus, SupersetTemplateException
 config = app.config
 
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
+hive_poll_interval = conf.get('HIVE_POLL_INTERVAL')
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -288,14 +289,22 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('second', _('second'), "DATE_TRUNC('second', {col})"),
-        Grain('minute', _('minute'), "DATE_TRUNC('minute', {col})"),
-        Grain('hour', _('hour'), "DATE_TRUNC('hour', {col})"),
-        Grain('day', _('day'), "DATE_TRUNC('day', {col})"),
-        Grain('week', _('week'), "DATE_TRUNC('week', {col})"),
-        Grain('month', _('month'), "DATE_TRUNC('month', {col})"),
-        Grain('quarter', _('quarter'), "DATE_TRUNC('quarter', {col})"),
-        Grain('year', _('year'), "DATE_TRUNC('year', {col})"),
+        Grain('second', _('second'),
+              "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'"),
+        Grain('minute', _('minute'),
+              "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'"),
+        Grain('hour', _('hour'),
+              "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'"),
+        Grain('day', _('day'),
+              "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'"),
+        Grain('week', _('week'),
+              "DATE_TRUNC('week', {col}) AT TIME ZONE 'UTC'"),
+        Grain('month', _('month'),
+              "DATE_TRUNC('month', {col}) AT TIME ZONE 'UTC'"),
+        Grain('quarter', _('quarter'),
+              "DATE_TRUNC('quarter', {col}) AT TIME ZONE 'UTC'"),
+        Grain('year', _('year'),
+              "DATE_TRUNC('year', {col}) AT TIME ZONE 'UTC'"),
     )
 
     @classmethod
@@ -403,6 +412,8 @@ class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('hour', _('hour'),
+              "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))"),
         Grain('day', _('day'), 'DATE({col})'),
         Grain('week', _('week'),
               "DATE({col}, -strftime('%w', {col}) || ' days')"),
@@ -867,9 +878,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
             TEXTFILE LOCATION '{location}'""".format(**locals())
-
         logging.info(form.con.data)
-        engine = create_engine(form.con.data)
+        engine = create_engine(form.con.data.sqlalchemy_uri)
         engine.execute(sql)
 
     @classmethod
@@ -984,7 +994,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
-            time.sleep(5)
+            time.sleep(hive_poll_interval)
             polled = cursor.poll()
 
     @classmethod

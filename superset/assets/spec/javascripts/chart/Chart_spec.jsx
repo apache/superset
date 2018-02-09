@@ -6,6 +6,8 @@ import sinon from 'sinon';
 
 import { chart as initChart } from '../../../javascripts/chart/chartReducer';
 import Chart from '../../../javascripts/chart/Chart';
+import ChartBody from '../../../javascripts/chart/ChartBody';
+import Loading from '../../../javascripts/components/Loading';
 
 describe('Chart', () => {
   const chart = {
@@ -30,14 +32,19 @@ describe('Chart', () => {
     },
   };
 
+  let wrapper;
+  beforeEach(() => {
+    wrapper = shallow(
+      <Chart {...mockedProps} />,
+    );
+  });
   describe('renderViz', () => {
-    let wrapper;
     let stub;
     beforeEach(() => {
-      wrapper = shallow(
-        <Chart {...mockedProps} />,
-      );
       stub = sinon.stub(wrapper.instance(), 'renderViz');
+    });
+    afterEach(() => {
+      stub.restore();
     });
 
     it('should not call when loading', () => {
@@ -66,6 +73,13 @@ describe('Chart', () => {
       });
       wrapper.instance().componentDidUpdate(prevProp);
       expect(stub.callCount).to.equals(1);
+    });
+  });
+
+  describe('render', () => {
+    it('should render ChartBody after loading is completed', () => {
+      expect(wrapper.find(Loading)).to.have.length(1);
+      expect(wrapper.find(ChartBody)).to.have.length(0);
     });
   });
 });
