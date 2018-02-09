@@ -347,7 +347,7 @@ function sunburstVis(slice, payload) {
     let ext;
     const fd = slice.formData;
 
-    if (fd.metric !== fd.secondary_metric) {
+    if (fd.metric !== fd.secondary_metric && fd.secondary_metric) {
       colorByCategory = false;
       ext = d3.extent(nodes, d => d.m2 / d.m1);
       colorScale = d3.scale.linear()
