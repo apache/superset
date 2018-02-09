@@ -286,9 +286,12 @@ class BaseViz(object):
     def get_payload(self, query_obj=None):
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
-        df = payload['df']
-        if df is not None:
-            payload['data'] = self.get_data(df)
+
+        df = payload.get('df')
+        if df is not None and len(df.index) == 0:
+            raise Exception('No data')
+        payload['data'] = self.get_data(df)
+
         del payload['df']
         return payload
 
