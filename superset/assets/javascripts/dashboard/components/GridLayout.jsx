@@ -102,7 +102,7 @@ class GridLayout extends React.Component {
       return;
     }
 
-    // remove slice dashbaord and charts
+    // remove slice dashboard and charts
     this.props.removeSlice(slice);
     this.props.removeChart(this.props.charts['slice_' + slice.slice_id].chartKey);
     this.props.onChange();
