@@ -97,6 +97,10 @@ function jsFunctionControl(label, description, extraDescr = null, height = 100, 
         {extraDescr}
       </div>
     ),
+    mapStateToProps: state => ({
+      warning: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS ?
+        t('This functionality is disabled in your environment for security reasons.') : null,
+    }),
   };
 }
 
