@@ -1918,14 +1918,15 @@ class Superset(BaseSupersetView):
             if datasource:
                 datasources.add(datasource)
 
-        for datasource in datasources:
-            if datasource and not self.datasource_access(datasource):
-                flash(
-                    __(get_datasource_access_error_msg(datasource.name)),
-                    'danger')
-                return redirect(
-                    'superset/request_access/?'
-                    'dashboard_id={dash.id}&'.format(**locals()))
+        if config.get('ENABLE_ACCESS_REQUEST'):
+            for datasource in datasources:
+                if datasource and not self.datasource_access(datasource):
+                    flash(
+                        __(get_datasource_access_error_msg(datasource.name)),
+                        'danger')
+                    return redirect(
+                        'superset/request_access/?'
+                        'dashboard_id={dash.id}&'.format(**locals()))
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
