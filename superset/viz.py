@@ -20,7 +20,7 @@ import traceback
 import uuid
 
 from dateutil import relativedelta as rdelta
-from flask import g, escape, request
+from flask import escape, request
 from flask_babel import lazy_gettext as _
 import geohash
 from markdown import markdown
@@ -307,11 +307,7 @@ class BaseViz(object):
         cached_dttm = datetime.utcnow().isoformat().split('.')[0]
         if cache_key and cache and not self.force:
             cache_value = cache.get(cache_key)
-            perms_decider = config.get("DATA_PERMS_DECIDER")
-            perms_decider_approves = 
-                not (perms_decider.is_eligible_datasource(self.datasource) and 
-                    perms_decider.is_allowed_access(g.user.username, datasource))
-            if cache_value and perms_decider_approves:
+            if cache_value:
                 stats_logger.incr('loaded_from_cache')
                 try:
                     cache_value = pkl.loads(cache_value)
