@@ -1130,10 +1130,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['to_dttm'] -= delta
 
             df2 = self.get_df_payload(query_object).get('df')
-            df2[DTTM_ALIAS] += delta
-            df2 = self.process_data(df2)
-            self.extra_chart_data = self.to_series(
-                df2, classed='superset', title_suffix='---')
+            if df2 is not None:
+                df2[DTTM_ALIAS] += delta
+                df2 = self.process_data(df2)
+                self.extra_chart_data = self.to_series(
+                    df2, classed='superset', title_suffix='---')
 
     def get_data(self, df):
         df = self.process_data(df)
