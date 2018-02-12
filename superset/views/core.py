@@ -362,30 +362,30 @@ class DatabaseTablesAsync(DatabaseView):
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
-class AccessRequestsModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(DAR)
-    list_columns = [
-        'username', 'user_roles', 'datasource_link',
-        'roles_with_datasource', 'created_on']
-    order_columns = ['created_on']
-    base_order = ('changed_on', 'desc')
-    label_columns = {
-        'username': _('User'),
-        'user_roles': _('User Roles'),
-        'database': _('Database URL'),
-        'datasource_link': _('Datasource'),
-        'roles_with_datasource': _('Roles to grant'),
-        'created_on': _('Created On'),
-    }
+if config.get('ENABLE_ACCESS_REQUEST'):
+    class AccessRequestsModelView(SupersetModelView, DeleteMixin):
+        datamodel = SQLAInterface(DAR)
+        list_columns = [
+            'username', 'user_roles', 'datasource_link',
+            'roles_with_datasource', 'created_on']
+        order_columns = ['created_on']
+        base_order = ('changed_on', 'desc')
+        label_columns = {
+            'username': _('User'),
+            'user_roles': _('User Roles'),
+            'database': _('Database URL'),
+            'datasource_link': _('Datasource'),
+            'roles_with_datasource': _('Roles to grant'),
+            'created_on': _('Created On'),
+        }
 
-
-appbuilder.add_view(
-    AccessRequestsModelView,
-    'Access requests',
-    label=__('Access requests'),
-    category='Security',
-    category_label=__('Security'),
-    icon='fa-table')
+    appbuilder.add_view(
+        AccessRequestsModelView,
+        'Access requests',
+        label=__('Access requests'),
+        category='Security',
+        category_label=__('Security'),
+        icon='fa-table')
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
