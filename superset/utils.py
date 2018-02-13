@@ -716,7 +716,7 @@ def has_access(f):
         return redirect(
             url_for(
                 self.appbuilder.sm.auth_view.__class__.__name__ + '.login',
-                next=request.path))
+                next=request.full_path))
 
     f._permission_name = permission_str
     return functools.update_wrapper(wraps, f)
