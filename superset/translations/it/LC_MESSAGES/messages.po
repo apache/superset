@@ -11,7 +11,6 @@ msgstr ""
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
-"Last-Translator: Maurizio Napolitano <napo@fbk.eu>\n"
 "Language: it\n"
 "Language-Team: Italiano <>\n"
 "Plural-Forms: nplurals=1; plural=0\n"
@@ -121,15 +120,15 @@ msgstr "10 minuti"
 #: superset/utils.py:499
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr "[Siperset] Accesso al datasource $(name) concesso"
+msgstr "[Superset] Accesso al datasource $(name) concesso"
 
 #: superset/viz.py:50
 msgid "Viz is missing a datasource"
-msgstr "DataSouce mancante per la visualizzazione"
+msgstr "Datasource mancante per la visualizzazione"
 
 #: superset/viz.py:181
 msgid "From date cannot be larger than to date"
-msgstr "La data di inizio non pu&ograve; essere dopo la data di fine"
+msgstr "La data di inizio non può essere dopo la data di fine"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:334
 #: superset/viz.py:369
@@ -138,11 +137,11 @@ msgstr "Vista Tabella"
 
 #: superset/viz.py:381
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
-msgstr "Seleziona una granularit&agrave; nella sezione tempo e de-flagga 'Includi Tempo'"
+msgstr "Seleziona una granularità nella sezione tempo e deseleziona 'Includi Tempo'"
 
 #: superset/viz.py:391
 msgid "Choose either fields to [Group By] and [Metrics] or [Columns], not both"
-msgstr "Selezionare i campi [Group By] e [Metrica] o [Colonne}, non entrambi"
+msgstr "Selezionare i campi [Group By] e [Metrica] o [Colonne], non entrambi"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:386
 #: superset/viz.py:430
@@ -198,7 +197,7 @@ msgstr "Grafico a Bolle"
 
 #: superset/viz.py:734
 msgid "Pick a metric for x, y and size"
-msgstr "Seleziona una metrica per x,y e grandezza"
+msgstr "Seleziona una metrica per x, y e grandezza"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:574
 #: superset/viz.py:760
@@ -230,7 +229,7 @@ msgstr "Serie Temporali - Grafico Lineare"
 
 #: superset/viz.py:913 superset/viz.py:1058
 msgid "Pick a time granularity for your time series"
-msgstr "Seleziona una granularit&agrave; per la serie temporale"
+msgstr "Seleziona una granularità per la serie temporale"
 
 #: superset/viz.py:1001
 msgid "Time Series - Dual Axis Line Chart"
@@ -246,7 +245,7 @@ msgstr "Seleziona una metrica per l'asse destro"
 
 #: superset/viz.py:1015
 msgid "Please choose different metrics on left and right axis"
-msgstr "Seleziona una metrica differente sull'asse destro e sinistro"
+msgstr "Seleziona metriche differenti per gli assi destro e sinistro"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:238
 #: superset/viz.py:1076
@@ -320,7 +319,7 @@ msgstr "Disposizione a Forza Diretta"
 
 #: superset/viz.py:1301
 msgid "Pick exactly 2 columns to 'Group By'"
-msgstr "Seleziona esattamente 2 colonne per 'Group By0"
+msgstr "Seleziona esattamente 2 colonne per 'Group By'"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:808
 #: superset/viz.py:1348
@@ -392,83 +391,83 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/actions.js:57
 msgid "Your query was saved"
-msgstr ""
+msgstr "La tua query è stata salvata"
 
 #: superset/assets/javascripts/SqlLab/actions.js:58
 msgid "Your query could not be saved"
-msgstr ""
+msgstr "La tua query non può essere salvata"
 
 #: superset/assets/javascripts/SqlLab/actions.js:111
 msgid "Failed at retrieving results from the results backend"
-msgstr ""
+msgstr "Errore nel recupero dei dati dal backend"
 
 #: superset/assets/javascripts/SqlLab/actions.js:157
 msgid "Could not connect to server"
-msgstr ""
+msgstr "Non posso connettermi al server"
 
 #: superset/assets/javascripts/SqlLab/actions.js:162
 msgid "Your session timed out, please refresh your page and try again."
-msgstr ""
+msgstr "La tua sessione è scaduta, ricarica la pagina e riprova."
 
 #: superset/assets/javascripts/SqlLab/actions.js:181
 msgid "Query was stopped."
-msgstr ""
+msgstr "La query è stata fermata."
 
 #: superset/assets/javascripts/SqlLab/actions.js:184
 msgid "Failed at stopping query."
-msgstr ""
+msgstr "Errore nel fermare la query."
 
 #: superset/assets/javascripts/SqlLab/actions.js:297
 #: superset/assets/javascripts/SqlLab/actions.js:310
 msgid "Error occurred while fetching table metadata"
-msgstr ""
+msgstr "Errore nel recupero dei metadati della tabella"
 
 #: superset/assets/javascripts/SqlLab/actions.js:364
 msgid "shared query"
-msgstr ""
+msgstr "tabella condivisa"
 
 #: superset/assets/javascripts/SqlLab/actions.js:372
 #: superset/assets/javascripts/SqlLab/actions.js:392
 msgid "The query couldn't be loaded"
-msgstr ""
+msgstr "La query non può essere caricata"
 
 #: superset/assets/javascripts/SqlLab/actions.js:426
 msgid "An error occurred while creating the data source"
-msgstr ""
+msgstr "Errore nel creare il datasource"
 
 #: superset/assets/javascripts/SqlLab/constants.js:30
 msgid "Pick a chart type!"
-msgstr ""
+msgstr "Seleziona un tipo di grafico"
 
 #: superset/assets/javascripts/SqlLab/constants.js:31
 msgid "To use this chart type you need at least one column flagged as a date"
-msgstr ""
+msgstr "Per usare questo tipo di grafico devi avere almeno una colonna selezionata come data"
 
 #: superset/assets/javascripts/SqlLab/constants.js:32
 msgid "To use this chart type you need at least one dimension"
-msgstr ""
+msgstr "Per usare questo tipo di grafico devi avere almeno una dimensione"
 
 #: superset/assets/javascripts/SqlLab/constants.js:33
 msgid "To use this chart type you need at least one aggregation function"
-msgstr ""
+msgstr "Per usare questo tipo di grafico devi avere almeno uan funziona di aggregazione"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:49
 #: superset/assets/javascripts/SqlLab/reducers.js:11
 msgid "Untitled Query"
-msgstr ""
+msgstr "Query senza nome"
 
 #: superset/assets/javascripts/SqlLab/reducers.js:44
 #, python-format
 msgid "Copy of %s"
-msgstr ""
+msgstr "Copia di %s"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:30
 msgid "share query"
-msgstr ""
+msgstr "query condivisa"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:33
 msgid "copy URL to clipboard"
-msgstr ""
+msgstr "copia URL in clipoboard"
 
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:61
 msgid "Raw SQL"
@@ -559,11 +558,11 @@ msgstr "Tabella"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:162
 msgid "was created"
-msgstr ""
+msgstr "è stata creata"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:169
 msgid "Query in a new tab"
-msgstr ""
+msgstr "Query in un nuovo tab"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:210
 msgid "Fetch data preview"
@@ -1088,7 +1087,7 @@ msgstr "Esporta in .json"
 
 #: superset/assets/javascripts/explore/components/ExploreActionButtons.jsx:42
 msgid "Export to .csv format"
-msgstr "Esporta in formato .csv"
+msgstr "Esporta nel formato .csv"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:74
 msgid "Please enter a slice name"
@@ -1138,7 +1137,7 @@ msgstr "Salva e vai alla dashboard"
 #: superset/assets/javascripts/explore/components/URLShortLinkButton.jsx:32
 #, python-format
 msgid "Check out this slice: %s"
-msgstr "Controlla questa slice: %s"
+msgstr "Guarda questa slice: %s"
 
 #: superset/assets/javascripts/explore/components/controls/BoundsControl.jsx:55
 msgid "`Min` value should be numeric or empty"
@@ -1227,7 +1226,7 @@ msgstr "Seleziona un tipo di visualizzazione"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:32
 msgid "Updating chart was stopped"
-msgstr "L'aggiornamento del grafico &egrave; stato fermato"
+msgstr "L'aggiornamento del grafico è stato fermato"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:38
 #: superset/assets/javascripts/modules/superset.js:223
@@ -1245,7 +1244,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:56
 msgid "Network error."
-msgstr "Errore di rete"
+msgstr "Errore di rete."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:36
 msgid "A reference to the [Time] configuration, taking granularity into account"
@@ -1257,7 +1256,7 @@ msgstr "Raggruppa per"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:53
 msgid "One or many controls to group by"
-msgstr "Uno o pi&ugrave; controlli per 'Raggruppa per'"
+msgstr "Uno o più controlli per 'Raggruppa per'"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:72
 #: superset/connectors/druid/views.py:45 superset/views/core.py:318
@@ -1281,7 +1280,7 @@ msgstr "Metriche"
 #: superset/assets/javascripts/explore/stores/controls.jsx:99
 #: superset/assets/javascripts/explore/stores/controls.jsx:116
 msgid "One or many metrics to display"
-msgstr "Una o pi&ugrave; metriche da mostrare"
+msgstr "Una o più metriche da mostrare"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:103
 msgid "Y Axis Bounds"
@@ -2284,7 +2283,7 @@ msgstr "Attributi relativi al tempo"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:16
 msgid "Datasource & Chart Type"
-msgstr "Sorgente dati e Tipo di grafico"
+msgstr "Sorgente dati e tipo di grafico"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:45
 msgid "This section exposes ways to include snippets of SQL in your query"
@@ -2297,7 +2296,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:66
 msgid "Advanced Analytics"
-msgstr "Analitycs avanzato"
+msgstr "Analitycs avanzate"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:67
 msgid ""
@@ -2385,7 +2384,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:346
 msgid "NOT GROUPED BY"
-msgstr "NON RAGGRUPARE PER"
+msgstr "NON RAGGRUPPARE PER"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:347
 msgid "Use this section if you want to query atomic rows"
@@ -2453,7 +2452,7 @@ msgstr "Sorgente / Destinazione"
 #: superset/assets/javascripts/explore/stores/visTypes.js:737
 #: superset/assets/javascripts/explore/stores/visTypes.js:765
 msgid "Choose a source and a target"
-msgstr ""
+msgstr "Seleziona una sorgente ed una destinazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:770
 msgid "Chord Diagram"
@@ -2461,7 +2460,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:791
 msgid "Choose a number format"
-msgstr ""
+msgstr "Seleziona una formato numerico"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:794
 msgid "Source"
@@ -2469,7 +2468,7 @@ msgstr "Sorgente"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:797
 msgid "Choose a source"
-msgstr ""
+msgstr "Seleziona una sorgente"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:800
 msgid "Target"
@@ -2477,7 +2476,7 @@ msgstr "Destinazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:803
 msgid "Choose a target"
-msgstr ""
+msgstr "Seleziona una destinazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:828
 msgid "ISO 3166-2 codes of region/province/department"
@@ -2499,7 +2498,7 @@ msgstr "Codice a 3 lettere della nazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:867
 msgid "Metric for color"
-msgstr ""
+msgstr "Metrica per il colore"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:868
 msgid "Metric that defines the color of the country"
@@ -2507,11 +2506,11 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:871
 msgid "Bubble size"
-msgstr ""
+msgstr "Grandezza della bolla"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:872
 msgid "Metric that defines the size of the bubble"
-msgstr ""
+msgstr "Metrica che definisce la grandezza di una bolla"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:878
 msgid "Filter Box"
@@ -2519,7 +2518,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:897
 msgid "Filter controls"
-msgstr ""
+msgstr "Controlli del filtro"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:898
 msgid ""
