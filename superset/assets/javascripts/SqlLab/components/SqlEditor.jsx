@@ -29,7 +29,7 @@ import { t } from '../../locales';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  height: PropTypes.string.isRequired,
+  getHeight: PropTypes.func.isRequired,
   database: PropTypes.object,
   latestQuery: PropTypes.object,
   tables: PropTypes.array.isRequired,
@@ -73,9 +73,11 @@ class SqlEditor extends React.PureComponent {
   }
   onResize() {
     const height = this.sqlEditorHeight();
+    const editorPaneHeight = this.props.queryEditor.height || 200;
+    const splitPaneHandlerHeight = 15;
     this.setState({
-      editorPaneHeight: this.props.queryEditor.height,
-      southPaneHeight: height - this.props.queryEditor.height,
+      editorPaneHeight,
+      southPaneHeight: height - editorPaneHeight - splitPaneHandlerHeight,
       height,
     });
 
@@ -122,11 +124,8 @@ class SqlEditor extends React.PureComponent {
     this.setState({ ctas: event.target.value });
   }
   sqlEditorHeight() {
-    // quick hack to make the white bg of the tab stretch full height.
-    const tabNavHeight = 40;
-    const navBarHeight = 56;
-    const mysteryVerticalHeight = 50;
-    return window.innerHeight - tabNavHeight - navBarHeight - mysteryVerticalHeight;
+    const horizontalScrollbarHeight = 25;
+    return parseInt(this.props.getHeight(), 10) - horizontalScrollbarHeight;
   }
   renderEditorBottomBar() {
     let ctasControls;
@@ -227,8 +226,7 @@ class SqlEditor extends React.PureComponent {
       <div
         className="SqlEditor"
         style={{
-          minHeight: height,
-          height: this.props.height,
+          height: height + 'px',
         }}
       >
         <Row>
@@ -271,7 +269,7 @@ class SqlEditor extends React.PureComponent {
                     onAltEnter={this.runQuery.bind(this)}
                     sql={this.props.queryEditor.sql}
                     tables={this.props.tables}
-                    height={((this.state.editorPaneHeight || defaultNorthHeight) - 50).toString()}
+                    height={((this.state.editorPaneHeight || defaultNorthHeight) - 50) + 'px'}
                   />
                   {this.renderEditorBottomBar()}
                 </div>
