@@ -50,6 +50,7 @@ describe('TabbedSqlEditors', () => {
     queryEditors: initialState.queryEditors,
     tabHistory: initialState.tabHistory,
     editorHeight: '',
+    getHeight: () => ('100px'),
   };
   const getWrapper = () => (
     shallow(<TabbedSqlEditors {...mockedProps} />, {
