@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import logging
 
 from flask_appbuilder.security.sqla import models as ab_models
+from sqlalchemy import or_
 
 from superset import conf, db, sm
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -210,6 +211,23 @@ def create_missing_perms():
             merge_pv('metric_access', metric.perm)
 
 
+def clean_perms():
+    """FAB leaves faulty permissions that need to be cleaned up"""
+    logging.info('Cleaning faulty perms')
+    sesh = sm.get_session()
+    pvms = (
+        sesh.query(ab_models.PermissionView)
+        .filter(or_(
+            ab_models.PermissionView.permission == None,  # NOQA
+            ab_models.PermissionView.view_menu == None,  # NOQA
+        ))
+    )
+    deleted_count = pvms.delete()
+    sesh.commit()
+    if deleted_count:
+        logging.info('Deleted {} faulty permissions'.format(deleted_count))
+
+
 def sync_role_definitions():
     """Inits the Superset application with security roles and such"""
     logging.info('Syncing role definition')
@@ -231,3 +249,4 @@ def sync_role_definitions():
 
     # commit role and view menu updates
     sm.get_session.commit()
+    clean_perms()

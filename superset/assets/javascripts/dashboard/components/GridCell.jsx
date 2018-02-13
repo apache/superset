@@ -111,6 +111,12 @@ class GridCell extends React.PureComponent {
             exportCSV={exportCSV}
           />
         </div>
+        {
+        /* This usage of dangerouslySetInnerHTML is safe since it is being used to render
+           markdown that is sanitized with bleach. See:
+             https://github.com/apache/incubator-superset/pull/4390
+           and
+             https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825 */}
         <div
           className="slice_description bs-callout bs-callout-default"
           style={isExpanded ? {} : { display: 'none' }}

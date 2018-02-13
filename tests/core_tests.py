@@ -83,6 +83,18 @@ class CoreTests(SupersetTestCase):
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
+    def test_cache_key(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        viz = slc.viz
+        qobj = viz.query_obj()
+        cache_key = viz.cache_key(qobj)
+        self.assertEqual(cache_key, viz.cache_key(qobj))
+
+        qobj['groupby'] = []
+        self.assertNotEqual(cache_key, viz.cache_key(qobj))
+
     def test_slice_json_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
@@ -234,6 +246,13 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         # assert that /slicemodelview/add responds with 200
         url = '/slicemodelview/add'
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, 200)
+
+    def test_get_user_slices(self):
+        self.login(username='admin')
+        userid = appbuilder.sm.find_user('admin').id
+        url = '/sliceaddview/api/read?_flt_0_created_by={}'.format(userid)
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
@@ -803,20 +822,22 @@ class CoreTests(SupersetTestCase):
         test_file.write('john,1\n')
         test_file.write('paul,2\n')
         test_file.close()
-        main_db_uri = db.session.query(
-            models.Database.sqlalchemy_uri)\
-            .filter_by(database_name='main').all()
+        main_db_uri = (
+            db.session.query(models.Database)
+            .filter_by(database_name='main')
+            .all()
+        )
 
         test_file = open(filename, 'rb')
         form_data = {
             'csv_file': test_file,
             'sep': ',',
             'name': table_name,
-            'con': main_db_uri[0][0],
+            'con': main_db_uri[0].id,
             'if_exists': 'append',
             'index_label': 'test_label',
-            'mangle_dupe_cols': False}
-
+            'mangle_dupe_cols': False,
+        }
         url = '/databaseview/list/'
         add_datasource_page = self.get_resp(url)
         assert 'Upload a CSV' in add_datasource_page

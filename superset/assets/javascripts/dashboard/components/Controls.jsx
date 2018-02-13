@@ -168,7 +168,7 @@ class Controls extends React.PureComponent {
           {editMode &&
             <ActionMenuItem
               text={t('Email')}
-              tooltip={t('Email a link to this dashbaord')}
+              tooltip={t('Email a link to this dashboard')}
               onClick={() => { window.location = emailLink; }}
               faIcon="envelope"
             />
@@ -181,7 +181,7 @@ class Controls extends React.PureComponent {
               triggerNode={
                 <MenuItemContent
                   text={t('Add Slices')}
-                  tooltip={t('Add some slices to this dashbaord')}
+                  tooltip={t('Add some slices to this dashboard')}
                   faIcon="plus"
                 />
               }

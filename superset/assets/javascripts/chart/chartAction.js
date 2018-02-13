@@ -1,5 +1,6 @@
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
+import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../logger';
 
 const $ = window.$ = require('jquery');
 
@@ -14,10 +15,7 @@ export function chartUpdateSucceeded(queryResponse, key) {
 }
 
 export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
-export function chartUpdateStopped(queryRequest, key) {
-  if (queryRequest) {
-    queryRequest.abort();
-  }
+export function chartUpdateStopped(key) {
   return { type: CHART_UPDATE_STOPPED, key };
 }
 
@@ -34,6 +32,11 @@ export function chartUpdateFailed(queryResponse, key) {
 export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
 export function chartRenderingFailed(error, key) {
   return { type: CHART_RENDERING_FAILED, error, key };
+}
+
+export const CHART_RENDERING_SUCCEEDED = 'CHART_RENDERING_SUCCEEDED';
+export function chartRenderingSucceeded(key) {
+  return { type: CHART_RENDERING_SUCCEEDED, key };
 }
 
 export const REMOVE_CHART = 'REMOVE_CHART';
@@ -111,23 +114,42 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       endpointType: 'json',
       force,
     });
+    const logStart = Logger.getTimestamp();
     const queryRequest = $.ajax({
       type: 'POST',
       url,
+      dataType: 'json',
       data: {
         form_data: JSON.stringify(payload),
       },
       timeout: timeout * 1000,
     });
-    dispatch(chartUpdateStarted(queryRequest, payload, key));
-    dispatch(triggerQuery(false, key));
-    const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, key)))
+    const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, payload, key)))
       .then(() => queryRequest)
-      .then(queryResponse => dispatch(chartUpdateSucceeded(queryResponse, key)))
+      .then((queryResponse) => {
+        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
+          label: key,
+          is_cached: queryResponse.is_cached,
+          row_count: queryResponse.rowcount,
+          datasource: formData.datasource,
+          start_offset: logStart,
+          duration: Logger.getTimestamp() - logStart,
+        });
+        return dispatch(chartUpdateSucceeded(queryResponse, key));
+      })
       .catch((err) => {
+        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
+          label: key,
+          has_err: true,
+          datasource: formData.datasource,
+          start_offset: logStart,
+          duration: Logger.getTimestamp() - logStart,
+        });
         if (err.statusText === 'timeout') {
           dispatch(chartUpdateTimeout(err.statusText, timeout, key));
-        } else if (err.statusText !== 'abort') {
+        } else if (err.statusText === 'abort') {
+          dispatch(chartUpdateStopped(key));
+        } else {
           let errObject;
           if (err.responseJSON) {
             errObject = err.responseJSON;

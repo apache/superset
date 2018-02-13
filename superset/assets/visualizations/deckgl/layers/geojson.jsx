@@ -1,5 +1,9 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
 import { GeoJsonLayer } from 'deck.gl';
+// TODO import geojsonExtent from 'geojson-extent';
 
+import DeckGLContainer from './../DeckGLContainer';
 import * as common from './common';
 import { hexToRGB } from '../../../javascripts/modules/colors';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
@@ -35,10 +39,10 @@ const alterProps = (props, propOverrides) => {
   };
 };
 let features;
-const recurseGeoJson = (node, propOverrides, jsFnMutator, extraProps) => {
+const recurseGeoJson = (node, propOverrides, extraProps) => {
   if (node && node.features) {
     node.features.forEach((obj) => {
-      recurseGeoJson(obj, propOverrides, jsFnMutator, node.extraProps || extraProps);
+      recurseGeoJson(obj, propOverrides, node.extraProps || extraProps);
     });
   }
   if (node && node.geometry) {
@@ -46,9 +50,6 @@ const recurseGeoJson = (node, propOverrides, jsFnMutator, extraProps) => {
       ...node,
       properties: alterProps(node.properties, propOverrides),
     };
-    if (jsFnMutator) {
-      jsFnMutator(newNode);
-    }
     if (!newNode.extraProps) {
       newNode.extraProps = extraProps;
     }
@@ -56,7 +57,7 @@ const recurseGeoJson = (node, propOverrides, jsFnMutator, extraProps) => {
   }
 };
 
-export default function geoJsonLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
@@ -70,14 +71,16 @@ export default function geoJsonLayer(formData, payload, slice) {
     propOverrides.strokeColor = strokeColor;
   }
 
+  features = [];
+  recurseGeoJson(payload.data, propOverrides);
+
   let jsFnMutator;
-  if (fd.js_datapoint_mutator) {
+  if (fd.js_data_mutator) {
     // Applying user defined data mutator if defined
-    jsFnMutator = sandboxedEval(fd.js_datapoint_mutator);
+    jsFnMutator = sandboxedEval(fd.js_data_mutator);
+    features = jsFnMutator(features);
   }
 
-  features = [];
-  recurseGeoJson(payload.data, propOverrides, jsFnMutator);
   return new GeoJsonLayer({
     id: `geojson-layer-${fd.slice_id}`,
     filled: fd.filled,
@@ -88,3 +91,32 @@ export default function geoJsonLayer(formData, payload, slice) {
     ...common.commonLayerProps(fd, slice),
   });
 }
+
+function deckGeoJson(slice, payload, setControlValue) {
+  const layer = getLayer(slice.formData, payload, slice);
+  const viewport = {
+    ...slice.formData.viewport,
+    width: slice.width(),
+    height: slice.height(),
+  };
+  if (slice.formData.autozoom) {
+    // TODO get this to work
+    // viewport = common.fitViewport(viewport, geojsonExtent(payload.data.features));
+  }
+
+  ReactDOM.render(
+    <DeckGLContainer
+      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      viewport={viewport}
+      layers={[layer]}
+      mapStyle={slice.formData.mapbox_style}
+      setControlValue={setControlValue}
+    />,
+    document.getElementById(slice.containerId),
+  );
+}
+
+module.exports = {
+  default: deckGeoJson,
+  getLayer,
+};

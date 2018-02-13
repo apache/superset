@@ -295,7 +295,7 @@ function mapStateToProps(state) {
   return {
     datasource: state.datasource,
     errorMessage: state.errorMessage,
-    timeout: state.common ? state.common.SUPERSET_WEBSERVER_TIMEOUT : null,
+    timeout: state.common ? state.common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
   };
 }
 

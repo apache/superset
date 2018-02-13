@@ -369,8 +369,17 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['color_picker', null],
+          ['color_picker', 'autozoom'],
           ['grid_size', 'extruded'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -398,8 +407,17 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['color_picker', null],
+          ['color_picker', 'autozoom'],
           ['grid_size', 'extruded'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -430,14 +448,14 @@ export const visTypes = {
         controlSetRows: [
           ['mapbox_style', 'viewport'],
           ['color_picker', 'line_width'],
-          ['reverse_long_lat', null],
+          ['reverse_long_lat', 'autozoom'],
         ],
       },
       {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],
@@ -461,12 +479,22 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          ['autozoom', null],
         ],
       },
       {
         label: t('Grid'),
         controlSetRows: [
           ['grid_size', 'color_picker'],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -494,6 +522,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          // TODO ['autozoom', null],
         ],
       },
       {
@@ -509,7 +538,7 @@ export const visTypes = {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],
@@ -549,7 +578,7 @@ export const visTypes = {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],
@@ -573,6 +602,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          ['autozoom', null],
         ],
       },
       {
@@ -580,6 +610,15 @@ export const visTypes = {
         controlSetRows: [
           ['color_picker', null],
           ['stroke_width', null],
+        ],
+      },
+      {
+        label: t('Advanced'),
+        controlSetRows: [
+          ['js_columns'],
+          ['js_data_mutator'],
+          ['js_tooltip'],
+          ['js_onclick_href'],
         ],
       },
     ],
@@ -599,8 +638,10 @@ export const visTypes = {
       },
       {
         label: t('Map'),
+        expanded: true,
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          ['autozoom', null],
         ],
       },
       {
@@ -621,7 +662,7 @@ export const visTypes = {
         label: t('Advanced'),
         controlSetRows: [
           ['js_columns'],
-          ['js_datapoint_mutator'],
+          ['js_data_mutator'],
           ['js_tooltip'],
           ['js_onclick_href'],
         ],
@@ -1076,9 +1117,10 @@ export const visTypes = {
       },
       secondary_metric: {
         label: t('Secondary Metric'),
-        description: t('This secondary metric is used to ' +
+        default: null,
+        description: t('[optional] this secondary metric is used to ' +
         'define the color as a ratio against the primary metric. ' +
-        'If the two metrics match, color is mapped level groups'),
+        'When omitted, the color is categorical and based on labels'),
       },
       groupby: {
         label: t('Hierarchy'),
@@ -1502,6 +1544,25 @@ export const visTypes = {
           ['liftvalue_precision'],
         ],
       },
+    ],
+  },
+
+  rose: {
+    label: t('Time Series - Nightingale Rose Chart'),
+    showOnExplore: true,
+    requiresTime: true,
+    controlPanelSections: [
+      sections.NVD3TimeSeries[0],
+      {
+        label: t('Chart Options'),
+        expanded: false,
+        controlSetRows: [
+          ['color_scheme'],
+          ['number_format', 'date_time_format'],
+          ['rich_tooltip', 'rose_area_proportion'],
+        ],
+      },
+      sections.NVD3TimeSeries[1],
     ],
   },
 
