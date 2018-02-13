@@ -138,7 +138,6 @@ class CoreTests(SupersetTestCase):
             assert_func('UserDBModelView', view_menus)
             assert_func('SQL Lab',
                         view_menus)
-            assert_func('AccessRequestsModelView', view_menus)
 
         assert_admin_view_menus_in('Admin', self.assertIn)
         assert_admin_view_menus_in('Alpha', self.assertNotIn)
