@@ -1164,7 +1164,6 @@ class Superset(BaseSupersetView):
                 # allow form_date in request override saved url
                 url_form_data.update(form_data)
                 form_data = url_form_data
-
         slice_id = form_data.get('slice_id')
         slc = None
         if slice_id:
