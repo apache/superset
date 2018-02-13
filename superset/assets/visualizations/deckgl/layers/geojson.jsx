@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { GeoJsonLayer } from 'deck.gl';
-// import geojsonExtent from 'geojson-extent';
+// TODO import geojsonExtent from 'geojson-extent';
 
 import DeckGLContainer from './../DeckGLContainer';
 import * as common from './common';

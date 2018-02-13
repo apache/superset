@@ -522,7 +522,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          // ['autozoom', null],
+          // TODO ['autozoom', null],
         ],
       },
       {
