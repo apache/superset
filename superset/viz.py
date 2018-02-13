@@ -291,7 +291,6 @@ class BaseViz(object):
         if df is not None and len(df.index) == 0:
             raise Exception('No data')
         payload['data'] = self.get_data(df)
-
         del payload['df']
         return payload
 
@@ -1932,7 +1931,6 @@ class BaseDeckGLViz(BaseViz):
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
-
         if spatial.get('type') == 'latlong':
             df[key] = list(zip(df[spatial.get('lonCol')], df[spatial.get('latCol')]))
         elif spatial.get('type') == 'delimited':

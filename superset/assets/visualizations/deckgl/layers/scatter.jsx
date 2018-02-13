@@ -1,14 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-
 import { ScatterplotLayer } from 'deck.gl';
 
 import DeckGLContainer from './../DeckGLContainer';
-
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
 import { unitToRadius } from '../../../javascripts/modules/geo';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
+
+function getPoints(data) {
+  return data.map(d => d.position);
+}
 
 function getLayer(formData, payload, slice) {
   const fd = formData;
@@ -50,17 +52,25 @@ function getLayer(formData, payload, slice) {
 
 function deckScatter(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);
-  const viewport = {
-    ...slice.formData.viewport,
-    width: slice.width(),
-    height: slice.height(),
+  const fd = slice.formData;
+  const width = slice.width();
+  const height = slice.height();
+  let viewport = {
+    ...fd.viewport,
+    width,
+    height,
   };
+
+  if (fd.autozoom) {
+    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
+  }
+
   ReactDOM.render(
     <DeckGLContainer
       mapboxApiAccessToken={payload.data.mapboxApiKey}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={slice.formData.mapbox_style}
+      mapStyle={fd.mapbox_style}
       setControlValue={setControlValue}
     />,
     document.getElementById(slice.containerId),

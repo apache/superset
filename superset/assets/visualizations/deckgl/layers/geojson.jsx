@@ -1,10 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-
 import { GeoJsonLayer } from 'deck.gl';
+// TODO import geojsonExtent from 'geojson-extent';
 
 import DeckGLContainer from './../DeckGLContainer';
-
 import * as common from './common';
 import { hexToRGB } from '../../../javascripts/modules/colors';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
@@ -100,6 +99,11 @@ function deckGeoJson(slice, payload, setControlValue) {
     width: slice.width(),
     height: slice.height(),
   };
+  if (slice.formData.autozoom) {
+    // TODO get this to work
+    // viewport = common.fitViewport(viewport, geojsonExtent(payload.data.features));
+  }
+
   ReactDOM.render(
     <DeckGLContainer
       mapboxApiAccessToken={payload.data.mapboxApiKey}
