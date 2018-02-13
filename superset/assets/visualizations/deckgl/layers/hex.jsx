@@ -37,13 +37,22 @@ function getLayer(formData, payload, slice) {
   });
 }
 
+function getPoints(data) {
+  return data.map(d => d.position);
+}
+
 function deckHex(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);
-  const viewport = {
+  let viewport = {
     ...slice.formData.viewport,
     width: slice.width(),
     height: slice.height(),
   };
+
+  if (slice.formData.autozoom) {
+    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
+  }
+
   ReactDOM.render(
     <DeckGLContainer
       mapboxApiAccessToken={payload.data.mapboxApiKey}

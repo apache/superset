@@ -8,6 +8,15 @@ import DeckGLContainer from './../DeckGLContainer';
 import * as common from './common';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
+function getPoints(data) {
+  const points = [];
+  data.forEach((d) => {
+    points.push(d.sourcePosition);
+    points.push(d.targetPosition);
+  });
+  return points;
+}
+
 function getLayer(formData, payload, slice) {
   const fd = formData;
   const fc = fd.color_picker;
@@ -32,11 +41,15 @@ function getLayer(formData, payload, slice) {
 
 function deckArc(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);
-  const viewport = {
+  let viewport = {
     ...slice.formData.viewport,
     width: slice.width(),
     height: slice.height(),
   };
+
+  if (slice.formData.autozoom) {
+    viewport = common.fitViewport(viewport, getPoints(payload.data.arcs));
+  }
   ReactDOM.render(
     <DeckGLContainer
       mapboxApiAccessToken={payload.data.mapboxApiKey}
