@@ -15,7 +15,7 @@ describe('SqlEditor', () => {
     latestQuery: queries[0],
     tables: [table],
     queries,
-    height: '',
+    getHeight: () => ('100px'),
     editorQueries: [],
     dataPreviewQueries: [],
   };
