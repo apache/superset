@@ -78,7 +78,7 @@ if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
     FORM_DATA_KEY_BLACKLIST = [
         'js_tooltip',
         'js_onclick_href',
-        'js_data_mutator'
+        'js_data_mutator',
     ]
 
 
@@ -956,7 +956,7 @@ class Superset(BaseSupersetView):
 
         if request.args.get('viz_type'):
             # Converting old URLs
-            form_data_dict = cast_form_data(d)
+            d = cast_form_data(d)
 
         for k in FORM_DATA_KEY_BLACKLIST:
             if k in d:
