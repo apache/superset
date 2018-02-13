@@ -33,13 +33,26 @@ function getLayer(formData, payload, slice) {
   });
 }
 
+function getPoints(data) {
+  let points = [];
+  data.forEach((d) => {
+    points = points.concat(d.path);
+  });
+  return points;
+}
+
 function deckPath(slice, payload, setControlValue) {
   const layer = getLayer(slice.formData, payload, slice);
-  const viewport = {
+  let viewport = {
     ...slice.formData.viewport,
     width: slice.width(),
     height: slice.height(),
   };
+
+  if (slice.formData.autozoom) {
+    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
+  }
+
   ReactDOM.render(
     <DeckGLContainer
       mapboxApiAccessToken={payload.data.mapboxApiKey}

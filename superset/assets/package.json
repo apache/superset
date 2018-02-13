@@ -60,6 +60,7 @@
     "distributions": "^1.0.0",
     "dompurify": "^1.0.3",
     "fastdom": "^1.0.6",
+    "geojson-extent": "^0.3.2",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
     "jed": "^1.1.1",
@@ -105,7 +106,7 @@
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "viewport-mercator-project": "^2.1.0"
+    "viewport-mercator-project": "^5.0.0"
   },
   "devDependencies": {
     "babel-cli": "^6.14.0",
@@ -137,6 +138,7 @@
     "less": "^2.6.1",
     "less-loader": "^4.0.3",
     "mocha": "^3.2.0",
+    "npm-check-updates": "^2.14.0",
     "react-addons-test-utils": "^15.6.2",
     "react-test-renderer": "^15.6.2",
     "redux-mock-store": "^1.2.3",

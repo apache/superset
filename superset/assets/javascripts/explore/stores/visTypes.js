@@ -369,7 +369,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['color_picker', null],
+          ['color_picker', 'autozoom'],
           ['grid_size', 'extruded'],
         ],
       },
@@ -407,7 +407,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['color_picker', null],
+          ['color_picker', 'autozoom'],
           ['grid_size', 'extruded'],
         ],
       },
@@ -448,7 +448,7 @@ export const visTypes = {
         controlSetRows: [
           ['mapbox_style', 'viewport'],
           ['color_picker', 'line_width'],
-          ['reverse_long_lat', null],
+          ['reverse_long_lat', 'autozoom'],
         ],
       },
       {
@@ -479,6 +479,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          ['autozoom', null],
         ],
       },
       {
@@ -521,6 +522,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          // TODO ['autozoom', null],
         ],
       },
       {
@@ -600,6 +602,7 @@ export const visTypes = {
         label: t('Map'),
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          ['autozoom', null],
         ],
       },
       {
@@ -635,8 +638,10 @@ export const visTypes = {
       },
       {
         label: t('Map'),
+        expanded: true,
         controlSetRows: [
           ['mapbox_style', 'viewport'],
+          ['autozoom', null],
         ],
       },
       {
