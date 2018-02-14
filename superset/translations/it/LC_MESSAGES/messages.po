@@ -424,7 +424,7 @@ msgstr "Errore nel recupero dei metadati della tabella"
 
 #: superset/assets/javascripts/SqlLab/actions.js:364
 msgid "shared query"
-msgstr "tabella condivisa"
+msgstr "query condivisa"
 
 #: superset/assets/javascripts/SqlLab/actions.js:372
 #: superset/assets/javascripts/SqlLab/actions.js:392
@@ -463,11 +463,11 @@ msgstr "Copia di %s"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:30
 msgid "share query"
-msgstr "query condivisa"
+msgstr "condividi query"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:33
 msgid "copy URL to clipboard"
-msgstr "copia URL in clipoboard"
+msgstr "copia URL in appunti"
 
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:61
 msgid "Raw SQL"
@@ -494,7 +494,7 @@ msgstr ""
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:154
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:89
 msgid "Search Results"
-msgstr ""
+msgstr "Risultati della ricerca"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:160
 msgid "[From]-"
@@ -510,15 +510,15 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:188
 msgid "Search"
-msgstr ""
+msgstr "Cerca"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:114
 msgid "Open in SQL Editor"
-msgstr ""
+msgstr "Apri in SQL Editor"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:133
 msgid "view results"
-msgstr ""
+msgstr "visualizza risultati"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:136
 msgid "Data preview"
@@ -542,7 +542,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:67
 msgid ".CSV"
-msgstr ""
+msgstr "CSV"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:78
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:241
@@ -2296,7 +2296,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:66
 msgid "Advanced Analytics"
-msgstr "Analitycs avanzate"
+msgstr "Analytics avanzate"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:67
 msgid ""
