@@ -362,30 +362,30 @@ class DatabaseTablesAsync(DatabaseView):
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
-class AccessRequestsModelView(SupersetModelView, DeleteMixin):
-    datamodel = SQLAInterface(DAR)
-    list_columns = [
-        'username', 'user_roles', 'datasource_link',
-        'roles_with_datasource', 'created_on']
-    order_columns = ['created_on']
-    base_order = ('changed_on', 'desc')
-    label_columns = {
-        'username': _('User'),
-        'user_roles': _('User Roles'),
-        'database': _('Database URL'),
-        'datasource_link': _('Datasource'),
-        'roles_with_datasource': _('Roles to grant'),
-        'created_on': _('Created On'),
-    }
+if config.get('ENABLE_ACCESS_REQUEST'):
+    class AccessRequestsModelView(SupersetModelView, DeleteMixin):
+        datamodel = SQLAInterface(DAR)
+        list_columns = [
+            'username', 'user_roles', 'datasource_link',
+            'roles_with_datasource', 'created_on']
+        order_columns = ['created_on']
+        base_order = ('changed_on', 'desc')
+        label_columns = {
+            'username': _('User'),
+            'user_roles': _('User Roles'),
+            'database': _('Database URL'),
+            'datasource_link': _('Datasource'),
+            'roles_with_datasource': _('Roles to grant'),
+            'created_on': _('Created On'),
+        }
 
-
-appbuilder.add_view(
-    AccessRequestsModelView,
-    'Access requests',
-    label=__('Access requests'),
-    category='Security',
-    category_label=__('Security'),
-    icon='fa-table')
+    appbuilder.add_view(
+        AccessRequestsModelView,
+        'Access requests',
+        label=__('Access requests'),
+        category='Security',
+        category_label=__('Security'),
+        icon='fa-table')
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
@@ -1964,14 +1964,15 @@ class Superset(BaseSupersetView):
             if datasource:
                 datasources.add(datasource)
 
-        for datasource in datasources:
-            if datasource and not self.datasource_access(datasource):
-                flash(
-                    __(get_datasource_access_error_msg(datasource.name)),
-                    'danger')
-                return redirect(
-                    'superset/request_access/?'
-                    'dashboard_id={dash.id}&'.format(**locals()))
+        if config.get('ENABLE_ACCESS_REQUEST'):
+            for datasource in datasources:
+                if datasource and not self.datasource_access(datasource):
+                    flash(
+                        __(get_datasource_access_error_msg(datasource.name)),
+                        'danger')
+                    return redirect(
+                        'superset/request_access/?'
+                        'dashboard_id={dash.id}&'.format(**locals()))
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
