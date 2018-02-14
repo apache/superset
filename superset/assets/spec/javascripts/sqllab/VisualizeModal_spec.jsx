@@ -308,17 +308,17 @@ describe('VisualizeModal', () => {
     beforeEach(() => {
       ajaxSpy = sinon.spy($, 'ajax');
       sinon.stub(JSON, 'parse').callsFake(() => ({ table_id: 107 }));
-      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => ('mockURL'));
+      sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
+      sinon.spy(exploreUtils, 'exportChart');
       sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => (mockOptions));
-      sinon.spy(window, 'open');
       datasourceSpy = sinon.stub(actions, 'createDatasource');
     });
     afterEach(() => {
       ajaxSpy.restore();
       JSON.parse.restore();
-      exploreUtils.getExploreUrl.restore();
+      exploreUtils.getExploreUrlAndPayload.restore();
+      exploreUtils.exportChart.restore();
       wrapper.instance().buildVizOptions.restore();
-      window.open.restore();
       datasourceSpy.restore();
     });
 
@@ -340,9 +340,8 @@ describe('VisualizeModal', () => {
       wrapper.setProps({ actions: { createDatasource: datasourceSpy } });
 
       wrapper.instance().visualize();
-      expect(exploreUtils.getExploreUrl.callCount).to.equal(1);
-      expect(exploreUtils.getExploreUrl.getCall(0).args[0].datasource).to.equal('107__table');
-      expect(window.open.callCount).to.equal(1);
+      expect(exploreUtils.exportChart.callCount).to.equal(1);
+      expect(exploreUtils.exportChart.getCall(0).args[0].datasource).to.equal('107__table');
     });
     it('should notify error', () => {
       datasourceSpy.callsFake(() => {
@@ -354,7 +353,7 @@ describe('VisualizeModal', () => {
       sinon.spy(notify, 'error');
 
       wrapper.instance().visualize();
-      expect(window.open.callCount).to.equal(0);
+      expect(exploreUtils.exportChart.callCount).to.equal(0);
       expect(notify.error.callCount).to.equal(1);
     });
   });

@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
-import { getExploreUrl } from '../exploreUtils';
 import { t } from '../../locales';
 
 const propTypes = {
@@ -104,8 +103,7 @@ class SaveModal extends React.Component {
     }
     sliceParams.goto_dash = gotodash;
 
-    const saveUrl = getExploreUrl(this.props.form_data, 'base', false, null, sliceParams);
-    this.props.actions.saveSlice(saveUrl)
+    this.props.actions.saveSlice(this.props.form_data, sliceParams)
       .then((data) => {
         // Go to new slice url or dashboard url
         if (gotodash) {

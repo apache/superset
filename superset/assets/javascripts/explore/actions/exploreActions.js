@@ -132,6 +132,11 @@ export function updateExploreEndpoints(jsonUrl, csvUrl, standaloneUrl) {
   return { type: UPDATE_EXPLORE_ENDPOINTS, jsonUrl, csvUrl, standaloneUrl };
 }
 
+export const SET_EXPLORE_CONTROLS = 'UPDATE_EXPLORE_CONTROLS';
+export function setExploreControls(formData) {
+  return { type: SET_EXPLORE_CONTROLS, formData };
+}
+
 export const REMOVE_CONTROL_PANEL_ALERT = 'REMOVE_CONTROL_PANEL_ALERT';
 export function removeControlPanelAlert() {
   return { type: REMOVE_CONTROL_PANEL_ALERT };

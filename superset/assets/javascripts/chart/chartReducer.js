@@ -24,7 +24,7 @@ export const chart = {
   chartStatus: 'loading',
   chartUpdateEndTime: null,
   chartUpdateStartTime: now(),
-  latestQueryFormData: null,
+  latestQueryFormData: {},
   queryRequest: null,
   queryResponse: null,
   triggerQuery: true,
@@ -47,6 +47,7 @@ export default function chartReducer(charts = {}, action) {
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
         queryRequest: action.queryRequest,
+        latestQueryFormData: action.latestQueryFormData,
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
