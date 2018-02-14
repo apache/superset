@@ -136,11 +136,8 @@ class DruidTests(SupersetTestCase):
             'force': 'true',
         }
         # One groupby
-        url = (
-            '/superset/explore_json/druid/{}/?form_data={}'.format(
-                datasource_id, json.dumps(form_data))
-        )
-        resp = self.get_json_resp(url)
+        url = ('/superset/explore_json/druid/{}/'.format(datasource_id))
+        resp = self.get_json_resp(url, {'form_data': json.dumps(form_data)})
         self.assertEqual('Canada', resp['data']['records'][0]['dim1'])
 
         form_data = {
@@ -156,11 +153,8 @@ class DruidTests(SupersetTestCase):
             'force': 'true',
         }
         # two groupby
-        url = (
-            '/superset/explore_json/druid/{}/?form_data={}'.format(
-                datasource_id, json.dumps(form_data))
-        )
-        resp = self.get_json_resp(url)
+        url = ('/superset/explore_json/druid/{}/'.format(datasource_id))
+        resp = self.get_json_resp(url, {'form_data': json.dumps(form_data)})
         self.assertEqual('Canada', resp['data']['records'][0]['dim1'])
 
     def test_druid_sync_from_config(self):

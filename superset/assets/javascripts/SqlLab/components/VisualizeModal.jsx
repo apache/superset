@@ -9,7 +9,7 @@ import { Alert, Button, Col, Modal } from 'react-bootstrap';
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
-import { getExploreUrl } from '../../explore/exploreUtils';
+import { exportChart } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
 import visTypes from '../../explore/stores/visTypes';
@@ -166,7 +166,8 @@ class VisualizeModal extends React.PureComponent {
         }
         notify.info(t('Creating a data source and popping a new tab'));
 
-        window.open(getExploreUrl(formData));
+        // open new window for data visualization
+        exportChart(formData);
       })
       .fail(() => {
         notify.error(this.props.errorMessage);
