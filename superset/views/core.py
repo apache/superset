@@ -1299,7 +1299,7 @@ class Superset(BaseSupersetView):
                     stats_logger.incr('set_cache_key')
                     cache.set(cache_key, cache_value, cache_timeout)
                 except Exception as e:
-                    logging.warning('Error Writing cache {}:'.format(cache_key))
+                    logging.warning('Error writing cache {}:'.format(cache_key))
                     logging.exception(e)
                     cache.delete(cache.key)
         else:
@@ -1308,12 +1308,7 @@ class Superset(BaseSupersetView):
                         column,
                         config.get('FILTER_SELECT_ROW_LIMIT', 10000)),
                     default=utils.json_int_dttm_ser)
-        payload = json.dumps(
-            datasource.values_for_column(
-                column,
-                config.get('FILTER_SELECT_ROW_LIMIT', 10000),
-            ),
-            default=utils.json_int_dttm_ser)
+
         return json_success(payload)
 
     def save_or_overwrite_slice(
