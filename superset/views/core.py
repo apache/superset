@@ -1292,8 +1292,7 @@ class Superset(BaseSupersetView):
             else:
                 cache_value = datasource.values_for_column(
                 column,
-                config.get('FILTER_SELECT_ROW_LIMIT', 10000),
-            )
+                config.get('FILTER_SELECT_ROW_LIMIT', 10000),)
                 try:
                     payload = json.dumps(cache_value, default=utils.json_int_dttm_ser)
                     stats_logger.incr('set_cache_key')
