@@ -1292,7 +1292,7 @@ class Superset(BaseSupersetView):
                     payload = json.dumps(cache_value, default=utils.json_int_dttm_ser)
                 except Exception as e:
                     logging.exception(e)
-                    logging.error('Error reading cache:' + \
+                    logging.error('Error reading cache:' +
                                   utils.error_msg_from_exception(e))
                 logging.info('Serving filter values from cache')
             else:
