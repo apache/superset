@@ -209,10 +209,11 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @property
     def slice_url(self):
         """Defines the url to access the slice"""
+        form_data = {'slice_id': self.id}
         return (
             '/superset/explore/{obj.datasource_type}/'
             '{obj.datasource_id}/?form_data={params}'.format(
-                obj=self, params=parse.quote(json.dumps(self.form_data))))
+                obj=self, params=parse.quote(json.dumps(form_data))))
 
     @property
     def slice_id_url(self):
@@ -860,9 +861,10 @@ class Log(Model):
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
-            d = request.args.to_dict()
-            post_data = request.form.to_dict() or {}
-            d.update(post_data)
+            d = request.form.to_dict() or {}
+            # request parameters can overwrite post body
+            request_params = request.args.to_dict()
+            d.update(request_params)
             d.update(kwargs)
             slice_id = d.get('slice_id')
 

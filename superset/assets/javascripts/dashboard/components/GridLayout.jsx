@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 
 import GridCell from './GridCell';
-import { getExploreUrl } from '../../explore/exploreUtils';
 
 require('react-grid-layout/css/styles.css');
 require('react-resizable/css/styles.css');
@@ -18,6 +17,8 @@ const propTypes = {
   timeout: PropTypes.number,
   onChange: PropTypes.func,
   getFormDataExtra: PropTypes.func,
+  exploreChart: PropTypes.func,
+  exportCSV: PropTypes.func,
   fetchSlice: PropTypes.func,
   saveSlice: PropTypes.func,
   removeSlice: PropTypes.func,
@@ -34,6 +35,8 @@ const propTypes = {
 const defaultProps = {
   onChange: () => ({}),
   getFormDataExtra: () => ({}),
+  exploreChart: () => ({}),
+  exportCSV: () => ({}),
   fetchSlice: () => ({}),
   saveSlice: () => ({}),
   removeSlice: () => ({}),
@@ -149,8 +152,8 @@ class GridLayout extends React.Component {
             timeout={this.props.timeout}
             widgetHeight={this.getWidgetHeight(slice)}
             widgetWidth={this.getWidgetWidth(slice)}
-            exploreChartUrl={getExploreUrl(this.props.getFormDataExtra(slice))}
-            exportCSVUrl={getExploreUrl(this.props.getFormDataExtra(slice), 'csv')}
+            exploreChart={this.props.exploreChart}
+            exportCSV={this.props.exportCSV}
             isExpanded={!!this.isExpanded(slice)}
             isLoading={currentChart.chartStatus === 'loading'}
             isCached={queryResponse.is_cached}

@@ -1,3 +1,5 @@
+import { getExploreUrlAndPayload } from '../exploreUtils';
+
 const $ = window.$ = require('jquery');
 
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
@@ -44,14 +46,27 @@ export function removeSaveModalAlert() {
   return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
-export function saveSlice(url) {
-  return function (dispatch) {
-    return $.get(url, (data, status) => {
-      if (status === 'success') {
+export function saveSlice(formData, requestParams) {
+  return (dispatch) => {
+    const { url, payload } = getExploreUrlAndPayload({
+      formData,
+      endpointType: 'base',
+      force: false,
+      curUrl: null,
+      requestParams,
+    });
+    return $.ajax({
+      type: 'POST',
+      url,
+      data: {
+        form_data: JSON.stringify(payload),
+      },
+      success: ((data) => {
         dispatch(saveSliceSuccess(data));
-      } else {
+      }),
+      error: (() => {
         dispatch(saveSliceFailed());
-      }
+      }),
     });
   };
 }

@@ -7,6 +7,7 @@ import sql from 'react-syntax-highlighter/dist/languages/sql';
 import json from 'react-syntax-highlighter/dist/languages/json';
 import github from 'react-syntax-highlighter/dist/styles/github';
 import CopyToClipboard from './../../components/CopyToClipboard';
+import { getExploreUrlAndPayload } from '../exploreUtils';
 
 import ModalTrigger from './../../components/ModalTrigger';
 import Button from '../../components/Button';
@@ -23,7 +24,7 @@ const propTypes = {
   animation: PropTypes.bool,
   queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
-  queryEndpoint: PropTypes.string.isRequired,
+  latestQueryFormData: PropTypes.object.isRequired,
 };
 const defaultProps = {
   animation: true,
@@ -51,9 +52,16 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   fetchQuery() {
     this.setState({ isLoading: true });
+    const { url, payload } = getExploreUrlAndPayload({
+      formData: this.props.latestQueryFormData,
+      endpointType: 'query',
+    });
     $.ajax({
-      type: 'GET',
-      url: this.props.queryEndpoint,
+      type: 'POST',
+      url,
+      data: {
+        form_data: JSON.stringify(payload),
+      },
       success: (data) => {
         this.setState({
           language: data.language,
