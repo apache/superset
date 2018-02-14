@@ -1277,7 +1277,7 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
         
-        # Impliment: Cache endpoint by datasource and column
+        # Implement: Cache endpoint by datasource and column
         cache_key = hashlib.md5((datasource_id + column).encode('utf-8')).hexdigest()
         if cache_key and cache:
             cache_value = cache.get(cache_key)
