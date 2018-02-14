@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 from collections import defaultdict
 from datetime import datetime, timedelta
+import hashlib
 import json
 import logging
 import os
@@ -1275,7 +1276,38 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
-
+        
+        # Impliment: Cache endpoint by datasource and column
+        cache_key = hashlib.md5((datasource_id + column).encode('utf-8')).hexdigest()
+        if cache_key and cache:
+            cache_value = cache.get(cache_key)
+            if cache_value:
+                logging.info('Loading filter values from cache')
+                try:
+                    payload = json.dumps(cache_value, default=utils.json_int_dttm_ser)
+                except Exception as e:
+                    logging.exception(e)
+                    logging.error('Error reading cache:' + utils.error_msg_from_exception(e))
+                logging.info('Serving filter values from cache')
+            else:
+                cache_value = datasource.values_for_column(
+                column,
+                config.get('FILTER_SELECT_ROW_LIMIT', 10000),
+            )
+                try:
+                    payload = json.dumps(cache_value, default=utils.json_int_dttm_ser)
+                    stats_logger.incr('set_cache_key')
+                    cache.set(cache_key, cache_value, cache_timeout)
+                except Exception as e:
+                    logging.warning('Error Writing cache {}:'.format(cache_key))
+                    logging.exception(e)
+                    cache.delete(cache.key)
+        else:
+            payload = json.dumps(
+                    datasource.values_for_column(
+                        column,
+                        config.get('FILTER_SELECT_ROW_LIMIT', 10000)),
+                    default=utils.json_int_dttm_ser)
         payload = json.dumps(
             datasource.values_for_column(
                 column,
