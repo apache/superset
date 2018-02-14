@@ -1277,16 +1277,15 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
         
-        # Implement: Cache endpoint by datasource and column
-        if datasource.database.cache_timeout:
-            cache_timeout = datasource.database.cache_timeout
-        elif datasource.cache_timeout:
-            cache_timeout = datasource.cache_timeout
-        else:
-            cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT')
-        
+        # Implement: Cache endpoint by datasource and column        
         cache_key = hashlib.md5((datasource_id + column).encode('utf-8')).hexdigest()
         if cache_key and cache:
+            if (hasattr(datasource,'database') and datasource.database.cache_timeout):
+                cache_timeout = datasource.database.cache_timeout
+            elif (hasattr(datasource,'database') and datasource.cache_timeout):
+                cache_timeout = datasource.database.cache_timeout
+            else:
+                cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT')
             cache_value = cache.get(cache_key)
             if cache_value:
                 logging.info('Loading filter values from cache')
@@ -1298,8 +1297,9 @@ class Superset(BaseSupersetView):
                 logging.info('Serving filter values from cache')
             else:
                 cache_value = datasource.values_for_column(
-                column,
-                config.get('FILTER_SELECT_ROW_LIMIT', 10000),)
+                    column,
+                    config.get('FILTER_SELECT_ROW_LIMIT', 10000),
+                )
                 try:
                     payload = json.dumps(cache_value, default=utils.json_int_dttm_ser)
                     stats_logger.incr('set_cache_key')
@@ -1314,7 +1314,6 @@ class Superset(BaseSupersetView):
                         column,
                         config.get('FILTER_SELECT_ROW_LIMIT', 10000)),
                     default=utils.json_int_dttm_ser)
-
         return json_success(payload)
 
     def save_or_overwrite_slice(
