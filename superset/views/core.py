@@ -1276,13 +1276,12 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
-        
         # Implement: Cache endpoint by datasource and column        
         cache_key = hashlib.md5((datasource_id + column).encode('utf-8')).hexdigest()
         if cache_key and cache:
-            if (hasattr(datasource,'database') and datasource.database.cache_timeout):
+            if (hasattr(datasource, 'database') and datasource.database.cache_timeout):
                 cache_timeout = datasource.database.cache_timeout
-            elif (hasattr(datasource,'database') and datasource.cache_timeout):
+            elif (hasattr(datasource, 'database') and datasource.cache_timeout):
                 cache_timeout = datasource.database.cache_timeout
             else:
                 cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT')
@@ -1293,7 +1292,8 @@ class Superset(BaseSupersetView):
                     payload = json.dumps(cache_value, default=utils.json_int_dttm_ser)
                 except Exception as e:
                     logging.exception(e)
-                    logging.error('Error reading cache:' + utils.error_msg_from_exception(e))
+                    logging.error('Error reading cache:' + 
+                                  utils.error_msg_from_exception(e))
                 logging.info('Serving filter values from cache')
             else:
                 cache_value = datasource.values_for_column(
