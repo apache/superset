@@ -67,7 +67,7 @@ USER_MISSING_ERR = __('The user seems to have been deleted')
 perms_instruction_link = config.get('PERMISSION_INSTRUCTIONS_LINK')
 if perms_instruction_link:
     DATASOURCE_ACCESS_ERR = __(
-        "You don't have access to this datasource. <a href='{}'>How to gain access.</a>"
+        "You don't have access to this datasource. <a href='{}'>(Gain access)</a>"
         .format(perms_instruction_link),
     )
 else:
