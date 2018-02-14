@@ -1278,7 +1278,7 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
         # Implement: Cache endpoint by datasource and column
         cache_key = hashlib.md5((datasource_id + column).encode('utf-8')).hexdigest()
-        if cache_key and cache:
+        if cache:
             if (hasattr(datasource, 'database') and datasource.database.cache_timeout):
                 cache_timeout = datasource.database.cache_timeout
             elif (hasattr(datasource, 'database') and datasource.cache_timeout):
@@ -1307,7 +1307,7 @@ class Superset(BaseSupersetView):
                 except Exception as e:
                     logging.warning('Error writing cache {}:'.format(cache_key))
                     logging.exception(e)
-                    cache.delete(cache.key)
+                    cache.delete(cache_key)
         else:
             payload = json.dumps(
                     datasource.values_for_column(
