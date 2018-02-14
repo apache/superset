@@ -1278,6 +1278,13 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
         
         # Implement: Cache endpoint by datasource and column
+        if datasource.database.cache_timeout:
+            cache_timeout = datasource.database.cache_timeout
+        elif datasource.cache_timeout:
+            cache_timeout = datasource.cache_timeout
+        else:
+            cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT')
+        
         cache_key = hashlib.md5((datasource_id + column).encode('utf-8')).hexdigest()
         if cache_key and cache:
             cache_value = cache.get(cache_key)
