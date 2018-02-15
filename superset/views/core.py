@@ -2208,6 +2208,15 @@ class Superset(BaseSupersetView):
             return resp
         return 'nope'
 
+    @expose('/cache_key_exist/<key>/')
+    @log_this
+    def cache_key_exist(self, key):
+        """Returns a key from the cache"""
+        key_exist = True if cache.get(key) else False
+        status = 200 if key_exist else 404
+        return json_success(json.dumps({'key_exist': key_exist}),
+                            status=status)
+
     @has_access_api
     @expose('/results/<key>/')
     @log_this
