@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2017-10-04 10:12-0700\n"
-"PO-Revision-Date: 2017-06-04 20:36+0200\n"
-"Last-Translator: Maurizio Napolitano <napo@fbk.eu>\n"
+"PO-Revision-Date: 2018-02-11 22:26+0200\n"
+"Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
 "Language-Team: Italiano <>\n"
 "Plural-Forms: nplurals=1; plural=0\n"
@@ -120,15 +120,15 @@ msgstr "10 minuti"
 #: superset/utils.py:499
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr ""
+msgstr "[Superset] Accesso al datasource $(name) concesso"
 
 #: superset/viz.py:50
 msgid "Viz is missing a datasource"
-msgstr ""
+msgstr "Datasource mancante per la visualizzazione"
 
 #: superset/viz.py:181
 msgid "From date cannot be larger than to date"
-msgstr ""
+msgstr "La data di inizio non può essere dopo la data di fine"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:334
 #: superset/viz.py:369
@@ -137,11 +137,11 @@ msgstr "Vista Tabella"
 
 #: superset/viz.py:381
 msgid "Pick a granularity in the Time section or uncheck 'Include Time'"
-msgstr ""
+msgstr "Seleziona una granularità nella sezione tempo e deseleziona 'Includi Tempo'"
 
 #: superset/viz.py:391
 msgid "Choose either fields to [Group By] and [Metrics] or [Columns], not both"
-msgstr ""
+msgstr "Selezionare i campi [Group By] e [Metrica] o [Colonne], non entrambi"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:386
 #: superset/viz.py:430
@@ -150,15 +150,15 @@ msgstr "Vista Pivot"
 
 #: superset/viz.py:444
 msgid "Please choose at least one \"Group by\" field "
-msgstr ""
+msgstr "Seleziona almeno un campo \"Group by\""
 
 #: superset/viz.py:446
 msgid "Please choose at least one metric"
-msgstr ""
+msgstr "Seleziona almeno una metrica"
 
 #: superset/viz.py:450
 msgid "'Group By' and 'Columns' can't overlap"
-msgstr ""
+msgstr "'Group by' e 'Colonne' non possono sovrapporsi"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:373
 #: superset/viz.py:483
@@ -197,7 +197,7 @@ msgstr "Grafico a Bolle"
 
 #: superset/viz.py:734
 msgid "Pick a metric for x, y and size"
-msgstr ""
+msgstr "Seleziona una metrica per x, y e grandezza"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:574
 #: superset/viz.py:760
@@ -206,7 +206,7 @@ msgstr "Grafico a Proiettile"
 
 #: superset/viz.py:786
 msgid "Pick a metric to display"
-msgstr ""
+msgstr "Seleziona una metrica da visualizzare"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:597
 #: superset/viz.py:809
@@ -215,7 +215,7 @@ msgstr "Numero Grande con Linea del Trend"
 
 #: superset/viz.py:817 superset/viz.py:846
 msgid "Pick a metric!"
-msgstr ""
+msgstr "Seleziona una metrica!"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:622
 #: superset/viz.py:838
@@ -229,7 +229,7 @@ msgstr "Serie Temporali - Grafico Lineare"
 
 #: superset/viz.py:913 superset/viz.py:1058
 msgid "Pick a time granularity for your time series"
-msgstr ""
+msgstr "Seleziona una granularità per la serie temporale"
 
 #: superset/viz.py:1001
 msgid "Time Series - Dual Axis Line Chart"
@@ -237,15 +237,15 @@ msgstr "Serie Temporali - Grafico Lineare ad Assi Duali"
 
 #: superset/viz.py:1011
 msgid "Pick a metric for left axis!"
-msgstr ""
+msgstr "Seleziona una metrica per l'asse sinistro"
 
 #: superset/viz.py:1013
 msgid "Pick a metric for right axis!"
-msgstr ""
+msgstr "Seleziona una metrica per l'asse destro"
 
 #: superset/viz.py:1015
 msgid "Please choose different metrics on left and right axis"
-msgstr ""
+msgstr "Seleziona metriche differenti per gli assi destro e sinistro"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:238
 #: superset/viz.py:1076
@@ -273,7 +273,7 @@ msgstr "Istogramma"
 
 #: superset/viz.py:1129
 msgid "Must have one numeric column specified"
-msgstr ""
+msgstr "Devi specificare una colonna numerica"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:96
 #: superset/viz.py:1144
@@ -286,11 +286,11 @@ msgstr ""
 
 #: superset/viz.py:1157
 msgid "Pick at least one metric"
-msgstr ""
+msgstr "Seleziona almeno una metrica"
 
 #: superset/viz.py:1159
 msgid "Pick at least one field for [Series]"
-msgstr ""
+msgstr "Seleziona almeno un campo per [Series]"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:679
 #: superset/viz.py:1212
@@ -304,7 +304,7 @@ msgstr "Sankey"
 
 #: superset/viz.py:1252
 msgid "Pick exactly 2 columns as [Source / Target]"
-msgstr ""
+msgstr "Seleziona esattamente 2 colonne come [Sorgente / Destinazione]"
 
 #: superset/viz.py:1283
 msgid ""
@@ -319,7 +319,7 @@ msgstr "Disposizione a Forza Diretta"
 
 #: superset/viz.py:1301
 msgid "Pick exactly 2 columns to 'Group By'"
-msgstr ""
+msgstr "Seleziona esattamente 2 colonne per 'Group By'"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:808
 #: superset/viz.py:1348
@@ -391,83 +391,83 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/actions.js:57
 msgid "Your query was saved"
-msgstr ""
+msgstr "La tua query è stata salvata"
 
 #: superset/assets/javascripts/SqlLab/actions.js:58
 msgid "Your query could not be saved"
-msgstr ""
+msgstr "La tua query non può essere salvata"
 
 #: superset/assets/javascripts/SqlLab/actions.js:111
 msgid "Failed at retrieving results from the results backend"
-msgstr ""
+msgstr "Errore nel recupero dei dati dal backend"
 
 #: superset/assets/javascripts/SqlLab/actions.js:157
 msgid "Could not connect to server"
-msgstr ""
+msgstr "Non posso connettermi al server"
 
 #: superset/assets/javascripts/SqlLab/actions.js:162
 msgid "Your session timed out, please refresh your page and try again."
-msgstr ""
+msgstr "La tua sessione è scaduta, ricarica la pagina e riprova."
 
 #: superset/assets/javascripts/SqlLab/actions.js:181
 msgid "Query was stopped."
-msgstr ""
+msgstr "La query è stata fermata."
 
 #: superset/assets/javascripts/SqlLab/actions.js:184
 msgid "Failed at stopping query."
-msgstr ""
+msgstr "Errore nel fermare la query."
 
 #: superset/assets/javascripts/SqlLab/actions.js:297
 #: superset/assets/javascripts/SqlLab/actions.js:310
 msgid "Error occurred while fetching table metadata"
-msgstr ""
+msgstr "Errore nel recupero dei metadati della tabella"
 
 #: superset/assets/javascripts/SqlLab/actions.js:364
 msgid "shared query"
-msgstr ""
+msgstr "query condivisa"
 
 #: superset/assets/javascripts/SqlLab/actions.js:372
 #: superset/assets/javascripts/SqlLab/actions.js:392
 msgid "The query couldn't be loaded"
-msgstr ""
+msgstr "La query non può essere caricata"
 
 #: superset/assets/javascripts/SqlLab/actions.js:426
 msgid "An error occurred while creating the data source"
-msgstr ""
+msgstr "Errore nel creare il datasource"
 
 #: superset/assets/javascripts/SqlLab/constants.js:30
 msgid "Pick a chart type!"
-msgstr ""
+msgstr "Seleziona un tipo di grafico"
 
 #: superset/assets/javascripts/SqlLab/constants.js:31
 msgid "To use this chart type you need at least one column flagged as a date"
-msgstr ""
+msgstr "Per usare questo tipo di grafico devi avere almeno una colonna selezionata come data"
 
 #: superset/assets/javascripts/SqlLab/constants.js:32
 msgid "To use this chart type you need at least one dimension"
-msgstr ""
+msgstr "Per usare questo tipo di grafico devi avere almeno una dimensione"
 
 #: superset/assets/javascripts/SqlLab/constants.js:33
 msgid "To use this chart type you need at least one aggregation function"
-msgstr ""
+msgstr "Per usare questo tipo di grafico devi avere almeno uan funziona di aggregazione"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:49
 #: superset/assets/javascripts/SqlLab/reducers.js:11
 msgid "Untitled Query"
-msgstr ""
+msgstr "Query senza nome"
 
 #: superset/assets/javascripts/SqlLab/reducers.js:44
 #, python-format
 msgid "Copy of %s"
-msgstr ""
+msgstr "Copia di %s"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:30
 msgid "share query"
-msgstr ""
+msgstr "condividi query"
 
 #: superset/assets/javascripts/SqlLab/components/CopyQueryTabUrl.jsx:33
 msgid "copy URL to clipboard"
-msgstr ""
+msgstr "copia URL in appunti"
 
 #: superset/assets/javascripts/SqlLab/components/HighlightedSql.jsx:61
 msgid "Raw SQL"
@@ -494,7 +494,7 @@ msgstr ""
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:154
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:89
 msgid "Search Results"
-msgstr ""
+msgstr "Risultati della ricerca"
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:160
 msgid "[From]-"
@@ -510,15 +510,15 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/QuerySearch.jsx:188
 msgid "Search"
-msgstr ""
+msgstr "Cerca"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:114
 msgid "Open in SQL Editor"
-msgstr ""
+msgstr "Apri in SQL Editor"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:133
 msgid "view results"
-msgstr ""
+msgstr "visualizza risultati"
 
 #: superset/assets/javascripts/SqlLab/components/QueryTable.jsx:136
 msgid "Data preview"
@@ -542,7 +542,7 @@ msgstr ""
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:67
 msgid ".CSV"
-msgstr ""
+msgstr "CSV"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:78
 #: superset/assets/javascripts/SqlLab/components/VisualizeModal.jsx:241
@@ -558,11 +558,11 @@ msgstr "Tabella"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:162
 msgid "was created"
-msgstr ""
+msgstr "è stata creata"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:169
 msgid "Query in a new tab"
-msgstr ""
+msgstr "Query in un nuovo tab"
 
 #: superset/assets/javascripts/SqlLab/components/ResultSet.jsx:210
 msgid "Fetch data preview"
@@ -1075,69 +1075,69 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/components/EmbedCodeButton.jsx:76
 msgid "Height"
-msgstr ""
+msgstr "Altezza"
 
 #: superset/assets/javascripts/explore/components/EmbedCodeButton.jsx:90
 msgid "Width"
-msgstr ""
+msgstr "Larghezza"
 
 #: superset/assets/javascripts/explore/components/ExploreActionButtons.jsx:32
 msgid "Export to .json"
-msgstr ""
+msgstr "Esporta in .json"
 
 #: superset/assets/javascripts/explore/components/ExploreActionButtons.jsx:42
 msgid "Export to .csv format"
-msgstr ""
+msgstr "Esporta nel formato .csv"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:74
 msgid "Please enter a slice name"
-msgstr ""
+msgstr "Inserisci un nome per la slice"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:89
 msgid "Please select a dashboard"
-msgstr ""
+msgstr "Seleziona una dashboard"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:97
 msgid "Please enter a dashboard name"
-msgstr ""
+msgstr "Inserisci un nome per la dashboard"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:134
 msgid "Save A Slice"
-msgstr ""
+msgstr "Salva una slice"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:155
 #, python-format
 msgid "Overwrite slice %s"
-msgstr ""
+msgstr "Sovrascrivi la slice %s"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:164
 msgid "Save as"
-msgstr ""
+msgstr "Salva come"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:168
 msgid "[slice name]"
-msgstr ""
+msgstr "[nome slice]"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:181
 msgid "Do not add to a dashboard"
-msgstr ""
+msgstr "Non aggiugere alla dashboard"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:189
 msgid "Add slice to existing dashboard"
-msgstr ""
+msgstr "Aggiungi la slice alla dashboard esistente"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:205
 msgid "Add to new dashboard"
-msgstr ""
+msgstr "Aggiungi ad una nuova dashboard"
 
 #: superset/assets/javascripts/explore/components/SaveModal.jsx:231
 msgid "Save & go to dashboard"
-msgstr ""
+msgstr "Salva e vai alla dashboard"
 
 #: superset/assets/javascripts/explore/components/URLShortLinkButton.jsx:32
 #, python-format
 msgid "Check out this slice: %s"
-msgstr ""
+msgstr "Guarda questa slice: %s"
 
 #: superset/assets/javascripts/explore/components/controls/BoundsControl.jsx:55
 msgid "`Min` value should be numeric or empty"
@@ -1171,68 +1171,68 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/components/controls/DatasourceControl.jsx:122
 msgid "Select a datasource"
-msgstr ""
+msgstr "Seleziona un datasource"
 
 #: superset/assets/javascripts/explore/components/controls/DatasourceControl.jsx:132
 #: superset/assets/javascripts/explore/components/controls/VizTypeControl.jsx:120
 msgid "Search / Filter"
-msgstr ""
+msgstr "Cerca / Filtra"
 
 #: superset/assets/javascripts/explore/components/controls/Filter.jsx:114
 msgid "Filter value"
-msgstr ""
+msgstr "Valore del filtro"
 
 #: superset/assets/javascripts/explore/components/controls/Filter.jsx:143
 msgid "Select metric"
-msgstr ""
+msgstr "Seleziona una metrica"
 
 #: superset/assets/javascripts/explore/components/controls/Filter.jsx:143
 msgid "Select column"
-msgstr ""
+msgstr "Seleziona una colonna"
 
 #: superset/assets/javascripts/explore/components/controls/Filter.jsx:155
 msgid "Select operator"
-msgstr ""
+msgstr "Seleziona operatore"
 
 #: superset/assets/javascripts/explore/components/controls/FilterControl.jsx:138
 #: superset/templates/appbuilder/general/widgets/search.html:6
 msgid "Add Filter"
-msgstr ""
+msgstr "Aggiungi filtro"
 
 #: superset/assets/javascripts/explore/components/controls/SelectAsyncControl.jsx:24
 msgid "Error while fetching data"
-msgstr ""
+msgstr "Errore nel recupero dati"
 
 #: superset/assets/javascripts/explore/components/controls/SelectControl.jsx:106
 #, python-format
 msgid "Select %s"
-msgstr ""
+msgstr "Seleziona %s"
 
 #: superset/assets/javascripts/explore/components/controls/TextAreaControl.jsx:63
 msgid "textarea"
-msgstr ""
+msgstr "textarea"
 
 #: superset/assets/javascripts/explore/components/controls/TextAreaControl.jsx:81
 msgid "Edit"
-msgstr ""
+msgstr "Modifica"
 
 #: superset/assets/javascripts/explore/components/controls/TextAreaControl.jsx:81
 msgid "in modal"
-msgstr ""
+msgstr "in modale"
 
 #: superset/assets/javascripts/explore/components/controls/VizTypeControl.jsx:110
 msgid "Select a visualization type"
-msgstr ""
+msgstr "Seleziona un tipo di visualizzazione"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:32
 msgid "Updating chart was stopped"
-msgstr ""
+msgstr "L'aggiornamento del grafico è stato fermato"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:38
 #: superset/assets/javascripts/modules/superset.js:223
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
-msgstr ""
+msgstr "Errore nel rendering della visualizzazione: %s"
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:47
 msgid ""
@@ -1244,7 +1244,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/reducers/chartReducer.js:56
 msgid "Network error."
-msgstr ""
+msgstr "Errore di rete."
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:36
 msgid "A reference to the [Time] configuration, taking granularity into account"
@@ -1252,11 +1252,11 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:50
 msgid "Group by"
-msgstr ""
+msgstr "Raggruppa per"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:53
 msgid "One or many controls to group by"
-msgstr ""
+msgstr "Uno o più controlli per 'Raggruppa per'"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:72
 #: superset/connectors/druid/views.py:45 superset/views/core.py:318
@@ -1271,20 +1271,20 @@ msgstr "Tipo di Visualizzazione"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:84
 msgid "The type of visualization to display"
-msgstr ""
+msgstr "Il tipo di visualizzazione da mostrare"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:90
 msgid "Metrics"
-msgstr ""
+msgstr "Metriche"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:99
 #: superset/assets/javascripts/explore/stores/controls.jsx:116
 msgid "One or many metrics to display"
-msgstr ""
+msgstr "Una o più metriche da mostrare"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:103
 msgid "Y Axis Bounds"
-msgstr ""
+msgstr "Limite asse Y"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:106
 msgid ""
@@ -1295,7 +1295,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:114
 msgid "Ordering"
-msgstr ""
+msgstr "Ordina per"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:125
 #: superset/views/annotations.py:47
@@ -1322,15 +1322,15 @@ msgstr "Metrica"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:143
 msgid "Choose the metric"
-msgstr ""
+msgstr "Seleziona la metrica"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:156
 msgid "Right Axis Metric"
-msgstr ""
+msgstr "Metrica asse destro"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:160
 msgid "Choose a metric for right axis"
-msgstr ""
+msgstr "Seleziona una metrica per l'asse destro"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:171
 msgid "Stacked Style"
@@ -1402,11 +1402,11 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:299
 msgid "Display total row/column"
-msgstr ""
+msgstr "Mostra totali riga/colonna"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:304
 msgid "Show Markers"
-msgstr ""
+msgstr "Mostra marcatori"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:307
 msgid "Show data points as circle markers on the lines"
@@ -1624,15 +1624,15 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:610
 msgid "Since"
-msgstr ""
+msgstr "Data inizio"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:611
 msgid "7 days ago"
-msgstr ""
+msgstr "7 giorni"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:617
 msgid "Until"
-msgstr ""
+msgstr "Data fine"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:624
 msgid "Max Bubble Size"
@@ -2274,16 +2274,16 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:7
 #: superset/assets/javascripts/explore/stores/visTypes.js:31
 msgid "Time"
-msgstr ""
+msgstr "Tempo"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:9
 #: superset/assets/javascripts/explore/stores/visTypes.js:32
 msgid "Time related form attributes"
-msgstr ""
+msgstr "Attributi relativi al tempo"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:16
 msgid "Datasource & Chart Type"
-msgstr ""
+msgstr "Sorgente dati e tipo di grafico"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:45
 msgid "This section exposes ways to include snippets of SQL in your query"
@@ -2296,7 +2296,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:66
 msgid "Advanced Analytics"
-msgstr ""
+msgstr "Analytics avanzate"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:67
 msgid ""
@@ -2331,7 +2331,7 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:781
 #: superset/assets/javascripts/explore/stores/visTypes.js:993
 msgid "Chart Options"
-msgstr ""
+msgstr "Opzioni del grafico"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:126
 msgid "Breakdowns"
@@ -2343,40 +2343,40 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:133
 msgid "Pie Chart"
-msgstr ""
+msgstr "Grafico a torta"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:198
 msgid "Dual Axis Line Chart"
-msgstr ""
+msgstr "Grafico lineare a due assi"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:209
 msgid "Y Axis 1"
-msgstr ""
+msgstr "Asse Y 1"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:215
 msgid "Y Axis 2"
-msgstr ""
+msgstr "Asse Y 2"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:224
 msgid "Left Axis Metric"
-msgstr ""
+msgstr "Metrica asse sinistro"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:225
 msgid "Choose a metric for left axis"
-msgstr ""
+msgstr "Seleziona una metrica per l'asse sinistro"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:228
 msgid "Left Axis Format"
-msgstr ""
+msgstr "Formato asse sinistro"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:254
 #: superset/assets/javascripts/explore/stores/visTypes.js:312
 msgid "Axes"
-msgstr ""
+msgstr "Assi"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:337
 msgid "GROUP BY"
-msgstr ""
+msgstr "RAGGRUPPA PER"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:338
 msgid "Use this section if you want a query that aggregates"
@@ -2384,7 +2384,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:346
 msgid "NOT GROUPED BY"
-msgstr ""
+msgstr "NON RAGGRUPPARE PER"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:347
 msgid "Use this section if you want to query atomic rows"
@@ -2395,16 +2395,16 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:819
 #: superset/assets/javascripts/explore/stores/visTypes.js:912
 msgid "Options"
-msgstr ""
+msgstr "Opzioni"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:541
 #: superset/assets/javascripts/explore/stores/visTypes.js:853
 msgid "Bubbles"
-msgstr ""
+msgstr "Bolle"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:667
 msgid "Numeric Column"
-msgstr ""
+msgstr "Colonne numeriche"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:668
 msgid "Select the numeric column to draw the histogram"
@@ -2428,7 +2428,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:703
 msgid "Secondary Metric"
-msgstr ""
+msgstr "Metrica secondaria"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:704
 msgid ""
@@ -2438,7 +2438,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:709
 msgid "Hierarchy"
-msgstr ""
+msgstr "Gerarchia"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:710
 msgid "This defines the level of the hierarchy"
@@ -2447,12 +2447,12 @@ msgstr ""
 #: superset/assets/javascripts/explore/stores/visTypes.js:736
 #: superset/assets/javascripts/explore/stores/visTypes.js:764
 msgid "Source / Target"
-msgstr ""
+msgstr "Sorgente / Destinazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:737
 #: superset/assets/javascripts/explore/stores/visTypes.js:765
 msgid "Choose a source and a target"
-msgstr ""
+msgstr "Seleziona una sorgente ed una destinazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:770
 msgid "Chord Diagram"
@@ -2460,23 +2460,23 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:791
 msgid "Choose a number format"
-msgstr ""
+msgstr "Seleziona una formato numerico"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:794
 msgid "Source"
-msgstr ""
+msgstr "Sorgente"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:797
 msgid "Choose a source"
-msgstr ""
+msgstr "Seleziona una sorgente"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:800
 msgid "Target"
-msgstr ""
+msgstr "Destinazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:803
 msgid "Choose a target"
-msgstr ""
+msgstr "Seleziona una destinazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:828
 msgid "ISO 3166-2 codes of region/province/department"
@@ -2494,11 +2494,11 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:864
 msgid "3 letter code of the country"
-msgstr ""
+msgstr "Codice a 3 lettere della nazione"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:867
 msgid "Metric for color"
-msgstr ""
+msgstr "Metrica per il colore"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:868
 msgid "Metric that defines the color of the country"
@@ -2506,11 +2506,11 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:871
 msgid "Bubble size"
-msgstr ""
+msgstr "Grandezza della bolla"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:872
 msgid "Metric that defines the size of the bubble"
-msgstr ""
+msgstr "Metrica che definisce la grandezza di una bolla"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:878
 msgid "Filter Box"
@@ -2518,7 +2518,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:897
 msgid "Filter controls"
-msgstr ""
+msgstr "Controlli del filtro"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:898
 msgid ""
@@ -2552,7 +2552,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1048
 msgid "Longitude"
-msgstr ""
+msgstr "Longitudine"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1049
 msgid "Column containing longitude data"
@@ -2560,7 +2560,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1052
 msgid "Latitude"
-msgstr ""
+msgstr "Latitudine"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1053
 msgid "Column containing latitude data"
@@ -2578,7 +2578,7 @@ msgstr ""
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1061
 msgid "Tooltip"
-msgstr ""
+msgstr "Suggerimento"
 
 #: superset/assets/javascripts/explore/stores/visTypes.js:1062
 msgid "Show a tooltip when hovering over points and clusters describing the label"
