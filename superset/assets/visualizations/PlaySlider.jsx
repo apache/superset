@@ -35,19 +35,13 @@ const defaultProps = {
 export default class PlaySlider extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = { intervalId: null };
 
     const range = props.end - props.start;
     const frames = Math.min(props.maxFrames, range / props.step);
-    const intervalMilliseconds = props.loopDuration / frames;
     const width = range / frames;
-    let increment;
-    if (width < props.step) {
-      increment = props.step;
-    } else {
-      increment = width - (width % props.step);
-    }
-
-    this.state = { intervalId: null, intervalMilliseconds, increment };
+    this.intervalMilliseconds = props.loopDuration / frames;
+    this.increment = width < props.step ? props.step : width - (width % props.step);
 
     this.onChange = this.onChange.bind(this);
     this.play = this.play.bind(this);
@@ -63,7 +57,7 @@ export default class PlaySlider extends React.PureComponent {
     Mousetrap.unbind(['space']);
   }
   onChange(event) {
-    this.props.onChange({ values: event.target.value });
+    this.props.onChange(event.target.value);
     if (this.state.intervalId != null) {
       this.pause();
     }
@@ -81,7 +75,7 @@ export default class PlaySlider extends React.PureComponent {
     if (this.state.intervalId != null) {
       this.pause();
     } else {
-      const id = setInterval(this.step, this.state.intervalMilliseconds);
+      const id = setInterval(this.step, this.intervalMilliseconds);
       this.setState({ intervalId: id });
     }
   }
@@ -93,12 +87,12 @@ export default class PlaySlider extends React.PureComponent {
     if (this.props.disabled) {
       return;
     }
-    let values = this.props.values.map(value => value + this.state.increment);
+    let values = this.props.values.map(value => value + this.increment);
     if (values[1] > this.props.end) {
       const cr = values[0] - this.props.start;
       values = values.map(value => value - cr);
     }
-    this.props.onChange({ values });
+    this.props.onChange(values);
   }
   formatter(values) {
     if (this.props.disabled) {

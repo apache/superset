@@ -6,8 +6,7 @@ import PropTypes from 'prop-types';
 
 import { ScatterplotLayer } from 'deck.gl';
 
-import DeckGLContainer from '../DeckGLContainer';
-import PlaySlider from '../../PlaySlider';
+import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
 
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
@@ -36,7 +35,7 @@ function getStep(timeGrain) {
   return milliseconds[timeGrain];
 }
 
-function getLayer(formData, payload, slice) {
+function getLayer(formData, payload, slice, inFrame) {
   const fd = formData;
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
@@ -65,6 +64,10 @@ function getLayer(formData, payload, slice) {
     data = jsFnMutator(data);
   }
 
+  if (inFrame != null) {
+    data = data.filter(inFrame);
+  }
+
   return new ScatterplotLayer({
     id: `scatter-layer-${fd.slice_id}`,
     data,
@@ -75,91 +78,71 @@ function getLayer(formData, payload, slice) {
 }
 
 const propTypes = {
-  viewport: PropTypes.object.isRequired,
   slice: PropTypes.object.isRequired,
   payload: PropTypes.object.isRequired,
   setControlValue: PropTypes.func.isRequired,
+  viewport: PropTypes.object.isRequired,
 };
 
 class DeckGLScatter extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = this.getStateFromProps(props);
-  }
-  componentWillReceiveProps(nextProps) {
-    const nextState = this.getStateFromProps(nextProps);
-    if (
-      nextState.start !== this.state.start ||
-      nextState.end !== this.state.end ||
-      nextState.step !== this.state.step
-    ) {
-      this.setState(nextState);
-    }
-  }
-  getStateFromProps(props) {
-    const fd = props.slice.formData;
-    const timeGrain = fd.time_grain_sqla || fd.granularity;
-    const step = timeGrain ? getStep(timeGrain) : getStep('min');
+  /* eslint-disable no-unused-vars */
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const fd = nextProps.slice.formData;
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'min';
 
     // find start and end based on the data
-    let start = props.payload.data.features[0].__timestamp;
-    let end = start;
-    props.payload.data.features.forEach((feature) => {
-      if (feature.__timestamp < start) {
-        start = feature.__timestamp;
-      }
-      if (feature.__timestamp > end) {
-        end = feature.__timestamp;
-      }
-    });
-    // truncate start and end to the closest step
+    const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
+    let start = Math.min(...timestamps);
+    let end = Math.max(...timestamps);
+
+    // lock start and end to the closest steps
+    const step = getStep(timeGrain);
     start -= start % step;
-    end -= end % step - step;
+    end += step - end % step;
 
     const values = timeGrain != null ? [start, start + step] : [start, end];
-    return {
-      start,
-      end,
-      step,
-      values,
-    };
+    const disabled = timestamps.every(timestamp => timestamp === null);
+
+    return { start, end, step, values, disabled };
   }
-  filterPayload() {
-    const payload = Object.assign({}, this.props.payload);
-    payload.data = Object.assign({}, this.props.payload.data);
-    const features = payload.data.features;
+  constructor(props) {
+    super(props);
+    this.state = DeckGLScatter.getDerivedStateFromProps(props);
 
-    const values = this.state.values;
-    let valid;
-    if (values[0] === values[1] || values[1] === this.state.end) {
-      valid = t => t.__timestamp >= values[0] && t.__timestamp <= values[1];
+    this.getLayers = this.getLayers.bind(this);
+  }
+  componentWillReceiveProps(nextProps) {
+    this.setState(DeckGLScatter.getDerivedStateFromProps(nextProps, this.state));
+  }
+  getLayers(values) {
+    let inFrame;
+    if (values[0] === values[1] || values[1] === this.end) {
+      inFrame = t => t.__timestamp >= values[0] && t.__timestamp <= values[1];
     } else {
-      valid = t => t.__timestamp >= values[0] && t.__timestamp < values[1];
+      inFrame = t => t.__timestamp >= values[0] && t.__timestamp < values[1];
     }
-    payload.data.features = features.filter(valid);
+    const layer = getLayer(
+      this.props.slice.formData,
+      this.props.payload,
+      this.props.slice,
+      inFrame);
 
-    return payload;
+    return [layer];
   }
   render() {
-    const payload = this.filterPayload();
-    const layer = getLayer(this.props.slice.formData, payload, this.props.slice);
     return (
-      <div>
-        <DeckGLContainer
-          mapboxApiAccessToken={payload.data.mapboxApiKey}
-          viewport={this.props.viewport}
-          layers={[layer]}
-          mapStyle={this.props.slice.formData.mapbox_style}
-          setControlValue={this.props.setControlValue}
-        />
-        <PlaySlider
-          start={this.state.start}
-          end={this.state.end}
-          step={this.state.step}
-          values={this.state.values}
-          onChange={newState => this.setState(newState)}
-        />
-      </div>
+      <AnimatableDeckGLContainer
+        getLayers={this.getLayers}
+        start={this.state.start}
+        end={this.state.end}
+        step={this.state.step}
+        values={this.state.values}
+        disabled={this.state.disabled}
+        viewport={this.props.viewport}
+        mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
+        mapStyle={this.props.slice.formData.mapbox_style}
+        setControlValue={this.props.setControlValue}
+      />
     );
   }
 }
@@ -174,10 +157,10 @@ function deckScatter(slice, payload, setControlValue) {
   };
   ReactDOM.render(
     <DeckGLScatter
-      viewport={viewport}
       slice={slice}
       payload={payload}
       setControlValue={setControlValue}
+      viewport={viewport}
     />,
     document.getElementById(slice.containerId),
   );
