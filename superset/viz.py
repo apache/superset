@@ -15,12 +15,12 @@ import hashlib
 import inspect
 from itertools import product
 import logging
+import math
 import traceback
 import uuid
-import zlib
 
 from dateutil import relativedelta as rdelta
-from flask import request
+from flask import escape, request
 from flask_babel import lazy_gettext as _
 import geohash
 from markdown import markdown
@@ -29,8 +29,8 @@ import pandas as pd
 from pandas.tseries.frequencies import to_offset
 import polyline
 import simplejson as json
-from six import PY3, string_types, text_type
-from six.moves import reduce
+from six import string_types, text_type
+from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
 from superset.utils import DTTM_ALIAS, merge_extra_filters
@@ -48,8 +48,9 @@ class BaseViz(object):
     credits = ''
     is_timeseries = False
     default_fillna = 0
+    cache_type = 'df'
 
-    def __init__(self, datasource, form_data):
+    def __init__(self, datasource, form_data, force=False):
         if not datasource:
             raise Exception(_('Viz is missing a datasource'))
         self.datasource = datasource
@@ -66,11 +67,45 @@ class BaseViz(object):
 
         self.status = None
         self.error_message = None
+        self.force = force
 
-    def get_fillna_for_type(self, col_type):
+        # Keeping track of whether some data came from cache
+        # this is useful to trigerr the <CachedLabel /> when
+        # in the cases where visualization have many queries
+        # (FilterBox for instance)
+        self._some_from_cache = False
+        self._any_cache_key = None
+        self._any_cached_dttm = None
+
+        self.run_extra_queries()
+
+    def run_extra_queries(self):
+        """Lyfecycle method to use when more than one query is needed
+
+        In rare-ish cases, a visualization may need to execute multiple
+        queries. That is the case for FilterBox or for time comparison
+        in Line chart for instance.
+
+        In those cases, we need to make sure these queries run before the
+        main `get_payload` method gets called, so that the overall caching
+        metadata can be right. The way it works here is that if any of
+        the previous `get_df_payload` calls hit the cache, the main
+        payload's metadata will reflect that.
+
+        The multi-query support may need more work to become a first class
+        use case in the framework, and for the UI to reflect the subtleties
+        (show that only some of the queries were served from cache for
+        instance). In the meantime, since multi-query is rare, we treat
+        it with a bit of a hack. Note that the hack became necessary
+        when moving from caching the visualization's data itself, to caching
+        the underlying query(ies).
+        """
+        pass
+
+    def get_fillna_for_col(self, col):
         """Returns the value for use as filler for a specific Column.type"""
-        if col_type:
-            if col_type == 'TEXT' or col_type.startswith('VARCHAR'):
+        if col:
+            if col.is_string:
                 return ' NULL'
         return self.default_fillna
 
@@ -78,8 +113,11 @@ class BaseViz(object):
         """Returns a dict or scalar that can be passed to DataFrame.fillna"""
         if columns is None:
             return self.default_fillna
-        columns_types = self.datasource.columns_types
-        fillna = {c: self.get_fillna_for_type(columns_types.get(c)) for c in columns}
+        columns_dict = {col.column_name: col for col in self.datasource.columns}
+        fillna = {
+            c: self.get_fillna_for_col(columns_dict.get(c))
+            for c in columns
+        }
         return fillna
 
     def get_df(self, query_obj=None):
@@ -221,9 +259,9 @@ class BaseViz(object):
             return self.datasource.database.cache_timeout
         return config.get('CACHE_DEFAULT_TIMEOUT')
 
-    def get_json(self, force=False):
+    def get_json(self):
         return json.dumps(
-            self.get_payload(force),
+            self.get_payload(),
             default=utils.json_int_dttm_ser, ignore_nan=True)
 
     def cache_key(self, query_obj):
@@ -245,64 +283,75 @@ class BaseViz(object):
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
 
-    def get_payload(self, force=False):
-        """Handles caching around the json payload retrieval"""
-        query_obj = self.query_obj()
+    def get_payload(self, query_obj=None):
+        """Returns a payload of metadata and data"""
+        payload = self.get_df_payload(query_obj)
+
+        df = payload.get('df')
+        if df is not None and len(df.index) == 0:
+            raise Exception('No data')
+        payload['data'] = self.get_data(df)
+        del payload['df']
+        return payload
+
+    def get_df_payload(self, query_obj=None):
+        """Handles caching around the df payload retrieval"""
+        if not query_obj:
+            query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj) if query_obj else None
-        cached_dttm = None
-        data = None
+        logging.info('Cache key: {}'.format(cache_key))
+        is_loaded = False
         stacktrace = None
-        rowcount = None
-        if cache_key and cache and not force:
+        df = None
+        cached_dttm = datetime.utcnow().isoformat().split('.')[0]
+        if cache_key and cache and not self.force:
             cache_value = cache.get(cache_key)
             if cache_value:
                 stats_logger.incr('loaded_from_cache')
-                is_cached = True
                 try:
-                    cache_value = zlib.decompress(cache_value)
-                    if PY3:
-                        cache_value = cache_value.decode('utf-8')
-                    cache_value = json.loads(cache_value)
-                    data = cache_value['data']
-                    cached_dttm = cache_value['dttm']
+                    cache_value = pkl.loads(cache_value)
+                    df = cache_value['df']
+                    is_loaded = True
+                    self._any_cache_key = cache_key
+                    self._any_cached_dttm = cache_value['dttm']
                 except Exception as e:
+                    logging.exception(e)
                     logging.error('Error reading cache: ' +
                                   utils.error_msg_from_exception(e))
-                    data = None
                 logging.info('Serving from cache')
 
-        if not data:
-            stats_logger.incr('loaded_from_source')
-            is_cached = False
+        if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
-                if not self.error_message:
-                    data = self.get_data(df)
-                rowcount = len(df.index) if df is not None else 0
+                stats_logger.incr('loaded_from_source')
+                is_loaded = True
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
-                    self.error_message = str(e)
+                    self.error_message = escape('{}'.format(e))
                 self.status = utils.QueryStatus.FAILED
-                data = None
                 stacktrace = traceback.format_exc()
 
             if (
-                    data and
+                    is_loaded and
                     cache_key and
                     cache and
                     self.status != utils.QueryStatus.FAILED):
-                cached_dttm = datetime.utcnow().isoformat().split('.')[0]
                 try:
-                    cache_value = self.json_dumps({
-                        'data': data,
-                        'dttm': cached_dttm,
-                    })
-                    if PY3:
-                        cache_value = bytes(cache_value, 'utf-8')
+                    cache_value = dict(
+                        dttm=cached_dttm,
+                        df=df if df is not None else None,
+                    )
+                    cache_value = pkl.dumps(
+                        cache_value, protocol=pkl.HIGHEST_PROTOCOL)
+
+                    logging.info('Caching {} chars at key {}'.format(
+                        len(cache_value), cache_key))
+
+                    stats_logger.incr('set_cache_key')
                     cache.set(
                         cache_key,
-                        zlib.compress(cache_value),
+                        cache_value,
                         timeout=self.cache_timeout)
                 except Exception as e:
                     # cache.set call can fail if the backend is down or if
@@ -312,17 +361,17 @@ class BaseViz(object):
                     cache.delete(cache_key)
 
         return {
-            'cache_key': cache_key,
-            'cached_dttm': cached_dttm,
+            'cache_key': self._any_cache_key,
+            'cached_dttm': self._any_cached_dttm,
             'cache_timeout': self.cache_timeout,
-            'data': data,
+            'df': df,
             'error': self.error_message,
             'form_data': self.form_data,
-            'is_cached': is_cached,
+            'is_cached': self._any_cache_key is not None,
             'query': self.query,
             'status': self.status,
             'stacktrace': stacktrace,
-            'rowcount': rowcount,
+            'rowcount': len(df.index) if df is not None else 0,
         }
 
     def json_dumps(self, obj, sort_keys=False):
@@ -411,7 +460,11 @@ class TableViz(BaseViz):
 
     def get_data(self, df):
         fd = self.form_data
-        if not self.should_be_timeseries() and DTTM_ALIAS in df:
+        if (
+                not self.should_be_timeseries() and
+                df is not None and
+                DTTM_ALIAS in df
+        ):
             del df[DTTM_ALIAS]
 
         # Sum up and compute percentages for all percent metrics
@@ -1058,26 +1111,38 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df = df[num_period_compare:]
         return df
 
-    def get_data(self, df):
+    def run_extra_queries(self):
         fd = self.form_data
-        df = self.process_data(df)
-        chart_data = self.to_series(df)
-
         time_compare = fd.get('time_compare')
+        self.extra_chart_data = None
         if time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(time_compare)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
+
+            if not query_object['from_dttm'] or not query_object['to_dttm']:
+                raise Exception(_(
+                    '`Since` and `Until` time bounds should be specified '
+                    'when using the `Time Shift` feature.'))
             query_object['from_dttm'] -= delta
             query_object['to_dttm'] -= delta
 
-            df2 = self.get_df(query_object)
-            df2[DTTM_ALIAS] += delta
-            df2 = self.process_data(df2)
-            chart_data += self.to_series(
-                df2, classed='superset', title_suffix='---')
+            df2 = self.get_df_payload(query_object).get('df')
+            if df2 is not None:
+                df2[DTTM_ALIAS] += delta
+                df2 = self.process_data(df2)
+                self.extra_chart_data = self.to_series(
+                    df2, classed='superset', title_suffix='---')
+
+    def get_data(self, df):
+        df = self.process_data(df)
+        chart_data = self.to_series(df)
+
+        if self.extra_chart_data:
+            chart_data += self.extra_chart_data
             chart_data = sorted(chart_data, key=lambda x: x['key'])
+
         return chart_data
 
 
@@ -1345,24 +1410,22 @@ class SunburstViz(BaseViz):
         '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>')
 
     def get_data(self, df):
-
-        # if m1 == m2 duplicate the metric column
-        cols = self.form_data.get('groupby')
-        metric = self.form_data.get('metric')
-        secondary_metric = self.form_data.get('secondary_metric')
-        if metric == secondary_metric:
-            ndf = df
-            ndf.columns = [cols + ['m1', 'm2']]
-        else:
-            cols += [
-                self.form_data['metric'], self.form_data['secondary_metric']]
-            ndf = df[cols]
-        return json.loads(ndf.to_json(orient='values'))  # TODO fix this nonsense
+        fd = self.form_data
+        cols = fd.get('groupby')
+        metric = fd.get('metric')
+        secondary_metric = fd.get('secondary_metric')
+        if metric == secondary_metric or secondary_metric is None:
+            df.columns = cols + ['m1']
+            df['m2'] = df['m1']
+        return json.loads(df.to_json(orient='values'))
 
     def query_obj(self):
         qry = super(SunburstViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric'], self.form_data['secondary_metric']]
+        fd = self.form_data
+        qry['metrics'] = [fd['metric']]
+        secondary_metric = fd.get('secondary_metric')
+        if secondary_metric and secondary_metric != fd['metric']:
+            qry['metrics'].append(secondary_metric)
         return qry
 
 
@@ -1555,9 +1618,19 @@ class FilterBoxViz(BaseViz):
     verbose_name = _('Filters')
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    cache_type = 'get_data'
 
     def query_obj(self):
         return None
+
+    def run_extra_queries(self):
+        qry = self.filter_query_obj()
+        filters = [g for g in self.form_data['groupby']]
+        self.dataframes = {}
+        for flt in filters:
+            qry['groupby'] = [flt]
+            df = self.get_df_payload(query_obj=qry).get('df')
+            self.dataframes[flt] = df
 
     def filter_query_obj(self):
         qry = super(FilterBoxViz, self).query_obj()
@@ -1569,12 +1642,10 @@ class FilterBoxViz(BaseViz):
         return qry
 
     def get_data(self, df):
-        qry = self.filter_query_obj()
-        filters = [g for g in self.form_data['groupby']]
         d = {}
+        filters = [g for g in self.form_data['groupby']]
         for flt in filters:
-            qry['groupby'] = [flt]
-            df = super(FilterBoxViz, self).get_df(qry)
+            df = self.dataframes[flt]
             d[flt] = [{
                 'id': row[0],
                 'text': row[0],
@@ -1860,7 +1931,6 @@ class BaseDeckGLViz(BaseViz):
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
-
         if spatial.get('type') == 'latlong':
             df[key] = list(zip(df[spatial.get('lonCol')], df[spatial.get('latCol')]))
         elif spatial.get('type') == 'delimited':
@@ -2185,6 +2255,32 @@ class PairedTTestViz(BaseViz):
             else:
                 data[key] = [d]
         return data
+
+
+class RoseViz(NVD3TimeSeriesViz):
+
+    viz_type = 'rose'
+    verbose_name = _('Time Series - Nightingale Rose Chart')
+    sort_series = False
+    is_timeseries = True
+
+    def get_data(self, df):
+        data = super(RoseViz, self).get_data(df)
+        result = {}
+        for datum in data:
+            key = datum['key']
+            for val in datum['values']:
+                timestamp = val['x'].value
+                if not result.get(timestamp):
+                    result[timestamp] = []
+                value = 0 if math.isnan(val['y']) else val['y']
+                result[timestamp].append({
+                    'key': key,
+                    'value': value,
+                    'name': ', '.join(key) if isinstance(key, list) else key,
+                    'time': val['x'],
+                })
+        return result
 
 
 class PartitionViz(NVD3TimeSeriesViz):

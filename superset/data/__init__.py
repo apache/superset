@@ -1016,7 +1016,12 @@ def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding="utf-8")
-    pdf['date'] = datetime.datetime.now().date()
+    start = datetime.datetime.now().replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    pdf['datetime'] = [
+        start + datetime.timedelta(hours=i * 24 / (len(pdf) - 1))
+        for i in range(len(pdf))
+    ]
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
     pdf['geohash'] = pdf[['LAT', 'LON']].apply(
@@ -1038,7 +1043,7 @@ def load_long_lat_data():
             'region': String(50),
             'postcode': Float(),
             'id': String(100),
-            'date': Date(),
+            'datetime': DateTime(),
             'occupancy': Float(),
             'radius_miles': Float(),
             'geohash': String(12),
@@ -1052,7 +1057,7 @@ def load_long_lat_data():
     obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
     if not obj:
         obj = TBL(table_name='long_lat')
-    obj.main_dttm_col = 'date'
+    obj.main_dttm_col = 'datetime'
     obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
@@ -1261,10 +1266,10 @@ def load_deck_dash():
         "point_radius_fixed": {"type": "metric", "value": "count"},
         "point_unit": "square_m",
         "row_limit": 5000,
-        "since": "2014-01-01",
+        "since": None,
         "size": "count",
         "time_grain_sqla": "Time Column",
-        "until": "now",
+        "until": None,
         "viewport": {
             "bearing": -4.952916738791771,
             "latitude": 37.78926922909199,
@@ -1300,9 +1305,9 @@ def load_deck_dash():
         "granularity_sqla": "date",
         "size": "count",
         "viz_type": "deck_screengrid",
-        "since": "2014-01-01",
+        "since": None,
         "point_radius": "Auto",
-        "until": "now",
+        "until": None,
         "color_picker": {
             "a": 1,
             "r": 14,
@@ -1347,10 +1352,10 @@ def load_deck_dash():
         "granularity_sqla": "date",
         "size": "count",
         "viz_type": "deck_hex",
-        "since": "2014-01-01",
+        "since": None,
         "point_radius_unit": "Pixels",
         "point_radius": "Auto",
-        "until": "now",
+        "until": None,
         "color_picker": {
             "a": 1,
             "r": 14,
@@ -1396,10 +1401,10 @@ def load_deck_dash():
         "granularity_sqla": "date",
         "size": "count",
         "viz_type": "deck_grid",
-        "since": "2014-01-01",
+        "since": None,
         "point_radius_unit": "Pixels",
         "point_radius": "Auto",
-        "until": "now",
+        "until": None,
         "color_picker": {
             "a": 1,
             "r": 14,
@@ -1441,8 +1446,8 @@ def load_deck_dash():
             "slice_id": 41,
             "granularity_sqla": None,
             "time_grain_sqla": None,
-            "since": "7 days ago",
-            "until": "now",
+            "since": None,
+            "until": None,
             "line_column": "contour",
             "line_type": "json",
             "mapbox_style": "mapbox://styles/mapbox/light-v9",
@@ -1510,8 +1515,8 @@ def load_deck_dash():
             "slice_id": 42,
             "granularity_sqla": "date",
             "time_grain_sqla": "Time Column",
-            "since": "2014-01-01",
-            "until": "now",
+            "since": None,
+            "until": None,
             "start_spatial": {
                 "type": "latlong",
                 "latCol": "LATITUDE",
@@ -1568,8 +1573,8 @@ def load_deck_dash():
         "slice_id": 43,
         "viz_type": "deck_path",
         "time_grain_sqla": "Time Column",
-        "since": "7 days ago",
-        "until": "now",
+        "since": None,
+        "until": None,
         "line_column": "path_json",
         "line_type": "json",
         "row_limit": 5000,

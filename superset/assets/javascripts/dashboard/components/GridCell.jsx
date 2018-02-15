@@ -16,8 +16,6 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
-  exploreChartUrl: PropTypes.string,
-  exportCSVUrl: PropTypes.string,
   slice: PropTypes.object,
   chartKey: PropTypes.string,
   formData: PropTypes.object,
@@ -26,6 +24,8 @@ const propTypes = {
   removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
+  exploreChart: PropTypes.func,
+  exportCSV: PropTypes.func,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
@@ -39,6 +39,8 @@ const defaultProps = {
   removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
+  exploreChart: () => ({}),
+  exportCSV: () => ({}),
   addFilter: () => ({}),
   getFilters: () => ({}),
   clearFilter: () => ({}),
@@ -83,9 +85,10 @@ class GridCell extends React.PureComponent {
 
   render() {
     const {
-      exploreChartUrl, exportCSVUrl, isExpanded, isLoading, isCached, cachedDttm,
+      isExpanded, isLoading, isCached, cachedDttm,
       removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
       chartKey, slice, datasource, formData, timeout, annotationQuery,
+      exploreChart, exportCSV,
     } = this.props;
     return (
       <div
@@ -95,8 +98,6 @@ class GridCell extends React.PureComponent {
         <div ref={this.getHeaderId(slice)}>
           <SliceHeader
             slice={slice}
-            exploreChartUrl={exploreChartUrl}
-            exportCSVUrl={exportCSVUrl}
             isExpanded={isExpanded}
             isCached={isCached}
             cachedDttm={cachedDttm}
@@ -106,8 +107,16 @@ class GridCell extends React.PureComponent {
             forceRefresh={forceRefresh}
             editMode={this.props.editMode}
             annotationQuery={annotationQuery}
+            exploreChart={exploreChart}
+            exportCSV={exportCSV}
           />
         </div>
+        {
+        /* This usage of dangerouslySetInnerHTML is safe since it is being used to render
+           markdown that is sanitized with bleach. See:
+             https://github.com/apache/incubator-superset/pull/4390
+           and
+             https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825 */}
         <div
           className="slice_description bs-callout bs-callout-default"
           style={isExpanded ? {} : { display: 'none' }}

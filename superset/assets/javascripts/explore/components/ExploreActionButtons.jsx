@@ -5,29 +5,33 @@ import URLShortLinkButton from './URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
 import { t } from '../../locales';
+import { exportChart } from '../exploreUtils';
 
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
   slice: PropTypes.object,
-  queryEndpoint: PropTypes.string.isRequired,
-  queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
+  latestQueryFormData: PropTypes.object,
+  queryResponse: PropTypes.object,
 };
 
 export default function ExploreActionButtons({
-    chartStatus, canDownload, slice, queryResponse, queryEndpoint }) {
+    canDownload, slice, chartStatus, latestQueryFormData, queryResponse }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
+  const doExportCSV = exportChart.bind(this, latestQueryFormData, 'csv');
+  const doExportChart = exportChart.bind(this, latestQueryFormData, 'json');
+
   if (slice) {
     return (
       <div className="btn-group results" role="group">
-        <URLShortLinkButton slice={slice} />
+        <URLShortLinkButton latestQueryFormData={latestQueryFormData} />
 
-        <EmbedCodeButton slice={slice} />
+        <EmbedCodeButton latestQueryFormData={latestQueryFormData} />
 
         <a
-          href={slice.data.json_endpoint}
+          onClick={doExportChart}
           className="btn btn-default btn-sm"
           title={t('Export to .json')}
           target="_blank"
@@ -37,7 +41,7 @@ export default function ExploreActionButtons({
         </a>
 
         <a
-          href={slice.data.csv_endpoint}
+          onClick={doExportCSV}
           className={exportToCSVClasses}
           title={t('Export to .csv format')}
           target="_blank"
@@ -48,14 +52,14 @@ export default function ExploreActionButtons({
 
         <DisplayQueryButton
           queryResponse={queryResponse}
-          queryEndpoint={queryEndpoint}
+          latestQueryFormData={latestQueryFormData}
           chartStatus={chartStatus}
         />
       </div>
     );
   }
   return (
-    <DisplayQueryButton queryEndpoint={queryEndpoint} />
+    <DisplayQueryButton latestQueryFormData={latestQueryFormData} />
   );
 }
 

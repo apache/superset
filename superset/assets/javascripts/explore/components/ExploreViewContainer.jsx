@@ -8,7 +8,7 @@ import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
-import { getExploreUrl } from '../exploreUtils';
+import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../stores/store';
 import { chartPropType } from '../../chart/chartReducer';
@@ -50,10 +50,16 @@ class ExploreViewContainer extends React.Component {
       width: this.getWidth(),
       showModal: false,
     };
+
+    this.addHistory = this.addHistory.bind(this);
+    this.handleResize = this.handleResize.bind(this);
+    this.handlePopstate = this.handlePopstate.bind(this);
   }
 
   componentDidMount() {
-    window.addEventListener('resize', this.handleResize.bind(this));
+    window.addEventListener('resize', this.handleResize);
+    window.addEventListener('popstate', this.handlePopstate);
+    this.addHistory({ isReplace: true });
   }
 
   componentWillReceiveProps(np) {
@@ -72,7 +78,8 @@ class ExploreViewContainer extends React.Component {
     // if any control value changed and it's an instant control
     if (Object.keys(np.controls).some(key => (np.controls[key].renderTrigger &&
       typeof this.props.controls[key] !== 'undefined' &&
-      !areObjectsEqual(np.controls[key].value, this.props.controls[key].value)))) {
+      !areObjectsEqual(np.controls[key].value, this.props.controls[key].value)))
+    ) {
       this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
     }
   }
@@ -82,7 +89,8 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize.bind(this));
+    window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('popstate', this.handlePopstate);
   }
 
   onQuery() {
@@ -90,10 +98,7 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.removeControlPanelAlert();
     this.props.actions.triggerQuery(true, this.props.chart.chartKey);
 
-    history.pushState(
-      {},
-      document.title,
-      getExploreUrl(this.props.form_data));
+    this.addHistory({});
   }
 
   onStop() {
@@ -119,11 +124,45 @@ class ExploreViewContainer extends React.Component {
     }
   }
 
+  addHistory({ isReplace = false, title }) {
+    const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
+    const longUrl = getExploreLongUrl(this.props.form_data);
+    if (isReplace) {
+      history.replaceState(
+        payload,
+        title,
+        longUrl);
+    } else {
+      history.pushState(
+        payload,
+        title,
+        longUrl);
+    }
+
+    // it seems some browsers don't support pushState title attribute
+    if (title) {
+      document.title = title;
+    }
+  }
+
   handleResize() {
     clearTimeout(this.resizeTimer);
     this.resizeTimer = setTimeout(() => {
       this.setState({ height: this.getHeight(), width: this.getWidth() });
     }, 250);
+  }
+
+  handlePopstate() {
+    const formData = history.state;
+    if (formData && Object.keys(formData).length) {
+      this.props.actions.setExploreControls(formData);
+      this.props.actions.runQuery(
+        formData,
+        false,
+        this.props.timeout,
+        this.props.chart.chartKey,
+      );
+    }
   }
 
   toggleModal() {
@@ -162,6 +201,7 @@ class ExploreViewContainer extends React.Component {
         width={this.state.width}
         height={this.state.height}
         {...this.props}
+        addHistory={this.addHistory}
       />);
   }
 

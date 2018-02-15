@@ -35,6 +35,10 @@ function getStep(timeGrain) {
   return milliseconds[timeGrain];
 }
 
+function getPoints(data) {
+  return data.map(d => d.position);
+}
+
 function getLayer(formData, payload, slice, inFrame) {
   const fd = formData;
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
@@ -150,11 +154,20 @@ class DeckGLScatter extends React.PureComponent {
 DeckGLScatter.propTypes = propTypes;
 
 function deckScatter(slice, payload, setControlValue) {
-  const viewport = {
-    ...slice.formData.viewport,
-    width: slice.width(),
-    height: slice.height(),
+  const layer = getLayer(slice.formData, payload, slice);
+  const fd = slice.formData;
+  const width = slice.width();
+  const height = slice.height();
+  let viewport = {
+    ...fd.viewport,
+    width,
+    height,
   };
+
+  if (fd.autozoom) {
+    viewport = common.fitViewport(viewport, getPoints(payload.data.features));
+  }
+
   ReactDOM.render(
     <DeckGLScatter
       slice={slice}

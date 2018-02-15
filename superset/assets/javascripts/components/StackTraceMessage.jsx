@@ -26,20 +26,13 @@ class StackTraceMessage extends React.PureComponent {
   }
 
   render() {
-    const msg = (
-      <div>
-        <p
-          dangerouslySetInnerHTML={{ __html: this.props.message }}
-        />
-      </div>);
-
     return (
       <div className={`stack-trace-container${this.hasTrace() ? ' has-trace' : ''}`}>
         <Alert
           bsStyle="warning"
           onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
         >
-          {msg}
+          {this.props.message}
         </Alert>
         {this.hasTrace() &&
           <Collapse in={this.state.showStackTrace}>

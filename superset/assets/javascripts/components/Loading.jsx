@@ -19,6 +19,7 @@ export default function Loading(props) {
         height: props.size,
         padding: 0,
         margin: 0,
+        position: 'absolute',
       }}
     />
   );

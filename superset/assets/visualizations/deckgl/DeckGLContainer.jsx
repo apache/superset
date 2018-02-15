@@ -33,6 +33,7 @@ export default class DeckGLContainer extends React.Component {
   componentWillReceiveProps(nextProps) {
     this.setState(() => ({
       viewport: { ...nextProps.viewport },
+      previousViewport: this.state.viewport,
     }));
   }
   componentWillUnmount() {

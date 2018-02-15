@@ -1,4 +1,4 @@
-from superset import security, sm
+from superset import app, security, sm
 from .base_tests import SupersetTestCase
 
 
@@ -76,7 +76,9 @@ class RolePermissionTests(SupersetTestCase):
         self.assertIn(('muldelete', 'DruidDatasourceModelView'), perm_set)
 
     def assert_cannot_alpha(self, perm_set):
-        self.assert_cannot_write('AccessRequestsModelView', perm_set)
+        if app.config.get('ENABLE_ACCESS_REQUEST'):
+            self.assert_cannot_write('AccessRequestsModelView', perm_set)
+            self.assert_can_all('AccessRequestsModelView', perm_set)
         self.assert_cannot_write('Queries', perm_set)
         self.assert_cannot_write('RoleModelView', perm_set)
         self.assert_cannot_write('UserDBModelView', perm_set)
@@ -85,7 +87,6 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_can_all('DatabaseAsync', perm_set)
         self.assert_can_all('DatabaseView', perm_set)
         self.assert_can_all('DruidClusterModelView', perm_set)
-        self.assert_can_all('AccessRequestsModelView', perm_set)
         self.assert_can_all('RoleModelView', perm_set)
         self.assert_can_all('UserDBModelView', perm_set)
 
@@ -104,9 +105,10 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assertTrue(security.is_admin_only(
             sm.find_permission_view_menu('can_delete', 'DatabaseView')))
-        self.assertTrue(security.is_admin_only(
-            sm.find_permission_view_menu(
-                'can_show', 'AccessRequestsModelView')))
+        if app.config.get('ENABLE_ACCESS_REQUEST'):
+            self.assertTrue(security.is_admin_only(
+                sm.find_permission_view_menu(
+                    'can_show', 'AccessRequestsModelView')))
         self.assertTrue(security.is_admin_only(
             sm.find_permission_view_menu(
                 'can_edit', 'UserDBModelView')))

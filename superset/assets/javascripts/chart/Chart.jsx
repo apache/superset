@@ -188,6 +188,7 @@ class Chart extends React.PureComponent {
       });
       this.props.actions.chartRenderingSucceeded(this.props.chartKey);
     } catch (e) {
+      console.error(e);  // eslint-disable-line
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
   }
@@ -207,7 +208,7 @@ class Chart extends React.PureComponent {
         />
         }
 
-        {!this.props.chartAlert &&
+        {!isLoading && !this.props.chartAlert &&
           <ChartBody
             containerId={this.containerId}
             vizType={this.props.vizType}

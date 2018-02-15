@@ -12,6 +12,7 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
+  ['.1s', '.1s | 12k'],
   ['.3s', '.3s | 12.3k'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
@@ -26,9 +27,11 @@ const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
 export const D3_TIME_FORMAT_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
+  ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
   ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10'],
+  ['%d-%m-%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S | 14-01-2019 01:32:10'],
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
@@ -327,6 +330,14 @@ export const controls = {
     label: t('Include Time'),
     description: t('Whether to include the time granularity as defined in the time section'),
     default: false,
+  },
+
+  autozoom: {
+    type: 'CheckboxControl',
+    label: t('Auto Zoom'),
+    default: true,
+    renderTrigger: true,
+    description: t('When checked, the map will zoom to your data after each query'),
   },
 
   show_perc: {
@@ -850,7 +861,7 @@ export const controls = {
     freeForm: true,
     label: t('Row limit'),
     validators: [v.integer],
-    default: null,
+    default: 50000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
@@ -860,8 +871,11 @@ export const controls = {
     label: t('Series limit'),
     validators: [v.integer],
     choices: formatSelectOptions(SERIES_LIMITS),
-    default: 50,
-    description: t('Limits the number of time series that get displayed'),
+    description: t(
+      'Limits the number of time series that get displayed. A sub query ' +
+      '(or an extra phase where sub queries are not supported) is applied to limit ' +
+      'the number of time series that get fetched and displayed. This feature is useful ' +
+      'when grouping by high cardinality dimension(s).'),
   },
 
   timeseries_limit_metric: {
@@ -1744,6 +1758,17 @@ export const controls = {
     label: t('Time Series Columns'),
     validators: [v.nonEmpty],
     controlName: 'TimeSeriesColumnControl',
+  },
+
+  rose_area_proportion: {
+    type: 'CheckboxControl',
+    label: t('Use Area Proportions'),
+    description: t(
+      'Check if the Rose Chart should use segment area instead of ' +
+      'segment radius for proportioning',
+    ),
+    default: false,
+    renderTrigger: true,
   },
 
   time_series_option: {
