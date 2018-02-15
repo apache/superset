@@ -2208,6 +2208,7 @@ class Superset(BaseSupersetView):
             return resp
         return 'nope'
 
+    @has_access_api
     @expose('/cache_key_exist/<key>/')
     @log_this
     def cache_key_exist(self, key):
