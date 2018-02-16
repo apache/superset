@@ -878,5 +878,6 @@ class CoreTests(SupersetTestCase):
         rendered_query = text_type(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
+
 if __name__ == '__main__':
     unittest.main()
