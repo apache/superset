@@ -64,7 +64,14 @@ DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
-DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
+perms_instruction_link = config.get('PERMISSION_INSTRUCTIONS_LINK')
+if perms_instruction_link:
+    DATASOURCE_ACCESS_ERR = __(
+        "You don't have access to this datasource. <a href='{}'>(Gain access)</a>"
+        .format(perms_instruction_link),
+    )
+else:
+    DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 
 def get_database_access_error_msg(database_name):
