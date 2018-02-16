@@ -102,8 +102,8 @@ export function triggerQuery(value = true, key) {
 
 // this action is used for forced re-render without fetch data
 export const RENDER_TRIGGERED = 'RENDER_TRIGGERED';
-export function renderTriggered(value, key) {
-  return { type: RENDER_TRIGGERED, value, key };
+export function renderTriggered(timestamp, latestQueryFormData, key) {
+  return { type: RENDER_TRIGGERED, timestamp, latestQueryFormData, key };
 }
 
 export const RUN_QUERY = 'RUN_QUERY';

@@ -77,7 +77,9 @@ class ExploreViewContainer extends React.Component {
     }
     // if any control value changed and it's an instant control
     if (this.instantControlChanged(this.props.controls, np.controls)) {
-      this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
+      const latestQueryFormData = getFormDataFromControls(np.controls);
+      this.props.actions.renderTriggered(
+        new Date().getTime(), latestQueryFormData, this.props.chart.chartKey);
     }
   }
 

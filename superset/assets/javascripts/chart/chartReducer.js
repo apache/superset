@@ -91,7 +91,10 @@ export default function chartReducer(charts = {}, action) {
       return { ...state, triggerQuery: action.value };
     },
     [actions.RENDER_TRIGGERED](state) {
-      return { ...state, lastRendered: action.value };
+      return { ...state,
+        lastRendered: action.timestamp,
+        latestQueryFormData: action.latestQueryFormData,
+      };
     },
     [actions.ANNOTATION_QUERY_STARTED](state) {
       if (state.annotationQuery &&
