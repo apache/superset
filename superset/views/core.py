@@ -2083,7 +2083,6 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
-        SqlaTable = ConnectorRegistry.sources['table']
         table = (
             db.session.query(SqlaTable)
             .filter_by(table_name=table_name)
