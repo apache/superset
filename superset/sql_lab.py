@@ -272,7 +272,10 @@ def execute_sql(
         key = '{}'.format(uuid.uuid4())
         logging.info('Storing results in results backend, key: {}'.format(key))
         json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
-        results_backend.set(key, utils.zlib_compress(json_payload))
+        cache_timeout = database.cache_timeout
+        if cache_timeout is None:
+            cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
+        results_backend.set(key, utils.zlib_compress(json_payload), cache_timeout)
         query.results_key = key
         query.end_result_backend_time = utils.now_as_float()
 
