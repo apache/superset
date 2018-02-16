@@ -73,14 +73,19 @@ class GridCell extends React.PureComponent {
 
   height(slice) {
     const widgetHeight = this.props.widgetHeight;
-    const headerId = this.getHeaderId(slice);
+    const headerHeight = this.headerHeight(slice);
     const descriptionId = this.getDescriptionId(slice);
-    const headerHeight = this.refs[headerId] ? this.refs[headerId].offsetHeight : 30;
     let descriptionHeight = 0;
     if (this.props.isExpanded && this.refs[descriptionId]) {
       descriptionHeight = this.refs[descriptionId].offsetHeight + 10;
     }
+
     return widgetHeight - headerHeight - descriptionHeight;
+  }
+
+  headerHeight(slice) {
+    const headerId = this.getHeaderId(slice);
+    return this.refs[headerId] ? this.refs[headerId].offsetHeight : 30;
   }
 
   render() {
@@ -130,6 +135,7 @@ class GridCell extends React.PureComponent {
             chartKey={chartKey}
             datasource={datasource}
             formData={formData}
+            headerHeight={this.headerHeight(slice)}
             height={this.height(slice)}
             width={this.width()}
             timeout={timeout}

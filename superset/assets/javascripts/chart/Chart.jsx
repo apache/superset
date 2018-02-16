@@ -20,6 +20,7 @@ const propTypes = {
   containerId: PropTypes.string.isRequired,
   datasource: PropTypes.object.isRequired,
   formData: PropTypes.object.isRequired,
+  headerHeight: PropTypes.number,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -63,6 +64,7 @@ class Chart extends React.PureComponent {
     this.getFilters = this.getFilters.bind(this);
     this.clearFilter = this.clearFilter.bind(this);
     this.removeFilter = this.removeFilter.bind(this);
+    this.headerHeight = this.headerHeight.bind(this);
     this.height = this.height.bind(this);
     this.width = this.width.bind(this);
   }
@@ -127,6 +129,10 @@ class Chart extends React.PureComponent {
 
   width() {
     return this.props.width || this.container.el.offsetWidth;
+  }
+
+  headerHeight() {
+    return this.props.headerHeight || 0;
   }
 
   height() {
