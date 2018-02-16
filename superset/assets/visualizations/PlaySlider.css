@@ -1,0 +1,21 @@
+.play-slider {
+    height: 100px; 
+    margin-top: -5px;
+}
+
+.slider-selection {
+    background: #efefef;
+}
+
+.slider-handle {
+    background: #b3b3b3;
+}
+
+.slider.slider-horizontal {
+    width: 100% !important;
+}
+
+.slider-button {
+    color: #b3b3b3;
+    margin-right: 5px;
+}
