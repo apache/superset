@@ -63,7 +63,7 @@ export default class VizTypeControl extends React.PureComponent {
           src={`/static/assets/images/viz_thumbnails/${vt}.png`}
         />
         <div className="viztype-label">
-          <strong>{visTypes[vt].label}</strong>
+          {visTypes[vt].label}
         </div>
       </div>);
   }
@@ -72,13 +72,13 @@ export default class VizTypeControl extends React.PureComponent {
     const filteredVizTypes = Object.keys(visTypes)
       .filter(vt => filter.length === 0 || visTypes[vt].label.toLowerCase().includes(filter));
 
-    const imgPerRow = 4;
+    const imgPerRow = 6;
     const rows = [];
     for (let i = 0; i <= filteredVizTypes.length; i += imgPerRow) {
       rows.push(
         <Row key={`row-${i}`}>
           {filteredVizTypes.slice(i, i + imgPerRow).map(vt => (
-            <Col md={3} key={`grid-col-${vt}`}>
+            <Col md={12 / imgPerRow} key={`grid-col-${vt}`}>
               {this.renderVizType(vt)}
             </Col>
           ))}
