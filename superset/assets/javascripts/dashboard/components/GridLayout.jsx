@@ -179,8 +179,8 @@ class GridLayout extends React.Component {
         layouts={{ lg: this.props.dashboard.layout }}
         onResizeStop={this.onResizeStop}
         onDragStop={this.onDragStop}
-        cols={{ lg: 12, md: 12, sm: 10, xs: 8, xxs: 6 }}
-        rowHeight={100}
+        cols={{ lg: 48, md: 48, sm: 40, xs: 32, xxs: 24 }}
+        rowHeight={10}
         autoSize
         margin={[20, 20]}
         useCSSTransforms
