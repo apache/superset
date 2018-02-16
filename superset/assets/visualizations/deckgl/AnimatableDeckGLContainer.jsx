@@ -16,6 +16,7 @@ const propTypes = {
 
 const defaultProps = {
   disabled: false,
+  step: 1,
 };
 
 export default class AnimatableDeckGLContainer extends React.Component {
