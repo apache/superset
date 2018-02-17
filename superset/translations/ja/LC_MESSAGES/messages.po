@@ -2771,7 +2771,7 @@ msgstr "タイプ"
 
 #: superset/connectors/druid/views.py:46 superset/connectors/sqla/views.py:83
 msgid "Groupable"
-msgstr "グルプ分け可能"
+msgstr "グループ分け可能"
 
 #: superset/connectors/druid/views.py:47 superset/connectors/sqla/views.py:84
 msgid "Filterable"
