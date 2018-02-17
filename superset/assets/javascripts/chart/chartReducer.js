@@ -71,7 +71,7 @@ export default function chartReducer(charts = {}, action) {
       return { ...state,
         chartStatus: 'failed',
         chartAlert: (
-            `<strong>${t('Query timeout')}</strong> - ` +
+            `${t('Query timeout')} - ` +
             t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
             t('Perhaps your data has grown, your database is under unusual load, ' +
                 'or you are simply querying a data source that is too large ' +
