@@ -47,7 +47,6 @@ export default function chartReducer(charts = {}, action) {
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
         queryRequest: action.queryRequest,
-        latestQueryFormData: action.latestQueryFormData,
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
