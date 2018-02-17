@@ -125,10 +125,7 @@ Follow these few simple steps to install Superset.::
     # Create default roles and permissions
     superset init
 
-    # Start the web server on port 8088, use -p to bind to another port
-    superset runserver
-
-    # To start a development web server, use the -d switch
+    # To start a development web server on port 8088, use -p to bind to another port
     # superset runserver -d
 
 
@@ -147,12 +144,8 @@ Gunicorn, preferably in **async mode**, which allows for impressive
 concurrency even and is fairly easy to install and configure. Please
 refer to the
 documentation of your preferred technology to set up this Flask WSGI
-application in a way that works well in your environment.
-
-While the `superset runserver` command act as an quick wrapper
-around `gunicorn`, it doesn't expose all the options you may need,
-so you'll want to craft your own `gunicorn` command in your production
-environment. Here's an **async** setup known to work well: ::
+application in a way that works well in your environment. Here's an **async**
+setup known to work well in production: ::
 
  　gunicorn \
 		-w 10 \
@@ -165,7 +158,7 @@ environment. Here's an **async** setup known to work well: ::
 		superset:app
 
 Refer to the
-[Gunicorn documentation](http://docs.gunicorn.org/en/stable/design.html)
+`Gunicorn documentation <http://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
 Note that *gunicorn* does not
@@ -228,7 +221,6 @@ of the parameters you can copy / paste in that configuration module: ::
     # Superset specific config
     #---------------------------------------------------------
     ROW_LIMIT = 5000
-    SUPERSET_WORKERS = 4
 
     SUPERSET_WEBSERVER_PORT = 8088
     #---------------------------------------------------------
@@ -503,8 +495,8 @@ execute beyond the typical web request's timeout (30-60 seconds), it is
 necessary to configure an asynchronous backend for Superset which consist of:
 
 * one or many Superset worker (which is implemented as a Celery worker), and
-  can be started with the ``superset worker`` command, run
-  ``superset worker --help`` to view the related options
+  can be started with the ``celery worker`` command, run
+  ``celery worker --help`` to view the related options.
 * a celery broker (message queue) for which we recommend using Redis
   or RabbitMQ
 * a results backend that defines where the worker will persist the query
@@ -523,6 +515,10 @@ have the same configuration.
         CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 
     CELERY_CONFIG = CeleryConfig
+
+To start a Celery worker to leverage the configuration run: ::
+
+    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
@@ -563,6 +559,15 @@ in this dictionary are made available for users to use in their SQL.
         'my_crazy_macro': lambda x: x*2,
     }
 
+
+Flower is a web based tool for monitoring the Celery cluster which you can
+install from pip: ::
+
+    pip install flower
+
+and run via: ::
+
+    celery flower --app=superset.sql_lab:celery_app
 
 Making your own build
 ---------------------

@@ -63,12 +63,12 @@ setup(
         'flask-sqlalchemy==2.1',
         'flask-testing==0.7.1',
         'flask-wtf==0.14.2',
-        'flower==0.9.2',
+        'flower==0.9.2',  # deprecated
         'future>=0.16.0, <0.17',
         'geopy==1.11.0',
         'python-geohash==0.8.5',
         'humanize==0.5.1',
-        'gunicorn==19.7.1',
+        'gunicorn==19.7.1',  # deprecated
         'idna==2.6',
         'markdown==2.6.11',
         'pandas==0.22.0',
