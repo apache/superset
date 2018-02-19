@@ -39,16 +39,21 @@ export function getInitialState(bootstrapData) {
       dashboard.posDict[position.slice_id] = position;
     });
   }
-  dashboard.slices.forEach((slice, index) => {
+  const lastRowId = Math.max.apply(null,
+    dashboard.position_json.map(pos => (pos.row + pos.size_y)));
+  let newSliceCounter = 0;
+  dashboard.slices.forEach((slice) => {
     const sliceId = slice.slice_id;
     let pos = dashboard.posDict[sliceId];
     if (!pos) {
+      // append new slices to dashboard bottom, 3 slices per row
       pos = {
-        col: (index * 4 + 1) % 12,
-        row: Math.floor((index) / 3) * 4,
-        size_x: 4,
-        size_y: 4,
+        col: (newSliceCounter % 3) * 16 + 1,
+        row: lastRowId + Math.floor(newSliceCounter / 3) * 16,
+        size_x: 16,
+        size_y: 16,
       };
+      newSliceCounter++;
     }
 
     dashboard.layout.push({
