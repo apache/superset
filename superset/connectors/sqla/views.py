@@ -279,6 +279,8 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         __('Refresh column metadata'),
         'fa-refresh')
     def refresh(self, tables):
+        if not isinstance(tables, list):
+            tables = [tables]
         for t in tables:
             t.fetch_metadata()
         msg = _(
