@@ -12,8 +12,8 @@ export default class RecentActivity extends React.PureComponent {
   render() {
     const mutator = function (data) {
       return data.map(row => ({
-        action: row.action,
-        item: <a href={row.item_url}>{row.item_title}</a>,
+        name: <a href={row.item_url}>{row.item_title}</a>,
+        type: row.action,
         time: moment.utc(row.time).fromNow(),
         _time: row.time,
       }));
