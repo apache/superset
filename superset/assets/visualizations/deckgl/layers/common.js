@@ -13,16 +13,22 @@ export function getBounds(points) {
 }
 
 export function fitViewport(viewport, points, padding = 10) {
-  const bounds = getBounds(points);
-  return {
-    ...viewport,
-    ...fitBounds({
-      height: viewport.height,
-      width: viewport.width,
-      padding,
-      bounds,
-    }),
-  };
+  try {
+    const bounds = getBounds(points);
+    return {
+      ...viewport,
+      ...fitBounds({
+        height: viewport.height,
+        width: viewport.width,
+        padding,
+        bounds,
+      }),
+    };
+  } catch (e) {
+    /* eslint no-console: 0 */
+    console.error('Could not auto zoom', e);
+    return viewport;
+  }
 }
 
 export function commonLayerProps(formData, slice) {
