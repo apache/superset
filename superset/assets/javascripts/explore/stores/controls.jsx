@@ -908,6 +908,7 @@ export const controls = {
     type: 'TextControl',
     label: t('Multiplier'),
     isFloat: true,
+    renderTrigger: true,
     default: 1,
     description: t('Factor to multiply the metric by'),
   },
