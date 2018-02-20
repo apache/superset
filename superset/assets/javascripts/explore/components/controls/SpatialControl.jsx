@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Row, Col, Button, FormControl, Label, OverlayTrigger, Popover,
+  Row, Col, Button, Label, OverlayTrigger, Popover,
 } from 'react-bootstrap';
 import 'react-datetime/css/react-datetime.css';
 
@@ -49,7 +49,6 @@ export default class SpatialControl extends React.Component {
       value: null,
       errors: [],
     };
-    this.onDelimiterChange = this.onDelimiterChange.bind(this);
     this.toggleCheckbox = this.toggleCheckbox.bind(this);
     this.onChange = this.onChange.bind(this);
   }
@@ -82,9 +81,6 @@ export default class SpatialControl extends React.Component {
     }
     this.setState({ value, errors });
     this.props.onChange(value, errors);
-  }
-  onDelimiterChange(event) {
-    this.setState({ delimiter: event.target.value }, this.onChange);
   }
   setType(type) {
     this.setState({ type }, this.onChange);
@@ -129,7 +125,7 @@ export default class SpatialControl extends React.Component {
       <Popover id="filter-popover">
         <div style={{ width: '300px' }}>
           <PopoverSection
-            title="Longitude & Latitude columns"
+            title={t('Longitude & Latitude columns')}
             isSelected={this.state.type === spatialTypes.latlong}
             onSelect={this.setType.bind(this, spatialTypes.latlong)}
           >
@@ -145,7 +141,10 @@ export default class SpatialControl extends React.Component {
             </Row>
           </PopoverSection>
           <PopoverSection
-            title="Delimited long & lat single column"
+            title={t('Delimited long & lat single column')}
+            info={t(
+              'Multiple formats accepted, look the geopy.points ' +
+              'Python library for more details')}
             isSelected={this.state.type === spatialTypes.delimited}
             onSelect={this.setType.bind(this, spatialTypes.delimited)}
           >
@@ -155,23 +154,13 @@ export default class SpatialControl extends React.Component {
                 {this.renderSelect('lonlatCol', spatialTypes.delimited)}
               </Col>
               <Col md={6}>
-                Delimiter
-                <FormControl
-                  onFocus={this.setType.bind(this, spatialTypes.delimited)}
-                  value={this.state.delimiter}
-                  onChange={this.onDelimiterChange}
-                  placeholder="delimiter"
-                  bsSize="small"
-                />
+                {t('Reverse lat/long ')}
+                <Checkbox checked={this.state.reverseCheckbox} onChange={this.toggleCheckbox} />
               </Col>
             </Row>
-            <div>
-              {t('Reverse lat/long ')}
-              <Checkbox checked={this.state.reverseCheckbox} onChange={this.toggleCheckbox} />
-            </div>
           </PopoverSection>
           <PopoverSection
-            title="Geohash"
+            title={t('Geohash')}
             isSelected={this.state.type === spatialTypes.geohash}
             onSelect={this.setType.bind(this, spatialTypes.geohash)}
           >

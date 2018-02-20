@@ -23,6 +23,7 @@ from dateutil import relativedelta as rdelta
 from flask import escape, request
 from flask_babel import lazy_gettext as _
 import geohash
+from geopy.point import Point
 from markdown import markdown
 import numpy as np
 import pandas as pd
@@ -290,8 +291,10 @@ class BaseViz(object):
         df = payload.get('df')
         if df is not None and len(df.index) == 0:
             raise Exception('No data')
-        payload['data'] = self.get_data(df)
-        del payload['df']
+        if self.status != utils.QueryStatus.FAILED:
+            payload['data'] = self.get_data(df)
+        if 'df' in payload:
+            del payload['df']
         return payload
 
     def get_df_payload(self, query_obj=None):
@@ -1819,6 +1822,8 @@ class MapboxViz(BaseViz):
         return d
 
     def get_data(self, df):
+        if df is None:
+            return None
         fd = self.form_data
         label_col = fd.get('mapbox_label')
         custom_metric = label_col and len(label_col) >= 1
@@ -1932,9 +1937,18 @@ class BaseDeckGLViz(BaseViz):
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
         if spatial.get('type') == 'latlong':
-            df[key] = list(zip(df[spatial.get('lonCol')], df[spatial.get('latCol')]))
+            df[key] = list(zip(
+                pd.to_numeric(df[spatial.get('lonCol')], errors='coerce'),
+                pd.to_numeric(df[spatial.get('latCol')], errors='coerce'),
+            ))
         elif spatial.get('type') == 'delimited':
-            df[key] = (df[spatial.get('lonlatCol')].str.split(spatial.get('delimiter')))
+
+            def tupleify(s):
+                p = Point(s)
+                return (p.latitude, p.longitude)
+
+            df[key] = df[spatial.get('lonlatCol')].apply(tupleify)
+
             if spatial.get('reverseCheckbox'):
                 df[key] = [
                     tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
@@ -1946,7 +1960,6 @@ class BaseDeckGLViz(BaseViz):
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
-
         return df
 
     def query_obj(self):
@@ -1976,6 +1989,8 @@ class BaseDeckGLViz(BaseViz):
         return {col: d.get(col) for col in cols}
 
     def get_data(self, df):
+        if df is None:
+            return None
         for key in self.spatial_control_keys:
             df = self.process_spatial_data_obj(key, df)
 
