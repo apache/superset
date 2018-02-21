@@ -10,8 +10,9 @@
   "scripts": {
     "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --require ignore-styles spec/helpers/browser.js --recursive spec/**/*_spec.*",
-    "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool inline-source-map",
-    "dev-fast": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool eval-cheap-source-map",
+    "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool eval-cheap-source-map",
+    "dev-slow": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool inline-source-map",
+    "dev-fast": "echo 'dev-fast in now replaced by dev'",
     "prod": "NODE_ENV=production node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
     "build": "NODE_ENV=production webpack --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
