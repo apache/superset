@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """smaller_grid
 Revision ID: e866bd2d4976
 Revises: 21e88bc06c02
@@ -69,6 +68,6 @@ def downgrade():
         dashboard.position_json = json.dumps(positions, indent=2)
         session.merge(dashboard)
         session.commit()
-        print('Downgraded ({}/{}): {}'.format(
+        print(u'Downgraded ({}/{}): {}'.format(
             i, len(dashboards), dashboard.dashboard_title))
     pass
