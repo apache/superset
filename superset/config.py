@@ -370,6 +370,12 @@ TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = 5
 
+# Allow for javascript controls components
+# this enables programmers to customize certain charts (like the
+# geospatial ones) by inputing javascript in controls. This exposes
+# an XSS security vulnerability
+ENABLE_JAVASCRIPT_CONTROLS = False
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
