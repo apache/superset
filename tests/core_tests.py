@@ -18,6 +18,7 @@ import unittest
 from flask import escape
 import pandas as pd
 import psycopg2
+from six import text_type
 import sqlalchemy as sqla
 
 from superset import appbuilder, dataframe, db, jinja_context, sm, sql_lab, utils
@@ -83,15 +84,27 @@ class CoreTests(SupersetTestCase):
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
+    def test_cache_key(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        viz = slc.viz
+        qobj = viz.query_obj()
+        cache_key = viz.cache_key(qobj)
+        self.assertEqual(cache_key, viz.cache_key(qobj))
+
+        qobj['groupby'] = []
+        self.assertNotEqual(cache_key, viz.cache_key(qobj))
+
     def test_slice_json_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
 
         json_endpoint = (
-            '/superset/explore_json/{}/{}?form_data={}'
-            .format(slc.datasource_type, slc.datasource_id, json.dumps(slc.viz.form_data))
+            '/superset/explore_json/{}/{}/'
+            .format(slc.datasource_type, slc.datasource_id)
         )
-        resp = self.get_resp(json_endpoint)
+        resp = self.get_resp(json_endpoint, {'form_data': json.dumps(slc.viz.form_data)})
         assert '"Jennifer"' in resp
 
     def test_slice_csv_endpoint(self):
@@ -99,10 +112,10 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice('Girls', db.session)
 
         csv_endpoint = (
-            '/superset/explore_json/{}/{}?csv=true&form_data={}'
-            .format(slc.datasource_type, slc.datasource_id, json.dumps(slc.viz.form_data))
+            '/superset/explore_json/{}/{}/?csv=true'
+            .format(slc.datasource_type, slc.datasource_id)
         )
-        resp = self.get_resp(csv_endpoint)
+        resp = self.get_resp(csv_endpoint, {'form_data': json.dumps(slc.viz.form_data)})
         assert 'Jennifer,' in resp
 
     def test_admin_only_permissions(self):
@@ -126,7 +139,6 @@ class CoreTests(SupersetTestCase):
             assert_func('UserDBModelView', view_menus)
             assert_func('SQL Lab',
                         view_menus)
-            assert_func('AccessRequestsModelView', view_menus)
 
         assert_admin_view_menus_in('Admin', self.assertIn)
         assert_admin_view_menus_in('Alpha', self.assertNotIn)
@@ -143,7 +155,7 @@ class CoreTests(SupersetTestCase):
 
         url = (
             '/superset/explore/table/{}/?slice_name={}&'
-            'action={}&datasource_name=energy_usage&form_data={}')
+            'action={}&datasource_name=energy_usage')
 
         form_data = {
             'viz_type': 'sankey',
@@ -158,8 +170,8 @@ class CoreTests(SupersetTestCase):
                 tbl_id,
                 copy_name,
                 'saveas',
-                json.dumps(form_data),
             ),
+            {'form_data': json.dumps(form_data)},
         )
         slices = db.session.query(models.Slice) \
             .filter_by(slice_name=copy_name).all()
@@ -179,8 +191,8 @@ class CoreTests(SupersetTestCase):
                 tbl_id,
                 new_slice_name,
                 'overwrite',
-                json.dumps(form_data),
             ),
+            {'form_data': json.dumps(form_data)},
         )
         slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
         assert slc.slice_name == new_slice_name
@@ -347,7 +359,6 @@ class CoreTests(SupersetTestCase):
         slc = self.get_slice('Girls', db.session)
         data = self.get_json_resp(
             '/superset/warm_up_cache?slice_id={}'.format(slc.id))
-
         assert data == [{'slice_id': slc.id, 'slice_name': slc.slice_name}]
 
         data = self.get_json_resp(
@@ -364,8 +375,8 @@ class CoreTests(SupersetTestCase):
             'energy_usage&datasource_id=1&datasource_type=table&'
             'previous_viz_type=sankey'
         )
-        resp = self.client.post('/r/shortner/', data=data)
-        assert '/r/' in resp.data.decode('utf-8')
+        resp = self.client.post('/r/shortner/', data=dict(data=data))
+        assert '?r=' in resp.data.decode('utf-8')
 
     def test_kv(self):
         self.logout()
@@ -769,7 +780,7 @@ class CoreTests(SupersetTestCase):
         # superset/explore case
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
-        self.get_resp(slc.slice_url)
+        self.get_resp(slc.slice_url, {'form_data': json.dumps(slc.viz.form_data)})
         self.assertEqual(1, qry.count())
 
     def test_slice_id_is_always_logged_correctly_on_ajax_request(self):
@@ -778,7 +789,7 @@ class CoreTests(SupersetTestCase):
         slc = db.session.query(models.Slice).filter_by(slice_name='Girls').one()
         qry = db.session.query(models.Log).filter_by(slice_id=slc.id)
         slc_url = slc.slice_url.replace('explore', 'explore_json')
-        self.get_json_resp(slc_url)
+        self.get_json_resp(slc_url, {'form_data': json.dumps(slc.viz.form_data)})
         self.assertEqual(1, qry.count())
 
     def test_slice_query_endpoint(self):
@@ -859,6 +870,13 @@ class CoreTests(SupersetTestCase):
             data[1],
             {'data': pd.Timestamp('2017-11-18 22:06:30.061810+0100', tz=tz)},
         )
+
+    def test_comments_in_sqlatable_query(self):
+        clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
+        commented_query = '/* comment 1 */' + clean_query + '-- comment 2'
+        table = SqlaTable(sql=commented_query)
+        rendered_query = text_type(table.get_from_clause())
+        self.assertEqual(clean_query, rendered_query)
 
 
 if __name__ == '__main__':

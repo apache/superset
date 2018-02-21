@@ -19,7 +19,10 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.translations.utils import get_language_pack
 
-FRONTEND_CONF_KEYS = ('SUPERSET_WEBSERVER_TIMEOUT',)
+FRONTEND_CONF_KEYS = (
+    'SUPERSET_WEBSERVER_TIMEOUT',
+    'ENABLE_JAVASCRIPT_CONTROLS',
+)
 
 
 def get_error_msg():

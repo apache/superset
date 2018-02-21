@@ -165,6 +165,8 @@ the world know they are using Superset. Join our growing community!
  - [Konfío](http://konfio.mx)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://cloudschooling.it)
+ - [PeopleDoc](https://www.people-doc.com) 
+ - [Ona](https://ona.io)
  - [Pronto Tools](http://www.prontotools.io)
  - [Qunar](https://www.qunar.com/)
  - [Shopee](https://shopee.sg)

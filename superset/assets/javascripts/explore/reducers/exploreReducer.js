@@ -56,6 +56,10 @@ export default function exploreReducer(state = {}, action) {
       }
       return Object.assign({}, state, changes);
     },
+    [actions.SET_EXPLORE_CONTROLS]() {
+      const controls = getControlsState(state, action.formData);
+      return Object.assign({}, state, { controls });
+    },
     [actions.UPDATE_CHART_TITLE]() {
       const updatedSlice = Object.assign({}, state.slice, { slice_name: action.slice_name });
       return Object.assign({}, state, { slice: updatedSlice });

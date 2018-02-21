@@ -24,7 +24,7 @@ export const chart = {
   chartStatus: 'loading',
   chartUpdateEndTime: null,
   chartUpdateStartTime: now(),
-  latestQueryFormData: null,
+  latestQueryFormData: {},
   queryRequest: null,
   queryResponse: null,
   triggerQuery: true,
@@ -70,7 +70,7 @@ export default function chartReducer(charts = {}, action) {
       return { ...state,
         chartStatus: 'failed',
         chartAlert: (
-            `<strong>${t('Query timeout')}</strong> - ` +
+            `${t('Query timeout')} - ` +
             t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
             t('Perhaps your data has grown, your database is under unusual load, ' +
                 'or you are simply querying a data source that is too large ' +
@@ -91,6 +91,9 @@ export default function chartReducer(charts = {}, action) {
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };
+    },
+    [actions.UPDATE_QUERY_FORM_DATA](state) {
+      return { ...state, latestQueryFormData: action.value };
     },
     [actions.ANNOTATION_QUERY_STARTED](state) {
       if (state.annotationQuery &&

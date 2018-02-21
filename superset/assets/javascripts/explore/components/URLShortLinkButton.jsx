@@ -3,10 +3,11 @@ import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getShortUrl } from '../../../utils/common';
+import { getExploreLongUrl } from '../exploreUtils';
 import { t } from '../../locales';
 
 const propTypes = {
-  slice: PropTypes.object.isRequired,
+  latestQueryFormData: PropTypes.object.isRequired,
 };
 
 export default class URLShortLinkButton extends React.Component {
@@ -24,7 +25,7 @@ export default class URLShortLinkButton extends React.Component {
   }
 
   getCopyUrl() {
-    const longUrl = window.location.pathname + window.location.search;
+    const longUrl = getExploreLongUrl(this.props.latestQueryFormData);
     getShortUrl(longUrl, this.onShortUrlSuccess.bind(this));
   }
 

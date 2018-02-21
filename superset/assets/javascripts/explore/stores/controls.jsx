@@ -12,6 +12,7 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
+  ['.1s', '.1s | 12k'],
   ['.3s', '.3s | 12.3k'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
@@ -26,9 +27,11 @@ const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
 export const D3_TIME_FORMAT_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
+  ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
   ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S | 2019-01-14 01:32:10'],
+  ['%d-%m-%Y %H:%M:%S', '%Y-%m-%d %H:%M:%S | 14-01-2019 01:32:10'],
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
@@ -45,15 +48,6 @@ const sortAxisChoices = [
   ['value_asc', 'sum(value) ascending'],
   ['value_desc', 'sum(value) descending'],
 ];
-
-const sandboxUrl = 'https://github.com/apache/incubator-superset/blob/master/superset/assets/javascripts/modules/sandbox.js';
-const sandboxedEvalInfo = (
-  <span>
-    {t('While this runs in a ')}
-    <a href="https://nodejs.org/api/vm.html#vm_script_runinnewcontext_sandbox_options">sandboxed vm</a>
-    , {t('a set of')}<a href={sandboxUrl}> useful objects are in context </a>
-    {t('to be used where necessary.')}
-  </span>);
 
 const groupByControl = {
   type: 'SelectControl',
@@ -76,6 +70,40 @@ const groupByControl = {
     return newState;
   },
 };
+
+const sandboxUrl = (
+  'https://github.com/apache/incubator-superset/' +
+  'blob/master/superset/assets/javascripts/modules/sandbox.js');
+const jsFunctionInfo = (
+  <div>
+    {t('For more information about objects are in context in the scope of this function, refer to the')}
+    <a href={sandboxUrl}>
+      {t(" source code of Superset's sandboxed parser")}.
+    </a>.
+  </div>
+);
+function jsFunctionControl(label, description, extraDescr = null, height = 100, defaultText = '') {
+  return {
+    type: 'TextAreaControl',
+    language: 'javascript',
+    label,
+    description,
+    height,
+    default: defaultText,
+    aboveEditorSection: (
+      <div>
+        <p>{description}</p>
+        <p>{jsFunctionInfo}</p>
+        {extraDescr}
+      </div>
+    ),
+    mapStateToProps: state => ({
+      warning: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS ?
+        t('This functionality is disabled in your environment for security reasons.') : null,
+      readOnly: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS,
+    }),
+  };
+}
 
 export const controls = {
   datasource: {
@@ -309,6 +337,14 @@ export const controls = {
     default: false,
   },
 
+  autozoom: {
+    type: 'CheckboxControl',
+    label: t('Auto Zoom'),
+    default: true,
+    renderTrigger: true,
+    description: t('When checked, the map will zoom to your data after each query'),
+  },
+
   show_perc: {
     type: 'CheckboxControl',
     label: t('Show percentage'),
@@ -499,6 +535,26 @@ export const controls = {
     }),
   },
 
+  start_spatial: {
+    type: 'SpatialControl',
+    label: t('Start Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  end_spatial: {
+    type: 'SpatialControl',
+    label: t('End Longitude & Latitude'),
+    validators: [v.nonEmpty],
+    description: t('Point to your spatial columns'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   longitude: {
     type: 'SelectControl',
     label: t('Longitude'),
@@ -531,6 +587,16 @@ export const controls = {
     }),
   },
 
+  polygon: {
+    type: 'SelectControl',
+    label: t('Polygon Column'),
+    validators: [v.nonEmpty],
+    description: t('Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points'),
+    mapStateToProps: state => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
   point_radius_scale: {
     type: 'SelectControl',
     freeForm: true,
@@ -538,6 +604,15 @@ export const controls = {
     validators: [v.integer],
     default: null,
     choices: formatSelectOptions([0, 100, 200, 300, 500]),
+  },
+
+  stroke_width: {
+    type: 'SelectControl',
+    freeForm: true,
+    label: t('Stroke Width'),
+    validators: [v.integer],
+    default: null,
+    choices: formatSelectOptions([1, 2, 3, 4, 5]),
   },
 
   all_columns_x: {
@@ -791,7 +866,7 @@ export const controls = {
     freeForm: true,
     label: t('Row limit'),
     validators: [v.integer],
-    default: null,
+    default: 50000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
@@ -801,8 +876,11 @@ export const controls = {
     label: t('Series limit'),
     validators: [v.integer],
     choices: formatSelectOptions(SERIES_LIMITS),
-    default: 50,
-    description: t('Limits the number of time series that get displayed'),
+    description: t(
+      'Limits the number of time series that get displayed. A sub query ' +
+      '(or an extra phase where sub queries are not supported) is applied to limit ' +
+      'the number of time series that get fetched and displayed. This feature is useful ' +
+      'when grouping by high cardinality dimension(s).'),
   },
 
   timeseries_limit_metric: {
@@ -835,6 +913,7 @@ export const controls = {
     type: 'TextControl',
     label: t('Multiplier'),
     isFloat: true,
+    renderTrigger: true,
     default: 1,
     description: t('Factor to multiply the metric by'),
   },
@@ -1188,7 +1267,7 @@ export const controls = {
   date_filter: {
     type: 'CheckboxControl',
     label: t('Date Filter'),
-    default: false,
+    default: true,
     description: t('Whether to include a time filter'),
   },
 
@@ -1399,7 +1478,7 @@ export const controls = {
       ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
       ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
     ],
-    default: 'mapbox://styles/mapbox/streets-v9',
+    default: 'mapbox://styles/mapbox/light-v9',
     description: t('Base layer map style'),
   },
 
@@ -1427,6 +1506,7 @@ export const controls = {
   point_radius_fixed: {
     type: 'FixedOrMetricControl',
     label: t('Point Size'),
+    default: { type: 'fix', value: 1000 },
     description: t('Fixed point radius'),
     mapStateToProps: state => ({
       datasource: state.datasource,
@@ -1686,6 +1766,17 @@ export const controls = {
     controlName: 'TimeSeriesColumnControl',
   },
 
+  rose_area_proportion: {
+    type: 'CheckboxControl',
+    label: t('Use Area Proportions'),
+    description: t(
+      'Check if the Rose Chart should use segment area instead of ' +
+      'segment radius for proportioning',
+    ),
+    default: false,
+    renderTrigger: true,
+  },
+
   time_series_option: {
     type: 'SelectControl',
     label: t('Options'),
@@ -1804,20 +1895,6 @@ export const controls = {
     default: false,
   },
 
-  js_data: {
-    type: 'TextAreaControl',
-    label: t('Javascript data mutator'),
-    description: t('Define a function that receives intercepts the data objects and can mutate it'),
-    language: 'javascript',
-    default: '',
-    height: 100,
-    aboveEditorSection: (
-      <p>
-        Define a function that intercepts the <code>data</code> object passed to the visualization
-        and returns a similarly shaped object. {sandboxedEvalInfo}
-      </p>),
-  },
-
   deck_slices: {
     type: 'SelectAsyncControl',
     multi: true,
@@ -1834,6 +1911,51 @@ export const controls = {
       }
       return data.result.map(o => ({ value: o.id, label: o.slice_name }));
     },
+  },
+
+  js_data_mutator: jsFunctionControl(
+    t('Javascript data interceptor'),
+    t('Define a javascript function that receives the data array used in the visualization ' +
+      'and is expected to return a modified version of that array. This can be used ' +
+      'to alter properties of the data, filter, or enrich the array.'),
+  ),
+
+  js_data: jsFunctionControl(
+    t('Javascript data mutator'),
+    t('Define a function that receives intercepts the data objects and can mutate it'),
+  ),
+
+  js_tooltip: jsFunctionControl(
+    t('Javascript tooltip generator'),
+    t('Define a function that receives the input and outputs the content for a tooltip'),
+  ),
+
+  js_onclick_href: jsFunctionControl(
+    t('Javascript onClick href'),
+    t('Define a function that returns a URL to navigate to when user clicks'),
+  ),
+
+  js_columns: {
+    ...groupByControl,
+    label: t('Extra data for JS'),
+    default: [],
+    description: t('List of extra columns made available in Javascript functions'),
+  },
+
+  stroked: {
+    type: 'CheckboxControl',
+    label: t('Stroked'),
+    renderTrigger: true,
+    description: t('Whether to display the stroke'),
+    default: false,
+  },
+
+  filled: {
+    type: 'CheckboxControl',
+    label: t('Filled'),
+    renderTrigger: true,
+    description: t('Whether to fill the objects'),
+    default: false,
   },
 };
 export default controls;

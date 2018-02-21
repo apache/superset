@@ -21,6 +21,7 @@ import sys
 import uuid
 import zlib
 
+import bleach
 import celery
 from dateutil.parser import parse
 from flask import flash, Markup, redirect, render_template, request, url_for
@@ -34,6 +35,7 @@ from flask_babel import gettext as __
 from flask_cache import Cache
 import markdown as md
 import numpy
+import pandas as pd
 import parsedatetime
 from past.builtins import basestring
 from pydruid.utils.having import Having
@@ -349,7 +351,7 @@ def base_json_conv(obj):
         return str(obj)
 
 
-def json_iso_dttm_ser(obj):
+def json_iso_dttm_ser(obj, pessimistic=False):
     """
     json serializer that deals with dates
 
@@ -360,16 +362,22 @@ def json_iso_dttm_ser(obj):
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, datetime):
-        obj = obj.isoformat()
-    elif isinstance(obj, date):
-        obj = obj.isoformat()
-    elif isinstance(obj, time):
+    if isinstance(obj, (datetime, date, time, pd.Timestamp)):
         obj = obj.isoformat()
     else:
-        raise TypeError(
-            'Unserializable object {} of type {}'.format(obj, type(obj)))
+        if pessimistic:
+            return 'Unserializable [{}]'.format(type(obj))
+        else:
+            raise TypeError(
+                'Unserializable object {} of type {}'.format(obj, type(obj)))
     return obj
+
+
+def pessimistic_json_iso_dttm_ser(obj):
+    """Proxy to call json_iso_dttm_ser in a pessimistic way
+
+    If one of object is not serializable to json, it will still succeed"""
+    return json_iso_dttm_ser(obj, pessimistic=True)
 
 
 def datetime_to_epoch(dttm):
@@ -388,7 +396,7 @@ def json_int_dttm_ser(obj):
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, datetime):
+    if isinstance(obj, (datetime, pd.Timestamp)):
         obj = datetime_to_epoch(obj)
     elif isinstance(obj, date):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
@@ -426,11 +434,18 @@ def error_msg_from_exception(e):
 
 
 def markdown(s, markup_wrap=False):
+    safe_markdown_tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'b', 'i',
+                          'strong', 'em', 'tt', 'p', 'br', 'span',
+                          'div', 'blockquote', 'code', 'hr', 'ul', 'ol',
+                          'li', 'dd', 'dt', 'img', 'a']
+    safe_markdown_attrs = {'img': ['src', 'alt', 'title'],
+                           'a': ['href', 'alt', 'title']}
     s = md.markdown(s or '', [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',
     ])
+    s = bleach.clean(s, safe_markdown_tags, safe_markdown_attrs)
     if markup_wrap:
         s = Markup(s)
     return s
@@ -701,7 +716,7 @@ def has_access(f):
         return redirect(
             url_for(
                 self.appbuilder.sm.auth_view.__class__.__name__ + '.login',
-                next=request.path))
+                next=request.full_path))
 
     f._permission_name = permission_str
     return functools.update_wrapper(wraps, f)

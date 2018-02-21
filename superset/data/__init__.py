@@ -362,76 +362,86 @@ def load_world_bank_health_n_pop():
         dash = Dash()
     js = textwrap.dedent("""\
     [
-        {
-            "col": 1,
-            "row": 0,
-            "size_x": 2,
-            "size_y": 2,
-            "slice_id": "1231"
-        },
-        {
-            "col": 1,
-            "row": 2,
-            "size_x": 2,
-            "size_y": 2,
-            "slice_id": "1232"
-        },
-        {
-            "col": 10,
-            "row": 0,
-            "size_x": 3,
-            "size_y": 7,
-            "slice_id": "1233"
-        },
-        {
-            "col": 1,
-            "row": 4,
-            "size_x": 6,
-            "size_y": 3,
-            "slice_id": "1234"
-        },
-        {
-            "col": 3,
-            "row": 0,
-            "size_x": 7,
-            "size_y": 4,
-            "slice_id": "1235"
-        },
-        {
-            "col": 5,
-            "row": 7,
-            "size_x": 8,
-            "size_y": 4,
-            "slice_id": "1236"
-        },
-        {
-            "col": 7,
-            "row": 4,
-            "size_x": 3,
-            "size_y": 3,
-            "slice_id": "1237"
-        },
-        {
-            "col": 1,
-            "row": 7,
-            "size_x": 4,
-            "size_y": 4,
-            "slice_id": "1238"
-        },
-        {
-            "col": 9,
-            "row": 11,
-            "size_x": 4,
-            "size_y": 4,
-            "slice_id": "1239"
-        },
-        {
-            "col": 1,
-            "row": 11,
-            "size_x": 8,
-            "size_y": 4,
-            "slice_id": "1240"
-        }
+      {
+          "slice_id": "567",
+          "size_x": 8,
+          "size_y": 8,
+          "v": 1,
+          "col": 1,
+          "row": 0
+      },
+      {
+          "slice_id": "568",
+          "size_x": 8,
+          "size_y": 8,
+          "v": 1,
+          "col": 1,
+          "row": 8
+      },
+      {
+          "slice_id": "569",
+          "size_x": 12,
+          "size_y": 28,
+          "v": 1,
+          "col": 37,
+          "row": 0
+      },
+      {
+          "slice_id": "570",
+          "size_x": 24,
+          "size_y": 12,
+          "v": 1,
+          "col": 1,
+          "row": 16
+      },
+      {
+          "slice_id": "571",
+          "size_x": 28,
+          "size_y": 16,
+          "v": 1,
+          "col": 9,
+          "row": 0
+      },
+      {
+          "slice_id": "572",
+          "size_x": 32,
+          "size_y": 16,
+          "v": 1,
+          "col": 17,
+          "row": 28
+      },
+      {
+          "slice_id": "573",
+          "size_x": 12,
+          "size_y": 12,
+          "v": 1,
+          "col": 25,
+          "row": 16
+      },
+      {
+          "slice_id": "574",
+          "size_x": 16,
+          "size_y": 16,
+          "v": 1,
+          "col": 1,
+          "row": 28
+      },
+      {
+          "slice_id": "575",
+          "size_x": 16,
+          "size_y": 16,
+          "v": 1,
+          "col": 33,
+          "row": 44
+      },
+      {
+          "slice_id": "576",
+          "size_x": 32,
+          "size_y": 16,
+          "v": 1,
+          "col": 1,
+          "row": 44
+      }
     ]
     """)
     l = json.loads(js)
@@ -738,70 +748,88 @@ def load_birth_names():
         dash = Dash()
     js = textwrap.dedent("""\
     [
-        {
-            "col": 9,
-            "row": 6,
-            "size_x": 2,
-            "size_y": 4,
-            "slice_id": "1267"
-        },
-        {
-            "col": 11,
-            "row": 6,
-            "size_x": 2,
-            "size_y": 4,
-            "slice_id": "1268"
-        },
-        {
-            "col": 1,
-            "row": 0,
-            "size_x": 2,
-            "size_y": 2,
-            "slice_id": "1269"
-        },
-        {
-            "col": 3,
-            "row": 0,
-            "size_x": 2,
-            "size_y": 2,
-            "slice_id": "1270"
-        },
-        {
-            "col": 5,
-            "row": 3,
-            "size_x": 8,
-            "size_y": 3,
-            "slice_id": "1271"
-        },
-        {
-            "col": 1,
-            "row": 6,
-            "size_x": 8,
-            "size_y": 4,
-            "slice_id": "1272"
-        },
-        {
-            "col": 10,
-            "row": 0,
-            "size_x": 3,
-            "size_y": 3,
-            "slice_id": "1273"
-        },
-        {
-            "col": 5,
-            "row": 0,
-            "size_x": 5,
-            "size_y": 3,
-            "slice_id": "1274"
-        },
-        {
-            "col": 1,
-            "row": 2,
-            "size_x": 4,
-            "size_y": 4,
-            "slice_id": "1275"
-        }
+      {
+        "slice_id": "578",
+        "size_x": 8,
+        "size_y": 16,
+        "v": 1,
+        "col": 33,
+        "row": 24
+      },
+      {
+        "slice_id": "579",
+        "size_x": 8,
+        "size_y": 16,
+        "v": 1,
+        "col": 41,
+        "row": 24
+      },
+      {
+        "slice_id": "580",
+        "size_x": 8,
+        "size_y": 8,
+        "v": 1,
+        "col": 1,
+        "row": 0
+      },
+      {
+        "slice_id": "581",
+        "size_x": 8,
+        "size_y": 8,
+        "v": 1,
+        "col": 9,
+        "row": 0
+      },
+      {
+        "slice_id": "582",
+        "size_x": 32,
+        "size_y": 12,
+        "v": 1,
+        "col": 17,
+        "row": 12
+      },
+      {
+        "slice_id": "583",
+        "size_x": 32,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 24
+      },
+      {
+        "slice_id": "584",
+        "size_x": 12,
+        "size_y": 12,
+        "v": 1,
+        "col": 37,
+        "row": 0
+      },
+      {
+        "slice_id": "585",
+        "size_x": 20,
+        "size_y": 12,
+        "v": 1,
+        "col": 17,
+        "row": 0
+      },
+      {
+        "slice_id": "586",
+        "size_x": 16,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 8
+      },
+      {
+        "slice_id": "587",
+        "size_x": 16,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 48
+      }
     ]
+
         """)
     l = json.loads(js)
     for i, pos in enumerate(l):
@@ -884,8 +912,8 @@ def load_unicode_test_data():
     if not dash:
         dash = Dash()
     pos = {
-        "size_y": 4,
-        "size_x": 4,
+        "size_y": 16,
+        "size_x": 16,
         "col": 1,
         "row": 1,
         "slice_id": slc.id,
@@ -1016,7 +1044,12 @@ def load_long_lat_data():
     """Loading lat/long data from a csv file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding="utf-8")
-    pdf['date'] = datetime.datetime.now().date()
+    start = datetime.datetime.now().replace(
+        hour=0, minute=0, second=0, microsecond=0)
+    pdf['datetime'] = [
+        start + datetime.timedelta(hours=i * 24 / (len(pdf) - 1))
+        for i in range(len(pdf))
+    ]
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
     pdf['geohash'] = pdf[['LAT', 'LON']].apply(
@@ -1038,7 +1071,7 @@ def load_long_lat_data():
             'region': String(50),
             'postcode': Float(),
             'id': String(100),
-            'date': Date(),
+            'datetime': DateTime(),
             'occupancy': Float(),
             'radius_miles': Float(),
             'geohash': String(12),
@@ -1052,7 +1085,7 @@ def load_long_lat_data():
     obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
     if not obj:
         obj = TBL(table_name='long_lat')
-    obj.main_dttm_col = 'date'
+    obj.main_dttm_col = 'datetime'
     obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
@@ -1173,48 +1206,54 @@ def load_misc_dashboard():
         dash = Dash()
     js = textwrap.dedent("""\
     [
-        {
-            "col": 1,
-            "row": 7,
-            "size_x": 6,
-            "size_y": 4,
-            "slice_id": "442"
-        },
-        {
-            "col": 1,
-            "row": 2,
-            "size_x": 6,
-            "size_y": 5,
-            "slice_id": "443"
-        },
-        {
-            "col": 7,
-            "row": 2,
-            "size_x": 6,
-            "size_y": 4,
-            "slice_id": "444"
-        },
-        {
-            "col": 9,
-            "row": 0,
-            "size_x": 4,
-            "size_y": 2,
-            "slice_id": "455"
-        },
-        {
-            "col": 7,
-            "row": 6,
-            "size_x": 6,
-            "size_y": 5,
-            "slice_id": "467"
-        },
-        {
-            "col": 1,
-            "row": 0,
-            "size_x": 8,
-            "size_y": 2,
-            "slice_id": "475"
-        }
+      {
+        "slice_id": "564",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 28
+      },
+      {
+        "slice_id": "565",
+        "size_x": 24,
+        "size_y": 20,
+        "v": 1,
+        "col": 1,
+        "row": 8
+      },
+      {
+        "slice_id": "566",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 25,
+        "row": 8
+      },
+      {
+        "slice_id": "577",
+        "size_x": 16,
+        "size_y": 8,
+        "v": 1,
+        "col": 33,
+        "row": 0
+      },
+      {
+        "slice_id": "590",
+        "size_x": 24,
+        "size_y": 20,
+        "v": 1,
+        "col": 25,
+        "row": 24
+      },
+      {
+        "slice_id": "591",
+        "size_x": 32,
+        "size_y": 8,
+        "v": 1,
+        "col": 1,
+        "row": 0
+      }
     ]
     """)
     l = json.loads(js)
@@ -1261,10 +1300,10 @@ def load_deck_dash():
         "point_radius_fixed": {"type": "metric", "value": "count"},
         "point_unit": "square_m",
         "row_limit": 5000,
-        "since": "2014-01-01",
+        "since": None,
         "size": "count",
         "time_grain_sqla": "Time Column",
-        "until": "now",
+        "until": None,
         "viewport": {
             "bearing": -4.952916738791771,
             "latitude": 37.78926922909199,
@@ -1300,9 +1339,9 @@ def load_deck_dash():
         "granularity_sqla": "date",
         "size": "count",
         "viz_type": "deck_screengrid",
-        "since": "2014-01-01",
+        "since": None,
         "point_radius": "Auto",
-        "until": "now",
+        "until": None,
         "color_picker": {
             "a": 1,
             "r": 14,
@@ -1347,10 +1386,10 @@ def load_deck_dash():
         "granularity_sqla": "date",
         "size": "count",
         "viz_type": "deck_hex",
-        "since": "2014-01-01",
+        "since": None,
         "point_radius_unit": "Pixels",
         "point_radius": "Auto",
-        "until": "now",
+        "until": None,
         "color_picker": {
             "a": 1,
             "r": 14,
@@ -1396,10 +1435,10 @@ def load_deck_dash():
         "granularity_sqla": "date",
         "size": "count",
         "viz_type": "deck_grid",
-        "since": "2014-01-01",
+        "since": None,
         "point_radius_unit": "Pixels",
         "point_radius": "Auto",
-        "until": "now",
+        "until": None,
         "color_picker": {
             "a": 1,
             "r": 14,
@@ -1433,6 +1472,194 @@ def load_deck_dash():
     merge_slice(slc)
     slices.append(slc)
 
+    polygon_tbl = db.session.query(TBL) \
+                    .filter_by(table_name='sf_population_polygons').first()
+    slice_data = {
+            "datasource": "11__table",
+            "viz_type": "deck_polygon",
+            "slice_id": 41,
+            "granularity_sqla": None,
+            "time_grain_sqla": None,
+            "since": None,
+            "until": None,
+            "line_column": "contour",
+            "line_type": "json",
+            "mapbox_style": "mapbox://styles/mapbox/light-v9",
+            "viewport": {
+                "longitude": -122.43388541747726,
+                "latitude": 37.752020331384834,
+                "zoom": 11.133995608594631,
+                "bearing": 37.89506450385642,
+                "pitch": 60,
+                "width": 667,
+                "height": 906,
+                "altitude": 1.5,
+                "maxZoom": 20,
+                "minZoom": 0,
+                "maxPitch": 60,
+                "minPitch": 0,
+                "maxLatitude": 85.05113,
+                "minLatitude": -85.05113
+            },
+            "reverse_long_lat": False,
+            "fill_color_picker": {
+                "r": 3,
+                "g": 65,
+                "b": 73,
+                "a": 1
+            },
+            "stroke_color_picker": {
+                "r": 0,
+                "g": 122,
+                "b": 135,
+                "a": 1
+            },
+            "filled": True,
+            "stroked": False,
+            "extruded": True,
+            "point_radius_scale": 100,
+            "js_columns": [
+                "population",
+                "area"
+            ],
+            "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
+             d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
+             return d;\n}",
+            "js_tooltip": "",
+            "js_onclick_href": "",
+            "where": "",
+            "having": "",
+            "filters": []
+        }
+
+    print("Creating Polygon slice")
+    slc = Slice(
+        slice_name="Polygons",
+        viz_type='deck_polygon',
+        datasource_type='table',
+        datasource_id=polygon_tbl.id,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+    slices.append(slc)
+
+    slice_data = {
+            "datasource": "10__table",
+            "viz_type": "deck_arc",
+            "slice_id": 42,
+            "granularity_sqla": "date",
+            "time_grain_sqla": "Time Column",
+            "since": None,
+            "until": None,
+            "start_spatial": {
+                "type": "latlong",
+                "latCol": "LATITUDE",
+                "lonCol": "LONGITUDE"
+            },
+            "end_spatial": {
+                "type": "latlong",
+                "latCol": "LATITUDE_DEST",
+                "lonCol": "LONGITUDE_DEST"
+            },
+            "row_limit": 5000,
+            "mapbox_style": "mapbox://styles/mapbox/light-v9",
+            "viewport": {
+                "altitude": 1.5,
+                "bearing": 8.546256357301871,
+                "height": 642,
+                "latitude": 44.596651438714254,
+                "longitude": -91.84340711201104,
+                "maxLatitude": 85.05113,
+                "maxPitch": 60,
+                "maxZoom": 20,
+                "minLatitude": -85.05113,
+                "minPitch": 0,
+                "minZoom": 0,
+                "pitch": 60,
+                "width": 997,
+                "zoom": 2.929837070560775
+            },
+            "color_picker": {
+                "r": 0,
+                "g": 122,
+                "b": 135,
+                "a": 1
+            },
+            "stroke_width": 1,
+            "where": "",
+            "having": "",
+            "filters": []
+        }
+
+    print("Creating Arc slice")
+    slc = Slice(
+        slice_name="Arcs",
+        viz_type='deck_arc',
+        datasource_type='table',
+        datasource_id=db.session.query(TBL).filter_by(table_name='flights').first().id,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+    slices.append(slc)
+
+    slice_data = {
+        "datasource": "12__table",
+        "slice_id": 43,
+        "viz_type": "deck_path",
+        "time_grain_sqla": "Time Column",
+        "since": None,
+        "until": None,
+        "line_column": "path_json",
+        "line_type": "json",
+        "row_limit": 5000,
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "longitude": -122.18885402582598,
+            "latitude": 37.73671752604488,
+            "zoom": 9.51847667620428,
+            "bearing": 0,
+            "pitch": 0,
+            "width": 669,
+            "height": 1094,
+            "altitude": 1.5,
+            "maxZoom": 20,
+            "minZoom": 0,
+            "maxPitch": 60,
+            "minPitch": 0,
+            "maxLatitude": 85.05113,
+            "minLatitude": -85.05113
+        },
+        "color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "line_width": 150,
+        "reverse_long_lat": False,
+        "js_columns": [
+            "color"
+        ],
+        "js_datapoint_mutator": "d => {\n    return {\n        ...d,\n        color: \
+            colors.hexToRGB(d.extraProps.color),\n    }\n}",
+        "js_tooltip": "",
+        "js_onclick_href": "",
+        "where": "",
+        "having": "",
+        "filters": []
+    }
+
+    print("Creating Path slice")
+    slc = Slice(
+        slice_name="Path",
+        viz_type='deck_path',
+        datasource_type='table',
+        datasource_id=db.session.query(TBL).filter_by(table_name='bart_lines').first().id,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+    slices.append(slc)
+
     print("Creating a dashboard")
     title = "deck.gl Demo"
     dash = db.session.query(Dash).filter_by(dashboard_title=title).first()
@@ -1441,34 +1668,62 @@ def load_deck_dash():
         dash = Dash()
     js = textwrap.dedent("""\
     [
-        {
-            "col": 1,
-            "row": 0,
-            "size_x": 6,
-            "size_y": 4,
-            "slice_id": "37"
-        },
-        {
-            "col": 7,
-            "row": 0,
-            "size_x": 6,
-            "size_y": 4,
-            "slice_id": "38"
-        },
-        {
-            "col": 7,
-            "row": 4,
-            "size_x": 6,
-            "size_y": 4,
-            "slice_id": "39"
-        },
-        {
-            "col": 1,
-            "row": 4,
-            "size_x": 6,
-            "size_y": 4,
-            "slice_id": "40"
-        }
+      {
+        "slice_id": "600",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 0
+      },
+      {
+        "slice_id": "601",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 25,
+        "row": 0
+      },
+      {
+        "slice_id": "602",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 25,
+        "row": 16
+      },
+      {
+        "slice_id": "603",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 16
+      },
+      {
+        "slice_id": "604",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 16
+      },
+      {
+        "slice_id": "605",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 25,
+        "row": 16
+      },
+      {
+        "slice_id": "606",
+        "size_x": 24,
+        "size_y": 16,
+        "v": 1,
+        "col": 1,
+        "row": 20
+      }
     ]
     """)
     l = json.loads(js)
@@ -1484,6 +1739,7 @@ def load_deck_dash():
 
 def load_flights():
     """Loading random time series data from a zip file in the repo"""
+    tbl_name = 'flights'
     with gzip.open(os.path.join(DATA_FOLDER, 'fligth_data.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding='latin-1')
 
@@ -1501,7 +1757,7 @@ def load_flights():
     pdf = pdf.join(airports, on='ORIGIN_AIRPORT', rsuffix='_ORIG')
     pdf = pdf.join(airports, on='DESTINATION_AIRPORT', rsuffix='_DEST')
     pdf.to_sql(
-        'flights',
+        tbl_name,
         db.engine,
         if_exists='replace',
         chunksize=500,
@@ -1509,17 +1765,15 @@ def load_flights():
             'ds': DateTime,
         },
         index=False)
-    print("Done loading table!")
-
-    print("Creating table [random_time_series] reference")
-    obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
-    if not obj:
-        obj = TBL(table_name='flights')
-    obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
-    db.session.merge(obj)
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Random set of flights in the US"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
     db.session.commit()
-    obj.fetch_metadata()
+    tbl.fetch_metadata()
+    print("Done loading table!")
 
 
 def load_paris_iris_geojson():
@@ -1546,6 +1800,36 @@ def load_paris_iris_geojson():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Map of Paris"
+    tbl.database = get_or_create_main_db()
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()
+
+
+def load_sf_population_polygons():
+    tbl_name = 'sf_population_polygons'
+
+    with gzip.open(os.path.join(DATA_FOLDER, 'sf_population.json.gz')) as f:
+        df = pd.read_json(f)
+        df['contour'] = df.contour.map(json.dumps)
+
+    df.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'zipcode': BigInteger,
+            'population': BigInteger,
+            'contour': Text,
+            'area': BigInteger,
+        },
+        index=False)
+    print("Creating table {} reference".format(tbl_name))
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Population density of San Francisco"
     tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()

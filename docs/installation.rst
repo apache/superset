@@ -53,6 +53,12 @@ the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
 
+**Ubuntu 16.04** If you have python3.5 installed alongside with python2.7, as is default on **Ubuntu 16.04 LTS**, run this command also
+
+    sudo apt-get install build-essential libssl-dev libffi-dev python3.5-dev python-pip libsasl2-dev libldap2-dev
+
+otherwhise build for ``cryptography`` fails.
+
 For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
@@ -343,6 +349,16 @@ For setting your timeouts, this is done in the Superset metadata and goes
 up the "timeout searchpath", from your slice configuration, to your
 data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
+	
+.. code-block:: python
+
+    CACHE_CONFIG = {
+	    'CACHE_TYPE': 'redis',
+	    'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24, # 1 day default (in secs)
+	    'CACHE_KEY_PREFIX': 'superset_results',
+	    'CACHE_REDIS_URL': 'redis://localhost:6379/0',
+	}
+
 
 
 Deeper SQLAlchemy integration

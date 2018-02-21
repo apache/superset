@@ -9,6 +9,13 @@ function markupWidget(slice, payload) {
     overflow: 'auto',
   });
 
+  // markup height is slice height - (marginTop + marginBottom)
+  let iframeHeight = slice.height() - 20;
+  if (slice.props.vizType === 'separator') {
+    // separator height is the entire chart container: slice height + header
+    iframeHeight = slice.height() + slice.headerHeight();
+  }
+
   const iframeId = `if__${slice.containerId}`;
   const html = `
     <html>
@@ -22,7 +29,7 @@ function markupWidget(slice, payload) {
   jqdiv.html(`
     <iframe id="${iframeId}"
       frameborder="0"
-      height="${slice.height() - 20}"
+      height="${iframeHeight}"
       sandbox="allow-same-origin allow-scripts allow-top-navigation allow-popups">
     </iframe>
   `);

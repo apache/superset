@@ -277,10 +277,12 @@ SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
 SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
 # static http headers to be served by your Superset server.
-# The following example prevents iFrame from other domains
-# and "clickjacking" as a result
-# HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
-HTTP_HEADERS = {}
+# This header prevents iFrames from other domains and
+# "clickjacking" as a result
+HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
+# If you need to allow iframes from other domains (and are
+# aware of the risks), you can disable this header:
+# HTTP_HEADERS = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
@@ -326,6 +328,9 @@ CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
 # example: FLASK_APP_MUTATOR = lambda x: x.before_request = f
 FLASK_APP_MUTATOR = None
 
+# Set this to false if you don't want users to be able to request/grant
+# datasource access requests from/to other users.
+ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
@@ -349,6 +354,9 @@ SILENCE_FAB = True
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ''
 
+# This link should lead to a page with instructions on how to gain access to a
+# Datasource. It will be placed at the bottom of permissions errors.
+PERMISSION_INSTRUCTIONS_LINK = ''
 
 # Integrate external Blueprints to the app by passing them to your
 # configuration. These blueprints will get integrated in the app
@@ -358,6 +366,15 @@ BLUEPRINTS = []
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
 TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
+
+# Interval between consecutive polls when using Hive Engine
+HIVE_POLL_INTERVAL = 5
+
+# Allow for javascript controls components
+# this enables programmers to customize certain charts (like the
+# geospatial ones) by inputing javascript in controls. This exposes
+# an XSS security vulnerability
+ENABLE_JAVASCRIPT_CONTROLS = False
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

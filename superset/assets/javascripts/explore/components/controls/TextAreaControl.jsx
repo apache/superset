@@ -25,6 +25,7 @@ const propTypes = {
   offerEditInModal: PropTypes.bool,
   language: PropTypes.oneOf([null, 'json', 'html', 'sql', 'markdown', 'javascript']),
   aboveEditorSection: PropTypes.node,
+  readOnly: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -34,6 +35,7 @@ const defaultProps = {
   minLines: 3,
   maxLines: 10,
   offerEditInModal: true,
+  readOnly: false,
 };
 
 export default class TextAreaControl extends React.Component {
@@ -57,6 +59,7 @@ export default class TextAreaControl extends React.Component {
           editorProps={{ $blockScrolling: true }}
           enableLiveAutocompletion
           value={this.props.value}
+          readOnly={this.props.readOnly}
         />
       );
     }
@@ -67,6 +70,7 @@ export default class TextAreaControl extends React.Component {
           placeholder={t('textarea')}
           onChange={this.onControlChange.bind(this)}
           value={this.props.value}
+          disabled={this.props.readOnly}
           style={{ height: this.props.height }}
         />
       </FormGroup>);
