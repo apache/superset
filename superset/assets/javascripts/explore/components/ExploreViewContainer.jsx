@@ -76,16 +76,20 @@ class ExploreViewContainer extends React.Component {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
     }
     // if any control value changed and it's an instant control
-    if (Object.keys(np.controls).some(key => (np.controls[key].renderTrigger &&
-      typeof this.props.controls[key] !== 'undefined' &&
-      !areObjectsEqual(np.controls[key].value, this.props.controls[key].value)))
-    ) {
+    if (this.instantControlChanged(this.props.controls, np.controls)) {
+      this.props.actions.updateQueryFormData(
+        getFormDataFromControls(np.controls), this.props.chart.chartKey);
       this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
     }
   }
 
-  componentDidUpdate() {
+  /* eslint no-unused-vars: 0 */
+  componentDidUpdate(prevProps, prevState) {
     this.triggerQueryIfNeeded();
+
+    if (this.instantControlChanged(prevProps.controls, this.props.controls)) {
+      this.addHistory({});
+    }
   }
 
   componentWillUnmount() {
@@ -115,6 +119,14 @@ class ExploreViewContainer extends React.Component {
     }
     const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
+  }
+
+  instantControlChanged(prevControls, currentControls) {
+    return Object.keys(currentControls).some(key => (
+      currentControls[key].renderTrigger &&
+      typeof prevControls[key] !== 'undefined' &&
+      !areObjectsEqual(currentControls[key].value, prevControls[key].value)
+    ));
   }
 
   triggerQueryIfNeeded() {
