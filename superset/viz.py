@@ -1949,17 +1949,23 @@ class BaseDeckGLViz(BaseViz):
 
             df[key] = df[spatial.get('lonlatCol')].apply(tupleify)
 
-            if spatial.get('reverseCheckbox'):
-                df[key] = [
-                    tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
-                    for o in df[key]
-                ]
             del df[spatial.get('lonlatCol')]
         elif spatial.get('type') == 'geohash':
-            latlong = df[spatial.get('geohashCol')].map(geohash.decode)
+            def try_geohash(h):
+                try:
+                    latlng = geohash.decode(h)
+                except Exception as e:
+                    latlng = (0, 0)
+                return latlng
+            latlong = df[spatial.get('geohashCol')].map(try_geohash)
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
+        if spatial.get('reverseCheckbox'):
+            df[key] = [
+                tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
+                for o in df[key]
+            ]
         return df
 
     def query_obj(self):
