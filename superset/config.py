@@ -370,6 +370,24 @@ TRACKING_URL_TRANSFORMER = lambda x: x  # noqa: E731
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = 5
 
+
+# System to handle delegated data access. Implement both is_allowed_access() and
+# is_eligible_datasource() to delegate access controls.
+class PermsDecider:
+    def __init__(self):
+        pass
+
+    def is_eligible_datasource(self, datasource):
+        # This returns whether this perms decider can decide access for this datasource.
+        return False
+
+    def is_allowed_access(self, username, datasource):
+        # returns whether or not the user has access to the datasource.
+        return False
+
+
+DATA_PERMS_DECIDER = PermsDecider()
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
