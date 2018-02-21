@@ -958,9 +958,7 @@ class Superset(BaseSupersetView):
             # Converting old URLs
             d = cast_form_data(d)
 
-        for k in FORM_DATA_KEY_BLACKLIST:
-            if k in d:
-                del d[k]
+        d = {k: v for k, v in d.items() if k not in FORM_DATA_KEY_BLACKLIST}
 
         return d
 
