@@ -8,12 +8,7 @@ import ExploreActionButtons from
 describe('ExploreActionButtons', () => {
   const defaultProps = {
     canDownload: 'True',
-    slice: {
-      data: {
-        csv_endpoint: '',
-        json_endpoint: '',
-      },
-    },
+    latestQueryFormData: {},
     queryEndpoint: 'localhost',
   };
 
