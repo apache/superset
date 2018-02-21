@@ -47,7 +47,6 @@ export default function chartReducer(charts = {}, action) {
         chartUpdateEndTime: null,
         chartUpdateStartTime: now(),
         queryRequest: action.queryRequest,
-        latestQueryFormData: action.latestQueryFormData,
       };
     },
     [actions.CHART_UPDATE_STOPPED](state) {
@@ -92,6 +91,9 @@ export default function chartReducer(charts = {}, action) {
     },
     [actions.RENDER_TRIGGERED](state) {
       return { ...state, lastRendered: action.value };
+    },
+    [actions.UPDATE_QUERY_FORM_DATA](state) {
+      return { ...state, latestQueryFormData: action.value };
     },
     [actions.ANNOTATION_QUERY_STARTED](state) {
       if (state.annotationQuery &&

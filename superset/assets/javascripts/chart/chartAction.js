@@ -106,6 +106,11 @@ export function renderTriggered(value, key) {
   return { type: RENDER_TRIGGERED, value, key };
 }
 
+export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA';
+export function updateQueryFormData(value, key) {
+  return { type: UPDATE_QUERY_FORM_DATA, value, key };
+}
+
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false, timeout = 60, key) {
   return (dispatch) => {
@@ -170,6 +175,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     return Promise.all([
       queryPromise,
       dispatch(triggerQuery(false, key)),
+      dispatch(updateQueryFormData(payload, key)),
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
   };
