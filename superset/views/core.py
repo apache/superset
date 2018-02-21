@@ -73,6 +73,14 @@ if perms_instruction_link:
 else:
     DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
+FORM_DATA_KEY_BLACKLIST = []
+if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
+    FORM_DATA_KEY_BLACKLIST = [
+        'js_tooltip',
+        'js_onclick_href',
+        'js_data_mutator',
+    ]
+
 
 def get_database_access_error_msg(database_name):
     return __('This view requires the database %(name)s or '
@@ -948,7 +956,10 @@ class Superset(BaseSupersetView):
 
         if request.args.get('viz_type'):
             # Converting old URLs
-            d = cast_form_data(request.args)
+            d = cast_form_data(d)
+
+        d = {k: v for k, v in d.items() if k not in FORM_DATA_KEY_BLACKLIST}
+
         return d
 
     def get_viz(
