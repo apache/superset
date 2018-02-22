@@ -31,12 +31,12 @@ def upgrade():
     session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
-    print('Upgrading ({}/{}): {}'.format(
-        i, len(dashboards), dashboard.id))
     for i, dashboard in enumerate(dashboards):
+        print('Upgrading ({}/{}): {}'.format(
+            i, len(dashboards), dashboard.id))
         positions = json.loads(dashboard.position_json or '{}')
         for pos in positions:
-            if type(pos) == dict and pos.get('v', 0) == 0:
+            if pos.get('v', 0) == 0:
                 pos['size_x'] = pos['size_x'] * RATIO
                 pos['size_y'] = pos['size_y'] * RATIO
                 pos['col'] = ((pos['col'] - 1) * RATIO) + 1
@@ -55,9 +55,9 @@ def downgrade():
     session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
-    print('Downgrading ({}/{}): {}'.format(
-        i, len(dashboards), dashboard.id))
     for i, dashboard in enumerate(dashboards):
+        print('Downgrading ({}/{}): {}'.format(
+            i, len(dashboards), dashboard.id))
         positions = json.loads(dashboard.position_json or '{}')
         for pos in positions:
             if pos.get('v', 0) == 1:
