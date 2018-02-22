@@ -112,6 +112,10 @@ class ExploreViewContainer extends React.Component {
     this.addHistory({});
   }
 
+  onDismissRefreshOverlay() {
+    this.setState({ chartIsStale: false });
+  }
+
   onStop() {
     return this.props.chart.queryRequest.abort();
   }
@@ -227,7 +231,11 @@ class ExploreViewContainer extends React.Component {
         width={this.state.width}
         height={this.state.height}
         {...this.props}
+        errorMessage={this.renderErrorMessage()}
+        chartIsStale={this.state.chartIsStale}
         addHistory={this.addHistory}
+        onQuery={this.onQuery.bind(this)}
+        onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
       />);
   }
 
