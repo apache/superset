@@ -34,7 +34,7 @@ def upgrade():
     for i, dashboard in enumerate(dashboards):
         positions = json.loads(dashboard.position_json or '{}')
         for pos in positions:
-            if pos.get('v', 0) == 0:
+            if type(pos) == dict and pos.get('v', 0) == 0:
                 pos['size_x'] = pos['size_x'] * RATIO
                 pos['size_y'] = pos['size_y'] * RATIO
                 pos['col'] = ((pos['col'] - 1) * RATIO) + 1
@@ -45,7 +45,7 @@ def upgrade():
         session.merge(dashboard)
         session.commit()
         print('Upgraded ({}/{}): {}'.format(
-            i, len(dashboards), dashboard.dashboard_title))
+            i, len(dashboards), dashboard.id))
 
     session.close()
 
