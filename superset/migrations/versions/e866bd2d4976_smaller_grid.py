@@ -31,6 +31,8 @@ def upgrade():
     session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
+    print('Upgrading ({}/{}): {}'.format(
+        i, len(dashboards), dashboard.id))
     for i, dashboard in enumerate(dashboards):
         positions = json.loads(dashboard.position_json or '{}')
         for pos in positions:
@@ -44,8 +46,6 @@ def upgrade():
         dashboard.position_json = json.dumps(positions, indent=2)
         session.merge(dashboard)
         session.commit()
-        print('Upgraded ({}/{}): {}'.format(
-            i, len(dashboards), dashboard.id))
 
     session.close()
 
@@ -55,6 +55,8 @@ def downgrade():
     session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
+    print('Downgrading ({}/{}): {}'.format(
+        i, len(dashboards), dashboard.id))
     for i, dashboard in enumerate(dashboards):
         positions = json.loads(dashboard.position_json or '{}')
         for pos in positions:
@@ -68,6 +70,4 @@ def downgrade():
         dashboard.position_json = json.dumps(positions, indent=2)
         session.merge(dashboard)
         session.commit()
-        print('Downgraded ({}/{}): {}'.format(
-            i, len(dashboards), dashboard.dashboard_title))
     pass
