@@ -68,6 +68,6 @@ def downgrade():
         dashboard.position_json = json.dumps(positions, indent=2)
         session.merge(dashboard)
         session.commit()
-        print(u'Downgraded ({}/{}): {}'.format(
+        print('Downgraded ({}/{}): {}'.format(
             i, len(dashboards), dashboard.dashboard_title))
     pass
