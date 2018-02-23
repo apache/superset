@@ -35,8 +35,8 @@ class CsvToDatabaseForm(DynamicForm):
         validators=[
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
     con = QuerySelectField(
-         query_factory=all_db_items,
-         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
+        query_factory=all_db_items,
+        get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
     sep = StringField(
         _('Delimiter'),
         description=_('Delimiter used by CSV file (for whitespace use \s+).'),
