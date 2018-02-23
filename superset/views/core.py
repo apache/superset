@@ -350,7 +350,7 @@ class CsvToDatabaseView(SimpleFormView):
             except OSError:
                 pass
             message = u'Table name {} already exists. Please pick another'.format(
-                    form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+                form.name.data) if isinstance(e, IntegrityError) else text_type(e)
             flash(
                 message,
                 'danger')
@@ -993,10 +993,10 @@ class Superset(BaseSupersetView):
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
         endpoint = '/superset/explore/{}/{}?form_data={}'.format(
-                viz_obj.datasource.type,
-                viz_obj.datasource.id,
-                parse.quote(json.dumps(viz_obj.form_data)),
-            )
+            viz_obj.datasource.type,
+            viz_obj.datasource.id,
+            parse.quote(json.dumps(viz_obj.form_data)),
+        )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
         return redirect(endpoint)
@@ -1098,9 +1098,9 @@ class Superset(BaseSupersetView):
                                  'val': layer_id}]
         datasource = AnnotationDatasource()
         viz_obj = viz.viz_types['table'](
-          datasource,
-          form_data=form_data,
-          force=False,
+            datasource,
+            form_data=form_data,
+            force=False,
         )
         try:
             payload = viz_obj.get_payload()
