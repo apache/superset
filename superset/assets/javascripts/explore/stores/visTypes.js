@@ -648,6 +648,7 @@ export const visTypes = {
         label: t('Point Size'),
         controlSetRows: [
           ['point_radius_fixed', 'point_unit'],
+          ['min_radius', 'max_radius'],
           ['multiplier', null],
         ],
       },
