@@ -29,7 +29,7 @@ from sqlalchemy.orm import backref, relationship
 from superset import conf, db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.models.helpers import (
-  AuditMixinNullable, ImportMixin, QueryResult, set_perm,
+    AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
 from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher, MetricPermException,
@@ -582,11 +582,11 @@ class DruidDatasource(Model, BaseDatasource):
         v1nums = (v1nums + [0, 0, 0])[:3]
         v2nums = (v2nums + [0, 0, 0])[:3]
         return (
-                   v1nums[0] > v2nums[0] or
-                   (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
-                   (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
-                       v1nums[2] > v2nums[2])
-               )
+            v1nums[0] > v2nums[0] or
+            (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
+            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
+                v1nums[2] > v2nums[2])
+        )
 
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
@@ -869,8 +869,8 @@ class DruidDatasource(Model, BaseDatasource):
     def resolve_postagg(postagg, post_aggs, agg_names, visited_postaggs, metrics_dict):
         mconf = postagg.json_obj
         required_fields = set(
-            DruidDatasource.recursive_get_fields(mconf)
-            + mconf.get('fieldNames', []))
+            DruidDatasource.recursive_get_fields(mconf) +
+            mconf.get('fieldNames', []))
         # Check if the fields are already in aggs
         # or is a previous postagg
         required_fields = set([

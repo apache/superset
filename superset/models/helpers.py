@@ -61,8 +61,9 @@ class ImportMixin(object):
             if parent_ref:
                 parent_excludes = {c.name for c in parent_ref.local_columns}
 
-        def formatter(c): return ('{0} Default ({1})'.format(
-            str(c.type), c.default.arg) if c.default else str(c.type))
+        def formatter(c):
+            return ('{0} Default ({1})'.format(
+                str(c.type), c.default.arg) if c.default else str(c.type))
 
         schema = {c.name: formatter(c) for c in cls.__table__.columns
                   if (c.name in cls.export_fields and
@@ -96,7 +97,7 @@ class ImportMixin(object):
                 for p in parent_refs.keys():
                     if p not in dict_rep:
                         raise RuntimeError(
-                          '{0}: Missing field {1}'.format(cls.__name__, p))
+                            '{0}: Missing field {1}'.format(cls.__name__, p))
         else:
             # Set foreign keys to parent obj
             for k, v in parent_refs.items():
@@ -176,19 +177,22 @@ class ImportMixin(object):
                     if (c.name in self.export_fields and
                         c.name not in parent_excludes and
                         (include_defaults or (
-                             getattr(self, c.name) is not None and
-                             (not c.default or
-                              getattr(self, c.name) != c.default.arg))))
+                            getattr(self, c.name) is not None and
+                            (not c.default or
+                                getattr(self, c.name) != c.default.arg))))
                     }
         if recursive:
             for c in self.export_children:
                 # sorting to make lists of children stable
-                dict_rep[c] = sorted([child.export_to_dict(
-                        recursive=recursive,
-                        include_parent_ref=include_parent_ref,
-                        include_defaults=include_defaults)
-                               for child in getattr(self, c)],
-                        key=lambda k: sorted(k.items()))
+                dict_rep[c] = sorted(
+                    [
+                        child.export_to_dict(
+                            recursive=recursive,
+                            include_parent_ref=include_parent_ref,
+                            include_defaults=include_defaults,
+                        ) for child in getattr(self, c)
+                    ],
+                    key=lambda k: sorted(k.items()))
 
         return dict_rep
 
