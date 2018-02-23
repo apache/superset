@@ -1651,6 +1651,12 @@ class Superset(BaseSupersetView):
     def recent_activity(self, user_id):
         """Recent activity (actions) for a given user"""
         M = models  # noqa
+
+        if request.args.get('limit'):
+            limit = int(request.args.get('limit'))
+        else:
+            limit = 1000
+
         qry = (
             db.session.query(M.Log, M.Dashboard, M.Slice)
             .outerjoin(
@@ -1668,7 +1674,7 @@ class Superset(BaseSupersetView):
                 ),
             )
             .order_by(M.Log.dttm.desc())
-            .limit(1000)
+            .limit(limit)
         )
         payload = []
         for log in qry.all():
