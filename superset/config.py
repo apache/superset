@@ -163,6 +163,7 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
+	'pt-BR': {'flag': 'pt-BR', 'name': 'Portugês - Brasil'},
 }
 # ---------------------------------------------------
 # Image and file configuration
