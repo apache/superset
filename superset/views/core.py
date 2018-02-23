@@ -842,6 +842,13 @@ class Superset(BaseSupersetView):
                 .one()
             )
             datasources.add(datasource)
+
+        has_access = True
+        for datasource in datasources:
+            has_access |= (datasource and self.datasource_access(datasource))
+        if(has_access):
+            return redirect('/superset/dashboard/{}'.format(dashboard_id))
+
         if request.args.get('action') == 'go':
             for datasource in datasources:
                 access_request = DAR(
