@@ -654,7 +654,7 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         mock_d = {
             'a': 'dummy1',
             'b': 'dummy2',
-            'c': 'dummy3'
+            'c': 'dummy3',
         }
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
         result = test_viz_deckgl.get_js_columns(mock_d)
