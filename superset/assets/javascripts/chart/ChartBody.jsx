@@ -7,6 +7,7 @@ const propTypes = {
   vizType: PropTypes.string.isRequired,
   height: PropTypes.func.isRequired,
   width: PropTypes.func.isRequired,
+  stale: PropTypes.bool,
 };
 
 class ChartBody extends React.PureComponent {
@@ -42,7 +43,7 @@ class ChartBody extends React.PureComponent {
     return (
       <div
         id={this.props.containerId}
-        className={`slice_container ${this.props.vizType}`}
+        className={`slice_container ${this.props.vizType}${this.props.stale ? ' stale' : ''}`}
         ref={(el) => { this.el = el; }}
       />
     );

@@ -234,6 +234,7 @@ class Chart extends React.PureComponent {
             vizType={this.props.vizType}
             height={this.height}
             width={this.width}
+            stale={this.props.chartIsStale}
             ref={(inner) => {
               this.container = inner;
             }}

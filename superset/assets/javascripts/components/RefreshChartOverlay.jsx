@@ -19,10 +19,9 @@ class RefreshChartOverlay extends React.PureComponent {
         className="refresh-chart-overlay"
       >
         <div>
-          <Button 
-            bsSize="md" 
-            className="query" 
-            onClick={this.props.onQuery} 
+          <Button
+            className="query"
+            onClick={this.props.onQuery}
             disabled={!!this.props.errorMessage}
             bsStyle={this.props.errorMessage ? 'danger' : 'primary'}
           >
