@@ -44,13 +44,13 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import has_access, merge_extra_filters, QueryStatus
-from .utils import bootstrap_user_data
+
 from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin,
     generate_download_headers, get_error_msg, get_user_roles,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
-
+from .utils import bootstrap_user_data
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')

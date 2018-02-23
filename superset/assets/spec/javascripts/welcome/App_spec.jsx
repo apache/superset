@@ -1,5 +1,5 @@
 import React from 'react';
-import { Panel, Col, Row } from 'react-bootstrap';
+import { Panel, Col, Row, Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
@@ -13,10 +13,11 @@ describe('App', () => {
       React.isValidElement(<App {...mockedProps} />),
     ).to.equal(true);
   });
-  it('renders 2 Col', () => {
+  it('renders 6 Tab, Panel, Row, and Col components', () => {
     const wrapper = shallow(<App {...mockedProps} />);
-    expect(wrapper.find(Panel)).to.have.length(1);
-    expect(wrapper.find(Row)).to.have.length(1);
-    expect(wrapper.find(Col)).to.have.length(2);
+    expect(wrapper.find(Tab)).to.have.length(6);
+    expect(wrapper.find(Panel)).to.have.length(6);
+    expect(wrapper.find(Row)).to.have.length(6);
+    expect(wrapper.find(Col)).to.have.length(6);
   });
 });
