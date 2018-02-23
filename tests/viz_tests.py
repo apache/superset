@@ -10,6 +10,7 @@ import superset.viz as viz
 
 
 class BaseVizTestCase(unittest.TestCase):
+
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
@@ -631,3 +632,31 @@ class RoseVisTestCase(unittest.TestCase):
             ],
         }
         self.assertEqual(expected, res)
+
+
+class BaseDeckGLVizTestCase(unittest.TestCase):
+
+    def test_get_metrics(self):
+        form_data = {'size': 'large'}
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == [form_data.get('size')]
+
+        form_data = {}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == []
+
+    def test_get_js_columns(self):
+        form_data = {'js_columns': ['a', 'b']}
+        datasource = {'type': 'table'}
+        mock_d = {
+            'a': 'dummy1',
+            'b': 'dummy2',
+            'c': 'dummy3'
+        }
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_js_columns(mock_d)
+
+        assert result == {'a': 'dummy1', 'b': 'dummy2'}
