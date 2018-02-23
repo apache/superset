@@ -2575,7 +2575,7 @@ class Superset(BaseSupersetView):
             username = g.user.username
 
         payload = {
-            'user': bootstrap_user_data(username),
+            'user': bootstrap_user_data(username, include_perms=True),
             'common': self.common_bootsrap_payload(),
         }
 

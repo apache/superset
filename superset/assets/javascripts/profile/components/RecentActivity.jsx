@@ -10,6 +10,7 @@ const propTypes = {
 
 export default class RecentActivity extends React.PureComponent {
   render() {
+    const rowLimit = 50;
     const mutator = function (data) {
       return data.map(row => ({
         name: <a href={row.item_url}>{row.item_title}</a>,
@@ -24,7 +25,7 @@ export default class RecentActivity extends React.PureComponent {
           className="table table-condensed"
           mutator={mutator}
           sortable
-          dataEndpoint={`/superset/recent_activity/${this.props.user.userId}/`}
+          dataEndpoint={`/superset/recent_activity/${this.props.user.userId}/?limit=${rowLimit}`}
         />
       </div>
     );

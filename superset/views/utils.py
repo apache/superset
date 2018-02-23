@@ -11,9 +11,9 @@ from flask_appbuilder.security.sqla import models as ab_models
 from superset import db
 
 
-def bootstrap_user_data(given_username=None):
-    if given_username:
-        username = given_username
+def bootstrap_user_data(username=None, include_perms=False):
+    if username:
+        username = username
     else:
         username = g.user.username
 
@@ -22,6 +22,29 @@ def bootstrap_user_data(given_username=None):
         .filter_by(username=username)
         .one()
     )
+
+    payload = {
+        'username': user.username,
+        'firstName': user.first_name,
+        'lastName': user.last_name,
+        'userId': user.id,
+        'isActive': user.is_active(),
+        'createdOn': user.created_on.isoformat(),
+        'email': user.email,
+    }
+
+    if include_perms:
+        roles, permissions = get_permissions(user)
+        payload['roles'] = roles
+        payload['permissions'] = permissions
+
+    return payload
+
+
+def get_permissions(user):
+    if not user.roles:
+        raise AttributeError('User object does not have roles')
+
     roles = {}
     permissions = defaultdict(set)
     for role in user.roles:
@@ -40,14 +63,4 @@ def bootstrap_user_data(given_username=None):
             if perm.permission and perm.view_menu
         ]
 
-    return {
-        'username': user.username,
-        'firstName': user.first_name,
-        'lastName': user.last_name,
-        'userId': user.id,
-        'isActive': user.is_active(),
-        'createdOn': user.created_on.isoformat(),
-        'email': user.email,
-        'roles': roles,
-        'permissions': permissions,
-    }
+    return roles, permissions
