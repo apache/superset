@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Adds params to the datasource (druid) table
 
 Revision ID: 1296d28ec131

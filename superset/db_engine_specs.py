@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Compatibility layer for different database engines
 
 This modules stores logic specific to different database engines. Things
