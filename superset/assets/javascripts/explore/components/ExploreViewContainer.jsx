@@ -76,14 +76,15 @@ class ExploreViewContainer extends React.Component {
     if (np.controls.datasource.value !== this.props.controls.datasource.value) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
     }
-    // if any control value changed and it's a display control
-    if (this.hasDisplayControlChanged(this.props.controls, np.controls)) {
+
+    const changedControlKeys = this.findChangedControlKeys(this.props.controls, np.controls);
+    if (this.hasDisplayControlChanged(changedControlKeys, np.controls)) {
       this.props.actions.updateQueryFormData(
         getFormDataFromControls(np.controls), this.props.chart.chartKey);
       this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
     }
-    if (this.hasQueryControlChanged(this.props.controls, np.controls)) {
-      this.setState({ chartIsStale: true })
+    if (this.hasQueryControlChanged(changedControlKeys, np.controls)) {
+      this.setState({ chartIsStale: true });
     }
   }
 
@@ -91,7 +92,8 @@ class ExploreViewContainer extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     this.triggerQueryIfNeeded();
 
-    if (this.hasDisplayControlChanged(prevProps.controls, this.props.controls)) {
+    const changedControlKeys = this.findChangedControlKeys(prevProps.controls, this.props.controls);
+    if (this.hasDisplayControlChanged(changedControlKeys, this.props.controls)) {
       this.addHistory({});
     }
   }
@@ -126,20 +128,19 @@ class ExploreViewContainer extends React.Component {
     return `${window.innerHeight - navHeight}px`;
   }
 
-  hasDisplayControlChanged(prevControls, currentControls) {
-    return Object.keys(currentControls).some(key => (
-      currentControls[key].renderTrigger &&
+  findChangedControlKeys(prevControls, currentControls) {
+    return Object.keys(currentControls).filter(key => (
       typeof prevControls[key] !== 'undefined' &&
       !areObjectsEqual(currentControls[key].value, prevControls[key].value)
     ));
   }
 
-  hasQueryControlChanged(prevControls, currentControls) {
-    return Object.keys(currentControls).some(key => (
-      !currentControls[key].renderTrigger &&
-      typeof prevControls[key] !== 'undefined' &&
-      !areObjectsEqual(currentControls[key].value, prevControls[key].value)
-    ));
+  hasDisplayControlChanged(changedControlKeys, currentControls) {
+    return changedControlKeys.some(key => (currentControls[key].renderTrigger));
+  }
+
+  hasQueryControlChanged(changedControlKeys, currentControls) {
+    return changedControlKeys.some(key => !currentControls[key].renderTrigger);
   }
 
   triggerQueryIfNeeded() {
