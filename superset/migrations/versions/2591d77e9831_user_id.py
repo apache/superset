@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """user_id
 
 Revision ID: 2591d77e9831

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """change_table_unique_constraint
 
 Revision ID: b4456560d4f3
@@ -17,9 +18,9 @@ def upgrade():
     try:
         # Trying since sqlite doesn't like constraints
         op.drop_constraint(
-            u'tables_table_name_key', 'tables', type_='unique')
+            'tables_table_name_key', 'tables', type_='unique')
         op.create_unique_constraint(
-            u'_customer_location_uc', 'tables',
+            '_customer_location_uc', 'tables',
             ['database_id', 'schema', 'table_name'])
     except Exception:
         pass

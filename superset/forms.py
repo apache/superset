@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Contains the logic to create cohesive forms on the explore view"""
 from __future__ import absolute_import
 from __future__ import division
