@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Views used by the SqlAlchemy connector"""
 from __future__ import absolute_import
 from __future__ import division

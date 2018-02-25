@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """add_result_backend_time_logging
 
 Revision ID: a65458420354

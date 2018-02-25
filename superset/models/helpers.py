@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """a collection of model-related helper classes and functions"""
 from __future__ import absolute_import
 from __future__ import division

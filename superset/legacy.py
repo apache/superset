@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Code related with dealing with legacy / change management"""
 from __future__ import absolute_import
 from __future__ import division

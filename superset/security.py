@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """A set of constants and methods to manage permissions and security"""
 from __future__ import absolute_import
 from __future__ import division

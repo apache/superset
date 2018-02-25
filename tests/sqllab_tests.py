@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Unit tests for Sql Lab"""
 from __future__ import absolute_import
 from __future__ import division

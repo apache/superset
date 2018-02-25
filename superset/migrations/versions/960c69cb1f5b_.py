@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """add dttm_format related fields in table_columns
 
 Revision ID: 960c69cb1f5b

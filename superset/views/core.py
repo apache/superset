@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -349,7 +350,7 @@ class CsvToDatabaseView(SimpleFormView):
                 os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
             except OSError:
                 pass
-            message = u'Table name {} already exists. Please pick another'.format(
+            message = 'Table name {} already exists. Please pick another'.format(
                 form.name.data) if isinstance(e, IntegrityError) else text_type(e)
             flash(
                 message,
@@ -359,7 +360,7 @@ class CsvToDatabaseView(SimpleFormView):
         os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
-        message = _(u'CSV file "{0}" uploaded to table "{1}" in '
+        message = _('CSV file "{0}" uploaded to table "{1}" in '
                     'database "{2}"'.format(csv_filename,
                                             form.name.data,
                                             db_name))

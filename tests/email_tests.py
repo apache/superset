@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Unit tests for email service in Superset"""
 from __future__ import absolute_import
 from __future__ import division
