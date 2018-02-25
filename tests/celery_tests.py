@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Unit tests for Superset Celery worker"""
 from __future__ import absolute_import
 from __future__ import division

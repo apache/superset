@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Materializing permission
 
 Revision ID: c3a8f8611885

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Add encrypted password field
 
 Revision ID: 289ce07647b

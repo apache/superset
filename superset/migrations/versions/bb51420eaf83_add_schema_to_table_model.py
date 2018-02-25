@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """add schema to table model
 
 Revision ID: bb51420eaf83

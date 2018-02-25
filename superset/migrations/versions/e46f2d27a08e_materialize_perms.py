@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """materialize perms
 
 Revision ID: e46f2d27a08e
