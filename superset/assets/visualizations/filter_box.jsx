@@ -111,8 +111,8 @@ class FilterBox extends React.Component {
           <div className="col-lg-6 col-xs-12">
             <DateFilterControl
               name={since}
-              label="Since"
-              description="Select starting date"
+              label={t('Since')}
+              description={t('Select starting date')}
               onChange={this.changeFilter.bind(this, since)}
               value={this.state.selectedValues[since]}
             />
@@ -120,8 +120,8 @@ class FilterBox extends React.Component {
           <div className="col-lg-6 col-xs-12">
             <DateFilterControl
               name={until}
-              label="Until"
-              description="Select end date"
+              label={t('Until')}
+              description={t('Select end date')}
               onChange={this.changeFilter.bind(this, until)}
               value={this.state.selectedValues[until]}
             />
@@ -227,7 +227,7 @@ class FilterBox extends React.Component {
               onClick={this.clickApply.bind(this)}
               disabled={!this.state.hasChanged}
             >
-              Apply
+              {t('Apply')}
             </Button>
           }
         </div>
