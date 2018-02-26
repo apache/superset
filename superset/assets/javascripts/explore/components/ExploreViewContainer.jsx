@@ -3,8 +3,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
+import { Tab, Tabs } from 'react-bootstrap';
 
 import ExploreChartPanel from './ExploreChartPanel';
+import PreviewChartPanel from './PreviewChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
@@ -222,45 +224,54 @@ class ExploreViewContainer extends React.Component {
       return this.renderChartContainer();
     }
     return (
-      <div
-        id="explore-container"
-        className="container-fluid"
-        style={{
-          height: this.state.height,
-          overflow: 'hidden',
-        }}
-      >
-        {this.state.showModal &&
-        <SaveModal
-          onHide={this.toggleModal.bind(this)}
-          actions={this.props.actions}
-          form_data={this.props.form_data}
-        />
-      }
-        <div className="row">
-          <div className="col-sm-4">
-            <QueryAndSaveBtns
-              canAdd="True"
-              onQuery={this.onQuery.bind(this)}
-              onSave={this.toggleModal.bind(this)}
-              onStop={this.onStop.bind(this)}
-              loading={this.props.chart.chartStatus === 'loading'}
-              errorMessage={this.renderErrorMessage()}
-            />
-            <br />
-            <ControlPanelsContainer
+      <Tabs id="controlSections">
+        <Tab eventKey="explorer" title="Explore">
+          <div
+            id="explore-container"
+            className="container-fluid"
+            style={{
+              height: this.state.height,
+              overflow: 'hidden',
+            }}
+          >
+            {this.state.showModal &&
+            <SaveModal
+              onHide={this.toggleModal.bind(this)}
               actions={this.props.actions}
               form_data={this.props.form_data}
-              controls={this.props.controls}
-              datasource_type={this.props.datasource_type}
-              isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
             />
+          }
+            <div className="row">
+              <div className="col-sm-4">
+                <QueryAndSaveBtns
+                  canAdd="True"
+                  onQuery={this.onQuery.bind(this)}
+                  onSave={this.toggleModal.bind(this)}
+                  onStop={this.onStop.bind(this)}
+                  loading={this.props.chart.chartStatus === 'loading'}
+                  errorMessage={this.renderErrorMessage()}
+                />
+                <br />
+                <ControlPanelsContainer
+                  actions={this.props.actions}
+                  form_data={this.props.form_data}
+                  controls={this.props.controls}
+                  datasource_type={this.props.datasource_type}
+                  isDatasourceMetaLoading={this.props.isDatasourceMetaLoading}
+                />
+              </div>
+              <div className="col-sm-8">
+                {this.renderChartContainer()}
+              </div>
+            </div>
           </div>
-          <div className="col-sm-8">
-            {this.renderChartContainer()}
-          </div>
-        </div>
-      </div>
+        </Tab>
+        <Tab eventKey="preview" title="Preview">
+          <PreviewChartPanel
+            form_data={this.props.form_data}
+          />
+        </Tab>
+      </Tabs>
     );
   }
 }
