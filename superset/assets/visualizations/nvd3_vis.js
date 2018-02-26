@@ -19,7 +19,7 @@ import { VIZ_TYPES } from './main';
 
 const minBarWidth = 15;
 // Limit on how large axes margins can grow as the chart window is resized
-const maxMarginPad = 50;
+const maxMarginPad = 30;
 const animationTime = 1000;
 
 const BREAKPOINTS = {
