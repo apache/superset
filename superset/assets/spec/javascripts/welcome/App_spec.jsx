@@ -13,11 +13,10 @@ describe('App', () => {
       React.isValidElement(<App {...mockedProps} />),
     ).to.equal(true);
   });
-  it('renders 6 Tab, Panel, Row, and Col components', () => {
+  it('renders 4 Tab, Panel, and Row components', () => {
     const wrapper = shallow(<App {...mockedProps} />);
     expect(wrapper.find(Tab)).to.have.length(3);
     expect(wrapper.find(Panel)).to.have.length(3);
     expect(wrapper.find(Row)).to.have.length(3);
-    expect(wrapper.find(Col)).to.have.length(3);
   });
 });
