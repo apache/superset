@@ -34,10 +34,12 @@ export function getInitialState(bootstrapData) {
 
   dashboard.posDict = {};
   dashboard.layout = [];
-  if (dashboard.position_json) {
+  if (Array.isArray(dashboard.position_json)) {
     dashboard.position_json.forEach((position) => {
       dashboard.posDict[position.slice_id] = position;
     });
+  } else {
+    dashboard.position_json = [];
   }
   const lastRowId = Math.max.apply(null,
     dashboard.position_json.map(pos => (pos.row + pos.size_y)));
