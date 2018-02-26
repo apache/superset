@@ -76,6 +76,8 @@ function getLayer(formData, payload, slice, inFrame) {
     id: `scatter-layer-${fd.slice_id}`,
     data,
     fp64: true,
+    radiusMinPixels: fd.min_radius || null,
+    radiusMaxPixels: fd.max_radius || null,
     outline: false,
     ...common.commonLayerProps(fd, slice),
   });

@@ -1848,6 +1848,30 @@ export const controls = {
       'lower values are pruned first'),
   },
 
+  min_radius: {
+    type: 'TextControl',
+    label: t('Minimum Radius'),
+    isFloat: true,
+    validators: [v.nonEmpty],
+    renderTrigger: true,
+    default: 2,
+    description:
+    t('Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
+      'insures that the circle respects this minimum radius.'),
+  },
+
+  max_radius: {
+    type: 'TextControl',
+    label: t('Maximum Radius'),
+    isFloat: true,
+    validators: [v.nonEmpty],
+    renderTrigger: true,
+    default: 250,
+    description:
+    t('Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+      'insures that the circle respects this maximum radius.'),
+  },
+
   partition_threshold: {
     type: 'TextControl',
     label: t('Partition Threshold'),
