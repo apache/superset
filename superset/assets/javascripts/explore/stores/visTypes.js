@@ -59,7 +59,7 @@ export const sections = {
         ['metrics'],
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
-        ['order_desc', null],
+        ['order_desc', 'contribution'],
       ],
     },
     {
@@ -104,18 +104,19 @@ export const visTypes = {
           ['groupby'],
           ['columns'],
           ['row_limit'],
+          ['contribution'],
         ],
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['show_legend', 'show_bar_value'],
           ['bar_stacked', 'order_bars'],
           ['y_axis_format', 'bottom_margin'],
           ['x_axis_label', 'y_axis_label'],
-          ['reduce_x_ticks', 'contribution'],
-          ['show_controls'],
+          ['reduce_x_ticks', 'show_controls'],
         ],
       },
     ],
@@ -144,6 +145,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['pie_label_type'],
           ['donut', 'show_legend'],
@@ -162,15 +164,17 @@ export const visTypes = {
       sections.NVD3TimeSeries[0],
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['show_brush', 'show_legend'],
           ['rich_tooltip', 'show_markers'],
-          ['line_interpolation', 'contribution'],
+          ['line_interpolation'],
         ],
       },
       {
         label: t('X Axis'),
+        expanded: true,
         controlSetRows: [
           ['x_axis_label', 'bottom_margin'],
           ['x_axis_showminmax', 'x_axis_format'],
@@ -178,6 +182,7 @@ export const visTypes = {
       },
       {
         label: t('Y Axis'),
+        expanded: true,
         controlSetRows: [
           ['y_axis_label', 'left_margin'],
           ['y_axis_showminmax', 'y_log_scale'],
@@ -217,6 +222,7 @@ export const visTypes = {
       },
       {
         label: t('X Axis'),
+        expanded: true,
         controlSetRows: [
           ['x_axis_label', 'bottom_margin'],
           ['x_axis_showminmax', 'x_axis_format'],
@@ -224,6 +230,7 @@ export const visTypes = {
       },
       {
         label: t('Y Axis'),
+        expanded: true,
         controlSetRows: [
           ['y_axis_label', 'left_margin'],
           ['y_axis_showminmax', 'y_log_scale'],
@@ -245,6 +252,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['x_axis_format'],
@@ -252,12 +260,14 @@ export const visTypes = {
       },
       {
         label: t('Y Axis 1'),
+        expanded: true,
         controlSetRows: [
           ['metric', 'y_axis_format'],
         ],
       },
       {
         label: t('Y Axis 2'),
+        expanded: true,
         controlSetRows: [
           ['metric_2', 'y_axis_2_format'],
         ],
@@ -287,16 +297,18 @@ export const visTypes = {
       sections.NVD3TimeSeries[0],
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['show_brush', 'show_legend', 'show_bar_value'],
-          ['rich_tooltip', 'contribution'],
-          ['line_interpolation', 'bar_stacked'],
-          ['bottom_margin', 'show_controls'],
+          ['rich_tooltip', 'bar_stacked'],
+          ['line_interpolation', 'show_controls'],
+          ['bottom_margin'],
         ],
       },
       {
         label: t('Axes'),
+        expanded: true,
         controlSetRows: [
           ['x_axis_format', 'y_axis_format'],
           ['x_axis_showminmax', 'reduce_x_ticks'],
@@ -322,6 +334,7 @@ export const visTypes = {
       sections.NVD3TimeSeries[0],
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['x_axis_format', 'y_axis_format'],
@@ -686,16 +699,17 @@ export const visTypes = {
       sections.NVD3TimeSeries[0],
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['show_brush', 'show_legend'],
           ['line_interpolation', 'stacked_style'],
           ['color_scheme'],
-          ['rich_tooltip', 'contribution'],
-          ['show_controls', null],
+          ['rich_tooltip', 'show_controls'],
         ],
       },
       {
         label: t('Axes'),
+        expanded: true,
         controlSetRows: [
           ['x_axis_format', 'x_axis_showminmax'],
           ['y_axis_format', 'y_axis_bounds'],
@@ -879,6 +893,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['treemap_ratio'],
@@ -927,6 +942,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['whisker_options'],
@@ -948,6 +964,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['show_legend', null],
@@ -961,6 +978,7 @@ export const visTypes = {
       },
       {
         label: t('X Axis'),
+        expanded: true,
         controlSetRows: [
           ['x_axis_label', 'left_margin'],
           ['x', 'x_axis_format'],
@@ -969,6 +987,7 @@ export const visTypes = {
       },
       {
         label: t('Y Axis'),
+        expanded: true,
         controlSetRows: [
           ['y_axis_label', 'bottom_margin'],
           ['y', 'y_axis_format'],
@@ -999,6 +1018,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['metric'],
           ['ranges', 'range_labels'],
@@ -1021,6 +1041,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['compare_lag', 'compare_suffix'],
           ['y_axis_format', null],
@@ -1046,6 +1067,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['subheader'],
           ['y_axis_format'],
@@ -1072,6 +1094,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['link_length'],
@@ -1105,6 +1128,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
         ],
@@ -1143,6 +1167,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
         ],
@@ -1196,6 +1221,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['y_axis_format', null],
           ['color_scheme'],
@@ -1407,6 +1433,7 @@ export const visTypes = {
       sections.NVD3TimeSeries[0],
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['series_height', 'horizon_color_scale'],
         ],
@@ -1555,7 +1582,7 @@ export const visTypes = {
       sections.NVD3TimeSeries[0],
       {
         label: t('Chart Options'),
-        expanded: false,
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['number_format', 'date_time_format'],
