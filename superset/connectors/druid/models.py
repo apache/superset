@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 from multiprocessing.pool import ThreadPool
+import re
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -109,7 +110,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     @staticmethod
     def get_base_url(host, port):
-        if not host.startswith('http'):
+        if not re.match('http(s)?://', host):
             host = 'http://' + host
         return '{0}:{1}'.format(host, port)
 
