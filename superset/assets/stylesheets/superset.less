@@ -185,7 +185,7 @@ div.widget .chart-header a {
   display: none;
 }
 
-.slice_container.stale {
+.slice_container.faded {
   opacity: .2;
 }
 
@@ -429,11 +429,23 @@ g.annotation-container {
     color: @brand-primary;
 }
 
-.refresh-chart-overlay {
+.explore-chart-overlay {
   position: absolute;
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+.refresh-overlay-btn {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.dismiss-overlay-btn {
+  font-weight: bold;
+  background: white;
+  color: @brand-primary;
+  border-color: @brand-primary;
 }

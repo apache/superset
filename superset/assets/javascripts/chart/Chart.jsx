@@ -37,7 +37,7 @@ const propTypes = {
   queryResponse: PropTypes.object,
   lastRendered: PropTypes.number,
   triggerQuery: PropTypes.bool,
-  chartIsStale: PropTypes.bool,
+  refreshOverlayVisible: PropTypes.bool,
   errorMessage: PropTypes.node,
   // dashboard callbacks
   addFilter: PropTypes.func,
@@ -219,11 +219,13 @@ class Chart extends React.PureComponent {
         />
         }
 
-        {!isLoading && !this.props.chartAlert && this.props.chartIsStale &&
+        {!isLoading &&
+          !this.props.chartAlert &&
+          this.props.refreshOverlayVisible &&
+          !this.props.errorMessage &&
           <RefreshChartOverlay
             height={this.height()}
             width={this.width()}
-            errorMessage={this.props.errorMessage}
             onQuery={this.props.onQuery}
             onDismiss={this.props.onDismissRefreshOverlay}
           />
@@ -234,7 +236,7 @@ class Chart extends React.PureComponent {
             vizType={this.props.vizType}
             height={this.height}
             width={this.width}
-            stale={this.props.chartIsStale}
+            faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
             ref={(inner) => {
               this.container = inner;
             }}

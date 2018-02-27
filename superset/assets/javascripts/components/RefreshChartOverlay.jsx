@@ -1,12 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Button from '../components/Button';
-import Link from '../SqlLab/components/Link';
+import { t } from '../locales';
 
 const propTypes = {
   height: PropTypes.number.isRequired,
   width: PropTypes.number.isRequired,
-  errorMessage: PropTypes.node,
   onQuery: PropTypes.func,
   onDismiss: PropTypes.func,
 };
@@ -16,18 +15,22 @@ class RefreshChartOverlay extends React.PureComponent {
     return (
       <div
         style={{ height: this.props.height, width: this.props.width }}
-        className="refresh-chart-overlay"
+        className="explore-chart-overlay"
       >
         <div>
           <Button
-            className="query"
+            className="refresh-overlay-btn"
             onClick={this.props.onQuery}
-            disabled={!!this.props.errorMessage}
-            bsStyle={this.props.errorMessage ? 'danger' : 'primary'}
+            bsStyle="primary"
           >
-            <i className="fa fa-bolt" /> Refresh Chart
+            {t('Run Query')}
           </Button>
-          <div><Link onClick={this.props.onDismiss}>(dismiss)</Link></div>
+          <Button
+            className="dismiss-overlay-btn"
+            onClick={this.props.onDismiss}
+          >
+            {t('Dismiss')}
+          </Button>
         </div>
       </div>
     );
