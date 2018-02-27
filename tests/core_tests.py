@@ -97,7 +97,7 @@ class CoreTests(SupersetTestCase):
         qobj['groupby'] = []
         self.assertNotEqual(cache_key, viz.cache_key(qobj))
 
-    def test_slice_json_endpoint(self):
+    def test_old_slice_json_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
 
@@ -108,7 +108,13 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(json_endpoint, {'form_data': json.dumps(slc.viz.form_data)})
         assert '"Jennifer"' in resp
 
-    def test_slice_csv_endpoint(self):
+    def test_slice_json_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+        resp = self.get_resp(slc.explore_json_url)
+        assert '"Jennifer"' in resp
+
+    def test_old_slice_csv_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice('Girls', db.session)
 
@@ -117,6 +123,15 @@ class CoreTests(SupersetTestCase):
             .format(slc.datasource_type, slc.datasource_id)
         )
         resp = self.get_resp(csv_endpoint, {'form_data': json.dumps(slc.viz.form_data)})
+        assert 'Jennifer,' in resp
+
+    def test_slice_csv_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        csv_endpoint = '/superset/explore_json/?csv=true'
+        resp = self.get_resp(
+            csv_endpoint, {'form_data': json.dumps({'slice_id': slc.id})})
         assert 'Jennifer,' in resp
 
     def test_admin_only_permissions(self):
@@ -225,8 +240,8 @@ class CoreTests(SupersetTestCase):
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
-                (slc.slice_name, 'slice_url', slc.slice_url),
-                (slc.slice_name, 'slice_id_url', slc.slice_id_url),
+                (slc.slice_name, 'explore', slc.slice_url),
+                (slc.slice_name, 'explore_json', slc.explore_json_url),
             ]
         for name, method, url in urls:
             logging.info('[{name}]/[{method}]: {url}'.format(**locals()))
@@ -878,6 +893,21 @@ class CoreTests(SupersetTestCase):
         table = SqlaTable(sql=commented_query)
         rendered_query = text_type(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
+
+    def test_slice_url_overrides(self):
+        # No override
+        self.login(username='admin')
+        slice_name = 'Girls'
+        slc = self.get_slice(slice_name, db.session)
+        resp = self.get_resp(slc.explore_json_url)
+        assert '"Jennifer"' in resp
+
+        # Overriding groupby
+        url = slc.get_explore_url(
+            base_url='/superset/explore_json',
+            overrides={'groupby': ['state']})
+        resp = self.get_resp(url)
+        assert '"CA"' in resp
 
 
 if __name__ == '__main__':

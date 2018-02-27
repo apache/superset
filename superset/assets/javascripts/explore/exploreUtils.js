@@ -25,9 +25,6 @@ export function getURIDirectory(formData, endpointType = 'base') {
   if (['json', 'csv', 'query'].indexOf(endpointType) >= 0) {
     directory = '/superset/explore_json/';
   }
-  const [datasource_id, datasource_type] = formData.datasource.split('__');
-  directory += `${datasource_type}/${datasource_id}/`;
-
   return directory;
 }
 

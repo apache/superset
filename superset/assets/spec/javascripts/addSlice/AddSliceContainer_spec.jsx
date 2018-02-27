@@ -53,7 +53,7 @@ describe('AddSliceContainer', () => {
       datasourceId: datasourceValue.split('__')[0],
       datasourceType: datasourceValue.split('__')[1],
     });
-    const formattedUrl = '/superset/explore/table/1?form_data=%7B%22viz_type%22%3A%22table%22%7D';
+    const formattedUrl = '/superset/explore/?form_data=%7B%22viz_type%22%3A%22table%22%7D';
     expect(wrapper.instance().exploreUrl()).to.equal(formattedUrl);
   });
 });
