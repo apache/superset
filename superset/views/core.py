@@ -943,24 +943,39 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
-    def get_form_data(self):
-        d = {}
+    def get_form_data(self, slice_id=None):
+        form_data = {}
         post_data = request.form.get('form_data')
         request_args_data = request.args.get('form_data')
         # Supporting POST
         if post_data:
-            d.update(json.loads(post_data))
+            form_data.update(json.loads(post_data))
         # request params can overwrite post body
         if request_args_data:
-            d.update(json.loads(request_args_data))
+            form_data.update(json.loads(request_args_data))
 
         if request.args.get('viz_type'):
             # Converting old URLs
-            d = cast_form_data(d)
+            form_data = cast_form_data(form_data)
 
-        d = {k: v for k, v in d.items() if k not in FORM_DATA_KEY_BLACKLIST}
+        form_data = {
+            k: v
+            for k, v in form_data.items()
+            if k not in FORM_DATA_KEY_BLACKLIST
+        }
 
-        return d
+        # When a slice_id is present, load from DB and override
+        # the form_data from the DB with the other form_data provided
+        slice_id = form_data.get('slice_id') or slice_id
+        slc = None
+        if slice_id:
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+            slice_form_data = slc.form_data.copy()
+            # allow form_data in request override slice from_data
+            slice_form_data.update(form_data)
+            form_data = slice_form_data
+
+        return form_data, slc
 
     def get_viz(
             self,
@@ -991,11 +1006,9 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
-        viz_obj = self.get_viz(slice_id)
-        endpoint = '/superset/explore/{}/{}?form_data={}'.format(
-            viz_obj.datasource.type,
-            viz_obj.datasource.id,
-            parse.quote(json.dumps(viz_obj.form_data)),
+        form_data, slc = self.get_form_data(slice_id)
+        endpoint = '/superset/explore/?form_data={}'.format(
+            parse.quote(json.dumps(form_data)),
         )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
@@ -1075,10 +1088,7 @@ class Superset(BaseSupersetView):
             viz_obj = self.get_viz(slice_id)
             datasource_type = viz_obj.datasource.type
             datasource_id = viz_obj.datasource.id
-            form_data = viz_obj.form_data
-            # This allows you to override the saved slice form data with
-            # data from the current request (e.g. change the time window)
-            form_data.update(self.get_form_data())
+            form_data, slc = self.get_form_data()
         except Exception as e:
             return json_error_response(
                 utils.error_msg_from_exception(e),
@@ -1091,7 +1101,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/annotation_json/<layer_id>')
     def annotation_json(self, layer_id):
-        form_data = self.get_form_data()
+        form_data = self.get_form_data()[0]
         form_data['layer_id'] = layer_id
         form_data['filters'] = [{'col': 'layer_id',
                                  'op': '==',
@@ -1115,12 +1125,15 @@ class Superset(BaseSupersetView):
     @log_this
     @has_access_api
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
-    def explore_json(self, datasource_type, datasource_id):
+    @expose('/explore_json/', methods=['GET', 'POST'])
+    def explore_json(self, datasource_type=None, datasource_id=None):
         try:
             csv = request.args.get('csv') == 'true'
             query = request.args.get('query') == 'true'
             force = request.args.get('force') == 'true'
-            form_data = self.get_form_data()
+            form_data = self.get_form_data()[0]
+            datasource_id, datasource_type = self.datasource_info(
+                datasource_id, datasource_type, form_data)
         except Exception as e:
             logging.exception(e)
             return json_error_response(
@@ -1157,19 +1170,36 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/explorev2/<datasource_type>/<datasource_id>/')
     def explorev2(self, datasource_type, datasource_id):
+        """Deprecated endpoint, here for backward compatibility of urls"""
         return redirect(url_for(
             'Superset.explore',
             datasource_type=datasource_type,
             datasource_id=datasource_id,
             **request.args))
 
+    @staticmethod
+    def datasource_info(datasource_id, datasource_type, form_data):
+        """Compatibility layer for handling of datasource info
+
+        datasource_id & datasource_type used to be passed in the URL
+        directory, now they should come as part of the form_data,
+        This function allows supporting both without duplicating code"""
+        datasource = form_data.get('datasource', '')
+        if '__' in datasource:
+            datasource_id, datasource_type = datasource.split('__')
+        datasource_id = int(datasource_id)
+        return datasource_id, datasource_type
+
     @log_this
     @has_access
     @expose('/explore/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
-    def explore(self, datasource_type, datasource_id):
-        datasource_id = int(datasource_id)
+    @expose('/explore/', methods=['GET', 'POST'])
+    def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
-        form_data = self.get_form_data()
+        form_data, slc = self.get_form_data()
+
+        datasource_id, datasource_type = self.datasource_info(
+            datasource_id, datasource_type, form_data)
 
         saved_url = None
         url_id = request.args.get('r')
@@ -1182,14 +1212,6 @@ class Superset(BaseSupersetView):
                 # allow form_date in request override saved url
                 url_form_data.update(form_data)
                 form_data = url_form_data
-        slice_id = form_data.get('slice_id')
-        slc = None
-        if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
-            slice_form_data = slc.form_data.copy()
-            # allow form_data in request override slice from_data
-            slice_form_data.update(form_data)
-            form_data = slice_form_data
 
         error_redirect = '/slicemodelview/list/'
         datasource = ConnectorRegistry.get_datasource(
@@ -1308,7 +1330,7 @@ class Superset(BaseSupersetView):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
-        form_data = self.get_form_data()
+        form_data, _ = self.get_form_data()
 
         if action in ('saveas'):
             if 'slice_id' in form_data:
