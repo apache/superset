@@ -4,8 +4,13 @@ import { getColorFromScheme } from '../javascripts/modules/colors';
 require('./histogram.css');
 
 function histogram(slice, payload) {
+  const data = payload.data;
   const div = d3.select(slice.selector);
-  const draw = function (data, numBins) {
+  const numBins = Number(slice.formData.link_length) || 10;
+  const normalized = slice.formData.normalized;
+  const xAxisLabel = slice.formData.x_axis_label;
+
+  const draw = function () {
     // Set Margins
     const margin = {
       top: 50,
@@ -18,26 +23,33 @@ function histogram(slice, payload) {
     const width = slice.width() - margin.left - margin.right;
     const height = slice.height() - margin.top - margin.bottom - navBarHeight - navBarBuffer;
 
+    // set number of ticks
+    const maxTicks = 20;
+    const numTicks = d3.min([maxTicks, numBins]);
+
     // Set Histogram objects
-    const formatNumber = d3.format(',.0f');
-    const formatTicks = d3.format(',.00f');
-    const x = d3.scale.ordinal();
+    const x = d3.scale.linear();
     const y = d3.scale.linear();
     const xAxis = d3.svg.axis()
     .scale(x)
     .orient('bottom')
-    .ticks(numBins)
-    .tickFormat(formatTicks);
+    .ticks(numTicks, 's');
     const yAxis = d3.svg.axis()
     .scale(y)
     .orient('left')
-    .ticks(numBins);
+    .ticks(numTicks, 's');
     // Calculate bins for the data
-    const bins = d3.layout.histogram().bins(numBins)(data);
+    let bins = d3.layout.histogram().bins(numBins)(data);
+    if (normalized) {
+      const total = data.length;
+      bins = bins.map(d => ({ ...d, y: d.y / total }));
+    }
 
     // Set the x-values
-    x.domain(bins.map(d => d.x))
-    .rangeRoundBands([0, width], 0.1);
+    const max = d3.max(data);
+    const min = d3.min(data);
+    x.domain([min, max])
+    .range([0, width], 0.1);
     // Set the y-values
     y.domain([0, d3.max(bins, d => d.y)])
     .range([height, 0]);
@@ -72,41 +84,12 @@ function histogram(slice, payload) {
     bar.enter().append('rect');
     bar.exit().remove();
     // Set the Height and Width for each bar
-    bar.attr('width', x.rangeBand())
+    bar.attr('width', (x(bins[0].dx) - x(0)) - 1)
     .attr('x', d => x(d.x))
     .attr('y', d => y(d.y))
     .attr('height', d => y.range()[0] - y(d.y))
-    .style('fill', d => getColorFromScheme(d.length, slice.formData.color_scheme))
+    .style('fill', getColorFromScheme(1, slice.formData.color_scheme))
     .order();
-
-    // Find maximum length to position the ticks on top of the bar correctly
-    const maxLength = d3.max(bins, d => d.length);
-    function textAboveBar(d) {
-      return d.length / maxLength < 0.1;
-    }
-
-    // Add a bar text to each bar in the histogram
-    svg.selectAll('.bartext')
-    .data(bins)
-    .enter()
-    .append('text')
-    .attr('dy', '.75em')
-    .attr('y', function (d) {
-      let padding = 0.0;
-      if (textAboveBar(d)) {
-        padding = 12.0;
-      } else {
-        padding = -8.0;
-      }
-      return y(d.y) - padding;
-    })
-    .attr('x', d => x(d.x) + (x.rangeBand() / 2))
-    .attr('text-anchor', 'middle')
-    .attr('font-weight', 'bold')
-    .attr('font-size', '15px')
-    .text(d => formatNumber(d.y))
-    .attr('fill', d => textAboveBar(d) ? 'black' : 'white')
-    .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
     // Update the x-axis
     svg.append('g')
@@ -124,11 +107,20 @@ function histogram(slice, payload) {
     .selectAll('g')
     .filter(function (d) { return d; })
     .classed('minor', true);
+
+    // add title if passed
+    if (xAxisLabel) {
+      svg.append('text')
+        .attr('transform',
+              'translate(' + (width / 2) + ' ,' +
+                             (height + margin.top + 50) + ')')
+        .style('text-anchor', 'middle')
+        .text(xAxisLabel);
+    }
   };
 
-  const numBins = Number(slice.formData.link_length) || 10;
   div.selectAll('*').remove();
-  draw(payload.data, numBins);
+  draw();
 }
 
 module.exports = histogram;
