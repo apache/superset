@@ -10,8 +10,13 @@ appSetup();
 
 const container = document.getElementById('app');
 const bootstrap = JSON.parse(container.getAttribute('data-bootstrap'));
+const user = {
+  ...bootstrap.user,
+};
 
 ReactDOM.render(
-  <App />,
+  <App
+    user={user}
+  />,
   container,
 );
