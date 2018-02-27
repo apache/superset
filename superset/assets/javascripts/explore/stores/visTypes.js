@@ -627,6 +627,16 @@ export const visTypes = {
   deck_scatter: {
     label: t('Deck.gl - Scatter plot'),
     requiresTime: true,
+    onInit: (controlsState) => {
+      /* eslint-disable no-param-reassign */
+      if (controlsState.time_grain_sqla) {
+        controlsState.time_grain_sqla.value = null;
+      }
+      if (controlsState.granularity) {
+        controlsState.granularity.value = null;
+      }
+      /* eslint-enable no-param-reassign */
+    },
     controlPanelSections: [
       {
         label: t('Query'),
