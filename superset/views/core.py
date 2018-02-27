@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import defaultdict
 from datetime import datetime, timedelta
 import json
 import logging
@@ -21,7 +20,6 @@ from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
-from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
@@ -51,6 +49,7 @@ from .base import (
     generate_download_headers, get_error_msg, get_user_roles,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
+from .utils import bootstrap_user_data
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -2555,9 +2554,12 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
+
         payload = {
+            'user': bootstrap_user_data(),
             'common': self.common_bootsrap_payload(),
         }
+
         return self.render_template(
             'superset/basic.html',
             entry='welcome',
@@ -2571,44 +2573,15 @@ class Superset(BaseSupersetView):
         """User profile page"""
         if not username and g.user:
             username = g.user.username
-        user = (
-            db.session.query(ab_models.User)
-            .filter_by(username=username)
-            .one()
-        )
-        roles = {}
-        permissions = defaultdict(set)
-        for role in user.roles:
-            perms = set()
-            for perm in role.permissions:
-                if perm.permission and perm.view_menu:
-                    perms.add(
-                        (perm.permission.name, perm.view_menu.name),
-                    )
-                    if perm.permission.name in ('datasource_access', 'database_access'):
-                        permissions[perm.permission.name].add(perm.view_menu.name)
-            roles[role.name] = [
-                [perm.permission.name, perm.view_menu.name]
-                for perm in role.permissions
-                if perm.permission and perm.view_menu
-            ]
+
         payload = {
-            'user': {
-                'username': user.username,
-                'firstName': user.first_name,
-                'lastName': user.last_name,
-                'userId': user.id,
-                'isActive': user.is_active(),
-                'createdOn': user.created_on.isoformat(),
-                'email': user.email,
-                'roles': roles,
-                'permissions': permissions,
-            },
+            'user': bootstrap_user_data(username, include_perms=True),
             'common': self.common_bootsrap_payload(),
         }
+
         return self.render_template(
             'superset/basic.html',
-            title=user.username + "'s profile",
+            title=username + "'s profile",
             entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
