@@ -201,26 +201,30 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data.update({
             'slice_id': self.id,
             'viz_type': self.viz_type,
-            'datasource': str(self.datasource_id) + '__' + self.datasource_type,
+            'datasource': '{}__{}'.format(
+                self.datasource_id, self.datasource_type),
         })
         if self.cache_timeout:
             form_data['cache_timeout'] = self.cache_timeout
         return form_data
 
+    def get_explore_url(self, base_url='/superset/explore', overrides=None):
+        overrides = overrides or {}
+        form_data = {'slice_id': self.id}
+        form_data.update(overrides)
+        params = parse.quote(json.dumps(form_data))
+        return (
+            '{base_url}/?form_data={params}'.format(**locals()))
+
     @property
     def slice_url(self):
         """Defines the url to access the slice"""
-        form_data = {'slice_id': self.id}
-        return (
-            '/superset/explore/{obj.datasource_type}/'
-            '{obj.datasource_id}/?form_data={params}'.format(
-                obj=self, params=parse.quote(json.dumps(form_data))))
+        return self.get_explore_url()
 
     @property
-    def slice_id_url(self):
-        return (
-            '/superset/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/'
-        ).format(slc=self)
+    def explore_json_url(self):
+        """Defines the url to access the slice"""
+        return self.get_explore_url('/superset/explore_json')
 
     @property
     def edit_url(self):

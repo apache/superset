@@ -27,7 +27,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/table/1/'),
+        URI('/superset/explore/'),
       );
       expect(payload).to.deep.equals(formData);
     });
@@ -40,7 +40,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/table/1/'),
+        URI('/superset/explore_json/'),
       );
       expect(payload).to.deep.equals(formData);
     });
@@ -53,7 +53,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/table/1/')
+        URI('/superset/explore_json/')
           .search({ force: 'true' }),
       );
       expect(payload).to.deep.equals(formData);
@@ -67,7 +67,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/table/1/')
+        URI('/superset/explore_json/')
           .search({ csv: 'true' }),
       );
       expect(payload).to.deep.equals(formData);
@@ -81,7 +81,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/table/1/')
+        URI('/superset/explore/')
           .search({ standalone: 'true' }),
       );
       expect(payload).to.deep.equals(formData);
@@ -95,7 +95,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/table/1/')
+        URI('/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
       expect(payload).to.deep.equals(formData);
@@ -109,7 +109,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/table/1/')
+        URI('/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
       expect(payload).to.deep.equals(formData);
@@ -123,7 +123,7 @@ describe('utils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore_json/table/1/')
+        URI('/superset/explore_json/')
           .search({ foo: 'bar' }),
       );
       expect(payload).to.deep.equals(formData);
@@ -134,7 +134,7 @@ describe('utils', () => {
     it('generates proper base url with form_data', () => {
       compareURI(
         URI(getExploreLongUrl(formData, 'base')),
-        URI('/superset/explore/table/1/').search({ form_data: sFormData }),
+        URI('/superset/explore/').search({ form_data: sFormData }),
       );
     });
   });
