@@ -151,9 +151,6 @@ class BaseViz(object):
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
         if df is None or df.empty:
-            self.status = utils.QueryStatus.FAILED
-            if not self.error_message:
-                self.error_message = 'No data.'
             return pd.DataFrame()
         else:
             if DTTM_ALIAS in df.columns:
@@ -290,10 +287,11 @@ class BaseViz(object):
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
-        if df is not None and len(df.index) == 0:
-            raise Exception('No data')
         if self.status != utils.QueryStatus.FAILED:
-            payload['data'] = self.get_data(df)
+            if df is None or df.empty:
+                payload['error'] = 'No data'
+            else:
+                payload['data'] = self.get_data(df)
         if 'df' in payload:
             del payload['df']
         return payload
@@ -327,8 +325,9 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
-                stats_logger.incr('loaded_from_source')
-                is_loaded = True
+                if self.status != utils.QueryStatus.FAILED:
+                    stats_logger.incr('loaded_from_source')
+                    is_loaded = True
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -612,7 +611,7 @@ class MarkupViz(BaseViz):
         return None
 
     def get_df(self, query_obj=None):
-        return None
+        return pd.DataFrame()
 
     def get_data(self, df):
         markup_type = self.form_data.get('markup_type')
