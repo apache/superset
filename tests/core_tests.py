@@ -909,6 +909,34 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(url)
         assert '"CA"' in resp
 
+    def test_slice_payload_no_data(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        url = slc.get_explore_url(
+            base_url='/superset/explore_json',
+            overrides={
+                'filters': [{'col': 'state', 'op': 'in', 'val': ['N/A']}],
+            },
+        )
+
+        data = self.get_json_resp(url)
+        self.assertEqual(data['status'], utils.QueryStatus.SUCCESS)
+        assert 'No data' in data['error']
+
+    def test_slice_payload_invalid_query(self):
+        self.login(username='admin')
+        slc = self.get_slice('Girls', db.session)
+
+        url = slc.get_explore_url(
+            base_url='/superset/explore_json',
+            overrides={'groupby': ['N/A']},
+        )
+
+        data = self.get_json_resp(url)
+        self.assertEqual(data['status'], utils.QueryStatus.FAILED)
+        assert 'KeyError' in data['stacktrace']
+
 
 if __name__ == '__main__':
     unittest.main()
