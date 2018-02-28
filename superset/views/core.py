@@ -1244,6 +1244,14 @@ class Superset(BaseSupersetView):
         # On explore, merge extra filters into the form data
         merge_extra_filters(form_data)
 
+        # merge request url params
+        if request.method == 'GET':
+            url_params = request.args
+            for key, value in url_params.items():
+                if key == 'form_data':
+                    continue
+                form_data[key] = value
+
         # handle save or overwrite
         action = request.args.get('action')
 
