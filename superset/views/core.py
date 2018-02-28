@@ -25,7 +25,7 @@ from flask_babel import lazy_gettext as _
 import pandas as pd
 from six import text_type
 import sqlalchemy as sqla
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, or_
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -164,6 +164,7 @@ class DashboardFilter(SupersetFilter):
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
+        User = sm.user_model
         # TODO(bogdan): add `schema_access` support here
         datasource_perms = self.get_view_menus('datasource_access')
         slice_ids_qry = (
@@ -171,13 +172,19 @@ class DashboardFilter(SupersetFilter):
             .query(Slice.id)
             .filter(Slice.perm.in_(datasource_perms))
         )
+        owner_ids_qry = (
+            db.session
+            .query(Dash.id)
+            .join(Dash.owners)
+            .filter(User.id == User.get_user_id())
+        )
         query = query.filter(
-            Dash.id.in_(
+            or_(Dash.id.in_(
                 db.session.query(Dash.id)
                 .distinct()
                 .join(Dash.slices)
                 .filter(Slice.id.in_(slice_ids_qry)),
-            ),
+            ), Dash.id.in_(owner_ids_qry)),
         )
         return query
 
