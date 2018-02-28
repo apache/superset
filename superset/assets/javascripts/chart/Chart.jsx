@@ -9,6 +9,7 @@ import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
 import StackTraceMessage from '../components/StackTraceMessage';
+import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import visMap from '../../visualizations/main';
 import sandboxedEval from '../modules/sandbox';
 import './chart.css';
@@ -36,11 +37,15 @@ const propTypes = {
   queryResponse: PropTypes.object,
   lastRendered: PropTypes.number,
   triggerQuery: PropTypes.bool,
+  refreshOverlayVisible: PropTypes.bool,
+  errorMessage: PropTypes.node,
   // dashboard callbacks
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
+  onQuery: PropTypes.func,
+  onDismissRefreshOverlay: PropTypes.func,
 };
 
 const defaultProps = {
@@ -214,12 +219,24 @@ class Chart extends React.PureComponent {
         />
         }
 
+        {!isLoading &&
+          !this.props.chartAlert &&
+          this.props.refreshOverlayVisible &&
+          !this.props.errorMessage &&
+          <RefreshChartOverlay
+            height={this.height()}
+            width={this.width()}
+            onQuery={this.props.onQuery}
+            onDismiss={this.props.onDismissRefreshOverlay}
+          />
+        }
         {!isLoading && !this.props.chartAlert &&
           <ChartBody
             containerId={this.containerId}
             vizType={this.props.vizType}
             height={this.height}
             width={this.width}
+            faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
             ref={(inner) => {
               this.container = inner;
             }}
