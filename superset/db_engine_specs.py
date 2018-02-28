@@ -18,7 +18,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import defaultdict, namedtuple
-import csv
 import inspect
 import logging
 import os
@@ -35,6 +34,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import text
 import sqlparse
+import unicodecsv
 from werkzeug.utils import secure_filename
 
 from superset import app, cache_util, conf, db, utils
@@ -850,7 +850,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         """Uploads a csv file and creates a superset datasource in Hive."""
         def get_column_names(filepath):
             with open(filepath, 'rb') as f:
-                return csv.reader(f).next()
+                return unicodecsv.reader(f, encoding='utf-8-sig').next()
 
         table_name = form.name.data
         filename = form.csv_file.data.filename
@@ -874,11 +874,12 @@ class HiveEngineSpec(PrestoEngineSpec):
         s3 = boto3.client('s3')
         location = os.path.join('s3a://', bucket_path, upload_prefix, table_name)
         s3.upload_file(
-            upload_path, 'airbnb-superset',
+            upload_path, bucket_path,
             os.path.join(upload_prefix, table_name, filename))
         sql = """CREATE EXTERNAL TABLE {table_name} ( {schema_definition} )
             ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
-            TEXTFILE LOCATION '{location}'""".format(**locals())
+            TEXTFILE LOCATION '{location}'
+            tblproperties ('skip.header.line.count'='1')""".format(**locals())
         logging.info(form.con.data)
         engine = create_engine(form.con.data.sqlalchemy_uri)
         engine.execute(sql)
