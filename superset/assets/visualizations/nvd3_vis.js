@@ -18,6 +18,8 @@ import './nvd3_vis.css';
 import { VIZ_TYPES } from './main';
 
 const minBarWidth = 15;
+// Limit on how large axes margins can grow as the chart window is resized
+const maxMarginPad = 30;
 const animationTime = 1000;
 
 const BREAKPOINTS = {
@@ -463,7 +465,9 @@ function nvd3Vis(slice, payload) {
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
-      const marginPad = isExplore ? width * 0.01 : width * 0.03;
+      const containerWidth = slice.container.width();
+      const marginPad = Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03,
+        maxMarginPad);
       const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
                                               : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
