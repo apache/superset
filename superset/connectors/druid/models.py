@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 from multiprocessing.pool import ThreadPool
+import re
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -107,24 +108,29 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
             'backend': 'druid',
         }
 
+    @staticmethod
+    def get_base_url(host, port):
+        if not re.match('http(s)?://', host):
+            host = 'http://' + host
+        return '{0}:{1}'.format(host, port)
+
+    def get_base_coordinator_url(self):
+        base_url = self.get_base_url(
+            self.coordinator_host, self.coordinator_port)
+        return '{base_url}/{self.coordinator_endpoint}'.format(**locals())
+
     def get_pydruid_client(self):
         cli = PyDruid(
-            'http://{0}:{1}/'.format(self.broker_host, self.broker_port),
+            self.get_base_url(self.broker_host, self.broker_port),
             self.broker_endpoint)
         return cli
 
     def get_datasources(self):
-        endpoint = (
-            'http://{obj.coordinator_host}:{obj.coordinator_port}/'
-            '{obj.coordinator_endpoint}/datasources'
-        ).format(obj=self)
-
+        endpoint = self.get_base_coordinator_url() + '/datasources'
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
-        endpoint = (
-            'http://{obj.coordinator_host}:{obj.coordinator_port}/status'
-        ).format(obj=self)
+        endpoint = self.get_base_coordinator_url() + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     def refresh_datasources(
