@@ -87,6 +87,7 @@ setup(
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unidecode>=0.04.21',
+        'unicodecsv==0.14.1',
         'bleach==2.1.2',
     ],
     extras_require={
