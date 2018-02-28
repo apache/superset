@@ -627,6 +627,17 @@ export const visTypes = {
   deck_scatter: {
     label: t('Deck.gl - Scatter plot'),
     requiresTime: true,
+    onInit: controlState => ({
+      ...controlState,
+      time_grain_sqla: {
+        ...controlState.time_grain_sqla,
+        value: null,
+      },
+      granularity: {
+        ...controlState.granularity,
+        value: null,
+      },
+    }),
     controlPanelSections: [
       {
         label: t('Query'),
