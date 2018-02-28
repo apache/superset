@@ -82,7 +82,7 @@ export function getControlsState(state, form_data) {
     controlsState[k] = control;
   });
   if (viz.onInit) {
-    viz.onInit(controlsState);
+    return viz.onInit(controlsState);
   }
   return controlsState;
 }
