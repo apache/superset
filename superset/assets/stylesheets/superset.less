@@ -185,6 +185,10 @@ div.widget .chart-header a {
   display: none;
 }
 
+.slice_container.faded {
+  opacity: .2;
+}
+
 div.widget {
   .slice_container {
     overflow: hidden;
@@ -423,4 +427,25 @@ g.annotation-container {
 .reactable-header-sort-desc::before{
     content: "\f0dd";
     color: @brand-primary;
+}
+
+.explore-chart-overlay {
+  position: absolute;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.refresh-overlay-btn {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.dismiss-overlay-btn {
+  font-weight: bold;
+  background: white;
+  color: @brand-primary;
+  border-color: @brand-primary;
 }
