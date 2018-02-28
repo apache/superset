@@ -81,6 +81,10 @@ export function getControlsState(state, form_data) {
     control.value = formData[k] !== undefined ? formData[k] : control.default;
     controlsState[k] = control;
   });
+
+  // With VisType change alter until to always hit default
+  controlsState.until.value = controlsState.until.default;
+
   return controlsState;
 }
 
