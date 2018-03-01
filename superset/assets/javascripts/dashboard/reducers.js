@@ -41,8 +41,9 @@ export function getInitialState(bootstrapData) {
   } else {
     dashboard.position_json = [];
   }
-  const lastRowId = Math.max.apply(null,
-    dashboard.position_json.map(pos => (pos.row + pos.size_y)));
+
+  const lastRowId = Math.max(0, Math.max.apply(null,
+    dashboard.position_json.map(pos => (pos.row + pos.size_y))));
   let newSliceCounter = 0;
   dashboard.slices.forEach((slice) => {
     const sliceId = slice.slice_id;
