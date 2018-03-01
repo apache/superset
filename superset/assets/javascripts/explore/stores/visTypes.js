@@ -1086,7 +1086,8 @@ export const visTypes = {
         label: t('Chart Options'),
         controlSetRows: [
           ['color_scheme'],
-          ['link_length', 'x_axis_label'],
+          ['link_length'],
+          ['x_axis_label', 'y_axis_label'],
           ['normalized'],
         ],
       },

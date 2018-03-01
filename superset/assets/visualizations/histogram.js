@@ -9,14 +9,16 @@ function histogram(slice, payload) {
   const numBins = Number(slice.formData.link_length) || 10;
   const normalized = slice.formData.normalized;
   const xAxisLabel = slice.formData.x_axis_label;
+  const yAxisLabel = slice.formData.y_axis_label;
 
   const draw = function () {
     // Set Margins
+    const left = yAxisLabel ? 70 : 50;
     const margin = {
       top: 50,
       right: 10,
       bottom: 20,
-      left: 50,
+      left,
     };
     const navBarHeight = 36;
     const navBarBuffer = 10;
@@ -108,14 +110,23 @@ function histogram(slice, payload) {
     .filter(function (d) { return d; })
     .classed('minor', true);
 
-    // add title if passed
+    // add axis labels if passed
     if (xAxisLabel) {
       svg.append('text')
         .attr('transform',
-              'translate(' + (width / 2) + ' ,' +
+              'translate(' + ((width + margin.left) / 2) + ' ,' +
                              (height + margin.top + 50) + ')')
         .style('text-anchor', 'middle')
         .text(xAxisLabel);
+    }
+    if (yAxisLabel) {
+      svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('y', '1em')
+        .attr('x', 0 - (height / 2))
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .text(yAxisLabel);
     }
   };
 
