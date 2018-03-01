@@ -2040,7 +2040,7 @@ class DeckScatterViz(BaseDeckGLViz):
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
-            '__timestamp': d.get('__timestamp') or d.get('__time'),
+            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
         }
 
     def get_data(self, df):
