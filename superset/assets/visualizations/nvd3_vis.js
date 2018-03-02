@@ -4,6 +4,7 @@ import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
+import moment from 'moment';
 import d3tip from 'd3-tip';
 
 import { getColorFromScheme } from '../javascripts/modules/colors';
@@ -628,7 +629,7 @@ function nvd3Vis(slice, payload) {
 
             const tip = tipFactory(e);
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-              const timeColumn = new Date(r[e.timeColumn]);
+              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
               return {
                 ...r,
                 [e.timeColumn]: timeColumn,
