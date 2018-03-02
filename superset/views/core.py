@@ -157,7 +157,7 @@ class SliceFilter(SupersetFilter):
 
 class DashboardFilter(SupersetFilter):
 
-    """List dashboards for which users have access to at least one slice"""
+    """List dashboards for which users have access to at least one slice or are owners"""
 
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
