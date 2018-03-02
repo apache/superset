@@ -835,6 +835,13 @@ def merge_extra_filters(form_data):
         del form_data['extra_filters']
 
 
+def merge_request_params(form_data, params):
+    for key, value in params.items():
+        if key == 'form_data':
+            continue
+        form_data[key] = value
+
+
 def get_update_perms_flag():
     val = os.environ.get('SUPERSET_UPDATE_PERMS')
     return val.lower() not in ('0', 'false', 'no') if val else True
