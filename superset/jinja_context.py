@@ -38,8 +38,6 @@ def url_param(param, default=None):
     :param default: the value to return in the absence of the parameter
     :type default: str
     """
-    print('request args', request.args)
-    print('request form', request.form)
     if request.args.get(param):
         return request.args.get(param, default)
     # Supporting POST as well as get
