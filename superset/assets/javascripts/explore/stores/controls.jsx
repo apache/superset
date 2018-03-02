@@ -1985,5 +1985,13 @@ export const controls = {
     description: t('Whether to fill the objects'),
     default: false,
   },
+
+  normalized: {
+    type: 'CheckboxControl',
+    label: t('Normalized'),
+    renderTrigger: true,
+    description: t('Whether to normalize the histogram'),
+    default: false,
+  },
 };
 export default controls;

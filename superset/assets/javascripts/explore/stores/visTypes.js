@@ -1110,6 +1110,8 @@ export const visTypes = {
         controlSetRows: [
           ['color_scheme'],
           ['link_length'],
+          ['x_axis_label', 'y_axis_label'],
+          ['normalized'],
         ],
       },
     ],
