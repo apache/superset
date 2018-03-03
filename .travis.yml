@@ -4,9 +4,7 @@ services:
 addons:
   code_climate:
     repo_token: 5f3a06c425eef7be4b43627d7d07a3e46c45bdc07155217825ff7c49cb6a470c
-cache:
-  directories:
-    - $HOME/.wheelhouse/
+cache: pip
 env:
   global:
     - TRAVIS_CACHE=$HOME/.travis_cache/
