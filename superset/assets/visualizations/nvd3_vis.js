@@ -327,6 +327,7 @@ function nvd3Vis(slice, payload) {
         chart.showLegend(false);
       } else {
         chart.showLegend(fd.show_legend);
+        chart.legend.margin({top: 5, bottom: 30});
       }
     }
 
