@@ -14,6 +14,9 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 const D3_FORMAT_OPTIONS = [
   ['.1s', '.1s | 12k'],
   ['.3s', '.3s | 12.3k'],
+  [',%', ',% | 1234543%'],
+  ['+,%', '+,% | +1234543%'],
+  [',.1%', ',.1% | +1234543.2%'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
   ['.3f', '.3f | 12345.432'],
@@ -27,6 +30,10 @@ const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
 export const D3_TIME_FORMAT_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
+  ['%m/%Y', '%m/%Y | 01/2019'],
+  ['%m/%y', '%m/%y | 01/19'],
+  ['%b', '%b | Jan'],
+  ['%b %y', '%b %y | Jan 19'],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
