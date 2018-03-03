@@ -213,7 +213,6 @@ function nvd3Vis(slice, payload) {
         chart = nv.models.multiBarChart()
         .showControls(fd.show_controls)
         .reduceXTicks(reduceXTicks)
-        .rotateLabels(45)
         .groupSpacing(0.1); // Distance between each group of bars.
 
         chart.xAxis.showMaxMin(false);
@@ -266,7 +265,6 @@ function nvd3Vis(slice, payload) {
       case 'column':
         chart = nv.models.multiBarChart()
         .reduceXTicks(false)
-        .rotateLabels(45);
         break;
 
       case 'compare':
@@ -329,6 +327,7 @@ function nvd3Vis(slice, payload) {
         chart.showLegend(false);
       } else {
         chart.showLegend(fd.show_legend);
+        chart.legend.margin({top: 5, bottom: 30});
       }
     }
 
@@ -354,9 +353,7 @@ function nvd3Vis(slice, payload) {
     const isTimeSeries = [
       'line', 'dual_line', 'area', 'compare', 'bar', 'time_pivot'].indexOf(vizType) >= 0;
     // if x axis format is a date format, rotate label 90 degrees
-    if (isTimeSeries) {
-      chart.xAxis.rotateLabels(45);
-    }
+
 
     let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
     if (isTimeSeries) {
