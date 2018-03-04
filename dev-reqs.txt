@@ -1,5 +1,4 @@
 codeclimate-test-reporter
-coveralls
 flake8
 flask_cors
 ipdb
