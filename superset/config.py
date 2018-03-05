@@ -379,7 +379,7 @@ ENABLE_JAVASCRIPT_CONTROLS = False
 
 # A callable that allows altering the database conneciton URL and params
 # on the fly, at runtime. This allows for things like impersonation or
-# arbitrary logic. For instance you could wired different users to
+# arbitrary logic. For instance you can wire different users to
 # use different connection parameters, or pass their email address as the
 # username. The function receives the connection uri object, connection
 # params, and user object, and returns the mutated uri and params objects.
