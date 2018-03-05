@@ -102,9 +102,10 @@ setup(
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/airbnb/superset',
+    url='https://github.com/apache/incubator-superset',
     download_url=(
-        'https://github.com/airbnb/superset/tarball/' + version_string),
+        'https://github.com/apache/incubator-superset/tarball/' + version_string,
+    ),
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
