@@ -26,7 +26,7 @@ export default class AddSliceContainer extends React.PureComponent {
     const formData = encodeURIComponent(
       JSON.stringify({
         viz_type: this.state.visType,
-        datasource: this.state.datasourceValue
+        datasource: this.state.datasourceValue,
       }));
     return `/superset/explore/?form_data=${formData}`;
   }
