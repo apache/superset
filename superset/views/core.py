@@ -37,7 +37,7 @@ from superset import (
     viz,
 )
 
-from superset.exceptions import NoDataException
+from superset.exceptions import NoDataException, SupersetSecurityException
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.forms import CsvToDatabaseForm
@@ -115,7 +115,7 @@ def check_ownership(obj, raise_if_false=True):
     if not obj:
         return False
 
-    security_exception = utils.SupersetSecurityException(
+    security_exception = SupersetSecurityException(
         "You don't have the rights to alter [{}]".format(obj))
 
     if g.user.is_anonymous():

@@ -38,8 +38,9 @@ from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetr
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
+from superset.exceptions import MetricPermException
 from superset.utils import (
-    DimSelector, DTTM_ALIAS, flasher, MetricPermException,
+    DimSelector, DTTM_ALIAS, flasher,
 )
 
 DRUID_TZ = conf.get('DRUID_TZ')

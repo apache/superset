@@ -38,7 +38,8 @@ import unicodecsv
 from werkzeug.utils import secure_filename
 
 from superset import app, cache_util, conf, db, utils
-from superset.utils import QueryStatus, SupersetTemplateException
+from superset.exceptions import SupersetTemplateException
+from superset.utils import QueryStatus
 
 config = app.config
 
