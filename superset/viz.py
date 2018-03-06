@@ -35,7 +35,9 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
+from superset.exceptions import NoDataException
 from superset.utils import DTTM_ALIAS, merge_extra_filters
+
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -287,9 +289,12 @@ class BaseViz(object):
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
+        if df is not None and len(df.index) == 0:
+            raise NoDataException('No data')
+
         if self.status != utils.QueryStatus.FAILED:
             if df is None or df.empty:
-                payload['error'] = 'No data'
+                raise NoDataException('No data')
             else:
                 payload['data'] = self.get_data(df)
         if 'df' in payload:
