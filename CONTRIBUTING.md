@@ -26,6 +26,10 @@ When you post python stack traces please quote them using
 Look through the GitHub issues for bugs. Anything tagged with "bug" is
 open to whoever wants to implement it.
 
+### Triage Bugs [![Open Source Helpers](https://www.codetriage.com/airbnb/caravel/badges/users.svg)](https://www.codetriage.com/airbnb/caravel)
+
+You can triage issues which may include reproducing bug reports or asking for vital information, such as version numbers or reproduction instructions. If you would like to start triaging issues, one easy way to get started is to [subscribe to caravel on CodeTriage](https://www.codetriage.com/airbnb/caravel).
+
 ### Implement Features
 
 Look through the GitHub issues for features. Anything tagged with
