@@ -2,7 +2,7 @@ import d3 from 'd3';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 
-import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../javascripts/modules/utils';
+import { fixDataTableBodyHeight, d3TimeFormatPreset, d3format } from '../javascripts/modules/utils';
 import './table.css';
 
 const $ = require('jquery');
@@ -159,6 +159,19 @@ function tableVis(slice, payload) {
     scrollCollapse: true,
     scrollX: true,
   });
+
+  // jQuery hack to format number
+  slice.container.find('tbody tr').each(function () {
+    $(this).find('td').each(function (i) {
+      const metric = cols[i];
+      const format = slice.datasource.column_formats[metric] || fd.number_format || '.3s';
+      const tdText = $(this)[0].textContent;
+      if (!isNaN(tdText) && tdText !== '') {
+        $(this)[0].textContent = d3format(format, tdText);
+      }
+    });
+  });
+
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
