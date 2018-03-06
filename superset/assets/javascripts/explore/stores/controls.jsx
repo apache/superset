@@ -229,6 +229,7 @@ export const controls = {
   stacked_style: {
     type: 'SelectControl',
     label: t('Stacked Style'),
+    renderTrigger: true,
     choices: [
       ['stack', 'stack'],
       ['stream', 'stream'],
@@ -389,6 +390,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Sort Bars'),
     default: false,
+    renderTrigger: true,
     description: t('Sort bars by x labels.'),
   },
 
@@ -846,6 +848,7 @@ export const controls = {
   treemap_ratio: {
     type: 'TextControl',
     label: t('Ratio'),
+    renderTrigger: true,
     isFloat: true,
     default: 0.5 * (1 + Math.sqrt(5)),  // d3 default, golden ratio
     description: t('Target aspect ratio for treemap tiles.'),
@@ -1183,6 +1186,7 @@ export const controls = {
     type: 'SelectControl',
     label: t('Label Type'),
     default: 'key',
+    renderTrigger: true,
     choices: [
       ['key', 'Category Name'],
       ['value', 'Value'],
@@ -1979,6 +1983,14 @@ export const controls = {
     label: t('Filled'),
     renderTrigger: true,
     description: t('Whether to fill the objects'),
+    default: false,
+  },
+
+  normalized: {
+    type: 'CheckboxControl',
+    label: t('Normalized'),
+    renderTrigger: true,
+    description: t('Whether to normalize the histogram'),
     default: false,
   },
 };

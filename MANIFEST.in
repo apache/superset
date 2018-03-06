@@ -1,6 +1,8 @@
 recursive-include superset/data *
 recursive-include superset/migrations *
 recursive-include superset/static *
+recursive-exclude superset/static/assets/docs *
+recursive-exclude superset/static/assets/images/viz_thumbnails_large *
 recursive-exclude superset/static/docs *
 recursive-exclude superset/static/spec *
 recursive-exclude superset/static/images/viz_thumbnails_large *
