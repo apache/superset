@@ -130,7 +130,8 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
-        endpoint = self.get_base_url(self.coordinator_host, self.coordinator_port) + '/status'
+        endpoint = self.get_base_url(
+            self.coordinator_host, self.coordinator_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     def refresh_datasources(
