@@ -33,12 +33,14 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+def foobar():
+    print('foobar')
+
 #################################################################
 # Handling manifest file logic at app start
 #################################################################
 MANIFEST_FILE = APP_DIR + '/static/assets/dist/manifest.json'
 manifest = {}
-
 
 def parse_manifest_json():
     global manifest
