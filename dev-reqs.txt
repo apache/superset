@@ -5,6 +5,7 @@ ipdb
 mock
 mysqlclient
 nose
+pip-tools
 psycopg2
 pylint
 pyyaml
