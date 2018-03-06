@@ -1,0 +1,39 @@
+.grid-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  width: 100%;
+  height: fit-content;
+  background-color: transparent;
+}
+
+.grid-row--transparent {
+  background-color: transparent;
+}
+
+.grid-row--white {
+  background-color: white;
+}
+
+.dashboard-component-header.grid-row--white {
+  padding-left: 16px;
+}
+
+.grid-row.grid-row--empty {
+  align-items: center; /* this centers the empty note content */
+  height: 80px;
+}
+
+.grid-row--empty:after {
+  position: absolute;
+  top: 0;
+  left: 0;
+  content: "Empty row";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: @gray;
+}

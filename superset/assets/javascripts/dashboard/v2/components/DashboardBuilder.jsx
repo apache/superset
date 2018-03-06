@@ -7,8 +7,6 @@ import cx from 'classnames';
 import BuilderComponentPane from './BuilderComponentPane';
 import DashboardGrid from '../containers/DashboardGrid';
 
-import './dnd/dnd.css';
-
 const propTypes = {
   editMode: PropTypes.bool,
 };

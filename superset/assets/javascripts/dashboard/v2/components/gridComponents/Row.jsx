@@ -97,7 +97,6 @@ class Row extends React.PureComponent {
     } = this.props;
 
     const rowItems = [];
-    console.log('render row', rowComponent);
 
     // this adds a gutter between each child in the row.
     (rowComponent.children || []).forEach((id, childIndex) => {

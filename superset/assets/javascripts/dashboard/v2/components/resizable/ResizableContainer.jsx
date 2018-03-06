@@ -11,8 +11,6 @@ import {
   GRID_GUTTER_SIZE,
 } from '../../util/constants';
 
-import './resizable.css';
-
 const propTypes = {
   id: PropTypes.string.isRequired,
   children: PropTypes.node,

@@ -1,0 +1,65 @@
+.dashboard-component-tabs {
+  width: 100%;
+  background-color: white;
+}
+.dashboard-component-tabs .dashboard-component-tabs-content {
+  min-height: 48px;
+  margin-top: 1px;
+}
+
+.dashboard-component-tabs .nav-tabs {
+  border-bottom: none;
+}
+
+/* by moving padding from <a/> to <li/> we can restrict the selected tab indicator to text width */
+.dashboard-component-tabs .nav-tabs > li {
+  padding: 0 16px;
+}
+
+.dashboard-component-tabs .nav-tabs > li > a {
+  color: #263238;
+  border: none;
+  padding: 12px 0 14px 0;
+}
+
+.dashboard-component-tabs .nav-tabs > li.active > a {
+  border: none;
+}
+
+.dashboard-component-tabs .nav-tabs > li.active > a:after {
+  content: "";
+  position: absolute;
+  height: 3px;
+  width: 100%;
+  bottom: 0;
+  background: linear-gradient(to right, #E32464, #2C2261);
+}
+
+.dashboard-component-tabs .nav-tabs > li > a:hover {
+  border: none;
+  background: inherit;
+  color: #000000;
+}
+
+.dashboard-component-tabs .nav-tabs > li > a:focus {
+  outline: none;
+  background: #fff;
+}
+
+.dashboard-component-tabs .nav-tabs > li .dragdroppable-tab {
+  cursor: move;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator {
+  height: 40px !important;
+  top: -10px !important;
+  opacity: 0.5;
+}
+
+.dashboard-component-tabs .fa-plus-square {
+  background: linear-gradient(135deg, #E32464, #2C2261);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: initial;
+  font-size: 16px;
+}

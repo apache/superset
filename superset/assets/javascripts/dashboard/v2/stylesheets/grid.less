@@ -1,3 +1,11 @@
+.grid-container {
+   flex-grow: 1;
+   min-width: 66%;
+   margin: 24px 32px;
+   height: 100%;
+   position: relative;
+}
+
 /* Editing guides */
 .grid-column-guide {
   position: absolute;
@@ -12,6 +20,6 @@
   position: absolute;
   left: 0;
   height: 1;
-  background-color: #44C0FF;
+  background-color: var(--indicator-color);
   pointer-events: none;
 }

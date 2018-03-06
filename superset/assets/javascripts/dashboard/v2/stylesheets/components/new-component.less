@@ -1,0 +1,38 @@
+.new-component {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  padding: 16px;
+  background: white;
+}
+
+.new-component-placeholder {
+  position: relative;
+  background: @gray-bg;
+  width: 40px;
+  height: 40px;
+  margin-right: 16px;
+  box-shadow: 0 0 1px white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: @gray;
+  font-size: 1.5em;
+}
+
+.new-component-placeholder.spacer-placeholder {
+  font-size: 1em;
+}
+
+.new-component-placeholder.fa-window-restore {
+  font-size: 1em;
+}
+
+.new-component-placeholder.spacer-placeholder:after {
+  content: "";
+  position: absolute;
+  height: 60%;
+  width: 60%;
+  border: 1px dashed @gray;
+}
