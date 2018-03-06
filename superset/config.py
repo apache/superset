@@ -376,6 +376,7 @@ HIVE_POLL_INTERVAL = 5
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
 ENABLE_JAVASCRIPT_CONTROLS = False
+VISUALIZE_ACCESS_ROLE = 'visualize_access'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
