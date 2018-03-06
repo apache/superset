@@ -84,7 +84,8 @@ function tableVis(slice, payload) {
         html = `<span class="like-pre">${val}</span>`;
       }
       if (isMetric) {
-        html = slice.d3format(c, val);
+        const format = slice.datasource.column_formats && slice.datasource.column_formats[c] || fd.number_format || '.3s';
+        html = d3.format(format)(val)
       }
       if (c[0] === '%') {
         html = d3.format('.3p')(val);
@@ -160,17 +161,6 @@ function tableVis(slice, payload) {
     scrollX: true,
   });
 
-  // jQuery hack to format number
-  slice.container.find('tbody tr').each(function () {
-    $(this).find('td').each(function (i) {
-      const metric = cols[i];
-      const format = slice.datasource.column_formats[metric] || fd.number_format || '.3s';
-      const tdText = $(this)[0].textContent;
-      if (!isNaN(tdText) && tdText !== '') {
-        $(this)[0].textContent = d3format(format, tdText);
-      }
-    });
-  });
 
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
