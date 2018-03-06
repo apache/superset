@@ -27,6 +27,7 @@ app.db
 .vscode
 .python-version
 .tox
+dump.rdb
 
 # Node.js, webpack artifacts
 *.entry.js
