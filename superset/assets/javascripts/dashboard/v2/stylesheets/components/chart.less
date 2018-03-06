@@ -1,0 +1,21 @@
+.dashboard-component-chart {
+  width: 100%;
+  height: 100%;
+  color: @gray-dark;
+  background-color: white;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-component-chart .fa {
+  font-size: 100px;
+  opacity: 0.3;
+}
+
+.grid-container--resizing .dashboard-component-chart,
+.dashboard-builder--dragging .dashboard-component-chart,
+.dashboard-component-chart:hover {
+  box-shadow: inset 0 0 0 1px @gray-light;
+}

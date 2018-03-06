@@ -1,5 +1,3 @@
-import './components.css';
-
 import {
   CHART_TYPE,
   COLUMN_TYPE,
