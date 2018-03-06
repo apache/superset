@@ -26,6 +26,7 @@ app.db
 *.sqllite
 .vscode
 .python-version
+.tox
 
 # Node.js, webpack artifacts
 *.entry.js

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """TZ offsets in data sources
 
 Revision ID: 2929af7925ed

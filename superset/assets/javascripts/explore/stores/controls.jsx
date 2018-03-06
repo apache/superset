@@ -229,6 +229,7 @@ export const controls = {
   stacked_style: {
     type: 'SelectControl',
     label: t('Stacked Style'),
+    renderTrigger: true,
     choices: [
       ['stack', 'stack'],
       ['stream', 'stream'],
@@ -389,6 +390,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Sort Bars'),
     default: false,
+    renderTrigger: true,
     description: t('Sort bars by x labels.'),
   },
 
@@ -846,6 +848,7 @@ export const controls = {
   treemap_ratio: {
     type: 'TextControl',
     label: t('Ratio'),
+    renderTrigger: true,
     isFloat: true,
     default: 0.5 * (1 + Math.sqrt(5)),  // d3 default, golden ratio
     description: t('Target aspect ratio for treemap tiles.'),
@@ -866,7 +869,7 @@ export const controls = {
     freeForm: true,
     label: t('Row limit'),
     validators: [v.integer],
-    default: 50000,
+    default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
@@ -1183,6 +1186,7 @@ export const controls = {
     type: 'SelectControl',
     label: t('Label Type'),
     default: 'key',
+    renderTrigger: true,
     choices: [
       ['key', 'Category Name'],
       ['value', 'Value'],
@@ -1848,6 +1852,30 @@ export const controls = {
       'lower values are pruned first'),
   },
 
+  min_radius: {
+    type: 'TextControl',
+    label: t('Minimum Radius'),
+    isFloat: true,
+    validators: [v.nonEmpty],
+    renderTrigger: true,
+    default: 2,
+    description:
+    t('Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
+      'insures that the circle respects this minimum radius.'),
+  },
+
+  max_radius: {
+    type: 'TextControl',
+    label: t('Maximum Radius'),
+    isFloat: true,
+    validators: [v.nonEmpty],
+    renderTrigger: true,
+    default: 250,
+    description:
+    t('Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+      'insures that the circle respects this maximum radius.'),
+  },
+
   partition_threshold: {
     type: 'TextControl',
     label: t('Partition Threshold'),
@@ -1955,6 +1983,14 @@ export const controls = {
     label: t('Filled'),
     renderTrigger: true,
     description: t('Whether to fill the objects'),
+    default: false,
+  },
+
+  normalized: {
+    type: 'CheckboxControl',
+    label: t('Normalized'),
+    renderTrigger: true,
+    description: t('Whether to normalize the histogram'),
     default: false,
   },
 };

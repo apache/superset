@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Defines the templating context for SQL Lab"""
 from __future__ import absolute_import
 from __future__ import division

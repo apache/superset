@@ -81,6 +81,9 @@ export function getControlsState(state, form_data) {
     control.value = formData[k] !== undefined ? formData[k] : control.default;
     controlsState[k] = control;
   });
+  if (viz.onInit) {
+    return viz.onInit(controlsState);
+  }
   return controlsState;
 }
 

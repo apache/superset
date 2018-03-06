@@ -1,10 +1,17 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=invalid-unary-operand-type
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
 import json
 import logging
 from multiprocessing.pool import ThreadPool
+import re
 
 from dateutil.parser import parse as dparse
 from flask import escape, Markup
@@ -29,7 +36,7 @@ from sqlalchemy.orm import backref, relationship
 from superset import conf, db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.models.helpers import (
-  AuditMixinNullable, ImportMixin, QueryResult, set_perm,
+    AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
 from superset.utils import (
     DimSelector, DTTM_ALIAS, flasher, MetricPermException,
@@ -101,24 +108,29 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
             'backend': 'druid',
         }
 
+    @staticmethod
+    def get_base_url(host, port):
+        if not re.match('http(s)?://', host):
+            host = 'http://' + host
+        return '{0}:{1}'.format(host, port)
+
+    def get_base_coordinator_url(self):
+        base_url = self.get_base_url(
+            self.coordinator_host, self.coordinator_port)
+        return '{base_url}/{self.coordinator_endpoint}'.format(**locals())
+
     def get_pydruid_client(self):
         cli = PyDruid(
-            'http://{0}:{1}/'.format(self.broker_host, self.broker_port),
+            self.get_base_url(self.broker_host, self.broker_port),
             self.broker_endpoint)
         return cli
 
     def get_datasources(self):
-        endpoint = (
-            'http://{obj.coordinator_host}:{obj.coordinator_port}/'
-            '{obj.coordinator_endpoint}/datasources'
-        ).format(obj=self)
-
+        endpoint = self.get_base_coordinator_url() + '/datasources'
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
-        endpoint = (
-            'http://{obj.coordinator_host}:{obj.coordinator_port}/status'
-        ).format(obj=self)
+        endpoint = self.get_base_coordinator_url() + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     def refresh_datasources(
@@ -582,11 +594,11 @@ class DruidDatasource(Model, BaseDatasource):
         v1nums = (v1nums + [0, 0, 0])[:3]
         v2nums = (v2nums + [0, 0, 0])[:3]
         return (
-                   v1nums[0] > v2nums[0] or
-                   (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
-                   (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
-                       v1nums[2] > v2nums[2])
-               )
+            v1nums[0] > v2nums[0] or
+            (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or
+            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and
+                v1nums[2] > v2nums[2])
+        )
 
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
@@ -869,8 +881,8 @@ class DruidDatasource(Model, BaseDatasource):
     def resolve_postagg(postagg, post_aggs, agg_names, visited_postaggs, metrics_dict):
         mconf = postagg.json_obj
         required_fields = set(
-            DruidDatasource.recursive_get_fields(mconf)
-            + mconf.get('fieldNames', []))
+            DruidDatasource.recursive_get_fields(mconf) +
+            mconf.get('fieldNames', []))
         # Check if the fields are already in aggs
         # or is a previous postagg
         required_fields = set([

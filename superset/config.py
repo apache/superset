@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config

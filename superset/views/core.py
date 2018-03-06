@@ -1,9 +1,9 @@
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import defaultdict
 from datetime import datetime, timedelta
 import json
 import logging
@@ -20,7 +20,6 @@ from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
-from flask_appbuilder.security.sqla import models as ab_models
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
@@ -50,6 +49,7 @@ from .base import (
     generate_download_headers, get_error_msg, get_user_roles,
     json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
 )
+from .utils import bootstrap_user_data
 
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
@@ -349,8 +349,8 @@ class CsvToDatabaseView(SimpleFormView):
                 os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
             except OSError:
                 pass
-            message = u'Table name {} already exists. Please pick another'.format(
-                    form.name.data) if isinstance(e, IntegrityError) else text_type(e)
+            message = 'Table name {} already exists. Please pick another'.format(
+                form.name.data) if isinstance(e, IntegrityError) else text_type(e)
             flash(
                 message,
                 'danger')
@@ -359,7 +359,7 @@ class CsvToDatabaseView(SimpleFormView):
         os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
-        message = _(u'CSV file "{0}" uploaded to table "{1}" in '
+        message = _('CSV file "{0}" uploaded to table "{1}" in '
                     'database "{2}"'.format(csv_filename,
                                             form.name.data,
                                             db_name))
@@ -842,6 +842,15 @@ class Superset(BaseSupersetView):
                 .one()
             )
             datasources.add(datasource)
+
+        has_access = all(
+            (
+                datasource and self.datasource_access(datasource)
+                for datasource in datasources
+            ))
+        if has_access:
+            return redirect('/superset/dashboard/{}'.format(dashboard_id))
+
         if request.args.get('action') == 'go':
             for datasource in datasources:
                 access_request = DAR(
@@ -943,24 +952,39 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
-    def get_form_data(self):
-        d = {}
+    def get_form_data(self, slice_id=None):
+        form_data = {}
         post_data = request.form.get('form_data')
         request_args_data = request.args.get('form_data')
         # Supporting POST
         if post_data:
-            d.update(json.loads(post_data))
+            form_data.update(json.loads(post_data))
         # request params can overwrite post body
         if request_args_data:
-            d.update(json.loads(request_args_data))
+            form_data.update(json.loads(request_args_data))
 
         if request.args.get('viz_type'):
             # Converting old URLs
-            d = cast_form_data(d)
+            form_data = cast_form_data(form_data)
 
-        d = {k: v for k, v in d.items() if k not in FORM_DATA_KEY_BLACKLIST}
+        form_data = {
+            k: v
+            for k, v in form_data.items()
+            if k not in FORM_DATA_KEY_BLACKLIST
+        }
 
-        return d
+        # When a slice_id is present, load from DB and override
+        # the form_data from the DB with the other form_data provided
+        slice_id = form_data.get('slice_id') or slice_id
+        slc = None
+        if slice_id:
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+            slice_form_data = slc.form_data.copy()
+            # allow form_data in request override slice from_data
+            slice_form_data.update(form_data)
+            form_data = slice_form_data
+
+        return form_data, slc
 
     def get_viz(
             self,
@@ -991,12 +1015,10 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
-        viz_obj = self.get_viz(slice_id)
-        endpoint = '/superset/explore/{}/{}?form_data={}'.format(
-                viz_obj.datasource.type,
-                viz_obj.datasource.id,
-                parse.quote(json.dumps(viz_obj.form_data)),
-            )
+        form_data, slc = self.get_form_data(slice_id)
+        endpoint = '/superset/explore/?form_data={}'.format(
+            parse.quote(json.dumps(form_data)),
+        )
         if request.args.get('standalone') == 'true':
             endpoint += '&standalone=true'
         return redirect(endpoint)
@@ -1075,10 +1097,7 @@ class Superset(BaseSupersetView):
             viz_obj = self.get_viz(slice_id)
             datasource_type = viz_obj.datasource.type
             datasource_id = viz_obj.datasource.id
-            form_data = viz_obj.form_data
-            # This allows you to override the saved slice form data with
-            # data from the current request (e.g. change the time window)
-            form_data.update(self.get_form_data())
+            form_data, slc = self.get_form_data()
         except Exception as e:
             return json_error_response(
                 utils.error_msg_from_exception(e),
@@ -1091,16 +1110,16 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose('/annotation_json/<layer_id>')
     def annotation_json(self, layer_id):
-        form_data = self.get_form_data()
+        form_data = self.get_form_data()[0]
         form_data['layer_id'] = layer_id
         form_data['filters'] = [{'col': 'layer_id',
                                  'op': '==',
                                  'val': layer_id}]
         datasource = AnnotationDatasource()
         viz_obj = viz.viz_types['table'](
-          datasource,
-          form_data=form_data,
-          force=False,
+            datasource,
+            form_data=form_data,
+            force=False,
         )
         try:
             payload = viz_obj.get_payload()
@@ -1115,12 +1134,15 @@ class Superset(BaseSupersetView):
     @log_this
     @has_access_api
     @expose('/explore_json/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
-    def explore_json(self, datasource_type, datasource_id):
+    @expose('/explore_json/', methods=['GET', 'POST'])
+    def explore_json(self, datasource_type=None, datasource_id=None):
         try:
             csv = request.args.get('csv') == 'true'
             query = request.args.get('query') == 'true'
             force = request.args.get('force') == 'true'
-            form_data = self.get_form_data()
+            form_data = self.get_form_data()[0]
+            datasource_id, datasource_type = self.datasource_info(
+                datasource_id, datasource_type, form_data)
         except Exception as e:
             logging.exception(e)
             return json_error_response(
@@ -1157,19 +1179,36 @@ class Superset(BaseSupersetView):
     @has_access
     @expose('/explorev2/<datasource_type>/<datasource_id>/')
     def explorev2(self, datasource_type, datasource_id):
+        """Deprecated endpoint, here for backward compatibility of urls"""
         return redirect(url_for(
             'Superset.explore',
             datasource_type=datasource_type,
             datasource_id=datasource_id,
             **request.args))
 
+    @staticmethod
+    def datasource_info(datasource_id, datasource_type, form_data):
+        """Compatibility layer for handling of datasource info
+
+        datasource_id & datasource_type used to be passed in the URL
+        directory, now they should come as part of the form_data,
+        This function allows supporting both without duplicating code"""
+        datasource = form_data.get('datasource', '')
+        if '__' in datasource:
+            datasource_id, datasource_type = datasource.split('__')
+        datasource_id = int(datasource_id)
+        return datasource_id, datasource_type
+
     @log_this
     @has_access
     @expose('/explore/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
-    def explore(self, datasource_type, datasource_id):
-        datasource_id = int(datasource_id)
+    @expose('/explore/', methods=['GET', 'POST'])
+    def explore(self, datasource_type=None, datasource_id=None):
         user_id = g.user.get_id() if g.user else None
-        form_data = self.get_form_data()
+        form_data, slc = self.get_form_data()
+
+        datasource_id, datasource_type = self.datasource_info(
+            datasource_id, datasource_type, form_data)
 
         saved_url = None
         url_id = request.args.get('r')
@@ -1182,14 +1221,6 @@ class Superset(BaseSupersetView):
                 # allow form_date in request override saved url
                 url_form_data.update(form_data)
                 form_data = url_form_data
-        slice_id = form_data.get('slice_id')
-        slc = None
-        if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
-            slice_form_data = slc.form_data.copy()
-            # allow form_data in request override slice from_data
-            slice_form_data.update(form_data)
-            form_data = slice_form_data
 
         error_redirect = '/slicemodelview/list/'
         datasource = ConnectorRegistry.get_datasource(
@@ -1308,7 +1339,7 @@ class Superset(BaseSupersetView):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
-        form_data = self.get_form_data()
+        form_data, _ = self.get_form_data()
 
         if action in ('saveas'):
             if 'slice_id' in form_data:
@@ -1651,6 +1682,12 @@ class Superset(BaseSupersetView):
     def recent_activity(self, user_id):
         """Recent activity (actions) for a given user"""
         M = models  # noqa
+
+        if request.args.get('limit'):
+            limit = int(request.args.get('limit'))
+        else:
+            limit = 1000
+
         qry = (
             db.session.query(M.Log, M.Dashboard, M.Slice)
             .outerjoin(
@@ -1668,7 +1705,7 @@ class Superset(BaseSupersetView):
                 ),
             )
             .order_by(M.Log.dttm.desc())
-            .limit(1000)
+            .limit(limit)
         )
         payload = []
         for log in qry.all():
@@ -2548,9 +2585,12 @@ class Superset(BaseSupersetView):
         """Personalized welcome page"""
         if not g.user or not g.user.get_id():
             return redirect(appbuilder.get_url_for_login)
+
         payload = {
+            'user': bootstrap_user_data(),
             'common': self.common_bootsrap_payload(),
         }
+
         return self.render_template(
             'superset/basic.html',
             entry='welcome',
@@ -2564,44 +2604,15 @@ class Superset(BaseSupersetView):
         """User profile page"""
         if not username and g.user:
             username = g.user.username
-        user = (
-            db.session.query(ab_models.User)
-            .filter_by(username=username)
-            .one()
-        )
-        roles = {}
-        permissions = defaultdict(set)
-        for role in user.roles:
-            perms = set()
-            for perm in role.permissions:
-                if perm.permission and perm.view_menu:
-                    perms.add(
-                        (perm.permission.name, perm.view_menu.name),
-                    )
-                    if perm.permission.name in ('datasource_access', 'database_access'):
-                        permissions[perm.permission.name].add(perm.view_menu.name)
-            roles[role.name] = [
-                [perm.permission.name, perm.view_menu.name]
-                for perm in role.permissions
-                if perm.permission and perm.view_menu
-            ]
+
         payload = {
-            'user': {
-                'username': user.username,
-                'firstName': user.first_name,
-                'lastName': user.last_name,
-                'userId': user.id,
-                'isActive': user.is_active(),
-                'createdOn': user.created_on.isoformat(),
-                'email': user.email,
-                'roles': roles,
-                'permissions': permissions,
-            },
+            'user': bootstrap_user_data(username, include_perms=True),
             'common': self.common_bootsrap_payload(),
         }
+
         return self.render_template(
             'superset/basic.html',
-            title=user.username + "'s profile",
+            title=username + "'s profile",
             entry='profile',
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )

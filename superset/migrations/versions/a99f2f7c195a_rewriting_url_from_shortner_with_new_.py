@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """rewriting url from shortner with new format
 
 Revision ID: a99f2f7c195a

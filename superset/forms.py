@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Contains the logic to create cohesive forms on the explore view"""
 from __future__ import absolute_import
 from __future__ import division
@@ -35,8 +36,8 @@ class CsvToDatabaseForm(DynamicForm):
         validators=[
             FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
     con = QuerySelectField(
-         query_factory=all_db_items,
-         get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
+        query_factory=all_db_items,
+        get_pk=lambda a: a.id, get_label=lambda a: a.database_name)
     sep = StringField(
         _('Delimiter'),
         description=_('Delimiter used by CSV file (for whitespace use \s+).'),

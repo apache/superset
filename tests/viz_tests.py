@@ -1,10 +1,15 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from datetime import datetime
 import unittest
 
 from mock import Mock, patch
 import pandas as pd
 
-import superset.utils as utils
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
 
@@ -47,8 +52,6 @@ class BaseVizTestCase(unittest.TestCase):
         result = test_viz.get_df(query_obj)
         self.assertEqual(type(result), pd.DataFrame)
         self.assertTrue(result.empty)
-        self.assertEqual(test_viz.error_message, 'No data.')
-        self.assertEqual(test_viz.status, utils.QueryStatus.FAILED)
 
     def test_get_df_handles_dttm_col(self):
         datasource = Mock()
