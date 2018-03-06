@@ -87,6 +87,7 @@ setup(
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unidecode>=0.04.21',
+        'unicodecsv==0.14.1',
         'bleach==2.1.2',
     ],
     extras_require={
@@ -101,9 +102,10 @@ setup(
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/airbnb/superset',
+    url='https://github.com/apache/incubator-superset',
     download_url=(
-        'https://github.com/airbnb/superset/tarball/' + version_string),
+        'https://github.com/apache/incubator-superset/tarball/' + version_string,
+    ),
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',

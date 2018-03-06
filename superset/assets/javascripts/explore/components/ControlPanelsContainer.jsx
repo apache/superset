@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { Alert } from 'react-bootstrap';
+import { Alert, Tab, Tabs } from 'react-bootstrap';
 import visTypes, { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
@@ -26,6 +26,7 @@ class ControlPanelsContainer extends React.Component {
     super(props);
     this.removeAlert = this.removeAlert.bind(this);
     this.getControlData = this.getControlData.bind(this);
+    this.renderControlPanelSection = this.renderControlPanelSection.bind(this);
   }
   getControlData(controlName) {
     const control = this.props.controls[controlName];
@@ -49,8 +50,56 @@ class ControlPanelsContainer extends React.Component {
   removeAlert() {
     this.props.actions.removeControlPanelAlert();
   }
-  render() {
+  renderControlPanelSection(section) {
     const ctrls = this.props.controls;
+    const hasErrors = section.controlSetRows.some(rows => rows.some(s => (
+        ctrls[s] &&
+        ctrls[s].validationErrors &&
+        (ctrls[s].validationErrors.length > 0)
+    )));
+    return (
+      <ControlPanelSection
+        key={section.label}
+        label={section.label}
+        startExpanded={section.expanded}
+        hasErrors={hasErrors}
+        description={section.description}
+      >
+        {section.controlSetRows.map((controlSets, i) => (
+          <ControlRow
+            key={`controlsetrow-${i}`}
+            className="control-row"
+            controls={controlSets.map(controlName => (
+              controlName &&
+              ctrls[controlName] &&
+                <Control
+                  name={controlName}
+                  key={`control-${controlName}`}
+                  value={this.props.form_data[controlName]}
+                  validationErrors={ctrls[controlName].validationErrors}
+                  actions={this.props.actions}
+                  {...this.getControlData(controlName)}
+                />
+            ))}
+          />
+        ))}
+      </ControlPanelSection>
+    );
+  }
+  render() {
+    const allSectionsToRender = this.sectionsToRender();
+    const querySectionsToRender = [];
+    const displaySectionsToRender = [];
+    allSectionsToRender.forEach((section) => {
+      if (section.controlSetRows.some(rows => rows.some(
+        control => controls[control] && !controls[control].renderTrigger,
+      ))) {
+        querySectionsToRender.push(section);
+      } else {
+        displaySectionsToRender.push(section);
+      }
+    });
+
     return (
       <div className="scrollbar-container">
         <div className="scrollbar-content">
@@ -64,40 +113,16 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {this.sectionsToRender().map((section) => {
-            const hasErrors = section.controlSetRows.some(rows => rows.some(s => (
-                ctrls[s] &&
-                ctrls[s].validationErrors &&
-                (ctrls[s].validationErrors.length > 0)
-            )));
-            return (
-              <ControlPanelSection
-                key={section.label}
-                label={section.label}
-                startExpanded={section.expanded}
-                hasErrors={hasErrors}
-                description={section.description}
-              >
-                {section.controlSetRows.map((controlSets, i) => (
-                  <ControlRow
-                    key={`controlsetrow-${i}`}
-                    className="control-row"
-                    controls={controlSets.map(controlName => (
-                      controlName &&
-                      ctrls[controlName] &&
-                        <Control
-                          name={controlName}
-                          key={`control-${controlName}`}
-                          value={this.props.form_data[controlName]}
-                          validationErrors={ctrls[controlName].validationErrors}
-                          actions={this.props.actions}
-                          {...this.getControlData(controlName)}
-                        />
-                    ))}
-                  />
-                ))}
-              </ControlPanelSection>);
-          })}
+          <Tabs id="controlSections">
+            <Tab eventKey="query" title="Data">
+              {querySectionsToRender.map(this.renderControlPanelSection)}
+            </Tab>
+            {displaySectionsToRender.length > 0 &&
+              <Tab eventKey="display" title="Style">
+                {displaySectionsToRender.map(this.renderControlPanelSection)}
+              </Tab>
+            }
+          </Tabs>
         </div>
       </div>
     );

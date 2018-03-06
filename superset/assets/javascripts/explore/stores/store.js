@@ -85,6 +85,11 @@ export function getControlsState(state, form_data) {
   // With VisType change alter until to always hit default
   controlsState.until.value = controlsState.until.default;
 
+
+  if (viz.onInit) {
+    return viz.onInit(controlsState);
+  }
+
   return controlsState;
 }
 
