@@ -294,7 +294,7 @@ class BaseViz(object):
 
         if self.status != utils.QueryStatus.FAILED:
             if df is None or df.empty:
-                raise NoDataException('No data')
+                payload['error'] = 'No data'
             else:
                 payload['data'] = self.get_data(df)
         if 'df' in payload:
