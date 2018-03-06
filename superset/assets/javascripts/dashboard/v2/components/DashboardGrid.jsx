@@ -12,8 +12,6 @@ import {
   GRID_COLUMN_COUNT,
 } from '../util/constants';
 
-import './gridComponents/grid.css';
-
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
   updateComponents: PropTypes.func.isRequired,
