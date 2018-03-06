@@ -542,12 +542,6 @@ class PrestoEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
-    def patch(cls):
-        from pyhive import presto
-        from superset.db_engines import presto as patched_presto
-        presto.Cursor.cancel = patched_presto.cancel
-
-    @classmethod
     def adjust_database_uri(cls, uri, selected_schema=None):
         database = uri.database
         if selected_schema and database:
