@@ -29,7 +29,6 @@ class SupersetTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         if (
             self.requires_examples and
-            not os.environ.get('SOLO_TEST') and
             not os.environ.get('examples_loaded')
         ):
             logging.info('Loading examples')
