@@ -6,6 +6,7 @@ import StaticDashboard from './StaticDashboard';
 import DashboardHeader from './DashboardHeader';
 
 import '../../../../stylesheets/dashboard-v2.css';
+import '../stylesheets/index.less';
 
 const propTypes = {
   actions: PropTypes.shape({
