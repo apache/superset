@@ -25,25 +25,7 @@ export default class App extends React.PureComponent {
     return (
       <div className="container welcome">
         <Tabs defaultActiveKey={1} id="uncontrolled-tab-example">
-          <Tab eventKey={1} title={t('Recently Viewed')}>
-            <Panel>
-              <Row>
-                <Col md={8}><h2>{t('Recently Viewed')}</h2></Col>
-              </Row>
-              <hr />
-              <RecentActivity user={this.props.user} />
-            </Panel>
-          </Tab>
-          <Tab eventKey={2} title={t('Favorites')}>
-            <Panel>
-              <Row>
-                <Col md={8}><h2>{t('Favorites')}</h2></Col>
-              </Row>
-              <hr />
-              <Favorites user={this.props.user} />
-            </Panel>
-          </Tab>
-          <Tab eventKey={3} title={t('Dashboards')}>
+          <Tab eventKey={1} title={t('Dashboards')}>
             <Panel>
               <Row>
                 <Col md={8}><h2>{t('Dashboards')}</h2></Col>
@@ -60,6 +42,24 @@ export default class App extends React.PureComponent {
               </Row>
               <hr />
               <DashboardTable search={this.state.search} />
+            </Panel>
+          </Tab>
+          <Tab eventKey={2} title={t('Recently Viewed')}>
+            <Panel>
+              <Row>
+                <Col md={8}><h2>{t('Recently Viewed')}</h2></Col>
+              </Row>
+              <hr />
+              <RecentActivity user={this.props.user} />
+            </Panel>
+          </Tab>
+          <Tab eventKey={3} title={t('Favorites')}>
+            <Panel>
+              <Row>
+                <Col md={8}><h2>{t('Favorites')}</h2></Col>
+              </Row>
+              <hr />
+              <Favorites user={this.props.user} />
             </Panel>
           </Tab>
         </Tabs>
