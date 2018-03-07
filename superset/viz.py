@@ -35,7 +35,6 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
-from superset.exceptions import NoDataException
 from superset.utils import DTTM_ALIAS, merge_extra_filters
 
 
