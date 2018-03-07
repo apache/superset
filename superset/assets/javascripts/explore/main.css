@@ -123,3 +123,12 @@
   background-color: transparent;
 }
 
+.type-label {
+  width: 25px;
+  display: inline-block;
+  text-align: center;
+}
+
+.datasource-container {
+  overflow: auto;
+}

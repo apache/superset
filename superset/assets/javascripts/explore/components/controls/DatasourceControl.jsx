@@ -153,7 +153,7 @@ export default class DatasourceControl extends React.PureComponent {
             </Label>
             {` ${datasource.database.name} `}
           </div>
-          <Row>
+          <Row className="datasource-container">
             <Col md={6}>
               <strong>Columns</strong>
               {datasource.columns.map(col => (
@@ -163,7 +163,7 @@ export default class DatasourceControl extends React.PureComponent {
             <Col md={6}>
               <strong>Metrics</strong>
               {datasource.metrics.map(m => (
-                <div key={m.metric_name}><MetricOption metric={m} /></div>
+                <div key={m.metric_name}><MetricOption metric={m} showType /></div>
               ))}
             </Col>
           </Row>
