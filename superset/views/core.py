@@ -1095,7 +1095,10 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
 
         status = 200
-        if payload.get('status') == QueryStatus.FAILED:
+        if (
+            payload.get('status') == QueryStatus.FAILED or
+            payload.get('error') is not None
+        ):
             status = 400
 
         return json_success(viz_obj.json_dumps(payload), status=status)
