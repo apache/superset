@@ -45,6 +45,8 @@ import sqlalchemy as sa
 from sqlalchemy import event, exc, select
 from sqlalchemy.types import TEXT, TypeDecorator
 
+from superset.exceptions import SupersetException, SupersetTimeoutException
+
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 

@@ -37,9 +37,9 @@ from superset import (
     viz,
 )
 
-from superset.exceptions import NoDataException, SupersetSecurityException
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
+from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.forms import CsvToDatabaseForm
 from superset.legacy import cast_form_data
 import superset.models.core as models
@@ -1081,10 +1081,13 @@ class Superset(BaseSupersetView):
 
         try:
             payload = viz_obj.get_payload()
+        except SupersetException as se:
+            logging.exception(se)
+            return json_error_response(utils.error_msg_from_exception(se),
+                                       status=se.status)
         except Exception as e:
             logging.exception(e)
-            status = e.status if isinstance(e, NoDataException) else 500
-            return json_error_response(utils.error_msg_from_exception(e), status=status)
+            return json_error_response(utils.error_msg_from_exception(e))
 
         status = 200
         if payload.get('status') == QueryStatus.FAILED:

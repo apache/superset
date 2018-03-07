@@ -27,5 +27,7 @@ before_script:
   - export PATH=${PATH}:/tmp/hive/bin
 install:
   - pip install --upgrade pip
-  - pip install tox tox-travis
+  - pip install codecov tox tox-travis
 script: tox -e $TOX_ENV
+after_success:
+  - codecov

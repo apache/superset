@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 
 class SupersetException(Exception):
-    pass
+    status = 500
 
 
 class SupersetTimeoutException(SupersetException):
@@ -23,9 +23,7 @@ class MetricPermException(SupersetException):
 
 
 class NoDataException(SupersetException):
-    def __init__(self, *args, **kwargs):
-        SupersetException.__init__(self, *args, **kwargs)
-        self.status = int(kwargs.get('status')) if kwargs.get('status') else 400
+    status = 400
 
 
 class SupersetTemplateException(SupersetException):

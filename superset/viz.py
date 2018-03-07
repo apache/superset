@@ -293,8 +293,8 @@ class BaseViz(object):
             raise NoDataException('No data')
 
         if self.status != utils.QueryStatus.FAILED:
-            if df is None or df.empty:
-                raise NoDataException('No data')
+            if df is not None and df.empty:
+                payload['error'] = 'No data'
             else:
                 payload['data'] = self.get_data(df)
         if 'df' in payload:
@@ -616,7 +616,7 @@ class MarkupViz(BaseViz):
         return None
 
     def get_df(self, query_obj=None):
-        return pd.DataFrame()
+        return None
 
     def get_data(self, df):
         markup_type = self.form_data.get('markup_type')

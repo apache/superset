@@ -59,6 +59,7 @@ setup(
         'flask-cache==0.13.1',
         'flask-migrate==2.1.1',
         'flask-script==2.0.6',
+        'flask-compress==1.4.0',
         'flask-sqlalchemy==2.1',
         'flask-testing==0.7.1',
         'flask-wtf==0.14.2',
@@ -102,9 +103,10 @@ setup(
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/airbnb/superset',
+    url='https://github.com/apache/incubator-superset',
     download_url=(
-        'https://github.com/airbnb/superset/tarball/' + version_string),
+        'https://github.com/apache/incubator-superset/tarball/' + version_string,
+    ),
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',

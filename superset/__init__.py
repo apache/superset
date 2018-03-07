@@ -13,6 +13,7 @@ import os
 from flask import Flask, redirect
 from flask_appbuilder import AppBuilder, IndexView, SQLA
 from flask_appbuilder.baseviews import expose
+from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
@@ -165,6 +166,9 @@ results_backend = app.config.get('RESULTS_BACKEND')
 module_datasource_map = app.config.get('DEFAULT_MODULE_DS_MAP')
 module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
 ConnectorRegistry.register_sources(module_datasource_map)
+
+# Flask-Compress
+Compress(app)
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization
