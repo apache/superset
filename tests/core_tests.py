@@ -922,7 +922,7 @@ class CoreTests(SupersetTestCase):
 
         data = self.get_json_resp(url)
         self.assertEqual(data['status'], utils.QueryStatus.SUCCESS)
-        assert 'No data' in data['error']
+        self.assertEqual(data['error'], 'No data')
 
     def test_slice_payload_invalid_query(self):
         self.login(username='admin')
@@ -936,6 +936,15 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(data['status'], utils.QueryStatus.FAILED)
         assert 'KeyError' in data['stacktrace']
+
+    def test_slice_payload_viz_markdown(self):
+        self.login(username='admin')
+        slc = self.get_slice('Title', db.session)
+
+        url = slc.get_explore_url(base_url='/superset/explore_json')
+        data = self.get_json_resp(url)
+        self.assertEqual(data['status'], None)
+        self.assertEqual(data['error'], None)
 
 
 if __name__ == '__main__':
