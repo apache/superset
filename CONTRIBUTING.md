@@ -287,10 +287,10 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
 Lint the project with:
 
     # for python
-    flake8
+    tox -e flake8
 
     # for javascript
-    npm run lint
+    tox -e eslint
 
 ## Linting with codeclimate
 Codeclimate is a service we use to measure code quality and test coverage. To get codeclimate's report on your branch, ideally before sending your PR, you can setup codeclimate against your Superset fork. After you push to your fork, you should be able to get the report at http://codeclimate.com . Alternatively, if you prefer to work locally, you can install the codeclimate cli tool.
