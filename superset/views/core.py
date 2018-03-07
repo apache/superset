@@ -963,6 +963,17 @@ class Superset(BaseSupersetView):
         if request_args_data:
             form_data.update(json.loads(request_args_data))
 
+        url_id = request.args.get('r')
+        if url_id:
+            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
+            if saved_url:
+                url_str = parse.unquote_plus(
+                    saved_url.url.split('?')[1][10:], encoding='utf-8', errors=None)
+                url_form_data = json.loads(url_str)
+                # allow form_date in request override saved url
+                url_form_data.update(form_data)
+                form_data = url_form_data
+
         if request.args.get('viz_type'):
             # Converting old URLs
             form_data = cast_form_data(form_data)
@@ -1209,18 +1220,6 @@ class Superset(BaseSupersetView):
 
         datasource_id, datasource_type = self.datasource_info(
             datasource_id, datasource_type, form_data)
-
-        saved_url = None
-        url_id = request.args.get('r')
-        if url_id:
-            saved_url = db.session.query(models.Url).filter_by(id=url_id).first()
-            if saved_url:
-                url_str = parse.unquote_plus(
-                    saved_url.url.split('?')[1][10:], encoding='utf-8', errors=None)
-                url_form_data = json.loads(url_str)
-                # allow form_date in request override saved url
-                url_form_data.update(form_data)
-                form_data = url_form_data
 
         error_redirect = '/slicemodelview/list/'
         datasource = ConnectorRegistry.get_datasource(
