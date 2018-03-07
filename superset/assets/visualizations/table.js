@@ -31,7 +31,11 @@ function tableVis(slice, payload) {
   }
   const maxes = {};
   for (let i = 0; i < metrics.length; i += 1) {
-    maxes[metrics[i]] = d3.max(col(metrics[i]));
+    if (fd.visualize_negative_values) {
+      maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
+    } else {
+      maxes[metrics[i]] = d3.max(col(metrics[i]));
+    }
   }
 
   const tsFormatter = d3TimeFormatPreset(fd.table_timestamp_format);
@@ -100,11 +104,16 @@ function tableVis(slice, payload) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        const perc = Math.round((d.val / maxes[d.col]) * 100);
+        let perc = Math.round((d.val / maxes[d.col]) * 100);
+        let r = 0;
+        if (fd.visualize_negative_values && perc < 0) {
+          r = 100;
+          perc = Math.abs(perc);
+        }
         // The 0.01 to 0.001 is a workaround for what appears to be a
         // CSS rendering bug on flat, transparent colors
         return (
-          `linear-gradient(to left, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
+          `linear-gradient(to left, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
           `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
         );
       }

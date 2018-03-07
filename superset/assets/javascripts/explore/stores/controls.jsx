@@ -1325,6 +1325,13 @@ export const controls = {
     description: t('Whether to apply filter when table cell is clicked'),
   },
 
+  visualize_negative_values: {
+    type: 'CheckboxControl',
+    label: t('Visualize Negative Values'),
+    default: false,
+    description: t('Whether to show visualization for negative values'),
+  },
+
   show_bubbles: {
     type: 'CheckboxControl',
     label: t('Show Bubbles'),

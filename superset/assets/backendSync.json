@@ -2214,6 +2214,12 @@
       "default": false,
       "description": "Whether to apply filter when table cell is clicked"
     },
+    "visualize_negative_values": {
+      "type": "CheckboxControl",
+      "label": "Visualize Negative Values",
+      "default": false,
+      "description": "Whether to show visualization for negative values"
+    },
     "show_bubbles": {
       "type": "CheckboxControl",
       "label": "Show Bubbles",
