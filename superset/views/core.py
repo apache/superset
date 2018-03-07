@@ -36,7 +36,6 @@ from superset import (
     app, appbuilder, cache, db, results_backend, security, sm, sql_lab, utils,
     viz,
 )
-
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException, SupersetSecurityException
