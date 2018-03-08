@@ -1337,7 +1337,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Color +/-'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('Whether to color +/- values'),
   },
 

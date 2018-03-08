@@ -2225,7 +2225,7 @@
       "type": "CheckboxControl",
       "label": "Color +/-",
       "renderTrigger": true,
-      "default": false,
+      "default": true,
       "description": "Whether to color +/- values"
     },
     "show_bubbles": {
