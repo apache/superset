@@ -39,6 +39,10 @@
   width: 100px;
 }
 
+.control-panel-section .metrics-select .Select-multi-value-wrapper .Select-input > input {
+  width: 300px;
+}
+
 .background-transparent {
   background-color: transparent !important;
 }
@@ -133,4 +137,8 @@
 
 .datasource-container {
   overflow: auto;
+}
+
+.edit-adhoc-metric-save-btn {
+  margin-right: 5px;
 }

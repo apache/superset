@@ -129,19 +129,18 @@ export const controls = {
   },
 
   metrics: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
     multi: true,
     label: t('Metrics'),
     validators: [v.nonEmpty],
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
+    valueKey: 'optionName',
     default: (c) => {
       const metric = mainMetric(c.options);
       return metric ? [metric] : null;
     },
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
     }),
     description: t('One or many metrics to display'),
   },

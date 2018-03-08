@@ -9,9 +9,11 @@ export default function ColumnTypeLabel({ type }) {
   let stringIcon = '';
   if (type === '' || type === 'expression') {
     stringIcon = 'ƒ';
+  } else if (type === 'aggregate') {
+    stringIcon = 'AGG';
   } else if (type.match(/.*char.*/i) || type.match(/string.*/i) || type.match(/.*text.*/i)) {
     stringIcon = 'ABC';
-  } else if (type.match(/.*int.*/i) || type === 'LONG' || type === 'DOUBLE') {
+  } else if (type.match(/.*int.*/i) || type === 'LONG' || type === 'DOUBLE' || type === 'FLOAT') {
     stringIcon = '#';
   } else if (type.match(/.*bool.*/i)) {
     stringIcon = 'T/F';
