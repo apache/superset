@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
 import inspect
+import json
 import random
 import time
 import uuid
@@ -30,15 +31,21 @@ BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
 
 
 def url_param(param, default=None):
-    """Get a url paramater
+    """Get a url or post data parameter
 
-    :param param: the url parameter to lookup
+    :param param: the parameter to lookup
     :type param: str
     :param default: the value to return in the absence of the parameter
     :type default: str
     """
-    print(request.args)
-    return request.args.get(param, default)
+    if request.args.get(param):
+        return request.args.get(param, default)
+    # Supporting POST as well as get
+    if request.form.get('form_data'):
+        form_data = json.loads(request.form.get('form_data'))
+        url_params = form_data['url_params'] or {}
+        return url_params.get(param, default)
+    return default
 
 
 def current_user_id():
