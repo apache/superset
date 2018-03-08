@@ -2211,7 +2211,7 @@
     "table_filter": {
       "type": "CheckboxControl",
       "label": "Table Filter",
-      "default": true,
+      "default": false,
       "description": "Whether to apply filter when table cell is clicked"
     },
     "right_align": {
@@ -2223,7 +2223,7 @@
     "highlight_negative": {
       "type": "CheckboxControl",
       "label": "Highlight Negative",
-      "default": false,
+      "default": true,
       "description": "Whether to highlight negative values"
     },
     "show_bubbles": {
