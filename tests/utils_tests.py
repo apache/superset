@@ -227,7 +227,8 @@ class UtilsTestCase(unittest.TestCase):
             'dashboard_ids': '(1,2,3,4,5)',
         }
         merge_request_params(form_data, url_params)
-        self.assertIn('dashboard_ids', form_data.keys())
+        self.assertIn('url_params', form_data.keys())
+        self.assertIn('dashboard_ids', form_data['url_params'])
         self.assertNotIn('form_data', form_data.keys())
 
     def test_datetime_f(self):

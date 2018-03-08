@@ -836,10 +836,12 @@ def merge_extra_filters(form_data):
 
 
 def merge_request_params(form_data, params):
+    url_params = {}
     for key, value in params.items():
-        if key == 'form_data':
+        if key in ('form_data', 'r'):
             continue
-        form_data[key] = value
+        url_params[key] = value
+    form_data['url_params'] = url_params
 
 
 def get_update_perms_flag():

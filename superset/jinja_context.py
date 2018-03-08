@@ -43,7 +43,8 @@ def url_param(param, default=None):
     # Supporting POST as well as get
     if request.form.get('form_data'):
         form_data = json.loads(request.form.get('form_data'))
-        return form_data.get(param, default)
+        url_params = form_data['url_params'] or {}
+        return url_params.get(param, default)
     return default
 
 
