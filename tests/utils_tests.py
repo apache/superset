@@ -14,7 +14,8 @@ import numpy
 
 from superset.utils import (
     base_json_conv, datetime_f, json_int_dttm_ser, json_iso_dttm_ser,
-    JSONEncodedDict, memoized, merge_extra_filters, parse_human_timedelta,
+    JSONEncodedDict, memoized, merge_extra_filters, merge_request_params,
+    parse_human_timedelta,
     SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
 )
 
@@ -215,6 +216,20 @@ class UtilsTestCase(unittest.TestCase):
         ]}
         merge_extra_filters(form_data)
         self.assertEquals(form_data, expected)
+
+    def test_merge_request_params(self):
+        form_data = {
+            'since': '2000',
+            'until': 'now',
+        }
+        url_params = {
+            'form_data': form_data,
+            'dashboard_ids': '(1,2,3,4,5)',
+        }
+        merge_request_params(form_data, url_params)
+        self.assertIn('url_params', form_data.keys())
+        self.assertIn('dashboard_ids', form_data['url_params'])
+        self.assertNotIn('form_data', form_data.keys())
 
     def test_datetime_f(self):
         self.assertEquals(
