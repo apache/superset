@@ -1,5 +1,5 @@
 div.legend {
-    font-size: 76%;
+    font-size: 90%;
     position: absolute;
     top: 0px;
     left: 10px;
@@ -14,4 +14,9 @@ ul.categories {
     list-style: none;
     padding-left: 0;
     margin: 0;
+}
+
+ul.categories li a {
+    color: rgb(51, 51, 51);
+    text-decoration: none;
 }
