@@ -106,31 +106,29 @@ function tableVis(slice, payload) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        const r_val = (fd.highlight_negative) ? 100 : 0;
+        const rVal = (fd.highlight_negative) ? 100 : 0;
+        const r = (d.val > 0) ? 0 : rVal;
         if (fd.right_align) {
           const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
-          const r = (d.val > 0) ? 0 : r_val;
           // The 0.01 to 0.001 is a workaround for what appears to be a
           // CSS rendering bug on flat, transparent colors
           return (
             `linear-gradient(to left, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
             `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
           );
-        } else {
-          const pos_ext = Math.abs(Math.max(maxes[d.col], 0));
-          const neg_ext = Math.abs(Math.min(mins[d.col], 0));
-          const tot = pos_ext + neg_ext;
-          const perc1 = Math.round((Math.min(neg_ext + d.val, neg_ext) / tot) * 100);
-          const perc2 = Math.round((Math.abs(d.val) / tot) * 100);
-          const r = (d.val > 0) ? 0 : r_val;
-          // The 0.01 to 0.001 is a workaround for what appears to be a
-          // CSS rendering bug on flat, transparent colors
-          return (
-            `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
-            `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
-            `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
-          );
         }
+        const posExtent = Math.abs(Math.max(maxes[d.col], 0));
+        const negExtent = Math.abs(Math.min(mins[d.col], 0));
+        const tot = posExtent + negExtent;
+        const perc1 = Math.round((Math.min(negExtent + d.val, negExtent) / tot) * 100);
+        const perc2 = Math.round((Math.abs(d.val) / tot) * 100);
+        // The 0.01 to 0.001 is a workaround for what appears to be a
+        // CSS rendering bug on flat, transparent colors
+        return (
+          `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
+          `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
+          `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
+        );
       }
       return null;
     })
