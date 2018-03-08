@@ -135,7 +135,7 @@ class BaseEngineSpec(object):
             'table': table,
             'df': df,
             'name': form.name.data,
-            'con': create_engine(form.con.data.sqlalchemy_uri, echo=False),
+            'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
             'schema': form.schema.data,
             'if_exists': form.if_exists.data,
             'index': form.index.data,
@@ -875,7 +875,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')""".format(**locals())
         logging.info(form.con.data)
-        engine = create_engine(form.con.data.sqlalchemy_uri)
+        engine = create_engine(form.con.data.sqlalchemy_uri_decrypted)
         engine.execute(sql)
 
     @classmethod
