@@ -32,7 +32,7 @@ function tableVis(slice, payload) {
   const maxes = {};
   const mins = {};
   for (let i = 0; i < metrics.length; i += 1) {
-    if (fd.right_align) {
+    if (fd.align_pn) {
       maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
     } else {
       maxes[metrics[i]] = d3.max(col(metrics[i]));
@@ -106,14 +106,13 @@ function tableVis(slice, payload) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        const rVal = (fd.highlight_negative) ? 100 : 0;
-        const r = (d.val > 0) ? 0 : rVal;
-        if (fd.right_align) {
+        const r = (fd.color_pn && d.val < 0) ? 150 : 0;
+        if (fd.align_pn) {
           const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
           // The 0.01 to 0.001 is a workaround for what appears to be a
           // CSS rendering bug on flat, transparent colors
           return (
-            `linear-gradient(to left, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
+            `linear-gradient(to right, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
             `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
           );
         }

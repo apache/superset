@@ -1325,18 +1325,20 @@ export const controls = {
     description: t('Whether to apply filter when table cell is clicked'),
   },
 
-  right_align: {
+  align_pn: {
     type: 'CheckboxControl',
-    label: t('Right Align'),
-    default: true,
-    description: t('Whether to right align background chart'),
+    label: t('Align +/-'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to align the background chart for +/- values'),
   },
 
-  highlight_negative: {
+  color_pn: {
     type: 'CheckboxControl',
-    label: t('Highlight Negative'),
-    default: true,
-    description: t('Whether to highlight negative values'),
+    label: t('Color +/-'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to color +/- values'),
   },
 
   show_bubbles: {

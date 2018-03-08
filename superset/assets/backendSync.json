@@ -2214,17 +2214,19 @@
       "default": false,
       "description": "Whether to apply filter when table cell is clicked"
     },
-    "right_align": {
+    "align_pn": {
       "type": "CheckboxControl",
-      "label": "Right Align",
-      "default": true,
-      "description": "Whether to right align background chart"
+      "label": "Align +/-",
+      "renderTrigger": true,
+      "default": false,
+      "description": "Whether to align the background chart for +/- values"
     },
-    "highlight_negative": {
+    "color_pn": {
       "type": "CheckboxControl",
-      "label": "Highlight Negative",
-      "default": true,
-      "description": "Whether to highlight negative values"
+      "label": "Color +/-",
+      "renderTrigger": true,
+      "default": false,
+      "description": "Whether to color +/- values"
     },
     "show_bubbles": {
       "type": "CheckboxControl",
