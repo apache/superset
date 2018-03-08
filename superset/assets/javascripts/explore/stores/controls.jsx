@@ -1325,11 +1325,18 @@ export const controls = {
     description: t('Whether to apply filter when table cell is clicked'),
   },
 
-  visualize_negative_values: {
+  right_align: {
     type: 'CheckboxControl',
-    label: t('Visualize Negative Values'),
-    default: false,
-    description: t('Whether to show visualization for negative values'),
+    label: t('Right Align'),
+    default: true,
+    description: t('Whether to right align background chart'),
+  },
+
+  highlight_negative: {
+    type: 'CheckboxControl',
+    label: t('Highlight Negative'),
+    default: true,
+    description: t('Whether to highlight negative values'),
   },
 
   show_bubbles: {

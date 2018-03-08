@@ -2211,14 +2211,20 @@
     "table_filter": {
       "type": "CheckboxControl",
       "label": "Table Filter",
-      "default": false,
+      "default": true,
       "description": "Whether to apply filter when table cell is clicked"
     },
-    "visualize_negative_values": {
+    "right_align": {
       "type": "CheckboxControl",
-      "label": "Visualize Negative Values",
+      "label": "Right Align",
+      "default": true,
+      "description": "Whether to right align background chart"
+    },
+    "highlight_negative": {
+      "type": "CheckboxControl",
+      "label": "Highlight Negative",
       "default": false,
-      "description": "Whether to show visualization for negative values"
+      "description": "Whether to highlight negative values"
     },
     "show_bubbles": {
       "type": "CheckboxControl",

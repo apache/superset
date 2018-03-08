@@ -30,11 +30,13 @@ function tableVis(slice, payload) {
     return arr;
   }
   const maxes = {};
+  const mins = {};
   for (let i = 0; i < metrics.length; i += 1) {
-    if (fd.visualize_negative_values) {
+    if (fd.right_align) {
       maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
     } else {
       maxes[metrics[i]] = d3.max(col(metrics[i]));
+      mins[metrics[i]] = d3.min(col(metrics[i]));
     }
   }
 
@@ -104,18 +106,31 @@ function tableVis(slice, payload) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        let perc = Math.round((d.val / maxes[d.col]) * 100);
-        let r = 0;
-        if (fd.visualize_negative_values && perc < 0) {
-          r = 100;
-          perc = Math.abs(perc);
+        const r_val = (fd.highlight_negative) ? 100 : 0;
+        if (fd.right_align) {
+          const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
+          const r = (d.val > 0) ? 0 : r_val;
+          // The 0.01 to 0.001 is a workaround for what appears to be a
+          // CSS rendering bug on flat, transparent colors
+          return (
+            `linear-gradient(to left, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
+            `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
+          );
+        } else {
+          const pos_ext = Math.abs(Math.max(maxes[d.col], 0));
+          const neg_ext = Math.abs(Math.min(mins[d.col], 0));
+          const tot = pos_ext + neg_ext;
+          const perc1 = Math.round((Math.min(neg_ext + d.val, neg_ext) / tot) * 100);
+          const perc2 = Math.round((Math.abs(d.val) / tot) * 100);
+          const r = (d.val > 0) ? 0 : r_val;
+          // The 0.01 to 0.001 is a workaround for what appears to be a
+          // CSS rendering bug on flat, transparent colors
+          return (
+            `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
+            `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
+            `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
+          );
         }
-        // The 0.01 to 0.001 is a workaround for what appears to be a
-        // CSS rendering bug on flat, transparent colors
-        return (
-          `linear-gradient(to left, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
-          `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
-        );
       }
       return null;
     })
