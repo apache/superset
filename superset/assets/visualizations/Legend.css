@@ -1,0 +1,17 @@
+div.legend {
+    font-size: 76%;
+    position: absolute;
+    top: 0px;
+    left: 10px;
+    background: #fff;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+    margin: 24px;
+    padding: 12px 24px;
+    outline: none;
+}
+
+ul.categories {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}

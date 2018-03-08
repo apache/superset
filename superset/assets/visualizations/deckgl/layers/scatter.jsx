@@ -7,6 +7,7 @@ import PropTypes from 'prop-types';
 import { ScatterplotLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
+import Legend from '../../Legend';
 
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
@@ -37,6 +38,26 @@ function getStep(timeGrain) {
 
 function getPoints(data) {
   return data.map(d => d.position);
+}
+
+function getCategories(formData, payload) {
+  const fd = formData;
+  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const fixedColor = [c.r, c.g, c.b, 255 * c.a];
+  const categories = {};
+
+  payload.data.features.forEach((d) => {
+    if (!categories.hasOwnProperty(d.cat_color)) {
+      let color;
+      if (fd.dimension) {
+        color = hexToRGB(getColorFromScheme(d.cat_color, fd.color_scheme), c.a * 255);
+      } else {
+        color = fixedColor;
+      }
+      categories[d.cat_color] = color;
+    }
+  });
+  return categories;
 }
 
 function getLayer(formData, payload, slice, inFrame) {
@@ -137,18 +158,23 @@ class DeckGLScatter extends React.PureComponent {
   }
   render() {
     return (
-      <AnimatableDeckGLContainer
-        getLayers={this.getLayers}
-        start={this.state.start}
-        end={this.state.end}
-        step={this.state.step}
-        values={this.state.values}
-        disabled={this.state.disabled}
-        viewport={this.props.viewport}
-        mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
-        mapStyle={this.props.slice.formData.mapbox_style}
-        setControlValue={this.props.setControlValue}
-      />
+      <div>
+        <AnimatableDeckGLContainer
+          getLayers={this.getLayers}
+          start={this.state.start}
+          end={this.state.end}
+          step={this.state.step}
+          values={this.state.values}
+          disabled={this.state.disabled}
+          viewport={this.props.viewport}
+          mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
+          mapStyle={this.props.slice.formData.mapbox_style}
+          setControlValue={this.props.setControlValue}
+        />
+        <Legend
+          categories={getCategories(this.props.slice.formData, this.props.payload)}
+        />
+      </div>
     );
   }
 }
