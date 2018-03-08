@@ -6,28 +6,27 @@ const propTypes = {
 };
 
 export default function ColumnTypeLabel({ type }) {
-  let stringIcon;
-  let iconSize = '13';
+  let stringIcon = '';
   if (type === '' || type === 'expression') {
     stringIcon = 'ƒ';
   } else if (type.match(/.*char.*/i) || type.match(/string.*/i) || type.match(/.*text.*/i)) {
     stringIcon = 'ABC';
-    iconSize = '11';
   } else if (type.match(/.*int.*/i) || type === 'LONG' || type === 'DOUBLE') {
     stringIcon = '#';
   } else if (type.match(/.*bool.*/i)) {
     stringIcon = 'T/F';
   } else if (type.match(/.*time.*/i)) {
     stringIcon = 'time';
-  } else {
+  } else if (type.match(/unknown/i)) {
     stringIcon = '?';
   }
 
-  const typeIcon = stringIcon === 'time' ? <i className="fa fa-clock-o text-muted type-label" /> : (
-    <div className="text-muted type-label" style={{ fontSize: iconSize }}>{stringIcon}</div>);
+  const typeIcon = stringIcon === 'time' ?
+    <i className="fa fa-clock-o type-label" /> :
+    <div className="type-label">{stringIcon}</div>;
 
   return (
-    <span className="m-r-5">
+    <span>
       {typeIcon}
     </span>);
 }
