@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import ColumnTypeLabel from '../../../../javascripts/components/ColumnTypeLabel';
+import ColumnTypeLabel from '../../../javascripts/components/ColumnTypeLabel';
 
 describe('ColumnOption', () => {
   const defaultProps = {
@@ -45,5 +45,18 @@ describe('ColumnOption', () => {
     const lbl = wrapper.find('.type-label');
     expect(lbl).to.have.length(1);
     expect(lbl.first().text()).to.equal('ƒ');
+  });
+  it('unknown type shows question mark', () => {
+    props.type = 'unknown';
+    wrapper = shallow(factory(props));
+    const lbl = wrapper.find('.type-label');
+    expect(lbl).to.have.length(1);
+    expect(lbl.first().text()).to.equal('?');
+  });
+  it('unknown type shows question mark', () => {
+    props.type = 'datetime';
+    wrapper = shallow(factory(props));
+    const lbl = wrapper.find('.fa-clock-o');
+    expect(lbl).to.have.length(1);
   });
 });
