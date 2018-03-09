@@ -567,6 +567,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
+    allow_multi_schema_metadata_fetch = Column(Boolean, default=True)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -593,6 +594,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return {
             'name': self.database_name,
             'backend': self.backend,
+            'allow_multi_schema_metadata_fetch':
+                self.allow_multi_schema_metadata_fetch,
         }
 
     @property
@@ -736,6 +739,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def all_table_names(self, schema=None, force=False):
         if not schema:
+            if not self.allow_multi_schema_metadata_fetch:
+                return []
             tables_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'table', force=force)
             return tables_dict.get('', [])
@@ -744,6 +749,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def all_view_names(self, schema=None, force=False):
         if not schema:
+            if not self.allow_multi_schema_metadata_fetch:
+                return []
             views_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'view', force=force)
             return views_dict.get('', [])

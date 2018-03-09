@@ -23,6 +23,7 @@ describe('SqlEditorLeftBar', () => {
     },
     tables: [table],
     queryEditor: defaultQueryEditor,
+    database: {},
     height: 0,
   };
 

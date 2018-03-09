@@ -241,6 +241,7 @@ class SqlEditor extends React.PureComponent {
             >
               <SqlEditorLeftBar
                 height={height}
+                database={this.props.database}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
                 actions={this.props.actions}
