@@ -384,9 +384,10 @@ ENABLE_JAVASCRIPT_CONTROLS = False
 # arbitrary logic. For instance you can wire different users to
 # use different connection parameters, or pass their email address as the
 # username. The function receives the connection uri object, connection
-# params, and user object, and returns the mutated uri and params objects.
+# params, the username, and returns the mutated uri and params objects.
 # Example:
-#   def DB_CONNECTION_MUTATOR(uri, params, user):
+#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager):
+#       user = security_manager.find_user(username=username)
 #       if user and user.email:
 #           uri.username = user.email
 #       return uri, params
@@ -394,6 +395,15 @@ ENABLE_JAVASCRIPT_CONTROLS = False
 # Note that the returned uri and params are passed directly to sqlalchemy's
 # as such `create_engine(url, **params)`
 DB_CONNECTION_MUTATOR = None
+
+# A function that intercepts the SQL to be executed and can alter it.
+# The use case is can be around adding some sort of comment header
+# with information such as the username and worker node information
+#
+#    def SQL_QUERY_MUTATOR(sql, username, security_manager):
+#        dttm = datetime.now().isoformat()
+#        return "-- [SQL LAB] {username} {dttm}\n sql"(**locals())
+SQL_QUERY_MUTATOR = None
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
