@@ -184,7 +184,7 @@ export const controls = {
     description: t('Choose the position of the legend'),
     type: 'SelectControl',
     clearable: false,
-    default: 'tr',
+    default: 'Top right',
     choices: [
       ['tl', 'Top left'],
       ['tr', 'Top right'],

@@ -12,7 +12,7 @@ const propTypes = {
 const defaultProps = {
   categories: {},
   toggleCategory: () => {},
-  position: 'br',
+  position: 'tr',
 };
 
 export default class Legend extends React.PureComponent {

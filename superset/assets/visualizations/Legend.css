@@ -6,6 +6,8 @@ div.legend {
     margin: 24px;
     padding: 12px 24px;
     outline: none;
+    overflow-y: scroll;
+    max-height: 200px;
 }
 
 ul.categories {
