@@ -16,10 +16,10 @@ export default function ColumnOption({ column, showType }) {
   const hasExpression = column.expression && column.expression !== column.column_name;
 
   let columnType = column.type;
-  if (hasExpression) {
-    columnType = 'expression';
-  } else if (column.is_dttm) {
+  if (column.is_dttm) {
     columnType = 'time';
+  } else if (hasExpression) {
+    columnType = 'expression';
   }
 
   return (

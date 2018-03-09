@@ -57,4 +57,11 @@ describe('ColumnOption', () => {
     expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
     expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('expression');
   });
+  it('dttm column has correct column label if showType is true', () => {
+    props.showType = true;
+    props.column.is_dttm = true;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+    expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('time');
+  });
 });
