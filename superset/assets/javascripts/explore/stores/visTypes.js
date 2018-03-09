@@ -770,6 +770,7 @@ export const visTypes = {
           ['table_timestamp_format'],
           ['row_limit', 'page_length'],
           ['include_search', 'table_filter'],
+          ['align_pn', 'color_pn'],
         ],
       },
     ],

@@ -30,8 +30,14 @@ function tableVis(slice, payload) {
     return arr;
   }
   const maxes = {};
+  const mins = {};
   for (let i = 0; i < metrics.length; i += 1) {
-    maxes[metrics[i]] = d3.max(col(metrics[i]));
+    if (fd.align_pn) {
+      maxes[metrics[i]] = d3.max(col(metrics[i]).map(Math.abs));
+    } else {
+      maxes[metrics[i]] = d3.max(col(metrics[i]));
+      mins[metrics[i]] = d3.min(col(metrics[i]));
+    }
   }
 
   const tsFormatter = d3TimeFormatPreset(fd.table_timestamp_format);
@@ -100,12 +106,27 @@ function tableVis(slice, payload) {
     .append('td')
     .style('background-image', function (d) {
       if (d.isMetric) {
-        const perc = Math.round((d.val / maxes[d.col]) * 100);
+        const r = (fd.color_pn && d.val < 0) ? 150 : 0;
+        if (fd.align_pn) {
+          const perc = Math.abs(Math.round((d.val / maxes[d.col]) * 100));
+          // The 0.01 to 0.001 is a workaround for what appears to be a
+          // CSS rendering bug on flat, transparent colors
+          return (
+            `linear-gradient(to right, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
+            `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
+          );
+        }
+        const posExtent = Math.abs(Math.max(maxes[d.col], 0));
+        const negExtent = Math.abs(Math.min(mins[d.col], 0));
+        const tot = posExtent + negExtent;
+        const perc1 = Math.round((Math.min(negExtent + d.val, negExtent) / tot) * 100);
+        const perc2 = Math.round((Math.abs(d.val) / tot) * 100);
         // The 0.01 to 0.001 is a workaround for what appears to be a
         // CSS rendering bug on flat, transparent colors
         return (
-          `linear-gradient(to left, rgba(0,0,0,0.2), rgba(0,0,0,0.2) ${perc}%, ` +
-          `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
+          `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
+          `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
+          `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
         );
       }
       return null;
