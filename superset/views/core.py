@@ -259,7 +259,7 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'service account, but impersonate the currently logged on user '
             'via hive.server2.proxy.user property.'),
         'allow_multi_schema_metadata_fetch': _(
-            'Allow SQL Lab to fetch a list of all table and all views across '
+            'Allow SQL Lab to fetch a list of all tables and all views across '
             'all database schemas. For large data warehouse with thousands of '
             'tables, this can be expensive and put strain on the system.'),
     }
