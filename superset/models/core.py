@@ -677,7 +677,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
-            url, params = DB_CONNECTION_MUTATOR(url, params, g.user)
+            url, params = DB_CONNECTION_MUTATOR(url, params, user_name, sm)
         return create_engine(url, **params)
 
     def get_reserved_words(self):
