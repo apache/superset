@@ -1,8 +1,6 @@
 div.legend {
     font-size: 90%;
     position: absolute;
-    top: 0px;
-    left: 10px;
     background: #fff;
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
     margin: 24px;

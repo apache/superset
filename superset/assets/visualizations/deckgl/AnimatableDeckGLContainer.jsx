@@ -48,6 +48,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
           onChange={newValues => this.setState({ values: newValues })}
         />
         }
+        {this.props.children}
       </div>
     );
   }

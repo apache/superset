@@ -188,11 +188,13 @@ class DeckGLScatter extends React.PureComponent {
           mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
           mapStyle={this.props.slice.formData.mapbox_style}
           setControlValue={this.props.setControlValue}
-        />
-        <Legend
-          categories={this.state.categories}
-          toggleCategory={this.toggleCategory}
-        />
+        >
+          <Legend
+            categories={this.state.categories}
+            toggleCategory={this.toggleCategory}
+            position={this.props.slice.formData.legend_position}
+          />
+        </AnimatableDeckGLContainer>
       </div>
     );
   }

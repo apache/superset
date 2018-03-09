@@ -679,7 +679,7 @@ export const visTypes = {
       {
         label: t('Point Color'),
         controlSetRows: [
-          ['color_picker', null],
+          ['color_picker', 'legend_position'],
           ['dimension', 'color_scheme'],
         ],
       },

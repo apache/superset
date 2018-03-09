@@ -6,11 +6,13 @@ import './Legend.css';
 const propTypes = {
   categories: PropTypes.object,
   toggleCategory: PropTypes.func,
+  position: PropTypes.oneOf(['tl', 'tr', 'bl', 'br']),
 };
 
 const defaultProps = {
   categories: {},
   toggleCategory: () => {},
+  position: 'br',
 };
 
 export default class Legend extends React.PureComponent {
@@ -30,8 +32,16 @@ export default class Legend extends React.PureComponent {
         </li>
       );
     });
+
+    const vertical = this.props.position.charAt(0) === 't' ? 'top' : 'bottom';
+    const horizontal = this.props.position.charAt(1) === 'r' ? 'right' : 'left';
+    const style = {
+      [vertical]: '0px',
+      [horizontal]: '10px',
+    };
+
     return (
-      <div className={'legend'}>
+      <div className={'legend'} style={style}>
         <ul className={'categories'}>{categories}</ul>
       </div>
     );
