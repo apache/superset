@@ -14,7 +14,7 @@ import { unitToRadius } from '../../../javascripts/modules/geo';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
 function getStep(timeGrain) {
-  // grain in microseconds
+  // grain in milliseconds
   const MINUTE = 60 * 1000;
   const HOUR = 60 * MINUTE;
   const DAY = 24 * HOUR;
