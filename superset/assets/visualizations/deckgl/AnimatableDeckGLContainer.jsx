@@ -12,6 +12,7 @@ const propTypes = {
   values: PropTypes.array.isRequired,
   disabled: PropTypes.bool,
   viewport: PropTypes.object.isRequired,
+  children: PropTypes.node,
 };
 
 const defaultProps = {
