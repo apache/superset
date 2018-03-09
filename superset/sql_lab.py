@@ -17,7 +17,7 @@ import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
-from superset import app, dataframe, db, results_backend, utils
+from superset import app, dataframe, db, results_backend, sm, utils
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
@@ -193,6 +193,11 @@ def execute_sql(
         logging.exception(e)
         msg = 'Template rendering failed: ' + utils.error_msg_from_exception(e)
         return handle_error(msg)
+
+    # Hook to allow environment-specific mutation (usually comments) to the SQL
+    SQL_QUERY_MUTATOR = config.get('SQL_QUERY_MUTATOR')
+    if SQL_QUERY_MUTATOR:
+        executed_sql = SQL_QUERY_MUTATOR(executed_sql, user_name, sm, database)
 
     query.executed_sql = executed_sql
     query.status = QueryStatus.RUNNING
