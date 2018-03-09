@@ -12,6 +12,7 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
+  ['.1s', '.1s | 12k'],
   ['.3s', '.3s | 12.3k'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
@@ -96,6 +97,11 @@ function jsFunctionControl(label, description, extraDescr = null, height = 100, 
         {extraDescr}
       </div>
     ),
+    mapStateToProps: state => ({
+      warning: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS ?
+        t('This functionality is disabled in your environment for security reasons.') : null,
+      readOnly: !state.common.conf.ENABLE_JAVASCRIPT_CONTROLS,
+    }),
   };
 }
 
@@ -223,6 +229,7 @@ export const controls = {
   stacked_style: {
     type: 'SelectControl',
     label: t('Stacked Style'),
+    renderTrigger: true,
     choices: [
       ['stack', 'stack'],
       ['stream', 'stream'],
@@ -331,6 +338,14 @@ export const controls = {
     default: false,
   },
 
+  autozoom: {
+    type: 'CheckboxControl',
+    label: t('Auto Zoom'),
+    default: true,
+    renderTrigger: true,
+    description: t('When checked, the map will zoom to your data after each query'),
+  },
+
   show_perc: {
     type: 'CheckboxControl',
     label: t('Show percentage'),
@@ -375,6 +390,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Sort Bars'),
     default: false,
+    renderTrigger: true,
     description: t('Sort bars by x labels.'),
   },
 
@@ -832,6 +848,7 @@ export const controls = {
   treemap_ratio: {
     type: 'TextControl',
     label: t('Ratio'),
+    renderTrigger: true,
     isFloat: true,
     default: 0.5 * (1 + Math.sqrt(5)),  // d3 default, golden ratio
     description: t('Target aspect ratio for treemap tiles.'),
@@ -852,7 +869,7 @@ export const controls = {
     freeForm: true,
     label: t('Row limit'),
     validators: [v.integer],
-    default: 50000,
+    default: 10000,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
@@ -862,8 +879,11 @@ export const controls = {
     label: t('Series limit'),
     validators: [v.integer],
     choices: formatSelectOptions(SERIES_LIMITS),
-    default: 50,
-    description: t('Limits the number of time series that get displayed'),
+    description: t(
+      'Limits the number of time series that get displayed. A sub query ' +
+      '(or an extra phase where sub queries are not supported) is applied to limit ' +
+      'the number of time series that get fetched and displayed. This feature is useful ' +
+      'when grouping by high cardinality dimension(s).'),
   },
 
   timeseries_limit_metric: {
@@ -896,6 +916,7 @@ export const controls = {
     type: 'TextControl',
     label: t('Multiplier'),
     isFloat: true,
+    renderTrigger: true,
     default: 1,
     description: t('Factor to multiply the metric by'),
   },
@@ -1165,6 +1186,7 @@ export const controls = {
     type: 'SelectControl',
     label: t('Label Type'),
     default: 'key',
+    renderTrigger: true,
     choices: [
       ['key', 'Category Name'],
       ['value', 'Value'],
@@ -1301,6 +1323,22 @@ export const controls = {
     label: t('Table Filter'),
     default: false,
     description: t('Whether to apply filter when table cell is clicked'),
+  },
+
+  align_pn: {
+    type: 'CheckboxControl',
+    label: t('Align +/-'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to align the background chart for +/- values'),
+  },
+
+  color_pn: {
+    type: 'CheckboxControl',
+    label: t('Color +/-'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to color +/- values'),
   },
 
   show_bubbles: {
@@ -1830,6 +1868,30 @@ export const controls = {
       'lower values are pruned first'),
   },
 
+  min_radius: {
+    type: 'TextControl',
+    label: t('Minimum Radius'),
+    isFloat: true,
+    validators: [v.nonEmpty],
+    renderTrigger: true,
+    default: 2,
+    description:
+    t('Minimum radius size of the circle, in pixels. As the zoom level changes, this ' +
+      'insures that the circle respects this minimum radius.'),
+  },
+
+  max_radius: {
+    type: 'TextControl',
+    label: t('Maximum Radius'),
+    isFloat: true,
+    validators: [v.nonEmpty],
+    renderTrigger: true,
+    default: 250,
+    description:
+    t('Maxium radius size of the circle, in pixels. As the zoom level changes, this ' +
+      'insures that the circle respects this maximum radius.'),
+  },
+
   partition_threshold: {
     type: 'TextControl',
     label: t('Partition Threshold'),
@@ -1937,6 +1999,14 @@ export const controls = {
     label: t('Filled'),
     renderTrigger: true,
     description: t('Whether to fill the objects'),
+    default: false,
+  },
+
+  normalized: {
+    type: 'CheckboxControl',
+    label: t('Normalized'),
+    renderTrigger: true,
+    description: t('Whether to normalize the histogram'),
     default: false,
   },
 };

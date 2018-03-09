@@ -81,6 +81,9 @@ export function getControlsState(state, form_data) {
     control.value = formData[k] !== undefined ? formData[k] : control.default;
     controlsState[k] = control;
   });
+  if (viz.onInit) {
+    return viz.onInit(controlsState);
+  }
   return controlsState;
 }
 
@@ -106,6 +109,13 @@ export function applyDefaultFormData(form_data) {
       formData[k] = form_data[k];
     }
   });
+  // fill in additional params stored in form_data but not used by control
+  Object.keys(form_data)
+    .forEach((key) => {
+      if (formData[key] === undefined) {
+        formData[key] = form_data[key];
+      }
+    });
   return formData;
 }
 

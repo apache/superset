@@ -5,57 +5,57 @@ import URLShortLinkButton from './URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
 import { t } from '../../locales';
+import { exportChart } from '../exploreUtils';
 
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
-  slice: PropTypes.object,
-  queryEndpoint: PropTypes.string.isRequired,
-  queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
+  latestQueryFormData: PropTypes.object,
+  queryResponse: PropTypes.object,
 };
 
 export default function ExploreActionButtons({
-    chartStatus, canDownload, slice, queryResponse, queryEndpoint }) {
+    canDownload, chartStatus, latestQueryFormData, queryResponse }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
-  if (slice) {
-    return (
-      <div className="btn-group results" role="group">
-        <URLShortLinkButton slice={slice} />
+  const doExportCSV = exportChart.bind(this, latestQueryFormData, 'csv');
+  const doExportChart = exportChart.bind(this, latestQueryFormData, 'json');
 
-        <EmbedCodeButton slice={slice} />
+  return (
+    <div className="btn-group results" role="group">
+      {latestQueryFormData &&
+        <URLShortLinkButton latestQueryFormData={latestQueryFormData} />}
 
+      {latestQueryFormData &&
+        <EmbedCodeButton latestQueryFormData={latestQueryFormData} />}
+
+      {latestQueryFormData &&
         <a
-          href={slice.data.json_endpoint}
+          onClick={doExportChart}
           className="btn btn-default btn-sm"
           title={t('Export to .json')}
           target="_blank"
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-code-o" /> .json
-        </a>
-
+        </a>}
+      {latestQueryFormData &&
         <a
-          href={slice.data.csv_endpoint}
+          onClick={doExportCSV}
           className={exportToCSVClasses}
           title={t('Export to .csv format')}
           target="_blank"
           rel="noopener noreferrer"
         >
           <i className="fa fa-file-text-o" /> .csv
-        </a>
-
-        <DisplayQueryButton
-          queryResponse={queryResponse}
-          queryEndpoint={queryEndpoint}
-          chartStatus={chartStatus}
-        />
-      </div>
-    );
-  }
-  return (
-    <DisplayQueryButton queryEndpoint={queryEndpoint} />
+        </a>}
+      <DisplayQueryButton
+        queryResponse={queryResponse}
+        latestQueryFormData={latestQueryFormData}
+        chartStatus={chartStatus}
+      />
+    </div>
   );
 }
 

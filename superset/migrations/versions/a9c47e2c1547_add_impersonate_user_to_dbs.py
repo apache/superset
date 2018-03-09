@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """add impersonate_user to dbs
 
 Revision ID: a9c47e2c1547

@@ -8,7 +8,7 @@ import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
-import { getExploreUrl } from '../exploreUtils';
+import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../stores/store';
 import { chartPropType } from '../../chart/chartReducer';
@@ -49,11 +49,19 @@ class ExploreViewContainer extends React.Component {
       height: this.getHeight(),
       width: this.getWidth(),
       showModal: false,
+      chartIsStale: false,
+      refreshOverlayVisible: false,
     };
+
+    this.addHistory = this.addHistory.bind(this);
+    this.handleResize = this.handleResize.bind(this);
+    this.handlePopstate = this.handlePopstate.bind(this);
   }
 
   componentDidMount() {
-    window.addEventListener('resize', this.handleResize.bind(this));
+    window.addEventListener('resize', this.handleResize);
+    window.addEventListener('popstate', this.handlePopstate);
+    this.addHistory({ isReplace: true });
   }
 
   componentWillReceiveProps(np) {
@@ -69,20 +77,31 @@ class ExploreViewContainer extends React.Component {
     if (np.controls.datasource.value !== this.props.controls.datasource.value) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
     }
-    // if any control value changed and it's an instant control
-    if (Object.keys(np.controls).some(key => (np.controls[key].renderTrigger &&
-      typeof this.props.controls[key] !== 'undefined' &&
-      !areObjectsEqual(np.controls[key].value, this.props.controls[key].value)))) {
+
+    const changedControlKeys = this.findChangedControlKeys(this.props.controls, np.controls);
+    if (this.hasDisplayControlChanged(changedControlKeys, np.controls)) {
+      this.props.actions.updateQueryFormData(
+        getFormDataFromControls(np.controls), this.props.chart.chartKey);
       this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
+    }
+    if (this.hasQueryControlChanged(changedControlKeys, np.controls)) {
+      this.setState({ chartIsStale: true, refreshOverlayVisible: true });
     }
   }
 
-  componentDidUpdate() {
+  /* eslint no-unused-vars: 0 */
+  componentDidUpdate(prevProps, prevState) {
     this.triggerQueryIfNeeded();
+
+    const changedControlKeys = this.findChangedControlKeys(prevProps.controls, this.props.controls);
+    if (this.hasDisplayControlChanged(changedControlKeys, this.props.controls)) {
+      this.addHistory({});
+    }
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', this.handleResize.bind(this));
+    window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('popstate', this.handlePopstate);
   }
 
   onQuery() {
@@ -90,10 +109,12 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.removeControlPanelAlert();
     this.props.actions.triggerQuery(true, this.props.chart.chartKey);
 
-    history.pushState(
-      {},
-      document.title,
-      getExploreUrl(this.props.form_data));
+    this.setState({ chartIsStale: false, refreshOverlayVisible: false });
+    this.addHistory({});
+  }
+
+  onDismissRefreshOverlay() {
+    this.setState({ refreshOverlayVisible: false });
   }
 
   onStop() {
@@ -112,10 +133,46 @@ class ExploreViewContainer extends React.Component {
     return `${window.innerHeight - navHeight}px`;
   }
 
+  findChangedControlKeys(prevControls, currentControls) {
+    return Object.keys(currentControls).filter(key => (
+      typeof prevControls[key] !== 'undefined' &&
+      !areObjectsEqual(currentControls[key].value, prevControls[key].value)
+    ));
+  }
+
+  hasDisplayControlChanged(changedControlKeys, currentControls) {
+    return changedControlKeys.some(key => (currentControls[key].renderTrigger));
+  }
+
+  hasQueryControlChanged(changedControlKeys, currentControls) {
+    return changedControlKeys.some(key => !currentControls[key].renderTrigger);
+  }
+
   triggerQueryIfNeeded() {
     if (this.props.chart.triggerQuery && !this.hasErrors()) {
       this.props.actions.runQuery(this.props.form_data, false,
         this.props.timeout, this.props.chart.chartKey);
+    }
+  }
+
+  addHistory({ isReplace = false, title }) {
+    const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
+    const longUrl = getExploreLongUrl(this.props.form_data);
+    if (isReplace) {
+      history.replaceState(
+        payload,
+        title,
+        longUrl);
+    } else {
+      history.pushState(
+        payload,
+        title,
+        longUrl);
+    }
+
+    // it seems some browsers don't support pushState title attribute
+    if (title) {
+      document.title = title;
     }
   }
 
@@ -124,6 +181,19 @@ class ExploreViewContainer extends React.Component {
     this.resizeTimer = setTimeout(() => {
       this.setState({ height: this.getHeight(), width: this.getWidth() });
     }, 250);
+  }
+
+  handlePopstate() {
+    const formData = history.state;
+    if (formData && Object.keys(formData).length) {
+      this.props.actions.setExploreControls(formData);
+      this.props.actions.runQuery(
+        formData,
+        false,
+        this.props.timeout,
+        this.props.chart.chartKey,
+      );
+    }
   }
 
   toggleModal() {
@@ -162,6 +232,11 @@ class ExploreViewContainer extends React.Component {
         width={this.state.width}
         height={this.state.height}
         {...this.props}
+        errorMessage={this.renderErrorMessage()}
+        refreshOverlayVisible={this.state.refreshOverlayVisible}
+        addHistory={this.addHistory}
+        onQuery={this.onQuery.bind(this)}
+        onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
       />);
   }
 
@@ -193,6 +268,7 @@ class ExploreViewContainer extends React.Component {
               onSave={this.toggleModal.bind(this)}
               onStop={this.onStop.bind(this)}
               loading={this.props.chart.chartStatus === 'loading'}
+              chartIsStale={this.state.chartIsStale}
               errorMessage={this.renderErrorMessage()}
             />
             <br />
@@ -217,6 +293,13 @@ ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps({ explore, charts, impressionId }) {
   const form_data = getFormDataFromControls(explore.controls);
+  // fill in additional params stored in form_data but not used by control
+  Object.keys(explore.rawFormData)
+    .forEach((key) => {
+      if (form_data[key] === undefined) {
+        form_data[key] = explore.rawFormData[key];
+      }
+    });
   const chartKey = Object.keys(charts)[0];
   const chart = charts[chartKey];
   return {

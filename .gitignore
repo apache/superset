@@ -26,6 +26,8 @@ app.db
 *.sqllite
 .vscode
 .python-version
+.tox
+dump.rdb
 
 # Node.js, webpack artifacts
 *.entry.js
@@ -37,3 +39,4 @@ superset/assets/version_info.json
 
 # IntelliJ
 *.iml
+venv

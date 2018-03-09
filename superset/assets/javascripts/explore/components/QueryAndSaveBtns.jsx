@@ -11,6 +11,7 @@ const propTypes = {
   onSave: PropTypes.func,
   onStop: PropTypes.func,
   loading: PropTypes.bool,
+  chartIsStale: PropTypes.bool,
   errorMessage: PropTypes.node,
 };
 
@@ -21,11 +22,18 @@ const defaultProps = {
 };
 
 export default function QueryAndSaveBtns(
-  { canAdd, onQuery, onSave, onStop, loading, errorMessage }) {
+  { canAdd, onQuery, onSave, onStop, loading, chartIsStale, errorMessage }) {
   const saveClasses = classnames({
     'disabled disabledButton': canAdd !== 'True',
   });
-  const qryButtonStyle = errorMessage ? 'danger' : 'primary';
+
+  let qryButtonStyle = 'default';
+  if (errorMessage) {
+    qryButtonStyle = 'danger';
+  } else if (chartIsStale) {
+    qryButtonStyle = 'primary';
+  }
+
   const saveButtonDisabled = errorMessage ? true : loading;
   const qryOrStopButton = loading ? (
     <Button

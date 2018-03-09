@@ -8,16 +8,15 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
-  exploreChartUrl: PropTypes.string,
-  exportCSVUrl: PropTypes.string,
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
   cachedDttm: PropTypes.string,
-  formDataExtra: PropTypes.object,
   removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
+  exploreChart: PropTypes.func,
+  exportCSV: PropTypes.func,
   editMode: PropTypes.bool,
   annotationQuery: PropTypes.object,
   annotationError: PropTypes.object,
@@ -28,6 +27,8 @@ const defaultProps = {
   removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
+  exploreChart: () => ({}),
+  exportCSV: () => ({}),
   editMode: false,
 };
 
@@ -36,6 +37,11 @@ class SliceHeader extends React.PureComponent {
     super(props);
 
     this.onSaveTitle = this.onSaveTitle.bind(this);
+    this.onToggleExpandSlice = this.onToggleExpandSlice.bind(this);
+    this.exportCSV = this.props.exportCSV.bind(this, this.props.slice);
+    this.exploreChart = this.props.exploreChart.bind(this, this.props.slice);
+    this.forceRefresh = this.props.forceRefresh.bind(this, this.props.slice.slice_id);
+    this.removeSlice = this.props.removeSlice.bind(this, this.props.slice);
   }
 
   onSaveTitle(newTitle) {
@@ -44,10 +50,13 @@ class SliceHeader extends React.PureComponent {
     }
   }
 
+  onToggleExpandSlice() {
+    this.props.toggleExpandSlice(this.props.slice, !this.props.isExpanded);
+  }
+
   render() {
     const slice = this.props.slice;
     const isCached = this.props.isCached;
-    const isExpanded = !!this.props.isExpanded;
     const cachedWhen = moment.utc(this.props.cachedDttm).fromNow();
     const refreshTooltip = isCached ?
       t('Served from data cached %s . Click to force refresh.', cachedWhen) :
@@ -97,10 +106,7 @@ class SliceHeader extends React.PureComponent {
                   </TooltipWrapper>
                 </a>
               }
-              <a
-                className={`refresh ${isCached ? 'danger' : ''}`}
-                onClick={() => (this.props.forceRefresh(slice.slice_id))}
-              >
+              <a className={`refresh ${isCached ? 'danger' : ''}`} onClick={this.forceRefresh}>
                 <TooltipWrapper
                   placement="top"
                   label="refresh"
@@ -110,7 +116,7 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               {slice.description &&
-              <a onClick={() => this.props.toggleExpandSlice(slice, !isExpanded)}>
+              <a onClick={this.onToggleExpandSlice}>
                 <TooltipWrapper
                   placement="top"
                   label="description"
@@ -129,7 +135,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-pencil" />
                 </TooltipWrapper>
               </a>
-              <a className="exportCSV" href={this.props.exportCSVUrl}>
+              <a className="exportCSV" onClick={this.exportCSV}>
                 <TooltipWrapper
                   placement="top"
                   label="exportCSV"
@@ -138,7 +144,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-table" />
                 </TooltipWrapper>
               </a>
-              <a className="exploreChart" href={this.props.exploreChartUrl} target="_blank">
+              <a className="exploreChart" onClick={this.exploreChart}>
                 <TooltipWrapper
                   placement="top"
                   label="exploreChart"
@@ -148,7 +154,7 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               {this.props.editMode &&
-                <a className="remove-chart" onClick={() => (this.props.removeSlice(slice))}>
+                <a className="remove-chart" onClick={this.removeSlice}>
                   <TooltipWrapper
                     placement="top"
                     label="close"

@@ -3,16 +3,14 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow, mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
+import sinon from 'sinon';
 
 import EmbedCodeButton from '../../../../javascripts/explore/components/EmbedCodeButton';
+import * as exploreUtils from '../../../../javascripts/explore/exploreUtils';
 
 describe('EmbedCodeButton', () => {
   const defaultProps = {
-    slice: {
-      data: {
-        standalone_endpoint: 'endpoint_url',
-      },
-    },
+    latestQueryFormData: { datasource: '107__table' },
   };
 
   it('renders', () => {
@@ -25,11 +23,11 @@ describe('EmbedCodeButton', () => {
   });
 
   it('returns correct embed code', () => {
+    const stub = sinon.stub(exploreUtils, 'getExploreLongUrl').callsFake(() => ('endpoint_url'));
     const wrapper = mount(<EmbedCodeButton {...defaultProps} />);
     wrapper.setState({
       height: '1000',
       width: '2000',
-      srcLink: 'http://localhost/endpoint_url',
     });
     const embedHTML = (
       '<iframe\n' +
@@ -43,5 +41,6 @@ describe('EmbedCodeButton', () => {
       '</iframe>'
     );
     expect(wrapper.instance().generateEmbedHTML()).to.equal(embedHTML);
+    stub.restore();
   });
 });

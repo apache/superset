@@ -4,6 +4,7 @@ import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
 import mathjs from 'mathjs';
+import moment from 'moment';
 import d3tip from 'd3-tip';
 
 import { getColorFromScheme } from '../javascripts/modules/colors';
@@ -18,6 +19,8 @@ import './nvd3_vis.css';
 import { VIZ_TYPES } from './main';
 
 const minBarWidth = 15;
+// Limit on how large axes margins can grow as the chart window is resized
+const maxMarginPad = 30;
 const animationTime = 1000;
 
 const BREAKPOINTS = {
@@ -463,7 +466,9 @@ function nvd3Vis(slice, payload) {
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
-      const marginPad = isExplore ? width * 0.01 : width * 0.03;
+      const containerWidth = slice.container.width();
+      const marginPad = Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03,
+        maxMarginPad);
       const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
                                               : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
@@ -624,7 +629,7 @@ function nvd3Vis(slice, payload) {
 
             const tip = tipFactory(e);
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-              const timeColumn = new Date(r[e.timeColumn]);
+              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
               return {
                 ...r,
                 [e.timeColumn]: timeColumn,
@@ -665,8 +670,8 @@ function nvd3Vis(slice, payload) {
             const tip = tipFactory(e);
 
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-              const timeColumn = new Date(r[e.timeColumn]);
-              const intervalEndColumn = new Date(r[e.intervalEndColumn]);
+              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
+              const intervalEndColumn = new Date(moment.utc(r[e.intervalEndColumn]));
               return {
                 ...r,
                 [e.timeColumn]: timeColumn,

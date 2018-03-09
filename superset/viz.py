@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """This module contains the 'Viz' objects
 
 These objects represent the backend of all the visualizations that
@@ -23,6 +24,7 @@ from dateutil import relativedelta as rdelta
 from flask import escape, request
 from flask_babel import lazy_gettext as _
 import geohash
+from geopy.point import Point
 from markdown import markdown
 import numpy as np
 import pandas as pd
@@ -149,9 +151,6 @@ class BaseViz(object):
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
         if df is None or df.empty:
-            self.status = utils.QueryStatus.FAILED
-            if not self.error_message:
-                self.error_message = 'No data.'
             return pd.DataFrame()
         else:
             if DTTM_ALIAS in df.columns:
@@ -286,10 +285,15 @@ class BaseViz(object):
     def get_payload(self, query_obj=None):
         """Returns a payload of metadata and data"""
         payload = self.get_df_payload(query_obj)
-        df = payload['df']
-        if df is not None:
-            payload['data'] = self.get_data(df)
-        del payload['df']
+
+        df = payload.get('df')
+        if self.status != utils.QueryStatus.FAILED:
+            if df is not None and df.empty:
+                payload['error'] = 'No data'
+            else:
+                payload['data'] = self.get_data(df)
+        if 'df' in payload:
+            del payload['df']
         return payload
 
     def get_df_payload(self, query_obj=None):
@@ -321,8 +325,9 @@ class BaseViz(object):
         if query_obj and not is_loaded:
             try:
                 df = self.get_df(query_obj)
-                stats_logger.incr('loaded_from_source')
-                is_loaded = True
+                if self.status != utils.QueryStatus.FAILED:
+                    stats_logger.incr('loaded_from_source')
+                    is_loaded = True
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -1127,10 +1132,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['to_dttm'] -= delta
 
             df2 = self.get_df_payload(query_object).get('df')
-            df2[DTTM_ALIAS] += delta
-            df2 = self.process_data(df2)
-            self.extra_chart_data = self.to_series(
-                df2, classed='superset', title_suffix='---')
+            if df2 is not None:
+                df2[DTTM_ALIAS] += delta
+                df2 = self.process_data(df2)
+                self.extra_chart_data = self.to_series(
+                    df2, classed='superset', title_suffix='---')
 
     def get_data(self, df):
         df = self.process_data(df)
@@ -1407,24 +1413,22 @@ class SunburstViz(BaseViz):
         '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>')
 
     def get_data(self, df):
-
-        # if m1 == m2 duplicate the metric column
-        cols = self.form_data.get('groupby')
-        metric = self.form_data.get('metric')
-        secondary_metric = self.form_data.get('secondary_metric')
-        if metric == secondary_metric:
-            ndf = df
-            ndf.columns = [cols + ['m1', 'm2']]
-        else:
-            cols += [
-                self.form_data['metric'], self.form_data['secondary_metric']]
-            ndf = df[cols]
-        return json.loads(ndf.to_json(orient='values'))  # TODO fix this nonsense
+        fd = self.form_data
+        cols = fd.get('groupby')
+        metric = fd.get('metric')
+        secondary_metric = fd.get('secondary_metric')
+        if metric == secondary_metric or secondary_metric is None:
+            df.columns = cols + ['m1']
+            df['m2'] = df['m1']
+        return json.loads(df.to_json(orient='values'))
 
     def query_obj(self):
         qry = super(SunburstViz, self).query_obj()
-        qry['metrics'] = [
-            self.form_data['metric'], self.form_data['secondary_metric']]
+        fd = self.form_data
+        qry['metrics'] = [fd['metric']]
+        secondary_metric = fd.get('secondary_metric')
+        if secondary_metric and secondary_metric != fd['metric']:
+            qry['metrics'].append(secondary_metric)
         return qry
 
 
@@ -1818,6 +1822,8 @@ class MapboxViz(BaseViz):
         return d
 
     def get_data(self, df):
+        if df is None:
+            return None
         fd = self.form_data
         label_col = fd.get('mapbox_label')
         custom_metric = label_col and len(label_col) >= 1
@@ -1930,11 +1936,19 @@ class BaseDeckGLViz(BaseViz):
         spatial = self.form_data.get(key)
         if spatial is None:
             raise ValueError(_('Bad spatial key'))
-
         if spatial.get('type') == 'latlong':
-            df[key] = list(zip(df[spatial.get('lonCol')], df[spatial.get('latCol')]))
+            df[key] = list(zip(
+                pd.to_numeric(df[spatial.get('lonCol')], errors='coerce'),
+                pd.to_numeric(df[spatial.get('latCol')], errors='coerce'),
+            ))
         elif spatial.get('type') == 'delimited':
-            df[key] = (df[spatial.get('lonlatCol')].str.split(spatial.get('delimiter')))
+
+            def tupleify(s):
+                p = Point(s)
+                return (p.latitude, p.longitude)
+
+            df[key] = df[spatial.get('lonlatCol')].apply(tupleify)
+
             if spatial.get('reverseCheckbox'):
                 df[key] = [
                     tuple(reversed(o)) if isinstance(o, (list, tuple)) else (0, 0)
@@ -1946,7 +1960,6 @@ class BaseDeckGLViz(BaseViz):
             df[key] = list(zip(latlong.apply(lambda x: x[0]),
                                latlong.apply(lambda x: x[1])))
             del df[spatial.get('geohashCol')]
-
         return df
 
     def query_obj(self):
@@ -1976,6 +1989,8 @@ class BaseDeckGLViz(BaseViz):
         return {col: d.get(col) for col in cols}
 
     def get_data(self, df):
+        if df is None:
+            return None
         for key in self.spatial_control_keys:
             df = self.process_spatial_data_obj(key, df)
 
@@ -2003,9 +2018,11 @@ class DeckScatterViz(BaseDeckGLViz):
     viz_type = 'deck_scatter'
     verbose_name = _('Deck.gl - Scatter plot')
     spatial_control_keys = ['spatial']
+    is_timeseries = True
 
     def query_obj(self):
         fd = self.form_data
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
         self.point_radius_fixed = (
             fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
         return super(DeckScatterViz, self).query_obj()
@@ -2022,6 +2039,7 @@ class DeckScatterViz(BaseDeckGLViz):
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
+            '__timestamp': d.get('__timestamp'),
         }
 
     def get_data(self, df):

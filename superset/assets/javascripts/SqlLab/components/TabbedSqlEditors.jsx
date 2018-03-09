@@ -19,7 +19,7 @@ const propTypes = {
   queryEditors: PropTypes.array,
   tabHistory: PropTypes.array.isRequired,
   tables: PropTypes.array.isRequired,
-  editorHeight: PropTypes.string.isRequired,
+  getHeight: PropTypes.func.isRequired,
 };
 const defaultProps = {
   queryEditors: [],
@@ -193,7 +193,7 @@ class TabbedSqlEditors extends React.PureComponent {
             <div className="panel-body">
               {isSelected &&
                 <SqlEditor
-                  height={this.props.editorHeight}
+                  getHeight={this.props.getHeight}
                   tables={this.props.tables.filter(xt => (xt.queryEditorId === qe.id))}
                   queryEditor={qe}
                   editorQueries={this.state.queriesArray}

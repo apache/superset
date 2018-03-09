@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 echo $DB
 rm -f .coverage
+export PYTHONPATH=./
 export SUPERSET_CONFIG=tests.superset_test_config
 set -e
 superset/bin/superset version -v

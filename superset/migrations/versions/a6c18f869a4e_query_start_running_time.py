@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """query.start_running_time
 
 Revision ID: a6c18f869a4e

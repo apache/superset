@@ -3,9 +3,8 @@ Superset
 
 [![Build Status](https://travis-ci.org/apache/incubator-superset.svg?branch=master)](https://travis-ci.org/apache/incubator-superset)
 [![PyPI version](https://badge.fury.io/py/superset.svg)](https://badge.fury.io/py/superset)
-[![Coverage Status](https://coveralls.io/repos/apache/incubator-superset/badge.svg?branch=master&service=github)](https://coveralls.io/github/apache/incubator-superset?branch=master)
+[![Coverage Status](https://codecov.io/github/apache/incubator-superset/coverage.svg?branch=master)](https://codecov.io/github/apache/incubator-superset)
 [![PyPI](https://img.shields.io/pypi/pyversions/superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/superset)
-[![Requirements Status](https://requires.io/github/apache/incubator-superset/requirements.svg?branch=master)](https://requires.io/github/apache/incubator-superset/requirements/?branch=master)
 [![Join the chat at https://gitter.im/airbnb/superset](https://badges.gitter.im/apache/incubator-superset.svg)](https://gitter.im/airbnb/superset?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.incubator.apache.org)
 [![dependencies Status](https://david-dm.org/apache/incubator-superset/status.svg?path=superset/assets)](https://david-dm.org/apache/incubator-superset?path=superset/assets)
@@ -165,9 +164,11 @@ the world know they are using Superset. Join our growing community!
  - [Konfío](http://konfio.mx)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://cloudschooling.it)
+ - [PeopleDoc](https://www.people-doc.com)
  - [Ona](https://ona.io)
  - [Pronto Tools](http://www.prontotools.io)
  - [Qunar](https://www.qunar.com/)
+ - [ScopeAI](https://www.getscopeai.com)
  - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
  - [Tails.com](https://tails.com)
@@ -177,6 +178,7 @@ the world know they are using Superset. Join our growing community!
  - [Udemy](https://www.udemy.com/)
  - [VIPKID](https://www.vipkid.com.cn/)
  - [Yahoo!](https://yahoo.com/)
+ - [Zaihang](http://www.zaih.com/)
  - [Zalando](https://www.zalando.com)
 
 

@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import json
 import os
 import subprocess
@@ -53,11 +59,13 @@ setup(
         'flask-cache==0.13.1',
         'flask-migrate==2.1.1',
         'flask-script==2.0.6',
+        'flask-compress==1.4.0',
         'flask-sqlalchemy==2.1',
         'flask-testing==0.7.1',
         'flask-wtf==0.14.2',
         'flower==0.9.2',
         'future>=0.16.0, <0.17',
+        'geopy==1.11.0',
         'python-geohash==0.8.5',
         'humanize==0.5.1',
         'gunicorn==19.7.1',
@@ -80,6 +88,8 @@ setup(
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
         'unidecode>=0.04.21',
+        'unicodecsv==0.14.1',
+        'bleach==2.1.2',
     ],
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],
@@ -93,9 +103,10 @@ setup(
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/airbnb/superset',
+    url='https://github.com/apache/incubator-superset',
     download_url=(
-        'https://github.com/airbnb/superset/tarball/' + version_string),
+        'https://github.com/apache/incubator-superset/tarball/' + version_string,
+    ),
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',

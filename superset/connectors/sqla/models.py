@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from datetime import datetime
 import logging
 
@@ -428,6 +434,7 @@ class SqlaTable(Model, BaseDatasource):
                 from_sql = template_processor.process_template(from_sql)
             if db_engine_spec:
                 from_sql = db_engine_spec.escape_sql(from_sql)
+            from_sql = sqlparse.format(from_sql, strip_comments=True)
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 

@@ -9,7 +9,6 @@ import AlteredSliceTag from '../../components/AlteredSliceTag';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
-import { getExploreUrl } from '../exploreUtils';
 import CachedLabel from '../../components/CachedLabel';
 import { t } from '../../locales';
 
@@ -21,6 +20,7 @@ const CHART_STATUS_MAP = {
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
+  addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   isStarred: PropTypes.bool.isRequired,
@@ -43,13 +43,13 @@ class ExploreChartHeader extends React.PureComponent {
       slice_name: newTitle,
       action: isNewSlice ? 'saveas' : 'overwrite',
     };
-    const saveUrl = getExploreUrl(this.props.form_data, 'base', false, null, params);
-    this.props.actions.saveSlice(saveUrl)
+    this.props.actions.saveSlice(this.props.form_data, params)
       .then((data) => {
         if (isNewSlice) {
           this.props.actions.createNewSlice(
             data.can_add, data.can_download, data.can_overwrite,
             data.slice, data.form_data);
+          this.props.addHistory({ isReplace: true, title: `[slice] ${data.slice.slice_name}` });
         } else {
           this.props.actions.updateChartTitle(newTitle);
         }
@@ -68,12 +68,12 @@ class ExploreChartHeader extends React.PureComponent {
 
   render() {
     const formData = this.props.form_data;
-    const queryResponse = this.props.chart.queryResponse;
-    const data = {
-      csv_endpoint: getExploreUrl(formData, 'csv'),
-      json_endpoint: getExploreUrl(formData, 'json'),
-      standalone_endpoint: getExploreUrl(formData, 'standalone'),
-    };
+    const {
+      chartStatus,
+      chartUpdateEndTime,
+      chartUpdateStartTime,
+      latestQueryFormData,
+      queryResponse } = this.props.chart;
     const chartSucceeded = ['success', 'rendered'].indexOf(this.props.chart.chartStatus) > 0;
     return (
       <div
@@ -126,18 +126,18 @@ class ExploreChartHeader extends React.PureComponent {
               cachedTimestamp={queryResponse.cached_dttm}
             />}
           <Timer
-            startTime={this.props.chart.chartUpdateStartTime}
-            endTime={this.props.chart.chartUpdateEndTime}
-            isRunning={this.props.chart.chartStatus === 'loading'}
-            status={CHART_STATUS_MAP[this.props.chart.chartStatus]}
+            startTime={chartUpdateStartTime}
+            endTime={chartUpdateEndTime}
+            isRunning={chartStatus === 'loading'}
+            status={CHART_STATUS_MAP[chartStatus]}
             style={{ fontSize: '10px', marginRight: '5px' }}
           />
           <ExploreActionButtons
-            slice={Object.assign({}, this.props.slice, { data })}
+            slice={this.props.slice}
             canDownload={this.props.can_download}
-            chartStatus={this.props.chart.chartStatus}
+            chartStatus={chartStatus}
+            latestQueryFormData={latestQueryFormData}
             queryResponse={queryResponse}
-            queryEndpoint={getExploreUrl(formData, 'query')}
           />
         </div>
       </div>

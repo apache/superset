@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Add verbose name to DruidCluster and Database
 
 Revision ID: db527d8c4c78

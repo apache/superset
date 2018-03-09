@@ -9,6 +9,7 @@ import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
 import StackTraceMessage from '../components/StackTraceMessage';
+import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import visMap from '../../visualizations/main';
 import sandboxedEval from '../modules/sandbox';
 import './chart.css';
@@ -20,6 +21,7 @@ const propTypes = {
   containerId: PropTypes.string.isRequired,
   datasource: PropTypes.object.isRequired,
   formData: PropTypes.object.isRequired,
+  headerHeight: PropTypes.number,
   height: PropTypes.number,
   width: PropTypes.number,
   setControlValue: PropTypes.func,
@@ -35,11 +37,15 @@ const propTypes = {
   queryResponse: PropTypes.object,
   lastRendered: PropTypes.number,
   triggerQuery: PropTypes.bool,
+  refreshOverlayVisible: PropTypes.bool,
+  errorMessage: PropTypes.node,
   // dashboard callbacks
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
   clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
+  onQuery: PropTypes.func,
+  onDismissRefreshOverlay: PropTypes.func,
 };
 
 const defaultProps = {
@@ -63,6 +69,7 @@ class Chart extends React.PureComponent {
     this.getFilters = this.getFilters.bind(this);
     this.clearFilter = this.clearFilter.bind(this);
     this.removeFilter = this.removeFilter.bind(this);
+    this.headerHeight = this.headerHeight.bind(this);
     this.height = this.height.bind(this);
     this.width = this.width.bind(this);
   }
@@ -129,6 +136,10 @@ class Chart extends React.PureComponent {
     return this.props.width || this.container.el.offsetWidth;
   }
 
+  headerHeight() {
+    return this.props.headerHeight || 0;
+  }
+
   height() {
     return this.props.height || this.container.el.offsetHeight;
   }
@@ -188,6 +199,7 @@ class Chart extends React.PureComponent {
       });
       this.props.actions.chartRenderingSucceeded(this.props.chartKey);
     } catch (e) {
+      console.error(e);  // eslint-disable-line
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
   }
@@ -207,12 +219,24 @@ class Chart extends React.PureComponent {
         />
         }
 
+        {!isLoading &&
+          !this.props.chartAlert &&
+          this.props.refreshOverlayVisible &&
+          !this.props.errorMessage &&
+          <RefreshChartOverlay
+            height={this.height()}
+            width={this.width()}
+            onQuery={this.props.onQuery}
+            onDismiss={this.props.onDismissRefreshOverlay}
+          />
+        }
         {!isLoading && !this.props.chartAlert &&
           <ChartBody
             containerId={this.containerId}
             vizType={this.props.vizType}
             height={this.height}
             width={this.width}
+            faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
             ref={(inner) => {
               this.container = inner;
             }}

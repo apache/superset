@@ -1,5 +1,35 @@
 import dompurify from 'dompurify';
+import { fitBounds } from 'viewport-mercator-project';
+
 import sandboxedEval from '../../../javascripts/modules/sandbox';
+
+export function getBounds(points) {
+  const latExt = d3.extent(points, d => d[1]);
+  const lngExt = d3.extent(points, d => d[0]);
+  return [
+    [lngExt[0], latExt[0]],
+    [lngExt[1], latExt[1]],
+  ];
+}
+
+export function fitViewport(viewport, points, padding = 10) {
+  try {
+    const bounds = getBounds(points);
+    return {
+      ...viewport,
+      ...fitBounds({
+        height: viewport.height,
+        width: viewport.width,
+        padding,
+        bounds,
+      }),
+    };
+  } catch (e) {
+    /* eslint no-console: 0 */
+    console.error('Could not auto zoom', e);
+    return viewport;
+  }
+}
 
 export function commonLayerProps(formData, slice) {
   const fd = formData;

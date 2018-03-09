@@ -1,4 +1,10 @@
+# -*- coding: utf-8 -*-
 """Views used by the SqlAlchemy connector"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
@@ -279,6 +285,8 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         __('Refresh column metadata'),
         'fa-refresh')
     def refresh(self, tables):
+        if not isinstance(tables, list):
+            tables = [tables]
         for t in tables:
             t.fetch_metadata()
         msg = _(

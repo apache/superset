@@ -1,12 +1,12 @@
-import { getExploreUrl, getAnnotationJsonUrl } from '../explore/exploreUtils';
+import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../logger';
 
 const $ = window.$ = require('jquery');
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
-export function chartUpdateStarted(queryRequest, key) {
-  return { type: CHART_UPDATE_STARTED, queryRequest, key };
+export function chartUpdateStarted(queryRequest, latestQueryFormData, key) {
+  return { type: CHART_UPDATE_STARTED, queryRequest, latestQueryFormData, key };
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
@@ -106,21 +106,30 @@ export function renderTriggered(value, key) {
   return { type: RENDER_TRIGGERED, value, key };
 }
 
+export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA';
+export function updateQueryFormData(value, key) {
+  return { type: UPDATE_QUERY_FORM_DATA, value, key };
+}
+
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false, timeout = 60, key) {
   return (dispatch) => {
-    const url = getExploreUrl(formData, 'json', force);
-    let logStart;
+    const { url, payload } = getExploreUrlAndPayload({
+      formData,
+      endpointType: 'json',
+      force,
+    });
+    const logStart = Logger.getTimestamp();
     const queryRequest = $.ajax({
+      type: 'POST',
       url,
       dataType: 'json',
-      timeout: timeout * 1000,
-      beforeSend: () => {
-        logStart = Logger.getTimestamp();
+      data: {
+        form_data: JSON.stringify(payload),
       },
+      timeout: timeout * 1000,
     });
-
-    const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, key)))
+    const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, payload, key)))
       .then(() => queryRequest)
       .then((queryResponse) => {
         Logger.append(LOG_ACTIONS_LOAD_EVENT, {
@@ -166,6 +175,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     return Promise.all([
       queryPromise,
       dispatch(triggerQuery(false, key)),
+      dispatch(updateQueryFormData(payload, key)),
       ...annotationLayers.map(x => dispatch(runAnnotationQuery(x, timeout, formData, key))),
     ]);
   };

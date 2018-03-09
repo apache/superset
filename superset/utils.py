@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Utility functions used across Superset"""
 from __future__ import absolute_import
 from __future__ import division
@@ -21,6 +22,7 @@ import sys
 import uuid
 import zlib
 
+import bleach
 import celery
 from dateutil.parser import parse
 from flask import flash, Markup, redirect, render_template, request, url_for
@@ -433,11 +435,18 @@ def error_msg_from_exception(e):
 
 
 def markdown(s, markup_wrap=False):
+    safe_markdown_tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'b', 'i',
+                          'strong', 'em', 'tt', 'p', 'br', 'span',
+                          'div', 'blockquote', 'code', 'hr', 'ul', 'ol',
+                          'li', 'dd', 'dt', 'img', 'a']
+    safe_markdown_attrs = {'img': ['src', 'alt', 'title'],
+                           'a': ['href', 'alt', 'title']}
     s = md.markdown(s or '', [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',
     ])
+    s = bleach.clean(s, safe_markdown_tags, safe_markdown_attrs)
     if markup_wrap:
         s = Markup(s)
     return s
@@ -708,7 +717,7 @@ def has_access(f):
         return redirect(
             url_for(
                 self.appbuilder.sm.auth_view.__class__.__name__ + '.login',
-                next=request.path))
+                next=request.full_path))
 
     f._permission_name = permission_str
     return functools.update_wrapper(wraps, f)
@@ -824,6 +833,15 @@ def merge_extra_filters(form_data):
                     form_data['filters'] += [filtr]
         # Remove extra filters from the form data since no longer needed
         del form_data['extra_filters']
+
+
+def merge_request_params(form_data, params):
+    url_params = {}
+    for key, value in params.items():
+        if key in ('form_data', 'r'):
+            continue
+        url_params[key] = value
+    form_data['url_params'] = url_params
 
 
 def get_update_perms_flag():

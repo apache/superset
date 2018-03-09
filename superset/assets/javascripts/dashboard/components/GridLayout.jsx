@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { Responsive, WidthProvider } from 'react-grid-layout';
 
 import GridCell from './GridCell';
-import { getExploreUrl } from '../../explore/exploreUtils';
 
 require('react-grid-layout/css/styles.css');
 require('react-resizable/css/styles.css');
@@ -18,6 +17,8 @@ const propTypes = {
   timeout: PropTypes.number,
   onChange: PropTypes.func,
   getFormDataExtra: PropTypes.func,
+  exploreChart: PropTypes.func,
+  exportCSV: PropTypes.func,
   fetchSlice: PropTypes.func,
   saveSlice: PropTypes.func,
   removeSlice: PropTypes.func,
@@ -34,6 +35,8 @@ const propTypes = {
 const defaultProps = {
   onChange: () => ({}),
   getFormDataExtra: () => ({}),
+  exploreChart: () => ({}),
+  exportCSV: () => ({}),
   fetchSlice: () => ({}),
   saveSlice: () => ({}),
   removeSlice: () => ({}),
@@ -102,7 +105,7 @@ class GridLayout extends React.Component {
       return;
     }
 
-    // remove slice dashbaord and charts
+    // remove slice dashboard and charts
     this.props.removeSlice(slice);
     this.props.removeChart(this.props.charts['slice_' + slice.slice_id].chartKey);
     this.props.onChange();
@@ -149,8 +152,8 @@ class GridLayout extends React.Component {
             timeout={this.props.timeout}
             widgetHeight={this.getWidgetHeight(slice)}
             widgetWidth={this.getWidgetWidth(slice)}
-            exploreChartUrl={getExploreUrl(this.props.getFormDataExtra(slice))}
-            exportCSVUrl={getExploreUrl(this.props.getFormDataExtra(slice), 'csv')}
+            exploreChart={this.props.exploreChart}
+            exportCSV={this.props.exportCSV}
             isExpanded={!!this.isExpanded(slice)}
             isLoading={currentChart.chartStatus === 'loading'}
             isCached={queryResponse.is_cached}
@@ -176,8 +179,8 @@ class GridLayout extends React.Component {
         layouts={{ lg: this.props.dashboard.layout }}
         onResizeStop={this.onResizeStop}
         onDragStop={this.onDragStop}
-        cols={{ lg: 12, md: 12, sm: 10, xs: 8, xxs: 6 }}
-        rowHeight={100}
+        cols={{ lg: 48, md: 48, sm: 40, xs: 32, xxs: 24 }}
+        rowHeight={10}
         autoSize
         margin={[20, 20]}
         useCSSTransforms

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
@@ -76,6 +77,16 @@ class DruidTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)
 
+    def get_test_cluster_obj(self):
+        return DruidCluster(
+            cluster_name='test_cluster',
+            coordinator_host='localhost',
+            coordinator_endpoint='druid/coordinator/v1/metadata',
+            coordinator_port=7979,
+            broker_host='localhost',
+            broker_port=7980,
+            metadata_last_refreshed=datetime.now())
+
     @patch('superset.connectors.druid.models.PyDruid')
     def test_client(self, PyDruid):
         self.login(username='admin')
@@ -94,13 +105,7 @@ class DruidTests(SupersetTestCase):
             db.session.delete(cluster)
         db.session.commit()
 
-        cluster = DruidCluster(
-            cluster_name='test_cluster',
-            coordinator_host='localhost',
-            coordinator_port=7979,
-            broker_host='localhost',
-            broker_port=7980,
-            metadata_last_refreshed=datetime.now())
+        cluster = self.get_test_cluster_obj()
 
         db.session.add(cluster)
         cluster.get_datasources = PickableMock(return_value=['test_datasource'])
@@ -136,11 +141,8 @@ class DruidTests(SupersetTestCase):
             'force': 'true',
         }
         # One groupby
-        url = (
-            '/superset/explore_json/druid/{}/?form_data={}'.format(
-                datasource_id, json.dumps(form_data))
-        )
-        resp = self.get_json_resp(url)
+        url = ('/superset/explore_json/druid/{}/'.format(datasource_id))
+        resp = self.get_json_resp(url, {'form_data': json.dumps(form_data)})
         self.assertEqual('Canada', resp['data']['records'][0]['dim1'])
 
         form_data = {
@@ -156,11 +158,8 @@ class DruidTests(SupersetTestCase):
             'force': 'true',
         }
         # two groupby
-        url = (
-            '/superset/explore_json/druid/{}/?form_data={}'.format(
-                datasource_id, json.dumps(form_data))
-        )
-        resp = self.get_json_resp(url)
+        url = ('/superset/explore_json/druid/{}/'.format(datasource_id))
+        resp = self.get_json_resp(url, {'form_data': json.dumps(form_data)})
         self.assertEqual('Canada', resp['data']['records'][0]['dim1'])
 
     def test_druid_sync_from_config(self):
@@ -327,6 +326,21 @@ class DruidTests(SupersetTestCase):
         pv = sm.get_session.query(sm.permissionview_model).filter_by(
             permission=permission, view_menu=view_menu).first()
         assert pv is not None
+
+    def test_urls(self):
+        cluster = self.get_test_cluster_obj()
+        self.assertEquals(
+            cluster.get_base_url('localhost', '9999'), 'http://localhost:9999')
+        self.assertEquals(
+            cluster.get_base_url('http://localhost', '9999'),
+            'http://localhost:9999')
+        self.assertEquals(
+            cluster.get_base_url('https://localhost', '9999'),
+            'https://localhost:9999')
+
+        self.assertEquals(
+            cluster.get_base_coordinator_url(),
+            'http://localhost:7979/druid/coordinator/v1/metadata')
 
 
 if __name__ == '__main__':
