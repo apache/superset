@@ -197,9 +197,7 @@ class SqlEditor extends React.PureComponent {
               />
             </span>
             <span className="m-r-5">
-              <ShareQuery
-                queryEditor={qe}
-              />
+              <ShareQuery queryEditor={qe} />
             </span>
             {ctasControls}
           </Form>
