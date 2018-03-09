@@ -16,6 +16,7 @@ const propTypes = {
   height: PropTypes.number.isRequired,
   tables: PropTypes.array,
   actions: PropTypes.object,
+  database: PropTypes.object,
 };
 
 const defaultProps = {
@@ -139,6 +140,14 @@ class SqlEditorLeftBar extends React.PureComponent {
   render() {
     const shouldShowReset = window.location.search === '?reset=1';
     const tableMetaDataHeight = this.props.height - 130; // 130 is the height of the selects above
+    let tableSelectPlaceholder;
+    let tableSelectDisabled = false;
+    if (this.props.database && this.props.database.allow_multi_schema_metadata_fetch) {
+      tableSelectPlaceholder = t('Type to search ...');
+    } else {
+      tableSelectPlaceholder = t('Select table ');
+      tableSelectDisabled = true;
+    }
     return (
       <div className="clearfix sql-toolbar">
         <div>
@@ -186,7 +195,6 @@ class SqlEditorLeftBar extends React.PureComponent {
               name="select-table"
               ref="selectTable"
               isLoading={this.state.tableLoading}
-              value={this.state.tableName}
               placeholder={t('Add a table (%s)', this.state.tableOptions.length)}
               autosize={false}
               onChange={this.changeTable.bind(this)}
@@ -199,8 +207,8 @@ class SqlEditorLeftBar extends React.PureComponent {
               async
               name="async-select-table"
               ref="selectTable"
-              value={this.state.tableName}
-              placeholder={t('Type to search ...')}
+              placeholder={tableSelectPlaceholder}
+              disabled={tableSelectDisabled}
               autosize={false}
               onChange={this.changeTable.bind(this)}
               loadOptions={this.getTableNamesBySubStr.bind(this)}
