@@ -44,7 +44,9 @@ from superset.legacy import cast_form_data
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
-from superset.utils import has_access, merge_extra_filters, QueryStatus
+from superset.utils import (
+    has_access, merge_extra_filters, merge_request_params, QueryStatus,
+)
 from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin,
     generate_download_headers, get_error_msg, get_user_roles,
@@ -1100,7 +1102,10 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
 
         status = 200
-        if payload.get('status') == QueryStatus.FAILED:
+        if (
+            payload.get('status') == QueryStatus.FAILED or
+            payload.get('error') is not None
+        ):
             status = 400
 
         return json_success(viz_obj.json_dumps(payload), status=status)
@@ -1256,6 +1261,10 @@ class Superset(BaseSupersetView):
 
         # On explore, merge extra filters into the form data
         merge_extra_filters(form_data)
+
+        # merge request url params
+        if request.method == 'GET':
+            merge_request_params(form_data, request.args)
 
         # handle save or overwrite
         action = request.args.get('action')

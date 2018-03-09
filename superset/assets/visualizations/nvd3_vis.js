@@ -670,8 +670,8 @@ function nvd3Vis(slice, payload) {
             const tip = tipFactory(e);
 
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-              const timeColumn = new Date(r[e.timeColumn]);
-              const intervalEndColumn = new Date(r[e.intervalEndColumn]);
+              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
+              const intervalEndColumn = new Date(moment.utc(r[e.intervalEndColumn]));
               return {
                 ...r,
                 [e.timeColumn]: timeColumn,
