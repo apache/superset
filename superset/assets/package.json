@@ -122,7 +122,6 @@
     "babel-preset-airbnb": "^2.1.1",
     "chai": "^4.0.2",
     "clean-webpack-plugin": "^0.1.16",
-    "codeclimate-test-reporter": "^0.5.0",
     "css-loader": "^0.28.0",
     "enzyme": "^2.0.0",
     "eslint": "^3.19.0",
