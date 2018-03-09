@@ -1299,7 +1299,7 @@ class Superset(BaseSupersetView):
         if slc:
             title = slc.slice_name
         else:
-            title = '[explore] ' + table_name
+            title = 'Explore - ' + table_name
         return self.render_template(
             'superset/basic.html',
             bootstrap_data=json.dumps(bootstrap_data),
