@@ -199,7 +199,9 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
-        'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user']
+        'allow_ctas', 'allow_dml', 'force_ctas_schema', 'impersonate_user',
+        'allow_multi_schema_metadata_fetch',
+    ]
     search_exclude_columns = (
         'password', 'tables', 'created_by', 'changed_by', 'queries',
         'saved_queries')
@@ -258,6 +260,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
             'If Hive and hive.server2.enable.doAs is enabled, will run the queries as '
             'service account, but impersonate the currently logged on user '
             'via hive.server2.proxy.user property.'),
+        'allow_multi_schema_metadata_fetch': _(
+            'Allow SQL Lab to fetch a list of all tables and all views across '
+            'all database schemas. For large data warehouse with thousands of '
+            'tables, this can be expensive and put strain on the system.'),
     }
     label_columns = {
         'expose_in_sqllab': _('Expose in SQL Lab'),
@@ -314,6 +320,7 @@ class DatabaseAsync(DatabaseView):
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
         'allow_run_async', 'allow_run_sync', 'allow_dml',
+        'allow_multi_schema_metadata_fetch',
     ]
 
 
