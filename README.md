@@ -151,6 +151,7 @@ the world know they are using Superset. Join our growing community!
 
  - [AiHello](https://www.aihello.com)
  - [Airbnb](https://github.com/airbnb)
+ - [Aktia Bank plc](https://www.aktia.com)
  - [Amino](https://amino.com)
  - [Brilliant.org](https://brilliant.org/)
  - [Capital Service S.A.](http://capitalservice.pl)
