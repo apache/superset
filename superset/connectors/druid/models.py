@@ -35,11 +35,12 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import conf, db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.exceptions import MetricPermException
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
 from superset.utils import (
-    DimSelector, DTTM_ALIAS, flasher, MetricPermException,
+    DimSelector, DTTM_ALIAS, flasher,
 )
 
 DRUID_TZ = conf.get('DRUID_TZ')
