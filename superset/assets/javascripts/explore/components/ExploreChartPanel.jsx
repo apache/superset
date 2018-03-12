@@ -44,7 +44,6 @@ class ExploreChartPanel extends React.PureComponent {
         datasource={this.props.datasource}
         formData={this.props.form_data}
         height={this.getHeight()}
-        width={parseInt(this.props.width, 10)}
         slice={this.props.slice}
         chartKey={this.props.chart.chartKey}
         setControlValue={this.props.actions.setControlValue}
