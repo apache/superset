@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 from flask import Markup
 
-from superset.utils import SupersetException
+from superset.exceptions import SupersetException
 from superset.views.base import SupersetModelView
 
 
