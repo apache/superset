@@ -277,9 +277,10 @@ class BaseViz(object):
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
 
-        for k in ['since', 'until', 'datasource']:
+        for k in ['since', 'until']:
             cache_dict[k] = self.form_data.get(k)
 
+        cache_dict['datasource'] = self.datasource.uid
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
 
