@@ -13,12 +13,11 @@ function histogram(slice, payload) {
 
   const draw = function () {
     // Set Margins
-    const left = yAxisLabel ? 70 : 50;
     const margin = {
       top: 50,
       right: 10,
       bottom: 20,
-      left,
+      left: yAxisLabel ? 70 : 50,
     };
     const navBarHeight = 36;
     const navBarBuffer = 10;

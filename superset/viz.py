@@ -37,6 +37,7 @@ from six.moves import cPickle as pkl, reduce
 from superset import app, cache, get_manifest_file, utils
 from superset.utils import DTTM_ALIAS, merge_extra_filters
 
+
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
 
@@ -2039,7 +2040,7 @@ class DeckScatterViz(BaseDeckGLViz):
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
-            '__timestamp': d.get('__timestamp'),
+            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
         }
 
     def get_data(self, df):

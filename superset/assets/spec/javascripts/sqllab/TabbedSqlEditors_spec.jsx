@@ -51,6 +51,7 @@ describe('TabbedSqlEditors', () => {
     tabHistory: initialState.tabHistory,
     editorHeight: '',
     getHeight: () => ('100px'),
+    database: {},
   };
   const getWrapper = () => (
     shallow(<TabbedSqlEditors {...mockedProps} />, {

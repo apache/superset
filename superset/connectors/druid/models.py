@@ -35,11 +35,12 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import conf, db, import_util, sm, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.exceptions import MetricPermException
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
 from superset.utils import (
-    DimSelector, DTTM_ALIAS, flasher, MetricPermException,
+    DimSelector, DTTM_ALIAS, flasher,
 )
 
 DRUID_TZ = conf.get('DRUID_TZ')
@@ -130,7 +131,8 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
-        endpoint = self.get_base_coordinator_url() + '/status'
+        endpoint = self.get_base_url(
+            self.coordinator_host, self.coordinator_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     def refresh_datasources(
@@ -1114,6 +1116,7 @@ class DruidDatasource(Model, BaseDatasource):
         order_direction = 'descending' if order_desc else 'ascending'
 
         if columns:
+            columns.append('__time')
             del qry['post_aggregations']
             del qry['aggregations']
             qry['dimensions'] = columns
