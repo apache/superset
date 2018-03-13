@@ -539,8 +539,8 @@ function nvd3Vis(slice, payload) {
       // on scroll, hide tooltips. throttle to only 4x/second.
       $(window).scroll(throttle(hideTooltips, 250));
 
-      const annotationLayers = (slice.formData.annotation_layers || [])
-          .filter(x => x.show);
+      const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
+
       if (isTimeSeries && annotationLayers) {
         // Formula annotations
         const formulas = annotationLayers.filter(a => a.annotationType === AnnotationTypes.FORMULA)
@@ -629,23 +629,22 @@ function nvd3Vis(slice, payload) {
 
             const tip = tipFactory(e);
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-<<<<<<< HEAD
-              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
-=======
-              const timeValue = new Date(r[e.timeColumn]);
->>>>>>> [bugs] account for annotations in nvd3 x scale domain, fix dynamic width explore charts, allow 0 in text control
+              const timeValue = new Date(moment.utc(r[e.timeColumn]));
+
               return {
                 ...r,
                 [e.timeColumn]: timeValue,
               };
-            }).filter((r) => {
-              const isValid = !Number.isNaN(r[e.timeColumn].getMilliseconds());
-              if (isValid) {
-                xMin = xMin < r[e.timeColumn] ? xMin : r[e.timeColumn];
-                xMax = xMax > r[e.timeColumn] ? xMax : r[e.timeColumn];
-              }
-              return isValid;
+            }).filter(record => !Number.isNaN(record[e.timeColumn].getMilliseconds()));
+
+            // account for the annotation in the x domain
+            records.forEach((record) => {
+              const timeValue = record[e.timeColumn];
+
+              xMin = Math.min(...[xMin, timeValue]);
+              xMax = Math.max(...[xMax, timeValue]);
             });
+
             if (records.length) {
               const domain = [xMin, xMax];
               xScale.domain(domain);
@@ -692,17 +691,20 @@ function nvd3Vis(slice, payload) {
                 [e.timeColumn]: timeValue,
                 [e.intervalEndColumn]: intervalEndValue,
               };
-            }).filter((r) => {
-              const isValid = (
-                !Number.isNaN(r[e.timeColumn].getMilliseconds()) &&
-                !Number.isNaN(r[e.intervalEndColumn].getMilliseconds())
-              );
-              if (isValid) {
-                xMin = xMin < r[e.timeColumn] ? xMin : r[e.timeColumn];
-                xMax = xMax > r[e.intervalEndColumn] ? xMax : r[e.intervalEndColumn];
-              }
-              return isValid;
+            }).filter(record => (
+              !Number.isNaN(record[e.timeColumn].getMilliseconds()) &&
+              !Number.isNaN(record[e.intervalEndColumn].getMilliseconds())
+            ));
+
+            // account for the annotation in the x domain
+            records.forEach((record) => {
+              const timeValue = record[e.timeColumn];
+              const intervalEndValue = record[e.intervalEndColumn];
+
+              xMin = Math.min(...[xMin, timeValue, intervalEndValue]);
+              xMax = Math.max(...[xMax, timeValue, intervalEndValue]);
             });
+
             if (records.length) {
               const domain = [xMin, xMax];
               xScale.domain(domain);
