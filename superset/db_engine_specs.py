@@ -147,11 +147,6 @@ class BaseEngineSpec(object):
         BaseEngineSpec.df_to_db(**df_to_db_kwargs)
 
     @classmethod
-    def escape_sql(cls, sql):
-        """Escapes the raw SQL"""
-        return sql
-
-    @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
@@ -552,10 +547,6 @@ class PrestoEngineSpec(BaseEngineSpec):
                 database += '/' + selected_schema
             uri.database = database
         return uri
-
-    @classmethod
-    def escape_sql(cls, sql):
-        return re.sub(r'%%|%', '%%', sql)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
