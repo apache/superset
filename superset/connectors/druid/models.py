@@ -130,7 +130,8 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
-        endpoint = self.get_base_coordinator_url() + '/status'
+        endpoint = self.get_base_url(
+            self.coordinator_host, self.coordinator_port) + '/status'
         return json.loads(requests.get(endpoint).text)['version']
 
     def refresh_datasources(
@@ -155,16 +156,15 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     def refresh(self, datasource_names, merge_flag, refreshAll):
         """
-        Fetches metadata for the specified datasources andm
+        Fetches metadata for the specified datasources and
         merges to the Superset database
         """
         session = db.session
         ds_list = (
             session.query(DruidDatasource)
-            .filter(or_(DruidDatasource.datasource_name == name
-                    for name in datasource_names))
+            .filter(DruidDatasource.cluster_name == self.cluster_name)
+            .filter(DruidDatasource.datasource_name.in_(datasource_names))
         )
-
         ds_map = {ds.name: ds for ds in ds_list}
         for ds_name in datasource_names:
             datasource = ds_map.get(ds_name, None)
@@ -1066,10 +1066,7 @@ class DruidDatasource(Model, BaseDatasource):
         if not is_timeseries:
             granularity = 'all'
 
-        if (
-                granularity == 'all' or
-                timeseries_limit is None or
-                timeseries_limit == 0):
+        if granularity == 'all':
             phase = 1
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
@@ -1114,6 +1111,7 @@ class DruidDatasource(Model, BaseDatasource):
         order_direction = 'descending' if order_desc else 'ascending'
 
         if columns:
+            columns.append('__time')
             del qry['post_aggregations']
             del qry['aggregations']
             qry['dimensions'] = columns
@@ -1148,7 +1146,8 @@ class DruidDatasource(Model, BaseDatasource):
 
             client.topn(**pre_qry)
             logging.info('Phase 1 Complete')
-            query_str += '// Two phase query\n// Phase 1\n'
+            if phase == 2:
+                query_str += '// Two phase query\n// Phase 1\n'
             query_str += json.dumps(
                 client.query_builder.last_query.query_dict, indent=2)
             query_str += '\n'
