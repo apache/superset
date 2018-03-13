@@ -1264,7 +1264,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Range Filter'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('Whether to display the time range interactive selector'),
   },
 
