@@ -1068,10 +1068,7 @@ class DruidDatasource(Model, BaseDatasource):
         if not is_timeseries:
             granularity = 'all'
 
-        if (
-                granularity == 'all' or
-                timeseries_limit is None or
-                timeseries_limit == 0):
+        if granularity == 'all':
             phase = 1
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
@@ -1151,7 +1148,8 @@ class DruidDatasource(Model, BaseDatasource):
 
             client.topn(**pre_qry)
             logging.info('Phase 1 Complete')
-            query_str += '// Two phase query\n// Phase 1\n'
+            if phase == 2:
+                query_str += '// Two phase query\n// Phase 1\n'
             query_str += json.dumps(
                 client.query_builder.last_query.query_dict, indent=2)
             query_str += '\n'
