@@ -15,7 +15,7 @@ msgstr ""
 "Generated-By: Babel 2.5.1\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
 "Language-Team: \n"
-"Language: pt\n"
+"Language: ptpt\n"
 "X-Generator: Poedit 2.0.6\n"
 
 #: superset/assets/javascripts/explore/stores/controls.jsx:570
