@@ -55,7 +55,7 @@ setup(
         'colorama==0.3.9',
         'cryptography==1.9',
         'flask==0.12.2',
-        'flask-appbuilder==1.9.6',
+        'flask-appbuilder==1.10.0',
         'flask-cache==0.13.1',
         'flask-migrate==2.1.1',
         'flask-script==2.0.6',
