@@ -166,6 +166,7 @@ LANGUAGES = {
     'de': {'flag': 'de', 'name': 'German'},
     'pt-BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
+    'ptpt': {'flag': 'pt', 'name': 'Portuguese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
