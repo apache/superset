@@ -998,6 +998,7 @@ class Superset(BaseSupersetView):
         # the form_data from the DB with the other form_data provided
         slice_id = form_data.get('slice_id') or slice_id
         slc = None
+
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
             slice_form_data = slc.form_data.copy()
@@ -1122,10 +1123,10 @@ class Superset(BaseSupersetView):
     @expose('/slice_json/<slice_id>')
     def slice_json(self, slice_id):
         try:
-            viz_obj = self.get_viz(slice_id)
-            datasource_type = viz_obj.datasource.type
-            datasource_id = viz_obj.datasource.id
-            form_data, slc = self.get_form_data()
+            form_data, slc = self.get_form_data(slice_id)
+            datasource_type = slc.datasource.type
+            datasource_id = slc.datasource.id
+
         except Exception as e:
             return json_error_response(
                 utils.error_msg_from_exception(e),
