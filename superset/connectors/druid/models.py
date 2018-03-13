@@ -157,16 +157,15 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
 
     def refresh(self, datasource_names, merge_flag, refreshAll):
         """
-        Fetches metadata for the specified datasources andm
+        Fetches metadata for the specified datasources and
         merges to the Superset database
         """
         session = db.session
         ds_list = (
             session.query(DruidDatasource)
-            .filter(or_(DruidDatasource.datasource_name == name
-                    for name in datasource_names))
+            .filter(DruidDatasource.cluster_name == self.cluster_name)
+            .filter(DruidDatasource.datasource_name.in_(datasource_names))
         )
-
         ds_map = {ds.name: ds for ds in ds_list}
         for ds_name in datasource_names:
             datasource = ds_map.get(ds_name, None)
