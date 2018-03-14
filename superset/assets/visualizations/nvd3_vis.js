@@ -162,7 +162,11 @@ function nvd3Vis(slice, payload) {
     let height = slice.height();
     switch (vizType) {
       case 'line':
-        if (fd.show_brush === 'yes' || (fd.show_brush === 'auto' && height > minHeightForBrush)) {
+        if (
+          fd.show_brush === true ||
+          fd.show_brush === 'yes' ||
+          (fd.show_brush === 'auto' && height > minHeightForBrush)
+        ) {
           chart = nv.models.lineWithFocusChart();
           chart.focus.xScale(d3.time.scale.utc());
           chart.x2Axis.staggerLabels(false);
