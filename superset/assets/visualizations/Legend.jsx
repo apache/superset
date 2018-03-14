@@ -6,12 +6,14 @@ import './Legend.css';
 const propTypes = {
   categories: PropTypes.object,
   toggleCategory: PropTypes.func,
+  showSingleCategory: PropTypes.func,
   position: PropTypes.oneOf(['tl', 'tr', 'bl', 'br']),
 };
 
 const defaultProps = {
   categories: {},
   toggleCategory: () => {},
+  showSingleCategory: () => {},
   position: 'tr',
 };
 
@@ -26,7 +28,11 @@ export default class Legend extends React.PureComponent {
       const icon = v.enabled ? '\u25CF' : '\u25CB';
       return (
         <li>
-          <a onClick={() => this.props.toggleCategory(k)}>
+          <a
+            href="#"
+            onClick={() => this.props.toggleCategory(k)}
+            onDoubleClick={() => this.props.showSingleCategory(k)}
+          >
             <span style={style}>{icon}</span> {k}
           </a>
         </li>

@@ -142,6 +142,7 @@ class DeckGLScatter extends React.PureComponent {
 
     this.getLayers = this.getLayers.bind(this);
     this.toggleCategory = this.toggleCategory.bind(this);
+    this.showSingleCategory = this.showSingleCategory.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     this.setState(DeckGLScatter.getDerivedStateFromProps(nextProps, this.state));
@@ -172,7 +173,20 @@ class DeckGLScatter extends React.PureComponent {
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
     categoryState.enabled = !categoryState.enabled;
-    this.setState({ categories: { ...this.state.categories, [category]: categoryState } });
+    const categories = { ...this.state.categories, [category]: categoryState };
+
+    // if all categories are disabled, enable all -- similar to nvd3
+    if (Object.values(categories).every(v => !v.enabled)) {
+      Object.values(categories).forEach((v) => { v.enabled = true; });
+    }
+
+    this.setState({ categories });
+  }
+  showSingleCategory(category) {
+    const categories = { ...this.state.categories };
+    Object.values(categories).forEach((v) => { v.enabled = false; });
+    categories[category].enabled = true;
+    this.setState({ categories });
   }
   render() {
     return (
@@ -192,6 +206,7 @@ class DeckGLScatter extends React.PureComponent {
           <Legend
             categories={this.state.categories}
             toggleCategory={this.toggleCategory}
+            showSingleCategory={this.showSingleCategory}
             position={this.props.slice.formData.legend_position}
           />
         </AnimatableDeckGLContainer>
