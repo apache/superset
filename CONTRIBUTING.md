@@ -49,7 +49,7 @@ If you are proposing a feature:
     implement.
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
-    
+
 ### Questions
 
 There is a dedicated [tag](https://stackoverflow.com/questions/tagged/apache-superset) on [stackoverflow](https://stackoverflow.com/). Please use it when asking questions.
@@ -98,7 +98,7 @@ to manage the Python packages you're about to install:
     virtualenv superset-dev
     source superset-dev/bin/activate
 
-Finally, to make changes to the rst files and build the docs using Sphinx, 
+Finally, to make changes to the rst files and build the docs using Sphinx,
 you'll need to install a handful of dependencies from the repo you cloned:
 
     cd incubator-superset
@@ -269,11 +269,11 @@ pip install -r dev-reqs.txt
 All python tests can be run with:
 
     ./run_tests.sh
-    
+
 Alternatively, you can run a specific test with:
 
     ./run_specific_test.sh tests.core_tests:CoreTests.test_function_name
-    
+
 Note that before running specific tests, you have to both setup the local testing environment and run all tests.
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
@@ -291,30 +291,6 @@ Lint the project with:
 
     # for javascript
     npm run lint
-
-## Linting with codeclimate
-Codeclimate is a service we use to measure code quality and test coverage. To get codeclimate's report on your branch, ideally before sending your PR, you can setup codeclimate against your Superset fork. After you push to your fork, you should be able to get the report at http://codeclimate.com . Alternatively, if you prefer to work locally, you can install the codeclimate cli tool.
-
-*Install the codeclimate cli tool*
-```
-curl -L https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-`uname -s`-`uname -m` > /usr/local/bin/docker-machine && chmod +x /usr/local/bin/docker-machine 
-brew install docker
-docker-machine create --driver virtual box default
-docker-machine env default
-eval "$(docker-machine env default)"
-docker pull codeclimate/codeclimate
-brew tap codeclimate/formulae
-brew install codeclimate
-```
-
-*Run the lint command:*
-```
-docker-machine start
-eval "$(docker-machine env default)”
-codeclimate analyze
-```
-More info can be found here: https://docs.codeclimate.com/docs/open-source-free
-
 
 ## API documentation
 
@@ -428,7 +404,7 @@ https://github.com/apache/incubator-superset/pull/3013
 
     # copy
     cp -r /tmp/tmp_superset_docs/ ~/incubator-superset-site.git/
- 
+
     # commit and push to `asf-site` branch
     cd ~/incubator-superset-site.git/
     git checkout asf-site
