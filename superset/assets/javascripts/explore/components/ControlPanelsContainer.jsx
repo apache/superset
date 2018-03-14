@@ -92,8 +92,13 @@ class ControlPanelsContainer extends React.Component {
     const displaySectionsToRender = [];
     allSectionsToRender.forEach((section) => {
       if (section.controlSetRows.some(rows => rows.some(
-        control => controls[control] && !controls[control].renderTrigger,
-      ))) {
+        control => (
+          controls[control] &&
+          (
+            !controls[control].renderTrigger ||
+            controls[control].tabOverride === 'data'
+          )
+        )))) {
         querySectionsToRender.push(section);
       } else {
         displaySectionsToRender.push(section);

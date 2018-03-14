@@ -1702,6 +1702,7 @@ export const controls = {
     default: [],
     description: 'Annotation Layers',
     renderTrigger: true,
+    tabOverride: 'data',
   },
 
   having_filters: {
