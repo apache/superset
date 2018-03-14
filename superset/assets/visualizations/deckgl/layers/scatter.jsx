@@ -7,6 +7,7 @@ import PropTypes from 'prop-types';
 import { ScatterplotLayer } from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
+import Legend from '../../Legend';
 
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
@@ -39,7 +40,27 @@ function getPoints(data) {
   return data.map(d => d.position);
 }
 
-function getLayer(formData, payload, slice, inFrame) {
+function getCategories(formData, payload) {
+  const fd = formData;
+  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const fixedColor = [c.r, c.g, c.b, 255 * c.a];
+  const categories = {};
+
+  payload.data.features.forEach((d) => {
+    if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
+      let color;
+      if (fd.dimension) {
+        color = hexToRGB(getColorFromScheme(d.cat_color, fd.color_scheme), c.a * 255);
+      } else {
+        color = fixedColor;
+      }
+      categories[d.cat_color] = { color, enabled: true };
+    }
+  });
+  return categories;
+}
+
+function getLayer(formData, payload, slice, filters) {
   const fd = formData;
   const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
@@ -68,8 +89,10 @@ function getLayer(formData, payload, slice, inFrame) {
     data = jsFnMutator(data);
   }
 
-  if (inFrame != null) {
-    data = data.filter(inFrame);
+  if (filters != null) {
+    filters.forEach((f) => {
+      data = data.filter(f);
+    });
   }
 
   return new ScatterplotLayer({
@@ -109,46 +132,87 @@ class DeckGLScatter extends React.PureComponent {
     const values = timeGrain != null ? [start, start + step] : [start, end];
     const disabled = timestamps.every(timestamp => timestamp === null);
 
-    return { start, end, step, values, disabled };
+    const categories = getCategories(fd, nextProps.payload);
+
+    return { start, end, step, values, disabled, categories };
   }
   constructor(props) {
     super(props);
     this.state = DeckGLScatter.getDerivedStateFromProps(props);
 
     this.getLayers = this.getLayers.bind(this);
+    this.toggleCategory = this.toggleCategory.bind(this);
+    this.showSingleCategory = this.showSingleCategory.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     this.setState(DeckGLScatter.getDerivedStateFromProps(nextProps, this.state));
   }
   getLayers(values) {
-    let inFrame;
+    const filters = [];
+
+    // time filter
     if (values[0] === values[1] || values[1] === this.end) {
-      inFrame = t => t.__timestamp >= values[0] && t.__timestamp <= values[1];
+      filters.push(d => d.__timestamp >= values[0] && d.__timestamp <= values[1]);
     } else {
-      inFrame = t => t.__timestamp >= values[0] && t.__timestamp < values[1];
+      filters.push(d => d.__timestamp >= values[0] && d.__timestamp < values[1]);
     }
+
+    // legend filter
+    if (this.props.slice.formData.dimension) {
+      filters.push(d => this.state.categories[d.cat_color].enabled);
+    }
+
     const layer = getLayer(
       this.props.slice.formData,
       this.props.payload,
       this.props.slice,
-      inFrame);
+      filters);
 
     return [layer];
   }
+  toggleCategory(category) {
+    const categoryState = this.state.categories[category];
+    categoryState.enabled = !categoryState.enabled;
+    const categories = { ...this.state.categories, [category]: categoryState };
+
+    // if all categories are disabled, enable all -- similar to nvd3
+    if (Object.values(categories).every(v => !v.enabled)) {
+      /* eslint-disable no-param-reassign */
+      Object.values(categories).forEach((v) => { v.enabled = true; });
+    }
+
+    this.setState({ categories });
+  }
+  showSingleCategory(category) {
+    const categories = { ...this.state.categories };
+    /* eslint-disable no-param-reassign */
+    Object.values(categories).forEach((v) => { v.enabled = false; });
+    categories[category].enabled = true;
+    this.setState({ categories });
+  }
   render() {
     return (
-      <AnimatableDeckGLContainer
-        getLayers={this.getLayers}
-        start={this.state.start}
-        end={this.state.end}
-        step={this.state.step}
-        values={this.state.values}
-        disabled={this.state.disabled}
-        viewport={this.props.viewport}
-        mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
-        mapStyle={this.props.slice.formData.mapbox_style}
-        setControlValue={this.props.setControlValue}
-      />
+      <div>
+        <AnimatableDeckGLContainer
+          getLayers={this.getLayers}
+          start={this.state.start}
+          end={this.state.end}
+          step={this.state.step}
+          values={this.state.values}
+          disabled={this.state.disabled}
+          viewport={this.props.viewport}
+          mapboxApiAccessToken={this.props.payload.data.mapboxApiKey}
+          mapStyle={this.props.slice.formData.mapbox_style}
+          setControlValue={this.props.setControlValue}
+        >
+          <Legend
+            categories={this.state.categories}
+            toggleCategory={this.toggleCategory}
+            showSingleCategory={this.showSingleCategory}
+            position={this.props.slice.formData.legend_position}
+          />
+        </AnimatableDeckGLContainer>
+      </div>
     );
   }
 }
