@@ -22,6 +22,7 @@ const minBarWidth = 15;
 // Limit on how large axes margins can grow as the chart window is resized
 const maxMarginPad = 30;
 const animationTime = 1000;
+const minHeightForBrush = 480;
 
 const BREAKPOINTS = {
   small: 340,
@@ -158,9 +159,14 @@ function nvd3Vis(slice, payload) {
     if (svg.empty()) {
       svg = d3.select(slice.selector).append('svg');
     }
+    let height = slice.height();
     switch (vizType) {
       case 'line':
-        if (fd.show_brush) {
+        if (
+          fd.show_brush === true ||
+          fd.show_brush === 'yes' ||
+          (fd.show_brush === 'auto' && height >= minHeightForBrush)
+        ) {
           chart = nv.models.lineWithFocusChart();
           chart.focus.xScale(d3.time.scale.utc());
           chart.x2Axis.staggerLabels(false);
@@ -332,7 +338,6 @@ function nvd3Vis(slice, payload) {
       }
     }
 
-    let height = slice.height();
     if (vizType === 'bullet') {
       height = Math.min(height, 50);
     }

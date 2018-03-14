@@ -1261,10 +1261,16 @@ export const controls = {
   },
 
   show_brush: {
-    type: 'CheckboxControl',
-    label: t('Range Filter'),
+    type: 'SelectControl',
+    label: t('Show Range Filter'),
     renderTrigger: true,
-    default: false,
+    clearable: false,
+    default: 'auto',
+    choices: [
+      ['yes', 'Yes'],
+      ['no', 'No'],
+      ['auto', 'Auto'],
+    ],
     description: t('Whether to display the time range interactive selector'),
   },
 
