@@ -411,7 +411,8 @@ class SqlaTable(Model, BaseDatasource):
             dttm_to_str = [x for x in self.columns if x.is_dttm][0].dttm_sql_literal
             query_obj['from_dttm'], query_obj['to_dttm'] = dttm_to_str(query_obj['from_dttm']), dttm_to_str(query_obj['to_dttm'])
             sql = query_obj['form_data']['sql']
-            for k, v in query_obj.iteritems():
+            for k in query_obj:
+                v = query_obj[k]
                 if isinstance(v, basestring):
                     sql = sql.replace(''.join(['{', k, '}']), v)
             for v in query_obj['form_data']['filters']:
