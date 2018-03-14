@@ -177,6 +177,7 @@ class DeckGLScatter extends React.PureComponent {
 
     // if all categories are disabled, enable all -- similar to nvd3
     if (Object.values(categories).every(v => !v.enabled)) {
+      /* eslint-disable no-param-reassign */
       Object.values(categories).forEach((v) => { v.enabled = true; });
     }
 
@@ -184,6 +185,7 @@ class DeckGLScatter extends React.PureComponent {
   }
   showSingleCategory(category) {
     const categories = { ...this.state.categories };
+    /* eslint-disable no-param-reassign */
     Object.values(categories).forEach((v) => { v.enabled = false; });
     categories[category].enabled = true;
     this.setState({ categories });
