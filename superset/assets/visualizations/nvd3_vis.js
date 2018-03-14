@@ -165,7 +165,7 @@ function nvd3Vis(slice, payload) {
         if (
           fd.show_brush === true ||
           fd.show_brush === 'yes' ||
-          (fd.show_brush === 'auto' && height > minHeightForBrush)
+          (fd.show_brush === 'auto' && height >= minHeightForBrush)
         ) {
           chart = nv.models.lineWithFocusChart();
           chart.focus.xScale(d3.time.scale.utc());
