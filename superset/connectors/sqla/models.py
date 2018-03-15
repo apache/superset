@@ -407,9 +407,12 @@ class SqlaTable(Model, BaseDatasource):
 
     def get_query_str(self, query_obj):
         engine = self.database.get_sqla_engine()
-        if 'form_data' in query_obj and 'sql' in query_obj['form_data'] and query_obj['form_data']['sql']:
+        if 'form_data' in query_obj and \
+                'sql' in query_obj['form_data'] and \
+                query_obj['form_data']['sql']:
             dttm_to_str = [x for x in self.columns if x.is_dttm][0].dttm_sql_literal
-            query_obj['from_dttm'], query_obj['to_dttm'] = dttm_to_str(query_obj['from_dttm']), dttm_to_str(query_obj['to_dttm'])
+            query_obj['from_dttm'] = dttm_to_str(query_obj['from_dttm'])
+            query_obj['to_dttm'] = dttm_to_str(query_obj['to_dttm'])
             sql = query_obj['form_data']['sql']
             for k in query_obj:
                 v = query_obj[k]
