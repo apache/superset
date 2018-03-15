@@ -11,30 +11,9 @@ import Legend from '../../Legend';
 
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
+import { parseTimeGrain } from '../../../javascripts/modules/time';
 import { unitToRadius } from '../../../javascripts/modules/geo';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
-
-function getStep(timeGrain) {
-  // grain in milliseconds
-  const MINUTE = 60 * 1000;
-  const HOUR = 60 * MINUTE;
-  const DAY = 24 * HOUR;
-  const WEEK = 7 * DAY;
-  const MONTH = 30 * DAY;
-  const YEAR = 365 * DAY;
-
-  const milliseconds = {
-    'Time Column': MINUTE,
-    min: MINUTE,
-    hour: HOUR,
-    day: DAY,
-    week: WEEK,
-    month: MONTH,
-    year: YEAR,
-  };
-
-  return milliseconds[timeGrain];
-}
 
 function getPoints(data) {
   return data.map(d => d.position);
@@ -117,7 +96,7 @@ class DeckGLScatter extends React.PureComponent {
   /* eslint-disable no-unused-vars */
   static getDerivedStateFromProps(nextProps, prevState) {
     const fd = nextProps.slice.formData;
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'min';
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'minute';
 
     // find start and end based on the data
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
@@ -125,7 +104,7 @@ class DeckGLScatter extends React.PureComponent {
     let end = Math.max(...timestamps);
 
     // lock start and end to the closest steps
-    const step = getStep(timeGrain);
+    const step = parseTimeGrain(timeGrain);
     start -= start % step;
     end += step - end % step;
 
