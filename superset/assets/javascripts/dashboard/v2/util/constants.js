@@ -1,5 +1,8 @@
 // Ids
+export const DASHBOARD_GRID_ID = 'DASHBOARD_GRID_ID';
+export const DASHBOARD_HEADER_ID = 'DASHBOARD_HEADER_ID';
 export const DASHBOARD_ROOT_ID = 'DASHBOARD_ROOT_ID';
+
 export const NEW_CHART_ID = 'NEW_CHART_ID';
 export const NEW_COLUMN_ID = 'NEW_COLUMN_ID';
 export const NEW_DIVIDER_ID = 'NEW_DIVIDER_ID';

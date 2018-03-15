@@ -1,3 +1,6 @@
+import { DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID } from '../util/constants';
+import { TABS_TYPE } from '../util/componentTypes';
+
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
 export function updateComponents(nextComponents) {
   return {
@@ -29,6 +32,13 @@ export function createComponent(dropResult) {
   };
 }
 
+export const DELETE_TOP_LEVEL_TABS = 'DELETE_TOP_LEVEL_TABS';
+export function deleteTopLevelTabs() {
+  return {
+    type: DELETE_TOP_LEVEL_TABS,
+    payload: {},
+  };
+}
 
 // Drag and drop --------------------------------------------------------------
 export const MOVE_COMPONENT = 'MOVE_COMPONENT';
@@ -55,15 +65,10 @@ export function handleComponentDrop(dropResult) {
       return dispatch(moveComponent(dropResult));
 
       // new components don't have a source
+      // @TODO should create a NEW_COMPONENTS source for these because it's more readable
     } else if (dropResult.destination && !dropResult.source) {
       return dispatch(createComponent(dropResult));
     }
     return null;
   };
 }
-
-// Resize ---------------------------------------------------------------------
-
-// export function dashboardComponentResizeStart() {}
-// export function dashboardComponentResize() {}
-// export function dashboardComponentResizeStop() {}

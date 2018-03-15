@@ -9,11 +9,13 @@ import { componentShape } from '../../util/propShapes';
 
 const propTypes = {
   children: PropTypes.func,
+  className: PropTypes.string,
   component: componentShape.isRequired,
   parentComponent: componentShape,
   disableDragDrop: PropTypes.bool,
   orientation: PropTypes.oneOf(['row', 'column']),
   index: PropTypes.number.isRequired,
+  style: PropTypes.object,
 
   // from react-dnd
   isDragging: PropTypes.bool.isRequired,
@@ -28,6 +30,8 @@ const propTypes = {
 };
 
 const defaultProps = {
+  className: null,
+  style: null,
   parentComponent: null,
   disableDragDrop: false,
   children() {},
@@ -54,18 +58,21 @@ class DragDroppable extends React.Component {
   render() {
     const {
       children,
+      className,
       orientation,
       droppableRef,
       dragSourceRef,
       dragPreviewRef,
       isDragging,
       isDraggingOver,
+      style,
     } = this.props;
 
     const { dropIndicator } = this.state;
 
     return (
       <div
+        style={style}
         ref={(ref) => {
           this.ref = ref;
           dragPreviewRef(ref);
@@ -76,6 +83,7 @@ class DragDroppable extends React.Component {
           orientation === 'row' && 'dragdroppable-row',
           orientation === 'column' && 'dragdroppable-column',
           isDragging && 'dragdroppable--dragging',
+          className,
         )}
       >
         {children({

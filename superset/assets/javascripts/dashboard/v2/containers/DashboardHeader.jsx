@@ -1,15 +1,17 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import DashboardGrid from '../components/DashboardGrid';
+
+import DashboardHeader from '../components/DashboardHeader';
+import { DASHBOARD_HEADER_ID } from '../util/constants';
 
 import {
   updateComponents,
   handleComponentDrop,
 } from '../actions';
 
-function mapStateToProps({ dashboard = {} }) {
+function mapStateToProps({ dashboard }) {
   return {
-    dashboard,
+    component: dashboard[DASHBOARD_HEADER_ID],
   };
 }
 
@@ -20,4 +22,5 @@ function mapDispatchToProps(dispatch) {
   }, dispatch);
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);
+
+export default connect(mapStateToProps, mapDispatchToProps)(DashboardHeader);

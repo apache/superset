@@ -21,13 +21,14 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
+  renderTabContent: PropTypes.bool,
 
   // grid related
-  availableColumnCount: PropTypes.number.isRequired,
-  columnWidth: PropTypes.number.isRequired,
-  onResizeStart: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  onResizeStop: PropTypes.func.isRequired,
+  availableColumnCount: PropTypes.number,
+  columnWidth: PropTypes.number,
+  onResizeStart: PropTypes.func,
+  onResize: PropTypes.func,
+  onResizeStop: PropTypes.func,
 
   // dnd
   createComponent: PropTypes.func.isRequired,
@@ -40,6 +41,12 @@ const propTypes = {
 const defaultProps = {
   onChangeTab: null,
   children: null,
+  renderTabContent: true,
+  availableColumnCount: 0,
+  columnWidth: 0,
+  onResizeStart() {},
+  onResize() {},
+  onResizeStop() {},
 };
 
 class Tabs extends React.PureComponent {
@@ -48,8 +55,9 @@ class Tabs extends React.PureComponent {
     this.state = {
       tabIndex: 0,
     };
-    this.handleClicKTab = this.handleClicKTab.bind(this);
+    this.handleClickTab = this.handleClickTab.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
   }
 
@@ -60,7 +68,7 @@ class Tabs extends React.PureComponent {
     }
   }
 
-  handleClicKTab(tabIndex) {
+  handleClickTab(tabIndex) {
     const { onChangeTab, component, createComponent } = this.props;
 
     if (tabIndex !== NEW_TAB_INDEX && tabIndex !== this.state.tabIndex) {
@@ -84,6 +92,10 @@ class Tabs extends React.PureComponent {
     deleteComponent(id, parentId);
   }
 
+  handleDeleteTab(tabIndex) {
+    this.handleClickTab(Math.max(0, tabIndex - 1));
+  }
+
   handleDropOnTab(dropResult) {
     const { component } = this.props;
 
@@ -96,7 +108,7 @@ class Tabs extends React.PureComponent {
 
       if (dropTabIndex > -1) {
         setTimeout(() => {
-          this.handleClicKTab(dropTabIndex);
+          this.handleClickTab(dropTabIndex);
         }, 30);
       }
     }
@@ -114,6 +126,7 @@ class Tabs extends React.PureComponent {
       onResize,
       onResizeStop,
       handleComponentDrop,
+      renderTabContent,
     } = this.props;
 
     const { tabIndex: selectedTabIndex } = this.state;
@@ -137,7 +150,7 @@ class Tabs extends React.PureComponent {
             <BootstrapTabs
               id={tabsComponent.id}
               activeKey={selectedTabIndex}
-              onSelect={this.handleClicKTab}
+              onSelect={this.handleClickTab}
               animation={false}
             >
               {tabIds.map((tabId, tabIndex) => (
@@ -156,10 +169,8 @@ class Tabs extends React.PureComponent {
                       renderType={RENDER_TAB}
                       availableColumnCount={availableColumnCount}
                       columnWidth={columnWidth}
-                      onResizeStart={onResizeStart}
-                      onResize={onResize}
-                      onResizeStop={onResizeStop}
                       onDropOnTab={this.handleDropOnTab}
+                      onDeleteTab={this.handleDeleteTab}
                     />
                   }
                 >
@@ -168,7 +179,7 @@ class Tabs extends React.PureComponent {
                     render potentially-expensive charts (this also enables lazy loading
                     their content)
                   */}
-                  {tabIndex === selectedTabIndex &&
+                  {tabIndex === selectedTabIndex && renderTabContent &&
                     <DashboardComponent
                       id={tabId}
                       parentId={tabsComponent.id}

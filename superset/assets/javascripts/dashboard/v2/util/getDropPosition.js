@@ -5,7 +5,7 @@ export const DROP_RIGHT = 'DROP_RIGHT';
 export const DROP_BOTTOM = 'DROP_BOTTOM';
 export const DROP_LEFT = 'DROP_LEFT';
 
-const SIBLING_DROP_THRESHOLD = 10;
+const SIBLING_DROP_THRESHOLD = 15;
 
 export default function getDropPosition(monitor, Component) {
   const {

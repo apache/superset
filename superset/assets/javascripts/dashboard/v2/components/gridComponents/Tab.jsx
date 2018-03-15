@@ -18,15 +18,16 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
-  renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
+  renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]),
   onDropOnTab: PropTypes.func,
+  onDeleteTab: PropTypes.func,
 
   // grid related
-  availableColumnCount: PropTypes.number.isRequired,
-  columnWidth: PropTypes.number.isRequired,
-  onResizeStart: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  onResizeStop: PropTypes.func.isRequired,
+  availableColumnCount: PropTypes.number,
+  columnWidth: PropTypes.number,
+  onResizeStart: PropTypes.func,
+  onResize: PropTypes.func,
+  onResizeStop: PropTypes.func,
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
@@ -35,7 +36,14 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onDropOnTab: null,
+  availableColumnCount: 0,
+  columnWidth: 0,
+  onDropOnTab() {},
+  onDeleteTab() {},
+  renderType: RENDER_TAB_CONTENT,
+  onResizeStart() {},
+  onResize() {},
+  onResizeStop() {},
 };
 
 export default class Tab extends React.PureComponent {
@@ -70,14 +78,14 @@ export default class Tab extends React.PureComponent {
   }
 
   handleDeleteComponent() {
-    const { deleteComponent, id, parentId } = this.props;
+    const { onDeleteTab, index, deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+    onDeleteTab(index);
   }
 
   handleDrop(dropResult) {
-    const { handleComponentDrop, onDropOnTab } = this.props;
-    handleComponentDrop(dropResult);
-    if (onDropOnTab) onDropOnTab(dropResult);
+    this.props.handleComponentDrop(dropResult);
+    this.props.onDropOnTab(dropResult);
   }
 
   renderTabContent() {

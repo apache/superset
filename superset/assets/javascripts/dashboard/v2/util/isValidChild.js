@@ -1,9 +1,10 @@
 import {
   CHART_TYPE,
   COLUMN_TYPE,
+  DASHBOARD_GRID_TYPE,
+  DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
-  GRID_ROOT_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
   SPACER_TYPE,
@@ -12,8 +13,12 @@ import {
 } from './componentTypes';
 
 const typeToValidChildType = {
-  // while some components are wrapped in Rows, most types are valid root children
-  [GRID_ROOT_TYPE]: {
+  [DASHBOARD_ROOT_TYPE]: {
+    [TABS_TYPE]: true,
+    [DASHBOARD_GRID_TYPE]: true,
+  },
+
+  [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
     [DIVIDER_TYPE]: true,
@@ -41,20 +46,22 @@ const typeToValidChildType = {
     [HEADER_TYPE]: true,
     [ROW_TYPE]: true,
     [SPACER_TYPE]: true,
+    [TABS_TYPE]: true,
   },
 
   [COLUMN_TYPE]: {
     [CHART_TYPE]: true,
-    [MARKDOWN_TYPE]: true,
     [HEADER_TYPE]: true,
+    [MARKDOWN_TYPE]: true,
+    [ROW_TYPE]: true,
     [SPACER_TYPE]: true,
   },
 
   // these have no valid children
   [CHART_TYPE]: {},
-  [MARKDOWN_TYPE]: {},
   [DIVIDER_TYPE]: {},
   [HEADER_TYPE]: {},
+  [MARKDOWN_TYPE]: {},
   [SPACER_TYPE]: {},
 };
 

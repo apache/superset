@@ -138,9 +138,10 @@ class ResizableContainer extends React.PureComponent {
         : (staticHeightMultiple && staticHeightMultiple * heightStep) || undefined,
     };
 
-    let enableConfig = resizableConfig.widthAndHeight;
-    if (!adjustableHeight) enableConfig = resizableConfig.widthOnly;
-    else if (!adjustableWidth) enableConfig = resizableConfig.heightOnly;
+    let enableConfig = resizableConfig.notAdjustable;
+    if (adjustableWidth && adjustableHeight) enableConfig = resizableConfig.widthAndHeight;
+    else if (adjustableWidth) enableConfig = resizableConfig.widthOnly;
+    else if (adjustableHeight) enableConfig = resizableConfig.heightOnly;
 
     const { isResizing } = this.state;
 
