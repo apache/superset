@@ -10,53 +10,43 @@ describe('ColumnOption', () => {
     type: 'string',
   };
 
-  let wrapper;
-  let props;
-  const factory = o => <ColumnTypeLabel {...o} />;
-  beforeEach(() => {
-    wrapper = shallow(factory(defaultProps));
-    props = Object.assign({}, defaultProps);
-  });
+  const props = { ...defaultProps };
+
+  function getWrapper(overrides) {
+    const wrapper = shallow(<ColumnTypeLabel {...props} {...overrides} />);
+    return wrapper;
+  }
+
   it('is a valid element', () => {
     expect(React.isValidElement(<ColumnTypeLabel {...defaultProps} />)).to.equal(true);
   });
   it('string type shows ABC icon', () => {
-    const lbl = wrapper.find('.type-label');
+    const lbl = getWrapper({}).find('.type-label');
     expect(lbl).to.have.length(1);
     expect(lbl.first().text()).to.equal('ABC');
   });
   it('int type shows # icon', () => {
-    props.type = 'int(164)';
-    wrapper = shallow(factory(props));
-    const lbl = wrapper.find('.type-label');
+    const lbl = getWrapper({ type: 'int(164)' }).find('.type-label');
     expect(lbl).to.have.length(1);
     expect(lbl.first().text()).to.equal('#');
   });
   it('bool type shows T/F icon', () => {
-    props.type = 'BOOL';
-    wrapper = shallow(factory(props));
-    const lbl = wrapper.find('.type-label');
+    const lbl = getWrapper({ type: 'BOOL' }).find('.type-label');
     expect(lbl).to.have.length(1);
     expect(lbl.first().text()).to.equal('T/F');
   });
   it('expression type shows function icon', () => {
-    props.type = 'expression';
-    wrapper = shallow(factory(props));
-    const lbl = wrapper.find('.type-label');
+    const lbl = getWrapper({ type: 'expression' }).find('.type-label');
     expect(lbl).to.have.length(1);
     expect(lbl.first().text()).to.equal('ƒ');
   });
   it('unknown type shows question mark', () => {
-    props.type = 'unknown';
-    wrapper = shallow(factory(props));
-    const lbl = wrapper.find('.type-label');
+    const lbl = getWrapper({ type: 'unknown' }).find('.type-label');
     expect(lbl).to.have.length(1);
     expect(lbl.first().text()).to.equal('?');
   });
   it('unknown type shows question mark', () => {
-    props.type = 'datetime';
-    wrapper = shallow(factory(props));
-    const lbl = wrapper.find('.fa-clock-o');
+    const lbl = getWrapper({ type: 'datetime' }).find('.fa-clock-o');
     expect(lbl).to.have.length(1);
   });
 });
