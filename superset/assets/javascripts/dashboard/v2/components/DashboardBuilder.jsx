@@ -6,7 +6,7 @@ import { DragDropContext } from 'react-dnd';
 import BuilderComponentPane from './BuilderComponentPane';
 import DashboardHeader from '../containers/DashboardHeader';
 import DashboardGrid from './DashboardGrid';
-import DeleteComponentButton from './DeleteComponentButton';
+import IconButton from './IconButton';
 import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
 import WithPopoverMenu from './menu/WithPopoverMenu';
@@ -86,7 +86,13 @@ class DashboardBuilder extends React.Component {
         {topLevelTabs &&
           <WithPopoverMenu
             shouldFocus={DashboardBuilder.shouldFocusTabs}
-            menuItems={[<DeleteComponentButton onDelete={deleteTopLevelTabs} />]}
+            menuItems={[
+              <IconButton
+                className="fa fa-level-down"
+                label="Collapse tab content"
+                onClick={deleteTopLevelTabs}
+              />,
+            ]}
           >
             <DashboardComponent
               id={topLevelTabs.id}
