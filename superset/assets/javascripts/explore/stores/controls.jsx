@@ -56,7 +56,7 @@ const groupByControl = {
   default: [],
   includeTime: false,
   description: t('One or many controls to group by'),
-  optionRenderer: c => <ColumnOption column={c} />,
+  optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   mapStateToProps: (state, control) => {
@@ -129,7 +129,7 @@ export const controls = {
     label: t('Metrics'),
     validators: [v.nonEmpty],
     valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     default: c => c.options && c.options.length > 0 ? [c.options[0].metric_name] : null,
     mapStateToProps: state => ({
@@ -143,7 +143,7 @@ export const controls = {
     multi: true,
     label: t('Percentage Metrics'),
     valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
@@ -216,7 +216,7 @@ export const controls = {
     clearable: false,
     description: t('Choose the metric'),
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     default: c => c.options && c.options.length > 0 ? c.options[0].metric_name : null,
     valueKey: 'metric_name',
@@ -233,7 +233,7 @@ export const controls = {
     clearable: true,
     description: t('Choose a metric for right axis'),
     valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
@@ -536,8 +536,11 @@ export const controls = {
     label: t('Columns'),
     default: [],
     description: t('Columns to display'),
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      options: (state.datasource) ? state.datasource.columns : [],
     }),
   },
 
@@ -770,7 +773,7 @@ export const controls = {
       return null;
     },
     clearable: false,
-    optionRenderer: c => <ColumnOption column={c} />,
+    optionRenderer: c => <ColumnOption column={c} showType />,
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: (state) => {
@@ -992,7 +995,7 @@ export const controls = {
     description: t('Metric assigned to the [X] axis'),
     default: null,
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
     mapStateToProps: state => ({
@@ -1006,7 +1009,7 @@ export const controls = {
     default: null,
     validators: [v.nonEmpty],
     description: t('Metric assigned to the [Y] axis'),
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
     mapStateToProps: state => ({
@@ -1019,7 +1022,7 @@ export const controls = {
     label: t('Bubble Size'),
     default: null,
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
     mapStateToProps: state => ({
