@@ -309,10 +309,18 @@ def flower(port, address):
 
     Celery Flower is a UI to monitor the Celery operation on a given
     broker"""
-    BROKER_URL = celery_app.conf.BROKER_URL
+    if not celery_app.conf.BROKER_URL:
+        print(
+            Fore.YELLOW +
+            'No Celery broker found in your superset configuration.\n'
+            'Please provide a CELERY_CONFIG setting, including a BROKER_URL.\n'
+            'Not starting Celery Flower.' +
+            Style.RESET_ALL,
+        )
+        return
     cmd = (
         'celery flower '
-        '--broker={BROKER_URL} '
+        '-A superset.cli.celery_app '
         '--port={port} '
         '--address={address} '
     ).format(**locals())
