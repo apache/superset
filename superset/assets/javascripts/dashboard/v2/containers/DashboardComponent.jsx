@@ -24,7 +24,8 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-function mapStateToProps({ dashboard = {} }, ownProps) {
+function mapStateToProps({ dashboard: undoableDashboard }, ownProps) {
+  const dashboard = undoableDashboard.present;
   const { id, parentId } = ownProps;
   const props = {
     component: dashboard[id],

@@ -1,3 +1,4 @@
+import { ActionCreators as UndoActionCreators } from 'redux-undo'
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
@@ -9,9 +10,11 @@ import {
   handleComponentDrop,
 } from '../actions';
 
-function mapStateToProps({ dashboard }) {
+function mapStateToProps({ dashboard: undoableDashboard }) {
   return {
-    component: dashboard[DASHBOARD_HEADER_ID],
+    component: undoableDashboard.present[DASHBOARD_HEADER_ID],
+    canUndo: undoableDashboard.past.length > 0,
+    canRedo: undoableDashboard.future.length > 0,
   };
 }
 
@@ -19,6 +22,8 @@ function mapDispatchToProps(dispatch) {
   return bindActionCreators({
     updateComponents,
     handleComponentDrop,
+    onUndo: UndoActionCreators.undo,
+    onRedo: UndoActionCreators.redo,
   }, dispatch);
 }
 

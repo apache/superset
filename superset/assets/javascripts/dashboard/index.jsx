@@ -20,7 +20,11 @@ const appContainer = document.getElementById('app');
 // const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 // const initState = Object.assign({}, getInitialState(bootstrapData));
 const initState = {
-  dashboard: emptyDashboardLayout,
+  dashboard: {
+    past: [],
+    present: emptyDashboardLayout,
+    future: [],
+  },
 };
 
 const store = createStore(

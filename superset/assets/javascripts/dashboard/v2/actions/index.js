@@ -87,7 +87,8 @@ export function handleComponentDrop(dropResult) {
     }
 
     if (source) {
-      const { dashboard } = getState();
+      const { dashboard: undoableDashboard } = getState();
+      const { present: dashboard } = undoableDashboard;
       const sourceComponent = dashboard[source.droppableId];
 
       if (sourceComponent.type === TABS_TYPE && sourceComponent.children.length === 0) {

@@ -8,9 +8,9 @@ import {
   handleComponentDrop,
 } from '../actions';
 
-function mapStateToProps({ dashboard = {} }) {
+function mapStateToProps({ dashboard: undoableDashboard }) {
   return {
-    dashboard,
+    dashboard: undoableDashboard.present,
   };
 }
 

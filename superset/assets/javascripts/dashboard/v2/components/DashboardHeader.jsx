@@ -1,6 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonToolbar, DropdownButton, MenuItem } from 'react-bootstrap';
+import { ButtonGroup, ButtonToolbar, DropdownButton, MenuItem } from 'react-bootstrap';
 
 import Button from '../../../components/Button';
 import { componentShape } from '../util/propShapes';
@@ -13,6 +13,10 @@ const propTypes = {
 
   // redux
   updateComponents: PropTypes.func.isRequired,
+  onUndo: PropTypes.func.isRequired,
+  onRedo: PropTypes.func.isRequired,
+  canUndo: PropTypes.bool.isRequired,
+  canRedo: PropTypes.bool.isRequired,
 };
 
 class DashboardHeader extends React.Component {
@@ -43,7 +47,7 @@ class DashboardHeader extends React.Component {
   }
 
   render() {
-    const { component } = this.props;
+    const { component, onUndo, onRedo, canUndo, canRedo } = this.props;
     const editMode = true;
 
     return (
@@ -57,6 +61,23 @@ class DashboardHeader extends React.Component {
           />
         </h1>
         <ButtonToolbar>
+          <ButtonGroup>
+            <Button
+              bsSize="small"
+              onClick={onUndo}
+              disabled={!canUndo}
+            >
+              Undo
+            </Button>
+            <Button
+              bsSize="small"
+              onClick={onRedo}
+              disabled={!canRedo}
+            >
+              Redo
+            </Button>
+          </ButtonGroup>
+
           <DropdownButton title="Actions" bsSize="small" id="btn-dashboard-actions">
             <MenuItem>Action 1</MenuItem>
             <MenuItem>Action 2</MenuItem>
