@@ -23,7 +23,7 @@ const pattern = new RegExp('^(\\d+)?\\s*(.*)$');
 
 export const parseTimeGrain = function (timeGrain) {
   const match = pattern.exec(timeGrain);
-  const number = match[1] || 1;
+  const number = parseInt(match[1], 10) || 1;
   const units = match[2];
 
   let compiled;
