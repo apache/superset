@@ -37,6 +37,18 @@
   z-index: 10;
 }
 
+/* the focus menu doesn't account for parent padding */
+.dashboard-component-tabs li .with-popover-menu--focused:after {
+  top: -12px;
+  left: -2px;
+  width: ~"calc(100% + 4px)"; /* escape for .less */
+  height: ~"calc(100% + 28px)";
+}
+
+.dashboard-component-tabs li .popover-menu {
+  top: -56px;
+}
+
 .popover-menu .menu-item {
   display: flex;
   flex-direction: row;
