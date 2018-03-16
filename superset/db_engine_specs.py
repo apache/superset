@@ -29,6 +29,7 @@ import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
+import sqlalchemy as sqla
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
@@ -231,14 +232,15 @@ class BaseEngineSpec(object):
 
     @classmethod
     def select_star(cls, my_db, table_name, schema=None, limit=100,
-                    show_cols=False, indent=True, latest_partition=True):
+                    show_cols=False, indent=True, latest_partition=True,
+                    cols=None):
         fields = '*'
-        cols = []
-        if show_cols or latest_partition:
-            cols = my_db.get_table(table_name, schema=schema).columns
+        cols = cols or []
+        if (show_cols or latest_partition) and not cols:
+            cols = my_db.get_columns(table_name, schema)
 
         if show_cols:
-            fields = [my_db.get_quoter()(c.name) for c in cols]
+            fields = [sqla.column(c.get('name')) for c in cols]
         full_table_name = table_name
         if schema:
             full_table_name = schema + '.' + table_name
