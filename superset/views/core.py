@@ -2212,11 +2212,12 @@ class Superset(BaseSupersetView):
     def table(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
-        cols = []
+        payload_columns = []
         indexes = []
-        t = mydb.get_columns(table_name, schema)
+        primary_key = []
+        foreign_keys = []
         try:
-            t = mydb.get_columns(table_name, schema)
+            columns = mydb.get_columns(table_name, schema)
             indexes = mydb.get_indexes(table_name, schema)
             primary_key = mydb.get_pk_constraint(table_name, schema)
             foreign_keys = mydb.get_foreign_keys(table_name, schema)
@@ -2235,13 +2236,13 @@ class Superset(BaseSupersetView):
             idx['type'] = 'index'
         keys += indexes
 
-        for col in t:
+        for col in columns:
             dtype = ''
             try:
                 dtype = '{}'.format(col['type'])
             except Exception:
                 pass
-            cols.append({
+            payload_columns.append({
                 'name': col['name'],
                 'type': dtype.split('(')[0] if '(' in dtype else dtype,
                 'longType': dtype,
@@ -2252,9 +2253,10 @@ class Superset(BaseSupersetView):
             })
         tbl = {
             'name': table_name,
-            'columns': cols,
+            'columns': payload_columns,
             'selectStar': mydb.select_star(
-                table_name, schema=schema, show_cols=True, indent=True),
+                table_name, schema=schema, show_cols=True, indent=True,
+                cols=columns, latest_partition=False),
             'primaryKey': primary_key,
             'foreignKeys': foreign_keys,
             'indexes': keys,
