@@ -1,4 +1,3 @@
-import newComponentIdToType from './newComponentIdToType';
 import shouldWrapChildInRow from './shouldWrapChildInRow';
 import newComponentFactory from './newComponentFactory';
 
@@ -9,18 +8,13 @@ import {
 } from './componentTypes';
 
 export default function newEntitiesFromDrop({ dropResult, components }) {
-  const { draggableId, destination } = dropResult;
+  const { dragging, destination } = dropResult;
 
-  const dragType = newComponentIdToType[draggableId];
-  const dropEntity = components[destination.droppableId];
+  const dragType = dragging.type;
+  const dropEntity = components[destination.id];
 
   if (!dropEntity) {
-    console.warn('Drop target entity', destination.droppableId, 'not found');
-    return null;
-  }
-
-  if (!dragType) {
-    console.warn('Drag type not found for id', draggableId);
+    console.warn('Drop target entity', destination.id, 'not found');
     return null;
   }
 
@@ -46,7 +40,7 @@ export default function newEntitiesFromDrop({ dropResult, components }) {
   const nextDropChildren = [...dropEntity.children];
   nextDropChildren.splice(destination.index, 0, newDropChild.id);
 
-  newEntities[destination.droppableId] = {
+  newEntities[destination.id] = {
     ...dropEntity,
     children: nextDropChildren,
   };

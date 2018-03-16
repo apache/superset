@@ -1,4 +1,4 @@
-import { DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID } from '../util/constants';
+import { DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -70,10 +70,9 @@ const actionHandlers = {
 
   [MOVE_COMPONENT](state, action) {
     const { payload: { dropResult } } = action;
-    const { source, destination, draggableId } = dropResult;
-    const draggableType = (state[draggableId] || {}).type;
+    const { source, destination, dragging } = dropResult;
 
-    if (!source || !destination || !draggableId) return state;
+    if (!source || !destination || !dragging) return state;
 
     const nextEntities = reorderItem({
       entitiesMap: state,
@@ -82,14 +81,13 @@ const actionHandlers = {
     });
 
     // wrap the dragged component in a row depening on destination type
-    const destinationType = (state[destination.droppableId] || {}).type;
     const wrapInRow = shouldWrapChildInRow({
-      parentType: destinationType,
-      childType: draggableType,
+      parentType: destination.type,
+      childType: dragging.type,
     });
 
     if (wrapInRow) {
-      const destinationEntity = nextEntities[destination.droppableId];
+      const destinationEntity = nextEntities[destination.id];
       const destinationChildren = destinationEntity.children;
       const newRow = newComponentFactory(ROW_TYPE);
       newRow.children = [destinationChildren[destination.index]];
@@ -105,26 +103,27 @@ const actionHandlers = {
 
   [CREATE_TOP_LEVEL_TABS](state, action) {
     const { payload: { dropResult } } = action;
-    const { source, draggableId } = dropResult;
+    const { source, dragging } = dropResult;
 
     // move children of current root to be children of the dragging tab
     const rootComponent = state[DASHBOARD_ROOT_ID];
     const topLevelId = rootComponent.children[0];
     const topLevelComponent = state[topLevelId];
 
-    if (source) {
-      const draggingTabs = state[draggableId];
+    if (source.id !== NEW_COMPONENTS_SOURCE_ID) {
+      // component already exists
+      const draggingTabs = state[dragging.id];
       const draggingTabId = draggingTabs.children[0];
       const draggingTab = state[draggingTabId];
 
       // move all children except the one that is dragging
-      const childrenToMove = [...topLevelComponent.children].filter(id => id !== draggableId);
+      const childrenToMove = [...topLevelComponent.children].filter(id => id !== dragging.id);
 
       return {
         ...state,
         [DASHBOARD_ROOT_ID]: {
           ...rootComponent,
-          children: [draggableId],
+          children: [dragging.id],
         },
         [topLevelId]: {
           ...topLevelComponent,
@@ -139,6 +138,8 @@ const actionHandlers = {
         },
       };
     }
+
+    // create new component
     const newEntities = newEntitiesFromDrop({ dropResult, components: state });
     const newEntitiesArray = Object.values(newEntities);
     const tabComponent = newEntitiesArray.find(component => component.type === TAB_TYPE);

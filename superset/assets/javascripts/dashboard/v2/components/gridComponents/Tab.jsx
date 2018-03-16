@@ -18,7 +18,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
-  renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]),
+  renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
   onDeleteTab: PropTypes.func,
 
@@ -40,7 +40,6 @@ const defaultProps = {
   columnWidth: 0,
   onDropOnTab() {},
   onDeleteTab() {},
-  renderType: RENDER_TAB_CONTENT,
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},

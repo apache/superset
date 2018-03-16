@@ -1,8 +1,7 @@
 import throttle from 'lodash.throttle';
-import getDropPosition, { DROP_TOP, DROP_RIGHT, DROP_BOTTOM, DROP_LEFT } from '../../util/getDropPosition';
+import getDropPosition from '../../util/getDropPosition';
 
 const HOVER_THROTTLE_MS = 200;
-const INDICATOR_THICKNESS = 4;
 
 function handleHover(props, monitor, Component) {
   // this may happen due to throttling
@@ -15,22 +14,8 @@ function handleHover(props, monitor, Component) {
     return;
   }
 
-  // @TODO
-  // drop-indicator
-  // drop-indicator--top/right/bottom/left
   Component.setState(() => ({
-    dropIndicator: {
-      top: dropPosition === DROP_BOTTOM ? '100%' : 0,
-      left: dropPosition === DROP_RIGHT ? '100%' : 0,
-      height: dropPosition === DROP_LEFT || dropPosition === DROP_RIGHT ? '100%' : INDICATOR_THICKNESS,
-      width: dropPosition === DROP_TOP || dropPosition === DROP_BOTTOM ? '100%' : INDICATOR_THICKNESS,
-      minHeight: dropPosition === DROP_LEFT || dropPosition === DROP_RIGHT ? 16 : null,
-      minWidth: dropPosition === DROP_TOP || dropPosition === DROP_BOTTOM ? 16 : null,
-      margin: 'auto',
-      backgroundColor: '#44C0FF',
-      position: 'absolute',
-      zIndex: 10,
-    },
+    dropIndicator: dropPosition,
   }));
 }
 

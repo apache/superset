@@ -1,4 +1,4 @@
-import { DASHBOARD_ROOT_ID } from '../util/constants';
+import { DASHBOARD_ROOT_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
 import findParentId from '../util/findParentId';
 import { TABS_TYPE } from '../util/componentTypes';
 
@@ -68,8 +68,8 @@ export const HANDLE_COMPONENT_DROP = 'HANDLE_COMPONENT_DROP';
 export function handleComponentDrop(dropResult) {
   return (dispatch, getState) => {
     const { source, destination } = dropResult;
-    const droppedOnRoot = destination && destination.droppableId === DASHBOARD_ROOT_ID;
-    const isNewComponent = !source; // @TODO create NEW_COMPONENTS source for better readability
+    const droppedOnRoot = destination && destination.id === DASHBOARD_ROOT_ID;
+    const isNewComponent = source.id === NEW_COMPONENTS_SOURCE_ID;
 
     if (droppedOnRoot) {
       dispatch(createTopLevelTabs(dropResult));
@@ -79,21 +79,22 @@ export function handleComponentDrop(dropResult) {
       destination
       && source
       && !( // ensure it has moved
-        destination.droppableId === source.droppableId
+        destination.id === source.id
         && destination.index === source.index
       )
     ) {
       dispatch(moveComponent(dropResult));
     }
 
-    if (source) {
+    // if we moved a tab and the parent tabs no longer has children, delete it.
+    if (!isNewComponent) {
       const { dashboard: undoableDashboard } = getState();
       const { present: dashboard } = undoableDashboard;
-      const sourceComponent = dashboard[source.droppableId];
+      const sourceComponent = dashboard[source.id];
 
       if (sourceComponent.type === TABS_TYPE && sourceComponent.children.length === 0) {
-        const parentId = findParentId({ childId: source.droppableId, components: dashboard });
-        dispatch(deleteComponent(source.droppableId, parentId));
+        const parentId = findParentId({ childId: source.id, components: dashboard });
+        dispatch(deleteComponent(source.id, parentId));
       }
     }
 

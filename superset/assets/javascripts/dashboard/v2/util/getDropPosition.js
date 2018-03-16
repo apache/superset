@@ -18,7 +18,7 @@ export default function getDropPosition(monitor, Component) {
   const draggingItem = monitor.getItem();
 
   // if dropped self on self, do nothing
-  if (!draggingItem || draggingItem.draggableId === component.id || !isDraggingOverShallow) {
+  if (!draggingItem || draggingItem.id === component.id || !isDraggingOverShallow) {
     return null;
   }
 

@@ -10,6 +10,7 @@ import HoverMenu from '../menu/HoverMenu';
 import { componentShape } from '../../util/propShapes';
 import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
+import { TAB_TYPE } from '../../util/componentTypes';
 
 const NEW_TAB_INDEX = -1;
 const MAX_TAB_COUNT = 5;
@@ -79,10 +80,14 @@ class Tabs extends React.PureComponent {
     } else if (tabIndex === NEW_TAB_INDEX) {
       createComponent({
         destination: {
-          droppableId: component.id,
+          id: component.id,
+          type: component.type,
           index: component.children.length,
         },
-        draggableId: NEW_TAB_ID,
+        dragging: {
+          id: NEW_TAB_ID,
+          type: TAB_TYPE,
+        },
       });
     }
   }
@@ -102,9 +107,9 @@ class Tabs extends React.PureComponent {
     // Ensure dropped tab is visible
     const { destination } = dropResult;
     if (destination) {
-      const dropTabIndex = destination.droppableId === component.id
+      const dropTabIndex = destination.id === component.id
         ? destination.index // dropped ON tabs
-        : component.children.indexOf(destination.droppableId); // dropped IN tab
+        : component.children.indexOf(destination.id); // dropped IN tab
 
       if (dropTabIndex > -1) {
         setTimeout(() => {

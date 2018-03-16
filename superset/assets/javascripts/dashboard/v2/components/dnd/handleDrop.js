@@ -27,17 +27,22 @@ export default function handleDrop(props, monitor, Component) {
     ? 'sibling' : 'child';
 
   const dropResult = {
-    source: draggingItem.parentId ? {
-      droppableId: draggingItem.parentId,
+    source: {
+      id: draggingItem.parentId,
+      type: draggingItem.parentType,
       index: draggingItem.index,
-    } : null,
-    draggableId: draggingItem.draggableId,
+    },
+    dragging: {
+      id: draggingItem.id,
+      type: draggingItem.type,
+    },
   };
 
   // simplest case, append as child
   if (dropAsChildOrSibling === 'child') {
     dropResult.destination = {
-      droppableId: component.id,
+      id: component.id,
+      type: component.type,
       index: component.children.length,
     };
   } else {
@@ -52,7 +57,8 @@ export default function handleDrop(props, monitor, Component) {
     }
 
     dropResult.destination = {
-      droppableId: parentComponent.id,
+      id: parentComponent.id,
+      type: parentComponent.type,
       index: nextIndex,
     };
   }

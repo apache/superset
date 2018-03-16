@@ -54,9 +54,21 @@
 
 .dashboard-component-tabs .nav-tabs > li .drop-indicator {
   top: -12px !important;
+  height: ~"calc(100% + 24px)" !important;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--left {
+  left: -12px !important;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--right {
+  right: -12px !important;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--top,
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--bottom {
   left: -12px !important;
   width: ~"calc(100% + 24px)" !important; /* escape for .less */
-  height: ~"calc(100% + 24px)" !important;
   opacity: 0.4;
 }
 

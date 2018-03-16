@@ -3,9 +3,9 @@ import PropTypes from 'prop-types';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
 
-import { dragConfig, dropConfig } from './dragDroppableConfig';
 import { componentShape } from '../../util/propShapes';
-
+import { dragConfig, dropConfig } from './dragDroppableConfig';
+import { DROP_TOP, DROP_RIGHT, DROP_BOTTOM, DROP_LEFT } from '../../util/getDropPosition';
 
 const propTypes = {
   children: PropTypes.func,
@@ -16,6 +16,7 @@ const propTypes = {
   orientation: PropTypes.oneOf(['row', 'column']),
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
+  onDrop: PropTypes.func,
 
   // from react-dnd
   isDragging: PropTypes.bool.isRequired,
@@ -24,9 +25,6 @@ const propTypes = {
   droppableRef: PropTypes.func.isRequired,
   dragSourceRef: PropTypes.func.isRequired,
   dragPreviewRef: PropTypes.func.isRequired,
-
-  // from redux
-  onDrop: PropTypes.func,
 };
 
 const defaultProps = {
@@ -45,6 +43,7 @@ class DragDroppable extends React.Component {
     this.state = {
       dropIndicator: null, // this gets set/modified by the react-dnd HOCs
     };
+    this.setRef = this.setRef.bind(this);
   }
 
   componentDidMount() {
@@ -55,14 +54,18 @@ class DragDroppable extends React.Component {
     this.mounted = false;
   }
 
+  setRef(ref) {
+    this.ref = ref;
+    this.props.dragPreviewRef(ref);
+    this.props.droppableRef(ref);
+  }
+
   render() {
     const {
       children,
       className,
       orientation,
-      droppableRef,
       dragSourceRef,
-      dragPreviewRef,
       isDragging,
       isDraggingOver,
       style,
@@ -73,11 +76,7 @@ class DragDroppable extends React.Component {
     return (
       <div
         style={style}
-        ref={(ref) => {
-          this.ref = ref;
-          dragPreviewRef(ref);
-          droppableRef(ref);
-        }}
+        ref={this.setRef}
         className={cx(
           'dragdroppable',
           orientation === 'row' && 'dragdroppable-row',
@@ -89,8 +88,13 @@ class DragDroppable extends React.Component {
         {children({
           dragSourceRef,
           dropIndicatorProps: isDraggingOver && dropIndicator && {
-            className: 'drop-indicator',
-            style: dropIndicator,
+            className: cx(
+              'drop-indicator',
+              dropIndicator === DROP_TOP && 'drop-indicator--top',
+              dropIndicator === DROP_BOTTOM && 'drop-indicator--bottom',
+              dropIndicator === DROP_LEFT && 'drop-indicator--left',
+              dropIndicator === DROP_RIGHT && 'drop-indicator--right',
+            ),
           },
         })}
       </div>
