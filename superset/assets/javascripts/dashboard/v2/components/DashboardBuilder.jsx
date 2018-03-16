@@ -31,9 +31,11 @@ const defaultProps = {
 };
 
 class DashboardBuilder extends React.Component {
-  static shouldFocusTabs(event) {
+  static shouldFocusTabs(event, container) {
     // don't focus the tabs when we click on a tab
-    return event.target.tagName === 'UL' || /icon-button/.test(event.target.className);
+    return event.target.tagName === 'UL' || (
+      /icon-button/.test(event.target.className) && container.contains(event.target)
+    );
   }
 
   constructor(props) {
@@ -63,21 +65,23 @@ class DashboardBuilder extends React.Component {
 
     return (
       <div className="dashboard-v2">
-        <DragDroppable
-          component={dashboardRoot}
-          parentComponent={null}
-          index={0}
-          orientation="column"
-          onDrop={handleComponentDrop}
-        >
-          {({ dropIndicatorProps }) => (
-            <div>
-              <DashboardHeader />
-              {dropIndicatorProps &&
-                <div {...dropIndicatorProps} />}
-            </div>
-          )}
-        </DragDroppable>
+        {topLevelTabs ? ( // you cannot displace tabs if they already exist
+          <DashboardHeader />
+        ) : (
+          <DragDroppable
+            component={dashboardRoot}
+            parentComponent={null}
+            index={0}
+            orientation="column"
+            onDrop={topLevelTabs ? null : handleComponentDrop}
+          >
+            {({ dropIndicatorProps }) => (
+              <div>
+                <DashboardHeader />
+                {dropIndicatorProps && <div {...dropIndicatorProps} />}
+              </div>
+            )}
+          </DragDroppable>)}
 
         {topLevelTabs &&
           <WithPopoverMenu

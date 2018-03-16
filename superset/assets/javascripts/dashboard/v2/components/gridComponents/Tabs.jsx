@@ -8,7 +8,7 @@ import DashboardComponent from '../../containers/DashboardComponent';
 import DeleteComponentButton from '../DeleteComponentButton';
 import HoverMenu from '../menu/HoverMenu';
 import { componentShape } from '../../util/propShapes';
-import { NEW_TAB_ID } from '../../util/constants';
+import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
 
 const NEW_TAB_INDEX = -1;
@@ -199,14 +199,14 @@ class Tabs extends React.PureComponent {
               {tabIds.length < MAX_TAB_COUNT &&
                 <BootstrapTab
                   eventKey={NEW_TAB_INDEX}
-                  title={<div className="fa fa-plus-square" />}
+                  title={<div className="fa fa-plus" />}
                 />}
 
             </BootstrapTabs>
 
+            {/* don't indicate that a drop on root is allowed when tabs already exist */}
             {tabsDropIndicatorProps
-              && tabsDropIndicatorProps.style
-              && tabsDropIndicatorProps.style.width === '100%'
+              && parentComponent.id !== DASHBOARD_ROOT_ID
               && <div {...tabsDropIndicatorProps} />}
 
           </div>

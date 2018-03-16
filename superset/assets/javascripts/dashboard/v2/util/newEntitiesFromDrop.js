@@ -8,8 +8,6 @@ import {
   TAB_TYPE,
 } from './componentTypes';
 
-import { DASHBOARD_ROOT_ID } from './constants';
-
 export default function newEntitiesFromDrop({ dropResult, components }) {
   const { draggableId, destination } = dropResult;
 
@@ -29,7 +27,6 @@ export default function newEntitiesFromDrop({ dropResult, components }) {
   const dropType = dropEntity.type;
   let newDropChild = newComponentFactory(dragType);
   const wrapChildInRow = shouldWrapChildInRow({ parentType: dropType, childType: dragType });
-  const droppedOnRoot = dropEntity.id === DASHBOARD_ROOT_ID;
 
   const newEntities = {
     [newDropChild.id]: newDropChild,
@@ -44,27 +41,15 @@ export default function newEntitiesFromDrop({ dropResult, components }) {
     const tabChild = newComponentFactory(TAB_TYPE);
     newDropChild.children = [tabChild.id];
     newEntities[tabChild.id] = tabChild;
-
-    if (droppedOnRoot) {
-      // If we've dropped tabs on the root, move previous root children to new tab
-      const rootComponent = components[DASHBOARD_ROOT_ID];
-      const topLevelId = rootComponent.children[0];
-      const topLevelComponent = components[topLevelId];
-      tabChild.children = [...topLevelComponent.children];
-      newEntities[topLevelId] = { ...topLevelComponent, children: [] };
-      newEntities[DASHBOARD_ROOT_ID] = { ...rootComponent, children: [newDropChild.id] };
-    }
   }
 
-  if (!droppedOnRoot) {
-    const nextDropChildren = [...dropEntity.children];
-    nextDropChildren.splice(destination.index, 0, newDropChild.id);
+  const nextDropChildren = [...dropEntity.children];
+  nextDropChildren.splice(destination.index, 0, newDropChild.id);
 
-    newEntities[destination.droppableId] = {
-      ...dropEntity,
-      children: nextDropChildren,
-    };
-  }
+  newEntities[destination.droppableId] = {
+    ...dropEntity,
+    children: nextDropChildren,
+  };
 
   return newEntities;
 }

@@ -1,6 +1,8 @@
-import { DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID } from '../util/constants';
+import { DASHBOARD_ROOT_ID } from '../util/constants';
+import findParentId from '../util/findParentId';
 import { TABS_TYPE } from '../util/componentTypes';
 
+// Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
 export function updateComponents(nextComponents) {
   return {
@@ -32,6 +34,17 @@ export function createComponent(dropResult) {
   };
 }
 
+// Tabs -----------------------------------------------------------------------
+export const CREATE_TOP_LEVEL_TABS = 'CREATE_TOP_LEVEL_TABS';
+export function createTopLevelTabs(dropResult) {
+  return {
+    type: CREATE_TOP_LEVEL_TABS,
+    payload: {
+      dropResult,
+    },
+  };
+}
+
 export const DELETE_TOP_LEVEL_TABS = 'DELETE_TOP_LEVEL_TABS';
 export function deleteTopLevelTabs() {
   return {
@@ -53,22 +66,36 @@ export function moveComponent(dropResult) {
 
 export const HANDLE_COMPONENT_DROP = 'HANDLE_COMPONENT_DROP';
 export function handleComponentDrop(dropResult) {
-  return (dispatch) => {
-    if (
-      dropResult.destination
-      && dropResult.source
+  return (dispatch, getState) => {
+    const { source, destination } = dropResult;
+    const droppedOnRoot = destination && destination.droppableId === DASHBOARD_ROOT_ID;
+    const isNewComponent = !source; // @TODO create NEW_COMPONENTS source for better readability
+
+    if (droppedOnRoot) {
+      dispatch(createTopLevelTabs(dropResult));
+    } else if (destination && isNewComponent) {
+      dispatch(createComponent(dropResult));
+    } else if (
+      destination
+      && source
       && !( // ensure it has moved
-        dropResult.destination.droppableId === dropResult.source.droppableId
-        && dropResult.destination.index === dropResult.source.index
+        destination.droppableId === source.droppableId
+        && destination.index === source.index
       )
     ) {
-      return dispatch(moveComponent(dropResult));
-
-      // new components don't have a source
-      // @TODO should create a NEW_COMPONENTS source for these because it's more readable
-    } else if (dropResult.destination && !dropResult.source) {
-      return dispatch(createComponent(dropResult));
+      dispatch(moveComponent(dropResult));
     }
+
+    if (source) {
+      const { dashboard } = getState();
+      const sourceComponent = dashboard[source.droppableId];
+
+      if (sourceComponent.type === TABS_TYPE && sourceComponent.children.length === 0) {
+        const parentId = findParentId({ childId: source.droppableId, components: dashboard });
+        dispatch(deleteComponent(source.droppableId, parentId));
+      }
+    }
+
     return null;
   };
 }

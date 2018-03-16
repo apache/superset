@@ -3,13 +3,14 @@ import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
 import shouldWrapChildInRow from '../util/shouldWrapChildInRow';
-import { TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
+import { TAB_TYPE, TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
 
 import {
   UPDATE_COMPONENTS,
   DELETE_COMPONENT,
   CREATE_COMPONENT,
   MOVE_COMPONENT,
+  CREATE_TOP_LEVEL_TABS,
   DELETE_TOP_LEVEL_TABS,
 } from '../actions';
 
@@ -74,57 +75,6 @@ const actionHandlers = {
 
     if (!source || !destination || !draggableId) return state;
 
-    // If we've dropped on the root, move previous root children to drag item
-    if (draggableType === TABS_TYPE && destination.droppableId === DASHBOARD_ROOT_ID) {
-      const rootComponent = state[DASHBOARD_ROOT_ID];
-
-      const topLevelId = rootComponent.children[0];
-      const topLevelComponent = state[topLevelId];
-      const topLevelComponentIsTabs = topLevelComponent.type === TABS_TYPE;
-      const childrenToMove = topLevelComponentIsTabs
-        ? [topLevelId] // just move the tabs
-        : [...topLevelComponent.children]; // move all children
-
-      const draggingTabs = state[draggableId];
-      const firstTabId = draggingTabs.children[0];
-      const firstTab = state[firstTabId];
-
-      const updatedEntities = {
-        [DASHBOARD_ROOT_ID]: {
-          ...rootComponent,
-          children: [draggableId],
-        },
-        [firstTabId]: {
-          ...firstTab,
-          children: [
-            ...firstTab.children,
-            ...childrenToMove.filter(id => id !== draggableId),
-          ],
-        },
-      };
-
-      if (!topLevelComponentIsTabs) {
-        updatedEntities[topLevelId] = { ...topLevelComponent, children: [] };
-      } else {
-        // find the moved item and remove it as a child
-        topLevelComponent.children.forEach((tabId) => {
-          const tabComponent = state[tabId];
-          const containsItem = tabComponent.children.includes(draggableId);
-          if (containsItem > -1) {
-            updatedEntities[tabId] = {
-              ...tabComponent,
-              children: [...tabComponent.children].filter(id => id !== draggableId),
-            };
-          }
-        });
-      }
-
-      return {
-        ...state,
-        ...updatedEntities,
-      };
-    }
-
     const nextEntities = reorderItem({
       entitiesMap: state,
       source,
@@ -150,6 +100,57 @@ const actionHandlers = {
     return {
       ...state,
       ...nextEntities,
+    };
+  },
+
+  [CREATE_TOP_LEVEL_TABS](state, action) {
+    const { payload: { dropResult } } = action;
+    const { source, draggableId } = dropResult;
+
+    // move children of current root to be children of the dragging tab
+    const rootComponent = state[DASHBOARD_ROOT_ID];
+    const topLevelId = rootComponent.children[0];
+    const topLevelComponent = state[topLevelId];
+
+    if (source) {
+      const draggingTabs = state[draggableId];
+      const draggingTabId = draggingTabs.children[0];
+      const draggingTab = state[draggingTabId];
+
+      // move all children except the one that is dragging
+      const childrenToMove = [...topLevelComponent.children].filter(id => id !== draggableId);
+
+      return {
+        ...state,
+        [DASHBOARD_ROOT_ID]: {
+          ...rootComponent,
+          children: [draggableId],
+        },
+        [topLevelId]: {
+          ...topLevelComponent,
+          children: [],
+        },
+        [draggingTabId]: {
+          ...draggingTab,
+          children: [
+            ...draggingTab.children,
+            ...childrenToMove,
+          ],
+        },
+      };
+    }
+    const newEntities = newEntitiesFromDrop({ dropResult, components: state });
+    const newEntitiesArray = Object.values(newEntities);
+    const tabComponent = newEntitiesArray.find(component => component.type === TAB_TYPE);
+    const tabsComponent = newEntitiesArray.find(component => component.type === TABS_TYPE);
+
+    tabComponent.children = [...topLevelComponent.children];
+    newEntities[topLevelId] = { ...topLevelComponent, children: [] };
+    newEntities[DASHBOARD_ROOT_ID] = { ...rootComponent, children: [tabsComponent.id] };
+
+    return {
+      ...state,
+      ...newEntities,
     };
   },
 
