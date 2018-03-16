@@ -405,6 +405,10 @@ DB_CONNECTION_MUTATOR = None
 #        return "-- [SQL LAB] {username} {dttm}\n sql"(**locals())
 SQL_QUERY_MUTATOR = None
 
+# When not using gunicorn, (nginx for instance), you may want to disable
+# using flask-compress
+ENABLE_FLASK_COMPRESS = True
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
