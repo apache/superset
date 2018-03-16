@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import $ from 'jquery';
 
 import DeckGLContainer from './DeckGLContainer';
-import { getExploreUrl } from '../../javascripts/explore/exploreUtils';
+import { getExploreLongUrl } from '../../javascripts/explore/exploreUtils';
 import layerGenerators from './layers';
 
 
@@ -47,7 +47,7 @@ function deckMulti(slice, payload, setControlValue) {
       },
     };
 
-    const url = getExploreUrl(subsliceCopy.form_data, 'json');
+    const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
     $.get(url, (data) => {
       // Late import to avoid circular deps
       const layer = layerGenerators[subsliceCopy.form_data.viz_type](subsliceCopy.form_data, data);

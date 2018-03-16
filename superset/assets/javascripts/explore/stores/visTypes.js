@@ -375,7 +375,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['groupby', 'row_limit'],
+          ['row_limit', null],
         ],
       },
       {
@@ -413,7 +413,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['groupby', 'row_limit'],
+          ['row_limit', null],
         ],
       },
       {
@@ -485,7 +485,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['groupby', 'row_limit'],
+          ['row_limit', null],
         ],
       },
       {
@@ -656,8 +656,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['spatial', null],
-          ['groupby', 'row_limit'],
+          ['spatial', 'row_limit'],
         ],
       },
       {
@@ -679,7 +678,7 @@ export const visTypes = {
       {
         label: t('Point Color'),
         controlSetRows: [
-          ['color_picker', null],
+          ['color_picker', 'legend_position'],
           ['dimension', 'color_scheme'],
         ],
       },
@@ -770,6 +769,7 @@ export const visTypes = {
           ['table_timestamp_format'],
           ['row_limit', 'page_length'],
           ['include_search', 'table_filter'],
+          ['align_pn', 'color_pn'],
         ],
       },
     ],

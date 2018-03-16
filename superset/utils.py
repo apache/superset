@@ -45,36 +45,14 @@ import sqlalchemy as sa
 from sqlalchemy import event, exc, select
 from sqlalchemy.types import TEXT, TypeDecorator
 
+from superset.exceptions import SupersetException, SupersetTimeoutException
+
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
 PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
-
-
-class SupersetException(Exception):
-    pass
-
-
-class SupersetTimeoutException(SupersetException):
-    pass
-
-
-class SupersetSecurityException(SupersetException):
-    pass
-
-
-class MetricPermException(SupersetException):
-    pass
-
-
-class NoDataException(SupersetException):
-    pass
-
-
-class SupersetTemplateException(SupersetException):
-    pass
 
 
 def can_access(sm, permission_name, view_name, user):
@@ -833,6 +811,15 @@ def merge_extra_filters(form_data):
                     form_data['filters'] += [filtr]
         # Remove extra filters from the form data since no longer needed
         del form_data['extra_filters']
+
+
+def merge_request_params(form_data, params):
+    url_params = {}
+    for key, value in params.items():
+        if key in ('form_data', 'r'):
+            continue
+        url_params[key] = value
+    form_data['url_params'] = url_params
 
 
 def get_update_perms_flag():

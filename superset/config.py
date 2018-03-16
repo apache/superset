@@ -164,6 +164,8 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
+    'pt-BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
+    'ru': {'flag': 'ru', 'name': 'Russian'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -376,6 +378,36 @@ HIVE_POLL_INTERVAL = 5
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
 ENABLE_JAVASCRIPT_CONTROLS = False
+
+# A callable that allows altering the database conneciton URL and params
+# on the fly, at runtime. This allows for things like impersonation or
+# arbitrary logic. For instance you can wire different users to
+# use different connection parameters, or pass their email address as the
+# username. The function receives the connection uri object, connection
+# params, the username, and returns the mutated uri and params objects.
+# Example:
+#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager):
+#       user = security_manager.find_user(username=username)
+#       if user and user.email:
+#           uri.username = user.email
+#       return uri, params
+#
+# Note that the returned uri and params are passed directly to sqlalchemy's
+# as such `create_engine(url, **params)`
+DB_CONNECTION_MUTATOR = None
+
+# A function that intercepts the SQL to be executed and can alter it.
+# The use case is can be around adding some sort of comment header
+# with information such as the username and worker node information
+#
+#    def SQL_QUERY_MUTATOR(sql, username, security_manager):
+#        dttm = datetime.now().isoformat()
+#        return "-- [SQL LAB] {username} {dttm}\n sql"(**locals())
+SQL_QUERY_MUTATOR = None
+
+# When not using gunicorn, (nginx for instance), you may want to disable
+# using flask-compress
+ENABLE_FLASK_COMPRESS = True
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

@@ -29,6 +29,7 @@ import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
 import pandas
+import sqlalchemy as sqla
 from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
@@ -38,7 +39,8 @@ import unicodecsv
 from werkzeug.utils import secure_filename
 
 from superset import app, cache_util, conf, db, utils
-from superset.utils import QueryStatus, SupersetTemplateException
+from superset.exceptions import SupersetTemplateException
+from superset.utils import QueryStatus
 
 config = app.config
 
@@ -135,7 +137,7 @@ class BaseEngineSpec(object):
             'table': table,
             'df': df,
             'name': form.name.data,
-            'con': create_engine(form.con.data.sqlalchemy_uri, echo=False),
+            'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
             'schema': form.schema.data,
             'if_exists': form.if_exists.data,
             'index': form.index.data,
@@ -144,11 +146,6 @@ class BaseEngineSpec(object):
         }
 
         BaseEngineSpec.df_to_db(**df_to_db_kwargs)
-
-    @classmethod
-    def escape_sql(cls, sql):
-        """Escapes the raw SQL"""
-        return sql
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -235,14 +232,15 @@ class BaseEngineSpec(object):
 
     @classmethod
     def select_star(cls, my_db, table_name, schema=None, limit=100,
-                    show_cols=False, indent=True, latest_partition=True):
+                    show_cols=False, indent=True, latest_partition=True,
+                    cols=None):
         fields = '*'
-        cols = []
-        if show_cols or latest_partition:
-            cols = my_db.get_table(table_name, schema=schema).columns
+        cols = cols or []
+        if (show_cols or latest_partition) and not cols:
+            cols = my_db.get_columns(table_name, schema)
 
         if show_cols:
-            fields = [my_db.get_quoter()(c.name) for c in cols]
+            fields = [sqla.column(c.get('name')) for c in cols]
         full_table_name = table_name
         if schema:
             full_table_name = schema + '.' + table_name
@@ -551,10 +549,6 @@ class PrestoEngineSpec(BaseEngineSpec):
                 database += '/' + selected_schema
             uri.database = database
         return uri
-
-    @classmethod
-    def escape_sql(cls, sql):
-        return re.sub(r'%%|%', '%%', sql)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
@@ -875,7 +869,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')""".format(**locals())
         logging.info(form.con.data)
-        engine = create_engine(form.con.data.sqlalchemy_uri)
+        engine = create_engine(form.con.data.sqlalchemy_uri_decrypted)
         engine.execute(sql)
 
     @classmethod

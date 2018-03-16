@@ -179,6 +179,20 @@ export const controls = {
     default: colorPrimary,
     renderTrigger: true,
   },
+  legend_position: {
+    label: t('Legend Position'),
+    description: t('Choose the position of the legend'),
+    type: 'SelectControl',
+    clearable: false,
+    default: 'Top right',
+    choices: [
+      ['tl', 'Top left'],
+      ['tr', 'Top right'],
+      ['bl', 'Bottom left'],
+      ['br', 'Bottom right'],
+    ],
+    renderTrigger: true,
+  },
 
   fill_color_picker: {
     label: t('Fill Color'),
@@ -1261,10 +1275,16 @@ export const controls = {
   },
 
   show_brush: {
-    type: 'CheckboxControl',
-    label: t('Range Filter'),
+    type: 'SelectControl',
+    label: t('Show Range Filter'),
     renderTrigger: true,
-    default: false,
+    clearable: false,
+    default: 'auto',
+    choices: [
+      ['yes', 'Yes'],
+      ['no', 'No'],
+      ['auto', 'Auto'],
+    ],
     description: t('Whether to display the time range interactive selector'),
   },
 
@@ -1323,6 +1343,22 @@ export const controls = {
     label: t('Table Filter'),
     default: false,
     description: t('Whether to apply filter when table cell is clicked'),
+  },
+
+  align_pn: {
+    type: 'CheckboxControl',
+    label: t('Align +/-'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to align the background chart for +/- values'),
+  },
+
+  color_pn: {
+    type: 'CheckboxControl',
+    label: t('Color +/-'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to color +/- values'),
   },
 
   show_bubbles: {
@@ -1686,6 +1722,7 @@ export const controls = {
     default: [],
     description: 'Annotation Layers',
     renderTrigger: true,
+    tabOverride: 'data',
   },
 
   having_filters: {
