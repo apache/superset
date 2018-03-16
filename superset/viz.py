@@ -507,8 +507,8 @@ class TableViz(BaseViz):
 
         data = self.handle_js_int_overflow(
             dict(
-              records=df.to_dict(orient='records'),
-              columns=list(df.columns),
+                records=df.to_dict(orient='records'),
+                columns=list(df.columns),
             ))
 
         return data
@@ -1026,8 +1026,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ys = series[name]
             if df[name].dtype.kind not in 'biufc':
                 continue
-            if isinstance(name, (list, tuple)):
+            if isinstance(name, list):
                 series_title = [str(title) for title in name]
+            elif isinstance(name, tuple):
+                series_title = tuple(str(title) for title in name)
             else:
                 series_title = str(name)
             if (
