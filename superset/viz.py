@@ -78,8 +78,7 @@ class BaseViz(object):
         self._some_from_cache = False
         self._any_cache_key = None
         self._any_cached_dttm = None
-
-        self.run_extra_queries()
+        self._extra_chart_data = None
 
     def run_extra_queries(self):
         """Lyfecycle method to use when more than one query is needed
@@ -285,6 +284,7 @@ class BaseViz(object):
 
     def get_payload(self, query_obj=None):
         """Returns a payload of metadata and data"""
+        self.run_extra_queries()
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
@@ -1118,7 +1118,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def run_extra_queries(self):
         fd = self.form_data
         time_compare = fd.get('time_compare')
-        self.extra_chart_data = None
         if time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(time_compare)
@@ -1136,15 +1135,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df2 is not None:
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self.extra_chart_data = self.to_series(
+                self._extra_chart_data = self.to_series(
                     df2, classed='superset', title_suffix='---')
 
     def get_data(self, df):
         df = self.process_data(df)
         chart_data = self.to_series(df)
 
-        if self.extra_chart_data:
-            chart_data += self.extra_chart_data
+        if self._extra_chart_data:
+            chart_data += self._extra_chart_data
             chart_data = sorted(chart_data, key=lambda x: x['key'])
 
         return chart_data
