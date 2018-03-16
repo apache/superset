@@ -4,6 +4,7 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import ColumnOption from '../../../javascripts/components/ColumnOption';
+import ColumnTypeLabel from '../../../javascripts/components/ColumnTypeLabel';
 import InfoTooltipWithTrigger from '../../../javascripts/components/InfoTooltipWithTrigger';
 
 describe('ColumnOption', () => {
@@ -14,6 +15,7 @@ describe('ColumnOption', () => {
       expression: 'SUM(foo)',
       description: 'Foo is the greatest column of all',
     },
+    showType: false,
   };
 
   let wrapper;
@@ -43,5 +45,23 @@ describe('ColumnOption', () => {
     props.column.verbose_name = null;
     wrapper = shallow(factory(props));
     expect(wrapper.find('.option-label').first().text()).to.equal('foo');
+  });
+  it('shows a column type label when showType is true', () => {
+    props.showType = true;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+  });
+  it('column with expression has correct column label if showType is true', () => {
+    props.showType = true;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+    expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('expression');
+  });
+  it('dttm column has correct column label if showType is true', () => {
+    props.showType = true;
+    props.column.is_dttm = true;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+    expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('time');
   });
 });
