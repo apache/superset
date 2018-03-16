@@ -203,8 +203,8 @@ class SqlLabTests(SupersetTestCase):
             raise_on_error=True)
 
     def test_df_conversion_no_dict(self):
-        cols = [['string_col'], ['int_col']]
-        data = [['a', 4]]
+        cols = [['string_col'], ['int_col'], ['float_col']]
+        data = [['a', 4, 4.0]]
         cdf = convert_results_to_df(cols, data)
 
         self.assertEquals(len(data), cdf.size)
