@@ -223,6 +223,7 @@ class Chart extends React.PureComponent {
           !this.props.chartAlert &&
           this.props.refreshOverlayVisible &&
           !this.props.errorMessage &&
+          !this.props.vizType.startsWith('deck_') &&
           <RefreshChartOverlay
             height={this.height()}
             width={this.width()}
