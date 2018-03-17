@@ -14,6 +14,7 @@ import WithPopoverMenu from './menu/WithPopoverMenu';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
+  DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
 
 const propTypes = {
@@ -65,12 +66,13 @@ class DashboardBuilder extends React.Component {
 
     return (
       <div className="dashboard-v2">
-        {topLevelTabs ? ( // you cannot displace tabs if they already exist
+        {topLevelTabs ? ( // you cannot drop on/displace tabs if they already exist
           <DashboardHeader />
         ) : (
           <DragDroppable
             component={dashboardRoot}
             parentComponent={null}
+            depth={DASHBOARD_ROOT_DEPTH}
             index={0}
             orientation="column"
             onDrop={topLevelTabs ? null : handleComponentDrop}
@@ -97,7 +99,7 @@ class DashboardBuilder extends React.Component {
             <DashboardComponent
               id={topLevelTabs.id}
               parentId={DASHBOARD_ROOT_ID}
-              depth={0}
+              depth={DASHBOARD_ROOT_DEPTH + 1}
               index={0}
               renderTabContent={false}
               onChangeTab={this.handleChangeTab}
@@ -110,6 +112,7 @@ class DashboardBuilder extends React.Component {
             dashboard={dashboard}
             handleComponentDrop={handleComponentDrop}
             updateComponents={updateComponents}
+            depth={DASHBOARD_ROOT_DEPTH + 1}
           />
           <BuilderComponentPane />
         </div>

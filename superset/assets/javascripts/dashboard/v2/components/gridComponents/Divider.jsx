@@ -10,6 +10,7 @@ const propTypes = {
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
   component: componentShape.isRequired,
+  depth: PropTypes.number.isRequired,
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
@@ -30,6 +31,7 @@ class Divider extends React.PureComponent {
   render() {
     const {
       component,
+      depth,
       parentComponent,
       index,
       handleComponentDrop,
@@ -41,6 +43,7 @@ class Divider extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="row"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (

@@ -143,6 +143,7 @@ class Tabs extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="row"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
       >
         {({ dropIndicatorProps: tabsDropIndicatorProps, dragSourceRef: tabsDragSourceRef }) => (
@@ -188,7 +189,7 @@ class Tabs extends React.PureComponent {
                     <DashboardComponent
                       id={tabId}
                       parentId={tabsComponent.id}
-                      depth={depth}
+                      depth={depth} // see isValidChild.js for why tabs don't increment child depth
                       index={tabIndex}
                       renderType={RENDER_TAB_CONTENT}
                       availableColumnCount={availableColumnCount}

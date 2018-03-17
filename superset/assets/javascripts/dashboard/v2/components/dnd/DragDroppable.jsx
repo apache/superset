@@ -12,6 +12,7 @@ const propTypes = {
   className: PropTypes.string,
   component: componentShape.isRequired,
   parentComponent: componentShape,
+  depth: PropTypes.number.isRequired,
   disableDragDrop: PropTypes.bool,
   orientation: PropTypes.oneOf(['row', 'column']),
   index: PropTypes.number.isRequired,

@@ -80,6 +80,7 @@ class Column extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="column"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (

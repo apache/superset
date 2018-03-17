@@ -15,6 +15,7 @@ export const NEW_TAB_ID = 'NEW_TAB_ID';
 export const NEW_TABS_ID = 'NEW_TABS_ID';
 
 // grid constants
+export const DASHBOARD_ROOT_DEPTH = 0;
 export const GRID_BASE_UNIT = 8;
 export const GRID_GUTTER_SIZE = 2 * GRID_BASE_UNIT;
 export const GRID_ROW_HEIGHT_UNIT = 2 * GRID_BASE_UNIT;

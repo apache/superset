@@ -69,6 +69,7 @@ class Spacer extends React.PureComponent {
         parentComponent={parentComponent}
         orientation={orientation}
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (

@@ -2,19 +2,21 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ParentSize from '@vx/responsive/build/components/ParentSize';
 
+import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import DragDroppable from './dnd/DragDroppable';
 
 import {
-  // DASHBOARD_ROOT_ID,
   GRID_GUTTER_SIZE,
   GRID_COLUMN_COUNT,
 } from '../util/constants';
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
-  updateComponents: PropTypes.func.isRequired,
+  depth: PropTypes.number.isRequired,
+  gridComponent: componentShape.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
+  updateComponents: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -84,7 +86,7 @@ class DashboardGrid extends React.PureComponent {
   }
 
   render() {
-    const { gridComponent, handleComponentDrop } = this.props;
+    const { gridComponent, handleComponentDrop, depth } = this.props;
     const { isResizing, rowGuideTop } = this.state;
 
     return (
@@ -102,7 +104,7 @@ class DashboardGrid extends React.PureComponent {
                     key={id}
                     id={id}
                     parentId={gridComponent.id}
-                    depth={0}
+                    depth={depth + 1}
                     index={index}
                     availableColumnCount={GRID_COLUMN_COUNT}
                     columnWidth={columnWidth}
@@ -116,6 +118,7 @@ class DashboardGrid extends React.PureComponent {
                 {gridComponent.children.length === 0 &&
                   <DragDroppable
                     component={gridComponent}
+                    depth={depth}
                     parentComponent={null}
                     index={0}
                     orientation="column"

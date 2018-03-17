@@ -19,6 +19,7 @@ const propTypes = {
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
   component: componentShape.isRequired,
+  depth: PropTypes.number.isRequired,
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
 
@@ -74,6 +75,7 @@ class Header extends React.PureComponent {
 
     const {
       component,
+      depth,
       parentComponent,
       index,
       handleComponentDrop,
@@ -93,6 +95,7 @@ class Header extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="row"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
         disableDragDrop={isFocused}
       >

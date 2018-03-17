@@ -105,7 +105,7 @@ export default class Tab extends React.PureComponent {
             key={componentId}
             id={componentId}
             parentId={tabComponent.id}
-            depth={depth}
+            depth={depth} // see isValidChild.js for why tabs don't increment child depth
             index={componentIndex}
             onDrop={this.handleDrop}
             availableColumnCount={availableColumnCount}
@@ -125,6 +125,7 @@ export default class Tab extends React.PureComponent {
       component,
       parentComponent,
       index,
+      depth,
     } = this.props;
 
     return (
@@ -133,6 +134,7 @@ export default class Tab extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="column"
         index={index}
+        depth={depth}
         onDrop={this.handleDrop}
         disableDragDrop={isFocused}
       >
