@@ -28,16 +28,19 @@ const sqlWords = sqlKeywords.map(s => ({
 const propTypes = {
   actions: PropTypes.object.isRequired,
   onBlur: PropTypes.func,
-  onAltEnter: PropTypes.func,
   sql: PropTypes.string.isRequired,
   tables: PropTypes.array,
   queryEditor: PropTypes.object.isRequired,
   height: PropTypes.string,
+  hotkeys: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.string.isRequired,
+    descr: PropTypes.string.isRequired,
+    func:  PropTypes.func.isRequired,
+  })),
 };
 
 const defaultProps = {
   onBlur: () => {},
-  onAltEnter: () => {},
   tables: [],
 };
 
@@ -67,16 +70,20 @@ class AceEditorWrapper extends React.PureComponent {
   }
   onAltEnter() {
     this.props.onBlur(this.state.sql);
-    this.props.onAltEnter();
   }
   onEditorLoad(editor) {
-    editor.commands.addCommand({
-      name: 'runQuery',
-      bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
-      exec: () => {
-        this.onAltEnter();
-      },
+      editor.commands.addCommand({
+        name: 'runQuery',
+        bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
+        exec: () => {
+          this.onAltEnter();
+        },
+      });
+    /*
+     * TODO make hotkeys work
+    this.props.hotkeys.forEach(keyConfig => {
     });
+    */
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
       const selectedText = editor.getSelectedText();
