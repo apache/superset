@@ -187,6 +187,7 @@ export const visTypes = {
           ['y_axis_label', 'left_margin'],
           ['y_axis_showminmax', 'y_log_scale'],
           ['y_axis_format', 'y_axis_bounds'],
+          ['line_fill_area', null],
         ],
       },
       sections.NVD3TimeSeries[1],

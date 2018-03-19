@@ -173,6 +173,14 @@ function nvd3Vis(slice, payload) {
         } else {
           chart = nv.models.lineChart();
         }
+
+        if (fd.line_fill_area) {
+          data = data.map(d => ({
+            ...d,
+            area: true,
+          }));
+        }
+
         // To alter the tooltip header
         // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
         chart.xScale(d3.time.scale.utc());

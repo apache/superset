@@ -376,6 +376,14 @@ export const controls = {
     description: null,
   },
 
+  line_fill_area: {
+    type: 'CheckboxControl',
+    label: t('Fill Area of Line Chart'),
+    renderTrigger: true,
+    default: false,
+    description: null,
+  },
+
   pivot_margins: {
     type: 'CheckboxControl',
     label: t('Show totals'),
