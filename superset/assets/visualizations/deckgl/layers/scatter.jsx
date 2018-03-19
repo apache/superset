@@ -199,14 +199,13 @@ class DeckGLScatter extends React.PureComponent {
 DeckGLScatter.propTypes = propTypes;
 
 function deckScatter(slice, payload, setControlValue) {
-  const layer = getLayer(slice.formData, payload, slice);
   const fd = slice.formData;
   const width = slice.width();
   const height = slice.height();
   let viewport = {
     ...fd.viewport,
-    width,
-    height,
+    width: slice.width(),
+    height: slice.height(),
   };
 
   if (fd.autozoom) {
