@@ -540,7 +540,7 @@ function nvd3Vis(slice, payload) {
           .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
         bushel.concat((slice.annotationData[a.name] || []).map((series) => {
           if (!series) {
-          return {};
+            return {};
           }
           const key = Array.isArray(series.key) ?
             `${a.name}, ${series.key.join(', ')}` : a.name;
