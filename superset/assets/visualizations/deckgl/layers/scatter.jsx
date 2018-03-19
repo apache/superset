@@ -200,8 +200,6 @@ DeckGLScatter.propTypes = propTypes;
 
 function deckScatter(slice, payload, setControlValue) {
   const fd = slice.formData;
-  const width = slice.width();
-  const height = slice.height();
   let viewport = {
     ...fd.viewport,
     width: slice.width(),

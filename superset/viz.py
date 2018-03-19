@@ -2066,7 +2066,6 @@ class DeckScreengrid(BaseDeckGLViz):
     def query_obj(self):
         fd = self.form_data
         self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
-        print('HERE', self.is_timeseries)
         return super(DeckScreengrid, self).query_obj()
 
     def get_properties(self, d):
