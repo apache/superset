@@ -11,7 +11,7 @@ import Legend from '../../Legend';
 
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
-import { parseTimeGrain } from '../../../javascripts/modules/time';
+import { getPlaySliderParams } from '../../../javascripts/modules/time';
 import { unitToRadius } from '../../../javascripts/modules/geo';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
@@ -96,20 +96,10 @@ class DeckGLScatter extends React.PureComponent {
   /* eslint-disable no-unused-vars */
   static getDerivedStateFromProps(nextProps, prevState) {
     const fd = nextProps.slice.formData;
+
     const timeGrain = fd.time_grain_sqla || fd.granularity || 'minute';
-
-    // find start and end based on the data
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    let start = Math.min(...timestamps);
-    let end = Math.max(...timestamps);
-
-    // lock start and end to the closest steps
-    const step = parseTimeGrain(timeGrain);
-    start -= start % step;
-    end += step - end % step;
-
-    const values = timeGrain != null ? [start, start + step] : [start, end];
-    const disabled = timestamps.every(timestamp => timestamp === null);
+    const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
 
     const categories = getCategories(fd, nextProps.payload);
 
