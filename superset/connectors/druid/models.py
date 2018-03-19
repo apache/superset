@@ -1149,8 +1149,8 @@ class DruidDatasource(Model, BaseDatasource):
                 aggs_dict, adhoc_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
-                pre_qry['aggregations'] = aggs_dict
-                pre_qry['post_aggregations'] = post_aggs_dict
+                pre_qry['aggregations'].update(aggs_dict)
+                pre_qry['post_aggregations'].update(post_aggs_dict)
             else:
                 order_by = list(qry['aggregations'].keys())[0]
             # Limit on the number of timeseries, doing a two-phases query
