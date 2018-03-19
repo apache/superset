@@ -97,7 +97,7 @@ def convert_results_to_df(cursor_description, data):
     if data:
         first_row = data[0]
         has_dict_col = any([isinstance(c, dict) for c in first_row])
-        df_data = list(data) if has_dict_col else np.array(data)
+        df_data = list(data) if has_dict_col else np.array(data, dtype=object)
     else:
         df_data = []
 
