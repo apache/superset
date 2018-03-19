@@ -894,7 +894,7 @@ class DruidDatasource(Model, BaseDatasource):
         post_aggs[postagg.metric_name] = DruidDatasource.get_post_agg(postagg.json_obj)
 
     @staticmethod
-    def aggs_and_post_aggs(metrics, metrics_dict):
+    def metrics_and_post_aggs(metrics, metrics_dict):
         # Separate metrics into those that are aggregations
         # and those that are post aggregations
         saved_agg_names = set()
@@ -1091,7 +1091,7 @@ class DruidDatasource(Model, BaseDatasource):
         metrics_dict = {m.metric_name: m for m in self.metrics}
         columns_dict = {c.column_name: c for c in self.columns}
 
-        aggregations, adhoc_metrics, post_aggs = DruidDatasource.aggs_and_post_aggs(
+        aggregations, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
             metrics_dict)
 
@@ -1146,7 +1146,7 @@ class DruidDatasource(Model, BaseDatasource):
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
-                aggs_dict, post_aggs_dict = DruidDatasource.aggs_and_post_aggs(
+                aggs_dict, adhoc_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
                 pre_qry['aggregations'] = aggs_dict

@@ -157,9 +157,9 @@ class DruidFuncTestCase(unittest.TestCase):
         col1 = DruidColumn(column_name='col1')
         col2 = DruidColumn(column_name='col2')
         ds.columns = [col1, col2]
-        all_metrics = []
+        aggs = []
         post_aggs = ['some_agg']
-        ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
+        ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = []
         metrics = ['metric1']
         ds.get_having_filters = Mock(return_value=[])
@@ -242,9 +242,9 @@ class DruidFuncTestCase(unittest.TestCase):
         col1 = DruidColumn(column_name='col1')
         col2 = DruidColumn(column_name='col2')
         ds.columns = [col1, col2]
-        all_metrics = ['metric1']
+        aggs = ['metric1']
         post_aggs = ['some_agg']
-        ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
+        ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = ['col1']
         metrics = ['metric1']
         ds.get_having_filters = Mock(return_value=[])
@@ -316,9 +316,9 @@ class DruidFuncTestCase(unittest.TestCase):
         col1 = DruidColumn(column_name='col1')
         col2 = DruidColumn(column_name='col2')
         ds.columns = [col1, col2]
-        all_metrics = []
+        aggs = []
         post_aggs = ['some_agg']
-        ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
+        ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = ['col1', 'col2']
         metrics = ['metric1']
         ds.get_having_filters = Mock(return_value=[])
@@ -512,10 +512,10 @@ class DruidFuncTestCase(unittest.TestCase):
         depends_on('I', ['H', 'K'])
         depends_on('J', 'K')
         depends_on('K', ['m8', 'm9'])
-        all_metrics, saved_metrics, postaggs = DruidDatasource.metrics_and_post_aggs(
+        aggs, saved_metrics, postaggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
-        expected_metrics = set(all_metrics)
-        self.assertEqual(9, len(all_metrics))
+        expected_metrics = set(aggs.keys())
+        self.assertEqual(9, len(aggs))
         for i in range(1, 10):
             expected_metrics.remove('m' + str(i))
         self.assertEqual(0, len(expected_metrics))
