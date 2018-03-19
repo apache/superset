@@ -220,8 +220,13 @@ class BaseSupersetView(BaseView):
         }
 
 
+class SupersetListWidget(ListWidget):
+    template = 'superset/fab_overrides/list.html'
+
+
 class SupersetModelView(ModelView):
     page_size = 100
+    list_widget = SupersetListWidget
 
 
 class ListWidgetWithCheckboxes(ListWidget):
