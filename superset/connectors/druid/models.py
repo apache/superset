@@ -456,6 +456,7 @@ class DruidDatasource(Model, BaseDatasource):
     # Columns
     datasource_name = Column(String(255))
     is_hidden = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
     cluster_name = Column(
         String(250), ForeignKey('clusters.cluster_name'))
