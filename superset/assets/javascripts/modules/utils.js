@@ -259,3 +259,19 @@ export function getParam(name) {
   const results = regex.exec(location.search);
   return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
 }
+
+export function mainMetric(metricOptions) {
+  // Using 'count' as default metric if it exists, otherwise using whatever one shows up first
+  let metric;
+  if (metricOptions && metricOptions.length > 0) {
+    metricOptions.forEach((m) => {
+      if (m.metric_name === 'count') {
+        metric = 'count';
+      }
+    });
+    if (!metric) {
+      metric = metricOptions[0].metric_name;
+    }
+  }
+  return metric;
+}
