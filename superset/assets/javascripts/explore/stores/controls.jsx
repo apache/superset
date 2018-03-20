@@ -1222,6 +1222,16 @@ export const controls = {
     description: t('What should be shown on the label?'),
   },
 
+  sql: {
+    type: 'TextAreaControl',
+    label: t('Code'),
+    description: t('Put your sql here. This feature is for developers who understand superset. If you are not sure, please do not fill in anything, it will be ignored.'),
+    mapStateToProps: state => ({
+      language: state.controls && state.controls.markup_type ? state.controls.markup_type.value : 'sql',
+    }),
+    default: '',
+  },
+
   code: {
     type: 'TextAreaControl',
     label: t('Code'),

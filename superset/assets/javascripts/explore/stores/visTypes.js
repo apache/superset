@@ -1078,6 +1078,12 @@ export const visTypes = {
         ],
       },
       {
+        label: t('Code'),
+        controlSetRows: [
+          ['sql'],
+        ],
+      },
+      {
         label: t('Chart Options'),
         expanded: true,
         controlSetRows: [
