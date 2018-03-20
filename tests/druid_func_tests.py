@@ -706,8 +706,8 @@ class DruidFuncTestCase(unittest.TestCase):
                             'type': 'fieldAccess',
                         },
                     ],
-                })
-            )
+                }),
+            ),
         }
         ds.columns = [dim1, dim2]
         ds.metrics = list(metrics_dict.values())
@@ -726,8 +726,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual('sum1', qry_obj['metric'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertItemsEqual(['count1', 'sum1'], list(aggregations.keys()))
-        self.assertItemsEqual([], list(post_aggregations.keys()))
+        self.assertEqual(set(['count1', 'sum1']), set(aggregations.keys()))
+        self.assertEqual(set([]), set(post_aggregations.keys()))
 
         # get the counts of the top 5 'dim1's, order by 'div1'
         ds.run_query(
@@ -740,8 +740,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual('div1', qry_obj['metric'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertItemsEqual(['count1', 'sum1', 'sum2'], list(aggregations.keys()))
-        self.assertItemsEqual(['div1'], list(post_aggregations.keys()))
+        self.assertEqual(set(['count1', 'sum1', 'sum2']), set(aggregations.keys()))
+        self.assertEqual(set(['div1']), set(post_aggregations.keys()))
 
         groupby = ['dim1', 'dim2']
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
@@ -751,12 +751,12 @@ class DruidFuncTestCase(unittest.TestCase):
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.groupby.call_args_list[0][1]
-        self.assertItemsEqual(['dim1', 'dim2'], qry_obj['dimensions'])
+        self.assertEqual(set(['dim1', 'dim2']), set(qry_obj['dimensions']))
         self.assertEqual('sum1', qry_obj['limit_spec']['columns'][0]['dimension'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertItemsEqual(['count1', 'sum1'], list(aggregations.keys()))
-        self.assertItemsEqual([], list(post_aggregations.keys()))
+        self.assertEqual(set(['count1', 'sum1']), set(aggregations.keys()))
+        self.assertEqual(set([]), set(post_aggregations.keys()))
 
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
         ds.run_query(
@@ -765,9 +765,9 @@ class DruidFuncTestCase(unittest.TestCase):
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.groupby.call_args_list[1][1]
-        self.assertItemsEqual(['dim1', 'dim2'], qry_obj['dimensions'])
+        self.assertEqual(set(['dim1', 'dim2']), set(qry_obj['dimensions']))
         self.assertEqual('div1', qry_obj['limit_spec']['columns'][0]['dimension'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertItemsEqual(['count1', 'sum1', 'sum2'], list(aggregations.keys()))
-        self.assertItemsEqual(['div1'], list(post_aggregations.keys()))
+        self.assertEqual(set(['count1', 'sum1', 'sum2']), set(aggregations.keys()))
+        self.assertEqual(set(['div1']), set(post_aggregations.keys()))
