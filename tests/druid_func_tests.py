@@ -596,7 +596,7 @@ class DruidFuncTestCase(unittest.TestCase):
         saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert saved_metrics == ['some_sum']
+        assert set(saved_metrics.keys()) == {'some_sum'}
         assert adhoc_metrics == []
         assert post_aggs == {}
 
@@ -604,7 +604,7 @@ class DruidFuncTestCase(unittest.TestCase):
         saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert saved_metrics == []
+        assert set(saved_metrics.keys()) == set([])
         assert adhoc_metrics == [adhoc_metric]
         assert post_aggs == {}
 
@@ -612,7 +612,7 @@ class DruidFuncTestCase(unittest.TestCase):
         saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert saved_metrics == ['some_sum']
+        assert set(saved_metrics.keys()) == {'some_sum'}
         assert adhoc_metrics == [adhoc_metric]
         assert post_aggs == {}
 
@@ -621,7 +621,7 @@ class DruidFuncTestCase(unittest.TestCase):
             metrics, metrics_dict)
 
         result_postaggs = set(['quantile_p95'])
-        assert saved_metrics == ['a_histogram']
+        assert set(saved_metrics.keys()) == {'a_histogram'}
         assert adhoc_metrics == []
         assert set(post_aggs.keys()) == result_postaggs
 
@@ -630,7 +630,7 @@ class DruidFuncTestCase(unittest.TestCase):
             metrics, metrics_dict)
 
         result_postaggs = set(['aCustomPostAgg'])
-        assert saved_metrics == ['aCustomMetric']
+        assert set(saved_metrics.keys()) == {'aCustomMetric'}
         assert adhoc_metrics == []
         assert set(post_aggs.keys()) == result_postaggs
 
