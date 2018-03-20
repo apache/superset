@@ -893,8 +893,8 @@ class DruidDatasource(Model, BaseDatasource):
                     missing_postagg, post_aggs, agg_names, visited_postaggs, metrics_dict)
         post_aggs[postagg.metric_name] = DruidDatasource.get_post_agg(postagg.json_obj)
 
-    @staticmethod
-    def metrics_and_post_aggs(metrics, metrics_dict):
+    @classmethod
+    def metrics_and_post_aggs(cls, metrics, metrics_dict):
         # Separate metrics into those that are aggregations
         # and those that are post aggregations
         saved_agg_names = set()
@@ -914,9 +914,9 @@ class DruidDatasource(Model, BaseDatasource):
         for postagg_name in postagg_names:
             postagg = metrics_dict[postagg_name]
             visited_postaggs.add(postagg_name)
-            DruidDatasource.resolve_postagg(
+            cls.resolve_postagg(
                 postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict)
-        aggs = DruidDatasource.get_aggregations(metrics_dict, saved_agg_names)
+        aggs = cls.get_aggregations(metrics_dict, saved_agg_names)
         return aggs, adhoc_agg_configs, post_aggs
 
     @staticmethod
@@ -1149,8 +1149,12 @@ class DruidDatasource(Model, BaseDatasource):
                 aggs_dict, adhoc_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
-                pre_qry['aggregations'].update(aggs_dict)
-                pre_qry['post_aggregations'].update(post_aggs_dict)
+                if phase == 1:
+                    pre_qry['aggregations'].update(aggs_dict)
+                    pre_qry['post_aggregations'].update(post_aggs_dict)
+                else:
+                    pre_qry['aggregations'] = aggs_dict
+                    pre_qry['post_aggregations'] = post_aggs_dict
             else:
                 order_by = list(qry['aggregations'].keys())[0]
             # Limit on the number of timeseries, doing a two-phases query
@@ -1200,6 +1204,15 @@ class DruidDatasource(Model, BaseDatasource):
 
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
+                    aggs_dict, adhoc_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
+                        [timeseries_limit_metric],
+                        metrics_dict)
+                    if phase == 1:
+                        pre_qry['aggregations'].update(aggs_dict)
+                        pre_qry['post_aggregations'].update(post_aggs_dict)
+                    else:
+                        pre_qry['aggregations'] = aggs_dict
+                        pre_qry['post_aggregations'] = post_aggs_dict
 
                 # Limit on the number of timeseries, doing a two-phases query
                 pre_qry['granularity'] = 'all'

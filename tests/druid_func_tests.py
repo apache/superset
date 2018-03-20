@@ -663,3 +663,111 @@ class DruidFuncTestCase(unittest.TestCase):
             'label': 'My Adhoc Metric',
         })
         assert(druid_type == 'cardinality')
+
+    def test_run_query_order_by_metrics(self):
+        client = Mock()
+        client.query_builder.last_query.query_dict = {'mock': 0}
+        from_dttm = Mock()
+        to_dttm = Mock()
+        ds = DruidDatasource(datasource_name='datasource')
+        ds.get_having_filters = Mock(return_value=[])
+        dim1 = DruidColumn(column_name='dim1')
+        dim2 = DruidColumn(column_name='dim2')
+        metrics_dict = {
+            'count1': DruidMetric(
+                metric_name='count1',
+                metric_type='count',
+                json=json.dumps({'type': 'count', 'name': 'count1'}),
+            ),
+            'sum1': DruidMetric(
+                metric_name='sum1',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum1'}),
+            ),
+            'sum2': DruidMetric(
+                metric_name='sum2',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum2'}),
+            ),
+            'div1': DruidMetric(
+                metric_name='div1',
+                metric_type='postagg',
+                json=json.dumps({
+                    'fn': '/',
+                    'type': 'arithmetic',
+                    'name': 'div1',
+                    'fields': [
+                        {
+                            'fieldName': 'sum1',
+                            'type': 'fieldAccess',
+                        },
+                        {
+                            'fieldName': 'sum2',
+                            'type': 'fieldAccess',
+                        },
+                    ],
+                })
+            )
+        }
+        ds.columns = [dim1, dim2]
+        ds.metrics = list(metrics_dict.values())
+
+        groupby = ['dim1']
+        metrics = ['count1']
+        granularity = 'all'
+        # get the counts of the top 5 'dim1's, order by 'sum1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='sum1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.topn.call_args_list[0][1]
+        self.assertEqual('dim1', qry_obj['dimension'])
+        self.assertEqual('sum1', qry_obj['metric'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertItemsEqual(['count1', 'sum1'], list(aggregations.keys()))
+        self.assertItemsEqual([], list(post_aggregations.keys()))
+
+        # get the counts of the top 5 'dim1's, order by 'div1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='div1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.topn.call_args_list[1][1]
+        self.assertEqual('dim1', qry_obj['dimension'])
+        self.assertEqual('div1', qry_obj['metric'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertItemsEqual(['count1', 'sum1', 'sum2'], list(aggregations.keys()))
+        self.assertItemsEqual(['div1'], list(post_aggregations.keys()))
+
+        groupby = ['dim1', 'dim2']
+        # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='sum1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.groupby.call_args_list[0][1]
+        self.assertItemsEqual(['dim1', 'dim2'], qry_obj['dimensions'])
+        self.assertEqual('sum1', qry_obj['limit_spec']['columns'][0]['dimension'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertItemsEqual(['count1', 'sum1'], list(aggregations.keys()))
+        self.assertItemsEqual([], list(post_aggregations.keys()))
+
+        # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='div1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.groupby.call_args_list[1][1]
+        self.assertItemsEqual(['dim1', 'dim2'], qry_obj['dimensions'])
+        self.assertEqual('div1', qry_obj['limit_spec']['columns'][0]['dimension'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertItemsEqual(['count1', 'sum1', 'sum2'], list(aggregations.keys()))
+        self.assertItemsEqual(['div1'], list(post_aggregations.keys()))
