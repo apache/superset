@@ -24,8 +24,6 @@ export default function getDropPosition(monitor, Component) {
     return null;
   }
 
-  debugger;
-
   const validChild = isValidChild({
     parentType: component.type,
     parentDepth: componentDepth,
@@ -46,7 +44,7 @@ export default function getDropPosition(monitor, Component) {
     return null;
   }
 
-  const hasChildren = component.children.length > 0;
+  const hasChildren = (component.children || []).length > 0;
   const childDropOrientation = orientation === 'row' ? 'vertical' : 'horizontal';
   const siblingDropOrientation = orientation === 'row' ? 'horizontal' : 'vertical';
 

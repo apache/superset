@@ -18,7 +18,6 @@ const propTypes = {
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
   columnWidth: PropTypes.number.isRequired,
-  occupiedRowCount: PropTypes.number,
   onResizeStart: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
   onResizeStop: PropTypes.func.isRequired,
@@ -29,7 +28,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  occupiedRowCount: null,
 };
 
 class Spacer extends React.PureComponent {
@@ -51,7 +49,6 @@ class Spacer extends React.PureComponent {
       depth,
       availableColumnCount,
       columnWidth,
-      occupiedRowCount,
       onResizeStart,
       onResize,
       onResizeStop,
@@ -80,7 +77,6 @@ class Spacer extends React.PureComponent {
             widthStep={columnWidth}
             widthMultiple={component.meta.width}
             heightMultiple={adjustableHeight ? component.meta.height || 1 : undefined}
-            staticHeightMultiple={!adjustableHeight ? occupiedRowCount || 5 : undefined}
             minWidthMultiple={1}
             minHeightMultiple={1}
             maxWidthMultiple={availableColumnCount + (component.meta.width || 0)}

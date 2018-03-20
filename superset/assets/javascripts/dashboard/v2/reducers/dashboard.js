@@ -3,7 +3,15 @@ import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
 import shouldWrapChildInRow from '../util/shouldWrapChildInRow';
-import { TAB_TYPE, TABS_TYPE, ROW_TYPE } from '../util/componentTypes';
+import {
+  CHART_TYPE,
+  COLUMN_TYPE,
+  MARKDOWN_TYPE,
+  ROW_TYPE,
+  TAB_TYPE,
+  TABS_TYPE,
+
+} from '../util/componentTypes';
 
 import {
   UPDATE_COMPONENTS,
@@ -60,7 +68,23 @@ const actionHandlers = {
 
   [CREATE_COMPONENT](state, action) {
     const { payload: { dropResult } } = action;
+    const { destination, dragging } = dropResult;
     const newEntities = newEntitiesFromDrop({ dropResult, components: state });
+
+    // inherit the width of a column parent
+    if (destination.type === COLUMN_TYPE && [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)) {
+      const newEntitiesArray = Object.values(newEntities);
+      const component = newEntitiesArray.find(entity => entity.type === dragging.type);
+      const parentColumn = newEntities[destination.id];
+
+      newEntities[component.id] = {
+        ...component,
+        meta: {
+          ...component.meta,
+          width: parentColumn.meta.width,
+        },
+      };
+    }
 
     return {
       ...state,
@@ -93,6 +117,19 @@ const actionHandlers = {
       newRow.children = [destinationChildren[destination.index]];
       destinationChildren[destination.index] = newRow.id;
       nextEntities[newRow.id] = newRow;
+    }
+
+    // inherit the width of a column parent
+    if (destination.type === COLUMN_TYPE && [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)) {
+      const component = nextEntities[dragging.id];
+      const parentColumn = nextEntities[destination.id];
+      nextEntities[dragging.id] = {
+        ...component,
+        meta: {
+          ...component.meta,
+          width: parentColumn.meta.width,
+        },
+      };
     }
 
     return {

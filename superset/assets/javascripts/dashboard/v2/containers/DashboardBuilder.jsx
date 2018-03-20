@@ -4,7 +4,6 @@ import DashboardBuilder from '../components/DashboardBuilder';
 
 import {
   deleteTopLevelTabs,
-  updateComponents,
   handleComponentDrop,
 } from '../actions';
 
@@ -17,7 +16,6 @@ function mapStateToProps({ dashboard: undoableDashboard }) {
 function mapDispatchToProps(dispatch) {
   return bindActionCreators({
     deleteTopLevelTabs,
-    updateComponents,
     handleComponentDrop,
   }, dispatch);
 }

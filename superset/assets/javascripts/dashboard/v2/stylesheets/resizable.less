@@ -1,10 +1,10 @@
-.grid-resizable-container {
+.resizable-container {
   background-color: transparent;
   position: relative;
 }
 
 /* after ensures border visibility on top of any children */
-.grid-resizable-container--resizing:after {
+.resizable-container--resizing:after {
   content: "";
   position: absolute;
   top: 0;
@@ -18,8 +18,8 @@
   opacity: 0;
 }
 
-  .grid-resizable-container:hover .resize-handle,
-  .grid-resizable-container--resizing .resize-handle {
+  .resizable-container:hover .resize-handle,
+  .resizable-container--resizing .resize-handle {
     opacity: 1;
   }
 
@@ -59,14 +59,14 @@
   border-bottom: 1px solid @gray;
 }
 
-.grid-resizable-container--resizing > span .resize-handle {
+.resizable-container--resizing > span .resize-handle {
   border-color: @indicator-color;
 }
 
 /* re-resizable sets an empty div to 100% width and height, which doesn't
   play well with many 100% height containers we need
  */
-.grid-resizable-container ~ div {
+.resizable-container ~ div {
   width: auto !important;
   height: auto !important;
 }

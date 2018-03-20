@@ -12,11 +12,10 @@ import {
 } from '../util/constants';
 
 const propTypes = {
-  dashboard: PropTypes.object.isRequired,
   depth: PropTypes.number.isRequired,
   gridComponent: componentShape.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
-  updateComponents: PropTypes.func.isRequired,
+  resizeComponent: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -61,24 +60,9 @@ class DashboardGrid extends React.PureComponent {
     }
   }
 
-  handleResizeStop({ id, widthMultiple, heightMultiple }) {
-    const { dashboard: components, updateComponents } = this.props;
-    const component = components[id];
-    if (
-      component &&
-      (component.meta.width !== widthMultiple || component.meta.height !== heightMultiple)
-    ) {
-      updateComponents({
-        [id]: {
-          ...component,
-          meta: {
-            ...component.meta,
-            width: widthMultiple || component.meta.width,
-            height: heightMultiple || component.meta.height,
-          },
-        },
-      });
-    }
+  handleResizeStop({ id, widthMultiple: width, heightMultiple: height }) {
+    this.props.resizeComponent({ id, width, height });
+
     this.setState(() => ({
       isResizing: false,
       rowGuideTop: null,

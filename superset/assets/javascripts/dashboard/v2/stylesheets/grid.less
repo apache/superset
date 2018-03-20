@@ -27,9 +27,11 @@
 .grid-row-guide {
   position: absolute;
   left: 0;
-  height: 1;
-  background-color: var(--indicator-color);
+  bottom: 1;
+  height: 2;
+  background-color: @indicator-color;
   pointer-events: none;
+  z-index: 10;
 }
 
 
@@ -48,5 +50,5 @@
 
 .grid-container .grid-row:hover:after,
 .grid-container .grid-column:hover:after {
-  border: 1px dashed #aaa;
+  border: 1px solid @gray-light;
 }

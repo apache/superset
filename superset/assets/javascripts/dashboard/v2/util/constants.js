@@ -30,6 +30,6 @@ export const SMALL_HEADER = 'SMALL_HEADER';
 export const MEDIUM_HEADER = 'MEDIUM_HEADER';
 export const LARGE_HEADER = 'LARGE_HEADER';
 
-// Row types
-export const ROW_WHITE = 'ROW_WHITE';
-export const ROW_TRANSPARENT = 'ROW_TRANSPARENT';
+// Style types
+export const BACKGROUND_WHITE = 'BACKGROUND_WHITE';
+export const BACKGROUND_TRANSPARENT = 'BACKGROUND_TRANSPARENT';

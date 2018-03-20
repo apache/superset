@@ -50,9 +50,9 @@ const defaultProps = {
   onResizeStart: null,
 };
 
-// because columns are not actually multiples of a single variable (width = n*cols + (n-1)*gutters)
-// we snap to the base unit and then snap to actual column multiples on stop
-const snapToGrid = [GRID_BASE_UNIT, GRID_BASE_UNIT];
+// because columns are not multiples of a single variable (width = n*cols + (n-1) * gutters)
+// we snap to the base unit and then snap to _actual_ column multiples on stop
+const SNAP_TO_GRID = [GRID_BASE_UNIT, GRID_BASE_UNIT];
 
 class ResizableContainer extends React.PureComponent {
   constructor(props) {
@@ -120,9 +120,12 @@ class ResizableContainer extends React.PureComponent {
       adjustableHeight,
       widthStep,
       heightStep,
-      staticHeightMultiple,
       widthMultiple,
       heightMultiple,
+      staticHeight,
+      staticHeightMultiple,
+      staticWidth,
+      staticWidthMultiple,
       minWidthMultiple,
       maxWidthMultiple,
       minHeightMultiple,
@@ -132,10 +135,15 @@ class ResizableContainer extends React.PureComponent {
 
     const size = {
       width: adjustableWidth
-        ? ((widthStep + gutterWidth) * widthMultiple) - gutterWidth : undefined,
+        ? ((widthStep + gutterWidth) * widthMultiple) - gutterWidth
+        : (staticWidthMultiple && staticWidthMultiple * widthStep)
+          || staticWidth
+          || undefined,
       height: adjustableHeight
         ? heightStep * heightMultiple
-        : (staticHeightMultiple && staticHeightMultiple * heightStep) || undefined,
+        : (staticHeightMultiple && staticHeightMultiple * heightStep)
+          || staticHeight
+          || undefined,
     };
 
     let enableConfig = resizableConfig.notAdjustable;
@@ -148,27 +156,27 @@ class ResizableContainer extends React.PureComponent {
     return (
       <Resizable
         enable={enableConfig}
-        grid={snapToGrid}
+        grid={SNAP_TO_GRID}
         minWidth={adjustableWidth
           ? (minWidthMultiple * (widthStep + gutterWidth)) - gutterWidth
-          : size.width}
+          : undefined}
         minHeight={adjustableHeight
           ? (minHeightMultiple * heightStep)
-          : size.height}
+          : undefined}
         maxWidth={adjustableWidth
           ? (maxWidthMultiple * (widthStep + gutterWidth)) - gutterWidth
-          : size.width}
+          : undefined}
         maxHeight={adjustableHeight
           ? (maxHeightMultiple * heightStep)
-          : size.height}
+          : undefined}
         size={size}
         onResizeStart={this.handleResizeStart}
         onResize={this.handleResize}
         onResizeStop={this.handleResizeStop}
         handleComponent={ResizableHandle}
         className={cx(
-          'grid-resizable-container',
-          isResizing && 'grid-resizable-container--resizing',
+          'resizable-container',
+          isResizing && 'resizable-container--resizing',
         )}
       >
         {children}

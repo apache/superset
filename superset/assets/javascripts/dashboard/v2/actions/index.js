@@ -1,6 +1,10 @@
 import { DASHBOARD_ROOT_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
 import findParentId from '../util/findParentId';
-import { TABS_TYPE } from '../util/componentTypes';
+import {
+  CHART_TYPE,
+  MARKDOWN_TYPE,
+  TABS_TYPE,
+} from '../util/componentTypes';
 
 // Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
@@ -50,6 +54,49 @@ export function deleteTopLevelTabs() {
   return {
     type: DELETE_TOP_LEVEL_TABS,
     payload: {},
+  };
+}
+
+// Resize ---------------------------------------------------------------------
+export const RESIZE_COMPONENT = 'RESIZE_COMPONENT';
+export function resizeComponent({ id, width, height }) {
+  return (dispatch, getState) => {
+    const { dashboard: undoableDashboard } = getState();
+    const { present: dashboard } = undoableDashboard;
+    const component = dashboard[id];
+
+    if (
+      component &&
+      (component.meta.width !== width || component.meta.height !== height)
+    ) {
+      // update the size of this component + any resizable children
+      const updatedComponents = {
+        [id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            width: width || component.meta.width,
+            height: height || component.meta.height,
+          },
+        },
+      };
+
+      component.children.forEach((childId) => {
+        const child = dashboard[childId];
+        if ([CHART_TYPE, MARKDOWN_TYPE].includes(child.type)) {
+          updatedComponents[childId] = {
+            ...child,
+            meta: {
+              ...child.meta,
+              width: width || component.meta.width,
+              height: height || component.meta.height,
+            },
+          };
+        }
+      });
+
+      dispatch(updateComponents(updatedComponents));
+    }
   };
 }
 

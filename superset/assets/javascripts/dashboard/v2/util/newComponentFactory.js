@@ -12,16 +12,20 @@ import {
 
 import {
   MEDIUM_HEADER,
-  ROW_TRANSPARENT,
+  BACKGROUND_TRANSPARENT,
 } from './constants';
 
 const typeToDefaultMetaData = {
   [CHART_TYPE]: { width: 3, height: 15 },
-  [COLUMN_TYPE]: { width: 3 },
+  [COLUMN_TYPE]: { width: 3, background: BACKGROUND_TRANSPARENT },
   [DIVIDER_TYPE]: null,
-  [HEADER_TYPE]: { text: 'New header', headerSize: MEDIUM_HEADER, rowStyle: ROW_TRANSPARENT },
+  [HEADER_TYPE]: {
+    text: 'New header',
+    headerSize: MEDIUM_HEADER,
+    background: BACKGROUND_TRANSPARENT,
+  },
   [MARKDOWN_TYPE]: { width: 3, height: 15 },
-  [ROW_TYPE]: { rowStyle: ROW_TRANSPARENT },
+  [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
   [SPACER_TYPE]: {},
   [TABS_TYPE]: null,
   [TAB_TYPE]: { text: 'New Tab' },
