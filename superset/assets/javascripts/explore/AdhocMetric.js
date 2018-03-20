@@ -15,7 +15,7 @@ export default class AdhocMetric {
   }
 
   getDefaultLabel() {
-    return `${this.aggregate || ''}(${(this.column && this.column.column_name) || ''})`
+    return `${this.aggregate || ''}(${(this.column && this.column.column_name) || ''})`;
   }
 
   duplicateWith(nextFields) {

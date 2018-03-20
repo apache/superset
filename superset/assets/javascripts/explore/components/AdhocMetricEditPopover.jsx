@@ -33,10 +33,11 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.state = { adhocMetric: this.props.adhocMetric };
     this.selectProps = {
       multi: false,
-      name: "select-column",
+      name: 'select-column',
       labelKey: 'label',
       autosize: false,
       clearable: true,
+      selectWrap: VirtualizedSelect,
     };
   }
 
@@ -50,14 +51,20 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onAggregateChange(aggregate) {
-    // we construct this object explicitly because we still want to overwrite in the case aggregate is null
-    this.setState({ 
-      adhocMetric: this.state.adhocMetric.duplicateWith({ aggregate: aggregate && aggregate.aggregate }),
+    // we construct this object explicitly to overwrite the value in the case aggregate is null
+    this.setState({
+      adhocMetric: this.state.adhocMetric.duplicateWith({
+        aggregate: aggregate && aggregate.aggregate,
+      }),
     });
   }
 
   onLabelChange(e) {
-    this.setState({ adhocMetric: this.state.adhocMetric.duplicateWith({ label: e.target.value, hasCustomLabel: true })});
+    this.setState({
+      adhocMetric: this.state.adhocMetric.duplicateWith({
+        label: e.target.value, hasCustomLabel: true,
+      }),
+    });
   }
 
   render() {
@@ -68,25 +75,28 @@ export default class AdhocMetricEditPopover extends React.Component {
       options: columns,
       value: this.state.adhocMetric.column && this.state.adhocMetric.column.column_name,
       onChange: this.onColumnChange,
-      optionRenderer: VirtualizedRendererWrap((option) => (
+      optionRenderer: VirtualizedRendererWrap(option => (
         <ColumnOption column={option} showType />
       )),
-      valueRenderer: (column) => column.column_name,
+      valueRenderer: column => column.column_name,
       valueKey: 'column_name',
     };
 
     const aggregateSelectProps = {
       placeholder: t('%s aggregates(s)', Object.keys(AGGREGATES).length),
-      options: Object.keys(AGGREGATES).map((aggregate) => ({ aggregate })),
+      options: Object.keys(AGGREGATES).map(aggregate => ({ aggregate })),
       value: this.state.adhocMetric.aggregate,
       onChange: this.onAggregateChange,
-      optionRenderer: VirtualizedRendererWrap((aggregate) => aggregate.aggregate),
-      valueRenderer: (aggregate) => aggregate.aggregate,
+      optionRenderer: VirtualizedRendererWrap(aggregate => aggregate.aggregate),
+      valueRenderer: aggregate => aggregate.aggregate,
       valueKey: 'aggregate',
     };
 
     const popoverTitle = (
-      <AdhocMetricEditPopoverTitle adhocMetric={this.state.adhocMetric} onChange={this.onLabelChange} />
+      <AdhocMetricEditPopoverTitle
+        adhocMetric={this.state.adhocMetric}
+        onChange={this.onLabelChange}
+      />
     );
 
     const stateIsValid = this.state.adhocMetric.column && this.state.adhocMetric.aggregate;
@@ -100,23 +110,23 @@ export default class AdhocMetricEditPopover extends React.Component {
       >
         <FormGroup>
           <ControlLabel><strong>column</strong></ControlLabel>
-          <OnPasteSelect {...this.selectProps} {...columnSelectProps} selectWrap={VirtualizedSelect} />
+          <OnPasteSelect {...this.selectProps} {...columnSelectProps} />
         </FormGroup>
         <FormGroup>
           <ControlLabel><strong>aggregate</strong></ControlLabel>
-          <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} selectWrap={VirtualizedSelect} />
+          <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} />
         </FormGroup>
-        <Button 
+        <Button
           disabled={!stateIsValid}
           bsStyle={(hasUnsavedChanges || !stateIsValid) ? 'default' : 'primary'}
-          className="edit-adhoc-metric-save-btn" 
+          className="edit-adhoc-metric-save-btn"
           onClick={this.onSave}
         >
           Save
         </Button>
         <Button onClick={this.props.onClose}>Close</Button>
       </Popover>
-    )
+    );
   }
 }
 AdhocMetricEditPopover.propTypes = propTypes;

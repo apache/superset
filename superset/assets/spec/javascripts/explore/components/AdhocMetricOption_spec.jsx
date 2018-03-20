@@ -28,7 +28,7 @@ function setup(overrides) {
     onMetricEdit,
     columns,
     ...overrides,
-  }
+  };
   const wrapper = shallow(<AdhocMetricOption {...props} />);
   return { wrapper, onMetricEdit };
 }

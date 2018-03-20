@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
-import { FormControl, OverlayTrigger } from 'react-bootstrap';
+import { OverlayTrigger } from 'react-bootstrap';
 
 import AdhocMetric from '../../../../javascripts/explore/AdhocMetric';
 import AdhocMetricEditPopoverTitle from '../../../../javascripts/explore/components/AdhocMetricEditPopoverTitle';
@@ -27,7 +27,7 @@ function setup(overrides) {
     adhocMetric: sumValueAdhocMetric,
     onChange,
     ...overrides,
-  }
+  };
   const wrapper = shallow(<AdhocMetricEditPopoverTitle {...props} />);
   return { wrapper, onChange };
 }
@@ -36,13 +36,13 @@ describe('AdhocMetricEditPopoverTitle', () => {
   it('renders an OverlayTrigger wrapper with the title', () => {
     const { wrapper } = setup();
     expect(wrapper.find(OverlayTrigger)).to.have.lengthOf(1);
-    expect(wrapper.find(OverlayTrigger).dive().text()).to.equal('My Metric\xa0')
+    expect(wrapper.find(OverlayTrigger).dive().text()).to.equal('My Metric\xa0');
   });
 
   it('transfers to edit mode when clicked', () => {
     const { wrapper } = setup();
     expect(wrapper.state('isEditable')).to.be.false;
-    wrapper.simulate('click')
+    wrapper.simulate('click');
     expect(wrapper.state('isEditable')).to.be.true;
   });
 });

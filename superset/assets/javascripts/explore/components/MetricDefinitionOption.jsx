@@ -23,7 +23,7 @@ export default function MetricDefinitionOption({ option }) {
       <AggregateOption aggregate={option} showType />
     );
   }
-  console.error("You must supply either a saved metric, column or aggregate to MetricDefinitionOption");
+  notify.error('You must supply either a saved metric, column or aggregate to MetricDefinitionOption');
   return null;
 }
 MetricDefinitionOption.propTypes = propTypes;

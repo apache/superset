@@ -31,7 +31,7 @@ function setup(overrides) {
     onChange,
     ...defaultProps,
     ...overrides,
-  }
+  };
   const wrapper = shallow(<MetricsControl {...props} />);
   return { wrapper, onChange };
 }
@@ -60,7 +60,7 @@ describe('MetricsControl', () => {
         { optionName: '_col_target', type: 'VARCHAR(255)', column_name: 'target' },
         { optionName: '_col_value', type: 'DOUBLE', column_name: 'value' },
         ...Object.keys(AGGREGATES).map(
-          aggregate => ({ aggregate_name: aggregate, optionName: '_aggregate_' + aggregate })
+          aggregate => ({ aggregate_name: aggregate, optionName: '_aggregate_' + aggregate }),
         ),
         { optionName: 'sum__value', metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
         { optionName: 'avg__value', metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
@@ -132,19 +132,19 @@ describe('MetricsControl', () => {
         setInputValue: setInputSpy,
         handleInputChange: handleInputSpy,
         input: { input: {} },
-      }
+      };
 
       select.simulate('change', [{ aggregate_name: 'SUM', optionName: 'SUM' }]);
 
       expect(setInputSpy.calledWith('SUM()')).to.be.true;
-      expect(handleInputSpy.calledWith({ target: { value: 'SUM()' }})).to.be.true;
+      expect(handleInputSpy.calledWith({ target: { value: 'SUM()' } })).to.be.true;
       expect(onChange.lastCall.args).to.deep.equal([[]]);
     });
 
     it('preserves existing selected AdhocMetrics', () => {
       const { wrapper, onChange } = setup();
       const select = wrapper.find(OnPasteSelect);
-      select.simulate('change', [{ metric_name: 'sum__value' }, sumValueAdhocMetric ]);
+      select.simulate('change', [{ metric_name: 'sum__value' }, sumValueAdhocMetric]);
       expect(onChange.lastCall.args).to.deep.equal([['sum__value', sumValueAdhocMetric]]);
     });
   });

@@ -20,7 +20,7 @@ describe('AdhocMetric', () => {
       hasCustomLabel: false,
       optionName: adhocMetric.optionName,
     });
-  })
+  });
 
   it('can create altered duplicates', () => {
     const adhocMetric1 = new AdhocMetric({
@@ -34,7 +34,7 @@ describe('AdhocMetric', () => {
 
     expect(adhocMetric1.aggregate).to.equal(AGGREGATES.SUM);
     expect(adhocMetric2.aggregate).to.equal(AGGREGATES.AVG);
-  })
+  });
 
   it('can verify equality', () => {
     const adhocMetric1 = new AdhocMetric({
@@ -43,8 +43,9 @@ describe('AdhocMetric', () => {
     });
     const adhocMetric2 = adhocMetric1.duplicateWith({});
 
+    // eslint-disable-next-line no-unused-expressions
     expect(adhocMetric1.equals(adhocMetric2)).to.be.true;
-  })
+  });
 
   it('can verify inequality', () => {
     const adhocMetric1 = new AdhocMetric({
@@ -55,8 +56,9 @@ describe('AdhocMetric', () => {
     });
     const adhocMetric2 = adhocMetric1.duplicateWith({ label: 'new label' });
 
+    // eslint-disable-next-line no-unused-expressions
     expect(adhocMetric1.equals(adhocMetric2)).to.be.false;
-  })
+  });
 
   it('updates label if hasCustomLabel is false', () => {
     const adhocMetric1 = new AdhocMetric({
@@ -66,7 +68,7 @@ describe('AdhocMetric', () => {
     const adhocMetric2 = adhocMetric1.duplicateWith({ aggregate: AGGREGATES.AVG });
 
     expect(adhocMetric2.label).to.equal('AVG(value)');
-  })
+  });
 
   it('keeps label if hasCustomLabel is true', () => {
     const adhocMetric1 = new AdhocMetric({
@@ -78,5 +80,5 @@ describe('AdhocMetric', () => {
     const adhocMetric2 = adhocMetric1.duplicateWith({ aggregate: AGGREGATES.AVG });
 
     expect(adhocMetric2.label).to.equal('label1');
-  })
+  });
 });

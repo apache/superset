@@ -1,7 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
-import Select, { Creatable } from 'react-select';
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 import VirtualizedRendererWrap from '../../../components/VirtualizedRendererWrap';
@@ -16,9 +15,9 @@ import { AGGREGATES } from '../../constants';
 
 const propTypes = {
   multi: PropTypes.bool,
-  name: PropTypes.string.isRequired, 
+  name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
-  value: PropTypes.arrayOf(PropTypes.oneOfType([ PropTypes.string, adhocMetricType, ])),
+  value: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, adhocMetricType])),
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
 };
@@ -31,18 +30,18 @@ function isDictionaryForAdhocMetric(value) {
   return value && !(value instanceof AdhocMetric) && value.column && value.aggregate && value.label;
 }
 
-// adhoc metrics are stored as dictionaries in URL params. When we reload the page we want to convert them
-// back into the AdhocMetric class for typechecking, consistency and instance method access.
+// adhoc metrics are stored as dictionaries in URL params. We convert them back into the
+// AdhocMetric class for typechecking, consistency and instance method access.
 function coerceAdhocMetrics(values) {
   if (!values) {
     return [];
   }
-  return values.map(value => {
+  return values.map((value) => {
     if (isDictionaryForAdhocMetric(value)) {
       return new AdhocMetric(value);
-    } else {
-      return value
     }
+      return value;
+
   });
 }
 
@@ -61,6 +60,7 @@ function getDefaultAggregateForColumn(column) {
   } else if (type.match(/unknown/i)) {
     return AGGREGATES.COUNT;
   }
+  return null;
 }
 
 function selectFilterOption(option, filterValue) {
@@ -86,33 +86,17 @@ export default class MetricsControl extends React.PureComponent {
     };
   }
 
-  componentDidUpdate(previousProps) {
-    if ( this.props.columns !== previousProps.columns || this.props.savedMetrics !== previousProps.savedMetrics) {
-      console.log('updating options for select');
-      this.setState({ options: this.optionsForSelect() });
+  componentWillReceiveProps(nextProps) {
+    if (
+      this.props.columns !== nextProps.columns ||
+      this.props.savedMetrics !== nextProps.savedMetrics
+    ) {
+      this.setState({ options: this.optionsForSelect(nextProps) });
+      this.props.onChange([]);
     }
-    if (this.props.value !== previousProps.value) {
-      console.log('coercing adhocMetrics');
-      this.setState({ value: coerceAdhocMetrics(this.props.value) });
+    if (this.props.value !== nextProps.value) {
+      this.setState({ value: coerceAdhocMetrics(nextProps.value) });
     }
-  }
-
-  optionsForSelect() {
-    const options = [
-      ...this.props.columns,
-      ...Object.keys(AGGREGATES).map(aggregate => ({ aggregate_name: aggregate })),
-      ...this.props.savedMetrics,
-    ];
-
-    return options.map((option) => {
-      if (option.metric_name) {
-        return { ...option, optionName: option.metric_name };
-      } else if (option.column_name) {
-        return { ...option, optionName: '_col_' + option.column_name };
-      } else if (option.aggregate_name) {
-        return { ...option, optionName: '_aggregate_' + option.aggregate_name };
-      }
-    });
   }
 
   onMetricEdit(changedMetric) {
@@ -124,9 +108,39 @@ export default class MetricsControl extends React.PureComponent {
     }));
   }
 
+  onChange(opts) {
+    const optionValues = opts.map((option) => {
+      if (option.metric_name) {
+        return option.metric_name;
+      } else if (option.column_name) {
+        const clearedAggregate = this.clearedAggregateInInput;
+        this.clearedAggregateInInput = null;
+        return new AdhocMetric({
+          column: option,
+          aggregate: clearedAggregate || getDefaultAggregateForColumn(option),
+        });
+      } else if (option instanceof AdhocMetric) {
+        return option;
+      } else if (option.aggregate_name) {
+        const newValue = `${option.aggregate_name}()`;
+        this.select.setInputValue(newValue);
+        this.select.handleInputChange({ target: { value: newValue } });
+        // we need to set a timeout here or the selectionWill be overwritten
+        // by some browsers (e.g. Chrome)
+        setTimeout(() => {
+          this.select.input.input.selectionStart = newValue.length - 1;
+          this.select.input.input.selectionEnd = newValue.length - 1;
+        }, 0);
+        return null;
+      }
+      return null;
+    }).filter(option => option);
+    this.props.onChange(optionValues);
+  }
+
   checkIfAggregateInInput(input) {
     let nextState = { aggregateInInput: null };
-    Object.keys(AGGREGATES).forEach(aggregate => {
+    Object.keys(AGGREGATES).forEach((aggregate) => {
       if (input.toLowerCase().startsWith(aggregate.toLowerCase() + '(')) {
         nextState = { aggregateInInput: aggregate };
       }
@@ -135,31 +149,25 @@ export default class MetricsControl extends React.PureComponent {
     this.setState(nextState);
   }
 
-  onChange(opts) {
-    const optionValues = opts.map((option) => {
+
+  optionsForSelect(props) {
+    const options = [
+      ...props.columns,
+      ...Object.keys(AGGREGATES).map(aggregate => ({ aggregate_name: aggregate })),
+      ...props.savedMetrics,
+    ];
+
+    return options.map((option) => {
       if (option.metric_name) {
-        return option.metric_name;
+        return { ...option, optionName: option.metric_name };
       } else if (option.column_name) {
-        const clearedAggregate = this.clearedAggregateInInput;
-        this.clearedAggregateInInput = null;
-        return new AdhocMetric({ 
-          column: option, 
-          aggregate: clearedAggregate || getDefaultAggregateForColumn(option),
-        });
-      } else if (option instanceof AdhocMetric) {
-        return option;
+        return { ...option, optionName: '_col_' + option.column_name };
       } else if (option.aggregate_name) {
-        const newValue = `${option.aggregate_name}()`;
-        this.select.setInputValue(newValue);
-        this.select.handleInputChange({ target: { value: newValue }});
-        // we need to set a timeout here or the selectionWill be overwritten by some browsers (e.g. Chrome)
-        setTimeout(() => {
-          this.select.input.input.selectionStart = newValue.length - 1;
-          this.select.input.input.selectionEnd = newValue.length - 1;
-        }, 0);
+        return { ...option, optionName: '_aggregate_' + option.aggregate_name };
       }
-    }).filter(option => option);
-    this.props.onChange(optionValues);
+      notify.error(`provided invalid option to MetricsControl, ${option}`);
+      return null;
+    });
   }
 
   render() {
@@ -167,21 +175,21 @@ export default class MetricsControl extends React.PureComponent {
     return (
       <div className="metrics-select">
         <ControlHeader {...this.props} />
-        <OnPasteSelect 
+        <OnPasteSelect
           multi={this.props.multi}
           name={`select-${this.props.name}`}
           placeholder={t('%s option(s)', this.state.options.length)}
           options={this.state.options}
           value={this.state.value}
           labelKey="label"
-          valueKey={this.props.valueKey}
+          valueKey="optionName"
           clearable
-          closeOnSelect={true}
+          closeOnSelect
           onChange={this.onChange}
-          optionRenderer={VirtualizedRendererWrap((option) => (
+          optionRenderer={VirtualizedRendererWrap(option => (
             <MetricDefinitionOption option={option} />
           ))}
-          valueRenderer={(option) => (
+          valueRenderer={option => (
             <MetricDefinitionValue
               option={option}
               onMetricEdit={this.onMetricEdit}
@@ -190,8 +198,13 @@ export default class MetricsControl extends React.PureComponent {
           )}
           onInputChange={this.checkIfAggregateInInput}
           filterOption={this.state.aggregateInInput ? selectFilterOption : null}
-          refFunc={(ref) => ref && (this.select = ref._selectRef)}
-          selectWrap={VirtualizedSelect} 
+          refFunc={(ref) => {
+            if (ref) {
+              // eslint-disable-next-line no-underscore-dangle
+              this.select = ref._selectRef;
+            }
+          }}
+          selectWrap={VirtualizedSelect}
         />
       </div>
     );

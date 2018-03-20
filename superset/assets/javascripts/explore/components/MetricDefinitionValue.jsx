@@ -22,7 +22,7 @@ export default function MetricDefinitionValue({ option, onMetricEdit, columns })
       <AdhocMetricOption adhocMetric={option} onMetricEdit={onMetricEdit} columns={columns} />
     );
   }
-  console.error("You must supply either a saved metric or adhoc metric to MetricDefinitionValue");
+  notify.error('You must supply either a saved metric or adhoc metric to MetricDefinitionValue');
   return null;
 }
 MetricDefinitionValue.propTypes = propTypes;

@@ -1,6 +1,5 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
-import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
@@ -18,12 +17,14 @@ const sumValueAdhocMetric = new AdhocMetric({
 
 describe('MetricDefinitionValue', () => {
   it('renders a MetricOption given a saved metric', () => {
-    const wrapper = shallow(<MetricDefinitionValue option={{ metric_name: 'a_saved_metric' }} />); 
+    const wrapper = shallow(<MetricDefinitionValue option={{ metric_name: 'a_saved_metric' }} />);
     expect(wrapper.find(MetricOption)).to.have.lengthOf(1);
   });
 
   it('renders an AdhocMetricOption given an adhoc metric', () => {
-    const wrapper = shallow(<MetricDefinitionValue onMetricEdit={() => {}} option={sumValueAdhocMetric} />); 
+    const wrapper = shallow((
+      <MetricDefinitionValue onMetricEdit={() => {}} option={sumValueAdhocMetric} />
+    ));
     expect(wrapper.find(AdhocMetricOption)).to.have.lengthOf(1);
   });
 });

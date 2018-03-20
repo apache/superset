@@ -1,7 +1,6 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
-import { FormControl, Label, OverlayTrigger, Popover } from 'react-bootstrap';
+import { Label, OverlayTrigger } from 'react-bootstrap';
 
 import AdhocMetricEditPopover from './AdhocMetricEditPopover';
 import AdhocMetric from '../AdhocMetric';
@@ -26,16 +25,16 @@ export default class AdhocMetricOption extends React.PureComponent {
   render() {
     const { adhocMetric } = this.props;
     const overlay = (
-      <AdhocMetricEditPopover 
-        adhocMetric={adhocMetric} 
-        onChange={this.props.onMetricEdit} 
+      <AdhocMetricEditPopover
+        adhocMetric={adhocMetric}
+        onChange={this.props.onMetricEdit}
         onClose={this.closeMetricEditOverlay}
         columns={this.props.columns}
       />
     );
 
     return (
-      <div onMouseDownCapture={(e) => {e.stopPropagation()}} >
+      <div onMouseDownCapture={(e) => { e.stopPropagation(); }} >
         <OverlayTrigger
           ref="overlay"
           placement="right"

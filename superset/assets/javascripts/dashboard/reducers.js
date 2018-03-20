@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import { combineReducers } from 'redux';
 import d3 from 'd3';
 import shortid from 'shortid';

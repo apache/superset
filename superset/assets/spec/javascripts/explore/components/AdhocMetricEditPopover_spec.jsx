@@ -30,7 +30,7 @@ function setup(overrides) {
     onClose,
     columns,
     ...overrides,
-  }
+  };
   const wrapper = shallow(<AdhocMetricEditPopover {...props} />);
   return { wrapper, onChange, onClose };
 }
@@ -57,21 +57,21 @@ describe('AdhocMetricEditPopover', () => {
 
   it('overwrites the adhocMetric in state with onLabelChange', () => {
     const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' }});
+    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
     expect(wrapper.state('adhocMetric').label).to.equal('new label');
     expect(wrapper.state('adhocMetric').hasCustomLabel).to.be.true;
   });
 
   it('returns to default labels when the custom label is cleared', () => {
     const { wrapper } = setup();
-    wrapper.instance().onLabelChange({ target: { value: 'new label' }});
-    wrapper.instance().onLabelChange({ target: { value: '' }});
+    wrapper.instance().onLabelChange({ target: { value: 'new label' } });
+    wrapper.instance().onLabelChange({ target: { value: '' } });
     expect(wrapper.state('adhocMetric').label).to.equal('SUM(value)');
     expect(wrapper.state('adhocMetric').hasCustomLabel).to.be.false;
   });
 
   it('prevents saving if no column or aggregate is chosen', () => {
-    const { wrapper, onChange, onClose } = setup();
+    const { wrapper } = setup();
     expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(0);
     wrapper.instance().onColumnChange(null);
     expect(wrapper.find(Button).find({ disabled: true })).to.have.lengthOf(1);
@@ -82,7 +82,7 @@ describe('AdhocMetricEditPopover', () => {
   });
 
   it('highlights save if changes are present', () => {
-    const { wrapper, onChange, onClose } = setup();
+    const { wrapper } = setup();
     expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(0);
     wrapper.instance().onColumnChange({ column: columns[1] });
     expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(1);

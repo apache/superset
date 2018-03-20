@@ -26,10 +26,10 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
       <OverlayTrigger
         placement="top"
         overlay={editPrompt}
-        onMouseOver={() => this.setState({ isHovered: true }) }
-        onMouseOut={() => this.setState({ isHovered: false }) }
-        onClick={() => this.setState({ isEditable: true }) }
-        onBlur={() => this.setState({ isEditable: false }) }
+        onMouseOver={() => this.setState({ isHovered: true })}
+        onMouseOut={() => this.setState({ isHovered: false })}
+        onClick={() => this.setState({ isEditable: true })}
+        onBlur={() => this.setState({ isEditable: false })}
       >
         {this.state.isEditable ?
           <FormControl
@@ -37,17 +37,17 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
             type="text"
             placeholder={adhocMetric.label}
             value={adhocMetric.hasCustomLabel ? adhocMetric.label : ''}
-            onChange={this.props.onChange}
-            inputRef={(ref) => ref && ref.focus()}
+            onChange={onChange}
+            inputRef={ref => ref && ref.focus()}
           /> :
           <span>
             {adhocMetric.hasCustomLabel ? adhocMetric.label : 'My Metric'}
             &nbsp;
-            <i className="fa fa-pencil" style={{ color: this.state.isHovered ? 'black' : 'grey' }}/>
+            <i className="fa fa-pencil" style={{ color: this.state.isHovered ? 'black' : 'grey' }} />
           </span>
         }
       </OverlayTrigger>
-    )
+    );
   }
 }
 AdhocMetricEditPopoverTitle.propTypes = propTypes;
