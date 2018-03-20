@@ -193,6 +193,7 @@ export const visTypes = {
       },
       {
         label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
           ['color_scheme'],
           ['show_brush', 'show_legend'],
@@ -202,6 +203,7 @@ export const visTypes = {
       },
       {
         label: t('X Axis'),
+        expanded: true,
         controlSetRows: [
           ['x_axis_label', 'bottom_margin'],
           ['x_axis_showminmax', 'x_axis_format'],
@@ -209,6 +211,7 @@ export const visTypes = {
       },
       {
         label: t('Y Axis'),
+        expanded: true,
         controlSetRows: [
           ['y_axis_label', 'left_margin'],
           ['y_axis_showminmax', 'y_log_scale'],
