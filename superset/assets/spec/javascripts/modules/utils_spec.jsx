@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import {
   tryNumify, slugify, formatSelectOptionsForRange, d3format,
   d3FormatPreset, d3TimeFormatPreset, defaultNumberFormatter,
+  mainMetric,
 } from '../../../javascripts/modules/utils';
 
 describe('utils', () => {
@@ -68,5 +69,32 @@ describe('utils', () => {
     expect(defaultNumberFormatter(-10001)).to.equal('-10.0k');
     expect(defaultNumberFormatter(-111000000)).to.equal('-111M');
     expect(defaultNumberFormatter(-0.23)).to.equal('-230m');
+  });
+  describe('mainMetric', () => {
+    it('is null when no options', () => {
+      expect(mainMetric([])).to.equal(undefined);
+      expect(mainMetric(null)).to.equal(undefined);
+    });
+    it('prefers the "count" metric when first', () => {
+      const metrics = [
+        { metric_name: 'count' },
+        { metric_name: 'foo' },
+      ];
+      expect(mainMetric(metrics)).to.equal('count');
+    });
+    it('prefers the "count" metric when not first', () => {
+      const metrics = [
+        { metric_name: 'foo' },
+        { metric_name: 'count' },
+      ];
+      expect(mainMetric(metrics)).to.equal('count');
+    });
+    it('selects the first metric when "count" is not an option', () => {
+      const metrics = [
+        { metric_name: 'foo' },
+        { metric_name: 'not_count' },
+      ];
+      expect(mainMetric(metrics)).to.equal('foo');
+    });
   });
 });
