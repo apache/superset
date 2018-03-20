@@ -847,7 +847,7 @@ def load_unicode_test_data():
     df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'),
                      encoding="utf-8")
     # generate date/numeric data
-    df['date'] = datetime.datetime.now().date()
+    df['dttm'] = datetime.datetime.now().date()
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
     df.to_sql(  # pylint: disable=no-member
         'unicode_test',
@@ -858,7 +858,7 @@ def load_unicode_test_data():
             'phrase': String(500),
             'short_phrase': String(10),
             'with_missing': String(100),
-            'date': Date(),
+            'dttm': Date(),
             'value': Float(),
         },
         index=False)
@@ -869,7 +869,7 @@ def load_unicode_test_data():
     obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
     if not obj:
         obj = TBL(table_name='unicode_test')
-    obj.main_dttm_col = 'date'
+    obj.main_dttm_col = 'dttm'
     obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
@@ -877,7 +877,7 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "date",
+        "granularity": "dttm",
         "groupby": [],
         "metric": 'sum__value',
         "row_limit": config.get("ROW_LIMIT"),
@@ -981,7 +981,7 @@ def load_country_map_data():
     """Loading data for map with country map"""
     csv_path = os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv')
     data = pd.read_csv(csv_path, encoding="utf-8")
-    data['date'] = datetime.datetime.now().date()
+    data['dttm'] = datetime.datetime.now().date()
     data.to_sql(  # pylint: disable=no-member
         'birth_france_by_region',
         db.engine,
@@ -1001,7 +1001,7 @@ def load_country_map_data():
             '2012': BigInteger,
             '2013': BigInteger,
             '2014': BigInteger,
-            'date': Date(),
+            'dttm': Date(),
         },
         index=False)
     print("Done loading table!")
@@ -1010,7 +1010,7 @@ def load_country_map_data():
     obj = db.session.query(TBL).filter_by(table_name='birth_france_by_region').first()
     if not obj:
         obj = TBL(table_name='birth_france_by_region')
-    obj.main_dttm_col = 'date'
+    obj.main_dttm_col = 'dttm'
     obj.database = get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
@@ -1292,7 +1292,7 @@ def load_deck_dash():
         },
         "datasource": "5__table",
         "filters": [],
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "groupby": [],
         "having": "",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
@@ -1336,7 +1336,7 @@ def load_deck_dash():
             "latCol": "LAT",
         },
         "mapbox_style": "mapbox://styles/mapbox/dark-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_screengrid",
         "since": None,
@@ -1383,7 +1383,7 @@ def load_deck_dash():
         "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/streets-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_hex",
         "since": None,
@@ -1432,7 +1432,7 @@ def load_deck_dash():
         "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_grid",
         "since": None,
@@ -1547,7 +1547,7 @@ def load_deck_dash():
             "datasource": "10__table",
             "viz_type": "deck_arc",
             "slice_id": 42,
-            "granularity_sqla": "date",
+            "granularity_sqla": "dttm",
             "time_grain_sqla": "Time Column",
             "since": None,
             "until": None,
