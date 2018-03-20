@@ -1146,7 +1146,7 @@ class DruidDatasource(Model, BaseDatasource):
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
-                aggs_dict, adhoc_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
+                aggs_dict, adhoc_dict, post_aggs_dict = self.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
                 if phase == 1:
@@ -1204,7 +1204,7 @@ class DruidDatasource(Model, BaseDatasource):
 
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
-                    aggs_dict, adhoc_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
+                    aggs_dict, adhoc_dict, post_aggs_dict = self.metrics_and_post_aggs(
                         [timeseries_limit_metric],
                         metrics_dict)
                     if phase == 1:
