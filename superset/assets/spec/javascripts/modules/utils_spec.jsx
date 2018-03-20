@@ -75,21 +75,21 @@ describe('utils', () => {
       expect(mainMetric([])).to.equal(undefined);
       expect(mainMetric(null)).to.equal(undefined);
     });
-    it('is prefers the "count" metric when first', () => {
+    it('prefers the "count" metric when first', () => {
       const metrics = [
         { metric_name: 'count' },
         { metric_name: 'foo' },
       ];
       expect(mainMetric(metrics)).to.equal('count');
     });
-    it('is prefers the "count" metric when not first', () => {
+    it('prefers the "count" metric when not first', () => {
       const metrics = [
         { metric_name: 'foo' },
         { metric_name: 'count' },
       ];
       expect(mainMetric(metrics)).to.equal('count');
     });
-    it('it selects the first metric when "count" is not an option', () => {
+    it('selects the first metric when "count" is not an option', () => {
       const metrics = [
         { metric_name: 'foo' },
         { metric_name: 'not_count' },
