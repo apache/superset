@@ -6,9 +6,9 @@ export default function getTotalChildWidth({ id, components, recurse = false }) 
 
   (component.children || []).forEach((childId) => {
     const child = components[childId];
-    width = Math.max(width, child.meta.width);
+    width += child.meta.width || 0;
     if (recurse) {
-      width = Math.max(width, getTotalChildWidth(child, components));
+      width += getTotalChildWidth({ id: childId, components, recurse }) || 0;
     }
   });
 

@@ -104,7 +104,7 @@ const actionHandlers = {
       destination,
     });
 
-    // wrap the dragged component in a row depening on destination type
+    // wrap the dragged component in a row depending on destination type
     const wrapInRow = shouldWrapChildInRow({
       parentType: destination.type,
       childType: dragging.type,

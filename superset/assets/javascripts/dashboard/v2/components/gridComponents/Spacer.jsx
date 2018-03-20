@@ -60,6 +60,8 @@ class Spacer extends React.PureComponent {
     const adjustableWidth = orientation === 'column';
     const adjustableHeight = orientation === 'row';
 
+    console.log('spacer', availableColumnCount)
+
     return (
       <DragDroppable
         component={component}
@@ -75,7 +77,7 @@ class Spacer extends React.PureComponent {
             adjustableWidth={adjustableWidth}
             adjustableHeight={adjustableHeight}
             widthStep={columnWidth}
-            widthMultiple={component.meta.width}
+            widthMultiple={component.meta.width || 1}
             heightMultiple={adjustableHeight ? component.meta.height || 1 : undefined}
             minWidthMultiple={1}
             minHeightMultiple={1}

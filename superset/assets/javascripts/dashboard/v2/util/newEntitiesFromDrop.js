@@ -12,12 +12,6 @@ export default function newEntitiesFromDrop({ dropResult, components }) {
 
   const dragType = dragging.type;
   const dropEntity = components[destination.id];
-
-  if (!dropEntity) {
-    console.warn('Drop target entity', destination.id, 'not found');
-    return null;
-  }
-
   const dropType = dropEntity.type;
   let newDropChild = newComponentFactory(dragType);
   const wrapChildInRow = shouldWrapChildInRow({ parentType: dropType, childType: dragType });
