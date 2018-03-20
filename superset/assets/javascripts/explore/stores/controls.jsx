@@ -1,5 +1,9 @@
 import React from 'react';
-import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
+import {
+  formatSelectOptionsForRange,
+  formatSelectOptions,
+  mainMetric,
+} from '../../modules/utils';
 import * as v from '../validators';
 import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
 import { defaultViewport } from '../../modules/geo';
@@ -82,6 +86,7 @@ const jsFunctionInfo = (
     </a>.
   </div>
 );
+
 function jsFunctionControl(label, description, extraDescr = null, height = 100, defaultText = '') {
   return {
     type: 'TextAreaControl',
@@ -131,7 +136,10 @@ export const controls = {
     valueKey: 'metric_name',
     optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? [c.options[0].metric_name] : null,
+    default: (c) => {
+      const metric = mainMetric(c.options);
+      return metric ? [metric] : null;
+    },
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
     }),
@@ -218,7 +226,7 @@ export const controls = {
     validators: [v.nonEmpty],
     optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? c.options[0].metric_name : null,
+    default: c => mainMetric(c.options),
     valueKey: 'metric_name',
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
