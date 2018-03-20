@@ -597,7 +597,7 @@ class SqlaTable(Model, BaseDatasource):
                             values.append(v)
                     cond = col_obj.sqla_col.in_(values)
                     if '<NULL>' in eq:
-                        cond = or_(cond, col_obj.sqla_col == None)
+                        cond = or_(cond, col_obj.sqla_col == None)  # noqa
                     if op == 'not in':
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -619,9 +619,9 @@ class SqlaTable(Model, BaseDatasource):
                     elif op == 'LIKE':
                         where_clause_and.append(col_obj.sqla_col.like(eq))
                     elif op == 'IS NULL':
-                        where_clause_and.append(col_obj.sqla_col == None)
+                        where_clause_and.append(col_obj.sqla_col == None)  # noqa
                     elif op == 'IS NOT NULL':
-                        where_clause_and.append(col_obj.sqla_col != None)
+                        where_clause_and.append(col_obj.sqla_col != None)  # noqa
         if extras:
             where = extras.get('where')
             if where:

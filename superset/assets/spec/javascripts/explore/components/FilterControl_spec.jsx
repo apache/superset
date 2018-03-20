@@ -225,11 +225,17 @@ describe('FilterControl', () => {
     wrapper.instance().fetchFilterValues(0, 'col1');
     expect(wrapper.state().activeRequest).to.equal(spyReq);
     // Sets active to null after success
-    $.ajax.getCall(0).args[0].success('choices');
+    $.ajax.getCall(0).args[0].success(['opt1', 'opt2', null, '']);
     expect(wrapper.state().filters[0].valuesLoading).to.equal(false);
-    expect(wrapper.state().filters[0].valueChoices).to.equal('choices');
+    expect(wrapper.state().filters[0].valueChoices).to.deep.equal([
+      { value: 'opt1', label: 'opt1' },
+      { value: 'opt2', label: 'opt2' },
+      { value: '<NULL>', label: '<NULL>' },
+      { value: '', label: '<empty string>' },
+    ]);
     expect(wrapper.state().activeRequest).to.equal(null);
   });
+
 
   it('cancels active request if another is submitted', () => {
     const spyReq = sinon.spy();

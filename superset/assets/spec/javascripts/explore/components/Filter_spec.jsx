@@ -46,7 +46,7 @@ describe('Filter', () => {
     expect(wrapper.find(Select)).to.have.lengthOf(2);
     expect(wrapper.find(Button)).to.have.lengthOf(1);
     expect(wrapper.find(SelectControl)).to.have.lengthOf(1);
-    expect(wrapper.find('#select-op').prop('options')).to.have.lengthOf(8);
+    expect(wrapper.find('#select-op').prop('options')).to.have.lengthOf(10);
   });
 
   it('renders five op choices for table datasource', () => {
@@ -58,7 +58,7 @@ describe('Filter', () => {
       filterable_cols: ['country_name'],
     };
     const druidWrapper = shallow(<Filter {...props} />);
-    expect(druidWrapper.find('#select-op').prop('options')).to.have.lengthOf(9);
+    expect(druidWrapper.find('#select-op').prop('options')).to.have.lengthOf(11);
   });
 
   it('renders six op choices for having filter', () => {
