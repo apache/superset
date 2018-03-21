@@ -179,6 +179,7 @@ function nvd3Vis(slice, payload) {
             ...d,
             area: true,
           }));
+          chart.forceY([0]);
         }
 
         // To alter the tooltip header
