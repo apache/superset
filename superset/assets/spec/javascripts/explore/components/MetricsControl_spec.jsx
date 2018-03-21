@@ -14,6 +14,7 @@ const defaultProps = {
   name: 'metrics',
   label: 'Metrics',
   value: undefined,
+  multi: true,
   columns: [
     { type: 'VARCHAR(255)', column_name: 'source' },
     { type: 'VARCHAR(255)', column_name: 'target' },
@@ -74,6 +75,7 @@ describe('MetricsControl', () => {
             column: { type: 'double', column_name: 'value' },
             aggregate: AGGREGATES.SUM,
             label: 'SUM(value)',
+            optionName: 'blahblahblah',
           },
           'avg__value',
         ],
@@ -86,9 +88,10 @@ describe('MetricsControl', () => {
         {
           column: { type: 'double', column_name: 'value' },
           aggregate: AGGREGATES.SUM,
+          fromFormData: true,
           label: 'SUM(value)',
           hasCustomLabel: false,
-          optionName: adhocMetric.optionName,
+          optionName: 'blahblahblah',
         },
         'avg__value',
       ]);
@@ -116,6 +119,7 @@ describe('MetricsControl', () => {
         column: valueColumn,
         aggregate: AGGREGATES.SUM,
         label: 'SUM(value)',
+        fromFormData: false,
         hasCustomLabel: false,
         optionName: adhocMetric.optionName,
       }]]);
@@ -179,6 +183,68 @@ describe('MetricsControl', () => {
       expect(wrapper.state('aggregateInInput')).to.be.null;
       wrapper.instance().checkIfAggregateInInput('colu');
       expect(wrapper.state('aggregateInInput')).to.be.null;
+    });
+  });
+
+  describe('option filter', () => {
+    it('includes user defined metrics', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'a_metric',
+          optionName: 'a_metric',
+          expression: 'SUM(FANCY(metric))',
+        },
+        'a',
+      )).to.be.true;
+    });
+
+    it('includes columns and aggregates', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        { type: 'VARCHAR(255)', column_name: 'source', optionName: '_col_source' },
+        'Sou',
+      )).to.be.true;
+
+      expect(!!wrapper.instance().selectFilterOption(
+        { aggregate_name: 'AVG', optionName: '_aggregate_AVG' },
+        'av',
+      )).to.be.true;
+    });
+
+    it('excludes auto generated metrics', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'sum__value',
+          optionName: 'sum__value',
+          expression: 'SUM(value)',
+        },
+        'sum',
+      )).to.be.false;
+    });
+
+    it('filters out metrics if the input begins with an aggregate', () => {
+      const { wrapper } = setup();
+      wrapper.setState({ aggregateInInput: true });
+
+      expect(!!wrapper.instance().selectFilterOption(
+        { metric_name: 'metric', expression: 'SUM(FANCY(metric))' },
+        'SUM(',
+      )).to.be.false;
+    });
+
+    it('includes columns if the input begins with an aggregate', () => {
+      const { wrapper } = setup();
+      wrapper.setState({ aggregateInInput: true });
+
+      expect(!!wrapper.instance().selectFilterOption(
+        { type: 'DOUBLE', column_name: 'value' },
+        'SUM(',
+      )).to.be.true;
     });
   });
 });

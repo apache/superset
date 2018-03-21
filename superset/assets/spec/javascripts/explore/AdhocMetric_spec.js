@@ -16,6 +16,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric).to.deep.equal({
       column: valueColumn,
       aggregate: AGGREGATES.SUM,
+      fromFormData: false,
       label: 'SUM(value)',
       hasCustomLabel: false,
       optionName: adhocMetric.optionName,

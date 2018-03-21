@@ -10,6 +10,8 @@ const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric),
   onMetricEdit: PropTypes.func.isRequired,
   columns: PropTypes.arrayOf(columnType),
+  multi: PropTypes.bool,
+  datasourceType: PropTypes.string,
 };
 
 export default class AdhocMetricOption extends React.PureComponent {
@@ -30,26 +32,28 @@ export default class AdhocMetricOption extends React.PureComponent {
         onChange={this.props.onMetricEdit}
         onClose={this.closeMetricEditOverlay}
         columns={this.props.columns}
+        datasourceType={this.props.datasourceType}
       />
     );
 
     return (
-      <div onMouseDownCapture={(e) => { e.stopPropagation(); }} >
-        <OverlayTrigger
-          ref="overlay"
-          placement="right"
-          trigger="click"
-          disabled
-          overlay={overlay}
-          rootClose
-        >
-          <Label style={{ cursor: 'pointer' }}>
+      <OverlayTrigger
+        ref="overlay"
+        placement="right"
+        trigger="click"
+        disabled
+        overlay={overlay}
+        rootClose
+        defaultOverlayShown={!adhocMetric.fromFormData}
+      >
+        <Label style={{ margin: this.props.multi ? 0 : 3, cursor: 'pointer' }}>
+          <div onMouseDownCapture={(e) => { e.stopPropagation(); }}>
             <span className="m-r-5 option-label">
               {adhocMetric.label}
             </span>
-          </Label>
-        </OverlayTrigger>
-      </div>
+          </div>
+        </Label>
+      </OverlayTrigger>
     );
   }
 }

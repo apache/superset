@@ -4,9 +4,16 @@ import PropTypes from 'prop-types';
 import MetricOption from '../../components/MetricOption';
 import ColumnOption from '../../components/ColumnOption';
 import AggregateOption from './AggregateOption';
+import columnType from '../propTypes/columnType';
+import savedMetricType from '../propTypes/savedMetricType';
+import aggregateOptionType from '../propTypes/aggregateOptionType';
 
 const propTypes = {
-  option: PropTypes.object.isRequired,
+  option: PropTypes.oneOfType([
+    columnType,
+    savedMetricType,
+    aggregateOptionType,
+  ]).isRequired,
 };
 
 export default function MetricDefinitionOption({ option }) {

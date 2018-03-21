@@ -2,12 +2,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 const propTypes = {
-  type: PropTypes.string.isRequired,
+  type: PropTypes.string,
 };
 
 export default function ColumnTypeLabel({ type }) {
   let stringIcon = '';
-  if (type === '' || type === 'expression') {
+  if (typeof type !== 'string') {
+    stringIcon = '?';
+  } else if (type === '' || type === 'expression') {
     stringIcon = 'ƒ';
   } else if (type === 'aggregate') {
     stringIcon = 'AGG';

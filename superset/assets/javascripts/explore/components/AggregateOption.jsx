@@ -1,9 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+
 import ColumnTypeLabel from '../../components/ColumnTypeLabel';
+import aggregateOptionType from '../propTypes/aggregateOptionType';
 
 const propTypes = {
-  aggregate: PropTypes.object.isRequired,
+  aggregate: aggregateOptionType,
   showType: PropTypes.bool,
 };
 

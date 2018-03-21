@@ -11,10 +11,36 @@ const propTypes = {
 export default class AdhocMetricEditPopoverTitle extends React.Component {
   constructor(props) {
     super(props);
+    this.onMouseOver = this.onMouseOver.bind(this);
+    this.onMouseOut = this.onMouseOut.bind(this);
+    this.onClick = this.onClick.bind(this);
+    this.onBlur = this.onBlur.bind(this);
     this.state = {
       isHovered: false,
       isEditable: false,
     };
+  }
+
+  onMouseOver() {
+    this.setState({ isHovered: true });
+  }
+
+  onMouseOut() {
+    this.setState({ isHovered: false });
+  }
+
+  onClick() {
+    this.setState({ isEditable: true });
+  }
+
+  onBlur() {
+    this.setState({ isEditable: false });
+  }
+
+  refFunc(ref) {
+    if (ref) {
+      ref.focus();
+    }
   }
 
   render() {
@@ -26,10 +52,10 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
       <OverlayTrigger
         placement="top"
         overlay={editPrompt}
-        onMouseOver={() => this.setState({ isHovered: true })}
-        onMouseOut={() => this.setState({ isHovered: false })}
-        onClick={() => this.setState({ isEditable: true })}
-        onBlur={() => this.setState({ isEditable: false })}
+        onMouseOver={this.onMouseOver}
+        onMouseOut={this.onMouseOut}
+        onClick={this.onClick}
+        onBlur={this.onBlur}
       >
         {this.state.isEditable ?
           <FormControl
@@ -38,7 +64,7 @@ export default class AdhocMetricEditPopoverTitle extends React.Component {
             placeholder={adhocMetric.label}
             value={adhocMetric.hasCustomLabel ? adhocMetric.label : ''}
             onChange={onChange}
-            inputRef={ref => ref && ref.focus()}
+            inputRef={this.refFunc}
           /> :
           <span>
             {adhocMetric.hasCustomLabel ? adhocMetric.label : 'My Metric'}

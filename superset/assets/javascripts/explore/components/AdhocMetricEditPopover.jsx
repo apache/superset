@@ -17,6 +17,7 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
   columns: PropTypes.arrayOf(columnType),
+  datasourceType: PropTypes.string,
 };
 
 const defaultProps = {
@@ -68,7 +69,7 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   render() {
-    const { adhocMetric, columns, onChange, onClose, ...rest } = this.props;
+    const { adhocMetric, columns, onChange, onClose, datasourceType, ...popoverProps } = this.props;
 
     const columnSelectProps = {
       placeholder: t('%s column(s)', columns.length),
@@ -92,6 +93,12 @@ export default class AdhocMetricEditPopover extends React.Component {
       valueKey: 'aggregate',
     };
 
+    if (this.props.datasourceType === 'druid') {
+      aggregateSelectProps.options = aggregateSelectProps.options.filter((
+        option => option.aggregate !== 'AVG'
+      ));
+    }
+
     const popoverTitle = (
       <AdhocMetricEditPopoverTitle
         adhocMetric={this.state.adhocMetric}
@@ -106,7 +113,7 @@ export default class AdhocMetricEditPopover extends React.Component {
       <Popover
         id="metrics-edit-popover"
         title={popoverTitle}
-        {...rest}
+        {...popoverProps}
       >
         <FormGroup>
           <ControlLabel><strong>column</strong></ControlLabel>
@@ -119,12 +126,13 @@ export default class AdhocMetricEditPopover extends React.Component {
         <Button
           disabled={!stateIsValid}
           bsStyle={(hasUnsavedChanges || !stateIsValid) ? 'default' : 'primary'}
-          className="edit-adhoc-metric-save-btn"
+          bsSize="small"
+          className="m-r-5"
           onClick={this.onSave}
         >
           Save
         </Button>
-        <Button onClick={this.props.onClose}>Close</Button>
+        <Button bsSize="small" onClick={this.props.onClose}>Close</Button>
       </Popover>
     );
   }

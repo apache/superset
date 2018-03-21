@@ -278,6 +278,15 @@ class SqlaTable(Model, BaseDatasource):
     export_parent = 'database'
     export_children = ['metrics', 'columns']
 
+    sqla_aggregations = {
+        'COUNT_DISTINCT': lambda column_name: sa.func.COUNT(sa.distinct(column_name)),
+        'COUNT': sa.func.COUNT,
+        'SUM': sa.func.SUM,
+        'AVG': sa.func.AVG,
+        'MIN': sa.func.MIN,
+        'MAX': sa.func.MAX,
+    }
+
     def __repr__(self):
         return self.name
 
@@ -436,23 +445,10 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
-    def is_adhoc_metric(self, metric):
-        return isinstance(metric, dict) and metric['column'] and metric['aggregate']
-
     def adhoc_metric_to_sa(self, metric):
-        if metric['aggregate'] == 'COUNT_DISTINCT':
-            sa_metric = sa.func.COUNT(sa.distinct(column(metric['column']['column_name'])))
-        if metric['aggregate'] == 'COUNT':
-            sa_metric = sa.func.COUNT(column(metric['column']['column_name']))
-        if metric['aggregate'] == 'SUM':
-            sa_metric = sa.func.SUM(column(metric['column']['column_name']))
-        if metric['aggregate'] == 'AVG':
-            sa_metric = sa.func.AVG(column(metric['column']['column_name']))
-        if metric['aggregate'] == 'MIN':
-            sa_metric = sa.func.MIN(column(metric['column']['column_name']))
-        if metric['aggregate'] == 'MAX':
-            sa_metric = sa.func.MAX(column(metric['column']['column_name']))
-        sa_metric = sa_metric.label(metric['label'])
+        column_name = metric.get('column').get('column_name')
+        sa_metric = self.sqla_aggregations[metric.get('aggregate')](column(column_name))
+        sa_metric = sa_metric.label(metric.get('label'))
         return sa_metric
 
     def get_sqla_query(  # sqla
@@ -505,15 +501,12 @@ class SqlaTable(Model, BaseDatasource):
             raise Exception(_('Empty query?'))
         metrics_exprs = []
         for m in metrics:
-            if self.is_adhoc_metric(m):
+            if utils.is_adhoc_metric(m):
                 metrics_exprs.append(self.adhoc_metric_to_sa(m))
             elif m in metrics_dict:
                 metrics_exprs.append(metrics_dict.get(m).sqla_col)
             else:
                 raise Exception(_("Metric '{}' is not valid".format(m)))
-        print(metrics)
-        print(metrics_dict)
-        print(metrics_exprs)
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:

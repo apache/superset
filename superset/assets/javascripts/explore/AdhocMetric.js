@@ -3,12 +3,8 @@ export default class AdhocMetric {
     this.column = adhocMetric.column;
     this.aggregate = adhocMetric.aggregate;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
-
-    if (this.hasCustomLabel) {
-      this.label = adhocMetric.label;
-    } else {
-      this.label = this.getDefaultLabel();
-    }
+    this.fromFormData = !!adhocMetric.optionName;
+    this.label = this.hasCustomLabel ? adhocMetric.label : this.getDefaultLabel();
 
     this.optionName = adhocMetric.optionName ||
       `metric_${Math.random().toString(36).substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
@@ -34,4 +30,3 @@ export default class AdhocMetric {
       );
   }
 }
-

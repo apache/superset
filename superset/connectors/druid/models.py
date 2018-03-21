@@ -897,13 +897,16 @@ class DruidDatasource(Model, BaseDatasource):
     def metrics_and_post_aggs(metrics, metrics_dict):
         # Separate metrics into those that are aggregations
         # and those that are post aggregations
-        agg_names = set()
+        saved_agg_names = set()
+        adhoc_agg_configs = []
         postagg_names = []
-        for metric_name in metrics:
-            if metrics_dict[metric_name].metric_type != 'postagg':
-                agg_names.add(metric_name)
+        for metric in metrics:
+            if utils.is_adhoc_metric(metric):
+                adhoc_agg_configs.append(metric)
+            elif metrics_dict[metric].metric_type != 'postagg':
+                saved_agg_names.add(metric)
             else:
-                postagg_names.append(metric_name)
+                postagg_names.append(metric)
         # Create the post aggregations, maintain order since postaggs
         # may depend on previous ones
         post_aggs = OrderedDict()
@@ -912,8 +915,8 @@ class DruidDatasource(Model, BaseDatasource):
             postagg = metrics_dict[postagg_name]
             visited_postaggs.add(postagg_name)
             DruidDatasource.resolve_postagg(
-                postagg, post_aggs, agg_names, visited_postaggs, metrics_dict)
-        return list(agg_names), post_aggs
+                postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict)
+        return list(saved_agg_names), adhoc_agg_configs, post_aggs
 
     def values_for_column(self,
                           column_name,
@@ -968,11 +971,29 @@ class DruidDatasource(Model, BaseDatasource):
                     ret = Filter(type='and', fields=[ff, dim_filter])
         return ret
 
-    def get_aggregations(self, all_metrics):
+    @staticmethod
+    def druid_type_from_adhoc_metric(adhoc_metric):
+        column_type = adhoc_metric.get('column').get('type').lower()
+        aggregate = adhoc_metric.get('aggregate').lower()
+        if (aggregate == 'count'):
+            return 'count'
+        if (aggregate == 'count_distinct'):
+            return 'cardinality'
+        else:
+            return column_type + aggregate.capitalize()
+
+    def get_aggregations(self, saved_metrics, adhoc_metrics=[]):
         aggregations = OrderedDict()
         for m in self.metrics:
-            if m.metric_name in all_metrics:
+            if m.metric_name in saved_metrics:
                 aggregations[m.metric_name] = m.json_obj
+        for adhoc_metric in adhoc_metrics:
+            aggregations[adhoc_metric['label']] = {
+                'fieldName': adhoc_metric['column']['column_name'],
+                'fieldNames': [adhoc_metric['column']['column_name']],
+                'type': self.druid_type_from_adhoc_metric(adhoc_metric),
+                'name': adhoc_metric['label'],
+            }
         return aggregations
 
     def check_restricted_metrics(self, aggregations):
@@ -1066,11 +1087,11 @@ class DruidDatasource(Model, BaseDatasource):
         metrics_dict = {m.metric_name: m for m in self.metrics}
         columns_dict = {c.column_name: c for c in self.columns}
 
-        all_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
             metrics_dict)
 
-        aggregations = self.get_aggregations(all_metrics)
+        aggregations = self.get_aggregations(saved_metrics, adhoc_metrics)
         self.check_restricted_metrics(aggregations)
 
         # the dimensions list with dimensionSpecs expanded
@@ -1246,6 +1267,7 @@ class DruidDatasource(Model, BaseDatasource):
         cols += query_obj.get('columns') or []
         cols += query_obj.get('metrics') or []
 
+        cols = utils.get_metric_names(cols)
         cols = [col for col in cols if col in df.columns]
         df = df[cols]
 
