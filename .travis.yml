@@ -1,9 +1,6 @@
 language: python
 services:
     - redis-server
-addons:
-  code_climate:
-    repo_token: 5f3a06c425eef7be4b43627d7d07a3e46c45bdc07155217825ff7c49cb6a470c
 cache:
   directories:
     - $HOME/.wheelhouse/
@@ -27,5 +24,7 @@ before_script:
   - export PATH=${PATH}:/tmp/hive/bin
 install:
   - pip install --upgrade pip
-  - pip install tox tox-travis
+  - pip install codecov tox tox-travis
 script: tox -e $TOX_ENV
+after_success:
+  - codecov

@@ -1,5 +1,9 @@
 import React from 'react';
-import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
+import {
+  formatSelectOptionsForRange,
+  formatSelectOptions,
+  mainMetric,
+} from '../../modules/utils';
 import * as v from '../validators';
 import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
 import { defaultViewport } from '../../modules/geo';
@@ -58,7 +62,7 @@ const groupByControl = {
   default: [],
   includeTime: false,
   description: t('One or many controls to group by'),
-  optionRenderer: c => <ColumnOption column={c} />,
+  optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
   mapStateToProps: (state, control) => {
@@ -84,6 +88,7 @@ const jsFunctionInfo = (
     </a>.
   </div>
 );
+
 function jsFunctionControl(label, description, extraDescr = null, height = 100, defaultText = '') {
   return {
     type: 'TextAreaControl',
@@ -131,9 +136,12 @@ export const controls = {
     label: t('Metrics'),
     validators: [v.nonEmpty],
     valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? [c.options[0].metric_name] : null,
+    default: (c) => {
+      const metric = mainMetric(c.options);
+      return metric ? [metric] : null;
+    },
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
     }),
@@ -145,7 +153,7 @@ export const controls = {
     multi: true,
     label: t('Percentage Metrics'),
     valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
@@ -181,6 +189,20 @@ export const controls = {
     default: colorPrimary,
     renderTrigger: true,
   },
+  legend_position: {
+    label: t('Legend Position'),
+    description: t('Choose the position of the legend'),
+    type: 'SelectControl',
+    clearable: false,
+    default: 'Top right',
+    choices: [
+      ['tl', 'Top left'],
+      ['tr', 'Top right'],
+      ['bl', 'Bottom left'],
+      ['br', 'Bottom right'],
+    ],
+    renderTrigger: true,
+  },
 
   fill_color_picker: {
     label: t('Fill Color'),
@@ -204,9 +226,9 @@ export const controls = {
     clearable: false,
     description: t('Choose the metric'),
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? c.options[0].metric_name : null,
+    default: c => mainMetric(c.options),
     valueKey: 'metric_name',
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
@@ -221,7 +243,7 @@ export const controls = {
     clearable: true,
     description: t('Choose a metric for right axis'),
     valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     mapStateToProps: state => ({
       options: (state.datasource) ? state.datasource.metrics : [],
@@ -524,8 +546,11 @@ export const controls = {
     label: t('Columns'),
     default: [],
     description: t('Columns to display'),
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      options: (state.datasource) ? state.datasource.columns : [],
     }),
   },
 
@@ -758,7 +783,7 @@ export const controls = {
       return null;
     },
     clearable: false,
-    optionRenderer: c => <ColumnOption column={c} />,
+    optionRenderer: c => <ColumnOption column={c} showType />,
     valueRenderer: c => <ColumnOption column={c} />,
     valueKey: 'column_name',
     mapStateToProps: (state) => {
@@ -980,7 +1005,7 @@ export const controls = {
     description: t('Metric assigned to the [X] axis'),
     default: null,
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
     mapStateToProps: state => ({
@@ -994,7 +1019,7 @@ export const controls = {
     default: null,
     validators: [v.nonEmpty],
     description: t('Metric assigned to the [Y] axis'),
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
     mapStateToProps: state => ({
@@ -1007,7 +1032,7 @@ export const controls = {
     label: t('Bubble Size'),
     default: null,
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
+    optionRenderer: m => <MetricOption metric={m} showType />,
     valueRenderer: m => <MetricOption metric={m} />,
     valueKey: 'metric_name',
     mapStateToProps: state => ({
@@ -1263,10 +1288,16 @@ export const controls = {
   },
 
   show_brush: {
-    type: 'CheckboxControl',
-    label: t('Range Filter'),
+    type: 'SelectControl',
+    label: t('Show Range Filter'),
     renderTrigger: true,
-    default: false,
+    clearable: false,
+    default: 'auto',
+    choices: [
+      ['yes', 'Yes'],
+      ['no', 'No'],
+      ['auto', 'Auto'],
+    ],
     description: t('Whether to display the time range interactive selector'),
   },
 
@@ -1325,6 +1356,22 @@ export const controls = {
     label: t('Table Filter'),
     default: false,
     description: t('Whether to apply filter when table cell is clicked'),
+  },
+
+  align_pn: {
+    type: 'CheckboxControl',
+    label: t('Align +/-'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether to align the background chart for +/- values'),
+  },
+
+  color_pn: {
+    type: 'CheckboxControl',
+    label: t('Color +/-'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to color +/- values'),
   },
 
   show_bubbles: {
@@ -1688,6 +1735,7 @@ export const controls = {
     default: [],
     description: 'Annotation Layers',
     renderTrigger: true,
+    tabOverride: 'data',
   },
 
   having_filters: {
