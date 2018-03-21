@@ -315,9 +315,11 @@ class BaseViz(object):
                 try:
                     cache_value = pkl.loads(cache_value)
                     df = cache_value['df']
-                    is_loaded = True
-                    self._any_cache_key = cache_key
+                    self.query = cache_value['query']
                     self._any_cached_dttm = cache_value['dttm']
+                    self._any_cache_key = cache_key
+                    self.status = utils.QueryStatus.SUCCESS
+                    is_loaded = True
                 except Exception as e:
                     logging.exception(e)
                     logging.error('Error reading cache: ' +
@@ -346,6 +348,7 @@ class BaseViz(object):
                     cache_value = dict(
                         dttm=cached_dttm,
                         df=df if df is not None else None,
+                        query=self.query,
                     )
                     cache_value = pkl.dumps(
                         cache_value, protocol=pkl.HIGHEST_PROTOCOL)
