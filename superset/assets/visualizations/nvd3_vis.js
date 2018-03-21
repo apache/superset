@@ -75,6 +75,10 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
+function setLineChartOpacity() {
+  $('.nvd3 .nv-group path.nv-area').css({ opacity: 0.1 });
+}
+
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -179,6 +183,7 @@ function nvd3Vis(slice, payload) {
             ...d,
             area: true,
           }));
+
           chart.forceY([0]);
         }
 
@@ -478,6 +483,10 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
+    if (fd.line_fill_area) {
+      setLineChartOpacity();
+    }
+
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
       const containerWidth = slice.container.width();
@@ -663,7 +672,6 @@ function nvd3Vis(slice, payload) {
               const domain = [xMin, xMax];
               xScale.domain(domain);
               chart.xDomain(domain);
-
               annotations.selectAll('line')
                 .data(records)
                 .enter()
