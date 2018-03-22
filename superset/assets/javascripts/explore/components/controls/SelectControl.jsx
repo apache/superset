@@ -16,9 +16,15 @@ const propTypes = {
   label: PropTypes.string,
   multi: PropTypes.bool,
   name: PropTypes.string.isRequired,
+  nullable: PropTypes.bool,
   onChange: PropTypes.func,
   onFocus: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
+  value: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.number,
+    PropTypes.array,
+    PropTypes.object,
+  ]),
   showHeader: PropTypes.bool,
   optionRenderer: PropTypes.func,
   valueRenderer: PropTypes.func,
@@ -35,6 +41,7 @@ const defaultProps = {
   isLoading: false,
   label: null,
   multi: false,
+  nullable: false,
   onChange: () => {},
   onFocus: () => {},
   showHeader: true,
@@ -90,7 +97,7 @@ export default class SelectControl extends React.PureComponent {
     if (props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
       const values = options.map(c => c.value);
-      if (props.value) {
+      if (props.value || (props.nullable && props.value === null)) {
         let valuesToAdd = props.value;
         if (!Array.isArray(valuesToAdd)) {
           valuesToAdd = [valuesToAdd];

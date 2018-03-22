@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
+import NullOption from '../../../components/NullOption';
 import { t } from '../../../locales';
 
 const operatorsArr = [
@@ -91,13 +92,18 @@ export default class Filter extends React.Component {
   renderFilterFormControl(filter) {
     const operator = operators[filter.op];
     if (operator.useSelect && !this.props.having) {
+      const value = Array.isArray(filter.val) ?
+        filter.val.map(v => ({ value: v, label: v })) : { value: filter.val, label: filter.val };
       // TODO should use a simple Select, not a control here...
       return (
         <SelectControl
           multi={operator.multi}
           freeForm
           name="filter-value"
-          value={filter.val}
+          nullable
+          value={value}
+          valueRenderer={v => <NullOption option={v} />}
+          optionRenderer={v => <NullOption option={v} />}
           isLoading={this.props.valuesLoading}
           choices={this.props.valueChoices}
           onChange={this.changeSelect.bind(this)}
