@@ -57,7 +57,7 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             'expression-defined columns in some cases. In most case '
             'users should not need to alter this.'),
         'expression': utils.markdown(
-            'a valid, non-aggregating SQL expression as supported by the '
+            'a valid, *non-aggregating* SQL expression as supported by the '
             'underlying backend. Example: `substr(name, 1, 1)`', True),
         'python_date_format': utils.markdown(Markup(
             'The pattern of timestamp format, use '
