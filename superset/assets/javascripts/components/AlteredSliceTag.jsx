@@ -61,7 +61,7 @@ export default class AlteredSliceTag extends React.Component {
         return '[]';
       }
       return value.map((v) => {
-        const filterVal = v.val.constructor === Array ? `[${v.val.join(', ')}]` : v.val;
+        const filterVal = Array.isArray(v.val) ? `[${v.val.join(', ')}]` : v.val;
         return `${v.col} ${v.op} ${filterVal}`;
       }).join(', ');
     } else if (controls[key] && controls[key].type === 'BoundsControl') {
@@ -70,7 +70,7 @@ export default class AlteredSliceTag extends React.Component {
       return value.map(v => JSON.stringify(v)).join(', ');
     } else if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
-    } else if (value.constructor === Array) {
+    } else if (Array.isArray(value)) {
       return value.length ? value.join(', ') : '[]';
     } else if (typeof value === 'string' || typeof value === 'number') {
       return value;
