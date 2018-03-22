@@ -155,7 +155,8 @@ class BaseViz(object):
         else:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
-                    df[DTTM_ALIAS] = pd.to_datetime(df[DTTM_ALIAS], utc=False)
+                    df[DTTM_ALIAS] = pd.to_datetime(
+                        df[DTTM_ALIAS], utc=False, unit=timestamp_format[6:])
                 else:
                     df[DTTM_ALIAS] = pd.to_datetime(
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
