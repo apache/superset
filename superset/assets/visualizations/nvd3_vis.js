@@ -182,6 +182,7 @@ function nvd3Vis(slice, payload) {
           data = data.map(d => ({
             ...d,
             area: true,
+            fillOpacity: 0.1,
           }));
 
           chart.forceY([0]);
@@ -483,9 +484,9 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    if (fd.line_fill_area) {
-      setLineChartOpacity();
-    }
+    // if (fd.line_fill_area) {
+    //   setLineChartOpacity();
+    // }
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
