@@ -5,7 +5,7 @@ import { DragDropContext } from 'react-dnd';
 
 import BuilderComponentPane from './BuilderComponentPane';
 import DashboardHeader from '../containers/DashboardHeader';
-import DashboardGrid from '../containers/DashboardGrid';
+import DashboardGrid from './DashboardGrid';
 import IconButton from './IconButton';
 import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
@@ -23,6 +23,7 @@ const propTypes = {
   // redux
   dashboard: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
+  updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
@@ -52,7 +53,7 @@ class DashboardBuilder extends React.Component {
 
   render() {
     const { tabIndex } = this.state;
-    const { handleComponentDrop, dashboard, deleteTopLevelTabs } = this.props;
+    const { handleComponentDrop, updateComponents, dashboard, deleteTopLevelTabs } = this.props;
     const dashboardRoot = dashboard[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
     const topLevelTabs = rootChildId !== DASHBOARD_GRID_ID && dashboard[rootChildId];
@@ -108,6 +109,9 @@ class DashboardBuilder extends React.Component {
         <div className="dashboard-builder">
           <DashboardGrid
             gridComponent={gridComponent}
+            dashboard={dashboard}
+            handleComponentDrop={handleComponentDrop}
+            updateComponents={updateComponents}
             depth={DASHBOARD_ROOT_DEPTH + 1}
           />
           <BuilderComponentPane />

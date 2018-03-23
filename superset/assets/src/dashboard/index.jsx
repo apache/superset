@@ -10,7 +10,7 @@ import { initJQueryAjax } from '../modules/utils';
 import DashboardContainer from './components/DashboardContainer';
 // import rootReducer, { getInitialState } from './reducers';
 
-import testLayout from './v2/fixtures/testLayout';
+import emptyDashboardLayout from './v2/fixtures/emptyDashboardLayout';
 import rootReducer from './v2/reducers/';
 
 appSetup();
@@ -20,7 +20,11 @@ const appContainer = document.getElementById('app');
 // const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 // const initState = Object.assign({}, getInitialState(bootstrapData));
 const initState = {
-  dashboard: testLayout,
+  dashboard: {
+    past: [],
+    present: emptyDashboardLayout,
+    future: [],
+  },
 };
 
 const store = createStore(

@@ -8,8 +8,9 @@ import DashboardComponent from '../../containers/DashboardComponent';
 import DeleteComponentButton from '../DeleteComponentButton';
 import HoverMenu from '../menu/HoverMenu';
 import { componentShape } from '../../util/propShapes';
-import { NEW_TAB_ID } from '../../util/constants';
+import { NEW_TAB_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 import { RENDER_TAB, RENDER_TAB_CONTENT } from './Tab';
+import { TAB_TYPE } from '../../util/componentTypes';
 
 const NEW_TAB_INDEX = -1;
 const MAX_TAB_COUNT = 5;
@@ -21,13 +22,14 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
+  renderTabContent: PropTypes.bool,
 
   // grid related
-  availableColumnCount: PropTypes.number.isRequired,
-  columnWidth: PropTypes.number.isRequired,
-  onResizeStart: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  onResizeStop: PropTypes.func.isRequired,
+  availableColumnCount: PropTypes.number,
+  columnWidth: PropTypes.number,
+  onResizeStart: PropTypes.func,
+  onResize: PropTypes.func,
+  onResizeStop: PropTypes.func,
 
   // dnd
   createComponent: PropTypes.func.isRequired,
@@ -40,6 +42,12 @@ const propTypes = {
 const defaultProps = {
   onChangeTab: null,
   children: null,
+  renderTabContent: true,
+  availableColumnCount: 0,
+  columnWidth: 0,
+  onResizeStart() {},
+  onResize() {},
+  onResizeStop() {},
 };
 
 class Tabs extends React.PureComponent {
@@ -48,8 +56,9 @@ class Tabs extends React.PureComponent {
     this.state = {
       tabIndex: 0,
     };
-    this.handleClicKTab = this.handleClicKTab.bind(this);
+    this.handleClickTab = this.handleClickTab.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.handleDeleteTab = this.handleDeleteTab.bind(this);
     this.handleDropOnTab = this.handleDropOnTab.bind(this);
   }
 
@@ -60,7 +69,7 @@ class Tabs extends React.PureComponent {
     }
   }
 
-  handleClicKTab(tabIndex) {
+  handleClickTab(tabIndex) {
     const { onChangeTab, component, createComponent } = this.props;
 
     if (tabIndex !== NEW_TAB_INDEX && tabIndex !== this.state.tabIndex) {
@@ -71,10 +80,14 @@ class Tabs extends React.PureComponent {
     } else if (tabIndex === NEW_TAB_INDEX) {
       createComponent({
         destination: {
-          droppableId: component.id,
+          id: component.id,
+          type: component.type,
           index: component.children.length,
         },
-        draggableId: NEW_TAB_ID,
+        dragging: {
+          id: NEW_TAB_ID,
+          type: TAB_TYPE,
+        },
       });
     }
   }
@@ -84,19 +97,23 @@ class Tabs extends React.PureComponent {
     deleteComponent(id, parentId);
   }
 
+  handleDeleteTab(tabIndex) {
+    this.handleClickTab(Math.max(0, tabIndex - 1));
+  }
+
   handleDropOnTab(dropResult) {
     const { component } = this.props;
 
     // Ensure dropped tab is visible
     const { destination } = dropResult;
     if (destination) {
-      const dropTabIndex = destination.droppableId === component.id
+      const dropTabIndex = destination.id === component.id
         ? destination.index // dropped ON tabs
-        : component.children.indexOf(destination.droppableId); // dropped IN tab
+        : component.children.indexOf(destination.id); // dropped IN tab
 
       if (dropTabIndex > -1) {
         setTimeout(() => {
-          this.handleClicKTab(dropTabIndex);
+          this.handleClickTab(dropTabIndex);
         }, 30);
       }
     }
@@ -114,6 +131,7 @@ class Tabs extends React.PureComponent {
       onResize,
       onResizeStop,
       handleComponentDrop,
+      renderTabContent,
     } = this.props;
 
     const { tabIndex: selectedTabIndex } = this.state;
@@ -125,6 +143,7 @@ class Tabs extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="row"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
       >
         {({ dropIndicatorProps: tabsDropIndicatorProps, dragSourceRef: tabsDragSourceRef }) => (
@@ -137,7 +156,7 @@ class Tabs extends React.PureComponent {
             <BootstrapTabs
               id={tabsComponent.id}
               activeKey={selectedTabIndex}
-              onSelect={this.handleClicKTab}
+              onSelect={this.handleClickTab}
               animation={false}
             >
               {tabIds.map((tabId, tabIndex) => (
@@ -156,10 +175,8 @@ class Tabs extends React.PureComponent {
                       renderType={RENDER_TAB}
                       availableColumnCount={availableColumnCount}
                       columnWidth={columnWidth}
-                      onResizeStart={onResizeStart}
-                      onResize={onResize}
-                      onResizeStop={onResizeStop}
                       onDropOnTab={this.handleDropOnTab}
+                      onDeleteTab={this.handleDeleteTab}
                     />
                   }
                 >
@@ -168,11 +185,11 @@ class Tabs extends React.PureComponent {
                     render potentially-expensive charts (this also enables lazy loading
                     their content)
                   */}
-                  {tabIndex === selectedTabIndex &&
+                  {tabIndex === selectedTabIndex && renderTabContent &&
                     <DashboardComponent
                       id={tabId}
                       parentId={tabsComponent.id}
-                      depth={depth}
+                      depth={depth} // see isValidChild.js for why tabs don't increment child depth
                       index={tabIndex}
                       renderType={RENDER_TAB_CONTENT}
                       availableColumnCount={availableColumnCount}
@@ -188,14 +205,14 @@ class Tabs extends React.PureComponent {
               {tabIds.length < MAX_TAB_COUNT &&
                 <BootstrapTab
                   eventKey={NEW_TAB_INDEX}
-                  title={<div className="fa fa-plus-square" />}
+                  title={<div className="fa fa-plus" />}
                 />}
 
             </BootstrapTabs>
 
+            {/* don't indicate that a drop on root is allowed when tabs already exist */}
             {tabsDropIndicatorProps
-              && tabsDropIndicatorProps.style
-              && tabsDropIndicatorProps.style.width === '100%'
+              && parentComponent.id !== DASHBOARD_ROOT_ID
               && <div {...tabsDropIndicatorProps} />}
 
           </div>

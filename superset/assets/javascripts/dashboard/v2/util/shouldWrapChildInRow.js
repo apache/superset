@@ -1,5 +1,5 @@
 import {
-  GRID_ROOT_TYPE,
+  DASHBOARD_GRID_TYPE,
   CHART_TYPE,
   COLUMN_TYPE,
   MARKDOWN_TYPE,
@@ -7,7 +7,7 @@ import {
 } from './componentTypes';
 
 const typeToWrapChildLookup = {
-  [GRID_ROOT_TYPE]: {
+  [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: true,
     [COLUMN_TYPE]: true,
     [MARKDOWN_TYPE]: true,
