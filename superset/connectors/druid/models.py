@@ -35,7 +35,7 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import conf, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
-from superset.exceptions import MetricPermException
+from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
@@ -44,6 +44,7 @@ from superset.utils import (
 )
 
 DRUID_TZ = conf.get('DRUID_TZ')
+POST_AGG_TYPE = 'postagg'
 
 
 # Function wrapper because bound methods cannot
@@ -843,7 +844,7 @@ class DruidDatasource(Model, BaseDatasource):
         """Return a list of metrics that are post aggregations"""
         postagg_metrics = [
             metrics_dict[name] for name in postagg_names
-            if metrics_dict[name].metric_type == 'postagg'
+            if metrics_dict[name].metric_type == POST_AGG_TYPE
         ]
         # Remove post aggregations that were found
         for postagg in postagg_metrics:
@@ -903,7 +904,7 @@ class DruidDatasource(Model, BaseDatasource):
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
                 adhoc_agg_configs.append(metric)
-            elif metrics_dict[metric].metric_type != 'postagg':
+            elif metrics_dict[metric].metric_type != POST_AGG_TYPE:
                 saved_agg_names.add(metric)
             else:
                 postagg_names.append(metric)
@@ -921,12 +922,28 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def get_aggregations(metrics_dict, saved_metrics, adhoc_metrics=[]):
+        """
+            Returns a dictionary of aggregation metric names to aggregation json objects
+
+            :param metrics_dict: dictionary of all the metrics
+            :param saved_metrics: list of saved metric names
+            :param adhoc_metrics: list of adhoc metric names
+            :raise SupersetException: if one or more metric names are not aggregations
+        """
         aggregations = OrderedDict()
+        invalid_metric_names = []
         for metric_name in saved_metrics:
             if metric_name in metrics_dict:
                 metric = metrics_dict[metric_name]
-                if metric.metric_type != 'postagg':
+                if metric.metric_type == POST_AGG_TYPE:
+                    invalid_metric_names.append(metric_name)
+                else:
                     aggregations[metric_name] = metric.json_obj
+            else:
+                invalid_metric_names.append(metric_name)
+        if len(invalid_metric_names) > 0:
+            raise SupersetException(
+                _('Metric(s) {} must be aggregations.').format(invalid_metric_names))
         for adhoc_metric in adhoc_metrics:
             aggregations[adhoc_metric['label']] = {
                 'fieldName': adhoc_metric['column']['column_name'],

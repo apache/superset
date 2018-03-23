@@ -14,6 +14,7 @@ import superset.connectors.druid.models as models
 from superset.connectors.druid.models import (
     DruidColumn, DruidDatasource, DruidMetric,
 )
+from superset.exceptions import SupersetException
 
 
 def mock_metric(metric_name, is_postagg=False):
@@ -726,8 +727,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual('sum1', qry_obj['metric'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertEqual(set(['count1', 'sum1']), set(aggregations.keys()))
-        self.assertEqual(set([]), set(post_aggregations.keys()))
+        self.assertEqual({'count1', 'sum1'}, set(aggregations.keys()))
+        self.assertEqual(set(), set(post_aggregations.keys()))
 
         # get the counts of the top 5 'dim1's, order by 'div1'
         ds.run_query(
@@ -740,8 +741,8 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual('div1', qry_obj['metric'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertEqual(set(['count1', 'sum1', 'sum2']), set(aggregations.keys()))
-        self.assertEqual(set(['div1']), set(post_aggregations.keys()))
+        self.assertEqual({'count1', 'sum1', 'sum2'}, set(aggregations.keys()))
+        self.assertEqual({'div1'}, set(post_aggregations.keys()))
 
         groupby = ['dim1', 'dim2']
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
@@ -751,12 +752,12 @@ class DruidFuncTestCase(unittest.TestCase):
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.groupby.call_args_list[0][1]
-        self.assertEqual(set(['dim1', 'dim2']), set(qry_obj['dimensions']))
+        self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
         self.assertEqual('sum1', qry_obj['limit_spec']['columns'][0]['dimension'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertEqual(set(['count1', 'sum1']), set(aggregations.keys()))
-        self.assertEqual(set([]), set(post_aggregations.keys()))
+        self.assertEqual({'count1', 'sum1'}, set(aggregations.keys()))
+        self.assertEqual(set(), set(post_aggregations.keys()))
 
         # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
         ds.run_query(
@@ -765,9 +766,55 @@ class DruidFuncTestCase(unittest.TestCase):
             client=client, order_desc=True, filter=[],
         )
         qry_obj = client.groupby.call_args_list[1][1]
-        self.assertEqual(set(['dim1', 'dim2']), set(qry_obj['dimensions']))
+        self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
         self.assertEqual('div1', qry_obj['limit_spec']['columns'][0]['dimension'])
         aggregations = qry_obj['aggregations']
         post_aggregations = qry_obj['post_aggregations']
-        self.assertEqual(set(['count1', 'sum1', 'sum2']), set(aggregations.keys()))
-        self.assertEqual(set(['div1']), set(post_aggregations.keys()))
+        self.assertEqual({'count1', 'sum1', 'sum2'}, set(aggregations.keys()))
+        self.assertEqual({'div1'}, set(post_aggregations.keys()))
+
+    def test_get_aggregations(self):
+        ds = DruidDatasource(datasource_name='datasource')
+        metrics_dict = {
+            'sum1': DruidMetric(
+                metric_name='sum1',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum1'}),
+            ),
+            'sum2': DruidMetric(
+                metric_name='sum2',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum2'}),
+            ),
+            'div1': DruidMetric(
+                metric_name='div1',
+                metric_type='postagg',
+                json=json.dumps({
+                    'fn': '/',
+                    'type': 'arithmetic',
+                    'name': 'div1',
+                    'fields': [
+                        {
+                            'fieldName': 'sum1',
+                            'type': 'fieldAccess',
+                        },
+                        {
+                            'fieldName': 'sum2',
+                            'type': 'fieldAccess',
+                        },
+                    ],
+                }),
+            ),
+        }
+        metric_names = ['sum1', 'sum2']
+        aggs = ds.get_aggregations(metrics_dict, metric_names)
+        expected_agg = {name: metrics_dict[name].json_obj for name in metric_names}
+        self.assertEqual(expected_agg, aggs)
+
+        metric_names = ['sum1', 'col1']
+        self.assertRaises(
+            SupersetException, ds.get_aggregations, metrics_dict, metric_names)
+
+        metric_names = ['sum1', 'div1']
+        self.assertRaises(
+            SupersetException, ds.get_aggregations, metrics_dict, metric_names)
