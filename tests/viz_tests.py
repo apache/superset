@@ -663,3 +663,14 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         result = test_viz_deckgl.get_js_columns(mock_d)
 
         assert result == {'a': 'dummy1', 'b': 'dummy2'}
+
+    def test_get_properties(self):
+        mock_d = {}
+        form_data = {'size': 'large'}
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(NotImplementedError) as context:
+            test_viz_deckgl.get_properties(mock_d)
+
+        self.assertTrue('' in str(context.exception))
