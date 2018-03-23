@@ -463,7 +463,7 @@ class SqlaTable(Model, BaseDatasource):
             'row_limit': row_limit,
             'to_dttm': to_dttm,
             'filter': filter,
-            'columns': {col.column_name: col for col in self.columns}
+            'columns': {col.column_name: col for col in self.columns},
 
         }
         template_processor = self.get_template_processor(**template_kwargs)
