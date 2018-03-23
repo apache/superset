@@ -168,7 +168,8 @@ module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
 ConnectorRegistry.register_sources(module_datasource_map)
 
 # Flask-Compress
-Compress(app)
+if conf.get('ENABLE_FLASK_COMPRESS'):
+    Compress(app)
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization

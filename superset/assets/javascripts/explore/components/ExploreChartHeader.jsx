@@ -49,7 +49,7 @@ class ExploreChartHeader extends React.PureComponent {
           this.props.actions.createNewSlice(
             data.can_add, data.can_download, data.can_overwrite,
             data.slice, data.form_data);
-          this.props.addHistory({ isReplace: true, title: `[slice] ${data.slice.slice_name}` });
+          this.props.addHistory({ isReplace: true, title: `[chart] ${data.slice.slice_name}` });
         } else {
           this.props.actions.updateChartTitle(newTitle);
         }
@@ -97,7 +97,7 @@ class ExploreChartHeader extends React.PureComponent {
 
           <TooltipWrapper
             label="edit-desc"
-            tooltip={t('Edit slice properties')}
+            tooltip={t('Edit chart properties')}
           >
             <a
               className="edit-desc-icon"

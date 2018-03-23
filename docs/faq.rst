@@ -106,7 +106,7 @@ edit the ``JSON Metadata`` field, more specifically the
 never be affected by any dashboard level filtering.
 
 
-..code:: json
+.. code-block:: json
 
     {
         "filter_immune_slices": [324, 65, 92],
@@ -141,7 +141,7 @@ to be refreshed - especially if some data is slow moving, or run heavy queries. 
 slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard
 ``JSON Metadata`` field:
 
-..code:: json
+.. code-block:: json
 
     {
        "filter_immune_slices": [],
@@ -157,7 +157,7 @@ Slice refresh will also be staggered over the specified period. You can turn off
 by setting the ``stagger_refresh`` to ``false`` and modify the stagger period by setting
 ``stagger_time`` to a value in milliseconds in the ``JSON Metadata`` field:
 
-..code:: json
+.. code-block:: json
 
     {
         "stagger_refresh": false,
@@ -236,7 +236,7 @@ It is possible on a per-dashboard basis by providing a mapping of
 labels to colors in the ``JSON Metadata`` attribute using the
 ``label_colors`` key.
 
-..code:: json
+.. code-block:: json
 
     {
         "label_colors": {

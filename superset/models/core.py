@@ -567,6 +567,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     allow_ctas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
+    allow_multi_schema_metadata_fetch = Column(Boolean, default=True)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -593,6 +594,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return {
             'name': self.database_name,
             'backend': self.backend,
+            'allow_multi_schema_metadata_fetch':
+                self.allow_multi_schema_metadata_fetch,
         }
 
     @property
@@ -677,7 +680,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
-            url, params = DB_CONNECTION_MUTATOR(url, params, g.user)
+            url, params = DB_CONNECTION_MUTATOR(
+                url, params, effective_username, sm)
         return create_engine(url, **params)
 
     def get_reserved_words(self):
@@ -710,11 +714,11 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def select_star(
             self, table_name, schema=None, limit=100, show_cols=False,
-            indent=True, latest_partition=True):
+            indent=True, latest_partition=True, cols=None):
         """Generates a ``select *`` statement in the proper dialect"""
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, limit=limit, show_cols=show_cols,
-            indent=indent, latest_partition=latest_partition)
+            indent=indent, latest_partition=latest_partition, cols=cols)
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (
@@ -736,6 +740,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def all_table_names(self, schema=None, force=False):
         if not schema:
+            if not self.allow_multi_schema_metadata_fetch:
+                return []
             tables_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'table', force=force)
             return tables_dict.get('', [])
@@ -744,6 +750,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def all_view_names(self, schema=None, force=False):
         if not schema:
+            if not self.allow_multi_schema_metadata_fetch:
+                return []
             views_dict = self.db_engine_spec.fetch_result_sets(
                 self, 'view', force=force)
             return views_dict.get('', [])

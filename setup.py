@@ -95,7 +95,6 @@ setup(
         'cors': ['Flask-Cors>=2.0.0'],
     },
     tests_require=[
-        'codeclimate-test-reporter',
         'coverage',
         'mock',
         'nose',
@@ -105,7 +104,8 @@ setup(
     author_email='maximebeauchemin@gmail.com',
     url='https://github.com/apache/incubator-superset',
     download_url=(
-        'https://github.com/apache/incubator-superset/tarball/' + version_string,
+        'https://github.com'
+        '/apache/incubator-superset/tarball/' + version_string
     ),
     classifiers=[
         'Programming Language :: Python :: 2.7',

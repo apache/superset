@@ -12,11 +12,11 @@ import uuid
 from mock import patch
 import numpy
 
+from superset.exceptions import SupersetException
 from superset.utils import (
     base_json_conv, datetime_f, json_int_dttm_ser, json_iso_dttm_ser,
     JSONEncodedDict, memoized, merge_extra_filters, merge_request_params,
-    parse_human_timedelta,
-    SupersetException, validate_json, zlib_compress, zlib_decompress_to_string,
+    parse_human_timedelta, validate_json, zlib_compress, zlib_decompress_to_string,
 )
 
 

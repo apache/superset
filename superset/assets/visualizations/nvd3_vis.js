@@ -22,6 +22,7 @@ const minBarWidth = 15;
 // Limit on how large axes margins can grow as the chart window is resized
 const maxMarginPad = 30;
 const animationTime = 1000;
+const minHeightForBrush = 480;
 
 const BREAKPOINTS = {
   small: 340,
@@ -158,9 +159,14 @@ function nvd3Vis(slice, payload) {
     if (svg.empty()) {
       svg = d3.select(slice.selector).append('svg');
     }
+    let height = slice.height();
     switch (vizType) {
       case 'line':
-        if (fd.show_brush) {
+        if (
+          fd.show_brush === true ||
+          fd.show_brush === 'yes' ||
+          (fd.show_brush === 'auto' && height >= minHeightForBrush)
+        ) {
           chart = nv.models.lineWithFocusChart();
           chart.focus.xScale(d3.time.scale.utc());
           chart.x2Axis.staggerLabels(false);
@@ -332,7 +338,6 @@ function nvd3Vis(slice, payload) {
       }
     }
 
-    let height = slice.height();
     if (vizType === 'bullet') {
       height = Math.min(height, 50);
     }
@@ -528,6 +533,28 @@ function nvd3Vis(slice, payload) {
         chart.yAxis.axisLabel(fd.y_axis_label).axisLabelDistance(distance);
       }
 
+      const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
+      if (isTimeSeries && annotationLayers && slice.annotationData) {
+        // Time series annotations add additional data
+        const timeSeriesAnnotations = annotationLayers
+          .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
+        bushel.concat((slice.annotationData[a.name] || []).map((series) => {
+          if (!series) {
+            return {};
+          }
+          const key = Array.isArray(series.key) ?
+            `${a.name}, ${series.key.join(', ')}` : a.name;
+          return {
+            ...series,
+            key,
+            color: a.color,
+            strokeWidth: a.width,
+            classed: `${a.opacity} ${a.style}`,
+          };
+        })), []);
+        data.push(...timeSeriesAnnotations);
+      }
+
       // render chart
       svg
       .datum(data)
@@ -539,8 +566,7 @@ function nvd3Vis(slice, payload) {
       // on scroll, hide tooltips. throttle to only 4x/second.
       $(window).scroll(throttle(hideTooltips, 250));
 
-      const annotationLayers = (slice.formData.annotation_layers || [])
-          .filter(x => x.show);
+      // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && annotationLayers) {
         // Formula annotations
         const formulas = annotationLayers.filter(a => a.annotationType === AnnotationTypes.FORMULA)
@@ -615,7 +641,7 @@ function nvd3Vis(slice, payload) {
               '<div>' + body.join(', ') + '</div>';
           });
 
-        if (slice.annotationData && Object.keys(slice.annotationData).length) {
+        if (slice.annotationData) {
           // Event annotations
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.EVENT &&
@@ -629,13 +655,27 @@ function nvd3Vis(slice, payload) {
 
             const tip = tipFactory(e);
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
+              const timeValue = new Date(moment.utc(r[e.timeColumn]));
+
               return {
                 ...r,
-                [e.timeColumn]: timeColumn,
+                [e.timeColumn]: timeValue,
               };
-            }).filter(r => !Number.isNaN(r[e.timeColumn].getMilliseconds()));
+            }).filter(record => !Number.isNaN(record[e.timeColumn].getMilliseconds()));
+
+            // account for the annotation in the x domain
+            records.forEach((record) => {
+              const timeValue = record[e.timeColumn];
+
+              xMin = Math.min(...[xMin, timeValue]);
+              xMax = Math.max(...[xMax, timeValue]);
+            });
+
             if (records.length) {
+              const domain = [xMin, xMax];
+              xScale.domain(domain);
+              chart.xDomain(domain);
+
               annotations.selectAll('line')
                 .data(records)
                 .enter()
@@ -655,7 +695,6 @@ function nvd3Vis(slice, payload) {
             }
           });
 
-
           // Interval annotations
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.INTERVAL &&
@@ -670,16 +709,32 @@ function nvd3Vis(slice, payload) {
             const tip = tipFactory(e);
 
             const records = (slice.annotationData[e.name].records || []).map((r) => {
-              const timeColumn = new Date(moment.utc(r[e.timeColumn]));
-              const intervalEndColumn = new Date(moment.utc(r[e.intervalEndColumn]));
+              const timeValue = new Date(moment.utc(r[e.timeColumn]));
+              const intervalEndValue = new Date(moment.utc(r[e.intervalEndColumn]));
               return {
                 ...r,
-                [e.timeColumn]: timeColumn,
-                [e.intervalEndColumn]: intervalEndColumn,
+                [e.timeColumn]: timeValue,
+                [e.intervalEndColumn]: intervalEndValue,
               };
-            }).filter(r => !Number.isNaN(r[e.timeColumn].getMilliseconds()) &&
-              !Number.isNaN(r[e.intervalEndColumn].getMilliseconds()));
+            }).filter(record => (
+              !Number.isNaN(record[e.timeColumn].getMilliseconds()) &&
+              !Number.isNaN(record[e.intervalEndColumn].getMilliseconds())
+            ));
+
+            // account for the annotation in the x domain
+            records.forEach((record) => {
+              const timeValue = record[e.timeColumn];
+              const intervalEndValue = record[e.intervalEndColumn];
+
+              xMin = Math.min(...[xMin, timeValue, intervalEndValue]);
+              xMax = Math.max(...[xMax, timeValue, intervalEndValue]);
+            });
+
             if (records.length) {
+              const domain = [xMin, xMax];
+              xScale.domain(domain);
+              chart.xDomain(domain);
+
               annotations.selectAll('rect')
                 .data(records)
                 .enter()
@@ -702,33 +757,8 @@ function nvd3Vis(slice, payload) {
                 .call(tip);
             }
           });
-
-          // Time series annotations
-          const timeSeriesAnnotations = annotationLayers
-            .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
-              bushel.concat((slice.annotationData[a.name] || []).map((series) => {
-                if (!series) {
-                  return {};
-                }
-                const key = Array.isArray(series.key) ?
-                  `${a.name}, ${series.key.join(', ')}` : a.name;
-                return {
-                  ...series,
-                  key,
-                  color: a.color,
-                  strokeWidth: a.width,
-                  classed: `${a.opacity} ${a.style}`,
-                };
-              })), []);
-          data.push(...timeSeriesAnnotations);
         }
       }
-
-      // rerender chart
-      svg.datum(data)
-        .attr('height', height)
-        .attr('width', width)
-        .call(chart);
     }
     return chart;
   };
