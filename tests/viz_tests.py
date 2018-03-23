@@ -674,3 +674,15 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
             test_viz_deckgl.get_properties(mock_d)
 
         self.assertTrue('' in str(context.exception))
+
+    def test_process_query_obj(self):
+        pass
+
+    def test_process_spatial_data_obj(self):
+        pass
+
+    def test_get_data(self):
+        pass
+
+    def test_query_obj(self):
+        pass
