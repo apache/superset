@@ -339,7 +339,6 @@ class CsvToDatabaseView(SimpleFormView):
         form.mangle_dupe_cols.data = True
         form.skipinitialspace.data = False
         form.skip_blank_lines.data = True
-        form.parse_dates.data = True
         form.infer_datetime_format.data = True
         form.decimal.data = '.'
         form.if_exists.data = 'append'
