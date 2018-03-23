@@ -27,6 +27,14 @@ export const bnbColors = [
   '#b37e00',
   '#988b4e',
 ];
+
+export const lyftColors = [
+  '#ff00bf', // pink
+  '#352384', // purple
+  '#333447', // carbon
+  '#f3f3f5', // silver
+];
+
 const d3Category10 = d3.scale.category10().range();
 const d3Category20 = d3.scale.category20().range();
 const d3Category20b = d3.scale.category20b().range();
