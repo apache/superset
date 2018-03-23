@@ -2747,11 +2747,11 @@
         [
           "googleCategory20c",
           "googleCategory20c"
-        ]
+        ],
         [
           "lyftColors",
           "lyftColors"
-        ],
+        ]
       ],
       "description": "The color scheme for rendering chart",
       "schemes": {
