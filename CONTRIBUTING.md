@@ -259,6 +259,10 @@ superset runserver -d -p 8081
 npm run dev
 ```
 
+#### Upgrading npm packages
+
+Should you add or upgrade a npm package, which involves changing `package.json`, you'll need to re-run `yarn install` and push the newly generated `yarn.lock` file so we get the reproducible build. More information at (https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/)
+
 ## Testing
 
 Before running python unit tests, please setup local testing environment:
