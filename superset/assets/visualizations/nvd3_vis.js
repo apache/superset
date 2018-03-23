@@ -75,9 +75,6 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
-function setLineChartOpacity() {
-  $('.nvd3 .nv-group path.nv-area').css({ opacity: 0.1 });
-}
 
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
@@ -483,10 +480,6 @@ function nvd3Vis(slice, payload) {
       .style('stroke-opacity', 1)
       .style('fill-opacity', 1);
     }
-
-    // if (fd.line_fill_area) {
-    //   setLineChartOpacity();
-    // }
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
