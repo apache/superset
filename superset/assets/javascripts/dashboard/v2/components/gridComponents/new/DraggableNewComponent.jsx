@@ -3,6 +3,8 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 
 import DragDroppable from '../../dnd/DragDroppable';
+import { NEW_COMPONENTS_SOURCE_ID } from '../../../util/constants';
+import { NEW_COMPONENT_SOURCE_TYPE } from '../../../util/componentTypes';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -21,8 +23,9 @@ export default class DraggableNewComponent extends React.PureComponent {
     return (
       <DragDroppable
         component={{ type, id }}
-        parentComponent={null}
+        parentComponent={{ id: NEW_COMPONENTS_SOURCE_ID, type: NEW_COMPONENT_SOURCE_TYPE }}
         index={0}
+        depth={0}
       >
         {({ dragSourceRef }) => (
           <div ref={dragSourceRef} className="new-component">

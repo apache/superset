@@ -8,12 +8,12 @@ import DashboardComponent from '../../containers/DashboardComponent';
 import DeleteComponentButton from '../DeleteComponentButton';
 import HoverMenu from '../menu/HoverMenu';
 import IconButton from '../IconButton';
-import RowStyleDropdown from '../menu/RowStyleDropdown';
+import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 
 import { componentShape } from '../../util/propShapes';
-import rowStyleOptions from '../../util/rowStyleOptions';
-import { GRID_GUTTER_SIZE, ROW_TRANSPARENT } from '../../util/constants';
+import backgroundStyleOptions from '../../util/backgroundStyleOptions';
+import { GRID_GUTTER_SIZE, BACKGROUND_TRANSPARENT } from '../../util/constants';
 
 const GUTTER = 'GUTTER';
 
@@ -29,7 +29,6 @@ const propTypes = {
   availableColumnCount: PropTypes.number.isRequired,
   columnWidth: PropTypes.number.isRequired,
   occupiedColumnCount: PropTypes.number.isRequired,
-  occupiedRowCount: PropTypes.number.isRequired,
   onResizeStart: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
   onResizeStop: PropTypes.func.isRequired,
@@ -52,7 +51,7 @@ class Row extends React.PureComponent {
     };
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
-    this.handleChangeRowStyle = this.handleUpdateMeta.bind(this, 'rowStyle');
+    this.handleChangeBackground = this.handleUpdateMeta.bind(this, 'background');
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
   }
 
@@ -88,7 +87,6 @@ class Row extends React.PureComponent {
       availableColumnCount,
       columnWidth,
       occupiedColumnCount,
-      occupiedRowCount,
       depth,
       onResizeStart,
       onResize,
@@ -106,8 +104,8 @@ class Row extends React.PureComponent {
       }
     });
 
-    const rowStyle = rowStyleOptions.find(
-      opt => opt.value === (rowComponent.meta.rowStyle || ROW_TRANSPARENT),
+    const backgroundStyle = backgroundStyleOptions.find(
+      opt => opt.value === (rowComponent.meta.background || BACKGROUND_TRANSPARENT),
     );
 
     return (
@@ -116,6 +114,7 @@ class Row extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="row"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
@@ -124,19 +123,18 @@ class Row extends React.PureComponent {
             onChangeFocus={this.handleChangeFocus}
             disableClick
             menuItems={[
-              <RowStyleDropdown
-                id={`${rowComponent.id}-row-style`}
-                value={rowComponent.meta.rowStyle}
-                onChange={this.handleChangeRowStyle}
+              <BackgroundStyleDropdown
+                id={`${rowComponent.id}-background`}
+                value={rowComponent.meta.background}
+                onChange={this.handleChangeBackground}
               />,
             ]}
           >
-
             <div
               className={cx(
                 'grid-row',
                 rowItems.length === 0 && 'grid-row--empty',
-                rowStyle.className,
+                backgroundStyle.className,
               )}
             >
               <HoverMenu innerRef={dragSourceRef} position="left">
@@ -161,7 +159,6 @@ class Row extends React.PureComponent {
                     depth={depth + 1}
                     index={itemIndex / 2} // account for gutters!
                     availableColumnCount={availableColumnCount - occupiedColumnCount}
-                    occupiedRowCount={occupiedRowCount}
                     columnWidth={columnWidth}
                     onResizeStart={onResizeStart}
                     onResize={onResize}

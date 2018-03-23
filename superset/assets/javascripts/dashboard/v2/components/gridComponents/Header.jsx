@@ -7,18 +7,19 @@ import DragHandle from '../dnd/DragHandle';
 import EditableTitle from '../../../../components/EditableTitle';
 import HoverMenu from '../menu/HoverMenu';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
-import RowStyleDropdown from '../menu/RowStyleDropdown';
+import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
 import DeleteComponentButton from '../DeleteComponentButton';
 import PopoverDropdown from '../menu/PopoverDropdown';
 import headerStyleOptions from '../../util/headerStyleOptions';
-import rowStyleOptions from '../../util/rowStyleOptions';
+import backgroundStyleOptions from '../../util/backgroundStyleOptions';
 import { componentShape } from '../../util/propShapes';
-import { SMALL_HEADER, ROW_TRANSPARENT } from '../../util/constants';
+import { SMALL_HEADER, BACKGROUND_TRANSPARENT } from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
   component: componentShape.isRequired,
+  depth: PropTypes.number.isRequired,
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
 
@@ -41,7 +42,7 @@ class Header extends React.PureComponent {
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
     this.handleChangeSize = this.handleUpdateMeta.bind(this, 'headerSize');
-    this.handleChangeRowStyle = this.handleUpdateMeta.bind(this, 'rowStyle');
+    this.handleChangeBackground = this.handleUpdateMeta.bind(this, 'background');
     this.handleChangeText = this.handleUpdateMeta.bind(this, 'text');
   }
 
@@ -74,6 +75,7 @@ class Header extends React.PureComponent {
 
     const {
       component,
+      depth,
       parentComponent,
       index,
       handleComponentDrop,
@@ -83,8 +85,8 @@ class Header extends React.PureComponent {
       opt => opt.value === (component.meta.headerSize || SMALL_HEADER),
     );
 
-    const rowStyle = rowStyleOptions.find(
-      opt => opt.value === (component.meta.rowStyle || ROW_TRANSPARENT),
+    const rowStyle = backgroundStyleOptions.find(
+      opt => opt.value === (component.meta.background || BACKGROUND_TRANSPARENT),
     );
 
     return (
@@ -93,6 +95,7 @@ class Header extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="row"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
         disableDragDrop={isFocused}
       >
@@ -112,10 +115,10 @@ class Header extends React.PureComponent {
                   onChange={this.handleChangeSize}
                   renderTitle={option => `${option.label} header`}
                 />,
-                <RowStyleDropdown
-                  id={`${component.id}-row-style`}
-                  value={component.meta.rowStyle}
-                  onChange={this.handleChangeRowStyle}
+                <BackgroundStyleDropdown
+                  id={`${component.id}-background`}
+                  value={component.meta.background}
+                  onChange={this.handleChangeBackground}
                 />,
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
               ]}

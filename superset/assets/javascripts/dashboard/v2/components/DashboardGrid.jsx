@@ -1,21 +1,21 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ParentSize from '@vx/responsive/build/components/ParentSize';
-import cx from 'classnames';
 
-import DragDroppable from './dnd/DragDroppable';
+import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
+import DragDroppable from './dnd/DragDroppable';
 
 import {
-  DASHBOARD_ROOT_ID,
   GRID_GUTTER_SIZE,
   GRID_COLUMN_COUNT,
 } from '../util/constants';
 
 const propTypes = {
-  dashboard: PropTypes.object.isRequired,
-  updateComponents: PropTypes.func.isRequired,
+  depth: PropTypes.number.isRequired,
+  gridComponent: componentShape.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
+  resizeComponent: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -60,24 +60,9 @@ class DashboardGrid extends React.PureComponent {
     }
   }
 
-  handleResizeStop({ id, widthMultiple, heightMultiple }) {
-    const { dashboard: components, updateComponents } = this.props;
-    const component = components[id];
-    if (
-      component &&
-      (component.meta.width !== widthMultiple || component.meta.height !== heightMultiple)
-    ) {
-      updateComponents({
-        [id]: {
-          ...component,
-          meta: {
-            ...component.meta,
-            width: widthMultiple || component.meta.width,
-            height: heightMultiple || component.meta.height,
-          },
-        },
-      });
-    }
+  handleResizeStop({ id, widthMultiple: width, heightMultiple: height }) {
+    this.props.resizeComponent({ id, width, height });
+
     this.setState(() => ({
       isResizing: false,
       rowGuideTop: null,
@@ -85,18 +70,11 @@ class DashboardGrid extends React.PureComponent {
   }
 
   render() {
-    const { dashboard: components, handleComponentDrop } = this.props;
+    const { gridComponent, handleComponentDrop, depth } = this.props;
     const { isResizing, rowGuideTop } = this.state;
-    const rootComponent = components[DASHBOARD_ROOT_ID];
 
     return (
-      <div
-        ref={(ref) => { this.grid = ref; }}
-        className={cx(
-          'grid-container',
-          isResizing && 'grid-container--resizing',
-        )}
-      >
+      <div className="grid-container" ref={(ref) => { this.grid = ref; }}>
         <ParentSize>
           {({ width }) => {
             // account for (COLUMN_COUNT - 1) gutters
@@ -104,13 +82,13 @@ class DashboardGrid extends React.PureComponent {
             const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
 
             return width < 50 ? null : (
-              <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                {(rootComponent.children || []).map((id, index) => (
+              <div className="grid-content">
+                {gridComponent.children.map((id, index) => (
                   <DashboardComponent
                     key={id}
                     id={id}
-                    parentId={rootComponent.id}
-                    depth={0}
+                    parentId={gridComponent.id}
+                    depth={depth + 1}
                     index={index}
                     availableColumnCount={GRID_COLUMN_COUNT}
                     columnWidth={columnWidth}
@@ -120,19 +98,19 @@ class DashboardGrid extends React.PureComponent {
                   />
                 ))}
 
-                {rootComponent.children.length === 0 &&
+                {/* render an empty drop target */}
+                {gridComponent.children.length === 0 &&
                   <DragDroppable
-                    component={rootComponent}
+                    component={gridComponent}
+                    depth={depth}
                     parentComponent={null}
                     index={0}
                     orientation="column"
                     onDrop={handleComponentDrop}
+                    className="empty-grid-droptarget"
                   >
-                    {({ dropIndicatorProps }) => (
-                      <div style={{ width: '100%', height: '100%' }}>
-                        {dropIndicatorProps && <div {...dropIndicatorProps} />}
-                      </div>
-                    )}
+                    {({ dropIndicatorProps }) => dropIndicatorProps &&
+                      <div {...dropIndicatorProps} />}
                   </DragDroppable>}
 
                 {isResizing && Array(GRID_COLUMN_COUNT).fill(null).map((_, i) => (

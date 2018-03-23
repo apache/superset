@@ -37,6 +37,18 @@
   z-index: 10;
 }
 
+/* the focus menu doesn't account for parent padding */
+.dashboard-component-tabs li .with-popover-menu--focused:after {
+  top: -12px;
+  left: -2px;
+  width: ~"calc(100% + 4px)"; /* escape for .less */
+  height: ~"calc(100% + 28px)";
+}
+
+.dashboard-component-tabs li .popover-menu {
+  top: -56px;
+}
+
 .popover-menu .menu-item {
   display: flex;
   flex-direction: row;
@@ -87,12 +99,12 @@
   color: @almost-black;
 }
 
-/* row style menu */
-.row-style-option {
+/* background style menu */
+.background-style-option {
   display: inline-block;
 }
 
-.row-style-option:before {
+.background-style-option:before {
   content: "";
   width: 1em;
   height: 1em;
@@ -101,16 +113,16 @@
   vertical-align: middle;
 }
 
-.row-style-option.grid-row--white {
+.background-style-option.background--white {
   padding-left: 0;
   background: transparent;
 }
 
-.row-style-option.grid-row--white:before {
+.background-style-option.background--white:before {
   background: white;
   border: 1px solid @gray-light;
 }
 
-.row-style-option.grid-row--transparent:before {
+.background-style-option.background--transparent:before {
   background: @gray-light;
 }

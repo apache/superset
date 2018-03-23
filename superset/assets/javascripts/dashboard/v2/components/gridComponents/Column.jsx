@@ -7,10 +7,18 @@ import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import HoverMenu from '../menu/HoverMenu';
+import IconButton from '../IconButton';
 import ResizableContainer from '../resizable/ResizableContainer';
+import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';
+import WithPopoverMenu from '../menu/WithPopoverMenu';
+
+import backgroundStyleOptions from '../../util/backgroundStyleOptions';
 import { componentShape } from '../../util/propShapes';
 
-import { GRID_GUTTER_SIZE, GRID_MIN_COLUMN_COUNT } from '../../util/constants';
+import {
+  BACKGROUND_TRANSPARENT,
+  GRID_GUTTER_SIZE,
+} from '../../util/constants';
 
 const GUTTER = 'GUTTER';
 
@@ -21,11 +29,11 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
-  // occupiedRowCount: PropTypes.number,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
   columnWidth: PropTypes.number.isRequired,
+  minColumnWidth: PropTypes.number.isRequired,
   onResizeStart: PropTypes.func.isRequired,
   onResize: PropTypes.func.isRequired,
   onResizeStop: PropTypes.func.isRequired,
@@ -33,21 +41,45 @@ const propTypes = {
   // dnd
   deleteComponent: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
+  updateComponents: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
-  // occupiedRowCount: null,
 };
 
 class Column extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = {
+      isFocused: false,
+    };
+    this.handleChangeBackground = this.handleUpdateMeta.bind(this, 'background');
+    this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
   }
 
   handleDeleteComponent() {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+  }
+
+  handleChangeFocus(nextFocus) {
+    this.setState(() => ({ isFocused: Boolean(nextFocus) }));
+  }
+
+  handleUpdateMeta(metaKey, nextValue) {
+    const { updateComponents, component } = this.props;
+    if (nextValue && component.meta[metaKey] !== nextValue) {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            [metaKey]: nextValue,
+          },
+        },
+      });
+    }
   }
 
   render() {
@@ -57,7 +89,7 @@ class Column extends React.PureComponent {
       index,
       availableColumnCount,
       columnWidth,
-      // occupiedRowCount,
+      minColumnWidth,
       depth,
       onResizeStart,
       onResize,
@@ -74,12 +106,19 @@ class Column extends React.PureComponent {
       }
     });
 
+    const backgroundStyle = backgroundStyleOptions.find(
+      opt => opt.value === (columnComponent.meta.background || BACKGROUND_TRANSPARENT),
+    );
+
+    console.log('occupied/avail cols', columnComponent.meta.width, '/', availableColumnCount, 'min width', minColumnWidth)
+
     return (
       <DragDroppable
         component={columnComponent}
         parentComponent={parentComponent}
         orientation="column"
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
@@ -89,47 +128,64 @@ class Column extends React.PureComponent {
             adjustableHeight={false}
             widthStep={columnWidth}
             widthMultiple={columnComponent.meta.width}
-            // heightMultiple={occupiedRowCount}
-            minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+            minWidthMultiple={minColumnWidth}
             maxWidthMultiple={availableColumnCount + (columnComponent.meta.width || 0)}
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
           >
-            <div
-              className={cx(
-                'grid-column',
-                columnItems.length === 0 && 'grid-column--empty',
-              )}
+            <WithPopoverMenu
+              isFocused={this.state.isFocused}
+              onChangeFocus={this.handleChangeFocus}
+              disableClick
+              menuItems={[
+                <BackgroundStyleDropdown
+                  id={`${columnComponent.id}-background`}
+                  value={columnComponent.meta.background}
+                  onChange={this.handleChangeBackground}
+                />,
+              ]}
             >
-              <HoverMenu innerRef={dragSourceRef} position="top">
-                <DragHandle position="top" />
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>
-
-              {columnItems.map((componentId, itemIndex) => {
-                if (componentId === GUTTER) {
-                  return <div key={`gutter-${itemIndex}`} style={{ height: GRID_GUTTER_SIZE }} />;
-                }
-
-                return (
-                  <DashboardComponent
-                    key={componentId}
-                    id={componentId}
-                    parentId={columnComponent.id}
-                    depth={depth + 1}
-                    index={itemIndex / 2} // account for gutters!
-                    availableColumnCount={availableColumnCount}
-                    columnWidth={columnWidth}
-                    onResizeStart={onResizeStart}
-                    onResize={onResize}
-                    onResizeStop={onResizeStop}
+              <div
+                className={cx(
+                  'grid-column',
+                  columnItems.length === 0 && 'grid-column--empty',
+                  backgroundStyle.className,
+                )}
+              >
+                <HoverMenu innerRef={dragSourceRef} position="top">
+                  <DragHandle position="top" />
+                  <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+                  <IconButton
+                    onClick={this.handleChangeFocus}
+                    className="fa fa-cog"
                   />
-                );
-              })}
+                </HoverMenu>
 
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-            </div>
+                {columnItems.map((componentId, itemIndex) => {
+                  if (componentId === GUTTER) {
+                    return <div key={`gutter-${itemIndex}`} style={{ height: GRID_GUTTER_SIZE }} />;
+                  }
+
+                  return (
+                    <DashboardComponent
+                      key={componentId}
+                      id={componentId}
+                      parentId={columnComponent.id}
+                      depth={depth + 1}
+                      index={itemIndex / 2} // account for gutters!
+                      availableColumnCount={columnComponent.meta.width}
+                      columnWidth={columnWidth}
+                      onResizeStart={onResizeStart}
+                      onResize={onResize}
+                      onResizeStop={onResizeStop}
+                    />
+                  );
+                })}
+
+                {dropIndicatorProps && <div {...dropIndicatorProps} />}
+              </div>
+            </WithPopoverMenu>
           </ResizableContainer>
         )}
       </DragDroppable>

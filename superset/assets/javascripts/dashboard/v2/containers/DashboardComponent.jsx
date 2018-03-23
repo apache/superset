@@ -4,9 +4,10 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import ComponentLookup from '../components/gridComponents';
-import countChildRowsAndColumns from '../util/countChildRowsAndColumns';
+import getTotalChildWidth from '../util/getChildWidth';
 import { componentShape } from '../util/propShapes';
-import { ROW_TYPE } from '../util/componentTypes';
+import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
+import { GRID_MIN_COLUMN_COUNT } from '../util/constants';
 
 import {
   createComponent,
@@ -24,23 +25,31 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-function mapStateToProps({ dashboard = {} }, ownProps) {
+function mapStateToProps({ dashboard: undoableDashboard }, ownProps) {
+  const components = undoableDashboard.present;
   const { id, parentId } = ownProps;
+  const component = components[id];
   const props = {
-    component: dashboard[id],
-    parentComponent: dashboard[parentId],
+    component,
+    parentComponent: components[parentId],
   };
 
-  // row is a special component that needs extra dims about its children
+  // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components
   if (props.component.type === ROW_TYPE) {
-    const { rowCount, columnCount } = countChildRowsAndColumns({
-      component: props.component,
-      components: dashboard,
-    });
+    props.occupiedColumnCount = getTotalChildWidth({ id, components });
+  } else if (props.component.type === COLUMN_TYPE) {
+    props.minColumnWidth = GRID_MIN_COLUMN_COUNT;
 
-    props.occupiedRowCount = rowCount;
-    props.occupiedColumnCount = columnCount;
+    component.children.forEach((childId) => {
+      // rows don't have widths, so find the width of its children
+      if (components[childId].type === ROW_TYPE) {
+        props.minColumnWidth = Math.max(
+          props.minColumnWidth,
+          getTotalChildWidth({ id: childId, components }),
+        );
+      }
+    });
   }
 
   return props;

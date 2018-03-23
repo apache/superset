@@ -10,13 +10,16 @@ export const dragConfig = [
     canDrag(props) {
       return !props.disableDragDrop;
     },
+
+    // this defines the dragging item object returned by monitor.getItem()
     beginDrag(props /* , monitor, component */) {
-      const { component, index, parentComponent } = props;
+      const { component, index, parentComponent = {} } = props;
       return {
-        draggableId: component.id,
-        index,
-        parentId: parentComponent && parentComponent.id,
         type: component.type,
+        id: component.id,
+        index,
+        parentId: parentComponent.id,
+        parentType: parentComponent.type,
       };
     },
   },

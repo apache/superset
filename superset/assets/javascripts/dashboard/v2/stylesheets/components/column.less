@@ -7,7 +7,15 @@
   top: -20px;
 }
 
-.grid-column--empty:after {
+.grid-column.background--transparent {
+  background-color: transparent;
+}
+
+.grid-column.background--white {
+  background-color: white;
+}
+
+.grid-column--empty:before {
   content: "Empty column";
   position: absolute;
   top: 0;

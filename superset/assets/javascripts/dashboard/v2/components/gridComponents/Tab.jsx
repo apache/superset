@@ -20,13 +20,14 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   renderType: PropTypes.oneOf([RENDER_TAB, RENDER_TAB_CONTENT]).isRequired,
   onDropOnTab: PropTypes.func,
+  onDeleteTab: PropTypes.func,
 
   // grid related
-  availableColumnCount: PropTypes.number.isRequired,
-  columnWidth: PropTypes.number.isRequired,
-  onResizeStart: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  onResizeStop: PropTypes.func.isRequired,
+  availableColumnCount: PropTypes.number,
+  columnWidth: PropTypes.number,
+  onResizeStart: PropTypes.func,
+  onResize: PropTypes.func,
+  onResizeStop: PropTypes.func,
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
@@ -35,7 +36,13 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onDropOnTab: null,
+  availableColumnCount: 0,
+  columnWidth: 0,
+  onDropOnTab() {},
+  onDeleteTab() {},
+  onResizeStart() {},
+  onResize() {},
+  onResizeStop() {},
 };
 
 export default class Tab extends React.PureComponent {
@@ -70,14 +77,14 @@ export default class Tab extends React.PureComponent {
   }
 
   handleDeleteComponent() {
-    const { deleteComponent, id, parentId } = this.props;
+    const { onDeleteTab, index, deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+    onDeleteTab(index);
   }
 
   handleDrop(dropResult) {
-    const { handleComponentDrop, onDropOnTab } = this.props;
-    handleComponentDrop(dropResult);
-    if (onDropOnTab) onDropOnTab(dropResult);
+    this.props.handleComponentDrop(dropResult);
+    this.props.onDropOnTab(dropResult);
   }
 
   renderTabContent() {
@@ -98,7 +105,7 @@ export default class Tab extends React.PureComponent {
             key={componentId}
             id={componentId}
             parentId={tabComponent.id}
-            depth={depth}
+            depth={depth} // see isValidChild.js for why tabs don't increment child depth
             index={componentIndex}
             onDrop={this.handleDrop}
             availableColumnCount={availableColumnCount}
@@ -118,6 +125,7 @@ export default class Tab extends React.PureComponent {
       component,
       parentComponent,
       index,
+      depth,
     } = this.props;
 
     return (
@@ -126,6 +134,7 @@ export default class Tab extends React.PureComponent {
         parentComponent={parentComponent}
         orientation="column"
         index={index}
+        depth={depth}
         onDrop={this.handleDrop}
         disableDragDrop={isFocused}
       >
