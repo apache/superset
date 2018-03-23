@@ -1,14 +1,16 @@
 import isValidChild from './isValidChild';
+import { TAB_TYPE, TABS_TYPE } from './componentTypes';
 
 export const DROP_TOP = 'DROP_TOP';
 export const DROP_RIGHT = 'DROP_RIGHT';
 export const DROP_BOTTOM = 'DROP_BOTTOM';
 export const DROP_LEFT = 'DROP_LEFT';
 
-const SIBLING_DROP_THRESHOLD = 10;
+const SIBLING_DROP_THRESHOLD = 15;
 
 export default function getDropPosition(monitor, Component) {
   const {
+    depth: componentDepth,
     parentComponent,
     component,
     orientation,
@@ -18,17 +20,23 @@ export default function getDropPosition(monitor, Component) {
   const draggingItem = monitor.getItem();
 
   // if dropped self on self, do nothing
-  if (!draggingItem || draggingItem.draggableId === component.id || !isDraggingOverShallow) {
+  if (!draggingItem || draggingItem.id === component.id || !isDraggingOverShallow) {
     return null;
   }
 
   const validChild = isValidChild({
     parentType: component.type,
+    parentDepth: componentDepth,
     childType: draggingItem.type,
   });
 
+  const parentType = parentComponent && parentComponent.type;
+  const parentDepth = // see isValidChild.js for why tabs don't increment child depth
+    componentDepth + (parentType === TAB_TYPE || parentType === TABS_TYPE ? 0 : -1);
+
   const validSibling = isValidChild({
-    parentType: parentComponent && parentComponent.type,
+    parentType,
+    parentDepth,
     childType: draggingItem.type,
   });
 
@@ -36,7 +44,7 @@ export default function getDropPosition(monitor, Component) {
     return null;
   }
 
-  const hasChildren = component.children.length > 0;
+  const hasChildren = (component.children || []).length > 0;
   const childDropOrientation = orientation === 'row' ? 'vertical' : 'horizontal';
   const siblingDropOrientation = orientation === 'row' ? 'horizontal' : 'vertical';
 

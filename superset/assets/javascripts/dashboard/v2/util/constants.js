@@ -1,5 +1,9 @@
 // Ids
+export const DASHBOARD_GRID_ID = 'DASHBOARD_GRID_ID';
+export const DASHBOARD_HEADER_ID = 'DASHBOARD_HEADER_ID';
 export const DASHBOARD_ROOT_ID = 'DASHBOARD_ROOT_ID';
+
+export const NEW_COMPONENTS_SOURCE_ID = 'NEW_COMPONENTS_SOURCE_ID';
 export const NEW_CHART_ID = 'NEW_CHART_ID';
 export const NEW_COLUMN_ID = 'NEW_COLUMN_ID';
 export const NEW_DIVIDER_ID = 'NEW_DIVIDER_ID';
@@ -11,6 +15,7 @@ export const NEW_TAB_ID = 'NEW_TAB_ID';
 export const NEW_TABS_ID = 'NEW_TABS_ID';
 
 // grid constants
+export const DASHBOARD_ROOT_DEPTH = 0;
 export const GRID_BASE_UNIT = 8;
 export const GRID_GUTTER_SIZE = 2 * GRID_BASE_UNIT;
 export const GRID_ROW_HEIGHT_UNIT = 2 * GRID_BASE_UNIT;
@@ -25,6 +30,6 @@ export const SMALL_HEADER = 'SMALL_HEADER';
 export const MEDIUM_HEADER = 'MEDIUM_HEADER';
 export const LARGE_HEADER = 'LARGE_HEADER';
 
-// Row types
-export const ROW_WHITE = 'ROW_WHITE';
-export const ROW_TRANSPARENT = 'ROW_TRANSPARENT';
+// Style types
+export const BACKGROUND_WHITE = 'BACKGROUND_WHITE';
+export const BACKGROUND_TRANSPARENT = 'BACKGROUND_TRANSPARENT';

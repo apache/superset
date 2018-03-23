@@ -1,11 +1,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import DashboardBuilder from './DashboardBuilder';
-import StaticDashboard from './StaticDashboard';
-import DashboardHeader from './DashboardHeader';
+import DashboardBuilder from '../containers/DashboardBuilder';
 
-import '../../../../stylesheets/dashboard-v2.css';
 import '../stylesheets/index.less';
 
 const propTypes = {
@@ -22,20 +19,8 @@ const defaultProps = {
 
 class Dashboard extends React.Component {
   render() {
-    const { editMode, actions } = this.props;
-    const { setEditMode, updateDashboardTitle } = actions;
-    return (
-      <div className="dashboard-v2">
-        <DashboardHeader
-          editMode={true}
-          setEditMode={setEditMode}
-          updateDashboardTitle={updateDashboardTitle}
-        />
-
-        {true ?
-          <DashboardBuilder /> : <StaticDashboard />}
-      </div>
-    );
+    // @TODO delete this component?
+    return <DashboardBuilder />;
   }
 }
 

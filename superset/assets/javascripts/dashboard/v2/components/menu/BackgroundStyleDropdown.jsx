@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 
-import rowStyleOptions from '../../util/rowStyleOptions';
+import backgroundStyleOptions from '../../util/backgroundStyleOptions';
 import PopoverDropdown from './PopoverDropdown';
 
 const propTypes = {
@@ -13,7 +13,7 @@ const propTypes = {
 
 function renderButton(option) {
   return (
-    <div className={cx('row-style-option', option.className)}>
+    <div className={cx('background-style-option', option.className)}>
       {`${option.label} background`}
     </div>
   );
@@ -21,19 +21,19 @@ function renderButton(option) {
 
 function renderOption(option) {
   return (
-    <div className={cx('row-style-option', option.className)}>
+    <div className={cx('background-style-option', option.className)}>
       {option.label}
     </div>
   );
 }
 
-export default class RowStyleDropdown extends React.PureComponent {
+export default class BackgroundStyleDropdown extends React.PureComponent {
   render() {
     const { id, value, onChange } = this.props;
     return (
       <PopoverDropdown
         id={id}
-        options={rowStyleOptions}
+        options={backgroundStyleOptions}
         value={value}
         onChange={onChange}
         renderButton={renderButton}
@@ -43,4 +43,4 @@ export default class RowStyleDropdown extends React.PureComponent {
   }
 }
 
-RowStyleDropdown.propTypes = propTypes;
+BackgroundStyleDropdown.propTypes = propTypes;

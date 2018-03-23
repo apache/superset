@@ -11,12 +11,12 @@ export default function reorderItem({
   source,
   destination,
 }) {
-  const current = [...entitiesMap[source.droppableId].children];
-  const next = [...entitiesMap[destination.droppableId].children];
+  const current = [...entitiesMap[source.id].children];
+  const next = [...entitiesMap[destination.id].children];
   const target = current[source.index];
 
   // moving to same list
-  if (source.droppableId === destination.droppableId) {
+  if (source.id === destination.id) {
     const reordered = reorder(
       current,
       source.index,
@@ -25,8 +25,8 @@ export default function reorderItem({
 
     const result = {
       ...entitiesMap,
-      [source.droppableId]: {
-        ...entitiesMap[source.droppableId],
+      [source.id]: {
+        ...entitiesMap[source.id],
         children: reordered,
       },
     };
@@ -40,12 +40,12 @@ export default function reorderItem({
 
   const result = {
     ...entitiesMap,
-    [source.droppableId]: {
-      ...entitiesMap[source.droppableId],
+    [source.id]: {
+      ...entitiesMap[source.id],
       children: current,
     },
-    [destination.droppableId]: {
-      ...entitiesMap[destination.droppableId],
+    [destination.id]: {
+      ...entitiesMap[destination.id],
       children: next,
     },
   };
