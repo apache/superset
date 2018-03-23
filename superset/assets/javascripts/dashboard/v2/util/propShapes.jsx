@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import componentTypes from './componentTypes';
-import rowStyleOptions from './rowStyleOptions';
+import backgroundStyleOptions from './backgroundStyleOptions';
 import headerStyleOptions from './headerStyleOptions';
 
 export const componentShape = PropTypes.shape({ // eslint-disable-line
@@ -19,6 +19,6 @@ export const componentShape = PropTypes.shape({ // eslint-disable-line
     headerSize: PropTypes.oneOf(headerStyleOptions.map(opt => opt.value)),
 
     // Row
-    rowStyle: PropTypes.oneOf(rowStyleOptions.map(opt => opt.value)),
+    background: PropTypes.oneOf(backgroundStyleOptions.map(opt => opt.value)),
   }),
 });

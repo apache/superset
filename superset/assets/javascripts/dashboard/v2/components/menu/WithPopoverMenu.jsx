@@ -8,6 +8,7 @@ const propTypes = {
   menuItems: PropTypes.arrayOf(PropTypes.node),
   onChangeFocus: PropTypes.func,
   isFocused: PropTypes.bool,
+  shouldFocus: PropTypes.func,
 };
 
 const defaultProps = {
@@ -17,6 +18,7 @@ const defaultProps = {
   onPressDelete() {},
   menuItems: [],
   isFocused: false,
+  shouldFocus: (event, container) => container.contains(event.target),
 };
 
 class WithPopoverMenu extends React.PureComponent {
@@ -47,8 +49,10 @@ class WithPopoverMenu extends React.PureComponent {
   }
 
   handleClick(event) {
-    const { onChangeFocus } = this.props;
-    if (!this.state.isFocused) {
+    const { onChangeFocus, shouldFocus: shouldFocusThunk } = this.props;
+    const shouldFocus = shouldFocusThunk(event, this.container);
+
+    if (shouldFocus && !this.state.isFocused) {
       // if not focused, set focus and add a window event listener to capture outside clicks
       // this enables us to not set a click listener for ever item on a dashboard
       document.addEventListener('click', this.handleClick, true);
@@ -57,7 +61,7 @@ class WithPopoverMenu extends React.PureComponent {
       if (onChangeFocus) {
         onChangeFocus(true);
       }
-    } else if (!this.container.contains(event.target)) {
+    } else if (!shouldFocus && this.state.isFocused) {
       document.removeEventListener('click', this.handleClick, true);
       document.removeEventListener('drag', this.handleClick, true);
       this.setState(() => ({ isFocused: false }));

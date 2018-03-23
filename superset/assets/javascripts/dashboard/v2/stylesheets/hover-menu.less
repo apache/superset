@@ -5,10 +5,10 @@
 }
 
 .hover-menu--left {
-  width: 20px;
+  width: 24px;
   height: 100%;
   top: 0;
-  left: -20px;
+  left: -24px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -16,7 +16,7 @@
 }
 
 .hover-menu--left > :nth-child(n):not(:only-child):not(:last-child) {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .dragdroppable-row .dragdroppable-row .hover-menu--left {
@@ -25,7 +25,7 @@
 
 .hover-menu--top {
   width: 100%;
-  height: 20px;
+  height: 24px;
   top: 0;
   left: 0;
   display: flex;
@@ -35,10 +35,10 @@
 }
 
 .hover-menu--top > :nth-child(n):not(:only-child):not(:last-child) {
-  margin-right: 8px;
+  margin-right: 12px;
 }
 
-.dragdroppable:hover .hover-menu,
-.dragdroppable .hover-menu:hover {
+div:hover > .hover-menu,
+.hover-menu:hover {
   opacity: 1;
 }

@@ -8,7 +8,7 @@ import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
-
+import { ROW_TYPE } from '../../util/componentTypes';
 import {
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
@@ -79,13 +79,14 @@ class Chart extends React.Component {
         parentComponent={parentComponent}
         orientation={depth % 2 === 1 ? 'column' : 'row'}
         index={index}
+        depth={depth}
         onDrop={handleComponentDrop}
         disableDragDrop={isFocused}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <ResizableContainer
             id={component.id}
-            adjustableWidth={depth <= 1}
+            adjustableWidth={parentComponent.type === ROW_TYPE}
             adjustableHeight
             widthStep={columnWidth}
             widthMultiple={component.meta.width}

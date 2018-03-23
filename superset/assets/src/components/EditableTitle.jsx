@@ -28,7 +28,7 @@ class EditableTitle extends React.PureComponent {
     this.handleClick = this.handleClick.bind(this);
     this.handleBlur = this.handleBlur.bind(this);
     this.handleChange = this.handleChange.bind(this);
-    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleKeyPress = this.handleKeyPress.bind(this);
   }
 
@@ -79,7 +79,7 @@ class EditableTitle extends React.PureComponent {
     }
   }
 
-  handleKeyDown(ev) {
+  handleKeyUp(ev) {
     // this entire method exists to support using EditableTitle as the title of a
     // react-bootstrap Tab, as a workaround for this line in react-bootstrap https://goo.gl/ZVLmv4
     //
@@ -121,7 +121,7 @@ class EditableTitle extends React.PureComponent {
         required
         type={this.state.isEditing ? 'text' : 'button'}
         value={this.state.title}
-        onKeyDown={this.handleKeyDown}
+        onKeyUp={this.handleKeyUp}
         onChange={this.handleChange}
         onBlur={this.handleBlur}
         onClick={this.handleClick}
