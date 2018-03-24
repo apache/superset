@@ -196,7 +196,10 @@ export function setDatabases(databases) {
 }
 
 export function addQueryEditor(queryEditor) {
-  const newQe = Object.assign({}, queryEditor, { id: shortid.generate() });
+  const newQe = {
+    ...queryEditor,
+    id: shortid.generate(),
+  };
   return { type: ADD_QUERY_EDITOR, queryEditor: newQe };
 }
 

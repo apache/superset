@@ -35,7 +35,7 @@ const propTypes = {
   hotkeys: PropTypes.arrayOf(PropTypes.shape({
     key: PropTypes.string.isRequired,
     descr: PropTypes.string.isRequired,
-    func:  PropTypes.func.isRequired,
+    func: PropTypes.func.isRequired,
   })),
 };
 
@@ -72,18 +72,20 @@ class AceEditorWrapper extends React.PureComponent {
     this.props.onBlur(this.state.sql);
   }
   onEditorLoad(editor) {
-      editor.commands.addCommand({
-        name: 'runQuery',
-        bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
-        exec: () => {
-          this.onAltEnter();
-        },
-      });
-    /*
-     * TODO make hotkeys work
-    this.props.hotkeys.forEach(keyConfig => {
+    editor.commands.addCommand({
+      name: 'runQuery',
+      bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
+      exec: () => {
+        this.onAltEnter();
+      },
     });
-    */
+    this.props.hotkeys.forEach((keyConfig) => {
+      editor.commands.addCommand({
+        name: keyConfig.name,
+        bindKey: { win: keyConfig.key, mac: keyConfig.key },
+        exec: keyConfig.func,
+      });
+    });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
       const selectedText = editor.getSelectedText();

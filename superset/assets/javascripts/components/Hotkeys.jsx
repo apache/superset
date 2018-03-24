@@ -9,7 +9,7 @@ const propTypes = {
   hotkeys: PropTypes.arrayOf(PropTypes.shape({
     key: PropTypes.string.isRequired,
     descr: PropTypes.string.isRequired,
-    func:  PropTypes.func.isRequired,
+    func: PropTypes.func.isRequired,
   })).isRequired,
   header: PropTypes.string,
 };
