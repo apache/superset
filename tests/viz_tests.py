@@ -651,6 +651,22 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         result = test_viz_deckgl.get_metrics()
         assert result == []
 
+    def test_scatterviz_get_metrics(self):
+        form_data = {'size': 'large'}
+        datasource = {'type': 'table'}
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {'type': 'metric', 'value': 'int'}
+        result = test_viz_deckgl.get_metrics()
+        assert result == ['int']
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {}
+        result = test_viz_deckgl.get_metrics()
+        assert result is None
+
     def test_get_js_columns(self):
         form_data = {'js_columns': ['a', 'b']}
         datasource = {'type': 'table'}
@@ -675,14 +691,53 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
 
         self.assertTrue('' in str(context.exception))
 
-    def test_process_query_obj(self):
-        pass
+    def test_process_spatial_query_obj(self):
+        form_data = {}
+        datasource = {'type': 'table'}
+        mock_key = 'spatial_key'
+        mock_gb = []
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        # result = test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
 
-    def test_process_spatial_data_obj(self):
-        pass
+        with self.assertRaises(ValueError) as context:
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
 
-    def test_get_data(self):
-        pass
+        self.assertTrue('Bad spatial key' in str(context.exception))
 
-    def test_query_obj(self):
-        pass
+        test_form_data = {
+            'latlong_key': {
+                'type': 'latlong',
+                'lonCol': 'lon',
+                'latCol': 'lat',
+            },
+            'delimited_key': {
+                'type': 'delimited',
+                'lonlatCol': 'lonlat',
+            },
+            'geohash_key': {
+                'type': 'geohash',
+                'geohashCol': 'geo',
+            },
+        }
+
+        datasource = {'type': 'table'}
+        expected_results = {
+            'latlong_key': ['lon', 'lat'],
+            'delimited_key': ['lonlat'],
+            'geohash_key': ['geo'],
+        }
+        for mock_key in ['latlong_key', 'delimited_key', 'geohash_key']:
+            mock_gb = []
+            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data)
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+            assert expected_results.get(mock_key) == mock_gb
+
+    def test_geojson_query_obj(self):
+        form_data = {'geojson': 'a'}
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.DeckGeoJson(datasource, form_data)
+        results = test_viz_deckgl.query_obj()
+
+        assert results['metrics'] == []
+        assert results['groupby'] == []
+        assert results['columns'] == ['a']
