@@ -29,10 +29,16 @@ export const bnbColors = [
 ];
 
 export const lyftColors = [
-  '#ff00bf', // pink
-  '#352384', // purple
-  '#333447', // carbon
-  '#f3f3f5', // silver
+  '#EA0B8C',
+  '#6C838E',
+  '#29ABE2',
+  '#33D9C1',
+  '#9DACB9',
+  '#7560AA',
+  '#2D5584',
+  '#831C4A',
+  '#333D47',
+  '#AC2077',
 ];
 
 const d3Category10 = d3.scale.category10().range();
@@ -81,6 +87,7 @@ export const ALL_COLOR_SCHEMES = {
   d3Category20c,
   googleCategory10c,
   googleCategory20c,
+  lyftColors,
 };
 
 export const spectrums = {
