@@ -19,7 +19,8 @@ from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset import utils, config  # noqa
+from superset import config, utils # noqa
+from superset.security import SupersetSecurityManager
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -149,12 +150,16 @@ class MyIndexView(IndexView):
         return redirect('/superset/welcome')
 
 
+custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER')
+if not custom_sm:
+    custom_sm = SupersetSecurityManager
+
 appbuilder = AppBuilder(
     app,
     db.session,
     base_template='superset/base.html',
     indexview=MyIndexView,
-    security_manager_class=app.config.get('CUSTOM_SECURITY_MANAGER'),
+    security_manager_class=custom_sm,
     update_perms=utils.get_update_perms_flag(),
 )
 
