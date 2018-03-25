@@ -19,7 +19,7 @@ from flask import (
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
@@ -475,7 +475,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         check_ownership(obj)
 
     @expose('/add', methods=['GET', 'POST'])
-    @sm.has_method_access
+    @has_access
     def add(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
         datasources = [
@@ -828,7 +828,7 @@ class Superset(BaseSupersetView):
         }, status=201)
 
     @log_this
-    @sm.has_method_access
+    @has_access
     @expose('/request_access/')
     def request_access(self):
         datasources = set()
@@ -851,12 +851,12 @@ class Superset(BaseSupersetView):
             )
             datasources.add(datasource)
 
-        sm.has_method_access = all(
+        has_access = all(
             (
                 datasource and security_manager.datasource_access(datasource)
                 for datasource in datasources
             ))
-        if sm.has_method_access:
+        if has_access:
             return redirect('/superset/dashboard/{}'.format(dashboard_id))
 
         if request.args.get('action') == 'go':
@@ -876,7 +876,7 @@ class Superset(BaseSupersetView):
         )
 
     @log_this
-    @sm.has_method_access
+    @has_access
     @expose('/approve')
     def approve(self):
         def clean_fulfilled_requests(session):
@@ -1032,7 +1032,7 @@ class Superset(BaseSupersetView):
             )
             return viz_obj
 
-    @sm.has_method_access
+    @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
         form_data, slc = self.get_form_data(slice_id)
@@ -1183,7 +1183,7 @@ class Superset(BaseSupersetView):
                                   force=force)
 
     @log_this
-    @sm.has_method_access
+    @has_access
     @expose('/import_dashboards', methods=['GET', 'POST'])
     def import_dashboards(self):
         """Overrides the dashboards using json instances from the file."""
@@ -1203,7 +1203,7 @@ class Superset(BaseSupersetView):
         return self.render_template('superset/import_dashboards.html')
 
     @log_this
-    @sm.has_method_access
+    @has_access
     @expose('/explorev2/<datasource_type>/<datasource_id>/')
     def explorev2(self, datasource_type, datasource_id):
         """Deprecated endpoint, here for backward compatibility of urls"""
@@ -1227,7 +1227,7 @@ class Superset(BaseSupersetView):
         return datasource_id, datasource_type
 
     @log_this
-    @sm.has_method_access
+    @has_access
     @expose('/explore/<datasource_type>/<datasource_id>/', methods=['GET', 'POST'])
     @expose('/explore/', methods=['GET', 'POST'])
     def explore(self, datasource_type=None, datasource_id=None):
@@ -2021,7 +2021,7 @@ class Superset(BaseSupersetView):
         session.commit()
         return json_success(json.dumps({'count': count}))
 
-    @sm.has_method_access
+    @has_access
     @expose('/dashboard/<dashboard_id>/')
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
@@ -2092,7 +2092,7 @@ class Superset(BaseSupersetView):
     def log(self):
         return Response(status=200)
 
-    @sm.has_method_access
+    @has_access
     @expose('/sync_druid/', methods=['POST'])
     @log_this
     def sync_druid_source(self):
@@ -2144,7 +2144,7 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
         return Response(status=201)
 
-    @sm.has_method_access
+    @has_access
     @expose('/sqllab_viz/', methods=['POST'])
     @log_this
     def sqllab_viz(self):
@@ -2205,7 +2205,7 @@ class Superset(BaseSupersetView):
             'table_id': table.id,
         }))
 
-    @sm.has_method_access
+    @has_access
     @expose('/table/<database_id>/<table_name>/<schema>/')
     @log_this
     def table(self, database_id, table_name, schema):
@@ -2262,7 +2262,7 @@ class Superset(BaseSupersetView):
         }
         return json_success(json.dumps(tbl))
 
-    @sm.has_method_access
+    @has_access
     @expose('/extra_table_metadata/<database_id>/<table_name>/<schema>/')
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
@@ -2272,7 +2272,7 @@ class Superset(BaseSupersetView):
             mydb, table_name, schema)
         return json_success(json.dumps(payload))
 
-    @sm.has_method_access
+    @has_access
     @expose('/select_star/<database_id>/<table_name>/')
     @log_this
     def select_star(self, database_id, table_name):
@@ -2458,7 +2458,7 @@ class Superset(BaseSupersetView):
             return json_error_response(payload=data)
         return json_success(payload)
 
-    @sm.has_method_access
+    @has_access
     @expose('/csv/<client_id>')
     @log_this
     def csv(self, client_id):
@@ -2501,7 +2501,7 @@ class Superset(BaseSupersetView):
         logging.info('Ready to return response')
         return response
 
-    @sm.has_method_access
+    @has_access
     @expose('/fetch_datasource_metadata')
     @log_this
     def fetch_datasource_metadata(self):
@@ -2544,7 +2544,7 @@ class Superset(BaseSupersetView):
         return json_success(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser))
 
-    @sm.has_method_access
+    @has_access
     @expose('/search_queries')
     @log_this
     def search_queries(self):
@@ -2620,7 +2620,7 @@ class Superset(BaseSupersetView):
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
 
-    @sm.has_method_access
+    @has_access
     @expose('/profile/<username>/')
     def profile(self, username):
         """User profile page"""
@@ -2639,7 +2639,7 @@ class Superset(BaseSupersetView):
             bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser),
         )
 
-    @sm.has_method_access
+    @has_access
     @expose('/sqllab')
     def sqllab(self):
         """SQL Editor"""

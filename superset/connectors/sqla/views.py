@@ -9,6 +9,7 @@ from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from past.builtins import basestring
@@ -270,7 +271,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         DeleteMixin._delete(self, pk)
 
     @expose('/edit/<pk>', methods=['GET', 'POST'])
-    @sm.has_method_access
+    @has_access
     def edit(self, pk):
         """Simple hack to redirect to explore view after saving"""
         resp = super(TableModelView, self).edit(pk)

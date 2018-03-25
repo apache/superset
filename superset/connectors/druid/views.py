@@ -11,6 +11,7 @@ import logging
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
@@ -300,7 +301,7 @@ appbuilder.add_view(
 class Druid(BaseSupersetView):
     """The base views for Superset!"""
 
-    @sm.has_method_access
+    @has_access
     @expose('/refresh_datasources/')
     def refresh_datasources(self, refreshAll=True):
         """endpoint that refreshes druid datasources metadata"""
@@ -325,7 +326,7 @@ class Druid(BaseSupersetView):
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')
 
-    @sm.has_method_access
+    @has_access
     @expose('/scan_new_datasources/')
     def scan_new_datasources(self):
         """
