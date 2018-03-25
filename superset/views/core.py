@@ -283,10 +283,10 @@ class DatabaseView(SupersetModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def pre_add(self, db):
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
-        security.merge_perm(sm, 'database_access', db.perm)
+        sm.merge_perm('database_access', db.perm)
         for schema in db.all_schema_names():
-            security.merge_perm(
-                sm, 'schema_access', utils.get_schema_perm(db, schema))
+            sm.merge_perm(
+                'schema_access', sm.get_schema_perm(db, schema))
 
     def pre_update(self, db):
         self.pre_add(db)

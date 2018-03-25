@@ -298,7 +298,7 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def schema_perm(self):
         """Returns schema permission if present, database one otherwise."""
-        return utils.get_schema_perm(self.database, self.schema)
+        return sm.get_schema_perm(self.database, self.schema)
 
     def get_perm(self):
         return (
