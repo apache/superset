@@ -15,7 +15,6 @@ from past.builtins import basestring
 
 from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
-from superset.utils import has_access
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
@@ -271,7 +270,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         DeleteMixin._delete(self, pk)
 
     @expose('/edit/<pk>', methods=['GET', 'POST'])
-    @has_access
+    @sm.has_method_access
     def edit(self, pk):
         """Simple hack to redirect to explore view after saving"""
         resp = super(TableModelView, self).edit(pk)

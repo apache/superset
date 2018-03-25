@@ -17,7 +17,6 @@ from flask_babel import lazy_gettext as _
 from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset.utils import has_access
 from superset.views.base import (
     BaseSupersetView, DatasourceFilter, DeleteMixin,
     get_datasource_exist_error_mgs, ListWidgetWithCheckboxes, SupersetModelView,
@@ -301,7 +300,7 @@ appbuilder.add_view(
 class Druid(BaseSupersetView):
     """The base views for Superset!"""
 
-    @has_access
+    @sm.has_method_access
     @expose('/refresh_datasources/')
     def refresh_datasources(self, refreshAll=True):
         """endpoint that refreshes druid datasources metadata"""
@@ -326,7 +325,7 @@ class Druid(BaseSupersetView):
         session.commit()
         return redirect('/druiddatasourcemodelview/list/')
 
-    @has_access
+    @sm.has_method_access
     @expose('/scan_new_datasources/')
     def scan_new_datasources(self):
         """
