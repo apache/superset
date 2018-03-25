@@ -14,10 +14,9 @@ import unittest
 import pandas as pd
 from past.builtins import basestring
 
-from superset import app, appbuilder, cli, dataframe, db
+from superset import app, appbuilder, cli, dataframe, db, sm
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
-from superset.security import sync_role_definitions
 from superset.sql_parse import SupersetQuery
 from .base_tests import SupersetTestCase
 
@@ -98,7 +97,7 @@ class CeleryTestCase(SupersetTestCase):
         except OSError as e:
             app.logger.warn(str(e))
 
-        sync_role_definitions()
+        sm.sync_role_definitions()
 
         worker_command = BASE_DIR + '/bin/superset worker'
         subprocess.Popen(

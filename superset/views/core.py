@@ -33,7 +33,7 @@ from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
 from superset import (
-    app, appbuilder, cache, db, results_backend, security, sm, sql_lab, utils,
+    app, appbuilder, cache, db, results_backend, sm, sql_lab, utils,
     viz,
 )
 from superset.connectors.connector_registry import ConnectorRegistry

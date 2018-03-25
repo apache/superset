@@ -10,7 +10,7 @@ import unittest
 
 import mock
 
-from superset import app, db, security, sm
+from superset import app, db, sm
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.druid.models import DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
@@ -265,8 +265,7 @@ class RequestAccessTests(SupersetTestCase):
         # gamma gets granted database access
         database = session.query(models.Database).first()
 
-        security.merge_perm(
-            sm, 'database_access', database.perm)
+        sm.merge_perm('database_access', database.perm)
         ds_perm_view = sm.find_permission_view_menu(
             'database_access', database.perm)
         sm.add_permission_role(
@@ -302,8 +301,7 @@ class RequestAccessTests(SupersetTestCase):
             table_name='wb_health_population').first()
 
         ds.schema = 'temp_schema'
-        security.merge_perm(
-            sm, 'schema_access', ds.schema_perm)
+        sm.merge_perm('schema_access', ds.schema_perm)
         schema_perm_view = sm.find_permission_view_menu(
             'schema_access', ds.schema_perm)
         sm.add_permission_role(

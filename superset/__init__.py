@@ -18,8 +18,8 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
+from superset import config, utils
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset import config, utils # noqa
 from superset.security import SupersetSecurityManager
 
 APP_DIR = os.path.dirname(__file__)

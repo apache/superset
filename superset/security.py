@@ -12,7 +12,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from sqlalchemy import or_
 
-from superset import sql_parse, utils
+from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 
 READ_ONLY_MODEL_VIEWS = {
@@ -79,14 +79,13 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 
 class SupersetSecurityManager(SecurityManager):
-    """docstring for DatasourceSecurityManager"""
-
 
     def get_schema_perm(self, database, schema):
         if schema:
             return '[{}].[{}]'.format(database, schema)
 
     def can_access(self, permission_name, view_name, user=None):
+        """Protecting from has_access failing from missing perms/view"""
         if not user:
             user = g.user
         if user.is_anonymous():
@@ -212,9 +211,7 @@ class SupersetSecurityManager(SecurityManager):
             full_names = {d.full_name for d in user_datasources}
             return [d for d in datasource_names if d in full_names]
 
-
     def merge_perm(self, permission_name, view_menu_name):
-        #copied over
         # Implementation copied from sm.find_permission_view_menu.
         # TODO: use sm.find_permission_view_menu once issue
         #       https://github.com/airbnb/superset/issues/1944 is resolved.
@@ -230,13 +227,12 @@ class SupersetSecurityManager(SecurityManager):
     def is_user_defined_permission(self, perm):
         return perm.permission.name in OBJECT_SPEC_PERMISSIONS
 
-    def create_custom_permissions(self,):
+    def create_custom_permissions(self):
         # Global perms
         self.merge_perm('all_datasource_access', 'all_datasource_access')
         self.merge_perm('all_database_access', 'all_database_access')
 
-
-    def create_missing_perms(self,):
+    def create_missing_perms(self):
         """Creates missing perms for datasources, schemas and metrics"""
         from superset import db
         from superset.models import core as models
@@ -273,11 +269,10 @@ class SupersetSecurityManager(SecurityManager):
             if metric.is_restricted:
                 merge_pv('metric_access', metric.perm)
 
-
-    def clean_perms(self,):
+    def clean_perms(self):
         """FAB leaves faulty permissions that need to be cleaned up"""
         logging.info('Cleaning faulty perms')
-        sesh = self.get_session()
+        sesh = self.get_session
         pvms = (
             sesh.query(ab_models.PermissionView)
             .filter(or_(
@@ -289,7 +284,6 @@ class SupersetSecurityManager(SecurityManager):
         sesh.commit()
         if deleted_count:
             logging.info('Deleted {} faulty permissions'.format(deleted_count))
-
 
     def sync_role_definitions(self):
         """Inits the Superset application with security roles and such"""
@@ -315,7 +309,7 @@ class SupersetSecurityManager(SecurityManager):
         self.get_session.commit()
         self.clean_perms()
 
-    def get_or_create_main_db(self,):
+    def get_or_create_main_db(self):
         from superset import conf, db
         from superset.models import core as models
 
@@ -336,7 +330,7 @@ class SupersetSecurityManager(SecurityManager):
 
     def set_role(self, role_name, pvm_check):
         logging.info('Syncing {} perms'.format(role_name))
-        sesh = self.get_session()
+        sesh = self.get_session
         pvms = sesh.query(ab_models.PermissionView).all()
         pvms = [p for p in pvms if p.permission and p.view_menu]
         role = self.add_role(role_name)
@@ -355,7 +349,6 @@ class SupersetSecurityManager(SecurityManager):
             pvm.permission.name in ADMIN_ONLY_PERMISSIONS
         )
 
-
     def is_alpha_only(self, pvm):
         if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
                 pvm.permission.name not in READ_ONLY_PERMISSION):
@@ -365,25 +358,20 @@ class SupersetSecurityManager(SecurityManager):
             pvm.permission.name in ALPHA_ONLY_PERMISSIONS
         )
 
-
     def is_admin_pvm(self, pvm):
         return not self.is_user_defined_permission(pvm)
 
-
     def is_alpha_pvm(self, pvm):
         return not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm))
-
 
     def is_gamma_pvm(self, pvm):
         return not (self.is_user_defined_permission(pvm) or self.is_admin_only(pvm) or
                     self.is_alpha_only(pvm))
 
-
     def is_sql_lab_pvm(self, pvm):
         return pvm.view_menu.name in {'SQL Lab'} or pvm.permission.name in {
             'can_sql_json', 'can_csv', 'can_search_queries',
         }
-
 
     def is_granter_pvm(self, pvm):
         return pvm.permission.name in {

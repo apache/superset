@@ -212,7 +212,6 @@ class SupersetFilter(BaseFilter):
     """
 
     def get_user_roles(self):
-        # can this be cached?
         return get_user_roles()
 
     def get_all_permissions(self):

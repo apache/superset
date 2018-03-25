@@ -12,11 +12,10 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, appbuilder, cli, db, security, sm
+from superset import app, appbuilder, cli, db, sm
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
-from superset.security import sync_role_definitions
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
@@ -36,10 +35,10 @@ class SupersetTestCase(unittest.TestCase):
             logging.info('Loading examples')
             cli.load_examples(load_test_data=True)
             logging.info('Done loading examples')
-            sync_role_definitions()
+            sm.sync_role_definitions()
             os.environ['examples_loaded'] = '1'
         else:
-            sync_role_definitions()
+            sm.sync_role_definitions()
         super(SupersetTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
         self.maxDiff = None
@@ -48,7 +47,7 @@ class SupersetTestCase(unittest.TestCase):
         for perm in sm.find_role('Gamma').permissions:
             sm.add_permission_role(gamma_sqllab_role, perm)
         db_perm = self.get_main_database(sm.get_session).perm
-        security.merge_perm(sm, 'database_access', db_perm)
+        sm.merge_perm('database_access', db_perm)
         db_pvm = sm.find_permission_view_menu(
             view_menu_name=db_perm, permission_name='database_access')
         gamma_sqllab_role.permissions.append(db_pvm)

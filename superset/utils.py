@@ -55,13 +55,6 @@ EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 
 
-def can_access(sm, permission_name, view_name, user):
-    """Protecting from has_access failing from missing perms/view"""
-    if user.is_anonymous():
-        return sm.is_item_public(permission_name, view_name)
-    return sm._has_view_access(user, permission_name, view_name)
-
-
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
     try:

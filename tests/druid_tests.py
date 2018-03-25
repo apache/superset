@@ -11,7 +11,7 @@ import unittest
 
 from mock import Mock, patch
 
-from superset import db, security, sm
+from superset import db, sm
 from superset.connectors.druid.models import (
     DruidCluster, DruidColumn, DruidDatasource, DruidMetric,
 )
@@ -278,8 +278,8 @@ class DruidTests(SupersetTestCase):
         db.session.merge(no_gamma_ds)
         db.session.commit()
 
-        security.merge_perm(sm, 'datasource_access', gamma_ds.perm)
-        security.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+        sm.merge_perm('datasource_access', gamma_ds.perm)
+        sm.merge_perm('datasource_access', no_gamma_ds.perm)
 
         perm = sm.find_permission_view_menu(
             'datasource_access', gamma_ds.get_perm())
