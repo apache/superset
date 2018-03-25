@@ -15,6 +15,7 @@ import superset.viz as viz
 
 
 class BaseVizTestCase(unittest.TestCase):
+
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
@@ -634,3 +635,109 @@ class RoseVisTestCase(unittest.TestCase):
             ],
         }
         self.assertEqual(expected, res)
+
+
+class BaseDeckGLVizTestCase(unittest.TestCase):
+
+    def test_get_metrics(self):
+        form_data = {'size': 'large'}
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == [form_data.get('size')]
+
+        form_data = {}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == []
+
+    def test_scatterviz_get_metrics(self):
+        form_data = {'size': 'large'}
+        datasource = {'type': 'table'}
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {'type': 'metric', 'value': 'int'}
+        result = test_viz_deckgl.get_metrics()
+        assert result == ['int']
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {}
+        result = test_viz_deckgl.get_metrics()
+        assert result is None
+
+    def test_get_js_columns(self):
+        form_data = {'js_columns': ['a', 'b']}
+        datasource = {'type': 'table'}
+        mock_d = {
+            'a': 'dummy1',
+            'b': 'dummy2',
+            'c': 'dummy3',
+        }
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_js_columns(mock_d)
+
+        assert result == {'a': 'dummy1', 'b': 'dummy2'}
+
+    def test_get_properties(self):
+        mock_d = {}
+        form_data = {'size': 'large'}
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(NotImplementedError) as context:
+            test_viz_deckgl.get_properties(mock_d)
+
+        self.assertTrue('' in str(context.exception))
+
+    def test_process_spatial_query_obj(self):
+        form_data = {}
+        datasource = {'type': 'table'}
+        mock_key = 'spatial_key'
+        mock_gb = []
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        # result = test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+
+        with self.assertRaises(ValueError) as context:
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+
+        self.assertTrue('Bad spatial key' in str(context.exception))
+
+        test_form_data = {
+            'latlong_key': {
+                'type': 'latlong',
+                'lonCol': 'lon',
+                'latCol': 'lat',
+            },
+            'delimited_key': {
+                'type': 'delimited',
+                'lonlatCol': 'lonlat',
+            },
+            'geohash_key': {
+                'type': 'geohash',
+                'geohashCol': 'geo',
+            },
+        }
+
+        datasource = {'type': 'table'}
+        expected_results = {
+            'latlong_key': ['lon', 'lat'],
+            'delimited_key': ['lonlat'],
+            'geohash_key': ['geo'],
+        }
+        for mock_key in ['latlong_key', 'delimited_key', 'geohash_key']:
+            mock_gb = []
+            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data)
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+            assert expected_results.get(mock_key) == mock_gb
+
+    def test_geojson_query_obj(self):
+        form_data = {'geojson': 'a'}
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.DeckGeoJson(datasource, form_data)
+        results = test_viz_deckgl.query_obj()
+
+        assert results['metrics'] == []
+        assert results['groupby'] == []
+        assert results['columns'] == ['a']
