@@ -1149,7 +1149,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         if self._extra_chart_data:
             chart_data += self._extra_chart_data
-            chart_data = sorted(chart_data, key=lambda x: x['key'])
+            chart_data = sorted(chart_data, key=lambda x: tuple(x['key']))
 
         return chart_data
 
