@@ -57,8 +57,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             'expression-defined columns in some cases. In most case '
             'users should not need to alter this.'),
         'expression': utils.markdown(
-            'a valid SQL expression as supported by the underlying backend. '
-            'Example: `substr(name, 1, 1)`', True),
+            'a valid, *non-aggregating* SQL expression as supported by the '
+            'underlying backend. Example: `substr(name, 1, 1)`', True),
         'python_date_format': utils.markdown(Markup(
             'The pattern of timestamp format, use '
             '<a href="https://docs.python.org/2/library/'
@@ -114,8 +114,8 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression', 'table', 'd3format', 'is_restricted', 'warning_text']
     description_columns = {
         'expression': utils.markdown(
-            'a valid SQL expression as supported by the underlying backend. '
-            'Example: `count(DISTINCT userid)`', True),
+            'a valid, *aggregating* SQL expression as supported by the '
+            'underlying backend. Example: `count(DISTINCT userid)`', True),
         'is_restricted': _('Whether the access to this metric is restricted '
                            'to certain roles. Only roles with the permission '
                            "'metric access on XXX (the name of this metric)' "
