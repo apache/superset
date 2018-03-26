@@ -2,8 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
-import SelectControl from './SelectControl';
 import { t } from '../../../locales';
+import OnPasteSelect from '../../../components/OnPasteSelect';
+import SelectControl from './SelectControl';
 
 const operatorsArr = [
   { val: 'in', type: 'array', useSelect: true, multi: true },
@@ -105,7 +106,7 @@ export default class Filter extends React.Component {
           name="filter-value"
           value={filter.val}
           isLoading={this.props.valuesLoading}
-          options={this.props.valueChoices}
+          choices={this.props.valueChoices}
           onChange={this.changeSelect.bind(this)}
           showHeader={false}
         />

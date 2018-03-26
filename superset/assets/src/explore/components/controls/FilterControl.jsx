@@ -18,25 +18,6 @@ const defaultProps = {
   value: [],
 };
 
-function optionLabel(opt) {
-  if (opt === null) {
-    return '<NULL>';
-  } else if (opt === '') {
-    return '<empty string>';
-  }
-  return opt;
-}
-function optionValue(opt) {
-  if (opt === null) {
-    return '<NULL>';
-  }
-  return opt;
-}
-function optionFromValue(opt) {
-  // From a list of options, handles special values & labels
-  return { value: optionValue(opt), label: optionLabel(opt) };
-}
-
 export default class FilterControl extends React.Component {
 
   constructor(props) {
@@ -76,8 +57,7 @@ export default class FilterControl extends React.Component {
           success: (data) => {
             this.setState((prevState) => {
               const newStateFilters = Object.assign([], prevState.filters);
-              const valueChoices = data.map(opt => optionFromValue(opt));
-              newStateFilters[index] = { valuesLoading: false, valueChoices };
+              newStateFilters[index] = { valuesLoading: false, valueChoices: data };
               return { filters: newStateFilters, activeRequest: null };
             });
           },

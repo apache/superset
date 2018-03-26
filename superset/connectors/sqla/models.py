@@ -11,7 +11,6 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
-from past.builtins import basestring
 import six
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -578,24 +577,14 @@ class SqlaTable(Model, BaseDatasource):
                 continue
             col = flt['col']
             op = flt['op']
-            eq = flt.get('val')
             col_obj = cols.get(col)
+            eq = self.filter_values_handler(
+                flt.get('val'),
+                target_column_is_numeric=col_obj.is_num,
+                is_list_target=op in ('in', 'not in'))
             if col_obj:
                 if op in ('in', 'not in'):
-                    values = []
-                    for v in eq:
-                        # For backwards compatibility and edge cases
-                        # where a column data type might have changed
-                        if isinstance(v, basestring):
-                            v = v.strip("'").strip('"')
-                            if col_obj.is_num:
-                                v = utils.string_to_num(v)
-
-                        # Removing empty strings and non numeric values
-                        # targeting numeric columns
-                        if v is not None:
-                            values.append(v)
-                    cond = col_obj.sqla_col.in_(values)
+                    cond = col_obj.sqla_col.in_(eq)
                     if '<NULL>' in eq:
                         cond = or_(cond, col_obj.sqla_col == None)  # noqa
                     if op == 'not in':

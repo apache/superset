@@ -119,6 +119,7 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr = {'col': 'A', 'op': '==', 'val': ['a', 'b']}
         res = DruidDatasource.get_filters([filtr], [])
         self.assertEqual('a', res.filter['filter']['value'])
+
         filtr = {'col': 'A', 'op': '==', 'val': []}
         res = DruidDatasource.get_filters([filtr], [])
         self.assertEqual('', res.filter['filter']['value'])

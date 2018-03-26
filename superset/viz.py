@@ -1700,6 +1700,8 @@ class FilterBoxViz(BaseViz):
         for flt in filters:
             qry['groupby'] = [flt]
             df = self.get_df_payload(query_obj=qry).get('df')
+            print(df)
+            print(df.dtypes)
             self.dataframes[flt] = df
 
     def filter_query_obj(self):

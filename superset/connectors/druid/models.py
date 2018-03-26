@@ -1322,40 +1322,26 @@ class DruidDatasource(Model, BaseDatasource):
             query=query_str,
             duration=datetime.now() - qry_start_dttm)
 
-    @staticmethod
-    def get_filters(raw_filters, num_cols):  # noqa
+    @classmethod
+    def get_filters(cls, raw_filters, num_cols):  # noqa
         filters = None
         for flt in raw_filters:
-            if not all(f in flt for f in ['col', 'op', 'val']):
+            col = flt.get('col')
+            op = flt.get('op')
+            eq = flt.get('val')
+            if not col or not op:
                 continue
-
-            col = flt['col']
-            op = flt['op']
-            eq = flt['val']
             cond = None
-            if op in ('in', 'not in'):
-                eq = [
-                    types.replace('"', '').strip()
-                    if isinstance(types, string_types)
-                    else types
-                    for types in eq]
-            elif not isinstance(flt['val'], string_types):
-                eq = eq[0] if eq and len(eq) > 0 else ''
+            eq = cls.filter_values_handler(
+                eq, is_list_target=op in ('in', 'not in'))
 
             is_numeric_col = col in num_cols
-            if is_numeric_col:
-                if op in ('in', 'not in'):
-                    eq = [utils.string_to_num(v) for v in eq]
-                else:
-                    eq = utils.string_to_num(eq)
-
             if op == '==':
                 cond = Dimension(col) == eq
             elif op == '!=':
                 cond = Dimension(col) != eq
             elif op in ('in', 'not in'):
                 fields = []
-
                 # ignore the filter if it has no value
                 if not len(eq):
                     continue
@@ -1365,10 +1351,8 @@ class DruidDatasource(Model, BaseDatasource):
                     for s in eq:
                         fields.append(Dimension(col) == s)
                     cond = Filter(type='or', fields=fields)
-
                 if op == 'not in':
                     cond = ~cond
-
             elif op == 'regex':
                 cond = Filter(type='regex', pattern=eq, dimension=col)
             elif op == '>=':
@@ -1385,6 +1369,10 @@ class DruidDatasource(Model, BaseDatasource):
                     col, None, eq,
                     upperStrict=True, alphaNumeric=is_numeric_col,
                 )
+            elif op == 'IS NULL':
+                cond = Dimension(col) == None  # NOQA
+            elif op == 'IS NOT NULL':
+                cond = Dimension(col) != None  # NOQA
 
             if filters:
                 filters = Filter(type='and', fields=[
