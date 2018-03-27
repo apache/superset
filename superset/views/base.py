@@ -10,7 +10,8 @@ import json
 import logging
 import traceback
 
-from flask import abort, flash, g, get_flashed_messages, redirect, Response
+from flask import (
+    abort, flash, g, get_flashed_messages, redirect, request, Response)
 from flask_appbuilder import BaseView, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.filters import BaseFilter
@@ -85,7 +86,30 @@ def get_user_roles():
     return g.user.roles
 
 
+def get_database_access_error_msg(database_name):
+    return __('This view requires the database %(name)s or '
+              '`all_datasource_access` permission', name=database_name)
+
+
+def get_datasource_access_error_msg(datasource_name):
+    return __('This endpoint requires the datasource %(name)s, database or '
+              '`all_datasource_access` permission', name=datasource_name)
+
+
 class BaseSupersetView(BaseView):
+
+    def json_response(self, obj, status=200):
+        return Response(
+            json.dumps(obj, default=utils.json_int_dttm_ser),
+            status=status,
+            mimetype='application/json')
+
+    def redirect_with_context(self, url):
+        """Redirect that indicates sending the same data"""
+        if request.query_string:
+            url += '?' + request.query_string
+        return redirect(url, code=307)
+
     def common_bootsrap_payload(self):
         """Common data always sent to the client"""
         messages = get_flashed_messages(with_categories=True)

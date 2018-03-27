@@ -16,6 +16,8 @@ from superset.models.sql_lab import Query
 from superset.sql_lab import convert_results_to_df
 from .base_tests import SupersetTestCase
 
+URL_SEARCH_QUERIES = '/sqllab/search_queries/'
+
 
 class SqlLabTests(SupersetTestCase):
     """Testings for Sql Lab"""
@@ -85,6 +87,37 @@ class SqlLabTests(SupersetTestCase):
         db.session.commit()
         self.assertLess(0, len(data['data']))
 
+    def test_sqllab_viz(self):
+        payload = {
+            'chartType': 'dist_bar',
+            'datasourceName': 'test_viz_flow_table',
+            'schema': 'superset',
+            'columns': {
+                'viz_type': {
+                    'is_date': False,
+                    'type': 'STRING',
+                    'nam:qe': 'viz_type',
+                    'is_dim': True,
+                },
+                'ccount': {
+                    'is_date': False,
+                    'type': 'OBJECT',
+                    'name': 'ccount',
+                    'is_dim': True,
+                    'agg': 'sum',
+                },
+            },
+            'sql': '''\
+                SELECT viz_type, count(1) as ccount
+                FROM slices
+                WHERE viz_type LIKE '%%a%%'
+                GROUP BY viz_type''',
+            'dbId': 1,
+        }
+        data = {"data": json.dumps(payload)}
+        resp = self.get_json_resp('/sqllab/sqllab_viz/', data=data)
+        self.assertIn('table_id', resp)
+
     def test_queries_endpoint(self):
         self.run_some_queries()
 
@@ -125,12 +158,12 @@ class SqlLabTests(SupersetTestCase):
         self.run_some_queries()
         self.login('admin')
         # Test search queries on database Id
-        data = self.get_json_resp('/superset/search_queries?database_id=1')
+        data = self.get_json_resp(URL_SEARCH_QUERIES + '?database_id=1')
         self.assertEquals(3, len(data))
         db_ids = [k['dbId'] for k in data]
         self.assertEquals([1, 1, 1], db_ids)
 
-        resp = self.get_resp('/superset/search_queries?database_id=-1')
+        resp = self.get_resp(URL_SEARCH_QUERIES + '?database_id=-1')
         data = json.loads(resp)
         self.assertEquals(0, len(data))
 
@@ -141,14 +174,14 @@ class SqlLabTests(SupersetTestCase):
         # Test search queries on user Id
         user_id = security_manager.find_user('admin').id
         data = self.get_json_resp(
-            '/superset/search_queries?user_id={}'.format(user_id))
+            URL_SEARCH_QUERIES + '?user_id={}'.format(user_id))
         self.assertEquals(2, len(data))
         user_ids = {k['userId'] for k in data}
         self.assertEquals(set([user_id]), user_ids)
 
         user_id = security_manager.find_user('gamma_sqllab').id
         resp = self.get_resp(
-            '/superset/search_queries?user_id={}'.format(user_id))
+            URL_SEARCH_QUERIES + '?user_id={}'.format(user_id))
         data = json.loads(resp)
         self.assertEquals(1, len(data))
         self.assertEquals(data[0]['userId'], user_id)
@@ -157,13 +190,13 @@ class SqlLabTests(SupersetTestCase):
         self.run_some_queries()
         self.login('admin')
         # Test search queries on status
-        resp = self.get_resp('/superset/search_queries?status=success')
+        resp = self.get_resp(URL_SEARCH_QUERIES + '?status=success')
         data = json.loads(resp)
         self.assertEquals(2, len(data))
         states = [k['state'] for k in data]
         self.assertEquals(['success', 'success'], states)
 
-        resp = self.get_resp('/superset/search_queries?status=failed')
+        resp = self.get_resp(URL_SEARCH_QUERIES + '?status=failed')
         data = json.loads(resp)
         self.assertEquals(1, len(data))
         self.assertEquals(data[0]['state'], 'failed')
@@ -171,7 +204,7 @@ class SqlLabTests(SupersetTestCase):
     def test_search_query_on_text(self):
         self.run_some_queries()
         self.login('admin')
-        url = '/superset/search_queries?search_text=permission'
+        url = URL_SEARCH_QUERIES + '?search_text=permission'
         data = self.get_json_resp(url)
         self.assertEquals(1, len(data))
         self.assertIn('permission', data[0]['sql'])
@@ -191,7 +224,7 @@ class SqlLabTests(SupersetTestCase):
         from_time = 'from={}'.format(int(first_query_time))
         to_time = 'to={}'.format(int(second_query_time))
         params = [from_time, to_time]
-        resp = self.get_resp('/superset/search_queries?' + '&'.join(params))
+        resp = self.get_resp(URL_SEARCH_QUERIES + '?' + '&'.join(params))
         data = json.loads(resp)
         self.assertEquals(2, len(data))
 

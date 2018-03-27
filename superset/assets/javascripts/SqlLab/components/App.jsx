@@ -44,7 +44,8 @@ class App extends React.PureComponent {
     const tabsHeight = tabsEl.length > 0 ? tabsEl.outerHeight() : searchHeaderHeight;
     const warningHeight = warningEl.length > 0 ? warningEl.outerHeight() : 0;
     const alertHeight = alertEl.length > 0 ? alertEl.outerHeight() : 0;
-    return `${window.innerHeight - headerHeight - tabsHeight - warningHeight - alertHeight}px`;
+    const northHeight = headerHeight + tabsHeight + warningHeight + alertHeight;
+    return `${Math.round(window.innerHeight - northHeight)}px`;
   }
   handleResize() {
     this.setState({ contentHeight: this.getHeight() });
