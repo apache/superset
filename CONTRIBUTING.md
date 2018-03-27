@@ -450,6 +450,11 @@ https://github.com/apache/incubator-superset/pull/3013
     # when landing on a new sundae
 
     # compile the JS, and push to pypi
+    # to run this part you'll need a pypi account and rights on the
+    # superset package. Committers that want to ship releases
+    # should have this access.
+    # You'll also need a `.pypirc` as specified here:
+    # http://peterdowns.com/posts/first-time-with-pypi.html
     ./pypi_push.sh
 
     # publish an update to the CHANGELOG.md for the right version range
