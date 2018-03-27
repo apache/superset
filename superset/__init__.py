@@ -154,8 +154,8 @@ custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER') or SupersetSecurityManager
 if not issubclass(custom_sm, SupersetSecurityManager):
     raise Exception(
         """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
-         not FAB's security manager. 
-         See https://github.com/apache/incubator-superset/pull/4565""")
+         not FAB's security manager.
+         See [4565] in UPDATING.md""")
 
 appbuilder = AppBuilder(
     app,

@@ -16,7 +16,7 @@ from flask_script import Manager
 from pathlib2 import Path
 import yaml
 
-from superset import app, data, db, dict_import_export_util, sm, utils
+from superset import app, data, db, dict_import_export_util, security_manager, utils
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -29,7 +29,7 @@ manager.add_command('db', MigrateCommand)
 def init():
     """Inits the Superset application"""
     utils.get_or_create_main_db()
-    sm.sync_role_definitions()
+    security_manager.sync_role_definitions()
 
 
 @manager.option(

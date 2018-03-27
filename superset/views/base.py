@@ -20,7 +20,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import yaml
 
-from superset import appbuilder, conf, sm, utils
+from superset import conf, security_manager, utils
 from superset.translations.utils import get_language_pack
 
 FRONTEND_CONF_KEYS = (
@@ -81,7 +81,7 @@ def get_datasource_exist_error_mgs(full_name):
 def get_user_roles():
     if g.user.is_anonymous():
         public_role = conf.get('AUTH_ROLE_PUBLIC')
-        return [appbuilder.sm.find_role(public_role)] if public_role else []
+        return [security_manager.find_role(public_role)] if public_role else []
     return g.user.roles
 
 
@@ -152,31 +152,32 @@ class DeleteMixin(object):
         except Exception as e:
             flash(str(e), 'danger')
         else:
-            view_menu = sm.find_view_menu(item.get_perm())
-            pvs = sm.get_session.query(sm.permissionview_model).filter_by(
+            view_menu = security_manager.find_view_menu(item.get_perm())
+            pvs = security_manager.get_session.query(
+                security_manager.permissionview_model).filter_by(
                 view_menu=view_menu).all()
 
             schema_view_menu = None
             if hasattr(item, 'schema_perm'):
-                schema_view_menu = sm.find_view_menu(item.schema_perm)
+                schema_view_menu = security_manager.find_view_menu(item.schema_perm)
 
-                pvs.extend(sm.get_session.query(
-                    sm.permissionview_model).filter_by(
+                pvs.extend(security_manager.get_session.query(
+                    security_manager.permissionview_model).filter_by(
                     view_menu=schema_view_menu).all())
 
             if self.datamodel.delete(item):
                 self.post_delete(item)
 
                 for pv in pvs:
-                    sm.get_session.delete(pv)
+                    security_manager.get_session.delete(pv)
 
                 if view_menu:
-                    sm.get_session.delete(view_menu)
+                    security_manager.get_session.delete(view_menu)
 
                 if schema_view_menu:
-                    sm.get_session.delete(schema_view_menu)
+                    security_manager.get_session.delete(schema_view_menu)
 
-                sm.get_session.commit()
+                security_manager.get_session.commit()
 
             flash(*self.datamodel.message)
             self.update_redirect()
