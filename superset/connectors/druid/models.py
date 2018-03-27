@@ -29,7 +29,7 @@ import requests
 from six import string_types
 import sqlalchemy as sa
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, or_, String, Text, UniqueConstraint,
+    Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
 
@@ -200,33 +200,31 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                 col_objs_list = (
                     session.query(DruidColumn)
                     .filter(DruidColumn.datasource_id == datasource.id)
-                    .filter(or_(DruidColumn.column_name == col for col in cols))
+                    .filter(DruidColumn.column_name.in_(cols.keys()))
                 )
                 col_objs = {col.column_name: col for col in col_objs_list}
                 for col in cols:
                     if col == '__time':  # skip the time column
                         continue
-                    col_obj = col_objs.get(col, None)
+                    col_obj = col_objs.get(col)
                     if not col_obj:
                         col_obj = DruidColumn(
                             datasource_id=datasource.id,
                             column_name=col)
                         with session.no_autoflush:
                             session.add(col_obj)
-                    datatype = cols[col]['type']
-                    if datatype == 'STRING':
+                    col_obj.type = cols[col]['type']
+                    col_obj.datasource = datasource
+                    if col_obj.type == 'STRING':
                         col_obj.groupby = True
                         col_obj.filterable = True
-                    if datatype == 'hyperUnique' or datatype == 'thetaSketch':
+                    if col_obj.type == 'hyperUnique' or col_obj.type == 'thetaSketch':
                         col_obj.count_distinct = True
-                    # Allow sum/min/max for long or double
-                    if datatype == 'LONG' or datatype == 'DOUBLE':
+                    if col_obj.is_num:
                         col_obj.sum = True
                         col_obj.min = True
                         col_obj.max = True
-                    col_obj.type = datatype
-                    col_obj.datasource = datasource
-                datasource.generate_metrics_for(col_objs_list)
+                datasource.refresh_metrics()
         session.commit()
 
     @property
@@ -361,21 +359,24 @@ class DruidColumn(Model, BaseColumn):
                 )
         return metrics
 
-    def generate_metrics(self):
-        """Generate metrics based on the column metadata"""
+    def refresh_metrics(self):
+        """Refresh metrics based on the column metadata"""
         metrics = self.get_metrics()
         dbmetrics = (
             db.session.query(DruidMetric)
             .filter(DruidMetric.datasource_id == self.datasource_id)
-            .filter(or_(
-                DruidMetric.metric_name == m for m in metrics
-            ))
+            .filter(DruidMetric.metric_name.in_(metrics.keys()))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics.values():
-            metric.datasource_id = self.datasource_id
-            if not dbmetrics.get(metric.metric_name, None):
-                db.session.add(metric)
+            dbmetric = dbmetrics.get(metric.metric_name)
+            if dbmetric:
+                for attr in ['json', 'metric_type', 'verbose_name']:
+                    setattr(dbmetric, attr, getattr(metric, attr))
+            else:
+                with db.session.no_autoflush:
+                    metric.datasource_id = self.datasource_id
+                    db.session.add(metric)
 
     @classmethod
     def import_obj(cls, i_column):
@@ -653,24 +654,9 @@ class DruidDatasource(Model, BaseDatasource):
         if segment_metadata:
             return segment_metadata[-1]['columns']
 
-    def generate_metrics(self):
-        self.generate_metrics_for(self.columns)
-
-    def generate_metrics_for(self, columns):
-        metrics = {}
-        for col in columns:
-            metrics.update(col.get_metrics())
-        dbmetrics = (
-            db.session.query(DruidMetric)
-            .filter(DruidMetric.datasource_id == self.id)
-            .filter(or_(DruidMetric.metric_name == m for m in metrics))
-        )
-        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
-        for metric in metrics.values():
-            metric.datasource_id = self.id
-            if not dbmetrics.get(metric.metric_name, None):
-                with db.session.no_autoflush:
-                    db.session.add(metric)
+    def refresh_metrics(self):
+        for col in self.columns:
+            col.refresh_metrics()
 
     @classmethod
     def sync_to_db_from_config(
@@ -703,7 +689,7 @@ class DruidDatasource(Model, BaseDatasource):
         col_objs = (
             session.query(DruidColumn)
             .filter(DruidColumn.datasource_id == datasource.id)
-            .filter(or_(DruidColumn.column_name == dim for dim in dimensions))
+            .filter(DruidColumn.column_name.in_(dimensions))
         )
         col_objs = {col.column_name: col for col in col_objs}
         for dim in dimensions:
@@ -723,8 +709,9 @@ class DruidDatasource(Model, BaseDatasource):
         metric_objs = (
             session.query(DruidMetric)
             .filter(DruidMetric.datasource_id == datasource.id)
-            .filter(or_(DruidMetric.metric_name == spec['name']
-                    for spec in druid_config['metrics_spec']))
+            .filter(DruidMetric.metric_name.in_(
+                spec['name'] for spec in druid_config['metrics_spec']
+            ))
         )
         metric_objs = {metric.metric_name: metric for metric in metric_objs}
         for metric_spec in druid_config['metrics_spec']:
