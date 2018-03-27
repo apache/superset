@@ -16,7 +16,7 @@ from flask_script import Manager
 from pathlib2 import Path
 import yaml
 
-from superset import app, db, dict_import_export_util, sm, utils
+from superset import app, data, db, dict_import_export_util, sm, utils
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -28,6 +28,7 @@ manager.add_command('db', MigrateCommand)
 @manager.command
 def init():
     """Inits the Superset application"""
+    utils.get_or_create_main_db()
     sm.sync_role_definitions()
 
 
@@ -108,7 +109,6 @@ def version(verbose):
     help='Load additional test data')
 def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    from superset import data
     print('Loading examples into {}'.format(db))
 
     data.load_css_templates()

@@ -12,7 +12,7 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, appbuilder, cli, db, sm
+from superset import app, appbuilder, cli, db, sm, utils
 from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
@@ -46,6 +46,7 @@ class SupersetTestCase(unittest.TestCase):
         gamma_sqllab_role = sm.add_role('gamma_sqllab')
         for perm in sm.find_role('Gamma').permissions:
             sm.add_permission_role(gamma_sqllab_role, perm)
+        utils.get_or_create_main_db()
         db_perm = self.get_main_database(sm.get_session).perm
         sm.merge_perm('database_access', db_perm)
         db_pvm = sm.find_permission_view_menu(

@@ -290,7 +290,6 @@ class SupersetSecurityManager(SecurityManager):
         from superset import conf
         logging.info('Syncing role definition')
 
-        self.get_or_create_main_db()
         self.create_custom_permissions()
 
         # Creating default roles
@@ -308,25 +307,6 @@ class SupersetSecurityManager(SecurityManager):
         # commit role and view menu updates
         self.get_session.commit()
         self.clean_perms()
-
-    def get_or_create_main_db(self):
-        from superset import conf, db
-        from superset.models import core as models
-
-        logging.info('Creating database reference')
-        dbobj = (
-            db.session.query(models.Database)
-            .filter_by(database_name='main')
-            .first()
-        )
-        if not dbobj:
-            dbobj = models.Database(database_name='main')
-        dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
-        dbobj.expose_in_sqllab = True
-        dbobj.allow_run_sync = True
-        db.session.add(dbobj)
-        db.session.commit()
-        return dbobj
 
     def set_role(self, role_name, pvm_check):
         logging.info('Syncing {} perms'.format(role_name))
