@@ -91,7 +91,7 @@ class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
                     .format(dimension_spec['outputName'], col.column_name))
 
     def post_update(self, col):
-        col.generate_metrics()
+        col.refresh_metrics()
 
     def post_add(self, col):
         self.post_update(col)
@@ -277,7 +277,7 @@ class DruidDatasourceModelView(DatasourceModelView, DeleteMixin, YamlExportMixin
                     datasource.full_name))
 
     def post_add(self, datasource):
-        datasource.generate_metrics()
+        datasource.refresh_metrics()
         security.merge_perm(sm, 'datasource_access', datasource.get_perm())
         if datasource.schema:
             security.merge_perm(sm, 'schema_access', datasource.schema_perm)
