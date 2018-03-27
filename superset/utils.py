@@ -55,13 +55,6 @@ EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 
 
-def can_access(sm, permission_name, view_name, user):
-    """Protecting from has_access failing from missing perms/view"""
-    if user.is_anonymous():
-        return sm.is_item_public(permission_name, view_name)
-    return sm._has_view_access(user, permission_name, view_name)
-
-
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
     try:
@@ -477,11 +470,6 @@ def get_datasource_full_name(database_name, datasource_name, schema=None):
     return '[{}].[{}].[{}]'.format(database_name, schema, datasource_name)
 
 
-def get_schema_perm(database, schema):
-    if schema:
-        return '[{}].[{}]'.format(database, schema)
-
-
 def validate_json(obj):
     if obj:
         try:
@@ -834,3 +822,23 @@ def user_label(user):
             return user.first_name + ' ' + user.last_name
         else:
             return user.username
+
+
+def get_or_create_main_db():
+    from superset import conf, db
+    from superset.models import core as models
+
+    logging.info('Creating database reference')
+    dbobj = (
+        db.session.query(models.Database)
+        .filter_by(database_name='main')
+        .first()
+    )
+    if not dbobj:
+        dbobj = models.Database(database_name='main')
+    dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
+    dbobj.expose_in_sqllab = True
+    dbobj.allow_run_sync = True
+    db.session.add(dbobj)
+    db.session.commit()
+    return dbobj

@@ -14,10 +14,9 @@ import unittest
 import pandas as pd
 from past.builtins import basestring
 
-from superset import app, appbuilder, cli, dataframe, db
+from superset import app, cli, dataframe, db, security_manager
 from superset.models.helpers import QueryStatus
 from superset.models.sql_lab import Query
-from superset.security import sync_role_definitions
 from superset.sql_parse import SupersetQuery
 from .base_tests import SupersetTestCase
 
@@ -98,17 +97,17 @@ class CeleryTestCase(SupersetTestCase):
         except OSError as e:
             app.logger.warn(str(e))
 
-        sync_role_definitions()
+        security_manager.sync_role_definitions()
 
         worker_command = BASE_DIR + '/bin/superset worker'
         subprocess.Popen(
             worker_command, shell=True, stdout=subprocess.PIPE)
 
-        admin = appbuilder.sm.find_user('admin')
+        admin = security_manager.find_user('admin')
         if not admin:
-            appbuilder.sm.add_user(
+            security_manager.add_user(
                 'admin', 'admin', ' user', 'admin@fab.org',
-                appbuilder.sm.find_role('Admin'),
+                security_manager.find_role('Admin'),
                 password='general')
         cli.load_examples(load_test_data=True)
 
