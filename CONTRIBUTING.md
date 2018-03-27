@@ -454,7 +454,7 @@ https://github.com/apache/incubator-superset/pull/3013
 
     # publish an update to the CHANGELOG.md for the right version range
     # looking the latest CHANGELOG entry for the second argument
-    ./gen_changelog.sh 0.25.0 0.22.1
+    ./gen_changelog.sh 0.22.1 0.25.0
     # this will overwrite the CHANGELOG.md with only the version range
     # so you'll want to copy paste that on top of the previous CHANGELOG.md 
     # open a PR against `master`
