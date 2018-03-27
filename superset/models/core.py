@@ -33,7 +33,7 @@ from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
-from superset import app, db, db_engine_specs, sm, utils
+from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
 from superset.viz import viz_types
@@ -104,7 +104,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
-    owners = relationship(sm.user_model, secondary=slice_user)
+    owners = relationship(security_manager.user_model, secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
                      'viz_type', 'params', 'cache_timeout')
@@ -322,7 +322,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
-    owners = relationship(sm.user_model, secondary=dashboard_user)
+    owners = relationship(security_manager.user_model, secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
@@ -681,7 +681,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:
             url, params = DB_CONNECTION_MUTATOR(
-                url, params, effective_username, sm)
+                url, params, effective_username, security_manager)
         return create_engine(url, **params)
 
     def get_reserved_words(self):
@@ -862,7 +862,8 @@ class Log(Model):
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
     json = Column(Text)
-    user = relationship(sm.user_model, backref='logs', foreign_keys=[user_id])
+    user = relationship(
+        security_manager.user_model, backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
     dt = Column(Date, default=date.today())
     duration_ms = Column(Integer)
@@ -961,7 +962,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     def roles_with_datasource(self):
         action_list = ''
         perm = self.datasource.perm  # pylint: disable=no-member
-        pv = sm.find_permission_view_menu('datasource_access', perm)
+        pv = security_manager.find_permission_view_menu('datasource_access', perm)
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue

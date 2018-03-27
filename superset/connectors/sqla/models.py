@@ -24,7 +24,7 @@ from sqlalchemy.sql import column, literal_column, table, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 
-from superset import db, import_util, sm, utils
+from superset import db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.jinja_context import get_template_processor
 from superset.models.annotations import Annotation
@@ -259,7 +259,7 @@ class SqlaTable(Model, BaseDatasource):
     fetch_values_predicate = Column(String(1000))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
-        sm.user_model,
+        security_manager.user_model,
         backref='tables',
         foreign_keys=[user_id])
     database = relationship(
@@ -298,7 +298,7 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def schema_perm(self):
         """Returns schema permission if present, database one otherwise."""
-        return utils.get_schema_perm(self.database, self.schema)
+        return security_manager.get_schema_perm(self.database, self.schema)
 
     def get_perm(self):
         return (
