@@ -166,10 +166,9 @@ def load_examples(load_test_data):
 )
 @manager.option(
     '-m', '--merge',
-    help=(
-        "Specify using 'merge' property during operation. "
-        'Default value is False '
-    ),
+    action='store_true',
+    help="Specify using 'merge' property during operation.",
+    default=False,
 )
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
