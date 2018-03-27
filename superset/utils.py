@@ -499,11 +499,6 @@ def get_datasource_full_name(database_name, datasource_name, schema=None):
     return '[{}].[{}].[{}]'.format(database_name, schema, datasource_name)
 
 
-def get_schema_perm(database, schema):
-    if schema:
-        return '[{}].[{}]'.format(database, schema)
-
-
 def validate_json(obj):
     if obj:
         try:
@@ -847,3 +842,32 @@ def merge_request_params(form_data, params):
 def get_update_perms_flag():
     val = os.environ.get('SUPERSET_UPDATE_PERMS')
     return val.lower() not in ('0', 'false', 'no') if val else True
+
+
+def user_label(user):
+    """Given a user ORM FAB object, returns a label"""
+    if user:
+        if user.first_name and user.last_name:
+            return user.first_name + ' ' + user.last_name
+        else:
+            return user.username
+
+
+def get_or_create_main_db():
+    from superset import conf, db
+    from superset.models import core as models
+
+    logging.info('Creating database reference')
+    dbobj = (
+        db.session.query(models.Database)
+        .filter_by(database_name='main')
+        .first()
+    )
+    if not dbobj:
+        dbobj = models.Database(database_name='main')
+    dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
+    dbobj.expose_in_sqllab = True
+    dbobj.allow_run_sync = True
+    db.session.add(dbobj)
+    db.session.commit()
+    return dbobj

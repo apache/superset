@@ -13,7 +13,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from past.builtins import basestring
 
-from superset import appbuilder, db, security, sm, utils
+from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
 from superset.utils import has_access
 from superset.views.base import (
@@ -144,11 +144,11 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_add(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
     def post_update(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -253,9 +253,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()
-        security.merge_perm(sm, 'datasource_access', table.get_perm())
+        security_manager.merge_perm('datasource_access', table.get_perm())
         if table.schema:
-            security.merge_perm(sm, 'schema_access', table.schema_perm)
+            security_manager.merge_perm('schema_access', table.schema_perm)
 
         if flash_message:
             flash(_(
