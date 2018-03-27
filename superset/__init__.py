@@ -150,9 +150,12 @@ class MyIndexView(IndexView):
         return redirect('/superset/welcome')
 
 
-custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER')
-if not custom_sm:
-    custom_sm = SupersetSecurityManager
+custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER') or SupersetSecurityManager
+if not issubclass(custom_sm, SupersetSecurityManager):
+    raise Exception(
+        """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
+         not FAB's security manager. 
+         See https://github.com/apache/incubator-superset/pull/4565""")
 
 appbuilder = AppBuilder(
     app,
@@ -163,7 +166,7 @@ appbuilder = AppBuilder(
     update_perms=utils.get_update_perms_flag(),
 )
 
-sm = appbuilder.sm
+security_manager = appbuilder.sm
 
 results_backend = app.config.get('RESULTS_BACKEND')
 
