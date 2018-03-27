@@ -18,8 +18,9 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.contrib.fixers import ProxyFix
 
+from superset import config, utils
 from superset.connectors.connector_registry import ConnectorRegistry
-from superset import utils, config  # noqa
+from superset.security import SupersetSecurityManager
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
@@ -149,16 +150,23 @@ class MyIndexView(IndexView):
         return redirect('/superset/welcome')
 
 
+custom_sm = app.config.get('CUSTOM_SECURITY_MANAGER') or SupersetSecurityManager
+if not issubclass(custom_sm, SupersetSecurityManager):
+    raise Exception(
+        """Your CUSTOM_SECURITY_MANAGER must now extend SupersetSecurityManager,
+         not FAB's security manager.
+         See [4565] in UPDATING.md""")
+
 appbuilder = AppBuilder(
     app,
     db.session,
     base_template='superset/base.html',
     indexview=MyIndexView,
-    security_manager_class=app.config.get('CUSTOM_SECURITY_MANAGER'),
+    security_manager_class=custom_sm,
     update_perms=utils.get_update_perms_flag(),
 )
 
-sm = appbuilder.sm
+security_manager = appbuilder.sm
 
 results_backend = app.config.get('RESULTS_BACKEND')
 
