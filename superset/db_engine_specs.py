@@ -280,6 +280,18 @@ class BaseEngineSpec(object):
         """
         return {}
 
+    @classmethod
+    def get_cursor_configuration_for_impersonation(cls, uri, impersonate_user, username):
+        """
+        Return a cursor configuration dictionary that can be merged with other configs
+        that can set the correct properties for impersonating users
+        :param uri: URI string
+        :param impersonate_user: Bool indicating if impersonation is enabled
+        :param username: Effective username
+        :return: Dictionary with configs required for impersonation
+        """
+        return {}
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -1046,7 +1058,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         if (backend_name == 'hive' and 'auth' in url.query.keys() and
                 impersonate_user is True and username is not None):
             configuration['hive.server2.proxy.user'] = username
-        return configuration
+        return { 'connect_args': {'configuration': configuration} }
 
 
 class MssqlEngineSpec(BaseEngineSpec):
@@ -1203,6 +1215,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain('minute', _('minute'), "TRUNC({col}, 'MI')"),
+        Grain('5 minute', _('5 minute'), "CAST(FLOOR(CAST(`{col}` as int)/300)*300 as TIMESTAMP)"),  
+        Grain('10 minute', _('10 minute'), "CAST(FLOOR(CAST(`{col}` as int)/600)*600 as TIMESTAMP)"),
         Grain('hour', _('hour'), "TRUNC({col}, 'HH')"),
         Grain('day', _('day'), "TRUNC({col}, 'DD')"),
         Grain('week', _('week'), "TRUNC({col}, 'WW')"),
@@ -1219,10 +1233,18 @@ class ImpalaEngineSpec(BaseEngineSpec):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    def get_schema_names(cls, inspector):
-        schemas = [row[0] for row in inspector.engine.execute('SHOW SCHEMAS')
-                   if not row[0].startswith('_')]
-        return schemas
+    def get_configuration_for_impersonation(cls, uri, impersonate_user, username):
+        logging.debug('Passing Impala execution_options.cursor_configuration for impersonation')
+        return { 'execution_options': { 'cursor_configuration': {'impala.doas.user': username } } }
+
+    @classmethod
+    def get_cursor_configuration_for_impersonation(cls, uri, impersonate_user, username):
+        logging.debug('Passing Impala cursor configuration for impersonation')
+        return { 'configuration': {'impala.doas.user': username } }
+        
+    @classmethod
+    def modify_url_for_impersonation(cls, url, impersonate_user, username):
+        pass
 
 
 class DruidEngineSpec(BaseEngineSpec):

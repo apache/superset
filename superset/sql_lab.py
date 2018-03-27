@@ -212,7 +212,7 @@ def execute_sql(
             user_name=user_name,
         )
         conn = engine.raw_connection()
-        cursor = conn.cursor()
+        cursor = conn.cursor(**database.cursor_kwargs)
         logging.info('Running query: \n{}'.format(executed_sql))
         logging.info(query.executed_sql)
         cursor.execute(query.executed_sql,

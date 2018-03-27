@@ -665,6 +665,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         logging.info('Database.get_sqla_engine(). Masked URL: {0}'.format(masked_url))
 
         params = extra.get('engine_params', {})
+        self.cursor_kwargs = self.db_engine_spec.get_cursor_configuration_for_impersonation(str(url), self.impersonate_user, effective_username)
         if nullpool:
             params['poolclass'] = NullPool
 
@@ -676,7 +677,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 self.impersonate_user,
                 effective_username))
         if configuration:
-            params['connect_args'] = {'configuration': configuration}
+            params.update(configuration)
 
         DB_CONNECTION_MUTATOR = config.get('DB_CONNECTION_MUTATOR')
         if DB_CONNECTION_MUTATOR:

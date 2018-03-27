@@ -1684,10 +1684,11 @@ class Superset(BaseSupersetView):
                 .get('engine_params', {})
                 .get('connect_args', {}))
 
+            engine_params = {}
             if configuration:
-                connect_args['configuration'] = configuration
+                engine_params.update(configuration) # impersonation configuration have to include parent keys, like "connect_args" and "configuration"
 
-            engine = create_engine(uri, connect_args=connect_args)
+            engine = create_engine(uri, **engine_params)
             engine.connect()
             return json_success(json.dumps(engine.table_names(), indent=4))
         except Exception as e:
