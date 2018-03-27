@@ -21,6 +21,7 @@ import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
 import ShareQuery from './ShareQuery';
 import Timer from '../../components/Timer';
+import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants';
@@ -46,7 +47,6 @@ const defaultProps = {
   hideLeftBar: false,
 };
 
-
 class SqlEditor extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -57,6 +57,8 @@ class SqlEditor extends React.PureComponent {
 
     this.onResize = this.onResize.bind(this);
     this.throttledResize = throttle(this.onResize, 250);
+    this.runQuery = this.runQuery.bind(this);
+    this.stopQuery = this.stopQuery.bind(this);
   }
   componentWillMount() {
     if (this.state.autorun) {
@@ -86,18 +88,39 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
   }
+  getHotkeyConfig() {
+    return [
+      {
+        name: 'runQuery',
+        key: 'ctrl+r',
+        descr: 'Run query',
+        func: this.runQuery,
+      },
+      {
+        name: 'newTab',
+        key: 'ctrl+t',
+        descr: 'New tab',
+        func: () => {
+          this.props.actions.addQueryEditor({
+            ...this.props.queryEditor,
+            title: t('Untitled Query'),
+            sql: '',
+          });
+        },
+      },
+      {
+        name: 'stopQuery',
+        key: 'ctrl+x',
+        descr: 'Stop query',
+        func: this.stopQuery,
+      },
+    ];
+  }
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
-  runQuery(runAsync = false) {
-    if (!this.props.queryEditor.sql) {
-      return;
-    }
-    let effectiveRunAsync = runAsync;
-    if (!this.props.database.allow_run_sync) {
-      effectiveRunAsync = true;
-    }
-    this.startQuery(effectiveRunAsync);
+  runQuery() {
+    this.startQuery(!this.props.database.allow_run_sync);
   }
   startQuery(runAsync = false, ctas = false) {
     const qe = this.props.queryEditor;
@@ -116,7 +139,9 @@ class SqlEditor extends React.PureComponent {
     this.props.actions.setActiveSouthPaneTab('Results');
   }
   stopQuery() {
-    this.props.actions.postStopQuery(this.props.latestQuery);
+    if (this.props.latestQuery && this.props.latestQuery.state === 'running') {
+      this.props.actions.postStopQuery(this.props.latestQuery);
+    }
   }
   createTableAs() {
     this.startQuery(true, true);
@@ -128,7 +153,7 @@ class SqlEditor extends React.PureComponent {
     const horizontalScrollbarHeight = 25;
     return parseInt(this.props.getHeight(), 10) - horizontalScrollbarHeight;
   }
-  renderEditorBottomBar() {
+  renderEditorBottomBar(hotkeys) {
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
       const ctasToolTip = t('Create table as with query results');
@@ -181,9 +206,9 @@ class SqlEditor extends React.PureComponent {
                 allowAsync={this.props.database ? this.props.database.allow_run_async : false}
                 dbId={qe.dbId}
                 queryState={this.props.latestQuery && this.props.latestQuery.state}
-                runQuery={this.runQuery.bind(this)}
+                runQuery={this.runQuery}
                 selectedText={qe.selectedText}
-                stopQuery={this.stopQuery.bind(this)}
+                stopQuery={this.stopQuery}
               />
             </span>
             <span className="m-r-5">
@@ -200,6 +225,12 @@ class SqlEditor extends React.PureComponent {
               <ShareQuery queryEditor={qe} />
             </span>
             {ctasControls}
+            <span className="m-l-5">
+              <Hotkeys
+                header="Hotkeys"
+                hotkeys={hotkeys}
+              />
+            </span>
           </Form>
         </div>
         <div className="pull-right">
@@ -226,6 +257,7 @@ class SqlEditor extends React.PureComponent {
   render() {
     const height = this.sqlEditorHeight();
     const defaultNorthHeight = this.props.queryEditor.height || 200;
+    const hotkeys = this.getHotkeyConfig();
     return (
       <div
         className="SqlEditor"
@@ -271,12 +303,12 @@ class SqlEditor extends React.PureComponent {
                     actions={this.props.actions}
                     onBlur={this.setQueryEditorSql.bind(this)}
                     queryEditor={this.props.queryEditor}
-                    onAltEnter={this.runQuery.bind(this)}
                     sql={this.props.queryEditor.sql}
                     tables={this.props.tables}
                     height={((this.state.editorPaneHeight || defaultNorthHeight) - 50) + 'px'}
+                    hotkeys={hotkeys}
                   />
-                  {this.renderEditorBottomBar()}
+                  {this.renderEditorBottomBar(hotkeys)}
                 </div>
               </div>
               <div ref="south">
