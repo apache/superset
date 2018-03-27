@@ -88,6 +88,34 @@ class SqlEditor extends React.PureComponent {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
   }
+  getHotkeyConfig() {
+    return [
+      {
+        name: 'runQuery',
+        key: 'ctrl+r',
+        descr: 'Run query',
+        func: this.runQuery,
+      },
+      {
+        name: 'newTab',
+        key: 'ctrl+t',
+        descr: 'New tab',
+        func: () => {
+          this.props.actions.addQueryEditor({
+            ...this.props.queryEditor,
+            title: t('Untitled Query'),
+            sql: '',
+          });
+        },
+      },
+      {
+        name: 'stopQuery',
+        key: 'ctrl+x',
+        descr: 'Stop query',
+        func: this.stopQuery,
+      },
+    ];
+  }
   setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
@@ -229,32 +257,7 @@ class SqlEditor extends React.PureComponent {
   render() {
     const height = this.sqlEditorHeight();
     const defaultNorthHeight = this.props.queryEditor.height || 200;
-    const SQLLAB_HOTKEYS = [
-      {
-        name: 'runQuery',
-        key: 'ctrl+r',
-        descr: 'Run query',
-        func: this.runQuery,
-      },
-      {
-        name: 'newTab',
-        key: 'ctrl+t',
-        descr: 'New tab',
-        func: () => {
-          this.props.actions.addQueryEditor({
-            ...this.props.queryEditor,
-            title: t('Untitled Query'),
-            sql: '',
-          });
-        },
-      },
-      {
-        name: 'stopQuery',
-        key: 'ctrl+x',
-        descr: 'Stop query',
-        func: this.stopQuery,
-      },
-    ];
+    const hotkeys = this.getHotkeyConfig();
     return (
       <div
         className="SqlEditor"
@@ -303,9 +306,9 @@ class SqlEditor extends React.PureComponent {
                     sql={this.props.queryEditor.sql}
                     tables={this.props.tables}
                     height={((this.state.editorPaneHeight || defaultNorthHeight) - 50) + 'px'}
-                    hotkeys={SQLLAB_HOTKEYS}
+                    hotkeys={hotkeys}
                   />
-                  {this.renderEditorBottomBar(SQLLAB_HOTKEYS)}
+                  {this.renderEditorBottomBar(hotkeys)}
                 </div>
               </div>
               <div ref="south">

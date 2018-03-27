@@ -196,11 +196,11 @@ export function setDatabases(databases) {
 }
 
 export function addQueryEditor(queryEditor) {
-  const newQe = {
+  const newQueryEditor = {
     ...queryEditor,
     id: shortid.generate(),
   };
-  return { type: ADD_QUERY_EDITOR, queryEditor: newQe };
+  return { type: ADD_QUERY_EDITOR, queryEditor: newQueryEditor };
 }
 
 export function cloneQueryToNewTab(query) {
