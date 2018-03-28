@@ -5,7 +5,6 @@ import {
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
-  SPACER_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from './componentTypes';
@@ -26,7 +25,6 @@ const typeToDefaultMetaData = {
   },
   [MARKDOWN_TYPE]: { width: 3, height: 15 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
-  [SPACER_TYPE]: {},
   [TABS_TYPE]: null,
   [TAB_TYPE]: { text: 'New Tab' },
 };

@@ -5,7 +5,6 @@ import {
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
-  SPACER_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from './componentTypes';
@@ -17,7 +16,6 @@ import {
   NEW_HEADER_ID,
   NEW_MARKDOWN_ID,
   NEW_ROW_ID,
-  NEW_SPACER_ID,
   NEW_TABS_ID,
   NEW_TAB_ID,
 } from './constants';
@@ -29,7 +27,6 @@ export default {
   [NEW_HEADER_ID]: HEADER_TYPE,
   [NEW_MARKDOWN_ID]: MARKDOWN_TYPE,
   [NEW_ROW_ID]: ROW_TYPE,
-  [NEW_SPACER_ID]: SPACER_TYPE,
   [NEW_TABS_ID]: TABS_TYPE,
   [NEW_TAB_ID]: TAB_TYPE,
 };
