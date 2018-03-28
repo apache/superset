@@ -46,9 +46,7 @@ def console_log_run(app, port, use_reloader):
     from gevent import pywsgi
     from geventwebsocket.handler import WebSocketHandler
 
-    console = logging.getLogger('console')
-    console.setLevel(logging.DEBUG)
-    app.wsgi_app = ConsoleLog(app.wsgi_app, console)
+    app.wsgi_app = ConsoleLog(app.wsgi_app, app.logger)
 
     def run():
         server = pywsgi.WSGIServer(
