@@ -10,5 +10,6 @@ pylint
 pyyaml
 redis
 statsd
+console_log
 # Also install everything we need to build Sphinx docs
 -r dev-reqs-for-docs.txt
