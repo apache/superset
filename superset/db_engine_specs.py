@@ -737,7 +737,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         while polled:
             # Update the object and wait for the kill signal.
             stats = polled.get('stats', {})
-
+            print(stats)
+            print(dir(stats))
+            print("????")
             query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
@@ -1071,6 +1073,9 @@ class HiveEngineSpec(PrestoEngineSpec):
             hive.ttypes.TOperationState.RUNNING_STATE,
         )
         polled = cursor.poll()
+        print("~~~~~~~~~~~~~~~")
+        print(polled)
+        print(dir(polled))
         last_log_line = 0
         tracking_url = None
         job_id = None

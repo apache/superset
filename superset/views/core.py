@@ -2538,6 +2538,7 @@ class Superset(BaseSupersetView):
     @expose('/queries/<last_updated_ms>')
     def queries(self, last_updated_ms):
         """Get the updated queries."""
+        print("frontend is checking!!~~~~~~")
         stats_logger.incr('queries')
         if not g.user.get_id():
             return json_error_response(

@@ -128,6 +128,7 @@ def get_sql_results(
         except Exception as e:
             logging.exception(e)
             stats_logger.incr('error_sqllab_unhandled')
+            sesh = get_session(not ctask.request.called_directly)
             query = get_query(query_id, session)
             query.error_message = str(e)
             query.status = QueryStatus.FAILED
@@ -141,7 +142,6 @@ def execute_sql(
     user_name=None, session=None,
 ):
     """Executes the sql query returns the results."""
-
     query = get_query(query_id, session)
     payload = dict(query_id=query_id)
 
