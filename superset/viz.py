@@ -155,7 +155,8 @@ class BaseViz(object):
         else:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
-                    df[DTTM_ALIAS] = pd.to_datetime(df[DTTM_ALIAS], utc=False)
+                    df[DTTM_ALIAS] = pd.to_datetime(
+                        df[DTTM_ALIAS], utc=False, unit=timestamp_format[6:])
                 else:
                     df[DTTM_ALIAS] = pd.to_datetime(
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
@@ -315,9 +316,11 @@ class BaseViz(object):
                 try:
                     cache_value = pkl.loads(cache_value)
                     df = cache_value['df']
-                    is_loaded = True
-                    self._any_cache_key = cache_key
+                    self.query = cache_value['query']
                     self._any_cached_dttm = cache_value['dttm']
+                    self._any_cache_key = cache_key
+                    self.status = utils.QueryStatus.SUCCESS
+                    is_loaded = True
                 except Exception as e:
                     logging.exception(e)
                     logging.error('Error reading cache: ' +
@@ -346,6 +349,7 @@ class BaseViz(object):
                     cache_value = dict(
                         dttm=cached_dttm,
                         df=df if df is not None else None,
+                        query=self.query,
                     )
                     cache_value = pkl.dumps(
                         cache_value, protocol=pkl.HIGHEST_PROTOCOL)
@@ -1145,7 +1149,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         if self._extra_chart_data:
             chart_data += self._extra_chart_data
-            chart_data = sorted(chart_data, key=lambda x: x['key'])
+            chart_data = sorted(chart_data, key=lambda x: tuple(x['key']))
 
         return chart_data
 

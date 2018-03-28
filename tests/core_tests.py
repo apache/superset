@@ -22,7 +22,7 @@ import psycopg2
 from six import text_type
 import sqlalchemy as sqla
 
-from superset import appbuilder, dataframe, db, jinja_context, sm, sql_lab, utils
+from superset import dataframe, db, jinja_context, security_manager, sql_lab, utils
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.sql_lab import Query
@@ -136,7 +136,7 @@ class CoreTests(SupersetTestCase):
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
-            role = sm.find_role(role_name)
+            role = security_manager.find_role(role_name)
             permissions = [p.permission.name for p in role.permissions]
             assert_func('can_sync_druid_source', permissions)
             assert_func('can_approve', permissions)
@@ -147,7 +147,7 @@ class CoreTests(SupersetTestCase):
 
     def test_admin_only_menu_views(self):
         def assert_admin_view_menus_in(role_name, assert_func):
-            role = sm.find_role(role_name)
+            role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
             assert_func('ResetPasswordView', view_menus)
             assert_func('RoleModelView', view_menus)
@@ -267,7 +267,7 @@ class CoreTests(SupersetTestCase):
 
     def test_get_user_slices(self):
         self.login(username='admin')
-        userid = appbuilder.sm.find_user('admin').id
+        userid = security_manager.find_user('admin').id
         url = '/sliceaddview/api/read?_flt_0_created_by={}'.format(userid)
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
@@ -275,11 +275,11 @@ class CoreTests(SupersetTestCase):
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
-        sm.add_role('explore-v2-beta')
+        security_manager.add_role('explore-v2-beta')
 
-        appbuilder.sm.add_user(
+        security_manager.add_user(
             'explore_beta', 'explore_beta', ' user', 'explore_beta@airbnb.com',
-            appbuilder.sm.find_role('explore-v2-beta'),
+            security_manager.find_role('explore-v2-beta'),
             password='general')
         self.login(username='explore_beta', password='general')
 
@@ -651,8 +651,8 @@ class CoreTests(SupersetTestCase):
 
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        dash.owners = [appbuilder.sm.find_user('admin')]
-        dash.created_by = appbuilder.sm.find_user('admin')
+        dash.owners = [security_manager.find_user('admin')]
+        dash.created_by = security_manager.find_user('admin')
         db.session.merge(dash)
         db.session.commit()
 
@@ -674,7 +674,7 @@ class CoreTests(SupersetTestCase):
         self.assertRaises(
             Exception, self.test_save_dash, 'alpha')
 
-        alpha = appbuilder.sm.find_user('alpha')
+        alpha = security_manager.find_user('alpha')
 
         dash = (
             db.session
@@ -775,7 +775,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_json_resp(url)
         self.assertEqual(resp['count'], 1)
 
-        userid = appbuilder.sm.find_user('admin').id
+        userid = security_manager.find_user('admin').id
         resp = self.get_resp('/superset/profile/admin/')
         self.assertIn('"app"', resp)
         data = self.get_json_resp('/superset/recent_activity/{}/'.format(userid))
