@@ -36,7 +36,7 @@ def init():
     '-d', '--debug', action='store_true',
     help='Start the web server in debug mode')
 @manager.option(
-    '-n', '--no-reload', action='store_false', dest='no_reload',
+    '-n', '--no-reload', action='store_false', dest='use_reloader',
     default=config.get('FLASK_USE_RELOAD'),
     help="Don't use the reloader in debug mode")
 @manager.option(
@@ -57,7 +57,7 @@ def init():
     help='Path to a UNIX socket as an alternative to address:port, e.g. '
          '/var/run/superset.sock. '
          'Will override the address and port values.')
-def runserver(debug, no_reload, address, port, timeout, workers, socket):
+def runserver(debug, use_reloader, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
     debug = debug or config.get('DEBUG')
     if debug:
@@ -73,7 +73,7 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
             port=int(port),
             threaded=True,
             debug=True,
-            use_reloader=no_reload)
+            use_reloader=use_reloader)
     else:
         addr_str = ' unix:{socket} ' if socket else' {address}:{port} '
         cmd = (
