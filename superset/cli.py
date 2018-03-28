@@ -11,7 +11,6 @@ from subprocess import Popen
 from sys import stdout
 
 from colorama import Fore, Style
-from console_log import ConsoleLog
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 from pathlib2 import Path
@@ -43,6 +42,7 @@ def debug_run(app, port, use_reloader):
 
 
 def console_log_run(app, port, use_reloader):
+    from console_log import ConsoleLog
     from gevent import pywsgi
     from geventwebsocket.handler import WebSocketHandler
 
