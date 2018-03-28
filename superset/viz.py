@@ -34,7 +34,7 @@ import simplejson as json
 from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
-from superset import app, cache, get_manifest_file, utils
+from superset import app, cache, get_manifest_file, security_manager, utils
 from superset.utils import DTTM_ALIAS, merge_extra_filters
 
 
@@ -309,7 +309,10 @@ class BaseViz(object):
         stacktrace = None
         df = None
         cached_dttm = datetime.utcnow().isoformat().split('.')[0]
-        if cache_key and cache and not self.force:
+        if (
+            cache_key and cache and not self.force and
+            security_manager.has_cache_access(self.datasource)
+        ):
             cache_value = cache.get(cache_key)
             if cache_value:
                 stats_logger.incr('loaded_from_cache')
