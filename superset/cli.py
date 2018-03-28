@@ -11,9 +11,11 @@ from subprocess import Popen
 from sys import stdout
 
 from colorama import Fore, Style
+from console_log import ConsoleLog
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 from pathlib2 import Path
+import werkzeug.serving
 import yaml
 
 from superset import app, db, dict_import_export_util, security, utils
@@ -31,11 +33,46 @@ def init():
     security.sync_role_definitions()
 
 
+def debug_run(app, port, use_reloader):
+    return app.run(
+        host='0.0.0.0',
+        port=int(port),
+        threaded=True,
+        debug=True,
+        use_reloader=use_reloader)
+
+
+def console_log_run(app, port, use_reloader):
+    from gevent import pywsgi
+    from geventwebsocket.handler import WebSocketHandler
+
+    console = logging.getLogger('console')
+    console.setLevel(logging.DEBUG)
+    app.wsgi_app = ConsoleLog(app.wsgi_app, console)
+
+    def run():
+        server = pywsgi.WSGIServer(
+            ('0.0.0.0', int(port)),
+            app,
+            handler_class=WebSocketHandler)
+        server.serve_forever()
+
+    if use_reloader:
+        from gevent import monkey
+        monkey.patch_all()
+        run = werkzeug.serving.run_with_reloader(run)
+
+    run()
+
+
 @manager.option(
     '-d', '--debug', action='store_true',
     help='Start the web server in debug mode')
 @manager.option(
-    '-n', '--no-reload', action='store_false', dest='no_reload',
+    '--console-log', action='store_true',
+    help='Create logger that logs to the browser console (implies -d)')
+@manager.option(
+    '-n', '--no-reload', action='store_false', dest='use_reloader',
     default=config.get('FLASK_USE_RELOAD'),
     help="Don't use the reloader in debug mode")
 @manager.option(
@@ -56,9 +93,9 @@ def init():
     help='Path to a UNIX socket as an alternative to address:port, e.g. '
          '/var/run/superset.sock. '
          'Will override the address and port values.')
-def runserver(debug, no_reload, address, port, timeout, workers, socket):
+def runserver(debug, console_log, use_reloader, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
-    debug = debug or config.get('DEBUG')
+    debug = debug or config.get('DEBUG') or console_log
     if debug:
         print(Fore.BLUE + '-=' * 20)
         print(
@@ -67,12 +104,10 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
             Fore.YELLOW + ' mode')
         print(Fore.BLUE + '-=' * 20)
         print(Style.RESET_ALL)
-        app.run(
-            host='0.0.0.0',
-            port=int(port),
-            threaded=True,
-            debug=True,
-            use_reloader=no_reload)
+        if console_log:
+            console_log_run(app, port, use_reloader)
+        else:
+            debug_run(app, port, use_reloader)
     else:
         addr_str = ' unix:{socket} ' if socket else' {address}:{port} '
         cmd = (
