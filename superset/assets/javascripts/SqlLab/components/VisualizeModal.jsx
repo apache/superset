@@ -32,6 +32,7 @@ const propTypes = {
   query: PropTypes.object,
   show: PropTypes.bool,
   datasource: PropTypes.string,
+  schema: PropTypes.string,
   errorMessage: PropTypes.string,
   timeout: PropTypes.number,
 };
@@ -48,6 +49,7 @@ class VisualizeModal extends React.PureComponent {
       chartType: CHART_TYPES[0],
       datasourceName: this.datasourceName(),
       columns: this.getColumnFromProps(),
+      schema: props.query ? props.query.schema : null,
       hints: [],
     };
   }
@@ -127,6 +129,7 @@ class VisualizeModal extends React.PureComponent {
     return {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
+      schema: this.state.schema,
       columns: this.state.columns,
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
@@ -153,10 +156,9 @@ class VisualizeModal extends React.PureComponent {
     this.props.actions.createDatasource(this.buildVizOptions(), this)
       .done((resp) => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
-        const data = JSON.parse(resp);
         const mainGroupBy = columns.filter(d => d.is_dim)[0];
         const formData = {
-          datasource: `${data.table_id}__table`,
+          datasource: `${resp.table_id}__table`,
           viz_type: this.state.chartType.value,
           since: '100 years ago',
           limit: '0',

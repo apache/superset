@@ -13,7 +13,7 @@ const $ = window.$ = require('jquery');
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  height: PropTypes.number.isRequired,
+  height: PropTypes.string.isRequired,
 };
 
 class QuerySearch extends React.PureComponent {
@@ -136,7 +136,7 @@ class QuerySearch extends React.PureComponent {
       this.state.to ? `to=${this.getTimeFromSelection(this.state.to)}` : '',
     ];
 
-    const url = this.insertParams('/superset/search_queries', params);
+    const url = this.insertParams('/sqllab/search_queries/', params);
     $.getJSON(url, (data, status) => {
       if (status === 'success') {
         this.setState({ queriesArray: data, queriesLoading: false });

@@ -269,6 +269,7 @@ describe('VisualizeModal', () => {
       chartType: wrapper.state().chartType.value,
       datasourceName: wrapper.state().datasourceName,
       columns: wrapper.state().columns,
+      schema: 'test_schema',
       sql: wrapper.instance().props.query.sql,
       dbId: wrapper.instance().props.query.dbId,
     });
@@ -307,7 +308,6 @@ describe('VisualizeModal', () => {
     let datasourceSpy;
     beforeEach(() => {
       ajaxSpy = sinon.spy($, 'ajax');
-      sinon.stub(JSON, 'parse').callsFake(() => ({ table_id: 107 }));
       sinon.stub(exploreUtils, 'getExploreUrlAndPayload').callsFake(() => ({ url: 'mockURL', payload: { datasource: '107__table' } }));
       sinon.spy(exploreUtils, 'exportChart');
       sinon.stub(wrapper.instance(), 'buildVizOptions').callsFake(() => (mockOptions));
@@ -315,7 +315,6 @@ describe('VisualizeModal', () => {
     });
     afterEach(() => {
       ajaxSpy.restore();
-      JSON.parse.restore();
       exploreUtils.getExploreUrlAndPayload.restore();
       exploreUtils.exportChart.restore();
       wrapper.instance().buildVizOptions.restore();
@@ -328,13 +327,13 @@ describe('VisualizeModal', () => {
 
       const spyCall = ajaxSpy.getCall(0);
       expect(spyCall.args[0].type).to.equal('POST');
-      expect(spyCall.args[0].url).to.equal('/superset/sqllab_viz/');
+      expect(spyCall.args[0].url).to.equal('/sqllab/sqllab_viz/');
       expect(spyCall.args[0].data.data).to.equal(JSON.stringify(mockOptions));
     });
     it('should open new window', () => {
       datasourceSpy.callsFake(() => {
         const d = $.Deferred();
-        d.resolve('done');
+        d.resolveWith('done', [{ table_id: 107 }]);
         return d.promise();
       });
       wrapper.setProps({ actions: { createDatasource: datasourceSpy } });
