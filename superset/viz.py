@@ -37,6 +37,7 @@ from six.moves import cPickle as pkl, reduce
 from superset import app, cache, get_manifest_file, utils
 from superset.utils import DTTM_ALIAS, merge_extra_filters
 
+
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
 
@@ -78,8 +79,7 @@ class BaseViz(object):
         self._some_from_cache = False
         self._any_cache_key = None
         self._any_cached_dttm = None
-
-        self.run_extra_queries()
+        self._extra_chart_data = None
 
     def run_extra_queries(self):
         """Lyfecycle method to use when more than one query is needed
@@ -276,19 +276,21 @@ class BaseViz(object):
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
 
-        for k in ['since', 'until', 'datasource']:
+        for k in ['since', 'until']:
             cache_dict[k] = self.form_data.get(k)
 
+        cache_dict['datasource'] = self.datasource.uid
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hashlib.md5(json_data.encode('utf-8')).hexdigest()
 
     def get_payload(self, query_obj=None):
         """Returns a payload of metadata and data"""
+        self.run_extra_queries()
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
         if self.status != utils.QueryStatus.FAILED:
-            if df is None or df.empty:
+            if df is not None and df.empty:
                 payload['error'] = 'No data'
             else:
                 payload['data'] = self.get_data(df)
@@ -611,7 +613,7 @@ class MarkupViz(BaseViz):
         return None
 
     def get_df(self, query_obj=None):
-        return pd.DataFrame()
+        return None
 
     def get_data(self, df):
         markup_type = self.form_data.get('markup_type')
@@ -1117,7 +1119,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def run_extra_queries(self):
         fd = self.form_data
         time_compare = fd.get('time_compare')
-        self.extra_chart_data = None
         if time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(time_compare)
@@ -1135,15 +1136,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df2 is not None:
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self.extra_chart_data = self.to_series(
+                self._extra_chart_data = self.to_series(
                     df2, classed='superset', title_suffix='---')
 
     def get_data(self, df):
         df = self.process_data(df)
         chart_data = self.to_series(df)
 
-        if self.extra_chart_data:
-            chart_data += self.extra_chart_data
+        if self._extra_chart_data:
+            chart_data += self._extra_chart_data
             chart_data = sorted(chart_data, key=lambda x: x['key'])
 
         return chart_data
@@ -2039,7 +2040,7 @@ class DeckScatterViz(BaseDeckGLViz):
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
-            '__timestamp': d.get('__timestamp'),
+            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
         }
 
     def get_data(self, df):

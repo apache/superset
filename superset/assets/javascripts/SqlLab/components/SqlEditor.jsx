@@ -19,6 +19,7 @@ import Button from '../../components/Button';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
+import ShareQuery from './ShareQuery';
 import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
@@ -195,6 +196,9 @@ class SqlEditor extends React.PureComponent {
                 dbId={qe.dbId}
               />
             </span>
+            <span className="m-r-5">
+              <ShareQuery queryEditor={qe} />
+            </span>
             {ctasControls}
           </Form>
         </div>
@@ -241,6 +245,7 @@ class SqlEditor extends React.PureComponent {
             >
               <SqlEditorLeftBar
                 height={height}
+                database={this.props.database}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
                 actions={this.props.actions}

@@ -173,6 +173,9 @@ work on Windows so the `superset runserver` command is not expected to work
 in that context. Also note that the development web
 server (`superset runserver -d`) is not intended for production use.
 
+If not using gunicorn, you may want to disable the use of flask-compress
+by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
+
 Flask-AppBuilder Permissions
 ----------------------------
 
@@ -588,7 +591,7 @@ at the ``/simple_page`` url. This can allow you to run other things such
 as custom data visualization applications alongside Superset, on the
 same server.
 
-..code ::
+.. code-block:: python
 
     from flask import Blueprint
     simple_page = Blueprint('simple_page', __name__,
@@ -609,7 +612,7 @@ are logged as well as key events like query start and end in SQL Lab.
 To setup StatsD logging, it's a matter of configuring the logger in your
 ``superset_config.py``.
 
-..code ::
+.. code-block:: python
 
     from superset.stats_logger import StatsdStatsLogger
     STATS_LOGGER = StatsdStatsLogger(host='localhost', port=8125, prefix='superset')

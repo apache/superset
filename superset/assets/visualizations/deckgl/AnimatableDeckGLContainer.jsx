@@ -12,6 +12,7 @@ const propTypes = {
   values: PropTypes.array.isRequired,
   disabled: PropTypes.bool,
   viewport: PropTypes.object.isRequired,
+  children: PropTypes.node,
 };
 
 const defaultProps = {
@@ -48,6 +49,7 @@ export default class AnimatableDeckGLContainer extends React.Component {
           onChange={newValues => this.setState({ values: newValues })}
         />
         }
+        {this.props.children}
       </div>
     );
   }

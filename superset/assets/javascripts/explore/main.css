@@ -123,3 +123,14 @@
   background-color: transparent;
 }
 
+.type-label {
+  margin-right: 8px;
+  width: 30px;
+  display: inline-block;
+  text-align: center;
+  font-weight: bold;
+}
+
+.datasource-container {
+  overflow: auto;
+}
