@@ -24,6 +24,7 @@ const defaultProps = {
     { metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
     { metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
   ],
+  datasourceType: 'sqla',
 };
 
 function setup(overrides) {
@@ -188,13 +189,26 @@ describe('MetricsControl', () => {
 
   describe('option filter', () => {
     it('includes user defined metrics', () => {
-      const { wrapper } = setup();
+      const { wrapper } = setup({ datasourceType: 'druid' });
 
       expect(!!wrapper.instance().selectFilterOption(
         {
           metric_name: 'a_metric',
           optionName: 'a_metric',
           expression: 'SUM(FANCY(metric))',
+        },
+        'a',
+      )).to.be.true;
+    });
+
+    it('includes auto generated avg metrics for druid', () => {
+      const { wrapper } = setup({ datasourceType: 'druid' });
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'a_metric',
+          optionName: 'a_metric',
+          expression: 'AVG(metric)',
         },
         'a',
       )).to.be.true;
@@ -212,6 +226,19 @@ describe('MetricsControl', () => {
         { aggregate_name: 'AVG', optionName: '_aggregate_AVG' },
         'av',
       )).to.be.true;
+    });
+
+    it('excludes auto generated avg metrics for sqla', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'a_metric',
+          optionName: 'a_metric',
+          expression: 'AVG(metric)',
+        },
+        'a',
+      )).to.be.false;
     });
 
     it('excludes auto generated metrics', () => {
