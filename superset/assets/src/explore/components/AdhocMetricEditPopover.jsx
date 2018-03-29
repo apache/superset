@@ -246,6 +246,5 @@ export default class AdhocMetricEditPopover extends React.Component {
       </Popover>
     );
   }
-}
-AdhocMetricEditPopover.propTypes = propTypes;
+} AdhocMetricEditPopover.propTypes = propTypes;
 AdhocMetricEditPopover.defaultProps = defaultProps;
