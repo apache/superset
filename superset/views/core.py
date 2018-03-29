@@ -40,6 +40,7 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.forms import CsvToDatabaseForm
+from superset.jinja_context import get_template_processor
 from superset.legacy import cast_form_data
 import superset.models.core as models
 from superset.models.sql_lab import Query
@@ -2409,16 +2410,27 @@ class Superset(BaseSupersetView):
             raise Exception(_('Query record was not created as expected.'))
         logging.info('Triggering query_id: {}'.format(query_id))
 
+        try:
+            template_processor = get_template_processor(
+                database=query.database, query=query)
+            rendered_query = template_processor.process_template(
+                query.sql,
+                **template_params)
+        except Exception as e:
+            return json_error_response(
+                'Template rendering failed: {}'.format(utils.error_msg_from_exception(e)))
+
         # Async request.
         if async:
             logging.info('Running query on a Celery worker')
             # Ignore the celery future object and the request may time out.
             try:
                 sql_lab.get_sql_results.delay(
-                    query_id=query_id, return_results=False,
+                    query_id,
+                    rendered_query,
+                    return_results=False,
                     store_results=not query.select_as_cta,
-                    user_name=g.user.username,
-                    template_params=template_params)
+                    user_name=g.user.username)
             except Exception as e:
                 logging.exception(e)
                 msg = (
@@ -2447,8 +2459,9 @@ class Superset(BaseSupersetView):
                                error_message=timeout_msg):
                 # pylint: disable=no-value-for-parameter
                 data = sql_lab.get_sql_results(
-                    query_id=query_id, return_results=True,
-                    template_params=template_params)
+                    query_id,
+                    rendered_query,
+                    return_results=True)
             payload = json.dumps(
                 data, default=utils.pessimistic_json_iso_dttm_ser)
         except Exception as e:
