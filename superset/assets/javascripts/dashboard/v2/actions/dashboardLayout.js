@@ -61,8 +61,8 @@ export function deleteTopLevelTabs() {
 export const RESIZE_COMPONENT = 'RESIZE_COMPONENT';
 export function resizeComponent({ id, width, height }) {
   return (dispatch, getState) => {
-    const { dashboard: undoableDashboard } = getState();
-    const { present: dashboard } = undoableDashboard;
+    const { dashboardLayout: undoableLayout } = getState();
+    const { present: dashboard } = undoableLayout;
     const component = dashboard[id];
 
     if (
@@ -135,12 +135,12 @@ export function handleComponentDrop(dropResult) {
 
     // if we moved a tab and the parent tabs no longer has children, delete it.
     if (!isNewComponent) {
-      const { dashboard: undoableDashboard } = getState();
-      const { present: dashboard } = undoableDashboard;
-      const sourceComponent = dashboard[source.id];
+      const { dashboardLayout: undoableLayout } = getState();
+      const { present: layout } = undoableLayout;
+      const sourceComponent = layout[source.id];
 
       if (sourceComponent.type === TABS_TYPE && sourceComponent.children.length === 0) {
-        const parentId = findParentId({ childId: source.id, components: dashboard });
+        const parentId = findParentId({ childId: source.id, components: layout });
         dispatch(deleteComponent(source.id, parentId));
       }
     }

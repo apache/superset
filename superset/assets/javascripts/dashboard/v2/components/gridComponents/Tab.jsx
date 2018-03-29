@@ -7,6 +7,7 @@ import EditableTitle from '../../../../components/EditableTitle';
 import DeleteComponentButton from '../DeleteComponentButton';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
+import { DASHBOARD_ROOT_DEPTH } from '../../util/constants';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -77,9 +78,9 @@ export default class Tab extends React.PureComponent {
   }
 
   handleDeleteComponent() {
-    const { onDeleteTab, index, deleteComponent, id, parentId } = this.props;
-    deleteComponent(id, parentId);
-    onDeleteTab(index);
+    const { index, id, parentId } = this.props;
+    this.props.deleteComponent(id, parentId);
+    this.props.onDeleteTab(index);
   }
 
   handleDrop(dropResult) {
@@ -136,7 +137,10 @@ export default class Tab extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={this.handleDrop}
-        disableDragDrop={isFocused}
+        // disable drag drop of top-level Tab's to prevent invalid nesting of a child in
+        // itself, e.g. if a top-level Tab has a Tabs child, dragging the Tab into the Tabs would
+        // reusult in circular children
+        disableDragDrop={isFocused || depth === DASHBOARD_ROOT_DEPTH + 1}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <div className="dragdroppable-tab" ref={dragSourceRef}>

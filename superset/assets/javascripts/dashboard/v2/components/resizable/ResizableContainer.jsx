@@ -5,11 +5,7 @@ import cx from 'classnames';
 
 import ResizableHandle from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
-import {
-  GRID_BASE_UNIT,
-  GRID_ROW_HEIGHT_UNIT,
-  GRID_GUTTER_SIZE,
-} from '../../util/constants';
+import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -25,7 +21,10 @@ const propTypes = {
   maxWidthMultiple: PropTypes.number,
   minHeightMultiple: PropTypes.number,
   maxHeightMultiple: PropTypes.number,
+  staticHeight: PropTypes.number,
   staticHeightMultiple: PropTypes.number,
+  staticWidth: PropTypes.number,
+  staticWidthMultiple: PropTypes.number,
   onResizeStop: PropTypes.func,
   onResize: PropTypes.func,
   onResizeStart: PropTypes.func,
@@ -37,14 +36,17 @@ const defaultProps = {
   adjustableHeight: true,
   gutterWidth: GRID_GUTTER_SIZE,
   widthStep: GRID_BASE_UNIT,
-  heightStep: GRID_ROW_HEIGHT_UNIT,
+  heightStep: GRID_BASE_UNIT,
   widthMultiple: null,
   heightMultiple: null,
   minWidthMultiple: 1,
   maxWidthMultiple: Infinity,
   minHeightMultiple: 1,
   maxHeightMultiple: Infinity,
+  staticHeight: null,
   staticHeightMultiple: null,
+  staticWidth: null,
+  staticWidthMultiple: null,
   onResizeStop: null,
   onResize: null,
   onResizeStart: null,
@@ -99,9 +101,11 @@ class ResizableContainer extends React.PureComponent {
 
     if (onResizeStop) {
       const nextWidthMultiple =
-        Math.round(widthMultiple + (delta.width / (widthStep + gutterWidth)));
+        widthMultiple + Math.floor(delta.width / (widthStep + gutterWidth));
       const nextHeightMultiple =
-        Math.round(heightMultiple + (delta.height / heightStep));
+        heightMultiple + Math.ceil(delta.height / heightStep);
+
+      debugger;
 
       onResizeStop({
         id,

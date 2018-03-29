@@ -40,11 +40,11 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onChangeTab: null,
   children: null,
   renderTabContent: true,
   availableColumnCount: 0,
   columnWidth: 0,
+  onChangeTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -70,14 +70,9 @@ class Tabs extends React.PureComponent {
   }
 
   handleClickTab(tabIndex) {
-    const { onChangeTab, component, createComponent } = this.props;
+    const { component, createComponent } = this.props;
 
-    if (tabIndex !== NEW_TAB_INDEX && tabIndex !== this.state.tabIndex) {
-      this.setState(() => ({ tabIndex }));
-      if (onChangeTab) {
-        onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
-      }
-    } else if (tabIndex === NEW_TAB_INDEX) {
+    if (tabIndex === NEW_TAB_INDEX) {
       createComponent({
         destination: {
           id: component.id,
@@ -89,6 +84,9 @@ class Tabs extends React.PureComponent {
           type: TAB_TYPE,
         },
       });
+    } else if (tabIndex !== this.state.tabIndex) {
+      this.setState(() => ({ tabIndex }));
+      this.props.onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
     }
   }
 

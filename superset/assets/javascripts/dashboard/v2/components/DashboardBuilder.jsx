@@ -21,7 +21,7 @@ const propTypes = {
   editMode: PropTypes.bool,
 
   // redux
-  dashboard: PropTypes.object.isRequired,
+  dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
 };
@@ -52,16 +52,16 @@ class DashboardBuilder extends React.Component {
 
   render() {
     const { tabIndex } = this.state;
-    const { handleComponentDrop, dashboard, deleteTopLevelTabs } = this.props;
-    const dashboardRoot = dashboard[DASHBOARD_ROOT_ID];
+    const { handleComponentDrop, dashboardLayout, deleteTopLevelTabs } = this.props;
+    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
-    const topLevelTabs = rootChildId !== DASHBOARD_GRID_ID && dashboard[rootChildId];
+    const topLevelTabs = rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
 
     const gridComponentId = topLevelTabs
       ? topLevelTabs.children[Math.min(topLevelTabs.children.length - 1, tabIndex)]
       : DASHBOARD_GRID_ID;
 
-    const gridComponent = dashboard[gridComponentId];
+    const gridComponent = dashboardLayout[gridComponentId];
 
     return (
       <div className="dashboard-v2">
@@ -74,7 +74,7 @@ class DashboardBuilder extends React.Component {
             depth={DASHBOARD_ROOT_DEPTH}
             index={0}
             orientation="column"
-            onDrop={topLevelTabs ? null : handleComponentDrop}
+            onDrop={handleComponentDrop}
           >
             {({ dropIndicatorProps }) => (
               <div>

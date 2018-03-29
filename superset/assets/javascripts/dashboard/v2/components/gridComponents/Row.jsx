@@ -13,9 +13,7 @@ import WithPopoverMenu from '../menu/WithPopoverMenu';
 
 import { componentShape } from '../../util/propShapes';
 import backgroundStyleOptions from '../../util/backgroundStyleOptions';
-import { GRID_GUTTER_SIZE, BACKGROUND_TRANSPARENT } from '../../util/constants';
-
-const GUTTER = 'GUTTER';
+import { BACKGROUND_TRANSPARENT } from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -94,15 +92,7 @@ class Row extends React.PureComponent {
       handleComponentDrop,
     } = this.props;
 
-    const rowItems = [];
-
-    // this adds a gutter between each child in the row.
-    (rowComponent.children || []).forEach((id, childIndex) => {
-      rowItems.push(id);
-      if (childIndex < rowComponent.children.length - 1) {
-        rowItems.push(GUTTER);
-      }
-    });
+    const rowItems = rowComponent.children || [];
 
     const backgroundStyle = backgroundStyleOptions.find(
       opt => opt.value === (rowComponent.meta.background || BACKGROUND_TRANSPARENT),
@@ -146,26 +136,20 @@ class Row extends React.PureComponent {
                 />
               </HoverMenu>
 
-              {rowItems.map((componentId, itemIndex) => {
-                if (componentId === GUTTER) {
-                  return <div key={`gutter-${itemIndex}`} style={{ width: GRID_GUTTER_SIZE }} />;
-                }
-
-                return (
-                  <DashboardComponent
-                    key={componentId}
-                    id={componentId}
-                    parentId={rowComponent.id}
-                    depth={depth + 1}
-                    index={itemIndex / 2} // account for gutters!
-                    availableColumnCount={availableColumnCount - occupiedColumnCount}
-                    columnWidth={columnWidth}
-                    onResizeStart={onResizeStart}
-                    onResize={onResize}
-                    onResizeStop={onResizeStop}
-                  />
-                );
-              })}
+              {rowItems.map((componentId, itemIndex) => (
+                <DashboardComponent
+                  key={componentId}
+                  id={componentId}
+                  parentId={rowComponent.id}
+                  depth={depth + 1}
+                  index={itemIndex}
+                  availableColumnCount={availableColumnCount - occupiedColumnCount}
+                  columnWidth={columnWidth}
+                  onResizeStart={onResizeStart}
+                  onResize={onResize}
+                  onResizeStop={onResizeStop}
+                />
+              ))}
 
               {dropIndicatorProps && <div {...dropIndicatorProps} />}
             </div>

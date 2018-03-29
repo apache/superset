@@ -124,5 +124,7 @@
 }
 
 .background-style-option.background--transparent:before {
-  background: @gray-light;
+  background-image: linear-gradient(45deg, @gray 25%, transparent 25%), linear-gradient(-45deg, @gray 25%, transparent 25%), linear-gradient(45deg, transparent 75%, @gray 75%), linear-gradient(-45deg, transparent 75%, @gray 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px
 }

@@ -5,7 +5,7 @@ import DashboardGrid from '../components/DashboardGrid';
 import {
   handleComponentDrop,
   resizeComponent,
-} from '../actions';
+} from '../actions/dashboardLayout';
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators({

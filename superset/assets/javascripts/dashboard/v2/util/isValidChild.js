@@ -84,7 +84,10 @@ const parentMaxDepthLookup = {
 };
 
 export default function isValidChild({ parentType, childType, parentDepth }) {
-  if (!parentType || !childType || typeof parentDepth !== 'number') return false;
+  if (!parentType || !childType || typeof parentDepth !== 'number') {
+    return false;
+  }
+
   const maxParentDepth = (parentMaxDepthLookup[parentType] || {})[childType];
 
   return typeof maxParentDepth === 'number' && parentDepth <= maxParentDepth;

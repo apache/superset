@@ -1,13 +1,13 @@
 import { combineReducers } from 'redux';
 import undoable, { distinctState } from 'redux-undo';
 
-import dashboard from './dashboard';
+import dashboardLayout from './dashboardLayout';
 
-const undoableDashboard = undoable(dashboard, {
-  limit: 10,
+const undoableLayout = undoable(dashboardLayout, {
+  limit: 15,
   filter: distinctState(),
 });
 
 export default combineReducers({
-  dashboard: undoableDashboard,
+  dashboardLayout: undoableLayout,
 });

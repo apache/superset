@@ -1,18 +1,17 @@
 .grid-column {
   width: 100%;
-  min-height: 56px;
+}
+
+.grid-column > :not(:only-child):not(.hover-menu):not(:last-child) {
+  margin-bottom: 16px;
 }
 
 .grid-column > .hover-menu--top {
   top: -20px;
 }
 
-.grid-column.background--transparent {
-  background-color: transparent;
-}
-
-.grid-column.background--white {
-  background-color: white;
+.grid-column--empty {
+  min-height: 72px;
 }
 
 .grid-column--empty:before {
