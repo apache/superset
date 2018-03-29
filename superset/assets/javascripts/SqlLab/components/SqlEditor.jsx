@@ -53,12 +53,15 @@ class SqlEditor extends React.PureComponent {
     this.state = {
       autorun: props.queryEditor.autorun,
       ctas: '',
+      sql: props.queryEditor.sql,
     };
 
     this.onResize = this.onResize.bind(this);
     this.throttledResize = throttle(this.onResize, 250);
     this.runQuery = this.runQuery.bind(this);
     this.stopQuery = this.stopQuery.bind(this);
+    this.onSqlChanged = this.onSqlChanged.bind(this);
+    this.setQueryEditorSql = this.setQueryEditorSql.bind(this);
   }
   componentWillMount() {
     if (this.state.autorun) {
@@ -87,6 +90,9 @@ class SqlEditor extends React.PureComponent {
     if (this.refs.ace.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
+  }
+  onSqlChanged(sql) {
+    this.setState({ sql });
   }
   getHotkeyConfig() {
     return [
@@ -126,7 +132,7 @@ class SqlEditor extends React.PureComponent {
     const qe = this.props.queryEditor;
     const query = {
       dbId: qe.dbId,
-      sql: qe.selectedText ? qe.selectedText : qe.sql,
+      sql: qe.selectedText ? qe.selectedText : this.state.sql,
       sqlEditorId: qe.id,
       tab: qe.title,
       schema: qe.schema,
@@ -301,7 +307,8 @@ class SqlEditor extends React.PureComponent {
                 <div>
                   <AceEditorWrapper
                     actions={this.props.actions}
-                    onBlur={this.setQueryEditorSql.bind(this)}
+                    onBlur={this.setQueryEditorSql}
+                    onChange={this.onSqlChanged}
                     queryEditor={this.props.queryEditor}
                     sql={this.props.queryEditor.sql}
                     tables={this.props.tables}
