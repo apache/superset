@@ -97,10 +97,16 @@ export default class FilterableTable extends PureComponent {
     const values = [];
     for (const key in row) {
       if (row.hasOwnProperty(key)) {
-        values.push(row[key].toLowerCase());
+        const cellValue = row[key];
+        if (typeof cellValue === 'string') {
+          values.push(cellValue.toLowerCase());
+        } else if (typeof cellValue.toString === 'function') {
+          values.push(cellValue.toString());
+        }
       }
     }
-    return values.some(v => v.includes(text.toLowerCase()));
+    const lowerCaseText = text.toLowerCase();
+    return values.some(v => v.includes(lowerCaseText));
   }
 
   headerRenderer({ dataKey, label, sortBy, sortDirection }) {
