@@ -4,8 +4,7 @@ export function getTextWidth(text, fontDetails = '12px Roboto') {
   if (context) {
     // Won't work outside of a browser context (ie unit tests)
     context.font = fontDetails;
-    const metrics = context.measureText(text);
-    return metrics.width;
+    return context.measureText(text).width;
   }
   return 100;
 }
