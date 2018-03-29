@@ -6,7 +6,7 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Button, FormGroup, Popover } from 'react-bootstrap';
 
-import AdhocMetric from '../../../../javascripts/explore/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../../javascripts/explore/AdhocMetric';
 import AdhocMetricEditPopover from '../../../../javascripts/explore/components/AdhocMetricEditPopover';
 import { AGGREGATES } from '../../../../javascripts/explore/constants';
 
@@ -17,8 +17,14 @@ const columns = [
 ];
 
 const sumValueAdhocMetric = new AdhocMetric({
+  expressionType: EXPRESSION_TYPES.SIMPLE,
   column: columns[2],
   aggregate: AGGREGATES.SUM,
+});
+
+const sqlExpressionAdhocMetric = new AdhocMetric({
+  expressionType: EXPRESSION_TYPES.SQL,
+  sqlExpression: 'COUNT(*)',
 });
 
 function setup(overrides) {
@@ -39,7 +45,7 @@ describe('AdhocMetricEditPopover', () => {
   it('renders a popover with edit metric form contents', () => {
     const { wrapper } = setup();
     expect(wrapper.find(Popover)).to.have.lengthOf(1);
-    expect(wrapper.find(FormGroup)).to.have.lengthOf(2);
+    expect(wrapper.find(FormGroup)).to.have.lengthOf(3);
     expect(wrapper.find(Button)).to.have.lengthOf(2);
   });
 
@@ -53,6 +59,12 @@ describe('AdhocMetricEditPopover', () => {
     const { wrapper } = setup();
     wrapper.instance().onAggregateChange({ aggregate: AGGREGATES.AVG });
     expect(wrapper.state('adhocMetric')).to.deep.equal(sumValueAdhocMetric.duplicateWith({ aggregate: AGGREGATES.AVG }));
+  });
+
+  it('overwrites the adhocMetric in state with onSqlExpressionChange', () => {
+    const { wrapper } = setup({ adhocMetric: sqlExpressionAdhocMetric });
+    wrapper.instance().onSqlExpressionChange('COUNT(1)');
+    expect(wrapper.state('adhocMetric')).to.deep.equal(sqlExpressionAdhocMetric.duplicateWith({ sqlExpression: 'COUNT(1)' }));
   });
 
   it('overwrites the adhocMetric in state with onLabelChange', () => {

@@ -31,7 +31,7 @@ const defaultProps = {
 };
 
 function isDictionaryForAdhocMetric(value) {
-  return value && !(value instanceof AdhocMetric) && value.column && value.aggregate && value.label;
+  return value && !(value instanceof AdhocMetric) && value.expressionType;
 }
 
 // adhoc metrics are stored as dictionaries in URL params. We convert them back into the

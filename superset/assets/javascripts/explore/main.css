@@ -138,3 +138,19 @@
 .datasource-container {
   overflow: auto;
 }
+
+.adhoc-sql-expression-input {
+  width: 217px;
+}
+
+.adhoc-metric-edit-tabs > .nav-tabs {
+  margin-bottom: 6px;
+}
+
+.adhoc-metric-edit-tabs > .tab-content {
+  height: 140px;
+  width: 260px;
+}
+.adhoc-metric-edit-tabs > .nav-tabs > li > a {
+  padding: 0 3px 0 3px;
+}

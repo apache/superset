@@ -41,7 +41,6 @@ export default function MetricDefinitionValue({
       />
     );
   }
-  notify.error('You must supply either a saved metric or adhoc metric to MetricDefinitionValue');
   return null;
 }
 MetricDefinitionValue.propTypes = propTypes;
