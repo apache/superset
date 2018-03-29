@@ -39,6 +39,10 @@
   width: 100px;
 }
 
+.control-panel-section .metrics-select .Select-multi-value-wrapper .Select-input > input {
+  width: 300px;
+}
+
 .background-transparent {
   background-color: transparent !important;
 }
