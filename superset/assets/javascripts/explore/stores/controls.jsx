@@ -129,19 +129,18 @@ export const controls = {
   },
 
   metrics: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
     multi: true,
     label: t('Metrics'),
     validators: [v.nonEmpty],
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
     default: (c) => {
       const metric = mainMetric(c.options);
       return metric ? [metric] : null;
     },
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasourceType: state.datasource && state.datasource.type,
     }),
     description: t('One or many metrics to display'),
   },
@@ -219,17 +218,16 @@ export const controls = {
   },
 
   metric: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
+    multi: false,
     label: t('Metric'),
     clearable: false,
-    description: t('Choose the metric'),
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
     default: c => mainMetric(c.options),
-    valueKey: 'metric_name',
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasourceType: state.datasource && state.datasource.type,
     }),
   },
 

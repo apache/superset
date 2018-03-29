@@ -832,8 +832,7 @@ def get_or_create_main_db():
     dbobj = (
         db.session.query(models.Database)
         .filter_by(database_name='main')
-        .first()
-    )
+        .first())
     if not dbobj:
         dbobj = models.Database(database_name='main')
     dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
@@ -842,3 +841,14 @@ def get_or_create_main_db():
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
+
+
+def is_adhoc_metric(metric):
+    return (isinstance(metric, dict) and
+            metric['column'] and
+            metric['aggregate'] and
+            metric['label'])
+
+
+def get_metric_names(metrics):
+    return [metric['label'] if is_adhoc_metric(metric) else metric for metric in metrics]
