@@ -20,6 +20,19 @@ describe('formatDate', () => {
   it('is a function', () => {
     assert.isFunction(formatDate);
   });
+
+  it('shows only year when 1st day of the year', () => {
+    expect(formatDate(new Date('2020-01-01'))).to.equal('2020');
+  });
+
+  it('shows month and year when 1st of month', () => {
+    expect(formatDate(new Date('2020-03-01'))).to.equal('Mar 2020');
+  });
+
+  it('shows weekday when any day of the month', () => {
+    expect(formatDate(new Date('2020-03-03'))).to.equal('Tue Mar 3');
+    expect(formatDate(new Date('2020-03-15'))).to.equal('Sun Mar 15');
+  });
 });
 
 describe('fDuration', () => {
