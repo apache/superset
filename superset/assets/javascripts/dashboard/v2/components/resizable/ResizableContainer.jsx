@@ -105,8 +105,6 @@ class ResizableContainer extends React.PureComponent {
       const nextHeightMultiple =
         heightMultiple + Math.ceil(delta.height / heightStep);
 
-      debugger;
-
       onResizeStop({
         id,
         widthMultiple: adjustableWidth ? nextWidthMultiple : null,
@@ -168,10 +166,10 @@ class ResizableContainer extends React.PureComponent {
           ? (minHeightMultiple * heightStep)
           : undefined}
         maxWidth={adjustableWidth
-          ? (maxWidthMultiple * (widthStep + gutterWidth)) - gutterWidth
+          ? Math.max(size.width, (maxWidthMultiple * (widthStep + gutterWidth)) - gutterWidth)
           : undefined}
         maxHeight={adjustableHeight
-          ? (maxHeightMultiple * heightStep)
+          ? Math.max(size.height, maxHeightMultiple * heightStep)
           : undefined}
         size={size}
         onResizeStart={this.handleResizeStart}

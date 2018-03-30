@@ -10,7 +10,6 @@ import {
   ROW_TYPE,
   TAB_TYPE,
   TABS_TYPE,
-
 } from '../util/componentTypes';
 
 import {

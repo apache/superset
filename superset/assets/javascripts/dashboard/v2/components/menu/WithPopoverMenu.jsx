@@ -79,8 +79,7 @@ class WithPopoverMenu extends React.PureComponent {
       <div
         ref={this.setRef}
         onClick={!disableClick && this.handleClick}
-        role="button" // @TODO consider others?
-        tabIndex="0"
+        role="none"
         className={cx(
           'with-popover-menu',
           isFocused && 'with-popover-menu--focused',
