@@ -19,7 +19,7 @@ from flask import (
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
@@ -46,7 +46,7 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import (
-    has_access, merge_extra_filters, merge_request_params, QueryStatus,
+    merge_extra_filters, merge_request_params, QueryStatus,
 )
 from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin,
