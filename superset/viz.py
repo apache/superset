@@ -64,7 +64,14 @@ class BaseViz(object):
         self.query = ''
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
-        self.metrics = self.form_data.get('metrics') or []
+        metrics = self.form_data.get('metrics') or []
+        self.metrics = []
+        for metric in metrics:
+            if isinstance(metric, dict):
+                self.metrics.append(metric['label'])
+            else:
+                self.metrics.append(metric)
+
         self.groupby = self.form_data.get('groupby') or []
         self.time_shift = timedelta()
 
@@ -1058,12 +1065,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=fd.get('metrics'))
+                values=utils.get_metric_names(fd.get('metrics')))
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=fd.get('metrics'),
+                values=utils.get_metric_names(fd.get('metrics')),
                 fill_value=0,
                 aggfunc=sum)
 

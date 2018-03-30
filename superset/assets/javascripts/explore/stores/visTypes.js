@@ -139,7 +139,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['metrics', 'groupby'],
+          ['metrics'],
+          ['groupby'],
           ['limit'],
         ],
       },

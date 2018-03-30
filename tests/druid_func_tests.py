@@ -180,6 +180,51 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIn('post_aggregations', called_args)
         # restore functions
 
+    def test_run_query_with_adhoc_metric(self):
+        client = Mock()
+        from_dttm = Mock()
+        to_dttm = Mock()
+        from_dttm.replace = Mock(return_value=from_dttm)
+        to_dttm.replace = Mock(return_value=to_dttm)
+        from_dttm.isoformat = Mock(return_value='from')
+        to_dttm.isoformat = Mock(return_value='to')
+        timezone = 'timezone'
+        from_dttm.tzname = Mock(return_value=timezone)
+        ds = DruidDatasource(datasource_name='datasource')
+        metric1 = DruidMetric(metric_name='metric1')
+        metric2 = DruidMetric(metric_name='metric2')
+        ds.metrics = [metric1, metric2]
+        col1 = DruidColumn(column_name='col1')
+        col2 = DruidColumn(column_name='col2')
+        ds.columns = [col1, col2]
+        all_metrics = []
+        post_aggs = ['some_agg']
+        ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
+        groupby = []
+        metrics = [{
+            'column': {'type': 'DOUBLE', 'column_name': 'col1'},
+            'aggregate': 'SUM',
+            'label': 'My Adhoc Metric',
+        }]
+
+        ds.get_having_filters = Mock(return_value=[])
+        client.query_builder = Mock()
+        client.query_builder.last_query = Mock()
+        client.query_builder.last_query.query_dict = {'mock': 0}
+        # no groupby calls client.timeseries
+        ds.run_query(
+            groupby, metrics, None, from_dttm,
+            to_dttm, client=client, filter=[], row_limit=100,
+        )
+        self.assertEqual(0, len(client.topn.call_args_list))
+        self.assertEqual(0, len(client.groupby.call_args_list))
+        self.assertEqual(1, len(client.timeseries.call_args_list))
+        # check that there is no dimensions entry
+        called_args = client.timeseries.call_args_list[0][1]
+        self.assertNotIn('dimensions', called_args)
+        self.assertIn('post_aggregations', called_args)
+        # restore functions
+
     def test_run_query_single_groupby(self):
         client = Mock()
         from_dttm = Mock()
@@ -467,7 +512,7 @@ class DruidFuncTestCase(unittest.TestCase):
         depends_on('I', ['H', 'K'])
         depends_on('J', 'K')
         depends_on('K', ['m8', 'm9'])
-        all_metrics, postaggs = DruidDatasource.metrics_and_post_aggs(
+        all_metrics, saved_metrics, postaggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
         expected_metrics = set(all_metrics)
         self.assertEqual(9, len(all_metrics))
@@ -541,25 +586,80 @@ class DruidFuncTestCase(unittest.TestCase):
             ),
         }
 
+        adhoc_metric = {
+            'column': {'type': 'DOUBLE', 'column_name': 'value'},
+            'aggregate': 'SUM',
+            'label': 'My Adhoc Metric',
+        }
+
         metrics = ['some_sum']
-        all_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert all_metrics == ['some_sum']
+        assert saved_metrics == ['some_sum']
+        assert adhoc_metrics == []
+        assert post_aggs == {}
+
+        metrics = [adhoc_metric]
+        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+            metrics, metrics_dict)
+
+        assert saved_metrics == []
+        assert adhoc_metrics == [adhoc_metric]
+        assert post_aggs == {}
+
+        metrics = ['some_sum', adhoc_metric]
+        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+            metrics, metrics_dict)
+
+        assert saved_metrics == ['some_sum']
+        assert adhoc_metrics == [adhoc_metric]
         assert post_aggs == {}
 
         metrics = ['quantile_p95']
-        all_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
         result_postaggs = set(['quantile_p95'])
-        assert all_metrics == ['a_histogram']
+        assert saved_metrics == ['a_histogram']
+        assert adhoc_metrics == []
         assert set(post_aggs.keys()) == result_postaggs
 
         metrics = ['aCustomPostAgg']
-        all_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
         result_postaggs = set(['aCustomPostAgg'])
-        assert all_metrics == ['aCustomMetric']
+        assert saved_metrics == ['aCustomMetric']
+        assert adhoc_metrics == []
         assert set(post_aggs.keys()) == result_postaggs
+
+    def test_druid_type_from_adhoc_metric(self):
+
+        druid_type = DruidDatasource.druid_type_from_adhoc_metric({
+            'column': {'type': 'DOUBLE', 'column_name': 'value'},
+            'aggregate': 'SUM',
+            'label': 'My Adhoc Metric',
+        })
+        assert(druid_type == 'doubleSum')
+
+        druid_type = DruidDatasource.druid_type_from_adhoc_metric({
+            'column': {'type': 'LONG', 'column_name': 'value'},
+            'aggregate': 'MAX',
+            'label': 'My Adhoc Metric',
+        })
+        assert(druid_type == 'longMax')
+
+        druid_type = DruidDatasource.druid_type_from_adhoc_metric({
+            'column': {'type': 'VARCHAR(255)', 'column_name': 'value'},
+            'aggregate': 'COUNT',
+            'label': 'My Adhoc Metric',
+        })
+        assert(druid_type == 'count')
+
+        druid_type = DruidDatasource.druid_type_from_adhoc_metric({
+            'column': {'type': 'VARCHAR(255)', 'column_name': 'value'},
+            'aggregate': 'COUNT_DISTINCT',
+            'label': 'My Adhoc Metric',
+        })
+        assert(druid_type == 'cardinality')
