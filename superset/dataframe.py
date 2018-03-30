@@ -13,6 +13,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import date, datetime
+import logging
 
 import numpy as np
 import pandas as pd
@@ -24,6 +25,27 @@ from superset.utils import JS_MAX_INTEGER
 
 INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
+
+
+def dedup(l, suffix='__'):
+    """De-duplicates a list of string by suffixing a counter
+
+    Always returns the same number of entries as provided, and always returns
+    unique values.
+
+    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
+    foo,bar,bar__1,bar__2
+    """
+    new_l = []
+    seen = {}
+    for s in l:
+        if s in seen:
+            seen[s] += 1
+            s += suffix + str(seen[s])
+        else:
+            seen[s] = 0
+        new_l.append(s)
+    return new_l
 
 
 class SupersetDataFrame(object):
@@ -43,12 +65,37 @@ class SupersetDataFrame(object):
         'V': None,   # raw data (void)
     }
 
-    def __init__(self, df):
-        self.__df = df.where((pd.notnull(df)), None)
+    def __init__(self, data, cursor_description, db_engine_spec):
+        column_names = []
+        if cursor_description:
+            column_names = [col[0] for col in cursor_description]
+
+        self.column_names = dedup(
+            db_engine_spec.get_normalized_column_names(cursor_description))
+
+        # check whether the result set has any nested dict columns
+        if data:
+            has_dict_col = any([isinstance(c, dict) for c in data[0]])
+            df_data = list(data) if has_dict_col else np.array(data, dtype=object)
+        else:
+            df_data = []
+        df = pd.DataFrame(df_data, columns=column_names)
+
+        self._type_dict = {}
+        try:
+            # The driver may not be passing a cursor.description
+            self._type_dict = {
+                col: db_engine_spec.get_datatype(cursor_description[i][1])
+                for i, col in enumerate(self.column_names)
+                if cursor_description
+            }
+        except Exception as e:
+            logging.exception(e)
+        self.df = df.where((pd.notnull(df)), None)
 
     @property
     def size(self):
-        return len(self.__df.index)
+        return len(self.df.index)
 
     @property
     def data(self):
@@ -70,7 +117,8 @@ class SupersetDataFrame(object):
         """Given a numpy dtype, Returns a generic database type"""
         if isinstance(dtype, ExtensionDtype):
             return cls.type_map.get(dtype.kind)
-        return cls.type_map.get(dtype.char)
+        elif hasattr(dtype, 'char'):
+            return cls.type_map.get(dtype.char)
 
     @classmethod
     def datetime_conversion_rate(cls, data_series):
@@ -105,7 +153,7 @@ class SupersetDataFrame(object):
         # consider checking for key substring too.
         if cls.is_id(column_name):
             return 'count_distinct'
-        if (issubclass(dtype.type, np.generic) and
+        if (hasattr(dtype, 'tupe') and issubclass(dtype.type, np.generic) and
                 np.issubdtype(dtype, np.number)):
             return 'sum'
         return None
@@ -116,22 +164,25 @@ class SupersetDataFrame(object):
 
         :return: dict, with the fields name, type, is_date, is_dim and agg.
         """
-        if self.__df.empty:
+        if self.df.empty:
             return None
 
         columns = []
-        sample_size = min(INFER_COL_TYPES_SAMPLE_SIZE, len(self.__df.index))
-        sample = self.__df
+        sample_size = min(INFER_COL_TYPES_SAMPLE_SIZE, len(self.df.index))
+        sample = self.df
         if sample_size:
-            sample = self.__df.sample(sample_size)
-        for col in self.__df.dtypes.keys():
-            col_db_type = self.db_type(self.__df.dtypes[col])
+            sample = self.df.sample(sample_size)
+        for col in self.df.dtypes.keys():
+            col_db_type = (
+                self._type_dict.get(col) or
+                self.db_type(self.df.dtypes[col])
+            )
             column = {
                 'name': col,
-                'agg': self.agg_func(self.__df.dtypes[col], col),
+                'agg': self.agg_func(self.df.dtypes[col], col),
                 'type': col_db_type,
-                'is_date': self.is_date(self.__df.dtypes[col]),
-                'is_dim': self.is_dimension(self.__df.dtypes[col], col),
+                'is_date': self.is_date(self.df.dtypes[col]),
+                'is_dim': self.is_dimension(self.df.dtypes[col], col),
             }
 
             if column['type'] in ('OBJECT', None):
