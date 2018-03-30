@@ -170,6 +170,13 @@ class BaseViz(object):
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
+
+            # Converting metrics to numeric when pandas.read_sql cannot
+            metrics = query_obj.get('metrics') or []
+            for col, dtype in df.dtypes.iteritems():
+                if dtype.type == np.object_ and col in metrics:
+                    df[col] = pd.to_numeric(df[col])
+
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
@@ -1060,7 +1067,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         df = df.fillna(0)
         if fd.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
-
         if not aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
