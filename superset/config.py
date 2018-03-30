@@ -247,7 +247,7 @@ INTERVAL = 1
 BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', 'pk.eyJ1IjoiY2hyaXMtd2lsbGlhbXMiLCJhIjoiY2oxNGlhNXAyMDBkcjMybzdqam85azY0diJ9.pRLnr0VE84sg3JxjLhW78g')
+MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000000
