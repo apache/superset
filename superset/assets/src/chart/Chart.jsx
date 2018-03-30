@@ -186,7 +186,7 @@ class Chart extends React.PureComponent {
   }
 
   renderViz() {
-    const viz = visMap[this.props.vizType];
+    const visPromise = visMap[this.props.vizType];
     const fd = this.props.formData;
     const qr = this.props.queryResponse;
     const renderStart = Logger.getTimestamp();
@@ -196,14 +196,17 @@ class Chart extends React.PureComponent {
         qr.data = sandboxedEval(fd.js_data)(qr.data);
       }
       // [re]rendering the visualization
-      viz(this, qr, this.props.setControlValue);
-      Logger.append(LOG_ACTIONS_RENDER_EVENT, {
-        label: this.props.chartKey,
-        vis_type: this.props.vizType,
-        start_offset: renderStart,
-        duration: Logger.getTimestamp() - renderStart,
+      visPromise().then((renderVis) => {
+        renderVis(this, qr, this.props.setControlValue);
+
+        Logger.append(LOG_ACTIONS_RENDER_EVENT, {
+          label: this.props.chartKey,
+          vis_type: this.props.vizType,
+          start_offset: renderStart,
+          duration: Logger.getTimestamp() - renderStart,
+        });
+        this.props.actions.chartRenderingSucceeded(this.props.chartKey);
       });
-      this.props.actions.chartRenderingSucceeded(this.props.chartKey);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
