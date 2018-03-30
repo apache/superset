@@ -88,8 +88,8 @@ export function resizeComponent({ id, width, height }) {
             ...child,
             meta: {
               ...child.meta,
-              width: width || component.meta.width,
-              height: height || component.meta.height,
+              width: width || child.meta.width,
+              height: height || child.meta.height,
             },
           };
         }
