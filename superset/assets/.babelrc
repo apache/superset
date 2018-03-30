@@ -1,3 +1,4 @@
 {
-  "presets" : ["airbnb"],
+  "presets" : ["airbnb", "react", "env"],
+  "plugins": ["dynamic-import-webpack"],
 }

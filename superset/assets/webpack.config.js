@@ -26,6 +26,7 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
+    publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
     filename: '[name].[chunkhash].entry.js',
     chunkFilename: '[name].[chunkhash].entry.js',
   },
@@ -49,13 +50,6 @@ const config = {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         loader: 'babel-loader',
-        query: {
-          presets: [
-            'airbnb',
-            'env',
-            'react',
-          ],
-        },
       },
       // Extract css files
       {
