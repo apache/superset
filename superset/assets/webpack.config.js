@@ -26,7 +26,7 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
-    publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks
+    publicPath: '/static/assets/dist/', // necessary for lazy-loaded chunks or the requeset path is wrong
     filename: '[name].[chunkhash].entry.js',
     chunkFilename: '[name].[chunkhash].entry.js',
   },
