@@ -917,41 +917,8 @@ class DruidDatasource(Model, BaseDatasource):
             visited_postaggs.add(postagg_name)
             cls.resolve_postagg(
                 postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict)
-        aggs = cls.get_aggregations(metrics_dict, saved_agg_names)
-        return aggs, adhoc_agg_configs, post_aggs
-
-    @staticmethod
-    def get_aggregations(metrics_dict, saved_metrics, adhoc_metrics=[]):
-        """
-            Returns a dictionary of aggregation metric names to aggregation json objects
-
-            :param metrics_dict: dictionary of all the metrics
-            :param saved_metrics: list of saved metric names
-            :param adhoc_metrics: list of adhoc metric names
-            :raise SupersetException: if one or more metric names are not aggregations
-        """
-        aggregations = OrderedDict()
-        invalid_metric_names = []
-        for metric_name in saved_metrics:
-            if metric_name in metrics_dict:
-                metric = metrics_dict[metric_name]
-                if metric.metric_type == POST_AGG_TYPE:
-                    invalid_metric_names.append(metric_name)
-                else:
-                    aggregations[metric_name] = metric.json_obj
-            else:
-                invalid_metric_names.append(metric_name)
-        if len(invalid_metric_names) > 0:
-            raise SupersetException(
-                _('Metric(s) {} must be aggregations.').format(invalid_metric_names))
-        for adhoc_metric in adhoc_metrics:
-            aggregations[adhoc_metric['label']] = {
-                'fieldName': adhoc_metric['column']['column_name'],
-                'fieldNames': [adhoc_metric['column']['column_name']],
-                'type': DruidDatasource.druid_type_from_adhoc_metric(adhoc_metric),
-                'name': adhoc_metric['label'],
-            }
-        return aggregations
+        aggs = cls.get_aggregations(metrics_dict, saved_agg_names, adhoc_agg_configs)
+        return aggs, post_aggs
 
     def values_for_column(self,
                           column_name,
@@ -1016,6 +983,39 @@ class DruidDatasource(Model, BaseDatasource):
             return 'cardinality'
         else:
             return column_type + aggregate.capitalize()
+
+    @staticmethod
+    def get_aggregations(metrics_dict, saved_metrics, adhoc_metrics=[]):
+        """
+            Returns a dictionary of aggregation metric names to aggregation json objects
+
+            :param metrics_dict: dictionary of all the metrics
+            :param saved_metrics: list of saved metric names
+            :param adhoc_metrics: list of adhoc metric names
+            :raise SupersetException: if one or more metric names are not aggregations
+        """
+        aggregations = OrderedDict()
+        invalid_metric_names = []
+        for metric_name in saved_metrics:
+            if metric_name in metrics_dict:
+                metric = metrics_dict[metric_name]
+                if metric.metric_type == POST_AGG_TYPE:
+                    invalid_metric_names.append(metric_name)
+                else:
+                    aggregations[metric_name] = metric.json_obj
+            else:
+                invalid_metric_names.append(metric_name)
+        if len(invalid_metric_names) > 0:
+            raise SupersetException(
+                _('Metric(s) {} must be aggregations.').format(invalid_metric_names))
+        for adhoc_metric in adhoc_metrics:
+            aggregations[adhoc_metric['label']] = {
+                'fieldName': adhoc_metric['column']['column_name'],
+                'fieldNames': [adhoc_metric['column']['column_name']],
+                'type': DruidDatasource.druid_type_from_adhoc_metric(adhoc_metric),
+                'name': adhoc_metric['label'],
+            }
+        return aggregations
 
     def check_restricted_metrics(self, aggregations):
         rejected_metrics = [
@@ -1108,7 +1108,7 @@ class DruidDatasource(Model, BaseDatasource):
         metrics_dict = {m.metric_name: m for m in self.metrics}
         columns_dict = {c.column_name: c for c in self.columns}
 
-        aggregations, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
             metrics_dict)
 
@@ -1163,7 +1163,7 @@ class DruidDatasource(Model, BaseDatasource):
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
-                aggs_dict, adhoc_dict, post_aggs_dict = self.metrics_and_post_aggs(
+                aggs_dict, post_aggs_dict = self.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
                 if phase == 1:
@@ -1221,7 +1221,7 @@ class DruidDatasource(Model, BaseDatasource):
 
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
-                    aggs_dict, adhoc_dict, post_aggs_dict = self.metrics_and_post_aggs(
+                    aggs_dict, post_aggs_dict = self.metrics_and_post_aggs(
                         [timeseries_limit_metric],
                         metrics_dict)
                     if phase == 1:
