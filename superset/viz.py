@@ -171,16 +171,19 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
 
-            # Converting metrics to numeric when pandas.read_sql cannot
-            metrics = query_obj.get('metrics') or []
-            for col, dtype in df.dtypes.iteritems():
-                if dtype.type == np.object_ and col in metrics:
-                    df[col] = pd.to_numeric(df[col])
+            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
         return df
+
+    @staticmethod
+    def df_metrics_to_num(df, metrics):
+        """Converting metrics to numeric when pandas.read_sql cannot"""
+        for col, dtype in df.dtypes.iteritems():
+            if dtype.type == np.object_ and col in metrics:
+                df[col] = pd.to_numeric(df[col])
 
     def query_obj(self):
         """Building a query object"""
