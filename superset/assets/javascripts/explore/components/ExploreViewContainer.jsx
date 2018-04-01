@@ -145,7 +145,9 @@ class ExploreViewContainer extends React.Component {
   }
 
   hasQueryControlChanged(changedControlKeys, currentControls) {
-    return changedControlKeys.some(key => !currentControls[key].renderTrigger);
+    return changedControlKeys.some(key => (
+      !currentControls[key].renderTrigger && !currentControls[key].dontRefreshOnChange
+    ));
   }
 
   triggerQueryIfNeeded() {

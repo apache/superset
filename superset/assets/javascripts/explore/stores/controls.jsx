@@ -1614,6 +1614,8 @@ export const controls = {
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
     default: defaultViewport,
+    // Viewport changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   viewport_zoom: {
