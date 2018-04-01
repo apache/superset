@@ -19,7 +19,7 @@ export default function RunQueryActionButton(props) {
   const runBtnText = props.selectedText ? t('Run Selected Query') : t('Run Query');
   const btnStyle = props.selectedText ? 'warning' : 'primary';
   const shouldShowStopBtn = ['running', 'pending'].indexOf(props.queryState) > -1;
-
+  
   const commonBtnProps = {
     bsSize: 'small',
     bsStyle: btnStyle,
@@ -32,6 +32,7 @@ export default function RunQueryActionButton(props) {
       onClick={() => props.runQuery(false)}
       key="run-btn"
       tooltip={t('Run query synchronously')}
+      disabled={!props.sql.trim()}
     >
       <i className="fa fa-refresh" /> {runBtnText}
     </Button>
@@ -43,6 +44,7 @@ export default function RunQueryActionButton(props) {
       onClick={() => props.runQuery(true)}
       key="run-async-btn"
       tooltip={t('Run query asynchronously')}
+      disabled={!props.sql.trim()}
     >
       <i className="fa fa-table" /> {runBtnText}
     </Button>
