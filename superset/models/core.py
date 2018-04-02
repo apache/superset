@@ -702,7 +702,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
-        for k, v in df.dtypes.iteritems():
+        for k, v in df.dtypes.items():
             if v.type == numpy.object_ and needs_conversion(df[k]):
                 df[k] = df[k].apply(utils.json_dumps_w_dates)
         return df

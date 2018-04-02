@@ -181,7 +181,7 @@ class BaseViz(object):
     @staticmethod
     def df_metrics_to_num(df, metrics):
         """Converting metrics to numeric when pandas.read_sql cannot"""
-        for col, dtype in df.dtypes.iteritems():
+        for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col])
 
@@ -1393,7 +1393,7 @@ class DistributionBarViz(DistributionPieViz):
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         chart_data = []
-        for name, ys in pt.iteritems():
+        for name, ys in pt.items():
             if pt[name].dtype.kind not in 'biufc' or name in self.groupby:
                 continue
             if isinstance(name, string_types):
@@ -1404,7 +1404,7 @@ class DistributionBarViz(DistributionPieViz):
                 l = [str(s) for s in name[1:]]  # noqa: E741
                 series_title = ', '.join(l)
             values = []
-            for i, v in ys.iteritems():
+            for i, v in ys.items():
                 x = i
                 if isinstance(x, (tuple, list)):
                     x = ', '.join([text_type(s) for s in x])
