@@ -153,7 +153,7 @@ class SupersetDataFrame(object):
         # consider checking for key substring too.
         if cls.is_id(column_name):
             return 'count_distinct'
-        if (hasattr(dtype, 'tupe') and issubclass(dtype.type, np.generic) and
+        if (hasattr(dtype, 'type') and issubclass(dtype.type, np.generic) and
                 np.issubdtype(dtype, np.number)):
             return 'sum'
         return None

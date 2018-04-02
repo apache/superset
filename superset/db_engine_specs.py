@@ -624,7 +624,6 @@ class MySQLEngineSpec(BaseEngineSpec):
                 for k in dir(ft)
                 if not k.startswith('_')
             }
-            print(cls.type_code_map)
         datatype = type_code
         if isinstance(type_code, int):
             datatype = cls.type_code_map.get(type_code)
