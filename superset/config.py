@@ -58,8 +58,8 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-#SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
-SQLALCHEMY_DATABASE_URI = 'mysql://root@localhost/superset_development'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
+# SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
 # In order to hook up a custom password store for all SQLACHEMY connections
@@ -247,7 +247,7 @@ INTERVAL = 1
 BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = ''
+MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000000
@@ -264,23 +264,19 @@ WARNING_MSG = None
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
-
+"""
 # Example:
 class CeleryConfig(object):
-    BROKER_URL = 'redis://localhost:6379'
-    CELERY_IMPORTS = ('superset.sql_lab', )
-    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-    CELERYD_LOG_LEVEL = 'DEBUG'
-    CELERYD_PREFETCH_MULTIPLIER = 1
-    CELERYD_CONCURRENCY = 16
-    CELERY_ACKS_LATE = True
-    STATSD_HOST = 'localhost'
-    STATSD_PORT = 8125
+  BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+  CELERY_IMPORTS = ('superset.sql_lab', )
+  CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
+  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+  CELERYD_LOG_LEVEL = 'DEBUG'
+  CELERYD_PREFETCH_MULTIPLIER = 1
+  CELERY_ACKS_LATE = True
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
-"""
 SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
 SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
@@ -298,6 +294,9 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
 
+# When set to true, results from asynchronous sql lab are prefetched
+PREFETCH_PRESTO = True
+
 # SQLLAB_DEFAULT_DBID
 SQLLAB_DEFAULT_DBID = None
 
@@ -308,10 +307,7 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
-from s3cache.s3cache import S3Cache
-S3_CACHE_BUCKET = 'airbnb-superset'
-S3_CACHE_KEY_PREFIX = 'sql_lab_result'
-RESULTS_BACKEND = S3Cache(S3_CACHE_BUCKET, S3_CACHE_KEY_PREFIX)
+RESULTS_BACKEND = None
 
 # The S3 bucket where you want to store your external hive tables created
 # from CSV files. For example, 'companyname-superset'

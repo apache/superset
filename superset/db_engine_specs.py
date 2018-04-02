@@ -20,11 +20,13 @@ from __future__ import unicode_literals
 
 from collections import defaultdict, namedtuple
 import inspect
+import json
 import logging
 import os
 import re
 import textwrap
 import time
+import uuid
 
 import boto3
 from flask import g
@@ -40,7 +42,7 @@ import sqlparse
 import unicodecsv
 from werkzeug.utils import secure_filename
 
-from superset import app, cache_util, conf, db, utils
+from superset import app, cache_util, conf, db, results_backend, utils
 from superset.exceptions import SupersetTemplateException
 from superset.utils import QueryStatus
 
@@ -726,7 +728,28 @@ class PrestoEngineSpec(BaseEngineSpec):
         }
 
     @classmethod
-    def handle_cursor(cls, cursor, query, session):
+    def prefetch_results(cls, cursor, query, cache_timeout, session, limit=1000):
+        data = cursor.fetchmany(limit)
+        cdf = utils.convert_results_to_df(cursor.description, data)
+        payload = dict(query_id=query.id)
+        payload.update({
+            'status': utils.QueryStatus.PREFETCHED,
+            'data': cdf.data if cdf.data else [],
+            'columns': cdf.columns if cdf.columns else [],
+            'query': query.to_dict(),
+        })
+
+        json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
+        key = '{}'.format(uuid.uuid4())
+        prefetch_key = key + '_prefetch'
+        results_backend.set(
+            prefetch_key, utils.zlib_compress(json_payload), cache_timeout)
+        query.status = utils.QueryStatus.PREFETCHED
+        query.results_key = key
+        session.commit()
+
+    @classmethod
+    def handle_cursor(cls, cursor, query, session, cache_timeout=0):
         """Updates progress information"""
         logging.info('Polling the cursor for progress')
         polled = cursor.poll()
@@ -737,13 +760,20 @@ class PrestoEngineSpec(BaseEngineSpec):
         while polled:
             # Update the object and wait for the kill signal.
             stats = polled.get('stats', {})
-            print(stats)
-            print(dir(stats))
-            print("????")
+            processed_rows = stats['processedRows']
+
             query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
+
+            if (
+                config.get('PREFETCH_PRESTO') and
+                processed_rows > 1000 and
+                not query.has_loaded_early
+            ):
+                query.has_loaded_early = True
+                PrestoEngineSpec.prefetch_results(cursor, query, cache_timeout, session)
 
             if stats:
                 completed_splits = float(stats.get('completedSplits'))
@@ -1073,9 +1103,6 @@ class HiveEngineSpec(PrestoEngineSpec):
             hive.ttypes.TOperationState.RUNNING_STATE,
         )
         polled = cursor.poll()
-        print("~~~~~~~~~~~~~~~")
-        print(polled)
-        print(dir(polled))
         last_log_line = 0
         tracking_url = None
         job_id = None

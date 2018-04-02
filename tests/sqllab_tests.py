@@ -13,7 +13,6 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import db, security_manager, utils
 from superset.models.sql_lab import Query
-from superset.sql_lab import convert_results_to_df
 from .base_tests import SupersetTestCase
 
 
@@ -205,7 +204,7 @@ class SqlLabTests(SupersetTestCase):
     def test_df_conversion_no_dict(self):
         cols = ['string_col', 'int_col', 'float_col']
         data = [['a', 4, 4.0]]
-        cdf = convert_results_to_df(cols, data)
+        cdf = utils.convert_results_to_df(cols, data)
 
         self.assertEquals(len(data), cdf.size)
         self.assertEquals(len(cols), len(cdf.columns))
@@ -213,7 +212,7 @@ class SqlLabTests(SupersetTestCase):
     def test_df_conversion_tuple(self):
         cols = ['string_col', 'int_col', 'list_col', 'float_col']
         data = [(u'Text', 111, [123], 1.0)]
-        cdf = convert_results_to_df(cols, data)
+        cdf = utils.convert_results_to_df(cols, data)
 
         self.assertEquals(len(data), cdf.size)
         self.assertEquals(len(cols), len(cdf.columns))
@@ -221,7 +220,7 @@ class SqlLabTests(SupersetTestCase):
     def test_df_conversion_dict(self):
         cols = ['string_col', 'dict_col', 'int_col']
         data = [['a', {'c1': 1, 'c2': 2, 'c3': 3}, 4]]
-        cdf = convert_results_to_df(cols, data)
+        cdf = utils.convert_results_to_df(cols, data)
 
         self.assertEquals(len(data), cdf.size)
         self.assertEquals(len(cols), len(cdf.columns))

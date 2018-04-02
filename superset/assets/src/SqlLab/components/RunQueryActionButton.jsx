@@ -20,7 +20,7 @@ const defaultProps = {
 export default function RunQueryActionButton(props) {
   const runBtnText = props.selectedText ? t('Run Selected Query') : t('Run Query');
   const btnStyle = props.selectedText ? 'warning' : 'primary';
-  const shouldShowStopBtn = ['running', 'pending'].indexOf(props.queryState) > -1;
+  const shouldShowStopBtn = ['running', 'pending', 'prefetched'].indexOf(props.queryState) > -1;
 
   const commonBtnProps = {
     bsSize: 'small',

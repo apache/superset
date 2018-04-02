@@ -68,6 +68,27 @@ def flasher(msg, severity=None):
             logging.info(msg)
 
 
+def dedup(l, suffix='__'):
+    """De-duplicates a list of string by suffixing a counter
+
+    Always returns the same number of entries as provided, and always returns
+    unique values.
+
+    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
+    foo,bar,bar__1,bar__2
+    """
+    new_l = []
+    seen = {}
+    for s in l:
+        if s in seen:
+            seen[s] += 1
+            s += suffix + str(seen[s])
+        else:
+            seen[s] = 0
+        new_l.append(s)
+    return new_l
+
+
 class _memoized(object):  # noqa
     """Decorator that caches a function's return value each time it is called
 
@@ -148,6 +169,29 @@ def string_to_num(s):
         return float(s)
     except ValueError:
         return None
+
+
+def convert_results_to_df(cursor_description, data):
+    import numpy as np
+    from superset import dataframe
+    import pandas as pd
+    """Convert raw query results to a DataFrame."""
+    column_names = (
+        [col[0] for col in cursor_description] if cursor_description else [])
+    column_names = dedup(column_names)
+
+    # check whether the result set has any nested dict columns
+    if data:
+        first_row = data[0]
+        has_dict_col = any([isinstance(c, dict) for c in first_row])
+        df_data = list(data) if has_dict_col else np.array(data, dtype=object)
+    else:
+        df_data = []
+
+    cdf = dataframe.SupersetDataFrame(
+        pd.DataFrame(df_data, columns=column_names))
+
+    return cdf
 
 
 class DimSelector(Having):
@@ -560,6 +604,7 @@ class QueryStatus(object):
     """Enum-type class for query statuses"""
 
     STOPPED = 'stopped'
+    PREFETCHED = 'prefetched'
     FAILED = 'failed'
     PENDING = 'pending'
     RUNNING = 'running'
@@ -882,3 +927,9 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
         del fd['adhoc_filters']
+
+
+
+def prefetch_key(key):
+    # given a key, this returns the location of the prefetched key
+    return key + "_prefetch"

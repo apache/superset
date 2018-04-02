@@ -18,6 +18,7 @@ const propTypes = {
   visualize: PropTypes.bool,
   cache: PropTypes.bool,
   height: PropTypes.number.isRequired,
+  has_prefetched: PropTypes.bool,
 };
 const defaultProps = {
   search: true,
@@ -26,6 +27,7 @@ const defaultProps = {
   csv: true,
   actions: {},
   cache: false,
+  has_prefetched: false,
 };
 
 const SEARCH_HEIGHT = 46;
@@ -53,6 +55,7 @@ export default class ResultSet extends React.PureComponent {
         this.clearQueryResults(nextProps.query),
       );
     }
+
     if (nextProps.query.resultsKey
       && nextProps.query.resultsKey !== this.props.query.resultsKey) {
       this.fetchResults(nextProps.query);
@@ -61,10 +64,16 @@ export default class ResultSet extends React.PureComponent {
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let csvButton;
-      if (this.props.csv) {
+      let next;
+      if (this.props.csv && this.props.query.state === 'success') {
         csvButton = (
           <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
             <i className="fa fa-file-text-o" /> {t('.CSV')}
+          </Button>
+        );
+        next = (
+          <Button bsSize="small" onClick={ () => {this.fetchResults(this.props.query);} } >
+            <i className="fa fa-file-text-o" /> {t('Next page of results')}
           </Button>
         );
       }
@@ -97,6 +106,7 @@ export default class ResultSet extends React.PureComponent {
               <ButtonGroup>
                 {visualizeButton}
                 {csvButton}
+                {next}
               </ButtonGroup>
             </div>
             <div className="pull-right">
@@ -214,7 +224,7 @@ export default class ResultSet extends React.PureComponent {
     }
     let progressBar;
     let trackingUrl;
-    if (query.progress > 0 && query.state === 'running') {
+    if (query.progress > 0 && (query.state === 'running' || query.state === 'prefetched')) {
       progressBar = (
         <ProgressBar
           striped
@@ -222,6 +232,60 @@ export default class ResultSet extends React.PureComponent {
           label={`${query.progress}%`}
         />);
     }
+
+    if (query.state === 'prefetched') {
+      const results = query.results;
+      let data;
+      if (this.props.cache && query.cached) {
+        data = this.state.data;
+      } else if (results && results.data) {
+        data = results.data;
+      }
+      if (!this.props.has_prefetched) {
+        if (data && data.length > 0) {
+          return (
+            <div>
+              <div>
+                {progressBar}
+              </div>
+              <VisualizeModal
+                show={this.state.showModal}
+                query={this.props.query}
+                onHide={this.hideModal.bind(this)}
+              />
+              {this.getControls.bind(this)()}
+              {sql}
+              <FilterableTable
+                data={data}
+                orderedColumnKeys={results.columns.map(col => col.name)}
+                height={height}
+                filterText={this.state.searchText}
+              />
+            </div>
+          );
+        } else if (data && data.length === 0) {
+          return <Alert bsStyle="warning">The query returned no data</Alert>;
+        }
+      } else {
+        return (
+          <div>
+            <div>
+              <QueryStateLabel query={query} />
+              {progressBar}
+            </div>
+            <VisualizeModal
+              show={this.state.showModal}
+              query={this.props.query}
+              onHide={this.hideModal.bind(this)}
+            />
+            {this.getControls.bind(this)()}
+            {sql}
+          </div>
+          );
+      }
+    }
+
+
     if (query.trackingUrl) {
       trackingUrl = (
         <Button

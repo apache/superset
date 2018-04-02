@@ -2318,7 +2318,6 @@ class Superset(BaseSupersetView):
         """Serves a key off of the results backend"""
         if not results_backend:
             return json_error_response("Results backend isn't configured")
-
         blob = results_backend.get(key)
         if not blob:
             return json_error_response(
@@ -2326,7 +2325,8 @@ class Superset(BaseSupersetView):
                 'You may want to re-run the query.',
                 status=410,
             )
-
+        if key.endswith('_prefetch'):  # hack to not break when requesting prefetch
+            key = key[:-9]
         query = db.session.query(Query).filter_by(results_key=key).one()
         rejected_tables = security_manager.rejected_datasources(
             query.sql, query.database, query.schema)
@@ -2492,6 +2492,7 @@ class Superset(BaseSupersetView):
         if rejected_tables:
             flash(get_datasource_access_error_msg('{}'.format(rejected_tables)))
             return redirect('/')
+        prefetched_blob = None
         blob = None
         if results_backend and query.results_key:
             logging.info(
@@ -2502,8 +2503,17 @@ class Superset(BaseSupersetView):
             logging.info('Decompressing')
             json_payload = utils.zlib_decompress_to_string(blob)
             obj = json.loads(json_payload)
+
+            prefetched_blob = results_backend.get(query.results_key + '_prefetch')
+            if prefetched_blob:
+                prefetched_payload = utils.zlib_decompress_to_string(prefetched_blob)
+                prefetched_blob_json = json.loads(prefetched_payload)
+
+            data = (
+                obj['data'] + prefetched_blob_json['data'] if prefetched_blob
+                else obj['data'])
             columns = [c['name'] for c in obj['columns']]
-            df = pd.DataFrame.from_records(obj['data'], columns=columns)
+            df = pd.DataFrame.from_records(data, columns=columns)
             logging.info('Using pandas to convert to CSV')
             csv = df.to_csv(index=False, **config.get('CSV_EXPORT'))
         else:
@@ -2538,7 +2548,6 @@ class Superset(BaseSupersetView):
     @expose('/queries/<last_updated_ms>')
     def queries(self, last_updated_ms):
         """Get the updated queries."""
-        print("frontend is checking!!~~~~~~")
         stats_logger.incr('queries')
         if not g.user.get_id():
             return json_error_response(

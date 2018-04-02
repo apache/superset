@@ -23,7 +23,8 @@ class QueryAutoRefresh extends React.PureComponent {
     const now = new Date().getTime();
     return Object.values(queries)
       .some(
-        q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
+        q => ['running', 'started', 'pending', 'fetching', 'prefetched'].indexOf(
+          q.state) >= 0 &&
         now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
       );
   }
@@ -39,7 +40,7 @@ class QueryAutoRefresh extends React.PureComponent {
   stopwatch() {
     // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
-      const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;
+      const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;       
       $.getJSON(url, (data) => {
         if (Object.keys(data).length > 0) {
           this.props.actions.refreshQueries(data);

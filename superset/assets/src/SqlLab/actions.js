@@ -36,6 +36,7 @@ export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
 export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
 export const QUERY_SUCCESS = 'QUERY_SUCCESS';
+export const PREFETCH_SUCCESS = 'PREFETCH_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
@@ -77,7 +78,9 @@ export function startQuery(query) {
 export function querySuccess(query, results) {
   return { type: QUERY_SUCCESS, query, results };
 }
-
+export function prefetchSuccess(query, results) {
+  return { type: PREFETCH_SUCCESS, query, results };
+}
 export function queryFailed(query, msg) {
   return { type: QUERY_FAILED, query, msg };
 }
@@ -100,14 +103,22 @@ export function requestQueryResults(query) {
 
 export function fetchQueryResults(query) {
   return function (dispatch) {
-    dispatch(requestQueryResults(query));
-    const sqlJsonUrl = `/superset/results/${query.resultsKey}/`;
+  dispatch(requestQueryResults(query));
+    let sqlJsonUrl = `/superset/results/${query.resultsKey}`;
+
+    if (query.state === 'prefetched') {
+      sqlJsonUrl += '_prefetch';
+    }
     $.ajax({
       type: 'GET',
       dataType: 'json',
       url: sqlJsonUrl,
       success(results) {
-        dispatch(querySuccess(query, results));
+        if (results.status === "prefetched") {
+          dispatch(prefetchSuccess(query, results));
+        } else {
+          dispatch(querySuccess(query, results));
+        }
       },
       error(err) {
         let msg = t('Failed at retrieving results from the results backend');

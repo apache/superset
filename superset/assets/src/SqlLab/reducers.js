@@ -161,6 +161,22 @@ export const sqlLabReducer = function (state, action) {
     [actions.REQUEST_QUERY_RESULTS]() {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
+    [actions.PREFETCH_SUCCESS]() {
+      let rows;
+      if (action.results.data) {
+        rows = action.results.data.length;
+      }
+      const alts = {
+        results: action.results,
+        rows,
+        state: 'prefetched',
+        errorMessage: null,
+        cached: false,
+        csv: false,
+        has_prefetched: true,
+      };
+      return alterInObject(state, 'queries', action.query, alts);
+    },
     [actions.QUERY_SUCCESS]() {
       let rows;
       if (action.results.data) {
@@ -174,6 +190,7 @@ export const sqlLabReducer = function (state, action) {
         state: action.query.state,
         errorMessage: null,
         cached: false,
+        csv: true,
       };
       return alterInObject(state, 'queries', action.query, alts);
     },

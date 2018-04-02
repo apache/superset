@@ -9,14 +9,22 @@ from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
+<<<<<<< HEAD
 from contextlib2 import contextmanager
 import numpy as np
 import pandas as pd
+=======
+>>>>>>> prefetch asyncronous query results from presto
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
+<<<<<<< HEAD
 from superset import app, dataframe, db, results_backend, security_manager, utils
+=======
+from superset import app, db, results_backend, security_manager, utils
+from superset.db_engine_specs import LimitMethod
+>>>>>>> prefetch asyncronous query results from presto
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import get_celery_app, QueryStatus
@@ -119,6 +127,7 @@ def get_sql_results(
     ctask, query_id, rendered_query, return_results=True, store_results=False,
         user_name=None):
     """Executes the sql query returns the results."""
+<<<<<<< HEAD
     with session_scope(not ctask.request.called_directly) as session:
 
         try:
@@ -167,6 +176,9 @@ def execute_sql(
 
     if store_results and not results_backend:
         return handle_error("Results backend isn't configured.")
+        cache_timeout = database.cache_timeout
+        if cache_timeout is None:
+            cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
 
     # Limit enforced only for retrieving the data, not for the CTA queries.
     superset_query = SupersetQuery(rendered_query)
@@ -200,10 +212,12 @@ def execute_sql(
     query.executed_sql = executed_sql
     query.status = QueryStatus.RUNNING
     query.start_running_time = utils.now_as_float()
+    query.has_loaded_early = False
     session.merge(query)
     session.commit()
     logging.info("Set query to 'running'")
     conn = None
+
     try:
         engine = database.get_sqla_engine(
             schema=query.schema,
@@ -219,7 +233,7 @@ def execute_sql(
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
-        data = db_engine_spec.fetch_data(cursor, query.limit)
+        data = db_engine_spec.fetch_data(cursor, query)
     except SoftTimeLimitExceeded as e:
         logging.exception(e)
         if conn is not None:
@@ -241,10 +255,22 @@ def execute_sql(
         conn.close()
 
     if query.status == utils.QueryStatus.STOPPED:
+<<<<<<< HEAD
         return handle_error('The query has been stopped')
 
     cdf = convert_results_to_df(column_names, data)
 
+=======
+        return json.dumps(
+            {
+                'query_id': query.id,
+                'status': query.status,
+                'query': query.to_dict(),
+            },
+            default=utils.json_iso_dttm_ser)
+
+    cdf = utils.convert_results_to_df(cursor_description, data)
+>>>>>>> prefetch asyncronous query results from presto
     query.rows = cdf.size
     query.progress = 100
     query.status = QueryStatus.SUCCESS
@@ -259,15 +285,20 @@ def execute_sql(
     query.end_time = utils.now_as_float()
     session.merge(query)
     session.flush()
+    new_key = query.results_key if cdf.data else utils.prefetch_key(query.results_key)
 
     payload.update({
         'status': query.status,
         'data': cdf.data if cdf.data else [],
+        'results_key': new_key
         'columns': cdf.columns if cdf.columns else [],
         'query': query.to_dict(),
     })
     if store_results:
-        key = '{}'.format(uuid.uuid4())
+        if not query.results_key:
+            query.results_key = '{}'.format(uuid.uuid4())
+
+        key = query.results_key
         logging.info('Storing results in results backend, key: {}'.format(key))
         json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
         cache_timeout = database.cache_timeout
@@ -275,7 +306,6 @@ def execute_sql(
             cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
         results_backend.set(key, utils.zlib_compress(json_payload), cache_timeout)
         query.results_key = key
-        query.end_result_backend_time = utils.now_as_float()
 
     session.merge(query)
     session.commit()
