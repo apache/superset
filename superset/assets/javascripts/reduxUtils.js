@@ -96,5 +96,5 @@ export function areArraysShallowEqual(arr1, arr2) {
 }
 
 export function areObjectsEqual(obj1, obj2) {
-  return equals(obj1, obj2);
+  return equals(obj1, obj2, true);
 }
