@@ -110,6 +110,10 @@ class SupersetSecurityManager(SecurityManager):
             self.can_access('schema_access', datasource.schema_perm, user=user)
         )
 
+    def has_cache_access(self, datasource):
+        # By default if you can access the datasource, you can access the cache
+        return True
+
     def datasource_access(self, datasource, user=None):
         return (
             self.schema_access(datasource, user=user) or
