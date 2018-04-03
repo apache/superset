@@ -16,6 +16,7 @@ describe('RunQueryActionButton', () => {
     runQuery: () => {}, // eslint-disable-line
     selectedText: null,
     stopQuery: () => {}, // eslint-disable-line
+    sql: '',
   };
 
   beforeEach(() => {
