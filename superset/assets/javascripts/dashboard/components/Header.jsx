@@ -7,6 +7,7 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import { t } from '../../locales';
+import * as util from '../../reduxUtils';
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
@@ -67,6 +68,19 @@ class Header extends React.PureComponent {
       >
         {btnText}
       </Button>);
+  }
+  renderDownloadButton() {
+    // TODO: review button style
+    const btnText = 'Download';
+    return (
+      <button
+        bsStyle="default"
+        className="m-r-5"
+        style={{ width: '100px' }}
+        onClick={util.downloadCurPage}
+      >
+        {btnText}
+      </button>);
   }
   render() {
     const dashboard = this.props.dashboard;

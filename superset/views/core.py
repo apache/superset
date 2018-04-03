@@ -692,6 +692,15 @@ def ping():
     return 'OK'
 
 
+@app.route('/download_pdf')
+def download_pdf(url='http://localhost:8088/superset/dashboard/births/'): #TODO: collect url to download
+    #TODO: pass session authorization
+    dir = os.getcwd() #TODO
+    file_name = 'sample_dl.pdf' #TODO: file naming structure
+    pdfkit.from_url(url, dir + file_name)
+    return 'Success'
+
+
 class KV(BaseSupersetView):
 
     """Used for storing and retrieving key value pairs"""

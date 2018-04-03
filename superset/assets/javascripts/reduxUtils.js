@@ -98,3 +98,15 @@ export function areArraysShallowEqual(arr1, arr2) {
 export function areObjectsEqual(obj1, obj2) {
   return equals(obj1, obj2, true);
 }
+
+export function downloadCurPage() {
+  // This will call a python script to download the current page as a pdf
+  $.ajax({
+      type: 'GET',
+      url: '/download_pdf',
+      data: function() {
+          return string(window.location.href) //TODO: pass dash specific info
+      },
+      success: alert('PDF Downloaded')
+  })
+}
