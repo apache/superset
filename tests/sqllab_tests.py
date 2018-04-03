@@ -253,7 +253,7 @@ class SqlLabTests(SupersetTestCase):
                 GROUP BY viz_type""",
             'dbId': 1,
         }
-        data = {"data": json.dumps(payload)}
+        data = {'data': json.dumps(payload)}
         resp = self.get_json_resp('/superset/sqllab_viz/', data=data)
         self.assertIn('table_id', resp)
 
