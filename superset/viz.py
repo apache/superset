@@ -170,10 +170,20 @@ class BaseViz(object):
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
+
+            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
         return df
+
+    @staticmethod
+    def df_metrics_to_num(df, metrics):
+        """Converting metrics to numeric when pandas.read_sql cannot"""
+        for col, dtype in df.dtypes.items():
+            if dtype.type == np.object_ and col in metrics:
+                df[col] = pd.to_numeric(df[col])
 
     def query_obj(self):
         """Building a query object"""
@@ -1060,7 +1070,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         df = df.fillna(0)
         if fd.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
-
         if not aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
@@ -1384,7 +1393,7 @@ class DistributionBarViz(DistributionPieViz):
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         chart_data = []
-        for name, ys in pt.iteritems():
+        for name, ys in pt.items():
             if pt[name].dtype.kind not in 'biufc' or name in self.groupby:
                 continue
             if isinstance(name, string_types):
@@ -1395,7 +1404,7 @@ class DistributionBarViz(DistributionPieViz):
                 l = [str(s) for s in name[1:]]  # noqa: E741
                 series_title = ', '.join(l)
             values = []
-            for i, v in ys.iteritems():
+            for i, v in ys.items():
                 x = i
                 if isinstance(x, (tuple, list)):
                     x = ', '.join([text_type(s) for s in x])
