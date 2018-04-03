@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import URLShortLinkButton from './URLShortLinkButton';
+import URLShortLinkButton from '../../components/URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
 import { t } from '../../locales';
@@ -25,7 +25,7 @@ export default function ExploreActionButtons({
   return (
     <div className="btn-group results" role="group">
       {latestQueryFormData &&
-        <URLShortLinkButton latestQueryFormData={latestQueryFormData} />}
+        <URLShortLinkButton context={latestQueryFormData} type="Slice"/>}
 
       {latestQueryFormData &&
         <EmbedCodeButton latestQueryFormData={latestQueryFormData} />}
