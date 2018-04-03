@@ -1102,7 +1102,7 @@ class DruidDatasource(Model, BaseDatasource):
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
 
-        timezone = from_dttm.tzname() if from_dttm else None
+        timezone = from_dttm.replace(tzinfo=DRUID_TZ).tzname() if from_dttm else None
 
         query_str = ''
         metrics_dict = {m.metric_name: m for m in self.metrics}
