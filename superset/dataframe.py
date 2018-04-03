@@ -86,7 +86,6 @@ class SupersetDataFrame(object):
             }
         except Exception as e:
             logging.exception(e)
-        self.df = df.where((pd.notnull(df)), None)
 
     @property
     def size(self):
