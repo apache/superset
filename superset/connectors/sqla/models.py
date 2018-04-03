@@ -278,6 +278,15 @@ class SqlaTable(Model, BaseDatasource):
     export_parent = 'database'
     export_children = ['metrics', 'columns']
 
+    sqla_aggregations = {
+        'COUNT_DISTINCT': lambda column_name: sa.func.COUNT(sa.distinct(column_name)),
+        'COUNT': sa.func.COUNT,
+        'SUM': sa.func.SUM,
+        'AVG': sa.func.AVG,
+        'MIN': sa.func.MIN,
+        'MAX': sa.func.MAX,
+    }
+
     def __repr__(self):
         return self.name
 
@@ -436,6 +445,12 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
+    def adhoc_metric_to_sa(self, metric):
+        column_name = metric.get('column').get('column_name')
+        sa_metric = self.sqla_aggregations[metric.get('aggregate')](column(column_name))
+        sa_metric = sa_metric.label(metric.get('label'))
+        return sa_metric
+
     def get_sqla_query(  # sqla
             self,
             groupby, metrics,
@@ -484,10 +499,14 @@ class SqlaTable(Model, BaseDatasource):
                 'and is required by this type of chart'))
         if not groupby and not metrics and not columns:
             raise Exception(_('Empty query?'))
+        metrics_exprs = []
         for m in metrics:
-            if m not in metrics_dict:
+            if utils.is_adhoc_metric(m):
+                metrics_exprs.append(self.adhoc_metric_to_sa(m))
+            elif m in metrics_dict:
+                metrics_exprs.append(metrics_dict.get(m).sqla_col)
+            else:
                 raise Exception(_("Metric '{}' is not valid".format(m)))
-        metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
         if metrics_exprs:
             main_metric_expr = metrics_exprs[0]
         else:

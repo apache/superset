@@ -17,6 +17,7 @@ import TextControl from './TextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
+import MetricsControl from './MetricsControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -38,5 +39,6 @@ const controlMap = {
   TimeSeriesColumnControl,
   ViewportControl,
   VizTypeControl,
+  MetricsControl,
 };
 export default controlMap;
