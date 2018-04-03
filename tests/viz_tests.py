@@ -77,6 +77,8 @@ class BaseVizTestCase(unittest.TestCase):
         results.df.empty = False
         datasource.query = Mock(return_value=results)
         test_viz = viz.BaseViz(datasource, form_data)
+
+        test_viz.df_metrics_to_num = Mock()
         test_viz.get_fillna_for_columns = Mock(return_value=0)
         test_viz.get_df(query_obj)
         mock_call = df.__setitem__.mock_calls[0]
