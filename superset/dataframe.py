@@ -73,13 +73,8 @@ class SupersetDataFrame(object):
         self.column_names = dedup(
             db_engine_spec.get_normalized_column_names(cursor_description))
 
-        # check whether the result set has any nested dict columns
-        if data:
-            has_dict_col = any([isinstance(c, dict) for c in data[0]])
-            df_data = list(data) if has_dict_col else np.array(data, dtype=object)
-        else:
-            df_data = []
-        df = pd.DataFrame(df_data, columns=column_names)
+        data = data or []
+        df = pd.DataFrame(list(data), columns=column_names).infer_objects()
 
         self._type_dict = {}
         try:
