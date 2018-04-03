@@ -31,6 +31,7 @@ const propTypes = {
   onHide: PropTypes.func,
   query: PropTypes.object,
   show: PropTypes.bool,
+  schema: PropTypes.string,
   datasource: PropTypes.string,
   errorMessage: PropTypes.string,
   timeout: PropTypes.number,
@@ -48,6 +49,7 @@ class VisualizeModal extends React.PureComponent {
       chartType: CHART_TYPES[0],
       datasourceName: this.datasourceName(),
       columns: this.getColumnFromProps(),
+      schema: props.query ? props.query.schema : null,
       hints: [],
     };
   }
@@ -126,6 +128,7 @@ class VisualizeModal extends React.PureComponent {
   buildVizOptions() {
     return {
       chartType: this.state.chartType.value,
+      schema: this.state.schema,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
       sql: this.props.query.sql,

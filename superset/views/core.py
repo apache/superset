@@ -2160,6 +2160,7 @@ class Superset(BaseSupersetView):
         if not table:
             table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
+        table.schema = data.get('schema')
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
