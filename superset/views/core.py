@@ -48,9 +48,10 @@ from superset.utils import (
 )
 from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin,
+    get_datasource_access_error_msg,
     generate_download_headers, get_error_msg, get_user_roles,
-    json_error_response, SupersetFilter, SupersetModelView, YamlExportMixin,
-    get_datasource_access_error_msg, get_database_access_error_msg,
+    json_error_response, json_success,
+    SupersetFilter, SupersetModelView, YamlExportMixin,
 )
 from .utils import bootstrap_user_data
 
@@ -82,10 +83,6 @@ if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
         'js_onclick_href',
         'js_data_mutator',
     ]
-
-
-def json_success(json_msg, status=200):
-    return Response(json_msg, status=status, mimetype='application/json')
 
 
 def is_owner(obj, user):

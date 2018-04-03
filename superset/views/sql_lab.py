@@ -14,15 +14,15 @@ from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
-from superset import app, appbuilder, db, utils, security_manager, sql_lab
+from superset import app, appbuilder, db, security_manager, sql_lab, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 import superset.models.core as models
 from superset.models.sql_lab import Query, SavedQuery
 from superset.sql_parse import SupersetQuery
 from superset.utils import QueryStatus
 from .base import (
-    BaseSupersetView, DeleteMixin, SupersetModelView, json_error_response,
-    json_success, get_datasource_access_error_msg,
+    BaseSupersetView, DeleteMixin, get_datasource_access_error_msg,
+    json_error_response, json_success, SupersetModelView,
 )
 
 config = app.config
