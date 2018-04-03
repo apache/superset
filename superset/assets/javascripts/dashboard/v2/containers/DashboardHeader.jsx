@@ -10,11 +10,14 @@ import {
   handleComponentDrop,
 } from '../actions/dashboardLayout';
 
-function mapStateToProps({ dashboardLayout: undoableLayout }) {
+import { setEditMode } from '../actions/editMode';
+
+function mapStateToProps({ dashboardLayout: undoableLayout, editMode }) {
   return {
     component: undoableLayout.present[DASHBOARD_HEADER_ID],
     canUndo: undoableLayout.past.length > 0,
     canRedo: undoableLayout.future.length > 0,
+    editMode,
   };
 }
 
@@ -24,6 +27,7 @@ function mapDispatchToProps(dispatch) {
     handleComponentDrop,
     onUndo: UndoActionCreators.undo,
     onRedo: UndoActionCreators.redo,
+    setEditMode,
   }, dispatch);
 }
 

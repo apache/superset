@@ -14,4 +14,4 @@ function mapDispatchToProps(dispatch) {
   }, dispatch);
 }
 
-export default connect(null, mapDispatchToProps)(DashboardGrid);
+export default connect(({ editMode }) => ({ editMode }), mapDispatchToProps)(DashboardGrid);

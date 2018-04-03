@@ -22,6 +22,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
+  editMode: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -90,6 +91,7 @@ class Row extends React.PureComponent {
       onResize,
       onResizeStop,
       handleComponentDrop,
+      editMode,
     } = this.props;
 
     const rowItems = rowComponent.children || [];
@@ -106,6 +108,7 @@ class Row extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
+        editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <WithPopoverMenu
@@ -119,6 +122,7 @@ class Row extends React.PureComponent {
                 onChange={this.handleChangeBackground}
               />,
             ]}
+            editMode={editMode}
           >
             <div
               className={cx(
@@ -127,14 +131,15 @@ class Row extends React.PureComponent {
                 backgroundStyle.className,
               )}
             >
-              <HoverMenu innerRef={dragSourceRef} position="left">
-                <DragHandle position="left" />
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-                <IconButton
-                  onClick={this.handleChangeFocus}
-                  className="fa fa-cog"
-                />
-              </HoverMenu>
+              {editMode &&
+                <HoverMenu innerRef={dragSourceRef} position="left">
+                  <DragHandle position="left" />
+                  <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+                  <IconButton
+                    onClick={this.handleChangeFocus}
+                    className="fa fa-cog"
+                  />
+                </HoverMenu>}
 
               {rowItems.map((componentId, itemIndex) => (
                 <DashboardComponent

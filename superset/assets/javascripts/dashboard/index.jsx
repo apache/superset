@@ -25,6 +25,7 @@ const initState = {
     present: emptyDashboardLayout,
     future: [],
   },
+  editMode: true,
 };
 
 const store = createStore(

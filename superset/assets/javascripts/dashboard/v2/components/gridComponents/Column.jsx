@@ -24,6 +24,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
+  editMode: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -90,6 +91,7 @@ class Column extends React.PureComponent {
       onResize,
       onResizeStop,
       handleComponentDrop,
+      editMode,
     } = this.props;
 
     const columnItems = columnComponent.children || [];
@@ -105,6 +107,7 @@ class Column extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
+        editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <ResizableContainer
@@ -118,6 +121,7 @@ class Column extends React.PureComponent {
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
+            editMode={editMode}
           >
             <WithPopoverMenu
               isFocused={this.state.isFocused}
@@ -130,6 +134,7 @@ class Column extends React.PureComponent {
                   onChange={this.handleChangeBackground}
                 />,
               ]}
+              editMode={editMode}
             >
               <div
                 className={cx(
@@ -138,14 +143,15 @@ class Column extends React.PureComponent {
                   backgroundStyle.className,
                 )}
               >
-                <HoverMenu innerRef={dragSourceRef} position="top">
-                  <DragHandle position="top" />
-                  <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-                  <IconButton
-                    onClick={this.handleChangeFocus}
-                    className="fa fa-cog"
-                  />
-                </HoverMenu>
+                {editMode &&
+                  <HoverMenu innerRef={dragSourceRef} position="top">
+                    <DragHandle position="top" />
+                    <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+                    <IconButton
+                      onClick={this.handleChangeFocus}
+                      className="fa fa-cog"
+                    />
+                  </HoverMenu>}
 
                 {columnItems.map((componentId, itemIndex) => (
                   <DashboardComponent

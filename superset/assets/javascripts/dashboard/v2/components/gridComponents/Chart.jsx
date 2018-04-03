@@ -9,10 +9,7 @@ import ResizableContainer from '../resizable/ResizableContainer';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
 import { ROW_TYPE } from '../../util/componentTypes';
-import {
-  GRID_MIN_COLUMN_COUNT,
-  GRID_MIN_ROW_UNITS,
-} from '../../util/constants';
+import { GRID_MIN_COLUMN_COUNT, GRID_MIN_ROW_UNITS } from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -21,6 +18,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
+  editMode: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -71,6 +69,7 @@ class Chart extends React.Component {
       onResize,
       onResizeStop,
       handleComponentDrop,
+      editMode,
     } = this.props;
 
     return (
@@ -82,6 +81,7 @@ class Chart extends React.Component {
         depth={depth}
         onDrop={handleComponentDrop}
         disableDragDrop={isFocused}
+        editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <ResizableContainer
@@ -97,16 +97,19 @@ class Chart extends React.Component {
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
+            editMode={editMode}
           >
-            <HoverMenu innerRef={dragSourceRef} position="top">
-              <DragHandle position="top" />
-            </HoverMenu>
+            {editMode &&
+              <HoverMenu innerRef={dragSourceRef} position="top">
+                <DragHandle position="top" />
+              </HoverMenu>}
 
             <WithPopoverMenu
               onChangeFocus={this.handleChangeFocus}
               menuItems={[
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
               ]}
+              editMode={editMode}
             >
               <div className="dashboard-component dashboard-component-chart">
                 <div className="fa fa-area-chart" />

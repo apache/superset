@@ -22,7 +22,8 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
-  renderTabContent: PropTypes.bool,
+  renderTabContent: PropTypes.bool, // whether to render tabs + content or just tabs
+  editMode: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -130,6 +131,7 @@ class Tabs extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       renderTabContent,
+      editMode,
     } = this.props;
 
     const { tabIndex: selectedTabIndex } = this.state;
@@ -143,13 +145,15 @@ class Tabs extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
+        editMode={editMode}
       >
         {({ dropIndicatorProps: tabsDropIndicatorProps, dragSourceRef: tabsDragSourceRef }) => (
           <div className="dashboard-component dashboard-component-tabs">
-            <HoverMenu innerRef={tabsDragSourceRef} position="left">
-              <DragHandle position="left" />
-              <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-            </HoverMenu>
+            {editMode &&
+              <HoverMenu innerRef={tabsDragSourceRef} position="left">
+                <DragHandle position="left" />
+                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+              </HoverMenu>}
 
             <BootstrapTabs
               id={tabsComponent.id}
@@ -200,11 +204,12 @@ class Tabs extends React.PureComponent {
                 </BootstrapTab>
               ))}
 
-              {tabIds.length < MAX_TAB_COUNT &&
-                <BootstrapTab
-                  eventKey={NEW_TAB_INDEX}
-                  title={<div className="fa fa-plus" />}
-                />}
+              {editMode &&
+                tabIds.length < MAX_TAB_COUNT &&
+                  <BootstrapTab
+                    eventKey={NEW_TAB_INDEX}
+                    title={<div className="fa fa-plus" />}
+                  />}
 
             </BootstrapTabs>
 

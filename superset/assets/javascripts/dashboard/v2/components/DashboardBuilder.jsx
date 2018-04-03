@@ -1,3 +1,4 @@
+import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 import HTML5Backend from 'react-dnd-html5-backend';
@@ -18,11 +19,10 @@ import {
 } from '../util/constants';
 
 const propTypes = {
-  editMode: PropTypes.bool,
-
   // redux
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
+  editMode: PropTypes.bool.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
@@ -52,7 +52,7 @@ class DashboardBuilder extends React.Component {
 
   render() {
     const { tabIndex } = this.state;
-    const { handleComponentDrop, dashboardLayout, deleteTopLevelTabs } = this.props;
+    const { handleComponentDrop, dashboardLayout, deleteTopLevelTabs, editMode } = this.props;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
     const topLevelTabs = rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
@@ -64,8 +64,8 @@ class DashboardBuilder extends React.Component {
     const gridComponent = dashboardLayout[gridComponentId];
 
     return (
-      <div className="dashboard-v2">
-        {topLevelTabs ? ( // you cannot drop on/displace tabs if they already exist
+      <div className={cx('dashboard-v2', editMode && 'dashboard-v2--editing')}>
+        {topLevelTabs || !editMode ? ( // you cannot drop on/displace tabs if they already exist
           <DashboardHeader />
         ) : (
           <DragDroppable
@@ -75,6 +75,7 @@ class DashboardBuilder extends React.Component {
             index={0}
             orientation="column"
             onDrop={handleComponentDrop}
+            editMode
           >
             {({ dropIndicatorProps }) => (
               <div>
@@ -94,6 +95,7 @@ class DashboardBuilder extends React.Component {
                 onClick={deleteTopLevelTabs}
               />,
             ]}
+            editMode={editMode}
           >
             <DashboardComponent
               id={topLevelTabs.id}
@@ -105,12 +107,12 @@ class DashboardBuilder extends React.Component {
             />
           </WithPopoverMenu>}
 
-        <div className="dashboard-builder">
+        <div className="dashboard-content">
           <DashboardGrid
             gridComponent={gridComponent}
             depth={DASHBOARD_ROOT_DEPTH + 1}
           />
-          <BuilderComponentPane />
+          {editMode && <BuilderComponentPane />}
         </div>
       </div>
     );
