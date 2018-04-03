@@ -10,9 +10,11 @@ const propTypes = {
   runQuery: PropTypes.func.isRequired,
   selectedText: PropTypes.string,
   stopQuery: PropTypes.func.isRequired,
+  sql: PropTypes.string.isRequired,
 };
 const defaultProps = {
   allowAsync: false,
+  sql: '',
 };
 
 export default function RunQueryActionButton(props) {
