@@ -365,6 +365,10 @@ export const initialState = {
     workspaceQueries: [],
     queriesLastUpdate: 0,
     activeSouthPaneTab: 'Results',
+    constants: {
+      defaultQueryLimit: 10000,
+      maxRow: 100000,
+    },
   },
   messageToasts: [],
 };

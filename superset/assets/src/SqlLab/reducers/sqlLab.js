@@ -32,6 +32,8 @@ export default function sqlLabReducer(state = {}, action) {
         schema: action.query.schema ? action.query.schema : null,
         autorun: true,
         sql: action.query.sql,
+        queryLimit: action.query.queryLimit,
+        maxRow: action.query.maxRow,
       };
 
       return sqlLabReducer(state, actions.addQueryEditor(qe));
@@ -203,6 +205,9 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
+    },
+    [actions.QUERY_EDITOR_SET_QUERY_LIMIT]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { queryLimit: action.queryLimit });
     },
     [actions.QUERY_EDITOR_SET_TEMPLATE_PARAMS]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, {

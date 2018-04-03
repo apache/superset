@@ -11,6 +11,7 @@ export default function getInitialState({ defaultDbId, ...restBootstrapData }) {
     latestQueryId: null,
     autorun: false,
     dbId: defaultDbId,
+    queryLimit: defaultQueryLimit,
   };
 
   return {

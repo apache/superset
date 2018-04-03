@@ -1,5 +1,6 @@
 import React from 'react';
 import { createStore, compose, applyMiddleware } from 'redux';
+import persistState from 'redux-localstorage';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
 import { hot } from 'react-hot-loader';
@@ -38,6 +39,14 @@ const sqlLabPersistStateConfig = {
     },
   },
 };
+
+function loadConstants() {
+  return (storedState) => {
+    const newState = Object.assign({}, storedState);
+    newState.sqlLab.constants = state.constants;
+    return newState;
+  };
+}
 
 const store = createStore(
   rootReducer,
