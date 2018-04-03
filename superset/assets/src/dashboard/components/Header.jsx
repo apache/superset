@@ -94,7 +94,7 @@ class Header extends React.PureComponent {
         </div>
         <div className="pull-right" style={{ marginTop: '35px' }}>
           <span className="m-r-5">
-            <URLShortLinkButton context={dashboard} type="Dashboard"/>
+            <URLShortLinkButton context={dashboard} type="Dashboard" />
           </span>
           {this.renderEditButton()}
           <Controls

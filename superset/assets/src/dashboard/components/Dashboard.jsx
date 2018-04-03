@@ -84,27 +84,6 @@ class Dashboard extends React.PureComponent {
     this.addHistory = this.addHistory.bind(this);
   }
 
-  addHistory({ isReplace = false, title }) {
-    const payload = {...this.props.dashboard.metadata};
-    const longUrl = getDashboardLongUrl(this.props.dashboard);
-    if (isReplace) {
-      history.replaceState(
-        payload,
-        title,
-        longUrl);
-    } else {
-      history.pushState(
-        payload,
-        title,
-        longUrl);
-    }
-    
-    // it seems some browsers don't support pushState title attribute
-    if (title) {
-      document.title = title;
-    }
-  }
-
   componentDidMount() {
     window.addEventListener('resize', this.rerenderCharts);
     this.addHistory({ isReplace: true });
@@ -175,6 +154,27 @@ class Dashboard extends React.PureComponent {
 
   getFilters(sliceId) {
     return this.props.filters[sliceId];
+  }
+
+  addHistory({ isReplace = false, title }) {
+    const payload = { ...this.props.dashboard.metadata };
+    const longUrl = getDashboardLongUrl(this.props.dashboard);
+    if (isReplace) {
+      history.replaceState(
+        payload,
+        title,
+        longUrl);
+    } else {
+      history.pushState(
+        payload,
+        title,
+        longUrl);
+    }
+
+    // it seems some browsers don't support pushState title attribute
+    if (title) {
+      document.title = title;
+    }
   }
 
   unload() {
