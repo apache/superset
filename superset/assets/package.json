@@ -59,6 +59,7 @@
     "datamaps": "^0.5.8",
     "datatables.net-bs": "^1.10.15",
     "deck.gl": "^5.0.1",
+    "deep-equal": "^1.0.1",
     "distributions": "^1.0.0",
     "dompurify": "^1.0.3",
     "fastdom": "^1.0.6",
