@@ -23,6 +23,7 @@ const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
   onChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
+  onResize: PropTypes.func.isRequired,
   columns: PropTypes.arrayOf(columnType),
   datasourceType: PropTypes.string,
 };
@@ -30,6 +31,9 @@ const propTypes = {
 const defaultProps = {
   columns: [],
 };
+
+const startingWidth = 300;
+const startingHeight = 180;
 
 export default class AdhocMetricEditPopover extends React.Component {
   constructor(props) {
@@ -39,7 +43,16 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.onAggregateChange = this.onAggregateChange.bind(this);
     this.onSqlExpressionChange = this.onSqlExpressionChange.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
-    this.state = { adhocMetric: this.props.adhocMetric }; this.selectProps = { multi: false,
+    this.onDragDown = this.onDragDown.bind(this);
+    this.onMouseMove = this.onMouseMove.bind(this);
+    this.onMouseUp = this.onMouseUp.bind(this);
+    this.state = {
+      adhocMetric: this.props.adhocMetric,
+      width: startingWidth,
+      height: startingHeight,
+    };
+    this.selectProps = {
+      multi: false,
       name: 'select-column',
       labelKey: 'label',
       autosize: false,
@@ -57,6 +70,12 @@ export default class AdhocMetricEditPopover extends React.Component {
       };
       langTools.setCompleters([completer]);
     }
+    document.addEventListener('mouseup', this.onMouseUp);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('mouseup', this.onMouseUp);
+    document.removeEventListener('mousemove', this.onMouseMove);
   }
 
   onSave() {
@@ -73,17 +92,21 @@ export default class AdhocMetricEditPopover extends React.Component {
 
   onAggregateChange(aggregate) {
     // we construct this object explicitly to overwrite the value in the case aggregate is null
-    this.setState({ adhocMetric: this.state.adhocMetric.duplicateWith({
-      aggregate: aggregate && aggregate.aggregate,
-      expressionType: EXPRESSION_TYPES.SIMPLE,
-    }) });
+    this.setState({
+      adhocMetric: this.state.adhocMetric.duplicateWith({
+        aggregate: aggregate && aggregate.aggregate,
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+      }),
+    });
   }
 
   onSqlExpressionChange(sqlExpression) {
-    this.setState({ adhocMetric: this.state.adhocMetric.duplicateWith({
-      sqlExpression,
-      expressionType: EXPRESSION_TYPES.SQL,
-    }) });
+    this.setState({
+      adhocMetric: this.state.adhocMetric.duplicateWith({
+        sqlExpression,
+        expressionType: EXPRESSION_TYPES.SQL,
+      }),
+    });
   }
 
   onLabelChange(e) {
@@ -94,12 +117,33 @@ export default class AdhocMetricEditPopover extends React.Component {
     });
   }
 
+  onDragDown(e) {
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.dragStartWidth = this.state.width;
+    this.dragStartHeight = this.state.height;
+    document.addEventListener('mousemove', this.onMouseMove);
+  }
+
+  onMouseMove(e) {
+    this.props.onResize();
+    this.setState({
+      width: Math.max(this.dragStartWidth + (e.clientX - this.dragStartX), startingWidth),
+      height: Math.max(this.dragStartHeight + (e.clientY - this.dragStartY) * 2, startingHeight),
+    });
+  }
+
+  onMouseUp() {
+    document.removeEventListener('mousemove', this.onMouseMove);
+  }
+
   render() {
     const {
       adhocMetric: propsAdhocMetric,
       columns,
       onChange,
       onClose,
+      onResize,
       datasourceType,
       ...popoverProps
     } = this.props;
@@ -143,7 +187,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     );
 
     const stateIsValid = adhocMetric.isValid();
-    const hasUnsavedChanges = adhocMetric.equals(propsAdhocMetric);
+    const hasUnsavedChanges = !adhocMetric.equals(propsAdhocMetric);
 
     return (
       <Popover
@@ -155,6 +199,7 @@ export default class AdhocMetricEditPopover extends React.Component {
           id="adhoc-metric-edit-tabs"
           defaultActiveKey={adhocMetric.expressionType}
           className="adhoc-metric-edit-tabs"
+          style={{ height: this.state.height, width: this.state.width }}
         >
           <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SIMPLE} title="Simple">
             <FormGroup>
@@ -173,7 +218,7 @@ export default class AdhocMetricEditPopover extends React.Component {
                 <AceEditor
                   mode="sql"
                   theme="github"
-                  height="120px"
+                  height={(this.state.height - 40) + 'px'}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
                   showGutter={false}
@@ -185,18 +230,22 @@ export default class AdhocMetricEditPopover extends React.Component {
             </Tab>
           }
         </Tabs>
-        <Button
-          disabled={!stateIsValid}
-          bsStyle={(hasUnsavedChanges || !stateIsValid) ? 'default' : 'primary'}
-          bsSize="small"
-          className="m-r-5"
-          onClick={this.onSave}
-        >
-          Save
-        </Button>
-        <Button bsSize="small" onClick={this.props.onClose}>Close</Button>
+        <div>
+          <Button
+            disabled={!stateIsValid}
+            bsStyle={(hasUnsavedChanges && stateIsValid) ? 'primary' : 'default'}
+            bsSize="small"
+            className="m-r-5"
+            onClick={this.onSave}
+          >
+            Save
+          </Button>
+          <Button bsSize="small" onClick={this.props.onClose}>Close</Button>
+          <i onMouseDown={this.onDragDown} className="glyphicon glyphicon-resize-full edit-popover-resize" />
+        </div>
       </Popover>
     );
   }
-} AdhocMetricEditPopover.propTypes = propTypes;
+}
+AdhocMetricEditPopover.propTypes = propTypes;
 AdhocMetricEditPopover.defaultProps = defaultProps;

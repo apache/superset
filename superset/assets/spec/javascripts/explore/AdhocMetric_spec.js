@@ -96,7 +96,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric2.label).to.equal('label1');
   });
 
-  it('can determines if it is valid', () => {
+  it('can determine if it is valid', () => {
     const adhocMetric1 = new AdhocMetric({
       expressionType: EXPRESSION_TYPES.SIMPLE,
       column: valueColumn,
@@ -145,7 +145,7 @@ describe('AdhocMetric', () => {
     expect(adhocMetric5.isValid()).to.be.false;
   });
 
-  it('can translate back from sql expressions to simple expressions', () => {
+  it('can translate back from sql expressions to simple expressions when possible', () => {
     const adhocMetric = new AdhocMetric({
       expressionType: EXPRESSION_TYPES.SQL,
       sqlExpression: 'AVG(my_column)',
@@ -161,8 +161,8 @@ describe('AdhocMetric', () => {
       hasCustomLabel: true,
       label: 'label1',
     });
-    expect(adhocMetric2.inferSqlExpressionColumn()).to.equal('my_column');
-    expect(adhocMetric2.inferSqlExpressionAggregate()).to.equal('AVG');
+    expect(adhocMetric2.inferSqlExpressionColumn()).to.equal(null);
+    expect(adhocMetric2.inferSqlExpressionAggregate()).to.equal(null);
   });
 
   it('will infer columns and aggregates when converting to a simple expression', () => {

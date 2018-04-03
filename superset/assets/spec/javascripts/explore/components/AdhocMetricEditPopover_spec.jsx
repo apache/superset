@@ -99,4 +99,15 @@ describe('AdhocMetricEditPopover', () => {
     wrapper.instance().onColumnChange({ column: columns[1] });
     expect(wrapper.find(Button).find({ bsStyle: 'primary' })).to.have.lengthOf(1);
   });
+
+  it('will initiate a drag when clicked', () => {
+    const { wrapper } = setup();
+    wrapper.instance().onDragDown = sinon.spy();
+    wrapper.instance().forceUpdate();
+
+    expect(wrapper.find('i.glyphicon-resize-full')).to.have.lengthOf(1);
+    expect(wrapper.instance().onDragDown.calledOnce).to.be.false;
+    wrapper.find('i.glyphicon-resize-full').simulate('mouseDown');
+    expect(wrapper.instance().onDragDown.calledOnce).to.be.true;
+  });
 });
