@@ -215,6 +215,7 @@ class SqlEditor extends React.PureComponent {
                 runQuery={this.runQuery}
                 selectedText={qe.selectedText}
                 stopQuery={this.stopQuery}
+                sql={this.state.sql}
               />
             </span>
             <span className="m-r-5">
