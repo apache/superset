@@ -2048,6 +2048,7 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_properties(self, d):
         return {
+            'metric': d.get(self.metric),
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
