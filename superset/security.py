@@ -211,7 +211,7 @@ class SupersetSecurityManager(SecurityManager):
             full_names = {d.full_name for d in user_datasources}
             return [d for d in datasource_names if d in full_names]
 
-    def merge_perm(self, permission_name, view_menu_name):
+    def merge_perm(self, view_menu_name, permission_name):
         # Implementation copied from sm.find_permission_view_menu.
         # TODO: use sm.find_permission_view_menu once issue
         #       https://github.com/airbnb/superset/issues/1944 is resolved.
