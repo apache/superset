@@ -25,7 +25,7 @@ export default function ExploreActionButtons({
   return (
     <div className="btn-group results" role="group">
       {latestQueryFormData &&
-        <URLShortLinkButton context={latestQueryFormData} type="Slice" />}
+        <URLShortLinkButton context={latestQueryFormData} type="Chart" />}
 
       {latestQueryFormData &&
         <EmbedCodeButton latestQueryFormData={latestQueryFormData} />}
