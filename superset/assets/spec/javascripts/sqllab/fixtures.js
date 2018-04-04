@@ -197,7 +197,7 @@ export const queries = [
     rows: 42,
     endDttm: 1476910566798,
     limit_reached: false,
-    schema: null,
+    schema: 'test_schema',
     errorMessage: null,
     db: 'main',
     user: 'admin',
