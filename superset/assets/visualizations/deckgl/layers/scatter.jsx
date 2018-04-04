@@ -4,37 +4,24 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 
-import { ScatterplotLayer } from 'deck.gl';
+import {
+  ScatterplotLayer
+} from 'deck.gl';
 
 import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
 import Legend from '../../Legend';
 
 import * as common from './common';
-import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
-import { unitToRadius } from '../../../javascripts/modules/geo';
+import {
+  getColorFromScheme,
+  hexToRGB
+} from '../../../javascripts/modules/colors';
+import {
+  unitToRadius
+} from '../../../javascripts/modules/geo';
+import parseIsoDuration from 'parse-iso-duration';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
-function getStep(timeGrain) {
-  // grain in milliseconds
-  const MINUTE = 60 * 1000;
-  const HOUR = 60 * MINUTE;
-  const DAY = 24 * HOUR;
-  const WEEK = 7 * DAY;
-  const MONTH = 30 * DAY;
-  const YEAR = 365 * DAY;
-
-  const milliseconds = {
-    'Time Column': MINUTE,
-    min: MINUTE,
-    hour: HOUR,
-    day: DAY,
-    week: WEEK,
-    month: MONTH,
-    year: YEAR,
-  };
-
-  return milliseconds[timeGrain];
-}
 
 function getPoints(data) {
   return data.map(d => d.position);
@@ -42,7 +29,12 @@ function getPoints(data) {
 
 function getCategories(formData, payload) {
   const fd = formData;
-  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const c = fd.color_picker || {
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 1
+  };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const categories = {};
 
@@ -54,7 +46,10 @@ function getCategories(formData, payload) {
       } else {
         color = fixedColor;
       }
-      categories[d.cat_color] = { color, enabled: true };
+      categories[d.cat_color] = {
+        color,
+        enabled: true
+      };
     }
   });
   return categories;
@@ -62,7 +57,12 @@ function getCategories(formData, payload) {
 
 function getLayer(formData, payload, slice, filters) {
   const fd = formData;
-  const c = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
+  const c = fd.color_picker || {
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 1
+  };
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
 
   let data = payload.data.features.map((d) => {
@@ -117,7 +117,7 @@ class DeckGLScatter extends React.PureComponent {
   /* eslint-disable no-unused-vars */
   static getDerivedStateFromProps(nextProps, prevState) {
     const fd = nextProps.slice.formData;
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'min';
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
 
     // find start and end based on the data
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
@@ -125,7 +125,7 @@ class DeckGLScatter extends React.PureComponent {
     let end = Math.max(...timestamps);
 
     // lock start and end to the closest steps
-    const step = getStep(timeGrain);
+    const step = parseIsoDuration(timeGrain);
     start -= start % step;
     end += step - end % step;
 
@@ -134,7 +134,14 @@ class DeckGLScatter extends React.PureComponent {
 
     const categories = getCategories(fd, nextProps.payload);
 
-    return { start, end, step, values, disabled, categories };
+    return {
+      start,
+      end,
+      step,
+      values,
+      disabled,
+      categories
+    };
   }
   constructor(props) {
     super(props);
@@ -173,22 +180,33 @@ class DeckGLScatter extends React.PureComponent {
   toggleCategory(category) {
     const categoryState = this.state.categories[category];
     categoryState.enabled = !categoryState.enabled;
-    const categories = { ...this.state.categories, [category]: categoryState };
+    const categories = { ...this.state.categories,
+      [category]: categoryState
+    };
 
     // if all categories are disabled, enable all -- similar to nvd3
     if (Object.values(categories).every(v => !v.enabled)) {
       /* eslint-disable no-param-reassign */
-      Object.values(categories).forEach((v) => { v.enabled = true; });
+      Object.values(categories).forEach((v) => {
+        v.enabled = true;
+      });
     }
 
-    this.setState({ categories });
+    this.setState({
+      categories
+    });
   }
   showSingleCategory(category) {
-    const categories = { ...this.state.categories };
+    const categories = { ...this.state.categories
+    };
     /* eslint-disable no-param-reassign */
-    Object.values(categories).forEach((v) => { v.enabled = false; });
+    Object.values(categories).forEach((v) => {
+      v.enabled = false;
+    });
     categories[category].enabled = true;
-    this.setState({ categories });
+    this.setState({
+      categories
+    });
   }
   render() {
     return (
