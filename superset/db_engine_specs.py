@@ -1230,7 +1230,7 @@ class BQEngineSpec(BaseEngineSpec):
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), 'TIMESTAMP_TRUNC({col}, SECOND)', 'PT1S'),
         Grain('minute', _('minute'), 'TIMESTAMP_TRUNC({col}, MINUTE)', 'PT1M'),
-        Grain('hour', _('hour'), 'TIMESTAMP_TRUNC({col}, HOUR)', 'PT1H',),
+        Grain('hour', _('hour'), 'TIMESTAMP_TRUNC({col}, HOUR)', 'PT1H'),
         Grain('day', _('day'), 'TIMESTAMP_TRUNC({col}, DAY)', 'P1D'),
         Grain('week', _('week'), 'TIMESTAMP_TRUNC({col}, WEEK)', 'P1W'),
         Grain('month', _('month'), 'TIMESTAMP_TRUNC({col}, MONTH)', 'P1M'),
