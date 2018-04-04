@@ -118,9 +118,16 @@ export const visTypes = {
           ['color_scheme'],
           ['show_legend', 'show_bar_value'],
           ['bar_stacked', 'order_bars'],
-          ['y_axis_format', 'bottom_margin'],
-          ['x_axis_label', 'y_axis_label'],
-          ['reduce_x_ticks', 'show_controls'],
+          ['y_axis_format', 'y_axis_label'],
+          ['show_controls', null],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'reduce_x_ticks'],
         ],
       },
     ],
@@ -182,7 +189,8 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['x_axis_label', 'bottom_margin'],
-          ['x_axis_showminmax', 'x_axis_format'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
         ],
       },
       {
@@ -312,13 +320,21 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Axes'),
+        label: t('X Axis'),
         expanded: true,
         controlSetRows: [
-          ['x_axis_format', 'y_axis_format'],
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
           ['x_axis_showminmax', 'reduce_x_ticks'],
-          ['x_axis_label', 'y_axis_label'],
-          ['y_axis_bounds', 'y_log_scale'],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_showminmax', 'y_log_scale'],
+          ['y_axis_format', 'y_axis_bounds'],
         ],
       },
       sections.NVD3TimeSeries[1],
@@ -342,7 +358,24 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['color_scheme'],
-          ['x_axis_format', 'y_axis_format'],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_showminmax', 'y_log_scale'],
+          ['y_axis_format', 'y_axis_bounds'],
         ],
       },
       sections.NVD3TimeSeries[1],
@@ -724,10 +757,18 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Axes'),
+        label: t('X Axis'),
         expanded: true,
         controlSetRows: [
-          ['x_axis_format', 'x_axis_showminmax'],
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        expanded: true,
+        controlSetRows: [
           ['y_axis_format', 'y_axis_bounds'],
           ['y_log_scale', null],
         ],
@@ -979,7 +1020,9 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['series', 'entity'],
-          ['size', 'limit'],
+          ['x', 'y'],
+          ['size', 'max_bubble_size'],
+          ['limit', null],
         ],
       },
       {
@@ -991,17 +1034,11 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Bubbles'),
-        controlSetRows: [
-          ['size', 'max_bubble_size'],
-        ],
-      },
-      {
         label: t('X Axis'),
         expanded: true,
         controlSetRows: [
           ['x_axis_label', 'left_margin'],
-          ['x', 'x_axis_format'],
+          ['x_axis_format', 'x_ticks_layout'],
           ['x_log_scale', 'x_axis_showminmax'],
         ],
       },
@@ -1010,7 +1047,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['y_axis_label', 'bottom_margin'],
-          ['y', 'y_axis_format'],
+          ['y_axis_format', null],
           ['y_log_scale', 'y_axis_showminmax'],
         ],
       },
