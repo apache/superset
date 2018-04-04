@@ -10,6 +10,7 @@ import DashboardGrid from '../containers/DashboardGrid';
 import IconButton from './IconButton';
 import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
+import ToastPresenter from '../containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import {
@@ -114,6 +115,7 @@ class DashboardBuilder extends React.Component {
           />
           {editMode && <BuilderComponentPane />}
         </div>
+        <ToastPresenter />
       </div>
     );
   }

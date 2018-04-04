@@ -36,9 +36,11 @@
   padding-right: 16px;
 }
 
-/* grids add margin between items, so don't double pad within columns
+/*
+ * grids add margin between items, so don't double pad within columns
  * we'll not worry about double padding on top as it can serve as a visual separator
  */
+// .grid-content > :not(:only-child):not(:last-child) .dashboard-component-header,
 .grid-column > :not(:only-child):not(:last-child) .dashboard-component-header {
   margin-bottom: -16px;
 }

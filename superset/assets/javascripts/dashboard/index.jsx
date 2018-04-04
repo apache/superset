@@ -19,6 +19,7 @@ initJQueryAjax();
 const appContainer = document.getElementById('app');
 // const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 // const initState = Object.assign({}, getInitialState(bootstrapData));
+
 const initState = {
   dashboardLayout: {
     past: [],
@@ -26,6 +27,12 @@ const initState = {
     future: [],
   },
   editMode: true,
+  messageToasts: [
+    { text: 'Info!', id: '157234', toastType: 'INFO_TOAST' },
+    { text: 'Success!', id: '1237545745', toastType: 'SUCCESS_TOAST' },
+    { text: 'Warning!', id: '154623', toastType: 'WARNING_TOAST' },
+    { text: 'Danger!', id: '9128346', toastType: 'DANGER_TOAST' },
+  ],
 };
 
 const store = createStore(
