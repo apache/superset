@@ -10,9 +10,11 @@ const propTypes = {
   runQuery: PropTypes.func.isRequired,
   selectedText: PropTypes.string,
   stopQuery: PropTypes.func.isRequired,
+  sql: PropTypes.string.isRequired,
 };
 const defaultProps = {
   allowAsync: false,
+  sql: '',
 };
 
 export default function RunQueryActionButton(props) {
@@ -32,6 +34,7 @@ export default function RunQueryActionButton(props) {
       onClick={() => props.runQuery(false)}
       key="run-btn"
       tooltip={t('Run query synchronously')}
+      disabled={!props.sql.trim()}
     >
       <i className="fa fa-refresh" /> {runBtnText}
     </Button>
@@ -43,6 +46,7 @@ export default function RunQueryActionButton(props) {
       onClick={() => props.runQuery(true)}
       key="run-async-btn"
       tooltip={t('Run query asynchronously')}
+      disabled={!props.sql.trim()}
     >
       <i className="fa fa-table" /> {runBtnText}
     </Button>

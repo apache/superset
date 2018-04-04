@@ -18,6 +18,7 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 const D3_FORMAT_OPTIONS = [
   ['.1s', '.1s | 12k'],
   ['.3s', '.3s | 12.3k'],
+  ['.1%', '.1% | 12.3%'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
   ['.3f', '.3f | 12345.432'],
@@ -1614,6 +1615,8 @@ export const controls = {
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
     default: defaultViewport,
+    // Viewport changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   viewport_zoom: {
