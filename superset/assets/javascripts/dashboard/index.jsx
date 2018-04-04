@@ -27,12 +27,7 @@ const initState = {
     future: [],
   },
   editMode: true,
-  messageToasts: [
-    { text: 'Info!', id: '157234', toastType: 'INFO_TOAST' },
-    { text: 'Success!', id: '1237545745', toastType: 'SUCCESS_TOAST' },
-    { text: 'Warning!', id: '154623', toastType: 'WARNING_TOAST' },
-    { text: 'Danger!', id: '9128346', toastType: 'DANGER_TOAST' },
-  ],
+  messageToasts: [],
 };
 
 const store = createStore(

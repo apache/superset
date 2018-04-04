@@ -138,7 +138,7 @@ class Header extends React.PureComponent {
               >
                 <EditableTitle
                   title={component.meta.text}
-                  canEdit={editMode && isFocused}
+                  canEdit={editMode}
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />

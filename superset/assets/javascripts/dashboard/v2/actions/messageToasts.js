@@ -6,6 +6,7 @@ function getToastUuid(type) {
 
 export const ADD_TOAST = 'ADD_TOAST';
 export function addToast({ toastType, text }) {
+  debugger;
   return {
     type: ADD_TOAST,
     payload: {
@@ -16,6 +17,17 @@ export function addToast({ toastType, text }) {
   };
 }
 
+export const REMOVE_TOAST = 'REMOVE_TOAST';
+export function removeToast(id) {
+  return {
+    type: REMOVE_TOAST,
+    payload: {
+      id,
+    },
+  };
+}
+
+// Different types of toasts
 export const ADD_INFO_TOAST = 'ADD_INFO_TOAST';
 export function addInfoToast(text) {
   return dispatch => dispatch(addToast({ text, toastType: INFO_TOAST }));
@@ -34,14 +46,4 @@ export function addWarningToast(text) {
 export const ADD_DANGER_TOAST = 'ADD_DANGER_TOAST';
 export function addDangerToast(text) {
   return dispatch => dispatch(addToast({ text, toastType: DANGER_TOAST }));
-}
-
-export const REMOVE_TOAST = 'REMOVE_TOAST';
-export function removeToast(id) {
-  return {
-    type: REMOVE_TOAST,
-    payload: {
-      id,
-    },
-  };
 }

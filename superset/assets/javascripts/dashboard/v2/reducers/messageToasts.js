@@ -3,8 +3,8 @@ import { ADD_TOAST, REMOVE_TOAST } from '../actions/messageToasts';
 export default function messageToastsReducer(toasts = [], action) {
   switch (action.type) {
     case ADD_TOAST: {
-      const { payload: { id, type, text } } = action;
-      return [...toasts, { id, type, text }];
+      const { payload: toast } = action;
+      return [toast, ...toasts];
     }
 
     case REMOVE_TOAST: {
