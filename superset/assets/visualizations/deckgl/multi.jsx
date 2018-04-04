@@ -8,7 +8,7 @@ import layerGenerators from './layers';
 
 
 function deckMulti(slice, payload, setControlValue) {
-  const subSlicesLayers = {}; // eslint-disable-line no-param-reassign
+  const subSlicesLayers = {};
   const fd = slice.formData;
   const render = () => {
     const viewport = {
@@ -48,7 +48,7 @@ function deckMulti(slice, payload, setControlValue) {
     const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
     $.get(url, (data) => {
       const layer = layerGenerators[subsliceCopy.form_data.viz_type](subsliceCopy.form_data, data);
-      subSlicesLayers[subsliceCopy.slice_id] = layer; // eslint-disable-line no-param-reassign
+      subSlicesLayers[subsliceCopy.slice_id] = layer;
       render();
     });
   });
