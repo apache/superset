@@ -1979,7 +1979,7 @@ export const controls = {
     validators: [v.nonEmpty],
     default: [],
     description: t('Pick a set of deck.gl charts to layer on top of one another'),
-    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=deck_',
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=deck_&_flt_7_viz_type=deck_multi',
     placeholder: t('Select charts'),
     onAsyncErrorMessage: t('Error while fetching charts'),
     mutator: (data) => {
