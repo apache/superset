@@ -35,7 +35,7 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
-from superset.utils import DTTM_ALIAS, merge_extra_filters
+from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
 config = app.config
@@ -87,6 +87,17 @@ class BaseViz(object):
         self._any_cache_key = None
         self._any_cached_dttm = None
         self._extra_chart_data = None
+
+    @staticmethod
+    def handle_js_int_overflow(data):
+        for d in data.get('records', dict()):
+            for k, v in list(d.items()):
+                if isinstance(v, int):
+                    # if an int is too big for Java Script to handle
+                    # convert it to a string
+                    if abs(v) > JS_MAX_INTEGER:
+                        d[k] = str(v)
+        return data
 
     def run_extra_queries(self):
         """Lyfecycle method to use when more than one query is needed
@@ -515,10 +526,13 @@ class TableViz(BaseViz):
             ):
                 del df[m]
 
-        return dict(
-            records=df.to_dict(orient='records'),
-            columns=list(df.columns),
-        )
+        data = self.handle_js_int_overflow(
+            dict(
+                records=df.to_dict(orient='records'),
+                columns=list(df.columns),
+            ))
+
+        return data
 
     def json_dumps(self, obj, sort_keys=False):
         if self.form_data.get('all_columns'):
@@ -1033,7 +1047,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ys = series[name]
             if df[name].dtype.kind not in 'biufc':
                 continue
-            series_title = name
+            if isinstance(name, list):
+                series_title = [str(title) for title in name]
+            elif isinstance(name, tuple):
+                series_title = tuple(str(title) for title in name)
+            else:
+                series_title = str(name)
             if (
                     isinstance(series_title, (list, tuple)) and
                     len(series_title) > 1 and
