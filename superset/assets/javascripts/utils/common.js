@@ -94,3 +94,12 @@ export function supersetURL(rootUrl, getParams = {}) {
   }
   return url.href;
 }
+
+export function isTruthy(obj) {
+  if (typeof variable === 'boolean') {
+    return obj;
+  } else if (typeof variable === 'string') {
+    return ['no', 'n', 'false', 'f'].indexOf(obj.toLowerCase()) < 0;
+  }
+  return !!obj;
+}
