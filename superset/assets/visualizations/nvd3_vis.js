@@ -12,6 +12,7 @@ import AnnotationTypes, {
   applyNativeColumns,
 } from '../javascripts/modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
+import { isTruthy } from '../javascripts/utils/common';
 import { t } from '../javascripts/locales';
 
 // CSS
@@ -160,7 +161,7 @@ function nvd3Vis(slice, payload) {
     } else if (fd.x_ticks_layout === 'staggered') {
       staggerLabels = true;
     } else if (fd.x_ticks_layout === '45°') {
-      if (fd.show_brush === true || fd.show_brush === 'yes') {
+      if (isTruthy(fd.show_brush)) {
         const error = t('You cannot use 45° tick layout along with the time range filter');
         slice.error(error);
         return null;
@@ -168,8 +169,7 @@ function nvd3Vis(slice, payload) {
       xLabelRotation = 45;
     }
     const showBrush = (
-      fd.show_brush === true ||
-      fd.show_brush === 'yes' ||
+      isTruthy(fd.show_brush) ||
       (fd.show_brush === 'auto' && height >= minHeightForBrush && fd.x_ticks_layout !== '45°')
     );
 
