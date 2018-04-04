@@ -198,7 +198,6 @@ class BaseViz(object):
             form_data.get('granularity') or
             form_data.get('granularity_sqla')
         )
-        # XXX
         limit = int(form_data.get('limit') or 0)
         timeseries_limit_metric = form_data.get('timeseries_limit_metric')
         row_limit = int(form_data.get('row_limit') or config.get('ROW_LIMIT'))
@@ -312,7 +311,6 @@ class BaseViz(object):
         if not query_obj:
             query_obj = self.query_obj()
         cache_key = self.cache_key(query_obj) if query_obj else None
-        print(query_obj)
         logging.info('Cache key: {}'.format(cache_key))
         is_loaded = False
         stacktrace = None

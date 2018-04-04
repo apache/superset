@@ -118,7 +118,6 @@ class TableColumn(Model, BaseColumn):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
-        print(time_grain)
         expr = self.expression or self.column_name
         if not self.expression and not time_grain:
             return column(expr, type_=DateTime).label(DTTM_ALIAS)
