@@ -242,17 +242,29 @@ of the parameters you can copy / paste in that configuration module: ::
     WTF_CSRF_ENABLED = True
     # Add endpoints that need to be exempt from CSRF protection
     WTF_CSRF_EXEMPT_LIST = []
+    # A CSRF token that expires in 1 year
+    WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
     # Set this API key to enable Mapbox visualizations
     MAPBOX_API_KEY = ''
 
-This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Superset. Please consult
+All the parameters and default values defined in
+https://github.com/apache/incubator-superset/blob/master/superset/config.py
+can be altered in your local ``superset_config.py`` .
+Administrators will want to
+read through the file to understand what can be configured locally
+as well as the default values in place.
+
+Since ``superset_config.py`` acts as a Flask configuration module, it
+can be used to alter the settings Flask itself,
+as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
+``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
+framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
 <http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
-for more information on how to configure Superset.
+for more information on how to configure it.
 
-Please make sure to change:
+Make sure to change:
 
 * *SQLALCHEMY_DATABASE_URI*, by default it is stored at *~/.superset/superset.db*
 * *SECRET_KEY*, to a long random string
