@@ -12,9 +12,9 @@ const $ = window.$ = require('jquery');
 const propTypes = {
   css: PropTypes.string,
   dashboard: PropTypes.object.isRequired,
+  layout: PropTypes.object.isRequired,
   triggerNode: PropTypes.node.isRequired,
   filters: PropTypes.object.isRequired,
-  serialize: PropTypes.func,
   onSave: PropTypes.func,
 };
 
@@ -22,8 +22,6 @@ class SaveModal extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      dashboard: props.dashboard,
-      css: props.css,
       saveType: 'overwrite',
       newDashName: props.dashboard.dashboard_title + ' [copy]',
       duplicateSlices: false,
@@ -74,14 +72,13 @@ class SaveModal extends React.PureComponent {
     });
   }
   saveDashboard(saveType, newDashboardTitle) {
-    const dashboard = this.props.dashboard;
-    const positions = this.props.serialize();
+    const { dashboard, layout: positions, css, filters } = this.props;
     const data = {
       positions,
-      css: this.state.css,
+      css,
       expanded_slices: dashboard.metadata.expanded_slices || {},
       dashboard_title: dashboard.dashboard_title,
-      default_filters: JSON.stringify(this.props.filters),
+      default_filters: JSON.stringify(filters),
       duplicate_slices: this.state.duplicateSlices,
     };
     let url = null;

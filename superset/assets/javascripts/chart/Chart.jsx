@@ -42,7 +42,6 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
-  clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   onQuery: PropTypes.func,
   onDismissRefreshOverlay: PropTypes.func,
@@ -51,7 +50,6 @@ const propTypes = {
 const defaultProps = {
   addFilter: () => ({}),
   getFilters: () => ({}),
-  clearFilter: () => ({}),
   removeFilter: () => ({}),
 };
 
@@ -67,7 +65,6 @@ class Chart extends React.PureComponent {
     this.datasource = props.datasource;
     this.addFilter = this.addFilter.bind(this);
     this.getFilters = this.getFilters.bind(this);
-    this.clearFilter = this.clearFilter.bind(this);
     this.removeFilter = this.removeFilter.bind(this);
     this.headerHeight = this.headerHeight.bind(this);
     this.height = this.height.bind(this);
@@ -116,10 +113,6 @@ class Chart extends React.PureComponent {
 
   addFilter(col, vals, merge = true, refresh = true) {
     this.props.addFilter(col, vals, merge, refresh);
-  }
-
-  clearFilter() {
-    this.props.clearFilter();
   }
 
   removeFilter(col, vals, refresh = true) {

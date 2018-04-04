@@ -25,6 +25,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  cells: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -92,6 +93,7 @@ class Column extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      cells,
     } = this.props;
 
     const columnItems = columnComponent.children || [];
@@ -154,19 +156,20 @@ class Column extends React.PureComponent {
                   </HoverMenu>}
 
                 {columnItems.map((componentId, itemIndex) => (
-                  <DashboardComponent
-                    key={componentId}
-                    id={componentId}
-                    parentId={columnComponent.id}
-                    depth={depth + 1}
-                    index={itemIndex}
-                    availableColumnCount={columnComponent.meta.width}
-                    columnWidth={columnWidth}
-                    onResizeStart={onResizeStart}
-                    onResize={onResize}
-                    onResizeStop={onResizeStop}
-                  />
-                ))}
+
+                    <DashboardComponent
+                      key={componentId}
+                      id={componentId}
+                      parentId={columnComponent.id}
+                      depth={depth + 1}
+                      index={itemIndex }
+                      availableColumnCount={columnComponent.meta.width}
+                      columnWidth={columnWidth}
+                      cells={cells}onResizeStart={onResizeStart}
+                      onResize={onResize}
+                      onResizeStop={onResizeStop}
+                    />
+                  ))}
 
                 {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </div>

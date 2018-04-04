@@ -10,6 +10,7 @@ import { t } from '../../locales';
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
+  layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   userId: PropTypes.string.isRequired,
   isStarred: PropTypes.bool,
@@ -19,7 +20,6 @@ const propTypes = {
   fetchFaveStar: PropTypes.func,
   renderSlices: PropTypes.func,
   saveFaveStar: PropTypes.func,
-  serialize: PropTypes.func,
   startPeriodicRender: PropTypes.func,
   updateDashboardTitle: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
@@ -69,7 +69,7 @@ class Header extends React.PureComponent {
       </Button>);
   }
   render() {
-    const dashboard = this.props.dashboard;
+    const { dashboard, layout, filters, userId } = this.props;
     return (
       <div className="title">
         <div className="pull-left">
@@ -95,13 +95,13 @@ class Header extends React.PureComponent {
           {this.renderEditButton()}
           <Controls
             dashboard={dashboard}
-            filters={this.props.filters}
-            userId={this.props.userId}
+            layout={layout}
+            filters={filters}
+            userId={userId}
             addSlicesToDashboard={this.props.addSlicesToDashboard}
             onSave={this.props.onSave}
             onChange={this.props.onChange}
             renderSlices={this.props.renderSlices}
-            serialize={this.props.serialize}
             startPeriodicRender={this.props.startPeriodicRender}
             editMode={this.props.editMode}
           />

@@ -6,6 +6,7 @@ import * as actions from './chartAction';
 import { t } from '../locales';
 
 export const chartPropType = {
+  slice_id: PropTypes.number,
   chartKey: PropTypes.string.isRequired,
   chartAlert: PropTypes.string,
   chartStatus: PropTypes.string,
@@ -19,6 +20,7 @@ export const chartPropType = {
 };
 
 export const chart = {
+  slice_id: 0,
   chartKey: '',
   chartAlert: null,
   chartStatus: 'loading',

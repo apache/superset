@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 
 import SliceHeader from './SliceHeader';
 import ChartContainer from '../../chart/ChartContainer';
+import { slicePropShape } from '../reducers/propShapes';
 
 import '../../../stylesheets/dashboard.css';
 
@@ -16,7 +17,7 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
-  slice: PropTypes.object,
+  slice: slicePropShape.isRequired,
   chartKey: PropTypes.string,
   formData: PropTypes.object,
   filters: PropTypes.object,
@@ -28,7 +29,6 @@ const propTypes = {
   exportCSV: PropTypes.func,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
-  clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   editMode: PropTypes.bool,
   annotationQuery: PropTypes.object,
@@ -43,7 +43,6 @@ const defaultProps = {
   exportCSV: () => ({}),
   addFilter: () => ({}),
   getFilters: () => ({}),
-  clearFilter: () => ({}),
   removeFilter: () => ({}),
   editMode: false,
 };
@@ -55,7 +54,6 @@ class GridCell extends React.PureComponent {
     const sliceId = this.props.slice.slice_id;
     this.addFilter = this.props.addFilter.bind(this, sliceId);
     this.getFilters = this.props.getFilters.bind(this, sliceId);
-    this.clearFilter = this.props.clearFilter.bind(this, sliceId);
     this.removeFilter = this.props.removeFilter.bind(this, sliceId);
   }
 
@@ -139,10 +137,9 @@ class GridCell extends React.PureComponent {
             height={this.height(slice)}
             width={this.width()}
             timeout={timeout}
-            vizType={slice.formData.viz_type}
+            vizType={slice.viz_type}
             addFilter={this.addFilter}
             getFilters={this.getFilters}
-            clearFilter={this.clearFilter}
             removeFilter={this.removeFilter}
           />
         </div>

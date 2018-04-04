@@ -7,6 +7,13 @@ import {
   resizeComponent,
 } from '../actions/dashboardLayout';
 
+function mapStateToProps({ editMode }, ownProps) {
+  return {
+    editMode,
+    cells: ownProps.cells,
+  };
+}
+
 function mapDispatchToProps(dispatch) {
   return bindActionCreators({
     handleComponentDrop,
@@ -15,3 +22,4 @@ function mapDispatchToProps(dispatch) {
 }
 
 export default connect(({ editMode }) => ({ editMode }), mapDispatchToProps)(DashboardGrid);
+export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);

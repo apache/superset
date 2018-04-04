@@ -10,6 +10,7 @@ import {
 function mapStateToProps({ dashboardLayout: undoableLayout, editMode }) {
   return {
     dashboardLayout: undoableLayout.present,
+    cells: ownProps.cells,
     editMode,
   };
 }

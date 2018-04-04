@@ -1,4 +1,4 @@
-import { getInitialState } from '../../../javascripts/dashboard/reducers';
+import { getInitialState } from '../../../javascripts/dashboard/reducers/index';
 
 export const defaultFilters = {
   256: { region: [] },
@@ -118,7 +118,6 @@ export const slice = {
   slice_url: '/superset/explore/table/2/?form_data=%7B%22slice_id%22%3A%20248%7D',
 };
 
-const datasources = {};
 const mockDashboardData = {
   css: '',
   dash_edit_perm: true,
@@ -152,10 +151,10 @@ const mockDashboardData = {
   slices: [regionFilter, slice, countryFilter],
   standalone_mode: false,
 };
-export const { dashboard, charts } = getInitialState({
+export const { dashboard, charts, datasources, allSlices } = getInitialState({
   common: {},
   dashboard_data: mockDashboardData,
-  datasources,
+  datasources: {},
   user_id: '1',
 });
 

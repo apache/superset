@@ -1,4 +1,3 @@
-import { combineReducers } from 'redux';
 import undoable, { distinctState } from 'redux-undo';
 
 import dashboardLayout from './dashboardLayout';

@@ -165,7 +165,6 @@ export const controllerInterface = {
   addFiler: () => {},
   setFilter: () => {},
   getFilters: () => false,
-  clearFilter: () => {},
   removeFilter: () => {},
   filters: {},
 };
