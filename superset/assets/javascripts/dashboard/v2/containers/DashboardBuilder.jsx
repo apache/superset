@@ -7,11 +7,11 @@ import {
   handleComponentDrop,
 } from '../actions/dashboardLayout';
 
-function mapStateToProps({ dashboardLayout: undoableLayout, editMode }) {
+function mapStateToProps({ dashboardLayout: undoableLayout, dashboard }) {
   return {
     dashboardLayout: undoableLayout.present,
     cells: ownProps.cells,
-    editMode,
+    editMode: dashboard.editMode,
   };
 }
 

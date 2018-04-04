@@ -1,111 +1,28 @@
-import { combineReducers } from 'redux';
 import d3 from 'd3';
-import shortid from 'shortid';
 
-import charts, { chart } from '../chart/chartReducer';
-import * as actions from './actions';
-import { getParam } from '../modules/utils';
-import { alterInArr, removeFromArr } from '../reduxUtils';
-import { applyDefaultFormData } from '../explore/stores/store';
-import { getColorFromScheme } from '../modules/colors';
+import * as actions from '../actions/dashboard';
+import { alterInArr, addToArr, removeFromArr } from '../../reduxUtils';
 
-export function getInitialState(bootstrapData) {
-  const { user_id, datasources, common } = bootstrapData;
-  delete common.locale;
-  delete common.language_pack;
-
-  const dashboard = { ...bootstrapData.dashboard_data };
-  let filters = {};
-  try {
-    // allow request parameter overwrite dashboard metadata
-    filters = JSON.parse(getParam('preselect_filters') || dashboard.metadata.default_filters);
-  } catch (e) {
-    //
-  }
-
-  // Priming the color palette with user's label-color mapping provided in
-  // the dashboard's JSON metadata
-  if (dashboard.metadata && dashboard.metadata.label_colors) {
-    const colorMap = dashboard.metadata.label_colors;
-    for (const label in colorMap) {
-      getColorFromScheme(label, null, colorMap[label]);
-    }
-  }
-
-  dashboard.posDict = {};
-  dashboard.layout = [];
-  if (Array.isArray(dashboard.position_json)) {
-    dashboard.position_json.forEach((position) => {
-      dashboard.posDict[position.slice_id] = position;
-    });
-  } else {
-    dashboard.position_json = [];
-  }
-
-  const lastRowId = Math.max(0, Math.max.apply(null,
-    dashboard.position_json.map(pos => (pos.row + pos.size_y))));
-  let newSliceCounter = 0;
-  dashboard.slices.forEach((slice) => {
-    const sliceId = slice.slice_id;
-    let pos = dashboard.posDict[sliceId];
-    if (!pos) {
-      // append new slices to dashboard bottom, 3 slices per row
-      pos = {
-        col: (newSliceCounter % 3) * 16 + 1,
-        row: lastRowId + Math.floor(newSliceCounter / 3) * 16,
-        size_x: 16,
-        size_y: 16,
-      };
-      newSliceCounter++;
-    }
-
-    dashboard.layout.push({
-      i: String(sliceId),
-      x: pos.col - 1,
-      y: pos.row,
-      w: pos.size_x,
-      minW: 2,
-      h: pos.size_y,
-    });
-  });
-
-  // will use charts action/reducers to handle chart render
-  const initCharts = {};
-  dashboard.slices.forEach((slice) => {
-    const chartKey = 'slice_' + slice.slice_id;
-    initCharts[chartKey] = { ...chart,
-      chartKey,
-      slice_id: slice.slice_id,
-      form_data: slice.form_data,
-      formData: applyDefaultFormData(slice.form_data),
-    };
-  });
-
-  // also need to add formData for dashboard.slices
-  dashboard.slices = dashboard.slices.map(slice =>
-    ({ ...slice, formData: applyDefaultFormData(slice.form_data) }),
-  );
-
-  return {
-    charts: initCharts,
-    dashboard: { filters, dashboard, userId: user_id, datasources, common, editMode: false },
-  };
-}
-
-export const dashboard = function (state = {}, action) {
+export default function dashboard(state = {}, action) {
   const actionHandlers = {
     [actions.UPDATE_DASHBOARD_TITLE]() {
       const newDashboard = { ...state.dashboard, dashboard_title: action.title };
       return { ...state, dashboard: newDashboard };
     },
-    [actions.UPDATE_DASHBOARD_LAYOUT]() {
-      const newDashboard = { ...state.dashboard, layout: action.layout };
-      return { ...state, dashboard: newDashboard };
-    },
+    // [actions.UPDATE_DASHBOARD_LAYOUT]() {
+    //   const newDashboard = { ...state.dashboard, layout: action.layout };
+    //   return { ...state, dashboard: newDashboard };
+    // },
     [actions.REMOVE_SLICE]() {
+      const sliceId = action.slice.slice_id,
+        index = state.dashboard.sliceIds.indexOf(sliceId);
+      if (index === -1) {
+        return state;
+      }
+
+      const updatedSliceIds = state.dashboard.sliceIds.slice();
+      updatedSliceIds.splice(index, 1);
       const key = String(action.slice.slice_id);
-      const newLayout = state.dashboard.layout.filter(reactPos => (reactPos.i !== key));
-      const newDashboard = removeFromArr(state.dashboard, 'slices', action.slice, 'slice_id');
       // if this slice is a filter
       const newFilter = { ...state.filters };
       let refresh = false;
@@ -115,7 +32,7 @@ export const dashboard = function (state = {}, action) {
       }
       return {
         ...state,
-        dashboard: { ...newDashboard, layout: newLayout },
+        dashboard: { ...state.dashboard, sliceIds: updatedSliceIds },
         filters: newFilter,
         refresh,
       };
@@ -170,11 +87,6 @@ export const dashboard = function (state = {}, action) {
       }
       return { ...state, filters, refresh };
     },
-    [actions.CLEAR_FILTER]() {
-      const newFilters = { ...state.filters };
-      delete newFilters[action.sliceId];
-      return { ...state, filter: newFilters, refresh: true };
-    },
     [actions.REMOVE_FILTER]() {
       const { sliceId, col, vals, refresh } = action;
       const excluded = new Set(vals);
@@ -189,15 +101,6 @@ export const dashboard = function (state = {}, action) {
       }
       return { ...state, filters, refresh };
     },
-
-    // slice reducer
-    [actions.UPDATE_SLICE_NAME]() {
-      const newDashboard = alterInArr(
-        state.dashboard, 'slices',
-        action.slice, { slice_name: action.sliceName },
-        'slice_id');
-      return { ...state, dashboard: newDashboard };
-    },
   };
 
   if (action.type in actionHandlers) {
@@ -205,9 +108,3 @@ export const dashboard = function (state = {}, action) {
   }
   return state;
 };
-
-export default combineReducers({
-  charts,
-  dashboard,
-  impressionId: () => (shortid.generate()),
-});

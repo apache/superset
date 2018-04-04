@@ -25,14 +25,14 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-function mapStateToProps({ dashboardLayout: undoableLayout, editMode }, ownProps) {
+function mapStateToProps({ dashboardLayout: undoableLayout, dashboard }, ownProps) {
   const dashboardLayout = undoableLayout.present;
   const { id, parentId, cells } = ownProps;
   const component = dashboardLayout[id];
   const props = {
     component,
     parentComponent: dashboardLayout[parentId],
-    editMode,
+    editMode: dashboard.editMode,
   };
 
   // rows and columns need more data about their child dimensions

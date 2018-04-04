@@ -5,7 +5,8 @@ import charts, { chart } from '../../chart/chartReducer';
 import dashboard from './dashboard';
 import datasources from './datasources';
 import allSlices from './allSlices';
-import undoableLayout from '../v2/reducers/index';
+import dashboardLayout from '../v2/reducers/index';
+import messageToasts from '../v2/reducers/messageToasts';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
@@ -34,7 +35,7 @@ export function getInitialState(bootstrapData) {
   }
 
   // dashboard layout
-  const undoableLayout = {
+  const dashboardLayout = {
       past: [],
       present: dashboard.position_json,
       future: [],
@@ -73,7 +74,8 @@ export function getInitialState(bootstrapData) {
     allSlices,
     charts: initCharts,
     dashboard: { filters, dashboard, userId: user_id, common, editMode: false, showBuilderPane: false },
-    undoableLayout,
+    dashboardLayout,
+    messageToasts: [],
   };
 }
 
@@ -89,6 +91,7 @@ export default combineReducers({
   dashboard,
   datasources,
   allSlices,
-  undoableLayout,
+  dashboardLayout,
+  messageToasts,
   impressionId,
 });

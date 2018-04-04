@@ -6,7 +6,7 @@ import { saveSliceName } from '../actions/allSlices';
 import * as chartActions from '../../chart/chartAction';
 import Dashboard from './Dashboard';
 
-function mapStateToProps({ datasources, allSlices, charts, dashboard, undoableLayout, impressionId }) {
+function mapStateToProps({ datasources, allSlices, charts, dashboard, dashboardLayout, impressionId }) {
   return {
     initMessages: dashboard.common.flash_messages,
     timeout: dashboard.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
@@ -19,7 +19,7 @@ function mapStateToProps({ datasources, allSlices, charts, dashboard, undoableLa
     userId: dashboard.userId,
     isStarred: !!dashboard.isStarred,
     editMode: dashboard.editMode,
-    layout: undoableLayout.present,
+    layout: dashboardLayout.present,
     impressionId,
   };
 }
