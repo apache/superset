@@ -20,12 +20,12 @@ from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
+from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.having import Aggregation
 from pydruid.utils.postaggregator import (
     Const, Field, HyperUniqueCardinality, Postaggregator, Quantile, Quantiles,
 )
-from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
 import requests
 from six import string_types
 import sqlalchemy as sa
@@ -966,7 +966,7 @@ class DruidDatasource(Model, BaseDatasource):
                         f = Filter(
                             dimension=col,
                             value=row[dim_val],
-                            extraction_function=extraction_fn
+                            extraction_function=extraction_fn,
                         )
                     elif isinstance(dim, dict):
                         dim_val = dim['outputName']
@@ -1211,7 +1211,7 @@ class DruidDatasource(Model, BaseDatasource):
                 # Can't use set on an array with dicts
                 # Use set with non-dict items only
                 non_dict_dims = list(
-                    set([x for x in pre_qry_dims if not isinstance(x, dict)])
+                    set([x for x in pre_qry_dims if not isinstance(x, dict)]),
                 )
                 dict_dims = [x for x in pre_qry_dims if isinstance(x, dict)]
                 pre_qry['dimensions'] = non_dict_dims + dict_dims
@@ -1319,17 +1319,17 @@ class DruidDatasource(Model, BaseDatasource):
             col = dim_spec['dimension']
             fn = dim_spec['extractionFn']
             ext_type = fn.get('type')
-            if ext_type == "lookup" and fn['lookup'].get('type') == 'map':
-                replace_missing_values = fn.get("replaceMissingValueWith")
-                retain_missing_values = fn.get("retainMissingValue", False)
-                injective = fn.get("isOneToOne", False)
+            if ext_type == 'lookup' and fn['lookup'].get('type') == 'map':
+                replace_missing_values = fn.get('replaceMissingValueWith')
+                retain_missing_values = fn.get('retainMissingValue', False)
+                injective = fn.get('isOneToOne', False)
                 extraction_fn = MapLookupExtraction(
                     fn['lookup']['map'],
                     replace_missing_values=replace_missing_values,
                     retain_missing_values=retain_missing_values,
-                    injective=injective
+                    injective=injective,
                 )
-            elif ext_type == "regex":
+            elif ext_type == 'regex':
                 extraction_fn = RegexExtraction(fn['expr'])
             else:
                 raise Exception(_('Unsupported extraction function: ' + ext_type))
@@ -1388,8 +1388,8 @@ class DruidDatasource(Model, BaseDatasource):
                     cond = Filter(
                         dimension=col,
                         values=eq,
-                        type="in",
-                        extraction_function=extraction_fn
+                        type='in',
+                        extraction_function=extraction_fn,
                     )
                 elif len(eq) == 1:
                     cond = Dimension(col) == eq[0]
@@ -1406,7 +1406,7 @@ class DruidDatasource(Model, BaseDatasource):
                     extraction_function=extraction_fn,
                     type='regex',
                     pattern=eq,
-                    dimension=col
+                    dimension=col,
                 )
 
             # For the ops below, could have used pydruid's Bound,
@@ -1420,7 +1420,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upperStrict=False,
                     lower=eq,
                     upper=None,
-                    alphaNumeric=is_numeric_col
+                    alphaNumeric=is_numeric_col,
                 )
             elif op == '<=':
                 cond = Filter(
@@ -1431,7 +1431,7 @@ class DruidDatasource(Model, BaseDatasource):
                     upperStrict=False,
                     lower=None,
                     upper=eq,
-                    alphaNumeric=is_numeric_col
+                    alphaNumeric=is_numeric_col,
                 )
             elif op == '>':
                 cond = Filter(
@@ -1442,7 +1442,7 @@ class DruidDatasource(Model, BaseDatasource):
                     dimension=col,
                     lower=eq,
                     upper=None,
-                    alphaNumeric=is_numeric_col
+                    alphaNumeric=is_numeric_col,
                 )
             elif op == '<':
                 cond = Filter(
@@ -1453,7 +1453,7 @@ class DruidDatasource(Model, BaseDatasource):
                     dimension=col,
                     lower=None,
                     upper=eq,
-                    alphaNumeric=is_numeric_col
+                    alphaNumeric=is_numeric_col,
                 )
 
             if filters:

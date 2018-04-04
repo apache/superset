@@ -8,8 +8,9 @@ import json
 import unittest
 
 from mock import Mock
-import pydruid.utils.postaggregator as postaggs
 from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+import pydruid.utils.postaggregator as postaggs
+
 
 import superset.connectors.druid.models as models
 from superset.connectors.druid.models import (
@@ -34,29 +35,29 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_extraction_fn_map(self):
         filters = [{'col': 'deviceName', 'val': ['iPhone X'], 'op': 'in'}]
         dimension_spec = {
-            "type": "extraction",
-            "dimension": "device",
-            "outputName": "deviceName",
-            "outputType": "STRING",
-            "extractionFn": {
-                "type": "lookup",
-                "dimension": "dimensionName",
-                "outputName": "dimensionOutputName",
-                "replaceMissingValueWith": "missing_value",
-                "retainMissingValue": False,
-                "lookup": {
-                    "type": "map",
-                    "map": {
-                        "iPhone10,1": "iPhone 8",
-                        "iPhone10,4": "iPhone 8",
-                        "iPhone10,2": "iPhone 8 Plus",
-                        "iPhone10,5": "iPhone 8 Plus",
-                        "iPhone10,3": "iPhone X",
-                        "iPhone10,6": "iPhone X",
+            'type': 'extraction',
+            'dimension': 'device',
+            'outputName': 'deviceName',
+            'outputType': 'STRING',
+            'extractionFn': {
+                'type': 'lookup',
+                'dimension': 'dimensionName',
+                'outputName': 'dimensionOutputName',
+                'replaceMissingValueWith': 'missing_value',
+                'retainMissingValue': False,
+                'lookup': {
+                    'type': 'map',
+                    'map': {
+                        'iPhone10,1': 'iPhone 8',
+                        'iPhone10,4': 'iPhone 8',
+                        'iPhone10,2': 'iPhone 8 Plus',
+                        'iPhone10,5': 'iPhone 8 Plus',
+                        'iPhone10,3': 'iPhone X',
+                        'iPhone10,6': 'iPhone X',
                     },
-                    "isOneToOne": False
-                }
-            }
+                    'isOneToOne': False,
+                },
+            },
         }
         spec_json = json.dumps(dimension_spec)
         col = DruidColumn(column_name='deviceName', dimension_spec_json=spec_json)
@@ -69,24 +70,24 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertEqual(dim_ext_fn['lookup']['isOneToOne'], f_ext_fn._injective)
         self.assertEqual(
             dim_ext_fn['replaceMissingValueWith'],
-            f_ext_fn._replace_missing_values
+            f_ext_fn._replace_missing_values,
         )
         self.assertEqual(
             dim_ext_fn['retainMissingValue'],
-            f_ext_fn._retain_missing_values
+            f_ext_fn._retain_missing_values,
         )
 
     def test_get_filters_extraction_fn_regex(self):
         filters = [{'col': 'buildPrefix', 'val': ['22B'], 'op': 'in'}]
         dimension_spec = {
-            "type": "extraction",
-            "dimension": "build",
-            "outputName": "buildPrefix",
-            "outputType": "STRING",
-            "extractionFn": {
-                "type": "regex",
-                "expr": "(^[0-9A-Za-z]{3})"
-            }
+            'type': 'extraction',
+            'dimension': 'build',
+            'outputName': 'buildPrefix',
+            'outputType': 'STRING',
+            'extractionFn': {
+                'type': 'regex',
+                'expr': '(^[0-9A-Za-z]{3})',
+            },
         }
         spec_json = json.dumps(dimension_spec)
         col = DruidColumn(column_name='buildPrefix', dimension_spec_json=spec_json)
@@ -101,13 +102,13 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr = {'col': 'col1', 'op': '=='}
         filters = [filtr]
         col = DruidColumn(column_name='col1')
-        column_dict = { 'col1': col }
+        column_dict = {'col1': col}
         self.assertEqual(None, DruidDatasource.get_filters(filters, [], column_dict))
 
     def test_get_filters_constructs_filter_in(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['a', 'b', 'c']}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertIn('filter', res.filter)
         self.assertIn('fields', res.filter['filter'])
@@ -117,7 +118,7 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_constructs_filter_not_in(self):
         filtr = {'col': 'A', 'op': 'not in', 'val': ['a', 'b', 'c']}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertIn('filter', res.filter)
         self.assertIn('type', res.filter['filter'])
@@ -131,7 +132,7 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_constructs_filter_equals(self):
         filtr = {'col': 'A', 'op': '==', 'val': 'h'}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('selector', res.filter['filter']['type'])
         self.assertEqual('A', res.filter['filter']['dimension'])
@@ -140,7 +141,7 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_constructs_filter_not_equals(self):
         filtr = {'col': 'A', 'op': '!=', 'val': 'h'}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('not', res.filter['filter']['type'])
         self.assertEqual(
@@ -151,7 +152,7 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_constructs_bounds_filter(self):
         filtr = {'col': 'A', 'op': '>=', 'val': 'h'}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertFalse(res.filter['filter']['lowerStrict'])
         self.assertEqual('A', res.filter['filter']['dimension'])
@@ -171,7 +172,7 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_constructs_regex_filter(self):
         filtr = {'col': 'A', 'op': 'regex', 'val': '[abc]'}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('regex', res.filter['filter']['type'])
         self.assertEqual('[abc]', res.filter['filter']['pattern'])
@@ -182,7 +183,7 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr2 = {'col': 'B', 'op': 'in', 'val': ['a', 'b', 'c']}
         cola = DruidColumn(column_name='A')
         colb = DruidColumn(column_name='B')
-        column_dict = { 'A': cola, 'B': colb }
+        column_dict = {'A': cola, 'B': colb}
         res = DruidDatasource.get_filters([filtr1, filtr2], [], column_dict)
         self.assertEqual('and', res.filter['filter']['type'])
         self.assertEqual(2, len(res.filter['filter']['fields']))
@@ -191,7 +192,7 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr1 = {'col': 'A', 'op': 'in', 'val': []}
         filtr2 = {'col': 'A', 'op': 'not in', 'val': []}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr1, filtr2], [], column_dict)
         self.assertEqual(None, res)
 
@@ -199,14 +200,14 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr = {'col': 'A', 'op': 'in', 'val': ['a']}
         cola = DruidColumn(column_name='A')
         colb = DruidColumn(column_name='B')
-        column_dict = { 'A': cola, 'B': colb }
+        column_dict = {'A': cola, 'B': colb}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('selector', res.filter['filter']['type'])
 
     def test_get_filters_handles_arrays_for_string_types(self):
         filtr = {'col': 'A', 'op': '==', 'val': ['a', 'b']}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('a', res.filter['filter']['value'])
         filtr = {'col': 'A', 'op': '==', 'val': []}
@@ -216,21 +217,21 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_handles_none_for_string_types(self):
         filtr = {'col': 'A', 'op': '==', 'val': None}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('', res.filter['filter']['value'])
 
     def test_get_filters_extracts_values_in_quotes(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['  "a" ']}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('a', res.filter['filter']['value'])
 
     def test_get_filters_converts_strings_to_num(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['6']}
         col = DruidColumn(column_name='A')
-        column_dict = { 'A': col }
+        column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], ['A'], column_dict)
         self.assertEqual(6, res.filter['filter']['value'])
         filtr = {'col': 'A', 'op': '==', 'val': '6'}
