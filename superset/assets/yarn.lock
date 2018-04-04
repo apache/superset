@@ -2726,18 +2726,18 @@ decimal.js@9.0.1:
   version "9.0.1"
   resolved "https://registry.yarnpkg.com/decimal.js/-/decimal.js-9.0.1.tgz#1cc8b228177da7ab6498c1cc06eb130a290e6e1e"
 
-deck.gl@^5.0.1:
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/deck.gl/-/deck.gl-5.0.2.tgz#8f184a2007a7d448afa94c73bb80eba9bcec3413"
+deck.gl@^5.1.4:
+  version "5.1.4"
+  resolved "https://registry.yarnpkg.com/deck.gl/-/deck.gl-5.1.4.tgz#1adb33798ec91abb2a1d164adfff4cdb1a1a888d"
   dependencies:
     d3-hexbin "^0.2.1"
     earcut "^2.0.6"
     lodash.flattendeep "^4.4.0"
-    luma.gl "^5.0.0"
+    luma.gl "^5.1.4"
     math.gl "^1.0.0"
     mjolnir.js "^1.0.0"
     prop-types "^15.6.0"
-    seer "^0.2.3"
+    seer "^0.2.4"
     viewport-mercator-project "^5.0.0"
 
 deep-eql@^3.0.0:
@@ -2968,7 +2968,7 @@ earcut@^2.0.3:
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/earcut/-/earcut-2.1.1.tgz#157634e5f3ebb42224e475016e86a5b6ce556b45"
 
-earcut@^2.0.6:
+earcut@^2.0.6, earcut@^2.1.3:
   version "2.1.3"
   resolved "https://registry.yarnpkg.com/earcut/-/earcut-2.1.3.tgz#ca579545f351941af7c3d0df49c9f7d34af99b0c"
 
@@ -5293,24 +5293,12 @@ lodash._basecreate@^3.0.0:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/lodash._basecreate/-/lodash._basecreate-3.0.3.tgz#1bc661614daa7fc311b7d03bf16806a0213cf821"
 
-lodash._baseisequal@^3.0.0:
-  version "3.0.7"
-  resolved "https://registry.yarnpkg.com/lodash._baseisequal/-/lodash._baseisequal-3.0.7.tgz#d8025f76339d29342767dcc887ce5cb95a5b51f1"
-  dependencies:
-    lodash.isarray "^3.0.0"
-    lodash.istypedarray "^3.0.0"
-    lodash.keys "^3.0.0"
-
 lodash._baseuniq@~4.6.0:
   version "4.6.0"
   resolved "https://registry.yarnpkg.com/lodash._baseuniq/-/lodash._baseuniq-4.6.0.tgz#0ebb44e456814af7905c6212fa2c9b2d51b841e8"
   dependencies:
     lodash._createset "~4.0.0"
     lodash._root "~3.0.0"
-
-lodash._bindcallback@^3.0.0:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/lodash._bindcallback/-/lodash._bindcallback-3.0.1.tgz#e531c27644cf8b57a99e17ed95b35c748789392e"
 
 lodash._createset@~4.0.0:
   version "4.0.3"
@@ -5396,20 +5384,9 @@ lodash.isarray@^3.0.0:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/lodash.isarray/-/lodash.isarray-3.0.4.tgz#79e4eb88c36a8122af86f844aa9bcd851b5fbb55"
 
-lodash.isequal@^3.0.4:
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/lodash.isequal/-/lodash.isequal-3.0.4.tgz#1c35eb3b6ef0cd1ff51743e3ea3cf7fdffdacb64"
-  dependencies:
-    lodash._baseisequal "^3.0.0"
-    lodash._bindcallback "^3.0.0"
-
 lodash.isequal@^4.0.0, lodash.isequal@^4.1.1:
   version "4.5.0"
   resolved "https://registry.yarnpkg.com/lodash.isequal/-/lodash.isequal-4.5.0.tgz#415c4478f2bcc30120c22ce10ed3226f7d3e18e0"
-
-lodash.istypedarray@^3.0.0:
-  version "3.0.6"
-  resolved "https://registry.yarnpkg.com/lodash.istypedarray/-/lodash.istypedarray-3.0.6.tgz#c9a477498607501d8e8494d283b87c39281cef62"
 
 lodash.keys@^3.0.0:
   version "3.1.2"
@@ -5525,18 +5502,13 @@ lru-cache@^4.0.1, lru-cache@^4.1.1:
     pseudomap "^1.0.2"
     yallist "^2.1.2"
 
-luma.gl@^5.0.0, luma.gl@^5.0.1:
-  version "5.0.2"
-  resolved "https://registry.yarnpkg.com/luma.gl/-/luma.gl-5.0.2.tgz#8c19601a55cd4f2095f85df340663970a005bbf0"
+luma.gl@^5.1.4:
+  version "5.1.6"
+  resolved "https://registry.yarnpkg.com/luma.gl/-/luma.gl-5.1.6.tgz#36ce71dae2f25dd10a5e4ea72fbd1829d1d8da41"
   dependencies:
-    gl-mat4 "^1.1.4"
-    gl-quat "^1.0.0"
-    gl-vec2 "^1.0.0"
-    gl-vec3 "^1.0.3"
-    gl-vec4 "^1.0.1"
-    math.gl "1.0.0-alpha.8"
-    seer "^0.2.2"
-    webgl-debug "^1.0.2"
+    math.gl "^1.0.0"
+    seer "^0.2.4"
+    webgl-debug "^2.0.0"
 
 macaddress@^0.2.8:
   version "0.2.8"
@@ -5586,9 +5558,9 @@ mapbox-gl@0.38.0:
     vt-pbf "^2.0.2"
     webworkify "^1.4.0"
 
-mapbox-gl@^0.43.0:
-  version "0.43.0"
-  resolved "https://registry.yarnpkg.com/mapbox-gl/-/mapbox-gl-0.43.0.tgz#c53978cdce0e3fa393a60bd5afc657842ce5b098"
+mapbox-gl@^0.44.2:
+  version "0.44.2"
+  resolved "https://registry.yarnpkg.com/mapbox-gl/-/mapbox-gl-0.44.2.tgz#8c118ba8c5c15b054272644f30877309db0f8ee2"
   dependencies:
     "@mapbox/gl-matrix" "^0.0.1"
     "@mapbox/mapbox-gl-supported" "^1.3.0"
@@ -5601,13 +5573,12 @@ mapbox-gl@^0.43.0:
     brfs "^1.4.0"
     bubleify "^0.7.0"
     csscolorparser "~1.0.2"
-    earcut "^2.0.3"
+    earcut "^2.1.3"
     geojson-rewind "^0.3.0"
     geojson-vt "^3.0.0"
     gray-matter "^3.0.8"
     grid-index "^1.0.0"
     jsonlint-lines-primitives "~1.6.0"
-    lodash.isequal "^3.0.4"
     minimist "0.0.8"
     package-json-versionify "^1.0.2"
     pbf "^3.0.5"
@@ -5621,7 +5592,7 @@ mapbox-gl@^0.43.0:
     unassertify "^2.0.0"
     unflowify "^1.0.0"
     vt-pbf "^3.0.1"
-    webworkify "^1.4.0"
+    webworkify "^1.5.0"
 
 material-colors@^1.2.1:
   version "1.2.5"
@@ -5630,16 +5601,6 @@ material-colors@^1.2.1:
 math-expression-evaluator@^1.2.14:
   version "1.2.17"
   resolved "https://registry.yarnpkg.com/math-expression-evaluator/-/math-expression-evaluator-1.2.17.tgz#de819fdbcd84dccd8fae59c6aeb79615b9d266ac"
-
-math.gl@1.0.0-alpha.8:
-  version "1.0.0-alpha.8"
-  resolved "https://registry.yarnpkg.com/math.gl/-/math.gl-1.0.0-alpha.8.tgz#51dd8d03e5c50096851e8a268d888c1eda766cd1"
-  dependencies:
-    gl-mat4 "^1.1.4"
-    gl-quat "^1.0.0"
-    gl-vec2 "^1.0.0"
-    gl-vec3 "^1.0.3"
-    gl-vec4 "^1.0.1"
 
 math.gl@^1.0.0:
   version "1.0.3"
@@ -8128,9 +8089,9 @@ seekout@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/seekout/-/seekout-1.0.2.tgz#09ba9f1bd5b46fbb134718eb19a68382cbb1b9c9"
 
-seer@^0.2.2, seer@^0.2.3:
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/seer/-/seer-0.2.3.tgz#e7ba529921330327dbbf30141fbf052296772fb7"
+seer@^0.2.4:
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/seer/-/seer-0.2.4.tgz#6b8a81d09bfe6b3b3ad0268971a65e7f7405135c"
 
 semver-diff@^2.0.0:
   version "2.1.0"
@@ -9341,9 +9302,9 @@ wcwidth@^1.0.0:
   dependencies:
     defaults "^1.0.3"
 
-webgl-debug@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/webgl-debug/-/webgl-debug-1.0.2.tgz#93bac5aed181343a136ad34f249920d3b9ccc69a"
+webgl-debug@^2.0.0:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/webgl-debug/-/webgl-debug-2.0.1.tgz#dc11bea3d947764bce061fdb5a23109c13787c95"
 
 webidl-conversions@^3.0.0:
   version "3.0.1"
@@ -9408,6 +9369,10 @@ webworkify-webpack@2.1.0:
 webworkify@^1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/webworkify/-/webworkify-1.4.0.tgz#71245d1e34cacf54e426bd955f8cc6ee12d024c2"
+
+webworkify@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/webworkify/-/webworkify-1.5.0.tgz#734ad87a774de6ebdd546e1d3e027da5b8f4a42c"
 
 wgs84@0.0.0:
   version "0.0.0"
