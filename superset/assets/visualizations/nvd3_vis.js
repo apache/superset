@@ -543,7 +543,7 @@ function nvd3Vis(slice, payload) {
             return {};
           }
           const key = Array.isArray(series.key) ?
-            `${a.name}, ${series.key.join(', ')}` : a.name;
+            `${a.name}, ${series.key.join(', ')}` : `${a.name}, ${series.key}`;
           return {
             ...series,
             key,
