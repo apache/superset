@@ -1,3 +1,4 @@
+import URI from 'urijs';
 import React from 'react';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
@@ -8,7 +9,6 @@ import * as dashboardActions from '../../../src/dashboard/actions';
 import * as chartActions from '../../../src/chart/chartAction';
 import Dashboard from '../../../src/dashboard/components/Dashboard';
 import { defaultFilters, dashboard, charts } from './fixtures';
-import URI from 'urijs';
 import { getDashboardLongUrl } from '../../../javascripts/dashboard/dashboardUtils';
 
 describe('Dashboard', () => {
@@ -185,7 +185,7 @@ describe('Dashboard', () => {
   describe('getDashboardLongUrl', () => {
     it('generates proper base url with dashboard metadata', () => {
       const uri1 = URI(getDashboardLongUrl(mockedProps.dashboard));
-      const uri2 = URI('/superset/dashboard/births/').search({ dashboard_data: JSON.stringify(mockedProps.dashboard.metadata) })
+      const uri2 = URI('/superset/dashboard/births/').search({ dashboard_data: JSON.stringify(mockedProps.dashboard.metadata) });
       expect(uri1.toString()).to.equal(uri2.toString());
     });
   });
