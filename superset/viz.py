@@ -279,6 +279,8 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
+        if self.form_data.get('cache_timeout'):
+            return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
         if (
