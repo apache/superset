@@ -75,6 +75,7 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
+
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -173,6 +174,17 @@ function nvd3Vis(slice, payload) {
         } else {
           chart = nv.models.lineChart();
         }
+
+        if (fd.line_fill_area) {
+          data = data.map(d => ({
+            ...d,
+            area: true,
+            fillOpacity: 0.1,
+          }));
+
+          chart.forceY([0]);
+        }
+
         // To alter the tooltip header
         // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
         chart.xScale(d3.time.scale.utc());
@@ -675,7 +687,6 @@ function nvd3Vis(slice, payload) {
               const domain = [xMin, xMax];
               xScale.domain(domain);
               chart.xDomain(domain);
-
               annotations.selectAll('line')
                 .data(records)
                 .enter()
