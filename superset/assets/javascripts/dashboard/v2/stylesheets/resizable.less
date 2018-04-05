@@ -29,8 +29,8 @@
   border-width: 0 1.5px 1.5px 0;
   border-right-color: @gray;
   border-bottom-color: @gray;
-  right: 16;
-  bottom: 16;
+  right: 16px;
+  bottom: 16px;
   width: 8px;
   height: 8px;
 }
@@ -38,22 +38,18 @@
 .resize-handle--right {
   width: 2px;
   height: 20px;
-  right: -2px;
-  top: 47%;
+  right: 2px;
+  top: ~"calc(50% - 9px)"; /* escape for .less */
   position: absolute;
   border-left: 1px solid @gray;
   border-right: 1px solid @gray;
 }
 
-  .grid-spacer + span .resize-handle--right {
-    right: 3px;
-  }
-
 .resize-handle--bottom {
   height: 2px;
   width: 20px;
-  bottom: 10px;
-  left: 47%;
+  bottom: 2px;
+  left: ~"calc(50% - 10px)"; /* escape for .less */
   position: absolute;
   border-top: 1px solid @gray;
   border-bottom: 1px solid @gray;

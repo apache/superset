@@ -233,32 +233,37 @@ table.table-no-hover tr:hover {
   border: none;
   box-shadow: none;
   padding: 0;
+  cursor: initial;
 }
 
 .editable-title input[type="button"] {
-    border-color: transparent;
-    background: transparent;
-    font-size: inherit;
-    line-height: inherit;
-    white-space: normal;
-    text-align: left;
+  border-color: transparent;
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: normal;
+  text-align: left;
 }
 
-.editable-title--editable input[type="button"]:hover {
-    cursor: text;
+.editable-title.editable-title--editable {
+  cursor: pointer;
+}
+
+.editable-title.editable-title--editing {
+  cursor: text;
 }
 
 .m-r-5 {
-    margin-right: 5px;
+  margin-right: 5px;
 }
 .m-r-3 {
-    margin-right: 3px;
+  margin-right: 3px;
 }
 .m-t-5 {
-    margin-top: 5px;
+  margin-top: 5px;
 }
 .m-t-10 {
-    margin-top: 10px;
+  margin-top: 10px;
 }
 .m-b-10 {
     margin-bottom: 10px;

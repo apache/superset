@@ -1,10 +1,8 @@
+import { addInfoToast } from './messageToasts';
+import { CHART_TYPE, MARKDOWN_TYPE, TABS_TYPE } from '../util/componentTypes';
 import { DASHBOARD_ROOT_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
+import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';
-import {
-  CHART_TYPE,
-  MARKDOWN_TYPE,
-  TABS_TYPE,
-} from '../util/componentTypes';
 
 // Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
@@ -61,8 +59,8 @@ export function deleteTopLevelTabs() {
 export const RESIZE_COMPONENT = 'RESIZE_COMPONENT';
 export function resizeComponent({ id, width, height }) {
   return (dispatch, getState) => {
-    const { dashboard: undoableDashboard } = getState();
-    const { present: dashboard } = undoableDashboard;
+    const { dashboardLayout: undoableLayout } = getState();
+    const { present: dashboard } = undoableLayout;
     const component = dashboard[id];
 
     if (
@@ -88,8 +86,8 @@ export function resizeComponent({ id, width, height }) {
             ...child,
             meta: {
               ...child.meta,
-              width: width || component.meta.width,
-              height: height || component.meta.height,
+              width: width || child.meta.width,
+              height: height || child.meta.height,
             },
           };
         }
@@ -114,6 +112,15 @@ export function moveComponent(dropResult) {
 export const HANDLE_COMPONENT_DROP = 'HANDLE_COMPONENT_DROP';
 export function handleComponentDrop(dropResult) {
   return (dispatch, getState) => {
+    const overflowsParent = dropOverflowsParent(dropResult, getState().dashboardLayout.present);
+
+    if (overflowsParent) {
+      return dispatch(addInfoToast(
+        `Parent does not have enough space for this component.
+         Try decreasing its width or add it to a new row.`,
+      ));
+    }
+
     const { source, destination } = dropResult;
     const droppedOnRoot = destination && destination.id === DASHBOARD_ROOT_ID;
     const isNewComponent = source.id === NEW_COMPONENTS_SOURCE_ID;
@@ -133,14 +140,14 @@ export function handleComponentDrop(dropResult) {
       dispatch(moveComponent(dropResult));
     }
 
-    // if we moved a tab and the parent tabs no longer has children, delete it.
+    // if we moved a Tab and the parent Tabs no longer has children, delete it.
     if (!isNewComponent) {
-      const { dashboard: undoableDashboard } = getState();
-      const { present: dashboard } = undoableDashboard;
-      const sourceComponent = dashboard[source.id];
+      const { dashboardLayout: undoableLayout } = getState();
+      const { present: layout } = undoableLayout;
+      const sourceComponent = layout[source.id];
 
       if (sourceComponent.type === TABS_TYPE && sourceComponent.children.length === 0) {
-        const parentId = findParentId({ childId: source.id, components: dashboard });
+        const parentId = findParentId({ childId: source.id, components: layout });
         dispatch(deleteComponent(source.id, parentId));
       }
     }

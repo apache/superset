@@ -2,7 +2,7 @@ import getDropPosition, { DROP_TOP, DROP_RIGHT, DROP_BOTTOM, DROP_LEFT } from '.
 
 export default function handleDrop(props, monitor, Component) {
   // this may happen due to throttling
-  if (!Component.mounted || !Component.props.onDrop) return undefined;
+  if (!Component.mounted) return undefined;
 
   Component.setState(() => ({ dropIndicator: null }));
   const dropPosition = getDropPosition(monitor, Component);

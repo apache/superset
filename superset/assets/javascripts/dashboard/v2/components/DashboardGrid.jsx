@@ -13,6 +13,7 @@ import {
 
 const propTypes = {
   depth: PropTypes.number.isRequired,
+  editMode: PropTypes.bool.isRequired,
   gridComponent: componentShape.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   resizeComponent: PropTypes.func.isRequired,
@@ -70,7 +71,7 @@ class DashboardGrid extends React.PureComponent {
   }
 
   render() {
-    const { gridComponent, handleComponentDrop, depth } = this.props;
+    const { gridComponent, handleComponentDrop, depth, editMode } = this.props;
     const { isResizing, rowGuideTop } = this.state;
 
     return (
@@ -99,18 +100,19 @@ class DashboardGrid extends React.PureComponent {
                 ))}
 
                 {/* render an empty drop target */}
-                {gridComponent.children.length === 0 &&
+                {editMode &&
                   <DragDroppable
                     component={gridComponent}
                     depth={depth}
                     parentComponent={null}
-                    index={0}
+                    index={gridComponent.children.length}
                     orientation="column"
                     onDrop={handleComponentDrop}
                     className="empty-grid-droptarget"
+                    editMode
                   >
                     {({ dropIndicatorProps }) => dropIndicatorProps &&
-                      <div {...dropIndicatorProps} />}
+                      <div className="drop-indicator drop-indicator--top" />}
                   </DragDroppable>}
 
                 {isResizing && Array(GRID_COLUMN_COUNT).fill(null).map((_, i) => (

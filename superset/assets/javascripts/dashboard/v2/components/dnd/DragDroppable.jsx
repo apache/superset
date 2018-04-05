@@ -18,6 +18,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
   onDrop: PropTypes.func,
+  editMode: PropTypes.bool.isRequired,
 
   // from react-dnd
   isDragging: PropTypes.bool.isRequired,
@@ -70,7 +71,10 @@ class DragDroppable extends React.Component {
       isDragging,
       isDraggingOver,
       style,
+      editMode,
     } = this.props;
+
+    if (!editMode) return children({});
 
     const { dropIndicator } = this.state;
 

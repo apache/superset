@@ -13,6 +13,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
+  editMode: PropTypes.bool.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
 };
@@ -35,6 +36,7 @@ class Divider extends React.PureComponent {
       parentComponent,
       index,
       handleComponentDrop,
+      editMode,
     } = this.props;
 
     return (
@@ -45,12 +47,14 @@ class Divider extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
+        editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <div ref={dragSourceRef}>
-            <HoverMenu position="left">
-              <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-            </HoverMenu>
+            {editMode &&
+              <HoverMenu position="left">
+                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+              </HoverMenu>}
 
             <div className="dashboard-component dashboard-component-divider" />
 

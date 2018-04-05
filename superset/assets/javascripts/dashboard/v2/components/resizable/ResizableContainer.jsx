@@ -5,11 +5,7 @@ import cx from 'classnames';
 
 import ResizableHandle from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
-import {
-  GRID_BASE_UNIT,
-  GRID_ROW_HEIGHT_UNIT,
-  GRID_GUTTER_SIZE,
-} from '../../util/constants';
+import { GRID_BASE_UNIT, GRID_GUTTER_SIZE } from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -25,10 +21,14 @@ const propTypes = {
   maxWidthMultiple: PropTypes.number,
   minHeightMultiple: PropTypes.number,
   maxHeightMultiple: PropTypes.number,
+  staticHeight: PropTypes.number,
   staticHeightMultiple: PropTypes.number,
+  staticWidth: PropTypes.number,
+  staticWidthMultiple: PropTypes.number,
   onResizeStop: PropTypes.func,
   onResize: PropTypes.func,
   onResizeStart: PropTypes.func,
+  editMode: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -37,14 +37,17 @@ const defaultProps = {
   adjustableHeight: true,
   gutterWidth: GRID_GUTTER_SIZE,
   widthStep: GRID_BASE_UNIT,
-  heightStep: GRID_ROW_HEIGHT_UNIT,
+  heightStep: GRID_BASE_UNIT,
   widthMultiple: null,
   heightMultiple: null,
   minWidthMultiple: 1,
   maxWidthMultiple: Infinity,
   minHeightMultiple: 1,
   maxHeightMultiple: Infinity,
+  staticHeight: null,
   staticHeightMultiple: null,
+  staticWidth: null,
+  staticWidthMultiple: null,
   onResizeStop: null,
   onResize: null,
   onResizeStart: null,
@@ -99,9 +102,9 @@ class ResizableContainer extends React.PureComponent {
 
     if (onResizeStop) {
       const nextWidthMultiple =
-        Math.round(widthMultiple + (delta.width / (widthStep + gutterWidth)));
+        widthMultiple + Math.round(delta.width / (widthStep + gutterWidth));
       const nextHeightMultiple =
-        Math.round(heightMultiple + (delta.height / heightStep));
+        heightMultiple + Math.round(delta.height / heightStep);
 
       onResizeStop({
         id,
@@ -131,6 +134,7 @@ class ResizableContainer extends React.PureComponent {
       minHeightMultiple,
       maxHeightMultiple,
       gutterWidth,
+      editMode,
     } = this.props;
 
     const size = {
@@ -145,6 +149,14 @@ class ResizableContainer extends React.PureComponent {
           || staticHeight
           || undefined,
     };
+
+    if (!editMode) {
+      return (
+        <div style={{ ...size }}>
+          {children}
+        </div>
+      );
+    }
 
     let enableConfig = resizableConfig.notAdjustable;
     if (adjustableWidth && adjustableHeight) enableConfig = resizableConfig.widthAndHeight;
@@ -164,10 +176,10 @@ class ResizableContainer extends React.PureComponent {
           ? (minHeightMultiple * heightStep)
           : undefined}
         maxWidth={adjustableWidth
-          ? (maxWidthMultiple * (widthStep + gutterWidth)) - gutterWidth
+          ? Math.max(size.width, (maxWidthMultiple * (widthStep + gutterWidth)) - gutterWidth)
           : undefined}
         maxHeight={adjustableHeight
-          ? (maxHeightMultiple * heightStep)
+          ? Math.max(size.height, maxHeightMultiple * heightStep)
           : undefined}
         size={size}
         onResizeStart={this.handleResizeStart}
