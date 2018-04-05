@@ -19,12 +19,15 @@ initJQueryAjax();
 const appContainer = document.getElementById('app');
 // const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 // const initState = Object.assign({}, getInitialState(bootstrapData));
+
 const initState = {
-  dashboard: {
+  dashboardLayout: {
     past: [],
     present: emptyDashboardLayout,
     future: [],
   },
+  editMode: true,
+  messageToasts: [],
 };
 
 const store = createStore(

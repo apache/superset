@@ -1,5 +1,4 @@
 import {
-  SPACER_TYPE,
   COLUMN_TYPE,
   CHART_TYPE,
   MARKDOWN_TYPE,
@@ -7,7 +6,6 @@ import {
 
 export default function componentIsResizable(entity) {
   return [
-    SPACER_TYPE,
     COLUMN_TYPE,
     CHART_TYPE,
     MARKDOWN_TYPE,

@@ -7,8 +7,7 @@ import { componentShape } from '../util/propShapes';
 import EditableTitle from '../../../components/EditableTitle';
 
 const propTypes = {
-  // editMode: PropTypes.bool.isRequired,
-  // setEditMode: PropTypes.func.isRequired,
+  editMode: PropTypes.bool.isRequired,
   component: componentShape.isRequired,
 
   // redux
@@ -17,6 +16,7 @@ const propTypes = {
   onRedo: PropTypes.func.isRequired,
   canUndo: PropTypes.bool.isRequired,
   canRedo: PropTypes.bool.isRequired,
+  setEditMode: PropTypes.func.isRequired,
 };
 
 class DashboardHeader extends React.Component {
@@ -27,8 +27,7 @@ class DashboardHeader extends React.Component {
   }
 
   toggleEditMode() {
-    console.log('@TODO toggleEditMode');
-    // this.props.setEditMode(!this.props.editMode);
+    this.props.setEditMode(!this.props.editMode);
   }
 
   handleChangeText(nextText) {
@@ -47,19 +46,18 @@ class DashboardHeader extends React.Component {
   }
 
   render() {
-    const { component, onUndo, onRedo, canUndo, canRedo } = this.props;
-    const editMode = true;
+    const { component, onUndo, onRedo, canUndo, canRedo, editMode } = this.props;
 
     return (
       <div className="dashboard-header">
-        <h1>
+        <div className="dashboard-component-header header-large">
           <EditableTitle
             title={component.meta.text}
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
             canEdit={editMode}
           />
-        </h1>
+        </div>
         <ButtonToolbar>
           <ButtonGroup>
             <Button

@@ -1,3 +1,4 @@
+import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 import HTML5Backend from 'react-dnd-html5-backend';
@@ -9,6 +10,7 @@ import DashboardGrid from '../containers/DashboardGrid';
 import IconButton from './IconButton';
 import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
+import ToastPresenter from '../containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import {
@@ -18,11 +20,10 @@ import {
 } from '../util/constants';
 
 const propTypes = {
-  editMode: PropTypes.bool,
-
   // redux
-  dashboard: PropTypes.object.isRequired,
+  dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
+  editMode: PropTypes.bool.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
@@ -52,20 +53,20 @@ class DashboardBuilder extends React.Component {
 
   render() {
     const { tabIndex } = this.state;
-    const { handleComponentDrop, dashboard, deleteTopLevelTabs } = this.props;
-    const dashboardRoot = dashboard[DASHBOARD_ROOT_ID];
+    const { handleComponentDrop, dashboardLayout, deleteTopLevelTabs, editMode } = this.props;
+    const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
-    const topLevelTabs = rootChildId !== DASHBOARD_GRID_ID && dashboard[rootChildId];
+    const topLevelTabs = rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
 
     const gridComponentId = topLevelTabs
       ? topLevelTabs.children[Math.min(topLevelTabs.children.length - 1, tabIndex)]
       : DASHBOARD_GRID_ID;
 
-    const gridComponent = dashboard[gridComponentId];
+    const gridComponent = dashboardLayout[gridComponentId];
 
     return (
-      <div className="dashboard-v2">
-        {topLevelTabs ? ( // you cannot drop on/displace tabs if they already exist
+      <div className={cx('dashboard-v2', editMode && 'dashboard-v2--editing')}>
+        {topLevelTabs || !editMode ? ( // you cannot drop on/displace tabs if they already exist
           <DashboardHeader />
         ) : (
           <DragDroppable
@@ -74,7 +75,8 @@ class DashboardBuilder extends React.Component {
             depth={DASHBOARD_ROOT_DEPTH}
             index={0}
             orientation="column"
-            onDrop={topLevelTabs ? null : handleComponentDrop}
+            onDrop={handleComponentDrop}
+            editMode
           >
             {({ dropIndicatorProps }) => (
               <div>
@@ -94,6 +96,7 @@ class DashboardBuilder extends React.Component {
                 onClick={deleteTopLevelTabs}
               />,
             ]}
+            editMode={editMode}
           >
             <DashboardComponent
               id={topLevelTabs.id}
@@ -105,13 +108,14 @@ class DashboardBuilder extends React.Component {
             />
           </WithPopoverMenu>}
 
-        <div className="dashboard-builder">
+        <div className="dashboard-content">
           <DashboardGrid
             gridComponent={gridComponent}
             depth={DASHBOARD_ROOT_DEPTH + 1}
           />
-          <BuilderComponentPane />
+          {editMode && <BuilderComponentPane />}
         </div>
+        <ToastPresenter />
       </div>
     );
   }

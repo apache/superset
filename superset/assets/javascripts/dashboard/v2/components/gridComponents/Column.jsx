@@ -15,12 +15,7 @@ import WithPopoverMenu from '../menu/WithPopoverMenu';
 import backgroundStyleOptions from '../../util/backgroundStyleOptions';
 import { componentShape } from '../../util/propShapes';
 
-import {
-  BACKGROUND_TRANSPARENT,
-  GRID_GUTTER_SIZE,
-} from '../../util/constants';
-
-const GUTTER = 'GUTTER';
+import { BACKGROUND_TRANSPARENT } from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -29,6 +24,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
+  editMode: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -95,22 +91,13 @@ class Column extends React.PureComponent {
       onResize,
       onResizeStop,
       handleComponentDrop,
+      editMode,
     } = this.props;
 
-    const columnItems = [];
-
-    (columnComponent.children || []).forEach((id, childIndex) => {
-      columnItems.push(id);
-      if (childIndex < columnComponent.children.length - 1) {
-        columnItems.push(GUTTER);
-      }
-    });
-
+    const columnItems = columnComponent.children || [];
     const backgroundStyle = backgroundStyleOptions.find(
       opt => opt.value === (columnComponent.meta.background || BACKGROUND_TRANSPARENT),
     );
-
-    console.log('occupied/avail cols', columnComponent.meta.width, '/', availableColumnCount, 'min width', minColumnWidth)
 
     return (
       <DragDroppable
@@ -120,6 +107,7 @@ class Column extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
+        editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <ResizableContainer
@@ -133,6 +121,7 @@ class Column extends React.PureComponent {
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
+            editMode={editMode}
           >
             <WithPopoverMenu
               isFocused={this.state.isFocused}
@@ -145,6 +134,7 @@ class Column extends React.PureComponent {
                   onChange={this.handleChangeBackground}
                 />,
               ]}
+              editMode={editMode}
             >
               <div
                 className={cx(
@@ -153,35 +143,30 @@ class Column extends React.PureComponent {
                   backgroundStyle.className,
                 )}
               >
-                <HoverMenu innerRef={dragSourceRef} position="top">
-                  <DragHandle position="top" />
-                  <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-                  <IconButton
-                    onClick={this.handleChangeFocus}
-                    className="fa fa-cog"
-                  />
-                </HoverMenu>
-
-                {columnItems.map((componentId, itemIndex) => {
-                  if (componentId === GUTTER) {
-                    return <div key={`gutter-${itemIndex}`} style={{ height: GRID_GUTTER_SIZE }} />;
-                  }
-
-                  return (
-                    <DashboardComponent
-                      key={componentId}
-                      id={componentId}
-                      parentId={columnComponent.id}
-                      depth={depth + 1}
-                      index={itemIndex / 2} // account for gutters!
-                      availableColumnCount={columnComponent.meta.width}
-                      columnWidth={columnWidth}
-                      onResizeStart={onResizeStart}
-                      onResize={onResize}
-                      onResizeStop={onResizeStop}
+                {editMode &&
+                  <HoverMenu innerRef={dragSourceRef} position="top">
+                    <DragHandle position="top" />
+                    <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+                    <IconButton
+                      onClick={this.handleChangeFocus}
+                      className="fa fa-cog"
                     />
-                  );
-                })}
+                  </HoverMenu>}
+
+                {columnItems.map((componentId, itemIndex) => (
+                  <DashboardComponent
+                    key={componentId}
+                    id={componentId}
+                    parentId={columnComponent.id}
+                    depth={depth + 1}
+                    index={itemIndex}
+                    availableColumnCount={columnComponent.meta.width}
+                    columnWidth={columnWidth}
+                    onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                  />
+                ))}
 
                 {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </div>

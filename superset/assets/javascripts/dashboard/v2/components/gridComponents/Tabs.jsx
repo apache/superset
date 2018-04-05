@@ -22,7 +22,8 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
-  renderTabContent: PropTypes.bool,
+  renderTabContent: PropTypes.bool, // whether to render tabs + content or just tabs
+  editMode: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -40,11 +41,11 @@ const propTypes = {
 };
 
 const defaultProps = {
-  onChangeTab: null,
   children: null,
   renderTabContent: true,
   availableColumnCount: 0,
   columnWidth: 0,
+  onChangeTab() {},
   onResizeStart() {},
   onResize() {},
   onResizeStop() {},
@@ -70,14 +71,9 @@ class Tabs extends React.PureComponent {
   }
 
   handleClickTab(tabIndex) {
-    const { onChangeTab, component, createComponent } = this.props;
+    const { component, createComponent } = this.props;
 
-    if (tabIndex !== NEW_TAB_INDEX && tabIndex !== this.state.tabIndex) {
-      this.setState(() => ({ tabIndex }));
-      if (onChangeTab) {
-        onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
-      }
-    } else if (tabIndex === NEW_TAB_INDEX) {
+    if (tabIndex === NEW_TAB_INDEX) {
       createComponent({
         destination: {
           id: component.id,
@@ -89,6 +85,9 @@ class Tabs extends React.PureComponent {
           type: TAB_TYPE,
         },
       });
+    } else if (tabIndex !== this.state.tabIndex) {
+      this.setState(() => ({ tabIndex }));
+      this.props.onChangeTab({ tabIndex, tabId: component.children[tabIndex] });
     }
   }
 
@@ -132,6 +131,7 @@ class Tabs extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       renderTabContent,
+      editMode,
     } = this.props;
 
     const { tabIndex: selectedTabIndex } = this.state;
@@ -145,13 +145,15 @@ class Tabs extends React.PureComponent {
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
+        editMode={editMode}
       >
         {({ dropIndicatorProps: tabsDropIndicatorProps, dragSourceRef: tabsDragSourceRef }) => (
           <div className="dashboard-component dashboard-component-tabs">
-            <HoverMenu innerRef={tabsDragSourceRef} position="left">
-              <DragHandle position="left" />
-              <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-            </HoverMenu>
+            {editMode &&
+              <HoverMenu innerRef={tabsDragSourceRef} position="left">
+                <DragHandle position="left" />
+                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+              </HoverMenu>}
 
             <BootstrapTabs
               id={tabsComponent.id}
@@ -202,11 +204,12 @@ class Tabs extends React.PureComponent {
                 </BootstrapTab>
               ))}
 
-              {tabIds.length < MAX_TAB_COUNT &&
-                <BootstrapTab
-                  eventKey={NEW_TAB_INDEX}
-                  title={<div className="fa fa-plus" />}
-                />}
+              {editMode &&
+                tabIds.length < MAX_TAB_COUNT &&
+                  <BootstrapTab
+                    eventKey={NEW_TAB_INDEX}
+                    title={<div className="fa fa-plus" />}
+                  />}
 
             </BootstrapTabs>
 
