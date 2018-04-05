@@ -376,13 +376,19 @@ class DruidTests(SupersetTestCase):
                     'double{}'.format(agg.capitalize()),
                 )
 
-            # Augment a metric.
-            metadata = SEGMENT_METADATA[:]
-            metadata[0]['columns']['metric1']['type'] = 'LONG'
-            instance = PyDruid.return_value
-            instance.segment_metadata.return_value = metadata
-            cluster.refresh_datasources()
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_refresh_metadata_augment_type(self, PyDruid):
+        self.login(username='admin')
+        cluster = self.get_cluster(PyDruid)
+        cluster.refresh_datasources()
 
+        metadata = SEGMENT_METADATA[:]
+        metadata[0]['columns']['metric1']['type'] = 'LONG'
+        instance = PyDruid.return_value
+        instance.segment_metadata.return_value = metadata
+        cluster.refresh_datasources()
+
+        for i, datasource in enumerate(cluster.datasources):
             metrics = (
                 db.session.query(DruidMetric)
                 .filter(DruidMetric.datasource_id == datasource.id)
@@ -396,6 +402,37 @@ class DruidTests(SupersetTestCase):
                     metric.json_obj['type'],
                     'long{}'.format(agg.capitalize()),
                 )
+
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_refresh_metadata_augment_verbose_name(self, PyDruid):
+        self.login(username='admin')
+        cluster = self.get_cluster(PyDruid)
+        cluster.refresh_datasources()
+
+        for i, datasource in enumerate(cluster.datasources):
+            metrics = (
+                db.session.query(DruidMetric)
+                .filter(DruidMetric.datasource_id == datasource.id)
+                .filter(DruidMetric.metric_name.like('%__metric1'))
+            )
+
+            for metric in metrics:
+                metric.verbose_name = metric.metric_name
+
+            db.session.commit()
+
+        # The verbose name should not change during a refresh.
+        cluster.refresh_datasources()
+
+        for i, datasource in enumerate(cluster.datasources):
+            metrics = (
+                db.session.query(DruidMetric)
+                .filter(DruidMetric.datasource_id == datasource.id)
+                .filter(DruidMetric.metric_name.like('%__metric1'))
+            )
+
+            for metric in metrics:
+                self.assertEqual(metric.verbose_name, metric.metric_name)
 
     def test_urls(self):
         cluster = self.get_test_cluster_obj()
