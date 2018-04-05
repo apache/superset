@@ -23,7 +23,6 @@ import {
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
-  SPACER_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from './componentTypes';
@@ -48,7 +47,6 @@ const parentMaxDepthLookup = {
     [DIVIDER_TYPE]: depthOne,
     [HEADER_TYPE]: depthOne,
     [ROW_TYPE]: depthOne,
-    [SPACER_TYPE]: depthOne,
     [TABS_TYPE]: depthOne,
   },
 
@@ -56,7 +54,6 @@ const parentMaxDepthLookup = {
     [CHART_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
     [COLUMN_TYPE]: depthTwo,
-    [SPACER_TYPE]: depthFour,
   },
 
   [TABS_TYPE]: {
@@ -69,7 +66,6 @@ const parentMaxDepthLookup = {
     [DIVIDER_TYPE]: depthTwo,
     [HEADER_TYPE]: depthTwo,
     [ROW_TYPE]: depthTwo,
-    [SPACER_TYPE]: depthTwo,
     [TABS_TYPE]: depthTwo,
   },
 
@@ -78,7 +74,6 @@ const parentMaxDepthLookup = {
     [HEADER_TYPE]: depthThree,
     [MARKDOWN_TYPE]: depthThree,
     [ROW_TYPE]: depthThree,
-    [SPACER_TYPE]: depthThree,
   },
 
   // these have no valid children
@@ -86,11 +81,13 @@ const parentMaxDepthLookup = {
   [DIVIDER_TYPE]: {},
   [HEADER_TYPE]: {},
   [MARKDOWN_TYPE]: {},
-  [SPACER_TYPE]: {},
 };
 
 export default function isValidChild({ parentType, childType, parentDepth }) {
-  if (!parentType || !childType || typeof parentDepth !== 'number') return false;
+  if (!parentType || !childType || typeof parentDepth !== 'number') {
+    return false;
+  }
+
   const maxParentDepth = (parentMaxDepthLookup[parentType] || {})[childType];
 
   return typeof maxParentDepth === 'number' && parentDepth <= maxParentDepth;

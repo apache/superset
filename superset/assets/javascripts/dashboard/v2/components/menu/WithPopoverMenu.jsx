@@ -9,6 +9,7 @@ const propTypes = {
   onChangeFocus: PropTypes.func,
   isFocused: PropTypes.bool,
   shouldFocus: PropTypes.func,
+  editMode: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -32,10 +33,14 @@ class WithPopoverMenu extends React.PureComponent {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.isFocused && !this.state.isFocused) {
+    if (nextProps.editMode && nextProps.isFocused && !this.state.isFocused) {
       document.addEventListener('click', this.handleClick, true);
       document.addEventListener('drag', this.handleClick, true);
       this.setState({ isFocused: true });
+    } else if (this.state.isFocused && !nextProps.editMode) {
+      document.removeEventListener('click', this.handleClick, true);
+      document.removeEventListener('drag', this.handleClick, true);
+      this.setState({ isFocused: false });
     }
   }
 
@@ -49,10 +54,14 @@ class WithPopoverMenu extends React.PureComponent {
   }
 
   handleClick(event) {
-    const { onChangeFocus, shouldFocus: shouldFocusThunk } = this.props;
-    const shouldFocus = shouldFocusThunk(event, this.container);
+    const { onChangeFocus, shouldFocus: shouldFocusFunc, disableClick, editMode } = this.props;
+    const shouldFocus = shouldFocusFunc(event, this.container);
 
-    if (shouldFocus && !this.state.isFocused) {
+    if (!editMode) {
+      return;
+    }
+
+    if (!disableClick && shouldFocus && !this.state.isFocused) {
       // if not focused, set focus and add a window event listener to capture outside clicks
       // this enables us to not set a click listener for ever item on a dashboard
       document.addEventListener('click', this.handleClick, true);
@@ -72,27 +81,28 @@ class WithPopoverMenu extends React.PureComponent {
   }
 
   render() {
-    const { children, menuItems, disableClick } = this.props;
+    const { children, menuItems, editMode } = this.props;
     const { isFocused } = this.state;
 
     return (
       <div
         ref={this.setRef}
-        onClick={!disableClick && this.handleClick}
-        role="button" // @TODO consider others?
-        tabIndex="0"
+        onClick={this.handleClick}
+        role="none"
         className={cx(
           'with-popover-menu',
-          isFocused && 'with-popover-menu--focused',
+          editMode && isFocused && 'with-popover-menu--focused',
         )}
       >
         {children}
-        {isFocused && menuItems.length ?
-          <div className="popover-menu" >
-            {menuItems.map((node, i) => (
-              <div className="menu-item" key={`menu-item-${i}`}>{node}</div>
-            ))}
-          </div> : null}
+        {editMode &&
+          isFocused &&
+          menuItems.length > 0 &&
+            <div className="popover-menu" >
+              {menuItems.map((node, i) => (
+                <div className="menu-item" key={`menu-item-${i}`}>{node}</div>
+              ))}
+            </div>}
       </div>
     );
   }

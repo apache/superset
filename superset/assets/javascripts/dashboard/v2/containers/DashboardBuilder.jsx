@@ -5,11 +5,12 @@ import DashboardBuilder from '../components/DashboardBuilder';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
-} from '../actions';
+} from '../actions/dashboardLayout';
 
-function mapStateToProps({ dashboard: undoableDashboard }) {
+function mapStateToProps({ dashboardLayout: undoableLayout, editMode }) {
   return {
-    dashboard: undoableDashboard.present,
+    dashboardLayout: undoableLayout.present,
+    editMode,
   };
 }
 

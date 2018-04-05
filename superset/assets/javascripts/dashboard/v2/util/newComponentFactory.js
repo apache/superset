@@ -5,7 +5,6 @@ import {
   HEADER_TYPE,
   MARKDOWN_TYPE,
   ROW_TYPE,
-  SPACER_TYPE,
   TABS_TYPE,
   TAB_TYPE,
 } from './componentTypes';
@@ -16,7 +15,7 @@ import {
 } from './constants';
 
 const typeToDefaultMetaData = {
-  [CHART_TYPE]: { width: 3, height: 15 },
+  [CHART_TYPE]: { width: 3, height: 30 },
   [COLUMN_TYPE]: { width: 3, background: BACKGROUND_TRANSPARENT },
   [DIVIDER_TYPE]: null,
   [HEADER_TYPE]: {
@@ -24,9 +23,8 @@ const typeToDefaultMetaData = {
     headerSize: MEDIUM_HEADER,
     background: BACKGROUND_TRANSPARENT,
   },
-  [MARKDOWN_TYPE]: { width: 3, height: 15 },
+  [MARKDOWN_TYPE]: { width: 3, height: 30 },
   [ROW_TYPE]: { background: BACKGROUND_TRANSPARENT },
-  [SPACER_TYPE]: {},
   [TABS_TYPE]: null,
   [TAB_TYPE]: { text: 'New Tab' },
 };
