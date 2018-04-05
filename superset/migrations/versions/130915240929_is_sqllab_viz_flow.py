@@ -46,7 +46,7 @@ def upgrade():
         if tbl.sql:
             tbl.is_sqllab_view = True
             session.merge(tbl)
-            session.commit()
+    session.commit()
     db.session.close()
 
 
