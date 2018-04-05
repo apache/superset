@@ -372,7 +372,7 @@ class DruidColumn(Model, BaseColumn):
         for metric in metrics.values():
             dbmetric = dbmetrics.get(metric.metric_name)
             if dbmetric:
-                for attr in ['json', 'metric_type', 'verbose_name']:
+                for attr in ['json', 'metric_type']:
                     setattr(dbmetric, attr, getattr(metric, attr))
             else:
                 with db.session.no_autoflush:
