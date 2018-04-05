@@ -477,6 +477,9 @@ class SqlaTable(Model, BaseDatasource):
             'metrics': metrics,
             'row_limit': row_limit,
             'to_dttm': to_dttm,
+            'filter': filter,
+            'columns': {col.column_name: col for col in self.columns},
+
         }
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
