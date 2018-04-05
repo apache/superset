@@ -116,7 +116,7 @@ class EditableTitle extends React.PureComponent {
   }
 
   render() {
-    let input = (
+    let content = (
       <input
         required
         type={this.state.isEditing ? 'text' : 'button'}
@@ -129,19 +129,25 @@ class EditableTitle extends React.PureComponent {
       />
     );
     if (this.props.showTooltip) {
-      input = (
+      content = (
         <TooltipWrapper
           label="title"
           tooltip={this.props.canEdit ? t('click to edit title') :
               this.props.noPermitTooltip || t('You don\'t have the rights to alter this title.')}
         >
-          {input}
+          {content}
         </TooltipWrapper>
       );
     }
     return (
-      <span className={cx('editable-title', this.props.canEdit && 'editable-title--editable')}>
-        {input}
+      <span
+        className={cx(
+          'editable-title',
+          this.props.canEdit && 'editable-title--editable',
+          this.state.isEditing && 'editable-title--editing',
+        )}
+      >
+        {content}
       </span>
     );
   }

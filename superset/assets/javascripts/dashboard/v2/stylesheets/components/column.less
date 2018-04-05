@@ -1,18 +1,34 @@
 .grid-column {
   width: 100%;
-  min-height: 56px;
+}
+
+/* gutters between elements in a column */
+.grid-column > :not(:only-child):not(.hover-menu):not(:last-child) {
+  margin-bottom: 16px;
+}
+
+.dashboard-v2--editing .grid-column:after {
+  border: 1px dashed transparent;
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 1px;
+  left: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dashboard-v2--editing .grid-column:hover:after {
+  border: 1px solid @gray-light;
 }
 
 .grid-column > .hover-menu--top {
   top: -20px;
 }
 
-.grid-column.background--transparent {
-  background-color: transparent;
-}
-
-.grid-column.background--white {
-  background-color: white;
+.grid-column--empty {
+  min-height: 72px;
 }
 
 .grid-column--empty:before {

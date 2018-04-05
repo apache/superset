@@ -6,7 +6,6 @@ import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
 import NewHeader from './gridComponents/new/NewHeader';
 import NewRow from './gridComponents/new/NewRow';
-import NewSpacer from './gridComponents/new/NewSpacer';
 import NewTabs from './gridComponents/new/NewTabs';
 
 const propTypes = {
@@ -24,7 +23,6 @@ class BuilderComponentPane extends React.PureComponent {
         <NewHeader />
 
         <NewDivider />
-        <NewSpacer />
 
         <NewTabs />
         <NewRow />

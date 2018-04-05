@@ -10,7 +10,6 @@ import {
   ROW_TYPE,
   TAB_TYPE,
   TABS_TYPE,
-
 } from '../util/componentTypes';
 
 import {
@@ -20,7 +19,7 @@ import {
   MOVE_COMPONENT,
   CREATE_TOP_LEVEL_TABS,
   DELETE_TOP_LEVEL_TABS,
-} from '../actions';
+} from '../actions/dashboardLayout';
 
 const actionHandlers = {
   [UPDATE_COMPONENTS](state, action) {
@@ -224,7 +223,7 @@ const actionHandlers = {
   },
 };
 
-export default function dashboardReducer(state = {}, action) {
+export default function layoutReducer(state = {}, action) {
   if (action.type in actionHandlers) {
     const handler = actionHandlers[action.type];
     return handler(state, action);

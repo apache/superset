@@ -14,7 +14,7 @@ import {
   deleteComponent,
   updateComponents,
   handleComponentDrop,
-} from '../actions';
+} from '../actions/dashboardLayout';
 
 const propTypes = {
   component: componentShape.isRequired,
@@ -25,28 +25,29 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-function mapStateToProps({ dashboard: undoableDashboard }, ownProps) {
-  const components = undoableDashboard.present;
+function mapStateToProps({ dashboardLayout: undoableLayout, editMode }, ownProps) {
+  const dashboardLayout = undoableLayout.present;
   const { id, parentId } = ownProps;
-  const component = components[id];
+  const component = dashboardLayout[id];
   const props = {
     component,
-    parentComponent: components[parentId],
+    parentComponent: dashboardLayout[parentId],
+    editMode,
   };
 
   // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components
   if (props.component.type === ROW_TYPE) {
-    props.occupiedColumnCount = getTotalChildWidth({ id, components });
+    props.occupiedColumnCount = getTotalChildWidth({ id, components: dashboardLayout });
   } else if (props.component.type === COLUMN_TYPE) {
     props.minColumnWidth = GRID_MIN_COLUMN_COUNT;
 
     component.children.forEach((childId) => {
       // rows don't have widths, so find the width of its children
-      if (components[childId].type === ROW_TYPE) {
+      if (dashboardLayout[childId].type === ROW_TYPE) {
         props.minColumnWidth = Math.max(
           props.minColumnWidth,
-          getTotalChildWidth({ id: childId, components }),
+          getTotalChildWidth({ id: childId, components: dashboardLayout }),
         );
       }
     });

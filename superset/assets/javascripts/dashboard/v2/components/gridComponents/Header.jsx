@@ -22,6 +22,7 @@ const propTypes = {
   depth: PropTypes.number.isRequired,
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
+  editMode: PropTypes.bool.isRequired,
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
@@ -79,6 +80,7 @@ class Header extends React.PureComponent {
       parentComponent,
       index,
       handleComponentDrop,
+      editMode,
     } = this.props;
 
     const headerStyle = headerStyleOptions.find(
@@ -98,12 +100,14 @@ class Header extends React.PureComponent {
         depth={depth}
         onDrop={handleComponentDrop}
         disableDragDrop={isFocused}
+        editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <div ref={dragSourceRef}>
-            <HoverMenu position="left">
-              <DragHandle position="left" />
-            </HoverMenu>
+            {editMode &&
+              <HoverMenu position="left">
+                <DragHandle position="left" />
+              </HoverMenu>}
 
             <WithPopoverMenu
               onChangeFocus={this.handleChangeFocus}
@@ -122,6 +126,7 @@ class Header extends React.PureComponent {
                 />,
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
               ]}
+              editMode={editMode}
             >
               <div
                 className={cx(
@@ -133,7 +138,7 @@ class Header extends React.PureComponent {
               >
                 <EditableTitle
                   title={component.meta.text}
-                  canEdit={isFocused}
+                  canEdit={editMode}
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />
