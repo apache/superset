@@ -129,7 +129,7 @@ class SaveModal extends React.Component {
       >
         <Modal.Header closeButton>
           <Modal.Title>
-            {t('Save A Slice')}
+            {t('Save A Chart')}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
@@ -150,7 +150,7 @@ class SaveModal extends React.Component {
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
             >
-              {t('Overwrite slice %s', this.props.slice.slice_name)}
+              {t('Overwrite chart %s', this.props.slice.slice_name)}
             </Radio>
           }
 
@@ -163,7 +163,7 @@ class SaveModal extends React.Component {
           </Radio>
           <input
             name="new_slice_name"
-            placeholder={t('[slice name]')}
+            placeholder={t('[chart name]')}
             onChange={this.onChange.bind(this, 'newSliceName')}
             onFocus={this.changeAction.bind(this, 'saveas')}
           />
@@ -184,7 +184,7 @@ class SaveModal extends React.Component {
             checked={this.state.addToDash === 'existing'}
             onChange={this.changeDash.bind(this, 'existing')}
           >
-            {t('Add slice to existing dashboard')}
+            {t('Add chart to existing dashboard')}
           </Radio>
           <Select
             className="save-modal-selector"

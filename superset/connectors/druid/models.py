@@ -29,11 +29,11 @@ import requests
 from six import string_types
 import sqlalchemy as sa
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, or_, String, Text, UniqueConstraint,
+    Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
 
-from superset import conf, db, import_util, sm, utils
+from superset import conf, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.exceptions import MetricPermException
 from superset.models.helpers import (
@@ -200,33 +200,31 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                 col_objs_list = (
                     session.query(DruidColumn)
                     .filter(DruidColumn.datasource_id == datasource.id)
-                    .filter(or_(DruidColumn.column_name == col for col in cols))
+                    .filter(DruidColumn.column_name.in_(cols.keys()))
                 )
                 col_objs = {col.column_name: col for col in col_objs_list}
                 for col in cols:
                     if col == '__time':  # skip the time column
                         continue
-                    col_obj = col_objs.get(col, None)
+                    col_obj = col_objs.get(col)
                     if not col_obj:
                         col_obj = DruidColumn(
                             datasource_id=datasource.id,
                             column_name=col)
                         with session.no_autoflush:
                             session.add(col_obj)
-                    datatype = cols[col]['type']
-                    if datatype == 'STRING':
+                    col_obj.type = cols[col]['type']
+                    col_obj.datasource = datasource
+                    if col_obj.type == 'STRING':
                         col_obj.groupby = True
                         col_obj.filterable = True
-                    if datatype == 'hyperUnique' or datatype == 'thetaSketch':
+                    if col_obj.type == 'hyperUnique' or col_obj.type == 'thetaSketch':
                         col_obj.count_distinct = True
-                    # Allow sum/min/max for long or double
-                    if datatype == 'LONG' or datatype == 'DOUBLE':
+                    if col_obj.is_num:
                         col_obj.sum = True
                         col_obj.min = True
                         col_obj.max = True
-                    col_obj.type = datatype
-                    col_obj.datasource = datasource
-                datasource.generate_metrics_for(col_objs_list)
+                datasource.refresh_metrics()
         session.commit()
 
     @property
@@ -361,21 +359,24 @@ class DruidColumn(Model, BaseColumn):
                 )
         return metrics
 
-    def generate_metrics(self):
-        """Generate metrics based on the column metadata"""
+    def refresh_metrics(self):
+        """Refresh metrics based on the column metadata"""
         metrics = self.get_metrics()
         dbmetrics = (
             db.session.query(DruidMetric)
             .filter(DruidMetric.datasource_id == self.datasource_id)
-            .filter(or_(
-                DruidMetric.metric_name == m for m in metrics
-            ))
+            .filter(DruidMetric.metric_name.in_(metrics.keys()))
         )
         dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
         for metric in metrics.values():
-            metric.datasource_id = self.datasource_id
-            if not dbmetrics.get(metric.metric_name, None):
-                db.session.add(metric)
+            dbmetric = dbmetrics.get(metric.metric_name)
+            if dbmetric:
+                for attr in ['json', 'metric_type', 'verbose_name']:
+                    setattr(dbmetric, attr, getattr(metric, attr))
+            else:
+                with db.session.no_autoflush:
+                    metric.datasource_id = self.datasource_id
+                    db.session.add(metric)
 
     @classmethod
     def import_obj(cls, i_column):
@@ -456,6 +457,7 @@ class DruidDatasource(Model, BaseDatasource):
     # Columns
     datasource_name = Column(String(255))
     is_hidden = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
     cluster_name = Column(
         String(250), ForeignKey('clusters.cluster_name'))
@@ -463,7 +465,7 @@ class DruidDatasource(Model, BaseDatasource):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
-        sm.user_model,
+        security_manager.user_model,
         backref=backref('datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
     UniqueConstraint('cluster_name', 'datasource_name')
@@ -504,7 +506,7 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def schema_perm(self):
         """Returns schema permission if present, cluster one otherwise."""
-        return utils.get_schema_perm(self.cluster, self.schema)
+        return security_manager.get_schema_perm(self.cluster, self.schema)
 
     def get_perm(self):
         return (
@@ -652,24 +654,9 @@ class DruidDatasource(Model, BaseDatasource):
         if segment_metadata:
             return segment_metadata[-1]['columns']
 
-    def generate_metrics(self):
-        self.generate_metrics_for(self.columns)
-
-    def generate_metrics_for(self, columns):
-        metrics = {}
-        for col in columns:
-            metrics.update(col.get_metrics())
-        dbmetrics = (
-            db.session.query(DruidMetric)
-            .filter(DruidMetric.datasource_id == self.id)
-            .filter(or_(DruidMetric.metric_name == m for m in metrics))
-        )
-        dbmetrics = {metric.metric_name: metric for metric in dbmetrics}
-        for metric in metrics.values():
-            metric.datasource_id = self.id
-            if not dbmetrics.get(metric.metric_name, None):
-                with db.session.no_autoflush:
-                    db.session.add(metric)
+    def refresh_metrics(self):
+        for col in self.columns:
+            col.refresh_metrics()
 
     @classmethod
     def sync_to_db_from_config(
@@ -702,7 +689,7 @@ class DruidDatasource(Model, BaseDatasource):
         col_objs = (
             session.query(DruidColumn)
             .filter(DruidColumn.datasource_id == datasource.id)
-            .filter(or_(DruidColumn.column_name == dim for dim in dimensions))
+            .filter(DruidColumn.column_name.in_(dimensions))
         )
         col_objs = {col.column_name: col for col in col_objs}
         for dim in dimensions:
@@ -722,8 +709,9 @@ class DruidDatasource(Model, BaseDatasource):
         metric_objs = (
             session.query(DruidMetric)
             .filter(DruidMetric.datasource_id == datasource.id)
-            .filter(or_(DruidMetric.metric_name == spec['name']
-                    for spec in druid_config['metrics_spec']))
+            .filter(DruidMetric.metric_name.in_(
+                spec['name'] for spec in druid_config['metrics_spec']
+            ))
         )
         metric_objs = {metric.metric_name: metric for metric in metric_objs}
         for metric_spec in druid_config['metrics_spec']:
@@ -909,13 +897,16 @@ class DruidDatasource(Model, BaseDatasource):
     def metrics_and_post_aggs(metrics, metrics_dict):
         # Separate metrics into those that are aggregations
         # and those that are post aggregations
-        agg_names = set()
+        saved_agg_names = set()
+        adhoc_agg_configs = []
         postagg_names = []
-        for metric_name in metrics:
-            if metrics_dict[metric_name].metric_type != 'postagg':
-                agg_names.add(metric_name)
+        for metric in metrics:
+            if utils.is_adhoc_metric(metric):
+                adhoc_agg_configs.append(metric)
+            elif metrics_dict[metric].metric_type != 'postagg':
+                saved_agg_names.add(metric)
             else:
-                postagg_names.append(metric_name)
+                postagg_names.append(metric)
         # Create the post aggregations, maintain order since postaggs
         # may depend on previous ones
         post_aggs = OrderedDict()
@@ -924,8 +915,8 @@ class DruidDatasource(Model, BaseDatasource):
             postagg = metrics_dict[postagg_name]
             visited_postaggs.add(postagg_name)
             DruidDatasource.resolve_postagg(
-                postagg, post_aggs, agg_names, visited_postaggs, metrics_dict)
-        return list(agg_names), post_aggs
+                postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict)
+        return list(saved_agg_names), adhoc_agg_configs, post_aggs
 
     def values_for_column(self,
                           column_name,
@@ -980,11 +971,29 @@ class DruidDatasource(Model, BaseDatasource):
                     ret = Filter(type='and', fields=[ff, dim_filter])
         return ret
 
-    def get_aggregations(self, all_metrics):
+    @staticmethod
+    def druid_type_from_adhoc_metric(adhoc_metric):
+        column_type = adhoc_metric.get('column').get('type').lower()
+        aggregate = adhoc_metric.get('aggregate').lower()
+        if (aggregate == 'count'):
+            return 'count'
+        if (aggregate == 'count_distinct'):
+            return 'cardinality'
+        else:
+            return column_type + aggregate.capitalize()
+
+    def get_aggregations(self, saved_metrics, adhoc_metrics=[]):
         aggregations = OrderedDict()
         for m in self.metrics:
-            if m.metric_name in all_metrics:
+            if m.metric_name in saved_metrics:
                 aggregations[m.metric_name] = m.json_obj
+        for adhoc_metric in adhoc_metrics:
+            aggregations[adhoc_metric['label']] = {
+                'fieldName': adhoc_metric['column']['column_name'],
+                'fieldNames': [adhoc_metric['column']['column_name']],
+                'type': self.druid_type_from_adhoc_metric(adhoc_metric),
+                'name': adhoc_metric['label'],
+            }
         return aggregations
 
     def check_restricted_metrics(self, aggregations):
@@ -992,7 +1001,7 @@ class DruidDatasource(Model, BaseDatasource):
             m.metric_name for m in self.metrics
             if m.is_restricted and
             m.metric_name in aggregations.keys() and
-            not sm.has_access('metric_access', m.perm)
+            not security_manager.has_access('metric_access', m.perm)
         ]
         if rejected_metrics:
             raise MetricPermException(
@@ -1078,11 +1087,11 @@ class DruidDatasource(Model, BaseDatasource):
         metrics_dict = {m.metric_name: m for m in self.metrics}
         columns_dict = {c.column_name: c for c in self.columns}
 
-        all_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
             metrics_dict)
 
-        aggregations = self.get_aggregations(all_metrics)
+        aggregations = self.get_aggregations(saved_metrics, adhoc_metrics)
         self.check_restricted_metrics(aggregations)
 
         # the dimensions list with dimensionSpecs expanded
@@ -1258,6 +1267,7 @@ class DruidDatasource(Model, BaseDatasource):
         cols += query_obj.get('columns') or []
         cols += query_obj.get('metrics') or []
 
+        cols = utils.get_metric_names(cols)
         cols = [col for col in cols if col in df.columns]
         df = df[cols]
 

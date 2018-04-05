@@ -533,6 +533,28 @@ function nvd3Vis(slice, payload) {
         chart.yAxis.axisLabel(fd.y_axis_label).axisLabelDistance(distance);
       }
 
+      const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
+      if (isTimeSeries && annotationLayers && slice.annotationData) {
+        // Time series annotations add additional data
+        const timeSeriesAnnotations = annotationLayers
+          .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
+        bushel.concat((slice.annotationData[a.name] || []).map((series) => {
+          if (!series) {
+            return {};
+          }
+          const key = Array.isArray(series.key) ?
+            `${a.name}, ${series.key.join(', ')}` : a.name;
+          return {
+            ...series,
+            key,
+            color: a.color,
+            strokeWidth: a.width,
+            classed: `${a.opacity} ${a.style}`,
+          };
+        })), []);
+        data.push(...timeSeriesAnnotations);
+      }
+
       // render chart
       svg
       .datum(data)
@@ -544,8 +566,7 @@ function nvd3Vis(slice, payload) {
       // on scroll, hide tooltips. throttle to only 4x/second.
       $(window).scroll(throttle(hideTooltips, 250));
 
-      const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
-
+      // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && annotationLayers) {
         // Formula annotations
         const formulas = annotationLayers.filter(a => a.annotationType === AnnotationTypes.FORMULA)
@@ -620,7 +641,7 @@ function nvd3Vis(slice, payload) {
               '<div>' + body.join(', ') + '</div>';
           });
 
-        if (slice.annotationData && Object.keys(slice.annotationData).length) {
+        if (slice.annotationData) {
           // Event annotations
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.EVENT &&
@@ -673,7 +694,6 @@ function nvd3Vis(slice, payload) {
                 .call(tip);
             }
           });
-
 
           // Interval annotations
           annotationLayers.filter(x => (
@@ -737,33 +757,8 @@ function nvd3Vis(slice, payload) {
                 .call(tip);
             }
           });
-
-          // Time series annotations
-          const timeSeriesAnnotations = annotationLayers
-            .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
-              bushel.concat((slice.annotationData[a.name] || []).map((series) => {
-                if (!series) {
-                  return {};
-                }
-                const key = Array.isArray(series.key) ?
-                  `${a.name}, ${series.key.join(', ')}` : a.name;
-                return {
-                  ...series,
-                  key,
-                  color: a.color,
-                  strokeWidth: a.width,
-                  classed: `${a.opacity} ${a.style}`,
-                };
-              })), []);
-          data.push(...timeSeriesAnnotations);
         }
       }
-
-      // rerender chart
-      svg.datum(data)
-        .attr('height', height)
-        .attr('width', width)
-        .call(chart);
     }
     return chart;
   };

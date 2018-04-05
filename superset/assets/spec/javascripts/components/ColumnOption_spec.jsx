@@ -47,8 +47,14 @@ describe('ColumnOption', () => {
     expect(wrapper.find('.option-label').first().text()).to.equal('foo');
   });
   it('shows a column type label when showType is true', () => {
-    props.showType = true;
-    wrapper = shallow(factory(props));
+    wrapper = shallow(factory({
+      ...props,
+      showType: true,
+      column: {
+        expression: null,
+        type: 'str',
+      },
+    }));
     expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
   });
   it('column with expression has correct column label if showType is true', () => {
@@ -56,6 +62,17 @@ describe('ColumnOption', () => {
     wrapper = shallow(factory(props));
     expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
     expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('expression');
+  });
+  it('shows no column type label when type is null', () => {
+    wrapper = shallow(factory({
+      ...props,
+      showType: true,
+      column: {
+        expression: null,
+        type: null,
+      },
+    }));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(0);
   });
   it('dttm column has correct column label if showType is true', () => {
     props.showType = true;
