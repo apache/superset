@@ -64,7 +64,7 @@ export default class FilterableTable extends PureComponent {
         .map(d => getTextWidth(d[key]) + PADDING) // get width for each value for a key
         .push(getTextWidth(key) + PADDING); // add width of column key to end of list
       // set max width as value for key
-      widthsByColumnKey[key] = Math.min(100, Math.max(...colWidths));
+      widthsByColumnKey[key] = Math.min(200, Math.max(...colWidths));
     });
     return widthsByColumnKey;
   }
