@@ -61,6 +61,7 @@ GB_RESULT_SET = [
         'timestamp': '2012-01-01T00:00:00.000Z',
         'event': {
             'dim1': 'Canada',
+            'dim2': 'boy',
             'metric1': 12345678,
         },
     },
@@ -69,6 +70,7 @@ GB_RESULT_SET = [
         'timestamp': '2012-01-01T00:00:00.000Z',
         'event': {
             'dim1': 'USA',
+            'dim2': 'girl',
             'metric1': 12345678 / 2,
         },
     },
@@ -165,7 +167,7 @@ class DruidTests(SupersetTestCase):
             'row_limit': 5000,
             'include_search': 'false',
             'metrics': ['count'],
-            'groupby': ['dim1', 'dim2d'],
+            'groupby': ['dim1', 'dim2'],
             'force': 'true',
         }
         # two groupby
