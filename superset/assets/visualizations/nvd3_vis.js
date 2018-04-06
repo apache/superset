@@ -75,10 +75,6 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
-function bound(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -590,6 +586,7 @@ function nvd3Vis(slice, payload) {
           xMax = chart.xAxis.scale().domain()[1].valueOf();
           xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
         }
+        xScale.clamp(true);
 
         if (Array.isArray(formulas) && formulas.length) {
           const xValues = [];
@@ -759,10 +756,10 @@ function nvd3Vis(slice, payload) {
               annotations.selectAll('rect')
                 .data(records)
                 .attr({
-                  x: d => bound(xScale(d[e.timeColumn]), 0, chartWidth),
+                  x: d => xScale(new Date(d[e.timeColumn])),
                   width: (d) => {
-                    const x1 = bound(xScale(d[e.timeColumn]), 0, chartWidth);
-                    const x2 = bound(xScale(d[e.intervalEndColumn]), 0, chartWidth);
+                    const x1 = xScale(new Date(d[e.timeColumn]));
+                    const x2 = xScale(new Date(d[e.intervalEndColumn]));
                     return x2 - x1;
                   },
                 });
