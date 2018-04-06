@@ -75,6 +75,10 @@ function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
+function bound(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
@@ -685,7 +689,7 @@ function nvd3Vis(slice, payload) {
             }
 
             // update annotation positions on brush event
-            chart.focus.dispatch.on("onBrush.event-annotation", function(extent) {
+            chart.focus.dispatch.on('onBrush.event-annotation', function () {
               annotations.selectAll('line')
                 .data(records)
                 .attr({
@@ -693,7 +697,7 @@ function nvd3Vis(slice, payload) {
                   y1: 0,
                   x2: d => xScale(new Date(d[e.timeColumn])),
                   y2: annotationHeight,
-                  opacity: d => {
+                  opacity: (d) => {
                     const x = xScale(new Date(d[e.timeColumn]));
                     return (x > 0) && (x < chartWidth) ? 1 : 0;
                   },
@@ -751,12 +755,12 @@ function nvd3Vis(slice, payload) {
             }
 
             // update annotation positions on brush event
-            chart.focus.dispatch.on("onBrush.interval-annotation", function(extent) {
+            chart.focus.dispatch.on('onBrush.interval-annotation', function () {
               annotations.selectAll('rect')
                 .data(records)
                 .attr({
                   x: d => bound(xScale(d[e.timeColumn]), 0, chartWidth),
-                  width: d => {
+                  width: (d) => {
                     const x1 = bound(xScale(d[e.timeColumn]), 0, chartWidth);
                     const x2 = bound(xScale(d[e.intervalEndColumn]), 0, chartWidth);
                     return x2 - x1;
@@ -776,10 +780,6 @@ function nvd3Vis(slice, payload) {
   hideTooltips();
 
   nv.addGraph(drawGraph);
-}
-
-function bound(value, min, max) {
-  return Math.min(Math.max(value, min), max);
 }
 
 module.exports = nvd3Vis;
