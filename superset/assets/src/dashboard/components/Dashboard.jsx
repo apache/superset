@@ -6,7 +6,6 @@ import GridLayout from './GridLayout';
 import Header from './Header';
 import { exportChart } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
-import { getDashboardLongUrl } from '../dashboardUtils';
 import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
   LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
 import { t } from '../../locales';
@@ -80,13 +79,10 @@ class Dashboard extends React.PureComponent {
     this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
     this.props.actions.clearFilter = this.props.actions.clearFilter.bind(this);
     this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
-
-    this.addHistory = this.addHistory.bind(this);
   }
 
   componentDidMount() {
     window.addEventListener('resize', this.rerenderCharts);
-    this.addHistory({ isReplace: true });
   }
 
   componentWillReceiveProps(nextProps) {
@@ -154,27 +150,6 @@ class Dashboard extends React.PureComponent {
 
   getFilters(sliceId) {
     return this.props.filters[sliceId];
-  }
-
-  addHistory({ isReplace = false, title }) {
-    const payload = { ...this.props.dashboard.metadata };
-    const longUrl = getDashboardLongUrl(this.props.dashboard);
-    if (isReplace) {
-      history.replaceState(
-        payload,
-        title,
-        longUrl);
-    } else {
-      history.pushState(
-        payload,
-        title,
-        longUrl);
-    }
-
-    // it seems some browsers don't support pushState title attribute
-    if (title) {
-      document.title = title;
-    }
   }
 
   unload() {
