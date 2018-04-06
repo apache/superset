@@ -9,8 +9,8 @@
  * changes the chart types.
  *
  * While the keys defined in the control itself get passed to the controlType as props,
- * here's a list of the keys that are common to all controls,
- * and as a result define the control interface:
+ * here's a list of the keys that are common to all controls, and as a result define the
+ * control interface:
  *
  * - type: the control type, referencing a React component of the same name
  * - label: the label as shown in the control's header
@@ -22,7 +22,7 @@
      and fetch the data
  * - validators: an array of functions that will receive the value of the component and
      should return error messages when the value is not valid. The error message gets
-     bubble up to the control header, section header and query panel header.
+     bubbled up to the control header, section header and query panel header.
  * - warning: text shown as a tooltip on a warning icon in the control's header
  * - error: text shown as a tooltip on a error icon in the control's header
  * - mapStateToProps: a function that receives the App's state and return an object of k/v
@@ -36,7 +36,7 @@
  * Note that the keys defined in controls in this file that are not listed above represent
  * props specific for the React component defined as `type`. Also note that this module work
  * in tandem with `visTypes.js` that defines how controls are composed into sections for
- * each and every visualization types.
+ * each and every visualization type.
  */
 import React from 'react';
 import {
