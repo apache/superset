@@ -92,7 +92,7 @@ export function formatLabel(input, verboseMap = {}) {
     const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
     label = verboseLabels.join(', ');
     if (input.length > verboseLabels.length) {
-      label += '---';
+      label += ' ---';
     }
   } else {
     label = verboseLkp(input);
