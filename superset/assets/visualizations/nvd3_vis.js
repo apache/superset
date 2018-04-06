@@ -731,10 +731,6 @@ function nvd3Vis(slice, payload) {
             });
 
             if (records.length) {
-              const domain = [xMin, xMax];
-              xScale.domain(domain);
-              chart.xDomain(domain);
-
               annotations.selectAll('rect')
                 .data(records)
                 .enter()
@@ -756,6 +752,16 @@ function nvd3Vis(slice, payload) {
                 .on('mouseout', tip.hide)
                 .call(tip);
             }
+
+            // callback to update the annotation position on brush event
+            chart.focus.dispatch.on("onBrush.annotation", function(extent) {
+              annotations.selectAll('rect')
+                .data(records)
+                .attr({
+                  x: record => getAnnotationX(record[e.timeColumn], chart),
+                  width: record => getAnnotationX(record[e.intervalEndColumn], chart) - getAnnotationX(record[e.timeColumn], chart),
+                });
+            });
           });
         }
       }
@@ -769,6 +775,20 @@ function nvd3Vis(slice, payload) {
   hideTooltips();
 
   nv.addGraph(drawGraph);
+}
+
+function getAnnotationX(value, chart) {
+  /*
+   * Given a x value, return the x coordinate (from 0 to chart width).
+   */
+  const xAxis = chart.xAxis1 ? chart.xAxis1 : chart.xAxis;
+  const chartWidth = xAxis.scale().range()[1];
+  const domain = xAxis.scale().domain();
+  const chartStart = new Date(domain[0]);
+  const chartEnd = new Date(domain[1]);
+  let x = (value - chartStart) / (chartEnd - chartStart);
+  x = Math.min(1, Math.max(0, x));
+  return x * chartWidth;
 }
 
 module.exports = nvd3Vis;
