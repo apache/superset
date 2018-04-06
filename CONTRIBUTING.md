@@ -61,15 +61,21 @@ meets these guidelines:
 
 1.  The pull request should include tests, either as doctests,
     unit tests, or both.
-2.  If the pull request adds functionality, the docs should be updated
+2.  Run `npm run lint` and resolve all errors. Run `npm run test` and
+    resolve all test failures.
+3.  Check code coverage by running the following commands in the `assets`
+    directory. Run `npm run cover` to check code coverage on `.js` work, and
+    run `nosetests --with-coverage` to check code coverage on `.py` work. You
+    may have to first run `pip install nose coverage`.     
+4.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-3.  The pull request should work for Python 2.7, and ideally python 3.4+.
+5.  The pull request should work for Python 2.7, and ideally python 3.4+.
     ``from __future__ import`` will be required in every `.py` file soon.
-4.  Code will be reviewed by re running the unittests, flake8 and syntax
+6.  Code will be reviewed by re running the unittests, flake8 and syntax
     should be as rigorous as the core Python project.
-5.  Please rebase and resolve all conflicts before submitting.
-6.  If you are asked to update your pull request with some changes there's
+7.  Please rebase and resolve all conflicts before submitting.
+8.  If you are asked to update your pull request with some changes there's
     no need to create a new one. Push your changes to the same branch.
 
 ## Documentation
@@ -421,10 +427,10 @@ https://github.com/apache/incubator-superset/pull/3013
   We create a branch that goes along each minor release `0.24`
   and micro releases get corresponding tags as in `0.24.0`. Git history should
   never be altered in release branches.
-  Bug fixes and security-related patches get cherry-picked 
+  Bug fixes and security-related patches get cherry-picked
   (usually from master) as in `git cherry-pick -x {SHA}`.
-  
-  Following a set of cherries being picked, a release can be pushed to 
+
+  Following a set of cherries being picked, a release can be pushed to
   Pypi as follows:
 
   .. code::
@@ -461,11 +467,11 @@ https://github.com/apache/incubator-superset/pull/3013
     # looking the latest CHANGELOG entry for the second argument
     ./gen_changelog.sh 0.22.1 0.25.0
     # this will overwrite the CHANGELOG.md with only the version range
-    # so you'll want to copy paste that on top of the previous CHANGELOG.md 
+    # so you'll want to copy paste that on top of the previous CHANGELOG.md
     # open a PR against `master`
 
   In the future we'll start publishing release candidates for minor releases
-  only, but typically not for micro release. 
+  only, but typically not for micro release.
   The process will be similar to the process described above, expect the
   tags will be formated `0.25.0rc1`, `0.25.0rc2`, ..., until consensus
   is reached.
