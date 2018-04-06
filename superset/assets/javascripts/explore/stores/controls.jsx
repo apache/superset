@@ -1399,7 +1399,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('X bounds'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Whether to display the min and max values of the X axis'),
   },
 
@@ -1407,7 +1407,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Y bounds'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Whether to display the min and max values of the Y axis'),
   },
 
