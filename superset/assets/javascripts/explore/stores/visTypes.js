@@ -748,12 +748,13 @@ export const visTypes = {
       {
         label: t('GROUP BY'),
         description: t('Use this section if you want a query that aggregates'),
+        expanded: true,
         controlSetRows: [
           ['groupby'],
           ['metrics'],
           ['percent_metrics'],
-          ['include_time'],
-          ['timeseries_limit_metric', 'order_desc'],
+          ['timeseries_limit_metric', 'row_limit'],
+          ['include_time', 'order_desc'],
         ],
       },
       {
@@ -762,13 +763,15 @@ export const visTypes = {
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],
+          ['row_limit', null],
         ],
       },
       {
         label: t('Options'),
+        expanded: true,
         controlSetRows: [
           ['table_timestamp_format'],
-          ['row_limit', 'page_length'],
+          ['page_length', null],
           ['include_search', 'table_filter'],
           ['align_pn', 'color_pn'],
         ],
