@@ -1,3 +1,7 @@
+/**
+ * This file defines how controls (defined in controls.js) are structured into sections
+ * and associated with each and every visualization type.
+ */
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from '../validators';
 import { t } from '../../locales';
