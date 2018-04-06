@@ -49,8 +49,8 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         resp = self.get_resp(dash.url + '?edit=true&standalone=true')
-        self.assertIn('"editMode: true"', resp)
-        self.assertIn('"standalone: true"', resp)
+        self.assertIn('editMode&#34;: true', resp)
+        self.assertIn('standalone_mode&#34;: true', resp)
 
     def test_save_dash(self, username='admin'):
         self.login(username=username)
