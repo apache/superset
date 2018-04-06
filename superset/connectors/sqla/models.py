@@ -376,7 +376,7 @@ class SqlaTable(Model, BaseDatasource):
         if self.type == 'table':
             grains = self.database.grains() or []
             if grains:
-                grains = [(g.name, g.name) for g in grains]
+                grains = [(g.duration, g.name) for g in grains]
             d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
         return d
