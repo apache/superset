@@ -136,8 +136,8 @@ class DruidTests(SupersetTestCase):
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
 
-        resp = self.get_resp('/superset/explore/druid/{}/'.format(
-            datasource_id))
+        resp = self.get_resp(
+            '/superset/explore/druid/{}/'.format(datasource_id))
         self.assertIn('test_datasource', resp)
         form_data = {
             'viz_type': 'table',
