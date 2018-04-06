@@ -786,7 +786,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.time_grains
 
     def grains_dict(self):
-        return {grain.name: grain for grain in self.grains()}
+        return {grain.duration: grain for grain in self.grains()}
 
     def get_extra(self):
         extra = {}
