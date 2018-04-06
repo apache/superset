@@ -79,6 +79,7 @@
     "object.entries": "^1.0.4",
     "object.keys": "^0.1.0",
     "object.values": "^1.0.4",
+    "parse-iso-duration": "^1.0.0",
     "po2json": "^0.4.5",
     "prop-types": "^15.6.0",
     "react": "^15.6.2",

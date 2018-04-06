@@ -47,7 +47,7 @@ config = app.config
 tracking_url_trans = conf.get('TRACKING_URL_TRANSFORMER')
 hive_poll_interval = conf.get('HIVE_POLL_INTERVAL')
 
-Grain = namedtuple('Grain', 'name label function')
+Grain = namedtuple('Grain', 'name label function duration')
 
 
 class LimitMethod(object):
@@ -287,23 +287,23 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ''
 
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'),
-              "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('second', {col}) AT TIME ZONE 'UTC'", 'PT1S'),
         Grain('minute', _('minute'),
-              "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('minute', {col}) AT TIME ZONE 'UTC'", 'PT1M'),
         Grain('hour', _('hour'),
-              "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('hour', {col}) AT TIME ZONE 'UTC'", 'PT1H'),
         Grain('day', _('day'),
-              "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('day', {col}) AT TIME ZONE 'UTC'", 'P1D'),
         Grain('week', _('week'),
-              "DATE_TRUNC('week', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('week', {col}) AT TIME ZONE 'UTC'", 'P1W'),
         Grain('month', _('month'),
-              "DATE_TRUNC('month', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('month', {col}) AT TIME ZONE 'UTC'", 'P1M'),
         Grain('quarter', _('quarter'),
-              "DATE_TRUNC('quarter', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('quarter', {col}) AT TIME ZONE 'UTC'", 'P0.25Y'),
         Grain('year', _('year'),
-              "DATE_TRUNC('year', {col}) AT TIME ZONE 'UTC'"),
+              "DATE_TRUNC('year', {col}) AT TIME ZONE 'UTC'", 'P1Y'),
     )
 
     @classmethod
@@ -346,14 +346,14 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
 
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('minute', _('minute'), "TRUNC(TO_DATE({col}), 'MI')"),
-        Grain('hour', _('hour'), "TRUNC(TO_DATE({col}), 'HH')"),
-        Grain('day', _('day'), "TRUNC(TO_DATE({col}), 'DDD')"),
-        Grain('week', _('week'), "TRUNC(TO_DATE({col}), 'WW')"),
-        Grain('month', _('month'), "TRUNC(TO_DATE({col}), 'MONTH')"),
-        Grain('quarter', _('quarter'), "TRUNC(TO_DATE({col}), 'Q')"),
-        Grain('year', _('year'), "TRUNC(TO_DATE({col}), 'YEAR')"),
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('minute', _('minute'), "TRUNC(TO_DATE({col}), 'MI')", 'PT1M'),
+        Grain('hour', _('hour'), "TRUNC(TO_DATE({col}), 'HH')", 'PT1H'),
+        Grain('day', _('day'), "TRUNC(TO_DATE({col}), 'DDD')", 'P1D'),
+        Grain('week', _('week'), "TRUNC(TO_DATE({col}), 'WW')", 'P1W'),
+        Grain('month', _('month'), "TRUNC(TO_DATE({col}), 'MONTH')", 'P1M'),
+        Grain('quarter', _('quarter'), "TRUNC(TO_DATE({col}), 'Q')", 'P0.25Y'),
+        Grain('year', _('year'), "TRUNC(TO_DATE({col}), 'YEAR')", 'P1Y'),
     )
 
     @classmethod
@@ -366,36 +366,44 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'),
               'CAST({col} as TIMESTAMP)'
-              ' - MICROSECOND({col}) MICROSECONDS'),
+              ' - MICROSECOND({col}) MICROSECONDS',
+              'PT1S'),
         Grain('minute', _('minute'),
               'CAST({col} as TIMESTAMP)'
               ' - SECOND({col}) SECONDS'
-              ' - MICROSECOND({col}) MICROSECONDS'),
+              ' - MICROSECOND({col}) MICROSECONDS',
+              'PT1M'),
         Grain('hour', _('hour'),
               'CAST({col} as TIMESTAMP)'
               ' - MINUTE({col}) MINUTES'
               ' - SECOND({col}) SECONDS'
-              ' - MICROSECOND({col}) MICROSECONDS '),
+              ' - MICROSECOND({col}) MICROSECONDS ',
+              'PT1H'),
         Grain('day', _('day'),
               'CAST({col} as TIMESTAMP)'
               ' - HOUR({col}) HOURS'
               ' - MINUTE({col}) MINUTES'
               ' - SECOND({col}) SECONDS'
-              ' - MICROSECOND({col}) MICROSECONDS '),
+              ' - MICROSECOND({col}) MICROSECONDS ',
+              'P1D'),
         Grain('week', _('week'),
-              '{col} - (DAYOFWEEK({col})) DAYS'),
+              '{col} - (DAYOFWEEK({col})) DAYS',
+              'P1W'),
         Grain('month', _('month'),
-              '{col} - (DAY({col})-1) DAYS'),
+              '{col} - (DAY({col})-1) DAYS',
+              'P1M'),
         Grain('quarter', _('quarter'),
               '{col} - (DAY({col})-1) DAYS'
               ' - (MONTH({col})-1) MONTHS'
-              ' + ((QUARTER({col})-1) * 3) MONTHS'),
+              ' + ((QUARTER({col})-1) * 3) MONTHS',
+              'P0.25Y'),
         Grain('year', _('year'),
               '{col} - (DAY({col})-1) DAYS'
-              ' - (MONTH({col})-1) MONTHS'),
+              ' - (MONTH({col})-1) MONTHS',
+              'P1Y'),
     )
 
     @classmethod
@@ -410,14 +418,17 @@ class Db2EngineSpec(BaseEngineSpec):
 class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('hour', _('hour'),
-              "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))"),
-        Grain('day', _('day'), 'DATE({col})'),
+              "DATETIME(STRFTIME('%Y-%m-%dT%H:00:00', {col}))",
+              'PT1H'),
+        Grain('day', _('day'), 'DATE({col})', 'P1D'),
         Grain('week', _('week'),
-              "DATE({col}, -strftime('%w', {col}) || ' days')"),
+              "DATE({col}, -strftime('%w', {col}) || ' days')",
+              'P1W'),
         Grain('month', _('month'),
-              "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')"),
+              "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
+              'P1M'),
     )
 
     @classmethod
@@ -460,26 +471,34 @@ class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
     cursor_execute_kwargs = {'args': {}}
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), 'DATE_ADD(DATE({col}), '
               'INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60'
-              ' + SECOND({col})) SECOND)'),
+              ' + SECOND({col})) SECOND)',
+              'PT1S'),
         Grain('minute', _('minute'), 'DATE_ADD(DATE({col}), '
-              'INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)'),
+              'INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)',
+              'PT1M'),
         Grain('hour', _('hour'), 'DATE_ADD(DATE({col}), '
-              'INTERVAL HOUR({col}) HOUR)'),
-        Grain('day', _('day'), 'DATE({col})'),
+              'INTERVAL HOUR({col}) HOUR)',
+              'PT1H'),
+        Grain('day', _('day'), 'DATE({col})', 'P1D'),
         Grain('week', _('week'), 'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFWEEK({col}) - 1 DAY))'),
+              'INTERVAL DAYOFWEEK({col}) - 1 DAY))',
+              'P1W'),
         Grain('month', _('month'), 'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFMONTH({col}) - 1 DAY))'),
+              'INTERVAL DAYOFMONTH({col}) - 1 DAY))',
+              'P1M'),
         Grain('quarter', _('quarter'), 'MAKEDATE(YEAR({col}), 1) '
-              '+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER'),
+              '+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER',
+              'P0.25Y'),
         Grain('year', _('year'), 'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFYEAR({col}) - 1 DAY))'),
+              'INTERVAL DAYOFYEAR({col}) - 1 DAY))',
+              'P1Y'),
         Grain('week_start_monday', _('week_start_monday'),
               'DATE(DATE_SUB({col}, '
-              'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))'),
+              'INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))',
+              'P1W'),
     )
 
     @classmethod
@@ -516,27 +535,39 @@ class PrestoEngineSpec(BaseEngineSpec):
     cursor_execute_kwargs = {'parameters': None}
 
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'),
-              "date_trunc('second', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('second', CAST({col} AS TIMESTAMP))",
+              'PT1S'),
         Grain('minute', _('minute'),
-              "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+              'PT1M'),
         Grain('hour', _('hour'),
-              "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+              'PT1H'),
         Grain('day', _('day'),
-              "date_trunc('day', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('day', CAST({col} AS TIMESTAMP))",
+              'P1D'),
         Grain('week', _('week'),
-              "date_trunc('week', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('week', CAST({col} AS TIMESTAMP))",
+              'P1W'),
         Grain('month', _('month'),
-              "date_trunc('month', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('month', CAST({col} AS TIMESTAMP))",
+              'P1M'),
         Grain('quarter', _('quarter'),
-              "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+              'P0.25Y'),
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-              'CAST({col} AS TIMESTAMP))))'),
+              'CAST({col} AS TIMESTAMP))))',
+              'P1W'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
-              "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
+              "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+              'P1W'),
+        Grain('year', _('year'),
+              "date_trunc('year', CAST({col} AS TIMESTAMP))",
+              'P1Y'),
     )
 
     @classmethod
@@ -1054,27 +1085,37 @@ class MssqlEngineSpec(BaseEngineSpec):
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
 
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), 'DATEADD(second, '
-              "DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')"),
+              "DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')",
+              'PT1S'),
         Grain('minute', _('minute'), 'DATEADD(minute, '
-              'DATEDIFF(minute, 0, {col}), 0)'),
+              'DATEDIFF(minute, 0, {col}), 0)',
+              'PT1M'),
         Grain('5 minute', _('5 minute'), 'DATEADD(minute, '
-              'DATEDIFF(minute, 0, {col}) / 5 * 5, 0)'),
+              'DATEDIFF(minute, 0, {col}) / 5 * 5, 0)',
+              'PT5M'),
         Grain('half hour', _('half hour'), 'DATEADD(minute, '
-              'DATEDIFF(minute, 0, {col}) / 30 * 30, 0)'),
+              'DATEDIFF(minute, 0, {col}) / 30 * 30, 0)',
+              'PT0.5H'),
         Grain('hour', _('hour'), 'DATEADD(hour, '
-              'DATEDIFF(hour, 0, {col}), 0)'),
+              'DATEDIFF(hour, 0, {col}), 0)',
+              'PT1H'),
         Grain('day', _('day'), 'DATEADD(day, '
-              'DATEDIFF(day, 0, {col}), 0)'),
+              'DATEDIFF(day, 0, {col}), 0)',
+              'P1D'),
         Grain('week', _('week'), 'DATEADD(week, '
-              'DATEDIFF(week, 0, {col}), 0)'),
+              'DATEDIFF(week, 0, {col}), 0)',
+              'P1W'),
         Grain('month', _('month'), 'DATEADD(month, '
-              'DATEDIFF(month, 0, {col}), 0)'),
+              'DATEDIFF(month, 0, {col}), 0)',
+              'P1M'),
         Grain('quarter', _('quarter'), 'DATEADD(quarter, '
-              'DATEDIFF(quarter, 0, {col}), 0)'),
+              'DATEDIFF(quarter, 0, {col}), 0)',
+              'P0.25Y'),
         Grain('year', _('year'), 'DATEADD(year, '
-              'DATEDIFF(year, 0, {col}), 0)'),
+              'DATEDIFF(year, 0, {col}), 0)',
+              'P1Y'),
     )
 
     @classmethod
@@ -1086,27 +1127,36 @@ class AthenaEngineSpec(BaseEngineSpec):
     engine = 'awsathena'
 
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'),
-              "date_trunc('second', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('second', CAST({col} AS TIMESTAMP))",
+              'PT1S'),
         Grain('minute', _('minute'),
-              "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+              'PT1M'),
         Grain('hour', _('hour'),
-              "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+              'PT1H'),
         Grain('day', _('day'),
-              "date_trunc('day', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('day', CAST({col} AS TIMESTAMP))",
+              'P1D'),
         Grain('week', _('week'),
-              "date_trunc('week', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('week', CAST({col} AS TIMESTAMP))",
+              'P1W'),
         Grain('month', _('month'),
-              "date_trunc('month', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('month', CAST({col} AS TIMESTAMP))",
+              'P1M'),
         Grain('quarter', _('quarter'),
-              "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
+              "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
+              'P0.25Y'),
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-              'CAST({col} AS TIMESTAMP))))'),
+              'CAST({col} AS TIMESTAMP))))',
+              'P1W'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
-              "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
+              "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+              'P1W'),
     )
 
     @classmethod
@@ -1132,23 +1182,31 @@ class ClickHouseEngineSpec(BaseEngineSpec):
     time_secondary_columns = True
     time_groupby_inline = True
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('minute', _('minute'),
-              'toStartOfMinute(toDateTime({col}))'),
+              'toStartOfMinute(toDateTime({col}))',
+              'PT1M'),
         Grain('5 minute', _('5 minute'),
-              'toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)'),
+              'toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)',
+              'PT5M'),
         Grain('10 minute', _('10 minute'),
-              'toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)'),
+              'toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)',
+              'PT10M'),
         Grain('hour', _('hour'),
-              'toStartOfHour(toDateTime({col}))'),
+              'toStartOfHour(toDateTime({col}))',
+              'PT1H'),
         Grain('day', _('day'),
-              'toStartOfDay(toDateTime({col}))'),
+              'toStartOfDay(toDateTime({col}))',
+              'P1D'),
         Grain('month', _('month'),
-              'toStartOfMonth(toDateTime({col}))'),
+              'toStartOfMonth(toDateTime({col}))',
+              'P1M'),
         Grain('quarter', _('quarter'),
-              'toStartOfQuarter(toDateTime({col}))'),
+              'toStartOfQuarter(toDateTime({col}))',
+              'P0.25Y'),
         Grain('year', _('year'),
-              'toStartOfYear(toDateTime({col}))'),
+              'toStartOfYear(toDateTime({col}))',
+              'P1Y'),
     )
 
     @classmethod
@@ -1169,15 +1227,16 @@ class BQEngineSpec(BaseEngineSpec):
     engine = 'bigquery'
 
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('second', _('second'), 'TIMESTAMP_TRUNC({col}, SECOND)'),
-        Grain('minute', _('minute'), 'TIMESTAMP_TRUNC({col}, MINUTE)'),
-        Grain('hour', _('hour'), 'TIMESTAMP_TRUNC({col}, HOUR)'),
-        Grain('day', _('day'), 'TIMESTAMP_TRUNC({col}, DAY)'),
-        Grain('week', _('week'), 'TIMESTAMP_TRUNC({col}, WEEK)'),
-        Grain('month', _('month'), 'TIMESTAMP_TRUNC({col}, MONTH)'),
-        Grain('quarter', _('quarter'), 'TIMESTAMP_TRUNC({col}, QUARTER)'),
-        Grain('year', _('year'), 'TIMESTAMP_TRUNC({col}, YEAR)'),
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'), 'TIMESTAMP_TRUNC({col}, SECOND)', 'PT1S'),
+        Grain('minute', _('minute'), 'TIMESTAMP_TRUNC({col}, MINUTE)', 'PT1M'),
+        Grain('hour', _('hour'), 'TIMESTAMP_TRUNC({col}, HOUR)', 'PT1H'),
+        Grain('day', _('day'), 'TIMESTAMP_TRUNC({col}, DAY)', 'P1D'),
+        Grain('week', _('week'), 'TIMESTAMP_TRUNC({col}, WEEK)', 'P1W'),
+        Grain('month', _('month'), 'TIMESTAMP_TRUNC({col}, MONTH)', 'P1M'),
+        Grain('quarter', _('quarter'),
+              'TIMESTAMP_TRUNC({col}, QUARTER)', 'P0.25Y'),
+        Grain('year', _('year'), 'TIMESTAMP_TRUNC({col}, YEAR)', 'P1Y'),
     )
 
     @classmethod
@@ -1201,14 +1260,14 @@ class ImpalaEngineSpec(BaseEngineSpec):
     engine = 'impala'
 
     time_grains = (
-        Grain('Time Column', _('Time Column'), '{col}'),
-        Grain('minute', _('minute'), "TRUNC({col}, 'MI')"),
-        Grain('hour', _('hour'), "TRUNC({col}, 'HH')"),
-        Grain('day', _('day'), "TRUNC({col}, 'DD')"),
-        Grain('week', _('week'), "TRUNC({col}, 'WW')"),
-        Grain('month', _('month'), "TRUNC({col}, 'MONTH')"),
-        Grain('quarter', _('quarter'), "TRUNC({col}, 'Q')"),
-        Grain('year', _('year'), "TRUNC({col}, 'YYYY')"),
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('minute', _('minute'), "TRUNC({col}, 'MI')", 'PT1M'),
+        Grain('hour', _('hour'), "TRUNC({col}, 'HH')", 'PT1H'),
+        Grain('day', _('day'), "TRUNC({col}, 'DD')", 'P1D'),
+        Grain('week', _('week'), "TRUNC({col}, 'WW')", 'P1W'),
+        Grain('month', _('month'), "TRUNC({col}, 'MONTH')", 'P1M'),
+        Grain('quarter', _('quarter'), "TRUNC({col}, 'Q')", 'P0.25Y'),
+        Grain('year', _('year'), "TRUNC({col}, 'YYYY')", 'P1Y'),
     )
 
     @classmethod
