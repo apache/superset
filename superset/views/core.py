@@ -744,7 +744,7 @@ class R(BaseSupersetView):
     @log_this
     @expose('/shortner/', methods=['POST', 'GET'])
     def shortner(self):
-        url = request.form.get('data')        
+        url = request.form.get('data')
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
