@@ -95,7 +95,6 @@ class Header extends React.PureComponent {
         <div className="pull-right" style={{ marginTop: '35px' }}>
           <span className="m-r-5">
             <URLShortLinkButton
-              url={t('%s%s', window.location.pathname, window.location.search)}
               emailSubject="Superset Dashboard"
               emailContent="Check out this dashboard: "
             />
