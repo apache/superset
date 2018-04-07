@@ -1061,10 +1061,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     len(self.metrics) == 1):
                 # Removing metric from series name if only one metric
                 series_title = series_title[1:]
-            if isinstance(series_title, string_types):
-                series_title += title_suffix
-            elif title_suffix and isinstance(series_title, (list, tuple)):
-                series_title = text_type(series_title[-1]) + title_suffix
+            if title_suffix:
+                if isinstance(series_title, string_types):
+                    series_title = (series_title, title_suffix)
+                elif isinstance(series_title, (list, tuple)):
+                    series_title = series_title + (title_suffix,)
 
             values = []
             for ds in df.index:
