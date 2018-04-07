@@ -1,3 +1,43 @@
+/**
+ * This file exports all controls available for use in the different visualization types
+ *
+ * While the React components located in `controls/components` represent different
+ * types of controls (CheckboxControl, SelectControl, TextControl, ...), the controls here
+ * represent instances of control types, that can be reused across visualisation types.
+ *
+ * When controls are reused across viz types, their values are carried over as a user
+ * changes the chart types.
+ *
+ * While the keys defined in the control itself get passed to the controlType as props,
+ * here's a list of the keys that are common to all controls, and as a result define the
+ * control interface:
+ *
+ * - type: the control type, referencing a React component of the same name
+ * - label: the label as shown in the control's header
+ * - description: shown in the info tooltip of the control's header
+ * - default: the default value when opening a new chart, or changing visualization type
+ * - renderTrigger: a bool that defines whether the visualization should be re-rendered
+     when changed. This should `true` for controls that only affect the rendering (client side)
+     and don't affect the query or backend data processing as those require to re run a query
+     and fetch the data
+ * - validators: an array of functions that will receive the value of the component and
+     should return error messages when the value is not valid. The error message gets
+     bubbled up to the control header, section header and query panel header.
+ * - warning: text shown as a tooltip on a warning icon in the control's header
+ * - error: text shown as a tooltip on a error icon in the control's header
+ * - mapStateToProps: a function that receives the App's state and return an object of k/v
+     to overwrite configuration at runtime. This is useful to alter a component based on
+     anything external to it, like another control's value. For instance it's possible to
+     show a warning based on the value of another component. It's also possible to bind
+     arbitrary data from the redux store to the component this way.
+ * - tabOverride: set to 'data' if you want to force a renderTrigger to show up on the `Data`
+     tab, otherwise `renderTrigger: true` components will show up on the `Style` tab.
+ *
+ * Note that the keys defined in controls in this file that are not listed above represent
+ * props specific for the React component defined as `type`. Also note that this module work
+ * in tandem with `visTypes.js` that defines how controls are composed into sections for
+ * each and every visualization type.
+ */
 import React from 'react';
 import {
   formatSelectOptionsForRange,
