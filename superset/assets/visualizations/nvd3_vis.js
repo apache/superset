@@ -83,23 +83,24 @@ function getMaxLabelSize(container, axisClass) {
   return Math.max(...labelDimensions);
 }
 
-/* eslint-disable camelcase */
-function formatLabel(column, verbose_map) {
+export function formatLabel(input, verboseMap = {}) {
+  // The input for label may be a string or an array of string
+  // When using the time shift feature, the label contains a '---' in the array
+  const verboseLkp = s => verboseMap[s] || s;
   let label;
-  if (Array.isArray(column) && column.length) {
-    label = verbose_map[column[0]] || column[0];
-    if (column.length > 1) {
-      label += ', ';
+  if (Array.isArray(input) && input.length) {
+    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    label = verboseLabels.join(', ');
+    if (input.length > verboseLabels.length) {
+      label += ' ---';
     }
-    label += column.slice(1).join(', ');
   } else {
-    label = verbose_map[column] || column;
+    label = verboseLkp(input);
   }
   return label;
 }
-/* eslint-enable camelcase */
 
-function nvd3Vis(slice, payload) {
+export default function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
@@ -778,5 +779,3 @@ function nvd3Vis(slice, payload) {
 
   nv.addGraph(drawGraph);
 }
-
-module.exports = nvd3Vis;
