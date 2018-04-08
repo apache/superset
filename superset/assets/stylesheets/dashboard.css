@@ -26,10 +26,11 @@ div.widget:hover .chart-controls {
   transition: opacity 0.5s ease-in-out;
 }
 .slice-grid div.widget {
-  border-radius: 0;
-  border: 0;
+  position: absolute;
+  top: 16px;
+  left: 16px;
   box-shadow: none;
-  background-color: #fff;
+  background-color: transparent;
   overflow: visible;
 }
 
@@ -92,7 +93,6 @@ div.widget:hover .chart-controls {
 .slice-cell {
   box-shadow: 0px 0px 20px 5px rgba(0,0,0,0);
   transition: box-shadow 1s ease-in;
-  height: 100%;
 }
 
 .slice-cell-highlight {
@@ -111,6 +111,9 @@ div.widget:hover .chart-controls {
 .dashboard .separator.widget .slice_container hr {
   margin-top: 5px;
   margin-bottom: 5px;
+}
+.chart-container {
+  box-sizing: border-box;
 }
 .separator .chart-container {
   position: absolute;

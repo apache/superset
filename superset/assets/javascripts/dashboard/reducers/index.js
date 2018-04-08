@@ -8,6 +8,7 @@ import allSlices from './allSlices';
 import dashboardLayout from '../v2/reducers/index';
 import messageToasts from '../v2/reducers/messageToasts';
 import { getParam } from '../../modules/utils';
+import layoutConverter from '../util/dashboardLayoutConverter';
 import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
 
@@ -35,9 +36,17 @@ export function getInitialState(bootstrapData) {
   }
 
   // dashboard layout
+  const position_json = dashboard.position_json;
+  let layout;
+  if (!position_json || !position_json['DASHBOARD_ROOT_ID']) {
+    layout = layoutConverter(dashboard);
+  } else {
+    layout = position_json;
+  }
+
   const dashboardLayout = {
       past: [],
-      present: dashboard.position_json,
+      present: layout,
       future: [],
     };
   delete dashboard.position_json;

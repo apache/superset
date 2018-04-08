@@ -7,7 +7,7 @@ import {
   handleComponentDrop,
 } from '../actions/dashboardLayout';
 
-function mapStateToProps({ dashboardLayout: undoableLayout, dashboard }) {
+function mapStateToProps({ dashboardLayout: undoableLayout, dashboard }, ownProps) {
   return {
     dashboardLayout: undoableLayout.present,
     cells: ownProps.cells,
