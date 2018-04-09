@@ -55,7 +55,7 @@ setup(
         'colorama==0.3.9',
         'cryptography==1.9',
         'flask==0.12.2',
-        'flask-appbuilder==1.9.6',
+        'flask-appbuilder==1.10.0',
         'flask-cache==0.13.1',
         'flask-migrate==2.1.1',
         'flask-script==2.0.6',
@@ -63,12 +63,12 @@ setup(
         'flask-sqlalchemy==2.1',
         'flask-testing==0.7.1',
         'flask-wtf==0.14.2',
-        'flower==0.9.2',
+        'flower==0.9.2',  # deprecated
         'future>=0.16.0, <0.17',
         'geopy==1.11.0',
         'python-geohash==0.8.5',
         'humanize==0.5.1',
-        'gunicorn==19.7.1',
+        'gunicorn==19.7.1',  # deprecated
         'idna==2.6',
         'markdown==2.6.11',
         'pandas==0.22.0',
@@ -104,7 +104,8 @@ setup(
     author_email='maximebeauchemin@gmail.com',
     url='https://github.com/apache/incubator-superset',
     download_url=(
-        'https://github.com/apache/incubator-superset/tarball/' + version_string,
+        'https://github.com'
+        '/apache/incubator-superset/tarball/' + version_string
     ),
     classifiers=[
         'Programming Language :: Python :: 2.7',

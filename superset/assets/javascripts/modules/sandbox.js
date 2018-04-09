@@ -22,6 +22,10 @@ export default function sandboxedEval(code, context, opts) {
   Object.keys(sandboxContext).forEach(function (key) {
     sandbox[key] = sandboxContext[key];
   });
-  vm.runInNewContext(codeToEval, sandbox, opts);
-  return sandbox[resultKey];
+  try {
+    vm.runInNewContext(codeToEval, sandbox, opts);
+    return sandbox[resultKey];
+  } catch (error) {
+    return () => error;
+  }
 }

@@ -15,6 +15,7 @@ import { getPlaySliderParams } from '../../../javascripts/modules/time';
 import { unitToRadius } from '../../../javascripts/modules/geo';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
+
 function getPoints(data) {
   return data.map(d => d.position);
 }
@@ -97,7 +98,7 @@ class DeckGLScatter extends React.PureComponent {
   static getDerivedStateFromProps(nextProps, prevState) {
     const fd = nextProps.slice.formData;
 
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'minute';
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
     const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
 

@@ -86,3 +86,11 @@ export function getShortUrl(longUrl, callback) {
     },
   });
 }
+
+export function supersetURL(rootUrl, getParams = {}) {
+  const url = new URL(rootUrl, window.location.origin);
+  for (const k in getParams) {
+    url.searchParams.set(k, getParams[k]);
+  }
+  return url.href;
+}

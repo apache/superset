@@ -1,3 +1,7 @@
+/**
+ * This file defines how controls (defined in controls.js) are structured into sections
+ * and associated with each and every visualization type.
+ */
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from '../validators';
 import { t } from '../../locales';
@@ -139,7 +143,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['metrics', 'groupby'],
+          ['metrics'],
+          ['groupby'],
           ['limit'],
         ],
       },
@@ -375,7 +380,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['groupby', 'row_limit'],
+          ['row_limit', null],
         ],
       },
       {
@@ -413,7 +418,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['groupby', 'row_limit'],
+          ['row_limit', null],
         ],
       },
       {
@@ -485,7 +490,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['groupby', 'row_limit'],
+          ['row_limit', null],
         ],
       },
       {
@@ -656,8 +661,7 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['spatial', null],
-          ['groupby', 'row_limit'],
+          ['spatial', 'row_limit'],
         ],
       },
       {
@@ -748,12 +752,13 @@ export const visTypes = {
       {
         label: t('GROUP BY'),
         description: t('Use this section if you want a query that aggregates'),
+        expanded: true,
         controlSetRows: [
           ['groupby'],
           ['metrics'],
           ['percent_metrics'],
-          ['include_time'],
-          ['timeseries_limit_metric', 'order_desc'],
+          ['timeseries_limit_metric', 'row_limit'],
+          ['include_time', 'order_desc'],
         ],
       },
       {
@@ -762,13 +767,15 @@ export const visTypes = {
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],
+          ['row_limit', null],
         ],
       },
       {
         label: t('Options'),
+        expanded: true,
         controlSetRows: [
           ['table_timestamp_format'],
-          ['row_limit', 'page_length'],
+          ['page_length', null],
           ['include_search', 'table_filter'],
           ['align_pn', 'color_pn'],
         ],

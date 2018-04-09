@@ -16,10 +16,9 @@ from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 import geohash
 import polyline
 
-from superset import app, db, utils
+from superset import app, db, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
-from superset.security import get_or_create_main_db
 
 # Shortcuts
 DB = models.Database
@@ -71,7 +70,7 @@ def load_energy():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -179,7 +178,7 @@ def load_world_bank_health_n_pop():
         tbl = TBL(table_name=tbl_name)
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
@@ -583,7 +582,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()
@@ -847,7 +846,7 @@ def load_unicode_test_data():
     df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'),
                      encoding="utf-8")
     # generate date/numeric data
-    df['date'] = datetime.datetime.now().date()
+    df['dttm'] = datetime.datetime.now().date()
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
     df.to_sql(  # pylint: disable=no-member
         'unicode_test',
@@ -858,7 +857,7 @@ def load_unicode_test_data():
             'phrase': String(500),
             'short_phrase': String(10),
             'with_missing': String(100),
-            'date': Date(),
+            'dttm': Date(),
             'value': Float(),
         },
         index=False)
@@ -869,15 +868,15 @@ def load_unicode_test_data():
     obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
     if not obj:
         obj = TBL(table_name='unicode_test')
-    obj.main_dttm_col = 'date'
-    obj.database = get_or_create_main_db()
+    obj.main_dttm_col = 'dttm'
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
     slice_data = {
-        "granularity": "date",
+        "granularity": "dttm",
         "groupby": [],
         "metric": 'sum__value',
         "row_limit": config.get("ROW_LIMIT"),
@@ -948,7 +947,7 @@ def load_random_time_series_data():
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -981,7 +980,7 @@ def load_country_map_data():
     """Loading data for map with country map"""
     csv_path = os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv')
     data = pd.read_csv(csv_path, encoding="utf-8")
-    data['date'] = datetime.datetime.now().date()
+    data['dttm'] = datetime.datetime.now().date()
     data.to_sql(  # pylint: disable=no-member
         'birth_france_by_region',
         db.engine,
@@ -1001,7 +1000,7 @@ def load_country_map_data():
             '2012': BigInteger,
             '2013': BigInteger,
             '2014': BigInteger,
-            'date': Date(),
+            'dttm': Date(),
         },
         index=False)
     print("Done loading table!")
@@ -1010,8 +1009,8 @@ def load_country_map_data():
     obj = db.session.query(TBL).filter_by(table_name='birth_france_by_region').first()
     if not obj:
         obj = TBL(table_name='birth_france_by_region')
-    obj.main_dttm_col = 'date'
-    obj.database = get_or_create_main_db()
+    obj.main_dttm_col = 'dttm'
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1086,7 +1085,7 @@ def load_long_lat_data():
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'datetime'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -1147,7 +1146,7 @@ def load_multiformat_time_series_data():
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     dttm_and_expr_dict = {
         'ds': [None, None],
         'ds2': [None, None],
@@ -1292,7 +1291,7 @@ def load_deck_dash():
         },
         "datasource": "5__table",
         "filters": [],
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "groupby": [],
         "having": "",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
@@ -1336,7 +1335,7 @@ def load_deck_dash():
             "latCol": "LAT",
         },
         "mapbox_style": "mapbox://styles/mapbox/dark-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_screengrid",
         "since": None,
@@ -1383,7 +1382,7 @@ def load_deck_dash():
         "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/streets-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_hex",
         "since": None,
@@ -1432,7 +1431,7 @@ def load_deck_dash():
         "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_grid",
         "since": None,
@@ -1547,7 +1546,7 @@ def load_deck_dash():
             "datasource": "10__table",
             "viz_type": "deck_arc",
             "slice_id": 42,
-            "granularity_sqla": "date",
+            "granularity_sqla": "dttm",
             "time_grain_sqla": "Time Column",
             "since": None,
             "until": None,
@@ -1769,7 +1768,7 @@ def load_flights():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Random set of flights in the US"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -1800,7 +1799,7 @@ def load_paris_iris_geojson():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Map of Paris"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -1830,7 +1829,7 @@ def load_sf_population_polygons():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Population density of San Francisco"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -1860,7 +1859,7 @@ def load_bart_lines():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "BART lines"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

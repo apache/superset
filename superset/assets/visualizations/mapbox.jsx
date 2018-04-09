@@ -65,7 +65,7 @@ class ScatterPlotGlowOverlay extends React.Component {
     const canvas = this.refs.overlay;
     const ctx = canvas.getContext('2d');
     const radius = props.dotRadius;
-    const mercator = ViewportMercator(props);
+    const mercator = new ViewportMercator(props);
     const rgb = props.rgb;
     const clusterLabelMap = [];
     let maxLabel = -1;
@@ -264,7 +264,7 @@ class MapboxViz extends React.Component {
   }
 
   render() {
-    const mercator = ViewportMercator({
+    const mercator = new ViewportMercator({
       width: this.props.sliceWidth,
       height: this.props.sliceHeight,
       longitude: this.state.viewport.longitude,

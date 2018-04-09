@@ -35,7 +35,7 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
-from superset.utils import DTTM_ALIAS, merge_extra_filters
+from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
 config = app.config
@@ -64,7 +64,14 @@ class BaseViz(object):
         self.query = ''
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
-        self.metrics = self.form_data.get('metrics') or []
+        metrics = self.form_data.get('metrics') or []
+        self.metrics = []
+        for metric in metrics:
+            if isinstance(metric, dict):
+                self.metrics.append(metric['label'])
+            else:
+                self.metrics.append(metric)
+
         self.groupby = self.form_data.get('groupby') or []
         self.time_shift = timedelta()
 
@@ -79,8 +86,18 @@ class BaseViz(object):
         self._some_from_cache = False
         self._any_cache_key = None
         self._any_cached_dttm = None
+        self._extra_chart_data = None
 
-        self.run_extra_queries()
+    @staticmethod
+    def handle_js_int_overflow(data):
+        for d in data.get('records', dict()):
+            for k, v in list(d.items()):
+                if isinstance(v, int):
+                    # if an int is too big for Java Script to handle
+                    # convert it to a string
+                    if abs(v) > JS_MAX_INTEGER:
+                        d[k] = str(v)
+        return data
 
     def run_extra_queries(self):
         """Lyfecycle method to use when more than one query is needed
@@ -156,17 +173,28 @@ class BaseViz(object):
         else:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ('epoch_s', 'epoch_ms'):
-                    df[DTTM_ALIAS] = pd.to_datetime(df[DTTM_ALIAS], utc=False)
+                    df[DTTM_ALIAS] = pd.to_datetime(
+                        df[DTTM_ALIAS], utc=False, unit=timestamp_format[6:])
                 else:
                     df[DTTM_ALIAS] = pd.to_datetime(
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
+
+            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
         return df
+
+    @staticmethod
+    def df_metrics_to_num(df, metrics):
+        """Converting metrics to numeric when pandas.read_sql cannot"""
+        for col, dtype in df.dtypes.items():
+            if dtype.type == np.object_ and col in metrics:
+                df[col] = pd.to_numeric(df[col])
 
     def query_obj(self):
         """Building a query object"""
@@ -251,6 +279,8 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
+        if self.form_data.get('cache_timeout'):
+            return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
         if (
@@ -286,6 +316,7 @@ class BaseViz(object):
 
     def get_payload(self, query_obj=None):
         """Returns a payload of metadata and data"""
+        self.run_extra_queries()
         payload = self.get_df_payload(query_obj)
 
         df = payload.get('df')
@@ -315,9 +346,11 @@ class BaseViz(object):
                 try:
                     cache_value = pkl.loads(cache_value)
                     df = cache_value['df']
-                    is_loaded = True
-                    self._any_cache_key = cache_key
+                    self.query = cache_value['query']
                     self._any_cached_dttm = cache_value['dttm']
+                    self._any_cache_key = cache_key
+                    self.status = utils.QueryStatus.SUCCESS
+                    is_loaded = True
                 except Exception as e:
                     logging.exception(e)
                     logging.error('Error reading cache: ' +
@@ -346,6 +379,7 @@ class BaseViz(object):
                     cache_value = dict(
                         dttm=cached_dttm,
                         df=df if df is not None else None,
+                        query=self.query,
                     )
                     cache_value = pkl.dumps(
                         cache_value, protocol=pkl.HIGHEST_PROTOCOL)
@@ -494,10 +528,13 @@ class TableViz(BaseViz):
             ):
                 del df[m]
 
-        return dict(
-            records=df.to_dict(orient='records'),
-            columns=list(df.columns),
-        )
+        data = self.handle_js_int_overflow(
+            dict(
+                records=df.to_dict(orient='records'),
+                columns=list(df.columns),
+            ))
+
+        return data
 
     def json_dumps(self, obj, sort_keys=False):
         if self.form_data.get('all_columns'):
@@ -1012,17 +1049,23 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ys = series[name]
             if df[name].dtype.kind not in 'biufc':
                 continue
-            series_title = name
+            if isinstance(name, list):
+                series_title = [str(title) for title in name]
+            elif isinstance(name, tuple):
+                series_title = tuple(str(title) for title in name)
+            else:
+                series_title = str(name)
             if (
                     isinstance(series_title, (list, tuple)) and
                     len(series_title) > 1 and
                     len(self.metrics) == 1):
                 # Removing metric from series name if only one metric
                 series_title = series_title[1:]
-            if isinstance(series_title, string_types):
-                series_title += title_suffix
-            elif title_suffix and isinstance(series_title, (list, tuple)):
-                series_title = text_type(series_title[-1]) + title_suffix
+            if title_suffix:
+                if isinstance(series_title, string_types):
+                    series_title = (series_title, title_suffix)
+                elif isinstance(series_title, (list, tuple)):
+                    series_title = series_title + (title_suffix,)
 
             values = []
             for ds in df.index:
@@ -1049,17 +1092,16 @@ class NVD3TimeSeriesViz(NVD3Viz):
         df = df.fillna(0)
         if fd.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
-
         if not aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=fd.get('metrics'))
+                values=utils.get_metric_names(fd.get('metrics')))
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
                 columns=fd.get('groupby'),
-                values=fd.get('metrics'),
+                values=utils.get_metric_names(fd.get('metrics')),
                 fill_value=0,
                 aggfunc=sum)
 
@@ -1119,7 +1161,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def run_extra_queries(self):
         fd = self.form_data
         time_compare = fd.get('time_compare')
-        self.extra_chart_data = None
         if time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(time_compare)
@@ -1137,16 +1178,16 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df2 is not None:
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self.extra_chart_data = self.to_series(
+                self._extra_chart_data = self.to_series(
                     df2, classed='superset', title_suffix='---')
 
     def get_data(self, df):
         df = self.process_data(df)
         chart_data = self.to_series(df)
 
-        if self.extra_chart_data:
-            chart_data += self.extra_chart_data
-            chart_data = sorted(chart_data, key=lambda x: x['key'])
+        if self._extra_chart_data:
+            chart_data += self._extra_chart_data
+            chart_data = sorted(chart_data, key=lambda x: tuple(x['key']))
 
         return chart_data
 
@@ -1374,7 +1415,7 @@ class DistributionBarViz(DistributionPieViz):
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         chart_data = []
-        for name, ys in pt.iteritems():
+        for name, ys in pt.items():
             if pt[name].dtype.kind not in 'biufc' or name in self.groupby:
                 continue
             if isinstance(name, string_types):
@@ -1385,7 +1426,7 @@ class DistributionBarViz(DistributionPieViz):
                 l = [str(s) for s in name[1:]]  # noqa: E741
                 series_title = ', '.join(l)
             values = []
-            for i, v in ys.iteritems():
+            for i, v in ys.items():
                 x = i
                 if isinstance(x, (tuple, list)):
                     x = ', '.join([text_type(s) for s in x])
@@ -2038,6 +2079,7 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_properties(self, d):
         return {
+            'metric': d.get(self.metric),
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),

@@ -16,7 +16,7 @@ from flask_script import Manager
 from pathlib2 import Path
 import yaml
 
-from superset import app, db, dict_import_export_util, security, utils
+from superset import app, data, db, dict_import_export_util, security_manager, utils
 
 config = app.config
 celery_app = utils.get_celery_app(config)
@@ -28,14 +28,15 @@ manager.add_command('db', MigrateCommand)
 @manager.command
 def init():
     """Inits the Superset application"""
-    security.sync_role_definitions()
+    utils.get_or_create_main_db()
+    security_manager.sync_role_definitions()
 
 
 @manager.option(
     '-d', '--debug', action='store_true',
     help='Start the web server in debug mode')
 @manager.option(
-    '-n', '--no-reload', action='store_false', dest='no_reload',
+    '-n', '--no-reload', action='store_false', dest='use_reloader',
     default=config.get('FLASK_USE_RELOAD'),
     help="Don't use the reloader in debug mode")
 @manager.option(
@@ -47,16 +48,16 @@ def init():
 @manager.option(
     '-w', '--workers',
     default=config.get('SUPERSET_WORKERS', 2),
-    help='Number of gunicorn web server workers to fire up')
+    help='Number of gunicorn web server workers to fire up [DEPRECATED]')
 @manager.option(
     '-t', '--timeout', default=config.get('SUPERSET_WEBSERVER_TIMEOUT'),
-    help='Specify the timeout (seconds) for the gunicorn web server')
+    help='Specify the timeout (seconds) for the gunicorn web server [DEPRECATED]')
 @manager.option(
     '-s', '--socket', default=config.get('SUPERSET_WEBSERVER_SOCKET'),
     help='Path to a UNIX socket as an alternative to address:port, e.g. '
          '/var/run/superset.sock. '
-         'Will override the address and port values.')
-def runserver(debug, no_reload, address, port, timeout, workers, socket):
+         'Will override the address and port values. [DEPRECATED]')
+def runserver(debug, use_reloader, address, port, timeout, workers, socket):
     """Starts a Superset web server."""
     debug = debug or config.get('DEBUG')
     if debug:
@@ -72,8 +73,11 @@ def runserver(debug, no_reload, address, port, timeout, workers, socket):
             port=int(port),
             threaded=True,
             debug=True,
-            use_reloader=no_reload)
+            use_reloader=use_reloader)
     else:
+        logging.info(
+            "The Gunicorn 'superset runserver' command is deprecated. Please "
+            "use the 'gunicorn' command instead.")
         addr_str = ' unix:{socket} ' if socket else' {address}:{port} '
         cmd = (
             'gunicorn '
@@ -108,7 +112,6 @@ def version(verbose):
     help='Load additional test data')
 def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    from superset import data
     print('Loading examples into {}'.format(db))
 
     data.load_css_templates()
@@ -166,10 +169,9 @@ def load_examples(load_test_data):
 )
 @manager.option(
     '-m', '--merge',
-    help=(
-        "Specify using 'merge' property during operation. "
-        'Default value is False '
-    ),
+    action='store_true',
+    help="Specify using 'merge' property during operation.",
+    default=False,
 )
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
@@ -286,6 +288,9 @@ def update_datasources_cache():
     help='Number of celery server workers to fire up')
 def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
+    logging.info(
+        "The 'superset worker' command is deprecated. Please use the 'celery "
+        "worker' command instead.")
     if workers:
         celery_app.conf.update(CELERYD_CONCURRENCY=workers)
     elif config.get('SUPERSET_CELERY_WORKERS'):
@@ -316,6 +321,9 @@ def flower(port, address):
         '--port={port} '
         '--address={address} '
     ).format(**locals())
+    logging.info(
+        "The 'superset flower' command is deprecated. Please use the 'celery "
+        "flower' command instead.")
     print(Fore.GREEN + 'Starting a Celery Flower instance')
     print(Fore.BLUE + '-=' * 40)
     print(Fore.YELLOW + cmd)

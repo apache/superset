@@ -3,14 +3,12 @@ import ReactDOM from 'react-dom';
 import $ from 'jquery';
 
 import DeckGLContainer from './DeckGLContainer';
-import { getExploreUrl } from '../../javascripts/explore/exploreUtils';
+import { getExploreLongUrl } from '../../javascripts/explore/exploreUtils';
 import layerGenerators from './layers';
 
 
 function deckMulti(slice, payload, setControlValue) {
-  if (!slice.subSlicesLayers) {
-    slice.subSlicesLayers = {}; // eslint-disable-line no-param-reassign
-  }
+  const subSlicesLayers = {};
   const fd = slice.formData;
   const render = () => {
     const viewport = {
@@ -18,7 +16,7 @@ function deckMulti(slice, payload, setControlValue) {
       width: slice.width(),
       height: slice.height(),
     };
-    const layers = Object.keys(slice.subSlicesLayers).map(k => slice.subSlicesLayers[k]);
+    const layers = Object.keys(subSlicesLayers).map(k => subSlicesLayers[k]);
     ReactDOM.render(
       <DeckGLContainer
         mapboxApiAccessToken={payload.data.mapboxApiKey}
@@ -47,11 +45,10 @@ function deckMulti(slice, payload, setControlValue) {
       },
     };
 
-    const url = getExploreUrl(subsliceCopy.form_data, 'json');
+    const url = getExploreLongUrl(subsliceCopy.form_data, 'json');
     $.get(url, (data) => {
-      // Late import to avoid circular deps
       const layer = layerGenerators[subsliceCopy.form_data.viz_type](subsliceCopy.form_data, data);
-      slice.subSlicesLayers[subsliceCopy.slice_id] = layer; // eslint-disable-line no-param-reassign
+      subSlicesLayers[subsliceCopy.slice_id] = layer;
       render();
     });
   });

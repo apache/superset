@@ -9,13 +9,13 @@ from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from past.builtins import basestring
 
-from superset import appbuilder, db, security, sm, utils
+from superset import appbuilder, db, security_manager, utils
 from superset.connectors.base.views import DatasourceModelView
-from superset.utils import has_access
 from superset.views.base import (
     DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
@@ -57,8 +57,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
             'expression-defined columns in some cases. In most case '
             'users should not need to alter this.'),
         'expression': utils.markdown(
-            'a valid SQL expression as supported by the underlying backend. '
-            'Example: `substr(name, 1, 1)`', True),
+            'a valid, *non-aggregating* SQL expression as supported by the '
+            'underlying backend. Example: `substr(name, 1, 1)`', True),
         'python_date_format': utils.markdown(Markup(
             'The pattern of timestamp format, use '
             '<a href="https://docs.python.org/2/library/'
@@ -114,8 +114,8 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'expression', 'table', 'd3format', 'is_restricted', 'warning_text']
     description_columns = {
         'expression': utils.markdown(
-            'a valid SQL expression as supported by the underlying backend. '
-            'Example: `count(DISTINCT userid)`', True),
+            'a valid, *aggregating* SQL expression as supported by the '
+            'underlying backend. Example: `count(DISTINCT userid)`', True),
         'is_restricted': _('Whether the access to this metric is restricted '
                            'to certain roles. Only roles with the permission '
                            "'metric access on XXX (the name of this metric)' "
@@ -144,11 +144,11 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
 
     def post_add(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
     def post_update(self, metric):
         if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
+            security_manager.merge_perm('metric_access', metric.get_perm())
 
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -253,9 +253,9 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     def post_add(self, table, flash_message=True):
         table.fetch_metadata()
-        security.merge_perm(sm, 'datasource_access', table.get_perm())
+        security_manager.merge_perm('datasource_access', table.get_perm())
         if table.schema:
-            security.merge_perm(sm, 'schema_access', table.schema_perm)
+            security_manager.merge_perm('schema_access', table.schema_perm)
 
         if flash_message:
             flash(_(

@@ -49,8 +49,8 @@ export default class OnPasteSelect extends React.Component {
   render() {
     const SelectComponent = this.props.selectWrap;
     const refFunc = (ref) => {
-      if (this.props.ref) {
-        this.props.ref(ref);
+      if (this.props.refFunc) {
+        this.props.refFunc(ref);
       }
       this.pasteInput = ref;
     };
@@ -68,7 +68,7 @@ export default class OnPasteSelect extends React.Component {
 OnPasteSelect.propTypes = {
   separator: PropTypes.string.isRequired,
   selectWrap: PropTypes.func.isRequired,
-  ref: PropTypes.func,
+  refFunc: PropTypes.func,
   onChange: PropTypes.func.isRequired,
   valueKey: PropTypes.string.isRequired,
   labelKey: PropTypes.string.isRequired,
