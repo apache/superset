@@ -2103,11 +2103,18 @@ class DeckScreengrid(BaseDeckGLViz):
     viz_type = 'deck_screengrid'
     verbose_name = _('Deck.gl - Screen Grid')
     spatial_control_keys = ['spatial']
+    is_timeseries = True
+
+    def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
+        return super(DeckScreengrid, self).query_obj()
 
     def get_properties(self, d):
         return {
             'position': d.get('spatial'),
             'weight': d.get(self.metric) or 1,
+            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
         }
 
 
