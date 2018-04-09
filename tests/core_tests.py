@@ -15,6 +15,7 @@ import os
 import random
 import string
 import unittest
+import re
 
 import pandas as pd
 import psycopg2
@@ -377,7 +378,7 @@ class CoreTests(SupersetTestCase):
             'previous_viz_type=sankey'
         )
         resp = self.client.post('/r/shortner/', data=dict(data=data))
-        assert '?r=' in resp.data.decode('utf-8')
+        assert re.search(r'\/r\/[0-9]+', resp.data.decode('utf-8'));
 
     def test_kv(self):
         self.logout()
