@@ -72,7 +72,7 @@ const vizMap = {
   [VIZ_TYPES.horizon]: require('./horizon.js'),
   [VIZ_TYPES.iframe]: require('./iframe.js'),
   [VIZ_TYPES.line]: nvd3Vis,
-  [VIZ_TYPES.line_multi]: require('./multi_line.jsx'),
+  [VIZ_TYPES.line_multi]: require('./multi_line.js'),
   [VIZ_TYPES.time_pivot]: nvd3Vis,
   [VIZ_TYPES.mapbox]: require('./mapbox.jsx'),
   [VIZ_TYPES.markup]: require('./markup.js'),
