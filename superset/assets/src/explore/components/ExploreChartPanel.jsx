@@ -9,7 +9,6 @@ import ExploreChartHeader from './ExploreChartHeader';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  addHistory: PropTypes.func,
   onQuery: PropTypes.func,
   onDismissRefreshOverlay: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
@@ -67,7 +66,6 @@ class ExploreChartPanel extends React.PureComponent {
     const header = (
       <ExploreChartHeader
         actions={this.props.actions}
-        addHistory={this.props.addHistory}
         can_overwrite={this.props.can_overwrite}
         can_download={this.props.can_download}
         isStarred={this.props.isStarred}

@@ -53,7 +53,6 @@ class ExploreViewContainer extends React.Component {
       refreshOverlayVisible: false,
     };
 
-    this.addHistory = this.addHistory.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handlePopstate = this.handlePopstate.bind(this);
   }
@@ -61,7 +60,6 @@ class ExploreViewContainer extends React.Component {
   componentDidMount() {
     window.addEventListener('resize', this.handleResize);
     window.addEventListener('popstate', this.handlePopstate);
-    this.addHistory({ isReplace: true });
   }
 
   componentWillReceiveProps(np) {
@@ -99,9 +97,6 @@ class ExploreViewContainer extends React.Component {
     this.triggerQueryIfNeeded();
 
     const changedControlKeys = this.findChangedControlKeys(prevProps.controls, this.props.controls);
-    if (this.hasDisplayControlChanged(changedControlKeys, this.props.controls)) {
-      this.addHistory({});
-    }
   }
 
   componentWillUnmount() {
@@ -115,7 +110,6 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.triggerQuery(true, this.props.chart.chartKey);
 
     this.setState({ chartIsStale: false, refreshOverlayVisible: false });
-    this.addHistory({});
   }
 
   onDismissRefreshOverlay() {
@@ -159,27 +153,6 @@ class ExploreViewContainer extends React.Component {
     if (this.props.chart.triggerQuery && !this.hasErrors()) {
       this.props.actions.runQuery(this.props.form_data, false,
         this.props.timeout, this.props.chart.chartKey);
-    }
-  }
-
-  addHistory({ isReplace = false, title }) {
-    const { payload } = getExploreUrlAndPayload({ formData: this.props.form_data });
-    const longUrl = getExploreLongUrl(this.props.form_data);
-    if (isReplace) {
-      history.replaceState(
-        payload,
-        title,
-        longUrl);
-    } else {
-      history.pushState(
-        payload,
-        title,
-        longUrl);
-    }
-
-    // it seems some browsers don't support pushState title attribute
-    if (title) {
-      document.title = title;
     }
   }
 
@@ -241,7 +214,6 @@ class ExploreViewContainer extends React.Component {
         {...this.props}
         errorMessage={this.renderErrorMessage()}
         refreshOverlayVisible={this.state.refreshOverlayVisible}
-        addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
         onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
       />);
