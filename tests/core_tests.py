@@ -13,8 +13,8 @@ import json
 import logging
 import os
 import random
-import string
 import re
+import string
 import unittest
 
 import pandas as pd
