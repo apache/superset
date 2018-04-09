@@ -232,7 +232,7 @@ export const controls = {
     description: t('Choose the position of the legend'),
     type: 'SelectControl',
     clearable: false,
-    default: 'Top right',
+    default: 'tr',
     choices: [
       ['tl', 'Top left'],
       ['tr', 'Top right'],
