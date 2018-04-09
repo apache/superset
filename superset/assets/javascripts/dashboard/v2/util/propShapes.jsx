@@ -19,6 +19,9 @@ export const componentShape = PropTypes.shape({ // eslint-disable-line
     text: PropTypes.string,
     headerSize: PropTypes.oneOf(headerStyleOptions.map(opt => opt.value)),
 
+    // slice id for chart holder
+    chartKey: PropTypes.string,
+
     // Row
     background: PropTypes.oneOf(backgroundStyleOptions.map(opt => opt.value)),
   }),

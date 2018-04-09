@@ -9,20 +9,24 @@ export default function dashboard(state = {}, action) {
       const newDashboard = { ...state.dashboard, dashboard_title: action.title };
       return { ...state, dashboard: newDashboard };
     },
+    [actions.ADD_SLICE]() {
+      const updatedSliceIds = new Set(state.dashboard.sliceIds);
+      updatedSliceIds.add(action.slice.slice_id);
+      return {
+        ...state,
+        dashboard: { ...state.dashboard, sliceIds: updatedSliceIds }
+      };
+    },
     // [actions.UPDATE_DASHBOARD_LAYOUT]() {
     //   const newDashboard = { ...state.dashboard, layout: action.layout };
     //   return { ...state, dashboard: newDashboard };
     // },
     [actions.REMOVE_SLICE]() {
-      const sliceId = action.slice.slice_id,
-        index = state.dashboard.sliceIds.indexOf(sliceId);
-      if (index === -1) {
-        return state;
-      }
+      const sliceId = action.sliceId;
+      const updatedSliceIds = new Set(state.dashboard.sliceIds);
+      updatedSliceIds.delete(sliceId);
 
-      const updatedSliceIds = state.dashboard.sliceIds.slice();
-      updatedSliceIds.splice(index, 1);
-      const key = String(action.slice.slice_id);
+      const key = String(sliceId);
       // if this slice is a filter
       const newFilter = { ...state.filters };
       let refresh = false;
@@ -43,6 +47,9 @@ export default function dashboard(state = {}, action) {
     [actions.SET_EDIT_MODE]() {
       return { ...state, editMode: action.editMode };
     },
+    [actions.TOGGLE_BUILDER_PANE]() {
+      return { ...state, showBuilderPane: !state.showBuilderPane };
+    },
     [actions.TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.dashboard.metadata.expanded_slices };
       const sliceId = action.slice.slice_id;
@@ -58,18 +65,18 @@ export default function dashboard(state = {}, action) {
 
     // filters
     [actions.ADD_FILTER]() {
-      const selectedSlice = state.dashboard.slices
-        .find(slice => (slice.slice_id === action.sliceId));
-      if (!selectedSlice) {
+      const hasSelectedFilter = state.dashboard.sliceIds.has(action.chart.slice_id);
+      if (!hasSelectedFilter) {
         return state;
       }
 
       let filters = state.filters;
-      const { sliceId, col, vals, merge, refresh } = action;
+      const { chart, col, vals, merge, refresh } = action;
+      const sliceId = chart.slice_id;
       const filterKeys = ['__from', '__to', '__time_col',
         '__time_grain', '__time_origin', '__granularity'];
       if (filterKeys.indexOf(col) >= 0 ||
-        selectedSlice.formData.groupby.indexOf(col) !== -1) {
+        action.chart.formData.groupby.indexOf(col) !== -1) {
         let newFilter = {};
         if (!(sliceId in filters)) {
           // Straight up set the filters if none existed for the slice

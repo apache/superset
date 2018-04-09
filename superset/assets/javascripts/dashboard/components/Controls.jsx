@@ -14,8 +14,6 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   slices: PropTypes.array,
-  userId: PropTypes.string.isRequired,
-  addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
   renderSlices: PropTypes.func,
@@ -81,8 +79,8 @@ class Controls extends React.PureComponent {
     }
   }
   render() {
-    const { dashboard, layout, userId, filters,
-      addSlicesToDashboard, startPeriodicRender, onSave,
+    const { dashboard, layout, filters,
+      startPeriodicRender, onSave,
       editMode } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'

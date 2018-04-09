@@ -5,6 +5,7 @@ import Mustache from 'mustache';
 import { Tooltip } from 'react-bootstrap';
 
 import { d3format } from '../modules/utils';
+import { chartPropType } from './chartReducer';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
@@ -17,10 +18,10 @@ import './chart.css';
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
-  chartKey: PropTypes.string.isRequired,
+  chart: PropTypes.shape(chartPropType).isRequired,
   containerId: PropTypes.string.isRequired,
   datasource: PropTypes.object.isRequired,
-  formData: PropTypes.object.isRequired,
+  formData: PropTypes.object,
   headerHeight: PropTypes.number,
   height: PropTypes.number,
   width: PropTypes.number,
@@ -61,7 +62,7 @@ class Chart extends React.PureComponent {
     this.annotationData = props.annotationData;
     this.containerId = props.containerId;
     this.selector = `#${this.containerId}`;
-    this.formData = props.formData;
+    this.formData = props.formData || props.chart.formData;
     this.datasource = props.datasource;
     this.addFilter = this.addFilter.bind(this);
     this.getFilters = this.getFilters.bind(this);
@@ -72,10 +73,11 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
+    const formData = this.props.formData || this.props.chart.formData;
     if (this.props.triggerQuery) {
-      this.props.actions.runQuery(this.props.formData, false,
+      this.props.actions.runQuery(formData, false,
         this.props.timeout,
-        this.props.chartKey,
+        this.props.chart.chartKey,
       );
     }
   }
@@ -84,7 +86,7 @@ class Chart extends React.PureComponent {
     this.annotationData = nextProps.annotationData;
     this.containerId = nextProps.containerId;
     this.selector = `#${this.containerId}`;
-    this.formData = nextProps.formData;
+    this.formData = nextProps.formData || nextProps.chart.formData;
     this.datasource = nextProps.datasource;
   }
 
@@ -174,7 +176,8 @@ class Chart extends React.PureComponent {
 
   renderViz() {
     const viz = visMap[this.props.vizType];
-    const fd = this.props.formData;
+    // allow props.formData overwrite chart's own formData
+    const fd = this.props.formData || this.props.chart.formData;
     const qr = this.props.queryResponse;
     const renderStart = Logger.getTimestamp();
     try {
@@ -185,22 +188,23 @@ class Chart extends React.PureComponent {
       // [re]rendering the visualization
       viz(this, qr, this.props.setControlValue);
       Logger.append(LOG_ACTIONS_RENDER_EVENT, {
-        label: this.props.chartKey,
+        label: this.props.chart.chartKey,
         vis_type: this.props.vizType,
         start_offset: renderStart,
         duration: Logger.getTimestamp() - renderStart,
       });
-      this.props.actions.chartRenderingSucceeded(this.props.chartKey);
+      this.props.actions.chartRenderingSucceeded(this.props.chart.chartKey);
     } catch (e) {
       console.error(e);  // eslint-disable-line
-      this.props.actions.chartRenderingFailed(e, this.props.chartKey);
+      this.props.actions.chartRenderingFailed(e, this.props.chart.chartKey);
     }
   }
 
   render() {
     const isLoading = this.props.chartStatus === 'loading';
     return (
-      <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}>
+      <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}
+      >
         {this.renderTooltip()}
         {isLoading &&
           <Loading size={25} />

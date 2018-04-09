@@ -4,6 +4,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
+import * as sliceActions from '../../../javascripts/dashboard/actions/allSlices';
 import * as dashboardActions from '../../../javascripts/dashboard/actions/dashboard';
 import * as chartActions from '../../../javascripts/chart/chartAction';
 import Dashboard from '../../../javascripts/dashboard/components/Dashboard';
@@ -11,12 +12,13 @@ import { defaultFilters, dashboard, datasources, charts, allSlices } from './fix
 
 describe('Dashboard', () => {
   const mockedProps = {
-    actions: { ...chartActions, ...dashboardActions },
+    actions: { ...chartActions, ...dashboardActions, ...sliceActions },
     initMessages: [],
     dashboard: dashboard.dashboard,
     charts,
-    allSlices,
+    slices: allSlices.slices,
     datasources,
+    layout: {},
     filters: dashboard.filters,
     refresh: false,
     timeout: 60,
@@ -40,7 +42,7 @@ describe('Dashboard', () => {
     let selectedChart;
     beforeEach(() => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
-      selectedChart = charts['slice_248'];
+      selectedChart = charts.slice_248;
     });
 
     it('should carry default_filters', () => {

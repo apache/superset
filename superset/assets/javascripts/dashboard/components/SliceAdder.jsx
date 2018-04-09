@@ -1,43 +1,56 @@
 import React from 'react';
-import $ from 'jquery';
 import PropTypes from 'prop-types';
-import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
+import cx from 'classnames';
+import { DropdownButton, MenuItem } from 'react-bootstrap';
+import { List } from 'react-virtualized';
+import SearchInput, {createFilter} from 'react-search-input';
 
-import ModalTrigger from '../../components/ModalTrigger';
-import { t } from '../../locales';
-
-require('react-bootstrap-table/css/react-bootstrap-table.css');
+import { slicePropShape } from '../reducers/propShapes';
+import DragDroppable from '../v2/components/dnd/DragDroppable';
+import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../v2/util/componentTypes';
+import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../v2/util/constants';
 
 const propTypes = {
-  dashboard: PropTypes.object.isRequired,
-  triggerNode: PropTypes.node.isRequired,
+  actions: PropTypes.object,
+  isLoading: PropTypes.bool.isRequired,
+  slices: PropTypes.objectOf(slicePropShape).isRequired,
+  lastUpdated: PropTypes.number.isRequired,
+  errorMsg: PropTypes.string,
   userId: PropTypes.string.isRequired,
-  addSlicesToDashboard: PropTypes.func,
+  selectedSliceIds: PropTypes.object,
+  editMode: PropTypes.bool,
 };
+
+const defaultProps = {
+  selectedSliceIds: new Set(),
+  editMode: false,
+};
+
+const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
+const KEYS_TO_SORT = [
+  { key: 'slice_name', display: 'Name' },
+  { key: 'viz_type', display: 'Viz' },
+  { key: 'datasource_name', display: 'Datasource' },
+  { key: 'changed_on', display: 'Recent' }
+];
 
 class SliceAdder extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      slices: [],
-      slicesLoaded: false,
-      selectionMap: {},
+      filteredSlices: [],
+      searchTerm: '',
+      sortBy: KEYS_TO_SORT.findIndex((item) => ('changed_on' === item.key)),
     };
 
-    this.options = {
-      defaultSortOrder: 'desc',
-      defaultSortName: 'modified',
-      sizePerPage: 10,
-    };
+    this.rowRenderer = this.rowRenderer.bind(this);
+    this.searchUpdated = this.searchUpdated.bind(this);
+    this.handleKeyPress = this.handleKeyPress.bind(this);
+    this.handleSelect = this.handleSelect.bind(this);
+  }
 
-    this.addSlices = this.addSlices.bind(this);
-    this.toggleSlice = this.toggleSlice.bind(this);
-
-    this.selectRowProp = {
-      mode: 'checkbox',
-      clickToSelect: true,
-      onSelect: this.toggleSlice,
-    };
+  componentDidMount() {
+    this.slicesRequest = this.props.actions.fetchAllSlices(this.props.userId);
   }
 
   componentWillUnmount() {
@@ -46,174 +59,157 @@ class SliceAdder extends React.Component {
     }
   }
 
-  onEnterModal() {
-    const uri = `/sliceaddview/api/read?_flt_0_created_by=${this.props.userId}`;
-    this.slicesRequest = $.ajax({
-      url: uri,
-      type: 'GET',
-      success: (response) => {
-        // Prepare slice data for table
-        const slices = response.result.map(slice => ({
-          id: slice.id,
-          sliceName: slice.slice_name,
-          vizType: slice.viz_type,
-          datasourceLink: slice.datasource_link,
-          modified: slice.modified,
-        }));
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.lastUpdated !== this.props.lastUpdated) {
+      this.setState({
+        filteredSlices: Object.values(nextProps.slices)
+          .filter(createFilter(this.state.searchTerm, KEYS_TO_FILTERS))
+          .sort(this.sortByComparator(KEYS_TO_SORT[this.state.sortBy].key)),
+      });
+    }
+  }
 
-        this.setState({
-          slices,
-          selectionMap: {},
-          slicesLoaded: true,
-        });
-      },
-      error: (error) => {
-        this.errored = true;
-        this.setState({
-          errorMsg: t('Sorry, there was an error fetching slices to this dashboard: ') +
-          this.getAjaxErrorMsg(error),
-        });
-      },
+  sortByComparator(attr) {
+    const desc = 'changedOn' === attr ? -1 : 1;
+
+    return (a, b) => {
+      if (a[attr] < b[attr]) {
+        return -1 * desc;
+      } else if (a[attr] > b[attr]) {
+        return 1 * desc;
+      } else {
+        return 0;
+      }
+    };
+  }
+
+  handleKeyPress(ev) {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+
+      this.searchUpdated(ev.target.value);
+    }
+  }
+
+  getFilteredSortedSlices(searchTerm, sortBy) {
+    return Object.values(this.props.slices)
+      .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
+      .sort(this.sortByComparator(KEYS_TO_SORT[sortBy].key));
+  }
+
+  searchUpdated(searchTerm) {
+    this.setState({
+      searchTerm,
+      filteredSlices: this.getFilteredSortedSlices(searchTerm, this.state.sortBy),
     });
   }
 
-  getAjaxErrorMsg(error) {
-    const respJSON = error.responseJSON;
-    return (respJSON && respJSON.message) ? respJSON.message :
-      error.responseText;
+  handleSelect(sortBy) {
+    this.setState({
+      sortBy,
+      filteredSlices: this.getFilteredSortedSlices(this.state.searchTerm, sortBy),
+    })
   }
 
-  addSlices() {
-    const adder = this;
-    this.props.addSlicesToDashboard(Object.keys(this.state.selectionMap))
-      // if successful, page will be reloaded.
-      .fail((error) => {
-        adder.errored = true;
-        adder.setState({
-          errorMsg: t('Sorry, there was an error adding slices to this dashboard: ') +
-          this.getAjaxErrorMsg(error),
-        });
-      });
-  }
+  rowRenderer({ key, index, style }) {
+    const cellData = this.state.filteredSlices[index];
+    const duration = cellData.modified ? cellData.modified.replace(/<[^>]*>/g, '') : '';
+    const isSelected = this.props.selectedSliceIds.has(cellData.slice_id);
+    const type = CHART_TYPE;
+    const id = NEW_CHART_ID;
+    const meta = {
+      chartKey: 'slice_' + cellData.slice_id,
+    };
 
-  toggleSlice(slice) {
-    const selectionMap = Object.assign({}, this.state.selectionMap);
-    selectionMap[slice.id] = !selectionMap[slice.id];
-    this.setState({ selectionMap });
-  }
-
-  modifiedDateComparator(a, b, order) {
-    if (order === 'desc') {
-      if (a.changed_on > b.changed_on) {
-        return -1;
-      } else if (a.changed_on < b.changed_on) {
-        return 1;
-      }
-      return 0;
-    }
-
-    if (a.changed_on < b.changed_on) {
-      return -1;
-    } else if (a.changed_on > b.changed_on) {
-      return 1;
-    }
-    return 0;
+    return (
+      <DragDroppable
+        component={{ type, id, meta }}
+        parentComponent={{ id: NEW_COMPONENTS_SOURCE_ID, type: NEW_COMPONENT_SOURCE_TYPE }}
+        index={0}
+        depth={0}
+        disableDragDrop={isSelected}
+        editMode={this.props.editMode}
+      >
+        {({ dragSourceRef }) => (
+      <div
+        ref={dragSourceRef}
+        className="chart-card-container"
+        key={key}
+        style={style}
+      >
+        <div className={cx('chart-card', { 'is-selected': isSelected })}>
+          <div className="card-title">{cellData.slice_name}</div>
+          <div className="card-body">
+            <div className="item">
+              <label>Modified: </label>
+              <span>{duration}</span>
+            </div>
+            <div className="item">
+              <label>Viz type: </label>
+              <span>{cellData.viz_type}</span>
+            </div>
+            <div className="item">
+              <label>Data source: </label>
+              <span dangerouslySetInnerHTML={{ __html: cellData.datasource_link }} />
+            </div>
+          </div>
+        </div>
+      </div>
+        )}
+      </DragDroppable>
+    )
   }
 
   render() {
-    const hideLoad = this.state.slicesLoaded || this.errored;
-    let enableAddSlice = this.state.selectionMap && Object.keys(this.state.selectionMap);
-    if (enableAddSlice) {
-      enableAddSlice = enableAddSlice.some(function (key) {
-        return this.state.selectionMap[key];
-      }, this);
-    }
-    const modalContent = (
-      <div>
-        <img
-          src="/static/assets/images/loading.gif"
-          className={'loading ' + (hideLoad ? 'hidden' : '')}
-          alt={hideLoad ? '' : 'loading'}
-        />
-        <div className={this.errored ? '' : 'hidden'}>
-          {this.state.errorMsg}
+    return (
+      <div className="slice-adder-container">
+        <div className="controls">
+          <DropdownButton
+            title={KEYS_TO_SORT[this.state.sortBy].display}
+            onSelect={this.handleSelect}
+            id="slice-adder-sortby"
+          >
+            {KEYS_TO_SORT.map((item, index) => (
+              <MenuItem key={`sort-item-${index}`} eventKey={index}>{item.display}</MenuItem>
+            ))}
+          </DropdownButton>
+
+          <SearchInput
+            onChange={this.searchUpdated}
+            onKeyPress={this.handleKeyPress}
+          />
         </div>
-        <div className={this.state.slicesLoaded ? '' : 'hidden'}>
-          <BootstrapTable
-            ref="table"
-            data={this.state.slices}
-            selectRow={this.selectRowProp}
-            options={this.options}
-            hover
-            search
-            pagination
-            condensed
-            height="auto"
-          >
-            <TableHeaderColumn
-              dataField="id"
-              isKey
-              dataSort
-              hidden
+
+        {this.props.isLoading &&
+          <img
+            src="/static/assets/images/loading.gif"
+            className="loading"
+            alt="loading"
+          />
+        }
+        <div className={this.props.errorMsg ? '' : 'hidden'}>
+          {this.props.errorMsg}
+        </div>
+        <div className={!this.props.isLoading ? '' : 'hidden'}>
+          {this.state.filteredSlices.length > 0 &&
+            <List
+              width={376}
+              height={500}
+              rowCount={this.state.filteredSlices.length}
+              rowHeight={136}
+              rowRenderer={this.rowRenderer}
+              searchTerm={this.state.searchTerm}
+              sortBy={this.state.sortBy}
+              selectedSliceIds={this.props.selectedSliceIds}
             />
-            <TableHeaderColumn
-              dataField="sliceName"
-              dataSort
-            >
-              {t('Name')}
-            </TableHeaderColumn>
-            <TableHeaderColumn
-              dataField="vizType"
-              dataSort
-            >
-              {t('Viz')}
-            </TableHeaderColumn>
-            <TableHeaderColumn
-              dataField="datasourceLink"
-              dataSort
-              // Will cause react-bootstrap-table to interpret the HTML returned
-              dataFormat={datasourceLink => datasourceLink}
-            >
-              {t('Datasource')}
-            </TableHeaderColumn>
-            <TableHeaderColumn
-              dataField="modified"
-              dataSort
-              sortFunc={this.modifiedDateComparator}
-              // Will cause react-bootstrap-table to interpret the HTML returned
-              dataFormat={modified => modified}
-            >
-              {t('Modified')}
-            </TableHeaderColumn>
-          </BootstrapTable>
-          <button
-            type="button"
-            className="btn btn-default"
-            data-dismiss="modal"
-            onClick={this.addSlices}
-            disabled={!enableAddSlice}
-          >
-            {t('Add Slices')}
-          </button>
+          }
         </div>
       </div>
-    );
-
-    return (
-      <ModalTrigger
-        triggerNode={this.props.triggerNode}
-        tooltip={t('Add a new slice to the dashboard')}
-        beforeOpen={this.onEnterModal.bind(this)}
-        isMenuItem
-        modalBody={modalContent}
-        bsSize="large"
-        setModalAsTriggerChildren
-        modalTitle={t('Add Slices to Dashboard')}
-      />
     );
   }
 }
 
 SliceAdder.propTypes = propTypes;
+SliceAdder.defaultProps = defaultProps;
 
 export default SliceAdder;

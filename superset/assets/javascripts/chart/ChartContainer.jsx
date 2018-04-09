@@ -4,8 +4,8 @@ import { bindActionCreators } from 'redux';
 import * as Actions from './chartAction';
 import Chart from './Chart';
 
-function mapStateToProps({ charts }, ownProps) {
-  const chart = charts[ownProps.chartKey];
+function mapStateToProps({}, ownProps) {
+  const chart = ownProps.chart;
   return {
     annotationData: chart.annotationData,
     chartAlert: chart.chartAlert,

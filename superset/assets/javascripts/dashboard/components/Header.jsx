@@ -14,7 +14,6 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   userId: PropTypes.string.isRequired,
   isStarred: PropTypes.bool,
-  addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
   fetchFaveStar: PropTypes.func,
@@ -24,6 +23,8 @@ const propTypes = {
   updateDashboardTitle: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
+  showBuilderPane: PropTypes.bool,
+  toggleBuilderPane: PropTypes.func.isRequired,
   unsavedChanges: PropTypes.bool.isRequired,
 };
 
@@ -53,11 +54,27 @@ class Header extends React.PureComponent {
       />
     );
   }
+  renderInsertButton() {
+    if (!this.props.editMode) {
+      return null;
+    }
+    const btnText = this.props.showBuilderPane ? t('Hide builder pane') : t('Insert components');
+    return (
+      <Button
+        bsStyle="default"
+        className="m-r-5"
+        style={{ width: '150px' }}
+        onClick={this.props.toggleBuilderPane}
+      >
+        {btnText}
+      </Button>
+    );
+  }
   renderEditButton() {
     if (!this.props.dashboard.dash_save_perm) {
       return null;
     }
-    const btnText = this.props.editMode ? 'Switch to View Mode' : 'Edit Dashboard';
+    const btnText = this.props.editMode ? t('Switch to View Mode') : t('Edit Dashboard');
     return (
       <Button
         bsStyle="default"
@@ -69,7 +86,7 @@ class Header extends React.PureComponent {
       </Button>);
   }
   render() {
-    const { dashboard, layout, filters, userId } = this.props;
+    const { dashboard, layout, filters } = this.props;
     return (
       <div className="title">
         <div className="pull-left">
@@ -92,13 +109,12 @@ class Header extends React.PureComponent {
           </h1>
         </div>
         <div className="pull-right" style={{ marginTop: '35px' }}>
+          {this.renderInsertButton()}
           {this.renderEditButton()}
           <Controls
             dashboard={dashboard}
             layout={layout}
             filters={filters}
-            userId={userId}
-            addSlicesToDashboard={this.props.addSlicesToDashboard}
             onSave={this.props.onSave}
             onChange={this.props.onChange}
             renderSlices={this.props.renderSlices}

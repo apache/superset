@@ -2,10 +2,10 @@ import { combineReducers } from 'redux';
 import shortid from 'shortid';
 
 import charts, { chart } from '../../chart/chartReducer';
-import dashboard from './dashboard';
-import datasources from './datasources';
-import allSlices from './allSlices';
-import dashboardLayout from '../v2/reducers/index';
+import dashboardReducer from './dashboard';
+import datasourcesReducer from './datasources';
+import allSlices, { initAllSlices } from './allSlices';
+import layoutReducer from '../v2/reducers/index';
 import messageToasts from '../v2/reducers/messageToasts';
 import { getParam } from '../../modules/utils';
 import layoutConverter from '../util/dashboardLayoutConverter';
@@ -45,16 +45,16 @@ export function getInitialState(bootstrapData) {
   }
 
   const dashboardLayout = {
-      past: [],
-      present: layout,
-      future: [],
-    };
+    past: [],
+    present: layout,
+    future: [],
+  };
   delete dashboard.position_json;
   delete dashboard.css;
 
-  // charts and allSlices
-  const initCharts = {},
-    allSlices = {};
+  // charts and slices
+  const initCharts = {};
+  const slices = {};
   dashboard.slices.forEach((slice) => {
     const chartKey = 'slice_' + slice.slice_id;
     initCharts[chartKey] = { ...chart,
@@ -64,43 +64,51 @@ export function getInitialState(bootstrapData) {
       formData: applyDefaultFormData(slice.form_data),
     };
 
-    allSlices[chartKey] = {
+    slices[chartKey] = {
       slice_id: slice.slice_id,
       slice_url: slice.slice_url,
       slice_name: slice.slice_name,
       edit_url: slice.edit_url,
       viz_type: slice.form_data.viz_type,
-      datasource: slice.datasource,
+      datasource_name: slice.datasource,
       description: slice.description,
       description_markeddown: slice.description_markeddown,
     };
   });
-  dashboard.sliceIds = dashboard.slices.map(slice => (slice.slice_id));
+  dashboard.sliceIds = new Set(dashboard.slices.map(slice => (slice.slice_id)));
   delete dashboard.slices;
 
   return {
     datasources,
-    allSlices,
+    allSlices: { ...initAllSlices, isLoading: false, slices },
     charts: initCharts,
-    dashboard: { filters, dashboard, userId: user_id, common, editMode: false, showBuilderPane: false },
+    dashboard: {
+      filters,
+      dashboard,
+      userId: user_id,
+      common,
+      editMode: false,
+      showBuilderPane: false,
+    },
     dashboardLayout,
     messageToasts: [],
   };
 }
 
 const impressionId = function (state = '') {
-  if (!state) {
-    state = shortid.generate();
+  let id = state;
+  if (!id) {
+    id = shortid.generate();
   }
-  return state;
+  return id;
 };
 
 export default combineReducers({
   charts,
-  dashboard,
-  datasources,
+  dashboard: dashboardReducer,
+  datasources: datasourcesReducer,
   allSlices,
-  dashboardLayout,
+  dashboardLayout: layoutReducer,
   messageToasts,
   impressionId,
 });

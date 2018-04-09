@@ -1,9 +1,13 @@
-/* global notify */
 import $ from 'jquery';
 
+import { addChart, removeChart } from '../../chart/chartAction';
+import { chart as initChart } from '../../chart/chartReducer';
+import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
+import { applyDefaultFormData } from '../../explore/stores/store';
+
 export const ADD_FILTER = 'ADD_FILTER';
-export function addFilter(sliceId, col, vals, merge = true, refresh = true) {
-  return { type: ADD_FILTER, sliceId, col, vals, merge, refresh };
+export function addFilter(chart, col, vals, merge = true, refresh = true) {
+  return { type: ADD_FILTER, chart, col, vals, merge, refresh };
 }
 
 export const REMOVE_FILTER = 'REMOVE_FILTER';
@@ -16,25 +20,14 @@ export function updateDashboardTitle(title) {
   return { type: UPDATE_DASHBOARD_TITLE, title };
 }
 
-export function addSlicesToDashboard(dashboardId, sliceIds) {
-  return () => (
-    $.ajax({
-      type: 'POST',
-      url: `/superset/add_slices/${dashboardId}/`,
-      data: {
-        data: JSON.stringify({ slice_ids: sliceIds }),
-      },
-    })
-      .done(() => {
-        // Refresh page to allow for slices to re-render
-        window.location.reload();
-      })
-  );
+export const ADD_SLICE = 'ADD_SLICE';
+export function addSlice(slice) {
+  return { type: ADD_SLICE, slice };
 }
 
 export const REMOVE_SLICE = 'REMOVE_SLICE';
-export function removeSlice(slice) {
-  return { type: REMOVE_SLICE, slice };
+export function removeSlice(sliceId) {
+  return { type: REMOVE_SLICE, sliceId };
 }
 
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
@@ -74,4 +67,38 @@ export function toggleExpandSlice(slice, isExpanded) {
 export const SET_EDIT_MODE = 'SET_EDIT_MODE';
 export function setEditMode(editMode) {
   return { type: SET_EDIT_MODE, editMode };
+}
+
+export const TOGGLE_BUILDER_PANE = 'TOGGLE_BUILDER_PANE';
+export function toggleBuilderPane() {
+  return { type: TOGGLE_BUILDER_PANE };
+}
+
+export function addSliceToDashboard(chartKey) {
+  return (dispatch, getState) => {
+    const { allSlices } = getState();
+    const selectedSlice = allSlices.slices[chartKey];
+    const form_data = JSON.parse(selectedSlice.form_data);
+    const newChart = {
+      ...initChart,
+      chartKey,
+      slice_id: selectedSlice.slice_id,
+      form_data,
+      formData: applyDefaultFormData(form_data),
+    };
+
+    return Promise
+      .all([
+        dispatch(addChart(newChart, chartKey)),
+        dispatch(fetchDatasourceMetadata(form_data.datasource)),
+      ])
+      .then(() => dispatch(addSlice(selectedSlice)));
+  };
+}
+
+export function removeSliceFromDashboard(chart) {
+  return (dispatch) => {
+    dispatch(removeSlice(chart.slice_id));
+    dispatch(removeChart(chart.chartKey));
+  };
 }

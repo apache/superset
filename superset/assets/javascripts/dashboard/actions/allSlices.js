@@ -16,7 +16,7 @@ export function saveSliceName(slice, sliceName) {
 
     const url = slice.slice_url + '&' +
       Object.keys(sliceParams)
-      .map((key) => (key+'='+sliceParams[key]))
+      .map(key => (key + '=' + sliceParams[key]))
       .join('&');
     const key = 'slice_' + slice.slice_id;
     return $.ajax({
@@ -36,7 +36,31 @@ export function saveSliceName(slice, sliceName) {
   };
 }
 
-export const FETCH_ALL_SLICES = 'FETCH_ALL_SLICES';
-export function fetchAllSlices() {
-  return {};
+export const SET_ALL_SLICES = 'SET_ALL_SLICES';
+export function setAllSlices(result) {
+  return { type: SET_ALL_SLICES, result };
+}
+
+export const FETCH_ALL_SLICES_STARTED = 'FETCH_ALL_SLICES_STARTED';
+export function fetchAllSlicesStarted() {
+  return { type: FETCH_ALL_SLICES_STARTED };
+}
+
+export const FETCH_ALL_SLICES_FAILED = 'FETCH_ALL_SLICES_FAILED';
+export function fetchAllSlicesFailed(error) {
+  return { type: FETCH_ALL_SLICES_FAILED, error };
+}
+
+export function fetchAllSlices(userId) {
+  return (dispatch) => {
+    dispatch(fetchAllSlicesStarted());
+
+    const uri = `/sliceaddview/api/read?_flt_0_created_by=${userId}`;
+    return $.ajax({
+      url: uri,
+      type: 'GET',
+      success: response => dispatch(setAllSlices(response.result)),
+      error: error => dispatch(fetchAllSlicesFailed(error)),
+    });
+  };
 }

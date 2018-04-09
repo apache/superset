@@ -35,6 +35,12 @@ export const chart = {
 
 export default function chartReducer(charts = {}, action) {
   const actionHandlers = {
+    [actions.ADD_CHART]() {
+      return {
+        ...chart,
+        ...action.chart,
+      };
+    },
     [actions.CHART_UPDATE_SUCCEEDED](state) {
       return { ...state,
         chartStatus: 'success',

@@ -19,7 +19,7 @@ const propTypes = {
   initMessages: PropTypes.array,
   dashboard: PropTypes.object.isRequired,
   charts: PropTypes.object.isRequired,
-  allSlices:  PropTypes.objectOf(slicePropShape).isRequired,
+  slices:  PropTypes.objectOf(slicePropShape).isRequired,
   datasources: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object,
@@ -28,6 +28,7 @@ const propTypes = {
   userId: PropTypes.string,
   isStarred: PropTypes.bool,
   editMode: PropTypes.bool,
+  showBuilderPane: PropTypes.bool,
   impressionId: PropTypes.string,
 };
 
@@ -64,16 +65,17 @@ class Dashboard extends React.PureComponent {
     this.onChange = this.onChange.bind(this);
     this.fetchAllCharts = this.fetchCharts.bind(this, this.getAllCharts());
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
-    this.addSlicesToDashboard = this.addSlicesToDashboard.bind(this);
     this.fetchChart = this.fetchChart.bind(this);
     this.getFormDataExtra = this.getFormDataExtra.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
+    this.toggleBuilderPane = this.toggleBuilderPane.bind(this);
     this.props.actions.fetchFaveStar = this.props.actions.fetchFaveStar.bind(this);
     this.props.actions.saveFaveStar = this.props.actions.saveFaveStar.bind(this);
     this.props.actions.saveSliceName = this.props.actions.saveSliceName.bind(this);
-    this.props.actions.removeSlice = this.props.actions.removeSlice.bind(this);
-    this.props.actions.removeChart = this.props.actions.removeChart.bind(this);
+    this.props.actions.addSliceToDashboard = this.props.actions.addSliceToDashboard.bind(this);
+    this.props.actions.removeSliceFromDashboard =
+      this.props.actions.removeSliceFromDashboard.bind(this);
     this.props.actions.toggleExpandSlice = this.props.actions.toggleExpandSlice.bind(this);
     this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
     this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
@@ -90,6 +92,18 @@ class Dashboard extends React.PureComponent {
     ) {
       Logger.end(this.loadingLog);
       this.firstLoad = false;
+    }
+
+    const currentCharts = this.getChartKeysFromLayout(this.props.layout);
+    const nextCharts = this.getChartKeysFromLayout(nextProps.layout);
+    if (currentCharts.length < nextCharts.length) {
+      // adding new chart
+      const newChartKey = nextCharts.find((key) => (currentCharts.indexOf(key) === -1));
+      this.props.actions.addSliceToDashboard(newChartKey);
+    } else if (currentCharts.length > nextCharts.length) {
+      // remove chart
+      const removedChartKey = currentCharts.find((key) => (nextCharts.indexOf(key) === -1));
+      this.props.actions.removeSliceFromDashboard(this.props.charts[removedChartKey]);
     }
   }
 
@@ -149,6 +163,16 @@ class Dashboard extends React.PureComponent {
 
   getFilters(sliceId) {
     return this.props.filters[sliceId];
+  }
+
+  getChartKeysFromLayout(layout) {
+    return Object.values(layout)
+      .reduce((chartKeys, value) => {
+        if (value && value.meta && value.meta.chartKey) {
+          chartKeys.push(value.meta.chartKey);
+        }
+        return chartKeys;
+      }, []);
   }
 
   unload() {
@@ -235,8 +259,9 @@ class Dashboard extends React.PureComponent {
     this.onChange();
   }
 
-  addSlicesToDashboard(sliceIds) {
-    return this.props.actions.addSlicesToDashboard(this.props.dashboard.id, sliceIds);
+  toggleBuilderPane() {
+    this.props.actions.toggleBuilderPane();
+    this.rerenderCharts()
   }
 
   fetchChart(chart, force = false) {
@@ -246,10 +271,10 @@ class Dashboard extends React.PureComponent {
   }
 
   // fetch and render an list of charts
-  fetchCharts(chart, force = false, interval = 0) {
-    const charts = chart || this.getAllCharts();
+  fetchCharts(charts, force = false, interval = 0) {
+    const allCharts = charts || this.getAllCharts();
     if (!interval) {
-      charts.forEach((chart) => { this.fetchChart(chart, force); });
+      allCharts.forEach((chart) => { this.fetchChart(chart, force); });
       return;
     }
 
@@ -259,18 +284,20 @@ class Dashboard extends React.PureComponent {
       meta.stagger_refresh = meta.stagger_refresh === undefined ?
         true : meta.stagger_refresh === 'true';
     }
-    const delay = meta.stagger_refresh ? refreshTime / (charts.length - 1) : 0;
-    charts.forEach((slice, i) => {
+    const delay = meta.stagger_refresh ? refreshTime / (allCharts.length - 1) : 0;
+    allCharts.forEach((slice, i) => {
       setTimeout(() => { this.fetchChart(slice, force); }, delay * i);
     });
   }
 
-  exploreChart(chart) {
+  exploreChart(chartKey) {
+    const chart = this.props.charts[chartKey];
     const formData = this.getFormDataExtra(chart);
     exportChart(formData);
   }
 
-  exportCSV(chart) {
+  exportCSV(chartKey) {
+    const chart = this.props.charts[chartKey];
     const formData = this.getFormDataExtra(chart);
     exportChart(formData, 'csv');
   }
@@ -303,16 +330,17 @@ class Dashboard extends React.PureComponent {
             saveFaveStar={this.props.actions.saveFaveStar}
             renderSlices={this.fetchAllCharts}
             startPeriodicRender={this.startPeriodicRender}
-            addSlicesToDashboard={this.addSlicesToDashboard}
             editMode={this.props.editMode}
             setEditMode={this.props.actions.setEditMode}
+            showBuilderPane={this.props.showBuilderPane}
+            toggleBuilderPane={this.toggleBuilderPane}
           />
         </div>
         <GridLayout
             dashboard={this.props.dashboard}
             layout={this.props.layout}
             datasources={this.props.datasources}
-            allSlices={this.props.allSlices}
+            slices={this.props.slices}
             filters={this.props.filters}
             charts={this.props.charts}
             timeout={this.props.timeout}
@@ -323,8 +351,6 @@ class Dashboard extends React.PureComponent {
             exportCSV={this.exportCSV}
             fetchChart={this.fetchChart}
             saveSliceName={this.props.actions.saveSliceName}
-            removeSlice={this.props.actions.removeSlice}
-            removeChart={this.props.actions.removeChart}
             toggleExpandSlice={this.props.actions.toggleExpandSlice}
             addFilter={this.props.actions.addFilter}
             getFilters={this.getFilters}

@@ -26,11 +26,12 @@ const propTypes = {
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
+  showBuilderPane: PropTypes.bool,
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
-  editMode: true,
+  showBuilderPane: false,
 };
 
 class DashboardBuilder extends React.Component {
@@ -117,7 +118,9 @@ class DashboardBuilder extends React.Component {
             depth={DASHBOARD_ROOT_DEPTH + 1}
             cells={this.props.cells}
           />
-          {editMode && <BuilderComponentPane />}
+          {this.props.editMode && this.props.showBuilderPane &&
+            <BuilderComponentPane />
+          }
         </div>
         <ToastPresenter />
       </div>

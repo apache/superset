@@ -13,13 +13,17 @@
   border-color: #AAA;
   opacity: 0.3;
 }
-.slice-grid .widget {
+.dashboard .widget {
   position: absolute;
   top: 16px;
   left: 16px;
   box-shadow: none;
   background-color: transparent;
   overflow: visible;
+
+  &.is-edit {
+    //opacity: 0.45;
+  }
 }
 .dashboard .chart-header {
   .dropdown.btn-group {
@@ -194,4 +198,108 @@ i.danger {
 
 i.warning {
   color: orange;
+}
+
+.dashboard-builder-sidepane {
+  .trigger {
+    height: 25px;
+    width: 25px;
+    color: #879399;
+    position: relative;
+
+    &.close {
+      top: 3px;
+    }
+
+    &.open {
+      position: absolute;
+      right: 14px;
+    }
+  }
+}
+
+.component-layer {
+  .new-component.static {
+    cursor: pointer;
+  }
+}
+
+.slices-layer {
+  position: absolute;
+  width: 2px;
+  top: 51px;
+  right: 1px;
+  background: #fff;
+  transition-property: width;
+  transition-duration: 1s;
+  transition-timing-function: ease;
+  overflow: hidden;
+
+  &.show {
+    width: 374px;
+  }
+}
+
+.dashboard .chart-card-container {
+  padding: 16px;
+  cursor: move;
+
+  .chart-card {
+    border: 1px solid #ccc;
+    height: 120px;
+    padding: 16px;
+    pointer-events: unset;
+  }
+
+  .chart-card.is-selected {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .card-title {
+    margin-bottom: 8px;
+    font-weight: bold;
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+
+    .item {
+      height: 18px;
+    }
+
+    label {
+      margin-right: 5px;
+    }
+  }
+}
+
+.dashboard .slice-adder-container {
+  .controls {
+    display: flex;
+    padding: 16px;
+
+    .dropdown.btn-group button,
+    input {
+      font-size: 14px;
+      line-height: 16px;
+      padding: 7px 12px;
+      height: 32px;
+    }
+
+    input {
+      margin-left: 16px;
+      width: 169px;
+      border: 1px solid #b3b3b3;
+
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+
+  .ReactVirtualized__Grid.ReactVirtualized__List:focus {
+    outline: none;
+  }
 }
