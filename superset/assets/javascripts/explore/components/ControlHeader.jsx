@@ -15,6 +15,7 @@ const propTypes = {
   hovered: PropTypes.bool,
   tooltipOnClick: PropTypes.func,
   warning: PropTypes.string,
+  danger: PropTypes.string,
 };
 
 const defaultProps = {
@@ -82,6 +83,19 @@ export default class ControlHeader extends React.Component {
                   placement="top"
                   overlay={
                     <Tooltip id={'error-tooltip'}>{this.props.warning}</Tooltip>
+                  }
+                >
+                  <i className="fa fa-exclamation-circle text-warning" />
+                </OverlayTrigger>
+                {' '}
+              </span>
+            }
+            {(this.props.danger) &&
+              <span>
+                <OverlayTrigger
+                  placement="top"
+                  overlay={
+                    <Tooltip id={'error-tooltip'}>{this.props.danger}</Tooltip>
                   }
                 >
                   <i className="fa fa-exclamation-circle text-danger" />

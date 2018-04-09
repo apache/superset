@@ -379,7 +379,12 @@ export default function nvd3Vis(slice, payload) {
 
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      chart.yAxis.tickFormat(yAxisFormatter);
+      if (fd.num_period_compare) {
+        // When computing a "Period Ratio", we force a percentage format
+        chart.yAxis.tickFormat(d3.format('.1%'));
+      } else {
+        chart.yAxis.tickFormat(yAxisFormatter);
+      }
     }
     if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
