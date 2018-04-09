@@ -205,6 +205,20 @@ export const visTypes = {
     },
   },
 
+  line_multi: {
+    label: t('Time Series - Line Chart - Multiple Layers'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Series'),
+        expanded: true,
+        controlSetRows: [
+          ['line_slices', null],
+        ],
+      },
+    ],
+  },
+
   time_pivot: {
     label: t('Time Series - Periodicity Pivot'),
     showOnExplore: true,

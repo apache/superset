@@ -2009,6 +2009,24 @@ export const controls = {
     description: t('The width of the lines'),
   },
 
+  line_slices: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('Line charts'),
+    validators: [v.nonEmpty],
+    default: [],
+    description: t('Pick a set of line charts to layer on top of one another'),
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+    placeholder: t('Select charts'),
+    onAsyncErrorMessage: t('Error while fetching charts'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
+    },
+  },
+
   reverse_long_lat: {
     type: 'CheckboxControl',
     label: t('Reverse Lat & Long'),

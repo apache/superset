@@ -1192,6 +1192,30 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return chart_data
 
 
+class LineMultiLayer(NVD3Viz):
+
+    """Pile on multiple line charts"""
+
+    viz_type = 'line_multi'
+    verbose_name = _('Time Series - Line Chart - Multiple Layers')
+
+    is_timeseries = True
+
+    def query_obj(self):
+        return None
+
+    def get_data(self, df):
+        fd = self.form_data
+        # Late imports to avoid circular import issues
+        from superset.models.core import Slice
+        from superset import db
+        slice_ids = fd.get('line_slices')
+        slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        return {
+            'slices': [slc.data for slc in slices],
+        }
+
+
 class NVD3DualLineViz(NVD3Viz):
 
     """A rich line chart with dual axis"""
