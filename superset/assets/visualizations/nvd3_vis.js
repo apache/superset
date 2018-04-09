@@ -83,23 +83,24 @@ function getMaxLabelSize(container, axisClass) {
   return Math.max(...labelDimensions);
 }
 
-/* eslint-disable camelcase */
-function formatLabel(column, verbose_map) {
+export function formatLabel(input, verboseMap = {}) {
+  // The input for label may be a string or an array of string
+  // When using the time shift feature, the label contains a '---' in the array
+  const verboseLkp = s => verboseMap[s] || s;
   let label;
-  if (Array.isArray(column) && column.length) {
-    label = verbose_map[column[0]] || column[0];
-    if (column.length > 1) {
-      label += ', ';
+  if (Array.isArray(input) && input.length) {
+    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    label = verboseLabels.join(', ');
+    if (input.length > verboseLabels.length) {
+      label += ' ---';
     }
-    label += column.slice(1).join(', ');
   } else {
-    label = verbose_map[column] || column;
+    label = verboseLkp(input);
   }
   return label;
 }
-/* eslint-enable camelcase */
 
-function nvd3Vis(slice, payload) {
+export default function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
@@ -543,7 +544,7 @@ function nvd3Vis(slice, payload) {
             return {};
           }
           const key = Array.isArray(series.key) ?
-            `${a.name}, ${series.key.join(', ')}` : a.name;
+            `${a.name}, ${series.key.join(', ')}` : `${a.name}, ${series.key}`;
           return {
             ...series,
             key,
@@ -586,6 +587,7 @@ function nvd3Vis(slice, payload) {
           xMax = chart.xAxis.scale().domain()[1].valueOf();
           xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
         }
+        xScale.clamp(true);
 
         if (Array.isArray(formulas) && formulas.length) {
           const xValues = [];
@@ -622,7 +624,9 @@ function nvd3Vis(slice, payload) {
           }));
           data.push(...formulaData);
         }
+        const xAxis = chart.xAxis1 ? chart.xAxis1 : chart.xAxis;
         const yAxis = chart.yAxis1 ? chart.yAxis1 : chart.yAxis;
+        const chartWidth = xAxis.scale().range()[1];
         const annotationHeight = yAxis.scale().range()[0];
         const tipFactory = layer => d3tip()
           .attr('class', 'd3-tip')
@@ -663,19 +667,7 @@ function nvd3Vis(slice, payload) {
               };
             }).filter(record => !Number.isNaN(record[e.timeColumn].getMilliseconds()));
 
-            // account for the annotation in the x domain
-            records.forEach((record) => {
-              const timeValue = record[e.timeColumn];
-
-              xMin = Math.min(...[xMin, timeValue]);
-              xMax = Math.max(...[xMax, timeValue]);
-            });
-
             if (records.length) {
-              const domain = [xMin, xMax];
-              xScale.domain(domain);
-              chart.xDomain(domain);
-
               annotations.selectAll('line')
                 .data(records)
                 .enter()
@@ -693,6 +685,22 @@ function nvd3Vis(slice, payload) {
                 .on('mouseout', tip.hide)
                 .call(tip);
             }
+
+            // update annotation positions on brush event
+            chart.focus.dispatch.on('onBrush.event-annotation', function () {
+              annotations.selectAll('line')
+                .data(records)
+                .attr({
+                  x1: d => xScale(new Date(d[e.timeColumn])),
+                  y1: 0,
+                  x2: d => xScale(new Date(d[e.timeColumn])),
+                  y2: annotationHeight,
+                  opacity: (d) => {
+                    const x = xScale(new Date(d[e.timeColumn]));
+                    return (x > 0) && (x < chartWidth) ? 1 : 0;
+                  },
+                });
+            });
           });
 
           // Interval annotations
@@ -721,20 +729,7 @@ function nvd3Vis(slice, payload) {
               !Number.isNaN(record[e.intervalEndColumn].getMilliseconds())
             ));
 
-            // account for the annotation in the x domain
-            records.forEach((record) => {
-              const timeValue = record[e.timeColumn];
-              const intervalEndValue = record[e.intervalEndColumn];
-
-              xMin = Math.min(...[xMin, timeValue, intervalEndValue]);
-              xMax = Math.max(...[xMax, timeValue, intervalEndValue]);
-            });
-
             if (records.length) {
-              const domain = [xMin, xMax];
-              xScale.domain(domain);
-              chart.xDomain(domain);
-
               annotations.selectAll('rect')
                 .data(records)
                 .enter()
@@ -756,6 +751,20 @@ function nvd3Vis(slice, payload) {
                 .on('mouseout', tip.hide)
                 .call(tip);
             }
+
+            // update annotation positions on brush event
+            chart.focus.dispatch.on('onBrush.interval-annotation', function () {
+              annotations.selectAll('rect')
+                .data(records)
+                .attr({
+                  x: d => xScale(new Date(d[e.timeColumn])),
+                  width: (d) => {
+                    const x1 = xScale(new Date(d[e.timeColumn]));
+                    const x2 = xScale(new Date(d[e.intervalEndColumn]));
+                    return x2 - x1;
+                  },
+                });
+            });
           });
         }
       }
@@ -770,5 +779,3 @@ function nvd3Vis(slice, payload) {
 
   nv.addGraph(drawGraph);
 }
-
-module.exports = nvd3Vis;
