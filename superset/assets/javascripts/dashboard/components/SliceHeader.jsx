@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import moment from 'moment';
 
 import { t } from '../../locales';
 import EditableTitle from '../../components/EditableTitle';
 import TooltipWrapper from '../../components/TooltipWrapper';
+import SliceHeaderControls from './SliceHeaderControls';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -37,11 +37,6 @@ class SliceHeader extends React.PureComponent {
     super(props);
 
     this.onSaveTitle = this.onSaveTitle.bind(this);
-    this.onToggleExpandSlice = this.onToggleExpandSlice.bind(this);
-    this.exportCSV = this.props.exportCSV.bind(this, this.props.slice);
-    this.exploreChart = this.props.exploreChart.bind(this, this.props.slice);
-    this.forceRefresh = this.props.forceRefresh.bind(this, this.props.slice.slice_id);
-    this.removeSlice = this.props.removeSlice.bind(this, this.props.slice);
   }
 
   onSaveTitle(newTitle) {
@@ -50,17 +45,12 @@ class SliceHeader extends React.PureComponent {
     }
   }
 
-  onToggleExpandSlice() {
-    this.props.toggleExpandSlice(this.props.slice, !this.props.isExpanded);
-  }
-
   render() {
-    const slice = this.props.slice;
-    const isCached = this.props.isCached;
-    const cachedWhen = moment.utc(this.props.cachedDttm).fromNow();
-    const refreshTooltip = isCached ?
-      t('Served from data cached %s . Click to force refresh.', cachedWhen) :
-      t('Force refresh data');
+    const {
+      slice, isExpanded, isCached, cachedDttm,
+      toggleExpandSlice, forceRefresh,
+      exploreChart, exportCSV,
+    } = this.props;
     const annoationsLoading = t('Annotation layers are still loading.');
     const annoationsError = t('One ore more annotation layers failed loading.');
 
@@ -92,79 +82,18 @@ class SliceHeader extends React.PureComponent {
                 <i className="fa fa-exclamation-circle danger" />
               </TooltipWrapper>
             }
-          </div>
-          <div className="chart-controls">
-            <div id={'controls_' + slice.slice_id} className="pull-right">
-              {this.props.editMode &&
-                <a>
-                  <TooltipWrapper
-                    placement="top"
-                    label="move"
-                    tooltip={t('Move chart')}
-                  >
-                    <i className="fa fa-arrows drag" />
-                  </TooltipWrapper>
-                </a>
-              }
-              <a className={`refresh ${isCached ? 'danger' : ''}`} onClick={this.forceRefresh}>
-                <TooltipWrapper
-                  placement="top"
-                  label="refresh"
-                  tooltip={refreshTooltip}
-                >
-                  <i className="fa fa-repeat" />
-                </TooltipWrapper>
-              </a>
-              {slice.description &&
-              <a onClick={this.onToggleExpandSlice}>
-                <TooltipWrapper
-                  placement="top"
-                  label="description"
-                  tooltip={t('Toggle chart description')}
-                >
-                  <i className="fa fa-info-circle slice_info" />
-                </TooltipWrapper>
-              </a>
-              }
-              <a href={slice.edit_url} target="_blank">
-                <TooltipWrapper
-                  placement="top"
-                  label="edit"
-                  tooltip={t('Edit chart')}
-                >
-                  <i className="fa fa-pencil" />
-                </TooltipWrapper>
-              </a>
-              <a className="exportCSV" onClick={this.exportCSV}>
-                <TooltipWrapper
-                  placement="top"
-                  label="exportCSV"
-                  tooltip={t('Export CSV')}
-                >
-                  <i className="fa fa-table" />
-                </TooltipWrapper>
-              </a>
-              <a className="exploreChart" onClick={this.exploreChart}>
-                <TooltipWrapper
-                  placement="top"
-                  label="exploreChart"
-                  tooltip={t('Explore chart')}
-                >
-                  <i className="fa fa-share" />
-                </TooltipWrapper>
-              </a>
-              {this.props.editMode &&
-                <a className="remove-chart" onClick={this.removeSlice}>
-                  <TooltipWrapper
-                    placement="top"
-                    label="close"
-                    tooltip={t('Remove chart from dashboard')}
-                  >
-                    <i className="fa fa-close" />
-                  </TooltipWrapper>
-                </a>
-              }
-            </div>
+            {!this.props.editMode &&
+              <SliceHeaderControls
+                slice={slice}
+                isCached={isCached}
+                isExpanded={isExpanded}
+                cachedDttm={cachedDttm}
+                toggleExpandSlice={toggleExpandSlice}
+                forceRefresh={forceRefresh}
+                exploreChart={exploreChart}
+                exportCSV={exportCSV}
+              />
+            }
           </div>
         </div>
       </div>

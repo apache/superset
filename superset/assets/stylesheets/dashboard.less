@@ -1,3 +1,5 @@
+@import "./less/cosmo/variables.less";
+
 .dashboard a i {
   cursor: pointer;
 }
@@ -11,21 +13,7 @@
   border-color: #AAA;
   opacity: 0.3;
 }
-div.widget .chart-controls {
-  background-clip: content-box;
-  position: absolute;
-  z-index: 100;
-  right: 0;
-  top: 5px;
-  padding: 5px 5px;
-  opacity: 0;
-  transition: opacity 0.5s ease-in-out;
-}
-div.widget:hover .chart-controls {
-  opacity: 0.75;
-  transition: opacity 0.5s ease-in-out;
-}
-.slice-grid div.widget {
+.slice-grid .widget {
   position: absolute;
   top: 16px;
   left: 16px;
@@ -33,7 +21,50 @@ div.widget:hover .chart-controls {
   background-color: transparent;
   overflow: visible;
 }
+.dashboard .chart-header {
+  .dropdown.btn-group {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
 
+  .dropdown-menu.dropdown-menu-right {
+    right: 7px;
+    top: -3px
+  }
+}
+
+.slice-header-controls-trigger {
+  border: 0;
+  padding: 0 0 0 20px;
+  background: none;
+  outline: none;
+  box-shadow: none;
+  color: #263238;
+
+  &.is-cached {
+    color: red;
+  }
+
+  &:hover, &:focus {
+    background: none;
+    cursor: pointer;
+  }
+
+  .controls-container.dropdown-menu {
+    top: 0;
+    left: unset;
+    right: 10px;
+
+    &.is-open {
+      display: block;
+    }
+
+    & li {
+      white-space: nowrap;
+    }
+  }
+}
 .slice-grid .slice_container {
   background-color: #fff;
 }
@@ -93,6 +124,13 @@ div.widget:hover .chart-controls {
 .slice-cell {
   box-shadow: 0px 0px 20px 5px rgba(0,0,0,0);
   transition: box-shadow 1s ease-in;
+
+  .dropdown,
+  .dropdown-menu {
+    .fa {
+      font-size: 14px;
+    }
+  }
 }
 
 .slice-cell-highlight {

@@ -11,7 +11,7 @@ import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
   LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
 import { t } from '../../locales';
 
-import '../../../stylesheets/dashboard.css';
+import '../../../stylesheets/dashboard.less';
 import '../v2/stylesheets/index.less';
 
 const propTypes = {
