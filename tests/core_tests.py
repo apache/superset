@@ -14,8 +14,8 @@ import logging
 import os
 import random
 import string
-import unittest
 import re
+import unittest
 
 import pandas as pd
 import psycopg2
