@@ -2020,10 +2020,10 @@ class BaseDeckGLViz(BaseViz):
         if fd.get('js_columns'):
             gb += fd.get('js_columns')
         metrics = self.get_metrics()
-        d['columns'] = []
         if metrics:
             d['groupby'] = gb
-            d['metrics'] = self.get_metrics()
+            d['metrics'] = metrics
+            d['columns'] = []
         else:
             d['columns'] = gb
 
