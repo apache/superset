@@ -1209,11 +1209,17 @@ export const controls = {
     default: '.3s',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
-    mapStateToProps: state => ({
-      warning: state.controls && state.controls.num_period_compare.value !== '' ?
-        t('When `Period Ratio` is set, the Y Axis Format is forced to `.1%`') : null,
-      disabled: state.controls && state.controls.num_period_compare.value !== '',
-    }),
+    mapStateToProps: (state) => {
+      const showWarning = (
+          state.controls &&
+          state.controls.num_period_compare &&
+          state.controls.num_period_compare.value !== '');
+      return {
+        warning: showWarning ?
+          t('When `Period Ratio` is set, the Y Axis Format is forced to `.1%`') : null,
+        disabled: showWarning,
+      };
+    },
   },
 
   y_axis_2_format: {
