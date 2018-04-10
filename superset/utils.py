@@ -771,6 +771,10 @@ def merge_request_params(form_data, params):
 
 
 def get_update_perms_flag():
+    # When running CLI command `superset init`, alway update perms
+    if len(sys.argv) > 1 and sys.argv[1] == 'init':
+        return True
+    # Otherwise, do it based on env var SUPERSET_UPDATE_PERMS
     val = os.environ.get('SUPERSET_UPDATE_PERMS')
     return val.lower() not in ('0', 'false', 'no') if val else True
 
