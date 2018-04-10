@@ -30,7 +30,6 @@ class SliceHeaderControls extends React.PureComponent {
     super(props);
     this.exportCSV = this.props.exportCSV.bind(this, 'slice_' + this.props.slice.slice_id);
     this.exploreChart = this.props.exploreChart.bind(this, 'slice_' + this.props.slice.slice_id);
-    this.forceRefresh = this.props.forceRefresh.bind(this, this.props.slice.slice_id);
     this.toggleExpandSlice = this.props.toggleExpandSlice.bind(this, this.props.slice);
     this.toggleControls = this.toggleControls.bind(this);
 
@@ -64,7 +63,7 @@ class SliceHeaderControls extends React.PureComponent {
         <ActionMenuItem
           text={t('Force refresh data')}
           tooltip={refreshTooltip}
-          onClick={this.forceRefresh}
+          onClick={this.props.forceRefresh}
         />
 
         {slice.description &&

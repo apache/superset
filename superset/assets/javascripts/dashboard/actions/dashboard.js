@@ -1,6 +1,6 @@
 import $ from 'jquery';
 
-import { addChart, removeChart } from '../../chart/chartAction';
+import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/stores/store';
@@ -69,6 +69,68 @@ export function setEditMode(editMode) {
   return { type: SET_EDIT_MODE, editMode };
 }
 
+export const ON_CHANGE = 'ON_CHANGE';
+export function onChange() {
+  return { type: ON_CHANGE };
+}
+
+export const ON_SAVE = 'ON_SAVE';
+export function onSave() {
+  return { type: ON_SAVE };
+}
+
+let refreshTimer = null;
+export function startPeriodicRender(interval) {
+  const stopPeriodicRender = () => {
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+  };
+
+  return (dispatch, getState) => {
+    stopPeriodicRender();
+
+    const { metadata } = getState().dashboard.dashboard;
+    const immune = metadata.timed_refresh_immune_slices || [];
+    const refreshAll = () => {
+      const affectedSlices =
+        Object.values(getState().charts)
+          .filter(chart => immune.indexOf(chart.slice_id) === -1);
+      return dispatch(fetchCharts(affectedSlices, true, interval * 0.2));
+    };
+    const fetchAndRender = () => {
+      refreshAll();
+      if (interval > 0) {
+        refreshTimer = setTimeout(fetchAndRender, interval);
+      }
+    };
+
+    fetchAndRender();
+  }
+}
+
+export function fetchCharts(chartList = [], force = false, interval = 0) {
+  return (dispatch, getState) => {
+    const timeout = getState().dashboard.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+    if (!interval) {
+      chartList.forEach(chart => (dispatch(refreshChart(chart, force, timeout))));
+      return;
+    }
+
+    const { metadata: meta } = getState().dashboard.dashboard;
+    const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
+    if (typeof meta.stagger_refresh !== 'boolean') {
+      meta.stagger_refresh = meta.stagger_refresh === undefined ?
+        true : meta.stagger_refresh === 'true';
+    }
+    const delay = meta.stagger_refresh ? refreshTime / (chartList.length - 1) : 0;
+    chartList.forEach((chart, i) => {
+      setTimeout(() => dispatch(refreshChart(chart, force, timeout)), delay * i);
+    });
+  }
+}
+
 export const TOGGLE_BUILDER_PANE = 'TOGGLE_BUILDER_PANE';
 export function toggleBuilderPane() {
   return { type: TOGGLE_BUILDER_PANE };
@@ -78,7 +140,7 @@ export function addSliceToDashboard(chartKey) {
   return (dispatch, getState) => {
     const { allSlices } = getState();
     const selectedSlice = allSlices.slices[chartKey];
-    const form_data = JSON.parse(selectedSlice.form_data);
+    const form_data = selectedSlice.form_data;
     const newChart = {
       ...initChart,
       chartKey,

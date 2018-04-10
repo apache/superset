@@ -62,6 +62,12 @@ export default function dashboard(state = {}, action) {
       const newDashboard = { ...state.dashboard, metadata };
       return { ...state, dashboard: newDashboard };
     },
+    [actions.ON_CHANGE]() {
+      return { ...state, hasUnsavedChanges: true };
+    },
+    [actions.ON_SAVE]() {
+      return { ...state, hasUnsavedChanges: false };
+    },
 
     // filters
     [actions.ADD_FILTER]() {

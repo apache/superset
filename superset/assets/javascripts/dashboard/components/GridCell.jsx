@@ -20,7 +20,7 @@ const propTypes = {
   chart: PropTypes.shape(chartPropType).isRequired,
   formData: PropTypes.object,
   filters: PropTypes.object,
-  forceRefresh: PropTypes.func,
+  refreshChart: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   exploreChart: PropTypes.func,
@@ -33,7 +33,7 @@ const propTypes = {
 };
 
 const defaultProps = {
-  forceRefresh: () => ({}),
+  refreshChart: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
@@ -49,6 +49,7 @@ class GridCell extends React.PureComponent {
     super(props);
 
     const sliceId = this.props.slice.slice_id;
+    this.forceRefresh = this.forceRefresh.bind(this);
     this.addFilter = this.props.addFilter.bind(this, this.props.chart);
     this.getFilters = this.props.getFilters.bind(this, sliceId);
     this.removeFilter = this.props.removeFilter.bind(this, sliceId);
@@ -83,13 +84,18 @@ class GridCell extends React.PureComponent {
     return this.refs[headerId] ? this.refs[headerId].offsetHeight : 30;
   }
 
+  forceRefresh() {
+    return this.props.refreshChart(this.props.chart, true, this.props.timeout);
+  }
+
   render() {
     const {
       isExpanded, isLoading, isCached, cachedDttm,
-      updateSliceName, toggleExpandSlice, forceRefresh,
+      updateSliceName, toggleExpandSlice,
       chart, slice, datasource, formData, timeout, annotationQuery,
       exploreChart, exportCSV,
     } = this.props;
+
     return (
       <div
         className={isLoading ? 'slice-cell-highlight' : 'slice-cell'}
@@ -103,7 +109,7 @@ class GridCell extends React.PureComponent {
             cachedDttm={cachedDttm}
             updateSliceName={updateSliceName}
             toggleExpandSlice={toggleExpandSlice}
-            forceRefresh={forceRefresh}
+            forceRefresh={this.forceRefresh}
             editMode={this.props.editMode}
             annotationQuery={annotationQuery}
             exploreChart={exploreChart}

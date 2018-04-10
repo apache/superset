@@ -15,12 +15,13 @@ function mapStateToProps({ datasources, allSlices, charts, dashboard, dashboardL
     datasources,
     slices: allSlices.slices,
     filters: dashboard.filters,
+    layout: dashboardLayout.present,
     refresh: !!dashboard.refresh,
     userId: dashboard.userId,
     isStarred: !!dashboard.isStarred,
     editMode: dashboard.editMode,
     showBuilderPane: dashboard.showBuilderPane,
-    layout: dashboardLayout.present,
+    hasUnsavedChanges: !!dashboard.hasUnsavedChanges,
     impressionId,
   };
 }

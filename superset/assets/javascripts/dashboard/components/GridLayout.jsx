@@ -19,7 +19,7 @@ const propTypes = {
   getFormDataExtra: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
-  fetchChart: PropTypes.func,
+  refreshChart: PropTypes.func,
   saveSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   addFilter: PropTypes.func,
@@ -33,7 +33,7 @@ const defaultProps = {
   getFormDataExtra: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
-  fetchChart: () => ({}),
+  refreshChart: () => ({}),
   saveSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   addFilter: () => ({}),
@@ -45,7 +45,6 @@ class GridLayout extends React.Component {
   constructor(props) {
     super(props);
 
-    this.forceRefresh = this.forceRefresh.bind(this);
     this.updateSliceName = this.props.dashboard.dash_edit_perm ?
       this.updateSliceName.bind(this) : null;
   }
@@ -68,10 +67,6 @@ class GridLayout extends React.Component {
       return 400;
     }
     return this.refs[widgetId].parentNode.clientWidth;
-  }
-
-  forceRefresh(sliceId) {
-    return this.props.fetchChart(this.props.charts['slice_' + sliceId], true);
   }
 
   updateSliceName(sliceId, sliceName) {
@@ -107,7 +102,7 @@ class GridLayout extends React.Component {
           <div
             id={key}
             key={sliceId}
-            className={cx('widget', `${currentSlice.viz_type}`, {'is-edit': this.props.editMode})}
+            className={cx('widget', `${currentSlice.viz_type}`, { 'is-edit': this.props.editMode })}
             ref={this.getWidgetId(sliceId)}
           >
             <GridCell
@@ -126,7 +121,7 @@ class GridLayout extends React.Component {
               isCached={queryResponse.is_cached}
               cachedDttm={queryResponse.cached_dttm}
               toggleExpandSlice={this.props.toggleExpandSlice}
-              forceRefresh={this.forceRefresh}
+              refreshChart={this.props.refreshChart}
               updateSliceName={this.updateSliceName}
               addFilter={this.props.addFilter}
               getFilters={this.props.getFilters}

@@ -16,7 +16,7 @@ const propTypes = {
   slices: PropTypes.array,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
-  renderSlices: PropTypes.func,
+  forceRefreshAllCharts: PropTypes.func,
   startPeriodicRender: PropTypes.func,
   editMode: PropTypes.bool,
 };
@@ -28,7 +28,6 @@ class Controls extends React.PureComponent {
       css: props.dashboard.css || '',
       cssTemplates: [],
     };
-    this.refresh = this.refresh.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
     this.updateDom = this.updateDom.bind(this);
   }
@@ -43,10 +42,6 @@ class Controls extends React.PureComponent {
       }));
       this.setState({ cssTemplates });
     });
-  }
-  refresh() {
-    // Force refresh all slices
-    this.props.renderSlices(true);
   }
   toggleModal(modal) {
     let currentModal;
@@ -80,7 +75,7 @@ class Controls extends React.PureComponent {
   }
   render() {
     const { dashboard, layout, filters,
-      startPeriodicRender, onSave,
+      startPeriodicRender, forceRefreshAllCharts, onSave,
       editMode } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
@@ -95,7 +90,7 @@ class Controls extends React.PureComponent {
           <ActionMenuItem
             text={t('Force Refresh')}
             tooltip={t('Force refresh the whole dashboard')}
-            onClick={this.refresh}
+            onClick={forceRefreshAllCharts}
           />
           <RefreshIntervalModal
             onChange={refreshInterval => startPeriodicRender(refreshInterval * 1000)}

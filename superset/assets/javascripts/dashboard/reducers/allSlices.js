@@ -35,7 +35,7 @@ export default function allSlicesReducer(state = initAllSlices, action) {
           slice_url: slice.slice_url,
           slice_name: slice.slice_name,
           edit_url: slice.edit_url,
-          form_data: slice.params,
+          form_data: JSON.parse(slice.params),
           datasource_name: slice.datasource_name_text,
           datasource_link: slice.datasource_link,
           changed_on: new Date(slice.changed_on).getTime(),
