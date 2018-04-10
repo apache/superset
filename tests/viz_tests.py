@@ -5,15 +5,14 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
-from tests.utils import load_fixture
 import unittest
 
 from mock import Mock, patch
 import pandas as pd
 
-
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
+from tests.utils import load_fixture
 
 
 class BaseVizTestCase(unittest.TestCase):
