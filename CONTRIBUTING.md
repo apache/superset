@@ -61,20 +61,18 @@ meets these guidelines:
 
 1.  The pull request should include tests, either as doctests,
     unit tests, or both.
-2.  Run `npm run lint` and resolve all errors. Run `npm run test` and
-    resolve all test failures.
-3.  Check code coverage by running the following commands in the `assets`
-    directory. Run `npm run cover` to check code coverage on `.js` work, and
-    run `nosetests --with-coverage` to check code coverage on `.py` work. You
-    may have to first run `pip install nose coverage`.     
-4.  If the pull request adds functionality, the docs should be updated
+2.  Run `tox` and resolve all errors and test failures.
+3.  If the pull request adds functionality, the docs should be updated
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
-5.  The pull request should work for Python 2.7, and ideally python 3.4+.
+4.  The pull request should work for Python 2.7, and ideally Python 3.4+.
     ``from __future__ import`` will be required in every `.py` file soon.
-6.  Code will be reviewed by re running the unittests, flake8 and syntax
-    should be as rigorous as the core Python project.
-7.  Please rebase and resolve all conflicts before submitting.
+5.  If the pull request adds a Python dependency include it in `setup.py`
+    denoting any specific restrictions and in `requirements.txt` pinned to a
+    specific version which ensures that the application build is deterministic.
+6.  Please rebase and resolve all conflicts before submitting.
+7.  Please ensure the necessary checks pass and that code coverage does not
+    decrease.
 8.  If you are asked to update your pull request with some changes there's
     no need to create a new one. Push your changes to the same branch.
 
@@ -108,7 +106,7 @@ Finally, to make changes to the rst files and build the docs using Sphinx,
 you'll need to install a handful of dependencies from the repo you cloned:
 
     cd incubator-superset
-    pip install -r dev-reqs-for-docs.txt
+    pip install -r docs/requirements-docs.txt
 
 To get the feel for how to edit and build the docs, let's edit a file, build
 the docs and see our changes in action. First, you'll want to
@@ -183,6 +181,7 @@ Check the [OS dependencies](https://superset.incubator.apache.org/installation.h
     source env/bin/activate
 
     # install for development
+    pip install -r requirements.txt
     pip install -e .
 
     # Create an admin user
@@ -270,21 +269,28 @@ npm run dev
 Should you add or upgrade a npm package, which involves changing `package.json`, you'll need to re-run `yarn install` and push the newly generated `yarn.lock` file so we get the reproducible build. More information at (https://yarnpkg.com/blog/2016/11/24/lockfiles-for-all/)
 
 ## Testing
+All tests are carried out in [tox](http://tox.readthedocs.io/en/latest/index.html)
+a standardized testing framework mostly for Python (though we also used it for Javascript).
+All python tests can be run with any of the tox [environments](http://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
 
-Before running python unit tests, please setup local testing environment:
-```
-pip install -r dev-reqs.txt
-```
+    tox -e <environment>
 
-All python tests can be run with:
+i.e.,
 
-    ./run_tests.sh
+    tox -e py27
+    tox -e py34
 
-Alternatively, you can run a specific test with:
+Alternatively, you can run all tests in a single file via,
 
-    ./run_specific_test.sh tests.core_tests:CoreTests.test_function_name
+    tox -e <environment> -- tests/test_file.py
 
-Note that before running specific tests, you have to both setup the local testing environment and run all tests.
+or for a specific test via,
+
+    tox -e <environment> -- tests/test_file.py:TestClassName.test_method_name
+
+Note that the test environment uses a temporary directory for defining the
+SQLite databases which will be cleared each time before the group of test
+commands are invoked.
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
@@ -297,16 +303,17 @@ We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](ht
 Lint the project with:
 
     # for python
-    flake8
+    tox -e flake8
 
     # for javascript
-    npm run lint
+    tox -e eslint
 
 ## API documentation
 
 Generate the documentation with:
 
-    cd docs && ./build.sh
+    pip install -r docs/requirements.txt
+    python setup.py build_sphinx
 
 ## CSS Themes
 As part of the npm build process, CSS for Superset is compiled from `Less`, a dynamic stylesheet language.
@@ -400,7 +407,7 @@ https://github.com/apache/incubator-superset/pull/3013
   .. code::
 
     # install doc dependencies
-    pip install -r dev-reqs-for-docs.txt
+    pip install -r docs/requirements.txt
 
     # build the docs
     python setup.py build_sphinx
