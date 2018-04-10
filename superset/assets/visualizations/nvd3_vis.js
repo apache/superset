@@ -432,17 +432,24 @@ export default function nvd3Vis(slice, payload) {
             + '</td></tr></thead><tbody>';
           d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
           d.series.forEach((series) => {
-            tooltip += (
-              `<tr class="${series.highlight ? 'emph' : ''}">` +
-                `<td class='legend-color-guide' style="opacity: ${series.highlight ? '1' : '0.75'};"">` +
-                  '<div ' +
-                    `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
-                  '></div>' +
-                '</td>' +
-                `<td>${series.key}</td>` +
-                `<td>${yAxisFormatter(series.value)}</td>` +
-              '</tr>'
-            );
+            if (series.value) {
+              tooltip += (
+                `<tr class="${series.highlight ? 'emph' : ''}">
+                  <td
+                    class='legend-color-guide'
+                    style="opacity: ${series.highlight ? '1' : '0.75'};""
+                  >
+                    <div
+                      style="
+                        border: 2px solid ${series.highlight ? 'black' : 'transparent'};
+                        background-color: ${series.color};"
+                    ></div>
+                  </td>
+                  <td>${series.key}</td>
+                  <td>${yAxisFormatter(series.value)}</td>
+                </tr>`
+              );
+            }
           });
           tooltip += '</tbody></table>';
           return tooltip;
