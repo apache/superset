@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import CopyToClipboard from './../../components/CopyToClipboard';
-import { getShortUrl } from '../../../utils/common';
+import { getShortUrl } from '../../utils/common';
 import { getExploreLongUrl } from '../exploreUtils';
 import { t } from '../../locales';
 
