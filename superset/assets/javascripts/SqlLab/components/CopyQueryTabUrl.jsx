@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import CopyToClipboard from '../../components/CopyToClipboard';
-import { storeQuery } from '../../../utils/common';
+import { storeQuery } from '../../utils/common';
 import { t } from '../../locales';
 
 const propTypes = {
