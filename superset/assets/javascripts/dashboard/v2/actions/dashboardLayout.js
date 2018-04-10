@@ -121,7 +121,7 @@ export function handleComponentDrop(dropResult) {
       ));
     }
 
-    const { source, destination } = dropResult;
+    const { source, destination, dragging } = dropResult;
     const droppedOnRoot = destination && destination.id === DASHBOARD_ROOT_ID;
     const isNewComponent = source.id === NEW_COMPONENTS_SOURCE_ID;
 

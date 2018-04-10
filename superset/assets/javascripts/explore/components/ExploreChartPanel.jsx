@@ -38,6 +38,7 @@ class ExploreChartPanel extends React.PureComponent {
   }
 
   renderChart() {
+    debugger
     return (
       <ChartContainer
         containerId={this.props.containerId}
@@ -45,7 +46,7 @@ class ExploreChartPanel extends React.PureComponent {
         formData={this.props.form_data}
         height={this.getHeight()}
         slice={this.props.slice}
-        chartKey={this.props.chart.chartKey}
+        chart={this.props.chart}
         setControlValue={this.props.actions.setControlValue}
         timeout={this.props.timeout}
         vizType={this.props.vizType}

@@ -3,47 +3,50 @@ import PropTypes from 'prop-types';
 
 import AlertsWrapper from '../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
-import Header from './Header';
+import { slicePropShape } from '../reducers/propShapes';
 import { exportChart } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
   LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
 import { t } from '../../locales';
 
-import '../../../stylesheets/dashboard.css';
+import '../../../stylesheets/dashboard.less';
+import '../v2/stylesheets/index.less';
 
 const propTypes = {
   actions: PropTypes.object,
   initMessages: PropTypes.array,
   dashboard: PropTypes.object.isRequired,
-  slices: PropTypes.object,
-  datasources: PropTypes.object,
+  charts: PropTypes.object.isRequired,
+  slices:  PropTypes.objectOf(slicePropShape).isRequired,
+  datasources: PropTypes.object.isRequired,
+  layout: PropTypes.object.isRequired,
   filters: PropTypes.object,
   refresh: PropTypes.bool,
   timeout: PropTypes.number,
   userId: PropTypes.string,
   isStarred: PropTypes.bool,
+  showBuilderPane: PropTypes.bool,
+  hasUnsavedChanges: PropTypes.bool.isRequired,
   editMode: PropTypes.bool,
   impressionId: PropTypes.string,
 };
 
 const defaultProps = {
   initMessages: [],
-  dashboard: {},
-  slices: {},
-  datasources: {},
   filters: {},
   refresh: false,
   timeout: 60,
   userId: '',
   isStarred: false,
+  showBuilderPane: false,
   editMode: false,
 };
 
 class Dashboard extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.refreshTimer = null;
+
     this.firstLoad = true;
     this.loadingLog = new ActionLog({
       impressionId: props.impressionId,
@@ -54,30 +57,17 @@ class Dashboard extends React.PureComponent {
     });
     Logger.start(this.loadingLog);
 
-    // alert for unsaved changes
-    this.state = { unsavedChanges: false };
-
     this.rerenderCharts = this.rerenderCharts.bind(this);
-    this.updateDashboardTitle = this.updateDashboardTitle.bind(this);
-    this.onSave = this.onSave.bind(this);
-    this.onChange = this.onChange.bind(this);
-    this.serialize = this.serialize.bind(this);
-    this.fetchAllSlices = this.fetchSlices.bind(this, this.getAllSlices());
-    this.startPeriodicRender = this.startPeriodicRender.bind(this);
-    this.addSlicesToDashboard = this.addSlicesToDashboard.bind(this);
-    this.fetchSlice = this.fetchSlice.bind(this);
     this.getFormDataExtra = this.getFormDataExtra.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
-    this.props.actions.fetchFaveStar = this.props.actions.fetchFaveStar.bind(this);
-    this.props.actions.saveFaveStar = this.props.actions.saveFaveStar.bind(this);
-    this.props.actions.saveSlice = this.props.actions.saveSlice.bind(this);
-    this.props.actions.removeSlice = this.props.actions.removeSlice.bind(this);
-    this.props.actions.removeChart = this.props.actions.removeChart.bind(this);
-    this.props.actions.updateDashboardLayout = this.props.actions.updateDashboardLayout.bind(this);
-    this.props.actions.toggleExpandSlice = this.props.actions.toggleExpandSlice.bind(this);
+
+    this.props.actions.saveSliceName = this.props.actions.saveSliceName.bind(this);
+    this.props.actions.removeSliceFromDashboard =
+      this.props.actions.removeSliceFromDashboard.bind(this);
+    this.props.actions.toggleExpandSlice =
+      this.props.actions.toggleExpandSlice.bind(this);
     this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
-    this.props.actions.clearFilter = this.props.actions.clearFilter.bind(this);
     this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
   }
 
@@ -87,11 +77,25 @@ class Dashboard extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (this.firstLoad &&
-      Object.values(nextProps.slices)
-        .every(slice => (['rendered', 'failed', 'stopped'].indexOf(slice.chartStatus) > -1))
+      Object.values(nextProps.charts)
+        .every(chart => (['rendered', 'failed', 'stopped'].indexOf(chart.chartStatus) > -1))
     ) {
       Logger.end(this.loadingLog);
       this.firstLoad = false;
+    }
+
+    const currentCharts = this.getChartKeysFromLayout(this.props.layout);
+    const nextCharts = this.getChartKeysFromLayout(nextProps.layout);
+    if (currentCharts.length < nextCharts.length) {
+      // adding new chart
+      const newChartKey = nextCharts.find((key) => (currentCharts.indexOf(key) === -1));
+      this.props.actions.addSliceToDashboard(newChartKey);
+      this.props.actions.onChange();
+    } else if (currentCharts.length > nextCharts.length) {
+      // remove chart
+      const removedChartKey = currentCharts.find((key) => (nextCharts.indexOf(key) === -1));
+      this.props.actions.removeSliceFromDashboard(this.props.charts[removedChartKey]);
+      this.props.actions.onChange();
     }
   }
 
@@ -113,6 +117,12 @@ class Dashboard extends React.PureComponent {
         this.refreshExcept(changedFilterKey);
       }
     }
+
+    if (this.props.hasUnsavedChanges) {
+      this.onBeforeUnload(true);
+    } else {
+      this.onBeforeUnload(false);
+    }
   }
 
   componentWillUnmount() {
@@ -127,30 +137,30 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  onChange() {
-    this.onBeforeUnload(true);
-    this.setState({ unsavedChanges: true });
-  }
-
-  onSave() {
-    this.onBeforeUnload(false);
-    this.setState({ unsavedChanges: false });
-  }
-
   // return charts in array
-  getAllSlices() {
-    return Object.values(this.props.slices);
+  getAllCharts() {
+    return Object.values(this.props.charts);
   }
 
-  getFormDataExtra(slice) {
-    const formDataExtra = Object.assign({}, slice.formData);
-    const extraFilters = this.effectiveExtraFilters(slice.slice_id);
+  getFormDataExtra(chart) {
+    const formDataExtra = Object.assign({}, chart.formData);
+    const extraFilters = this.effectiveExtraFilters(chart.slice_id);
     formDataExtra.extra_filters = formDataExtra.filters.concat(extraFilters);
     return formDataExtra;
   }
 
   getFilters(sliceId) {
     return this.props.filters[sliceId];
+  }
+
+  getChartKeysFromLayout(layout) {
+    return Object.values(layout)
+      .reduce((chartKeys, value) => {
+        if (value && value.meta && value.meta.chartKey) {
+          chartKeys.push(value.meta.chartKey);
+        }
+        return chartKeys;
+      }, []);
   }
 
   unload() {
@@ -197,101 +207,36 @@ class Dashboard extends React.PureComponent {
 
   refreshExcept(filterKey) {
     const immune = this.props.dashboard.metadata.filter_immune_slices || [];
-    let slices = this.getAllSlices();
+    let charts = this.getAllCharts();
     if (filterKey) {
-      slices = slices.filter(slice => (
+      charts = charts.filter(slice => (
         String(slice.slice_id) !== filterKey &&
         immune.indexOf(slice.slice_id) === -1
       ));
     }
-    this.fetchSlices(slices);
-  }
-
-  stopPeriodicRender() {
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-      this.refreshTimer = null;
-    }
-  }
-
-  startPeriodicRender(interval) {
-    this.stopPeriodicRender();
-    const immune = this.props.dashboard.metadata.timed_refresh_immune_slices || [];
-    const refreshAll = () => {
-      const affectedSlices = this.getAllSlices()
-        .filter(slice => immune.indexOf(slice.slice_id) === -1);
-      this.fetchSlices(affectedSlices, true, interval * 0.2);
-    };
-    const fetchAndRender = () => {
-      refreshAll();
-      if (interval > 0) {
-        this.refreshTimer = setTimeout(fetchAndRender, interval);
-      }
-    };
-
-    fetchAndRender();
-  }
-
-  updateDashboardTitle(title) {
-    this.props.actions.updateDashboardTitle(title);
-    this.onChange();
-  }
-
-  serialize() {
-    return this.props.dashboard.layout.map(reactPos => ({
-      slice_id: reactPos.i,
-      col: reactPos.x + 1,
-      row: reactPos.y,
-      size_x: reactPos.w,
-      size_y: reactPos.h,
-    }));
-  }
-
-  addSlicesToDashboard(sliceIds) {
-    return this.props.actions.addSlicesToDashboard(this.props.dashboard.id, sliceIds);
-  }
-
-  fetchSlice(slice, force = false) {
-    return this.props.actions.runQuery(
-      this.getFormDataExtra(slice), force, this.props.timeout, slice.chartKey,
-    );
-  }
-
-  // fetch and render an list of slices
-  fetchSlices(slc, force = false, interval = 0) {
-    const slices = slc || this.getAllSlices();
-    if (!interval) {
-      slices.forEach((slice) => { this.fetchSlice(slice, force); });
-      return;
-    }
-
-    const meta = this.props.dashboard.metadata;
-    const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
-    if (typeof meta.stagger_refresh !== 'boolean') {
-      meta.stagger_refresh = meta.stagger_refresh === undefined ?
-        true : meta.stagger_refresh === 'true';
-    }
-    const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
-    slices.forEach((slice, i) => {
-      setTimeout(() => { this.fetchSlice(slice, force); }, delay * i);
+    charts.forEach((chart) => {
+      const updatedFormData = this.getFormDataExtra(chart);
+      this.props.actions.runQuery(updatedFormData, false, this.props.timeout, chart.chartKey);
     });
   }
 
-  exploreChart(slice) {
-    const formData = this.getFormDataExtra(slice);
+  exploreChart(chartKey) {
+    const chart = this.props.charts[chartKey];
+    const formData = this.getFormDataExtra(chart);
     exportChart(formData);
   }
 
-  exportCSV(slice) {
-    const formData = this.getFormDataExtra(slice);
+  exportCSV(chartKey) {
+    const chart = this.props.charts[chartKey];
+    const formData = this.getFormDataExtra(chart);
     exportChart(formData, 'csv');
   }
 
   // re-render chart without fetch
   rerenderCharts() {
-    this.getAllSlices().forEach((slice) => {
+    this.getAllCharts().forEach((chart) => {
       setTimeout(() => {
-        this.props.actions.renderTriggered(new Date().getTime(), slice.chartKey);
+        this.props.actions.renderTriggered(new Date().getTime(), chart.chartKey);
       }, 50);
     });
   }
@@ -301,49 +246,28 @@ class Dashboard extends React.PureComponent {
       <div id="dashboard-container">
         <div id="dashboard-header">
           <AlertsWrapper initMessages={this.props.initMessages} />
-          <Header
-            dashboard={this.props.dashboard}
-            unsavedChanges={this.state.unsavedChanges}
-            filters={this.props.filters}
-            userId={this.props.userId}
-            isStarred={this.props.isStarred}
-            updateDashboardTitle={this.updateDashboardTitle}
-            onSave={this.onSave}
-            onChange={this.onChange}
-            serialize={this.serialize}
-            fetchFaveStar={this.props.actions.fetchFaveStar}
-            saveFaveStar={this.props.actions.saveFaveStar}
-            renderSlices={this.fetchAllSlices}
-            startPeriodicRender={this.startPeriodicRender}
-            addSlicesToDashboard={this.addSlicesToDashboard}
-            editMode={this.props.editMode}
-            setEditMode={this.props.actions.setEditMode}
-          />
         </div>
-        <div id="grid-container" className="slice-grid gridster">
-          <GridLayout
+        <GridLayout
             dashboard={this.props.dashboard}
+            layout={this.props.layout}
             datasources={this.props.datasources}
+            slices={this.props.slices}
             filters={this.props.filters}
-            charts={this.props.slices}
+            charts={this.props.charts}
             timeout={this.props.timeout}
             onChange={this.onChange}
+            rerenderCharts={this.rerenderCharts}
             getFormDataExtra={this.getFormDataExtra}
             exploreChart={this.exploreChart}
             exportCSV={this.exportCSV}
-            fetchSlice={this.fetchSlice}
-            saveSlice={this.props.actions.saveSlice}
-            removeSlice={this.props.actions.removeSlice}
-            removeChart={this.props.actions.removeChart}
-            updateDashboardLayout={this.props.actions.updateDashboardLayout}
+            refreshChart={this.props.actions.refreshChart}
+            saveSliceName={this.props.actions.saveSliceName}
             toggleExpandSlice={this.props.actions.toggleExpandSlice}
             addFilter={this.props.actions.addFilter}
             getFilters={this.getFilters}
-            clearFilter={this.props.actions.clearFilter}
             removeFilter={this.props.actions.removeFilter}
             editMode={this.props.editMode}
           />
-        </div>
       </div>
     );
   }

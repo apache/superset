@@ -8,6 +8,11 @@
   background-color: white;
 }
 
+.widget.table {
+  width: auto;
+  max-width: unset;
+}
+
 .widget.table td.filtered {
     background-color: #005a63;
     color: white;
