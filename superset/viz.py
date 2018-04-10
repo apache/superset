@@ -2010,6 +2010,7 @@ class BaseDeckGLViz(BaseViz):
         fd = self.form_data
         gb = []
 
+
         for key in self.spatial_control_keys:
             self.process_spatial_query_obj(key, gb)
 
@@ -2019,6 +2020,7 @@ class BaseDeckGLViz(BaseViz):
         if fd.get('js_columns'):
             gb += fd.get('js_columns')
         metrics = self.get_metrics()
+        d['columns'] = []
         if metrics:
             d['groupby'] = gb
             d['metrics'] = self.get_metrics()
