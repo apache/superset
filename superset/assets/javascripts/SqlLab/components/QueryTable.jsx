@@ -10,7 +10,7 @@ import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
 import { fDuration } from '../../modules/dates';
-import { storeQuery } from '../../../utils/common';
+import { storeQuery } from '../../utils/common';
 import QueryStateLabel from './QueryStateLabel';
 import { t } from '../../locales';
 

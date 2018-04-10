@@ -127,9 +127,7 @@ class Chart extends React.PureComponent {
   }
 
   clearError() {
-    this.setState({
-      errorMsg: null,
-    });
+    this.setState({ errorMsg: null });
   }
 
   width() {
@@ -149,6 +147,10 @@ class Chart extends React.PureComponent {
     const format = (datasource.column_formats && datasource.column_formats[col]) || '0.3s';
 
     return d3format(format, number);
+  }
+
+  error(e) {
+    this.props.actions.chartRenderingFailed(e, this.props.chartKey);
   }
 
   render_template(s) {
@@ -199,7 +201,6 @@ class Chart extends React.PureComponent {
       });
       this.props.actions.chartRenderingSucceeded(this.props.chartKey);
     } catch (e) {
-      console.error(e);  // eslint-disable-line
       this.props.actions.chartRenderingFailed(e, this.props.chartKey);
     }
   }
