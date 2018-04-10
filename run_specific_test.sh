@@ -7,4 +7,4 @@ set -e
 superset/bin/superset version -v
 export SOLO_TEST=1
 # e.g. tests.core_tests:CoreTests.test_templated_sql_json
-nosetests $1
+nosetests $1 $2 $3

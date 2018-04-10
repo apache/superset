@@ -25,13 +25,7 @@ import zlib
 import bleach
 import celery
 from dateutil.parser import parse
-from flask import flash, Markup, redirect, render_template, request, url_for
-from flask_appbuilder._compat import as_unicode
-from flask_appbuilder.const import (
-    FLAMSG_ERR_SEC_ACCESS_DENIED,
-    LOGMSG_ERR_SEC_ACCESS_DENIED,
-    PERMISSION_PREFIX,
-)
+from flask import flash, Markup, render_template
 from flask_babel import gettext as __
 from flask_cache import Cache
 import markdown as md
@@ -54,12 +48,7 @@ PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 
-
-def can_access(sm, permission_name, view_name, user):
-    """Protecting from has_access failing from missing perms/view"""
-    if user.is_anonymous():
-        return sm.is_item_public(permission_name, view_name)
-    return sm._has_view_access(user, permission_name, view_name)
+JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
 
 
 def flasher(msg, severity=None):
@@ -477,11 +466,6 @@ def get_datasource_full_name(database_name, datasource_name, schema=None):
     return '[{}].[{}].[{}]'.format(database_name, schema, datasource_name)
 
 
-def get_schema_perm(database, schema):
-    if schema:
-        return '[{}].[{}]'.format(database, schema)
-
-
 def validate_json(obj):
     if obj:
         try:
@@ -665,42 +649,6 @@ def get_email_address_list(address_string):
     return address_string
 
 
-def has_access(f):
-    """
-        Use this decorator to enable granular security permissions to your
-        methods. Permissions will be associated to a role, and roles are
-        associated to users.
-
-        By default the permission's name is the methods name.
-
-        Forked from the flask_appbuilder.security.decorators
-        TODO(bkyryliuk): contribute it back to FAB
-    """
-    if hasattr(f, '_permission_name'):
-        permission_str = f._permission_name
-    else:
-        permission_str = f.__name__
-
-    def wraps(self, *args, **kwargs):
-        permission_str = PERMISSION_PREFIX + f._permission_name
-        if self.appbuilder.sm.has_access(permission_str,
-                                         self.__class__.__name__):
-            return f(self, *args, **kwargs)
-        else:
-            logging.warning(
-                LOGMSG_ERR_SEC_ACCESS_DENIED.format(permission_str,
-                                                    self.__class__.__name__))
-            flash(as_unicode(FLAMSG_ERR_SEC_ACCESS_DENIED), 'danger')
-        # adds next arg to forward to the original path once user is logged in.
-        return redirect(
-            url_for(
-                self.appbuilder.sm.auth_view.__class__.__name__ + '.login',
-                next=request.full_path))
-
-    f._permission_name = permission_str
-    return functools.update_wrapper(wraps, f)
-
-
 def choicify(values):
     """Takes an iterable and makes an iterable of tuples with it"""
     return [(v, v) for v in values]
@@ -834,3 +782,33 @@ def user_label(user):
             return user.first_name + ' ' + user.last_name
         else:
             return user.username
+
+
+def get_or_create_main_db():
+    from superset import conf, db
+    from superset.models import core as models
+
+    logging.info('Creating database reference')
+    dbobj = (
+        db.session.query(models.Database)
+        .filter_by(database_name='main')
+        .first())
+    if not dbobj:
+        dbobj = models.Database(database_name='main')
+    dbobj.set_sqlalchemy_uri(conf.get('SQLALCHEMY_DATABASE_URI'))
+    dbobj.expose_in_sqllab = True
+    dbobj.allow_run_sync = True
+    db.session.add(dbobj)
+    db.session.commit()
+    return dbobj
+
+
+def is_adhoc_metric(metric):
+    return (isinstance(metric, dict) and
+            metric['column'] and
+            metric['aggregate'] and
+            metric['label'])
+
+
+def get_metric_names(metrics):
+    return [metric['label'] if is_adhoc_metric(metric) else metric for metric in metrics]

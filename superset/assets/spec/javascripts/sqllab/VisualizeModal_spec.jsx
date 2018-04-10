@@ -269,6 +269,7 @@ describe('VisualizeModal', () => {
       chartType: wrapper.state().chartType.value,
       datasourceName: wrapper.state().datasourceName,
       columns: wrapper.state().columns,
+      schema: 'test_schema',
       sql: wrapper.instance().props.query.sql,
       dbId: wrapper.instance().props.query.dbId,
     });

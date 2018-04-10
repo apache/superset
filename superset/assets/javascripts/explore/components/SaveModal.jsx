@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { t } from '../../locales';
+import { supersetURL } from '../../../utils/common';
 
 const propTypes = {
   can_overwrite: PropTypes.bool,
@@ -107,7 +108,7 @@ class SaveModal extends React.Component {
       .then((data) => {
         // Go to new slice url or dashboard url
         if (gotodash) {
-          window.location = data.dashboard;
+          window.location = supersetURL(data.dashboard, { edit: 'true' });
         } else {
           window.location = data.slice.slice_url;
         }

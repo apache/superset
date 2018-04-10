@@ -10,6 +10,7 @@ import SqlEditor from './SqlEditor';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import { t } from '../../locales';
+import TabStatusIcon from './TabStatusIcon';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -160,7 +161,7 @@ class TabbedSqlEditors extends React.PureComponent {
 
       const tabTitle = (
         <div>
-          <div className={'circle ' + state} /> {qe.title} {' '}
+          <TabStatusIcon onClose={this.removeQueryEditor.bind(this, qe)} tabState={state} /> {qe.title} {' '}
           <DropdownButton
             bsSize="small"
             id={'ddbtn-tab-' + i}

@@ -2,6 +2,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from '../../../components/AsyncSelect';
+import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 
 const propTypes = {
@@ -26,24 +27,27 @@ const defaultProps = {
   placeholder: t('Select ...'),
 };
 
-const SelectAsyncControl = ({ value, onChange, dataEndpoint,
-                              multi, mutator, placeholder, onAsyncErrorMessage }) => {
+const SelectAsyncControl = (props) => {
+  const { value, onChange, dataEndpoint, multi, mutator, placeholder, onAsyncErrorMessage } = props;
   const onSelectionChange = (options) => {
     const optionValues = options.map(option => option.value);
     onChange(optionValues);
   };
 
   return (
-    <Select
-      dataEndpoint={dataEndpoint}
-      onChange={onSelectionChange}
-      onAsyncError={errorMsg => notify.error(onAsyncErrorMessage + ': ' + errorMsg)}
-      mutator={mutator}
-      multi={multi}
-      value={value}
-      placeholder={placeholder}
-      valueRenderer={v => (<div>{v.label}</div>)}
-    />
+    <div>
+      <ControlHeader {...props} />
+      <Select
+        dataEndpoint={dataEndpoint}
+        onChange={onSelectionChange}
+        onAsyncError={errorMsg => notify.error(onAsyncErrorMessage + ': ' + errorMsg)}
+        mutator={mutator}
+        multi={multi}
+        value={value}
+        placeholder={placeholder}
+        valueRenderer={v => (<div>{v.label}</div>)}
+      />
+    </div>
   );
 };
 

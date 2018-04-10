@@ -1,4 +1,5 @@
 /* eslint-disable global-require */
+import nvd3Vis from './nvd3_vis';
 
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
@@ -52,29 +53,29 @@ export const VIZ_TYPES = {
 };
 
 const vizMap = {
-  [VIZ_TYPES.area]: require('./nvd3_vis.js'),
-  [VIZ_TYPES.bar]: require('./nvd3_vis.js'),
+  [VIZ_TYPES.area]: nvd3Vis,
+  [VIZ_TYPES.bar]: nvd3Vis,
   [VIZ_TYPES.big_number]: require('./big_number.js'),
   [VIZ_TYPES.big_number_total]: require('./big_number.js'),
-  [VIZ_TYPES.box_plot]: require('./nvd3_vis.js'),
-  [VIZ_TYPES.bubble]: require('./nvd3_vis.js'),
-  [VIZ_TYPES.bullet]: require('./nvd3_vis.js'),
+  [VIZ_TYPES.box_plot]: nvd3Vis,
+  [VIZ_TYPES.bubble]: nvd3Vis,
+  [VIZ_TYPES.bullet]: nvd3Vis,
   [VIZ_TYPES.cal_heatmap]: require('./cal_heatmap.js'),
-  [VIZ_TYPES.compare]: require('./nvd3_vis.js'),
+  [VIZ_TYPES.compare]: nvd3Vis,
   [VIZ_TYPES.directed_force]: require('./directed_force.js'),
   [VIZ_TYPES.chord]: require('./chord.jsx'),
-  [VIZ_TYPES.dist_bar]: require('./nvd3_vis.js'),
+  [VIZ_TYPES.dist_bar]: nvd3Vis,
   [VIZ_TYPES.filter_box]: require('./filter_box.jsx'),
   [VIZ_TYPES.heatmap]: require('./heatmap.js'),
   [VIZ_TYPES.histogram]: require('./histogram.js'),
   [VIZ_TYPES.horizon]: require('./horizon.js'),
   [VIZ_TYPES.iframe]: require('./iframe.js'),
-  [VIZ_TYPES.line]: require('./nvd3_vis.js'),
-  [VIZ_TYPES.time_pivot]: require('./nvd3_vis.js'),
+  [VIZ_TYPES.line]: nvd3Vis,
+  [VIZ_TYPES.time_pivot]: nvd3Vis,
   [VIZ_TYPES.mapbox]: require('./mapbox.jsx'),
   [VIZ_TYPES.markup]: require('./markup.js'),
   [VIZ_TYPES.para]: require('./parallel_coordinates.js'),
-  [VIZ_TYPES.pie]: require('./nvd3_vis.js'),
+  [VIZ_TYPES.pie]: nvd3Vis,
   [VIZ_TYPES.pivot_table]: require('./pivot_table.js'),
   [VIZ_TYPES.sankey]: require('./sankey.js'),
   [VIZ_TYPES.separator]: require('./markup.js'),
@@ -85,7 +86,7 @@ const vizMap = {
   [VIZ_TYPES.country_map]: require('./country_map.js'),
   [VIZ_TYPES.word_cloud]: require('./word_cloud.js'),
   [VIZ_TYPES.world_map]: require('./world_map.js'),
-  [VIZ_TYPES.dual_line]: require('./nvd3_vis.js'),
+  [VIZ_TYPES.dual_line]: nvd3Vis,
   [VIZ_TYPES.event_flow]: require('./EventFlow.jsx'),
   [VIZ_TYPES.paired_ttest]: require('./paired_ttest.jsx'),
   [VIZ_TYPES.partition]: require('./partition.js'),
