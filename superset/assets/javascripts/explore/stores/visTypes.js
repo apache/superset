@@ -215,6 +215,7 @@ export const visTypes = {
         controlSetRows: [
           ['color_scheme'],
           ['x_axis_format'],
+          ['prefix_metric_with_slice_name'],
         ],
       },
       {

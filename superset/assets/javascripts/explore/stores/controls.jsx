@@ -2045,6 +2045,13 @@ export const controls = {
     },
   },
 
+  prefix_metric_with_slice_name: {
+    type: 'CheckboxControl',
+    label: t('Prefix metric name with slice name'),
+    default: false,
+    renderTrigger: true,
+  },
+
   reverse_long_lat: {
     type: 'CheckboxControl',
     label: t('Reverse Lat & Long'),

@@ -15,7 +15,7 @@ export default function lineMulti(slice, payload) {
   slice.clearError();
   const height = slice.height();
   const width = slice.width();
-  const fd = payload.form_data;
+  const fd = slice.formData;
 
   const chart = nv.models.multiChart();
   chart.interpolate('linear');
@@ -65,8 +65,12 @@ export default function lineMulti(slice, payload) {
         response.data.forEach((datum) => {
           minx = Math.min(minx, ...datum.values.map(v => v.x));
           maxx = Math.max(maxx, ...datum.values.map(v => v.x));
+          let key = datum.key;
+          if (fd.prefix_metric_with_slice_name) {
+            key = subslice.slice_name + ': ' + key;
+          }
           data.push({
-            key: subslice.slice_name + ': ' + datum.key,
+            key,
             values: datum.values,
             type: fdCopy.viz_type,
             yAxis,
@@ -75,11 +79,14 @@ export default function lineMulti(slice, payload) {
           yAxisFormatters.push(yAxis === 1 ? yAxisFormatter1 : yAxisFormatter2);
         });
 
-        // add null values at the edges to fix multiChart bug
-        data.forEach((datum) => {
-          datum.values.push({ x: minx, y: null });
-          datum.values.push({ x: maxx, y: null });
-        });
+        // add null values at the edges to fix multiChart bug when series with
+        // different x values use different y axes
+        if (fd.line_charts.length && fd.line_charts_2.length) {
+          data.forEach((datum) => {
+            datum.values.push({ x: minx, y: null });
+            datum.values.push({ x: maxx, y: null });
+          });
+        }
 
         svg
         .datum(data)
