@@ -1277,12 +1277,29 @@ class DruidDatasource(Model, BaseDatasource):
             client.query_builder.last_query.query_dict, indent=2)
         return query_str
 
+    @staticmethod
+    def homogenize_types(df, groupby_cols):
+        """Converting all GROUPBY columns to strings
+
+        When grouping by a numeric (say FLOAT) column, pydruid returns
+        strings in the dataframe. This creates issues downstream related
+        to having mixed types in the dataframe
+
+        Here we replace None with <NULL> and make the whole series a
+        str instead of an object.
+        """
+        for col in groupby_cols:
+            df[col] = df[col].fillna('<NULL>').astype(str)
+        return df
+
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         client = self.cluster.get_pydruid_client()
         query_str = self.get_query_str(
             client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
+
+        df = self.homogenize_types(df, query_obj.get('groupby', []))
 
         if df is None or df.size == 0:
             raise Exception(_('No data was returned.'))
