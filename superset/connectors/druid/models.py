@@ -1217,7 +1217,11 @@ class DruidDatasource(Model, BaseDatasource):
                 pre_qry_dims = self._dimensions_to_values(qry['dimensions'])
                 pre_qry['dimensions'] = list(set(pre_qry_dims))
 
-                order_by = metrics[0] if metrics else pre_qry_dims[0]
+                order_by = None
+                if metrics:
+                    order_by = utils.get_metric_name(metrics[0])
+                else:
+                    order_by = pre_qry_dims[0]
 
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
@@ -1267,7 +1271,10 @@ class DruidDatasource(Model, BaseDatasource):
                     'limit': row_limit,
                     'columns': [{
                         'dimension': (
-                            metrics[0] if metrics else dimension_values[0]),
+                            utils.get_metric_name(
+                                metrics[0],
+                            ) if metrics else dimension_values[0]
+                        ),
                         'direction': order_direction,
                     }],
                 }

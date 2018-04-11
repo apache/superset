@@ -147,6 +147,14 @@
   padding: 4px 4px 4px 4px;
 }
 
+.adhoc-filter-edit-tabs > .nav-tabs {
+  margin-bottom: 8px;
+}
+
+.adhoc-filter-edit-tabs > .nav-tabs > li > a {
+  padding: 4px 4px 4px 4px;
+}
+
 .edit-popover-resize {
   transform: scaleX(-1);
   -moz-transform: scaleX(-1);
@@ -160,4 +168,26 @@
 
 #metrics-edit-popover {
   max-width: none;
+}
+
+#filter-edit-popover {
+  max-width: none;
+}
+
+.filter-edit-clause-dropdown {
+  min-width: 90px;
+}
+
+.filter-edit-clause-info {
+  font-size: 10px;
+  padding-left: 5px;
+}
+
+.filter-edit-clause-section {
+  display: inline-flex;
+}
+
+.adhoc-filter-option{
+  margin: 3px;
+  cursor: pointer;
 }

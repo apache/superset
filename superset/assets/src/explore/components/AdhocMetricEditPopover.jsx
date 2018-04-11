@@ -222,7 +222,7 @@ export default class AdhocMetricEditPopover extends React.Component {
                   onChange={this.onSqlExpressionChange}
                   width="100%"
                   showGutter={false}
-                  value={adhocMetric.sqlExpression || adhocMetric.getDefaultLabel()}
+                  value={adhocMetric.sqlExpression || adhocMetric.translateToSql()}
                   editorProps={{ $blockScrolling: true }}
                   enableLiveAutocompletion
                 />
