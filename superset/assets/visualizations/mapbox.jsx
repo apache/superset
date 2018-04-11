@@ -17,7 +17,7 @@ import {
   DEFAULT_LONGITUDE,
   DEFAULT_LATITUDE,
   DEFAULT_ZOOM,
-} from '../utils/common';
+} from '../javascripts/utils/common';
 import './mapbox.css';
 
 const NOOP = () => {};

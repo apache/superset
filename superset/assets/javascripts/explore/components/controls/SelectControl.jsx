@@ -11,6 +11,7 @@ const propTypes = {
   choices: PropTypes.array,
   clearable: PropTypes.bool,
   description: PropTypes.string,
+  disabled: PropTypes.bool,
   freeForm: PropTypes.bool,
   isLoading: PropTypes.bool,
   label: PropTypes.string,
@@ -31,6 +32,7 @@ const defaultProps = {
   choices: [],
   clearable: true,
   description: null,
+  disabled: false,
   freeForm: false,
   isLoading: false,
   label: null,
@@ -123,6 +125,7 @@ export default class SelectControl extends React.PureComponent {
       optionRenderer: VirtualizedRendererWrap(this.props.optionRenderer),
       valueRenderer: this.props.valueRenderer,
       selectComponent: this.props.freeForm ? Creatable : Select,
+      disabled: this.props.disabled,
     };
     return (
       <div>

@@ -17,6 +17,7 @@ import inspect
 from itertools import product
 import logging
 import math
+import re
 import traceback
 import uuid
 
@@ -1393,15 +1394,31 @@ class HistogramViz(BaseViz):
         d = super(HistogramViz, self).query_obj()
         d['row_limit'] = self.form_data.get(
             'row_limit', int(config.get('VIZ_ROW_LIMIT')))
-        numeric_column = self.form_data.get('all_columns_x')
-        if numeric_column is None:
-            raise Exception(_('Must have one numeric column specified'))
-        d['columns'] = [numeric_column]
+        numeric_columns = self.form_data.get('all_columns_x')
+        if numeric_columns is None:
+            raise Exception(_('Must have at least one numeric column specified'))
+        self.columns = numeric_columns
+        d['columns'] = numeric_columns + self.groupby
+        # override groupby entry to avoid aggregation
+        d['groupby'] = []
         return d
 
     def get_data(self, df):
         """Returns the chart data"""
-        chart_data = df[df.columns[0]].values.tolist()
+        chart_data = []
+        if len(self.groupby) > 0:
+            groups = df.groupby(self.groupby)
+        else:
+            groups = [((), df)]
+        for keys, data in groups:
+            if isinstance(keys, str):
+                keys = (keys,)
+            # removing undesirable characters
+            keys = [re.sub(r'\W+', r'_', k) for k in keys]
+            chart_data.extend([{
+                'key': '__'.join([c] + keys),
+                'values': data[c].tolist()}
+                for c in self.columns])
         return chart_data
 
 
@@ -2132,11 +2149,18 @@ class DeckScreengrid(BaseDeckGLViz):
     viz_type = 'deck_screengrid'
     verbose_name = _('Deck.gl - Screen Grid')
     spatial_control_keys = ['spatial']
+    is_timeseries = True
+
+    def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
+        return super(DeckScreengrid, self).query_obj()
 
     def get_properties(self, d):
         return {
             'position': d.get('spatial'),
             'weight': d.get(self.metric) or 1,
+            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
         }
 
 

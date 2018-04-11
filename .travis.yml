@@ -1,30 +1,30 @@
 language: python
 services:
+    - mysql
+    - postgres
     - redis-server
 cache:
-  directories:
-    - $HOME/.wheelhouse/
+  - pip
 env:
-  global:
-    - TRAVIS_CACHE=$HOME/.travis_cache/
-  matrix:
-    - TOX_ENV=flake8
-    - TOX_ENV=javascript
-    - TOX_ENV=pylint
-    - TOX_ENV=py34-postgres
-    - TOX_ENV=py34-sqlite
-    - TOX_ENV=py27-mysql
-    - TOX_ENV=py27-sqlite
+  - TOXENV=javascript
+  - TOXENV=py27-flake8
+  - TOXENV=py27-mysql
+  - TOXENV=py27-sqlite
+  - TOXENV=py27-pylint
+  - TOXENV=py34-flake8
+  - TOXENV=py34-postgres
+  - TOXENV=py34-pylint
+  - TOXENV=py34-sqlite
 before_script:
   - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
   - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
   - psql -U postgres -c "CREATE DATABASE superset;"
   - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
-  - export PATH=${PATH}:/tmp/hive/bin
 install:
   - pip install --upgrade pip
-  - pip install codecov tox tox-travis
-script: tox -e $TOX_ENV
+  - pip install codecov tox
+script:
+  - tox
 after_success:
   - codecov

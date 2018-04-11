@@ -29,7 +29,7 @@ export default class Favorites extends React.PureComponent {
       <TableLoader
         dataEndpoint={`/superset/fave_slices/${this.props.user.userId}/`}
         className="table table-condensed"
-        columns={['chart', 'creator', 'favorited']}
+        columns={['slice', 'creator', 'favorited']}
         mutator={mutator}
         noDataText={t('No favorite charts yet, go click on stars!')}
         sortable

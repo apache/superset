@@ -232,7 +232,7 @@ export const controls = {
     description: t('Choose the position of the legend'),
     type: 'SelectControl',
     clearable: false,
-    default: 'Top right',
+    default: 'tr',
     choices: [
       ['tl', 'Top left'],
       ['tr', 'Top right'],
@@ -724,6 +724,16 @@ export const controls = {
     description: t('Bottom margin, in pixels, allowing for more room for axis labels'),
   },
 
+  x_ticks_layout: {
+    type: 'SelectControl',
+    label: t('X Tick Layout'),
+    choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
+    default: 'auto',
+    clearable: false,
+    renderTrigger: true,
+    description: t('The way the ticks are laid out on the X axis'),
+  },
+
   left_margin: {
     type: 'SelectControl',
     freeForm: true,
@@ -1199,6 +1209,17 @@ export const controls = {
     default: '.3s',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
+    mapStateToProps: (state) => {
+      const showWarning = (
+          state.controls &&
+          state.controls.num_period_compare &&
+          state.controls.num_period_compare.value !== '');
+      return {
+        warning: showWarning ?
+          t('When `Period Ratio` is set, the Y Axis Format is forced to `.1%`') : null,
+        disabled: showWarning,
+      };
+    },
   },
 
   y_axis_2_format: {
