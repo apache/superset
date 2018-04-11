@@ -1147,6 +1147,7 @@ export const visTypes = {
         controlSetRows: [
           ['all_columns_x'],
           ['row_limit'],
+          ['groupby'],
         ],
       },
       {
@@ -1156,19 +1157,25 @@ export const visTypes = {
           ['color_scheme'],
           ['link_length'],
           ['x_axis_label', 'y_axis_label'],
+          ['global_opacity'],
           ['normalized'],
         ],
       },
     ],
     controlOverrides: {
       all_columns_x: {
-        label: t('Numeric Column'),
-        description: t('Select the numeric column to draw the histogram'),
+        label: t('Numeric Columns'),
+        description: t('Select the numeric columns to draw the histogram'),
+        multi: true,
       },
       link_length: {
         label: t('No of Bins'),
         description: t('Select number of bins for the histogram'),
         default: 5,
+      },
+      global_opacity: {
+        description: t('Opacity of the bars. Between 0 and 1'),
+        renderTrigger: true,
       },
     },
   },
