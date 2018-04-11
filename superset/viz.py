@@ -1197,7 +1197,7 @@ class LineMultiLayer(NVD3Viz):
     """Pile on multiple line charts"""
 
     viz_type = 'line_multi'
-    verbose_name = _('Time Series - Line Chart - Multiple Layers')
+    verbose_name = _('Time Series - Multiple Line Charts')
 
     is_timeseries = True
 
@@ -1209,10 +1209,15 @@ class LineMultiLayer(NVD3Viz):
         # Late imports to avoid circular import issues
         from superset.models.core import Slice
         from superset import db
-        slice_ids = fd.get('line_slices')
-        slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        slice_ids1 = fd.get('line_charts')
+        slices1 = db.session.query(Slice).filter(Slice.id.in_(slice_ids1)).all()
+        slice_ids2 = fd.get('line_charts_2')
+        slices2 = db.session.query(Slice).filter(Slice.id.in_(slice_ids2)).all()
         return {
-            'slices': [slc.data for slc in slices],
+            'slices': {
+                'axis1': [slc.data for slc in slices1],
+                'axis2': [slc.data for slc in slices2],
+            },
         }
 
 

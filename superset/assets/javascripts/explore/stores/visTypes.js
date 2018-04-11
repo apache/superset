@@ -206,17 +206,60 @@ export const visTypes = {
   },
 
   line_multi: {
-    label: t('Time Series - Line Chart - Multiple Layers'),
+    label: t('Time Series - Multiple Line Charts'),
     requiresTime: true,
     controlPanelSections: [
       {
-        label: t('Series'),
+        label: t('Chart Options'),
         expanded: true,
         controlSetRows: [
-          ['line_slices', null],
+          ['color_scheme'],
+          ['x_axis_format'],
         ],
       },
+      {
+        label: t('Y Axis 1'),
+        expanded: true,
+        controlSetRows: [
+          ['line_charts', 'y_axis_format'],
+        ],
+      },
+      {
+        label: t('Y Axis 2'),
+        expanded: false,
+        controlSetRows: [
+          ['line_charts_2', 'y_axis_2_format'],
+        ],
+      },
+      sections.annotations,
     ],
+    controlOverrides: {
+      line_charts: {
+        label: t('Left Axis chart(s)'),
+        description: t('Choose one or more charts for left axis'),
+      },
+      y_axis_format: {
+        label: t('Left Axis Format'),
+      },
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
+    sectionOverrides: {
+      datasourceAndVizType: {
+        label: t('Chart Type'),
+        controlSetRows: [
+          ['viz_type'],
+          ['slice_id', 'cache_timeout'],
+        ],
+      },
+      sqlaTimeSeries: {
+        controlSetRows: [
+          ['since', 'until'],
+        ],
+      },
+    },
   },
 
   time_pivot: {
@@ -1661,11 +1704,22 @@ export default visTypes;
 
 export function sectionsToRender(vizType, datasourceType) {
   const viz = visTypes[vizType];
+
+  const sectionsCopy = { ...sections };
+  if (viz.sectionOverrides) {
+    Object.entries(viz.sectionOverrides).forEach(([section, overrides]) => {
+      sectionsCopy[section] = {
+        ...sectionsCopy[section],
+        ...overrides,
+      };
+    });
+  }
+
   return [].concat(
-    sections.datasourceAndVizType,
-    datasourceType === 'table' ? sections.sqlaTimeSeries : sections.druidTimeSeries,
+    sectionsCopy.datasourceAndVizType,
+    datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     viz.controlPanelSections,
-    datasourceType === 'table' ? sections.sqlClause : [],
-    datasourceType === 'table' ? sections.filters[0] : sections.filters,
+    datasourceType === 'table' ? sectionsCopy.sqlClause : [],
+    datasourceType === 'table' ? sectionsCopy.filters[0] : sectionsCopy.filters,
   );
 }

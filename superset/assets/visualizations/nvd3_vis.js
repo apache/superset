@@ -24,7 +24,7 @@ const maxMarginPad = 30;
 const animationTime = 1000;
 const minHeightForBrush = 480;
 
-const BREAKPOINTS = {
+export const BREAKPOINTS = {
   small: 340,
 };
 
@@ -71,7 +71,7 @@ const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
     });
 };
 
-function hideTooltips() {
+export function hideTooltips() {
   $('.nvtooltip').css({ opacity: 0 });
 }
 
@@ -586,8 +586,8 @@ export default function nvd3Vis(slice, payload) {
           xMin = chart.xAxis.scale().domain()[0].valueOf();
           xMax = chart.xAxis.scale().domain()[1].valueOf();
           xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
+          xScale.clamp(true);
         }
-        xScale.clamp(true);
 
         if (Array.isArray(formulas) && formulas.length) {
           const xValues = [];

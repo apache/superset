@@ -1,5 +1,6 @@
 /* eslint-disable global-require */
 import nvd3Vis from './nvd3_vis';
+import lineMulti from './multi_line';
 
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
@@ -72,7 +73,7 @@ const vizMap = {
   [VIZ_TYPES.horizon]: require('./horizon.js'),
   [VIZ_TYPES.iframe]: require('./iframe.js'),
   [VIZ_TYPES.line]: nvd3Vis,
-  [VIZ_TYPES.line_multi]: require('./multi_line.js'),
+  [VIZ_TYPES.line_multi]: lineMulti,
   [VIZ_TYPES.time_pivot]: nvd3Vis,
   [VIZ_TYPES.mapbox]: require('./mapbox.jsx'),
   [VIZ_TYPES.markup]: require('./markup.js'),
