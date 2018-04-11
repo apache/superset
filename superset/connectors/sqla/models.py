@@ -394,6 +394,7 @@ class SqlaTable(Model, BaseDatasource):
             select([target_col.sqla_col])
             .select_from(self.get_from_clause(tp, db_engine_spec))
             .distinct(column_name)
+            .order_by(column_name)
         )
         if limit:
             qry = qry.limit(limit)

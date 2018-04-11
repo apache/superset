@@ -59,7 +59,7 @@ export default class FilterControl extends React.Component {
               const newStateFilters = Object.assign([], prevState.filters);
               newStateFilters[index] = {
                 valuesLoading: false,
-                valueChoices: data.sort((a, b) => a.label.localeCompare(b.label)),
+                valueChoices: data,
               };
               return { filters: newStateFilters, activeRequest: null };
             });
