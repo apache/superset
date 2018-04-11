@@ -493,7 +493,7 @@ export default function nvd3Vis(slice, payload) {
       // ---- (x axis labels are rotated 45 degrees so we use height),
       // - adjust margins based on these measures and render again
       const margins = chart.margin();
-      margins.bottom = 20;
+      margins.bottom = 28;
       if (fd.x_axis_showminmax) {
         // If x bounds are shown, we need a right margin
         margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
@@ -502,7 +502,7 @@ export default function nvd3Vis(slice, payload) {
         margins.bottom = maxXAxisLabelHeight + marginPad;
         margins.right = maxXAxisLabelHeight + marginPad;
       } else if (staggerLabels) {
-        margins.bottom = 30;
+        margins.bottom = 40;
       }
 
       if (vizType === 'dual_line') {
