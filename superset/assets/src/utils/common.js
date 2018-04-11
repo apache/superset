@@ -103,3 +103,28 @@ export function isTruthy(obj) {
   }
   return !!obj;
 }
+
+export function optionLabel(opt) {
+  if (opt === null) {
+    return '<NULL>';
+  } else if (opt === '') {
+    return '<empty string>';
+  } else if (opt === true) {
+    return '<true>';
+  } else if (opt === false) {
+    return '<false>';
+  }
+  return opt;
+}
+
+export function optionValue(opt) {
+  if (opt === null) {
+    return '<NULL>';
+  }
+  return opt;
+}
+
+export function optionFromValue(opt) {
+  // From a list of options, handles special values & labels
+  return { value: optionValue(opt), label: optionLabel(opt) };
+}

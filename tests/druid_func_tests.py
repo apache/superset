@@ -122,12 +122,12 @@ class DruidFuncTestCase(unittest.TestCase):
 
         filtr = {'col': 'A', 'op': '==', 'val': []}
         res = DruidDatasource.get_filters([filtr], [])
-        self.assertEqual('', res.filter['filter']['value'])
+        self.assertEqual(None, res.filter['filter']['value'])
 
     def test_get_filters_handles_none_for_string_types(self):
         filtr = {'col': 'A', 'op': '==', 'val': None}
         res = DruidDatasource.get_filters([filtr], [])
-        self.assertEqual('', res.filter['filter']['value'])
+        self.assertEqual(None, res)
 
     def test_get_filters_extracts_values_in_quotes(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['  "a" ']}

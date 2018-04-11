@@ -1341,18 +1341,22 @@ class DruidDatasource(Model, BaseDatasource):
 
     @classmethod
     def get_filters(cls, raw_filters, num_cols):  # noqa
+        """Given Superset filter data structure, returns pydruid Filter(s)"""
         filters = None
         for flt in raw_filters:
             col = flt.get('col')
             op = flt.get('op')
             eq = flt.get('val')
-            if not col or not op:
+            if (
+                    not col or
+                    not op or
+                    (eq is None and op not in ('IS NULL', 'IS NOT NULL'))):
                 continue
             cond = None
-            eq = cls.filter_values_handler(
-                eq, is_list_target=op in ('in', 'not in'))
-
             is_numeric_col = col in num_cols
+            eq = cls.filter_values_handler(
+                eq, is_list_target=op in ('in', 'not in'),
+                target_column_is_numeric=is_numeric_col)
             if op == '==':
                 cond = Dimension(col) == eq
             elif op == '!=':
