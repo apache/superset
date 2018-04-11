@@ -175,14 +175,17 @@ export const controls = {
     label: t('Metrics'),
     validators: [v.nonEmpty],
     default: (c) => {
-      const metric = mainMetric(c.options);
+      const metric = mainMetric(c.savedMetrics);
       return metric ? [metric] : null;
     },
-    mapStateToProps: state => ({
-      columns: state.datasource ? state.datasource.columns : [],
-      savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasourceType: state.datasource && state.datasource.type,
-    }),
+    mapStateToProps: (state) => {
+      const datasource = state.datasource;
+      return {
+        columns: datasource ? datasource.columns : [],
+        savedMetrics: datasource ? datasource.metrics : [],
+        datasourceType: datasource && datasource.type,
+      };
+    },
     description: t('One or many metrics to display'),
   },
 
@@ -264,7 +267,7 @@ export const controls = {
     label: t('Metric'),
     clearable: false,
     validators: [v.nonEmpty],
-    default: c => mainMetric(c.options),
+    default: props => mainMetric(props.savedMetrics),
     mapStateToProps: state => ({
       columns: state.datasource ? state.datasource.columns : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
