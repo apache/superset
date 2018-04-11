@@ -2036,6 +2036,7 @@ class BaseDeckGLViz(BaseViz):
         if fd.get('js_columns'):
             gb += fd.get('js_columns')
         metrics = self.get_metrics()
+        gb = list(set(gb))
         if metrics:
             d['groupby'] = gb
             d['metrics'] = self.get_metrics()
