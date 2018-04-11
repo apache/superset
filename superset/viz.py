@@ -1193,7 +1193,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return chart_data
 
 
-class LineMultiLayer(NVD3Viz):
+class MultiLineViz(NVD3Viz):
 
     """Pile on multiple line charts"""
 
