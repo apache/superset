@@ -224,6 +224,8 @@ export const visTypes = {
           ['color_scheme'],
           ['x_axis_format'],
           ['prefix_metric_with_slice_name'],
+          ['show_legend', 'show_markers'],
+          ['line_interpolation'],
         ],
       },
       {

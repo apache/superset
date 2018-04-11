@@ -1,7 +1,7 @@
 import d3 from 'd3';
 import nv from 'nvd3';
 
-import { BREAKPOINTS, hideTooltips } from './nvd3_vis';
+import { hideTooltips } from './nvd3_vis';
 import { customizeToolTip, d3TimeFormatPreset } from '../javascripts/modules/utils';
 import { getColorFromScheme } from '../javascripts/modules/colors';
 import { getExploreLongUrl } from '../javascripts/explore/exploreUtils';
@@ -18,7 +18,7 @@ export default function lineMulti(slice, payload) {
   const fd = slice.formData;
 
   const chart = nv.models.multiChart();
-  chart.interpolate('linear');
+  chart.interpolate(fd.line_interpolation);
 
   const yAxisFormatter1 = d3.format(fd.y_axis_format);
   const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
@@ -29,7 +29,7 @@ export default function lineMulti(slice, payload) {
   chart.xAxis.tickFormat(xAxisFormatter);
   chart.xAxis.rotateLabels(45);
 
-  chart.showLegend(width > BREAKPOINTS.small);
+  chart.showLegend(fd.show_legend);
   chart.color(d => d.color || getColorFromScheme(d.key, fd.color_scheme));
 
   const drawGraph = function () {
@@ -56,6 +56,9 @@ export default function lineMulti(slice, payload) {
         filters,
         since: fd.since,
         until: fd.until,
+        show_legend: fd.show_legend,
+        show_markers: fd.show_markers,
+        line_interpolation: fd.line_interpolation,
       };
       const url = getExploreLongUrl(fdCopy, 'json');
       d3.json(url, (error, response) => {
@@ -94,6 +97,12 @@ export default function lineMulti(slice, payload) {
         .attr('height', height)
         .attr('width', width)
         .call(chart);
+
+        if (fd.show_markers) {
+          svg.selectAll('.nv-point')
+          .style('stroke-opacity', 1)
+          .style('fill-opacity', 1);
+        }
 
         customizeToolTip(chart, xAxisFormatter, yAxisFormatters);
         chart.update();
