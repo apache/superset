@@ -1474,24 +1474,6 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose('/activity_per_day')
-    def activity_per_day(self):
-        """endpoint to power the calendar heatmap on the welcome page"""
-        Log = models.Log  # noqa
-        qry = (
-            db.session
-            .query(
-                Log.dt,
-                sqla.func.count())
-            .group_by(Log.dt)
-            .all()
-        )
-        payload = {str(time.mktime(dt.timetuple())):
-                   ccount for dt, ccount in qry if dt}
-        return json_success(json.dumps(payload))
-
-    @api
-    @has_access_api
     @expose('/schemas/<db_id>/')
     def schemas(self, db_id):
         db_id = int(db_id)
