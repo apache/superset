@@ -15,7 +15,7 @@ export default function lineMulti(slice, payload) {
   slice.clearError();
   const height = slice.height();
   const width = slice.width();
-  const fd = slice.formData;
+  const fd = payload.form_data;
 
   const chart = nv.models.multiChart();
   chart.interpolate('linear');
@@ -51,9 +51,17 @@ export default function lineMulti(slice, payload) {
       if (fd.extra_filters) {
         filters = filter.concat(fd.extra_filters);
       }
-      const fdCopy = { ...subslice.form_data, filters };
+      const fdCopy = {
+        ...subslice.form_data,
+        filters,
+        since: fd.since,
+        until: fd.until,
+      };
       const url = getExploreLongUrl(fdCopy, 'json');
-      d3.json(url, (response) => {
+      d3.json(url, (error, response) => {
+        if (error) {
+          return;  // no data
+        }
         response.data.forEach((datum) => {
           minx = Math.min(minx, ...datum.values.map(v => v.x));
           maxx = Math.max(maxx, ...datum.values.map(v => v.x));
