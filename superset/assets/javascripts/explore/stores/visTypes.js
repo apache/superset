@@ -221,8 +221,8 @@ export const visTypes = {
         label: t('Chart Options'),
         expanded: true,
         controlSetRows: [
-          ['color_scheme'],
-          ['x_axis_format'],
+          ['color_scheme', null],
+          ['x_axis_format', null],
           ['prefix_metric_with_slice_name'],
           ['show_legend', 'show_markers'],
           ['line_interpolation'],
