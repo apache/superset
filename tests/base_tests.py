@@ -17,7 +17,6 @@ from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 
-os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
 BASE_DIR = app.config.get('BASE_DIR')
 
