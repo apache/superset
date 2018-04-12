@@ -207,6 +207,10 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         values in filters in the explore view"""
         raise NotImplementedError()
 
+    @staticmethod
+    def default_query(qry):
+        return qry
+
 
 class BaseColumn(AuditMixinNullable, ImportMixin):
     """Interface for column"""

@@ -268,6 +268,7 @@ class SqlaTable(Model, BaseDatasource):
         foreign_keys=[database_id])
     schema = Column(String(255))
     sql = Column(Text)
+    is_sqllab_view = Column(Boolean, default=False)
 
     baselink = 'tablemodelview'
 
@@ -818,6 +819,10 @@ class SqlaTable(Model, BaseDatasource):
         if schema:
             query = query.filter_by(schema=schema)
         return query.all()
+
+    @staticmethod
+    def default_query(qry):
+        return qry.filter_by(is_sqllab_view=False)
 
 
 sa.event.listen(SqlaTable, 'after_insert', set_perm)

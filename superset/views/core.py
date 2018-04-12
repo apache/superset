@@ -2144,6 +2144,7 @@ class Superset(BaseSupersetView):
             table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
         table.schema = data.get('schema')
+        table.is_sqllab_view = True
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
