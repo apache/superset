@@ -3,8 +3,7 @@ services:
     - mysql
     - postgres
     - redis-server
-cache:
-  - pip
+cache: pip
 env:
   - TOXENV=javascript
   - TOXENV=py27-flake8
