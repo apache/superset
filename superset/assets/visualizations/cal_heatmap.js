@@ -1,5 +1,4 @@
 import d3 from 'd3';
-import _ from 'underscore';
 
 import { colorScalerFactory } from '../javascripts/modules/colors';
 import CalHeatMap from '../vendor/cal-heatmap/cal-heatmap';
@@ -45,7 +44,7 @@ function calHeatmap(slice, payload) {
     const step = (extents[1] - extents[0]) / (steps - 1);
     const colorScale = colorScalerFactory(fd.linear_color_scheme, null, null, extents);
 
-    const legend = _.range(steps).map(i => extents[0] + (step * i));
+    const legend = d3.range(steps).map(i => extents[0] + (step * i));
     const legendColors = legend.map(colorScale);
 
     const cal = new CalHeatMap();

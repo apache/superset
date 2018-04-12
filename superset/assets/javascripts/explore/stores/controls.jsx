@@ -1038,7 +1038,7 @@ export const controls = {
     isInt: true,
     validators: [v.integer],
     renderTrigger: true,
-    default: 2,
+    default: 0,
     label: t('Cell Radius'),
     description: t('The pixel radius'),
   },
