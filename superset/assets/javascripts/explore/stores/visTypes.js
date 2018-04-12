@@ -222,10 +222,18 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['color_scheme', null],
-          ['x_axis_format', null],
           ['prefix_metric_with_slice_name'],
           ['show_legend', 'show_markers'],
           ['line_interpolation'],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
         ],
       },
       {

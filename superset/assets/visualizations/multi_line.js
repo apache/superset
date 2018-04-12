@@ -18,6 +18,7 @@ export default function lineMulti(slice, payload) {
   const fd = slice.formData;
 
   const chart = nv.models.multiChart();
+  chart.xAxis.scale(d3.time.scale.utc());
   chart.interpolate(fd.line_interpolation);
 
   const yAxisFormatter1 = d3.format(fd.y_axis_format);
