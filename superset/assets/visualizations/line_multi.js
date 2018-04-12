@@ -3,6 +3,12 @@ import { getExploreLongUrl } from '../javascripts/explore/exploreUtils';
 
 
 export default function lineMulti(slice, payload) {
+  /*
+   * Show multiple line charts
+   *
+   * This visualization works by fetching the data from each of the saved
+   * charts, building the payload data and passing it along to nvd3Vis.
+   */
   const fd = slice.formData;
 
   // fetch data from all the charts
