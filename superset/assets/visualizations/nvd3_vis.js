@@ -30,6 +30,16 @@ export const BREAKPOINTS = {
   small: 340,
 };
 
+const TIMESERIES_VIZ_TYPES = [
+  'line',
+  'dual_line',
+  'line_multi',
+  'area',
+  'compare',
+  'bar',
+  'time_pivot',
+];
+
 const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
   const format = d3.format(axisFormat || '.3s');
   const countSeriesDisplayed = data.length;
@@ -147,8 +157,7 @@ export default function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     let height = slice.height();
-    const isTimeSeries = [
-      'line', 'dual_line', 'area', 'compare', 'bar', 'time_pivot'].indexOf(vizType) >= 0;
+    const isTimeSeries = TIMESERIES_VIZ_TYPES.indexOf(vizType) >= 0;
 
     // Handling xAxis ticks settings
     let xLabelRotation = 0;
@@ -202,6 +211,12 @@ export default function nvd3Vis(slice, payload) {
       case 'dual_line':
         chart = nv.models.multiChart();
         chart.interpolate('linear');
+        break;
+
+      case 'line_multi':
+        chart = nv.models.multiChart();
+        chart.xAxis.scale(d3.time.scale.utc());
+        chart.interpolate(fd.line_interpolation);
         break;
 
       case 'bar':
@@ -450,13 +465,19 @@ export default function nvd3Vis(slice, payload) {
       }
     }
 
-    if (vizType === 'dual_line') {
+    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
-      customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
-      chart.showLegend(width > BREAKPOINTS.small);
+      const yAxisFormatters = data.map(datum => (
+        datum.yAxis === 1 ? yAxisFormatter1 : yAxisFormatter2));
+      customizeToolTip(chart, xAxisFormatter, yAxisFormatters);
+      if (vizType === 'dual_line') {
+        chart.showLegend(width > BREAKPOINTS.small);
+      } else {
+        chart.showLegend(fd.show_legend);
+      }
     }
     chart.height(height);
     slice.container.css('height', height + 'px');
@@ -505,7 +526,7 @@ export default function nvd3Vis(slice, payload) {
         margins.bottom = 30;
       }
 
-      if (vizType === 'dual_line') {
+      if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
         // use y axis width if it's wider than axis width/height
         if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
@@ -589,7 +610,13 @@ export default function nvd3Vis(slice, payload) {
         } else {
           xMin = chart.xAxis.scale().domain()[0].valueOf();
           xMax = chart.xAxis.scale().domain()[1].valueOf();
-          xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
+          if (chart.xScale) {
+            xScale = chart.xScale();
+          } else if (chart.xAxis.scale) {
+            xScale = chart.xAxis.scale();
+          } else {
+            xScale = d3.scale.linear();
+          }
           xScale.clamp(true);
         }
 
