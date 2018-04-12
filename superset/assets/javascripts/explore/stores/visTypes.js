@@ -215,6 +215,7 @@ export const visTypes = {
 
   line_multi: {
     label: t('Time Series - Multiple Line Charts'),
+    showOnExplore: true,
     requiresTime: true,
     controlPanelSections: [
       {
@@ -274,6 +275,11 @@ export const visTypes = {
         ],
       },
       sqlaTimeSeries: {
+        controlSetRows: [
+          ['since', 'until'],
+        ],
+      },
+      druidTimeSeries: {
         controlSetRows: [
           ['since', 'until'],
         ],
