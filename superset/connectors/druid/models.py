@@ -1354,8 +1354,9 @@ class DruidDatasource(Model, BaseDatasource):
                 continue
             cond = None
             is_numeric_col = col in num_cols
+            is_list_target = op in ('in', 'not in')
             eq = cls.filter_values_handler(
-                eq, is_list_target=op in ('in', 'not in'),
+                eq, is_list_target=is_list_target,
                 target_column_is_numeric=is_numeric_col)
             if op == '==':
                 cond = Dimension(col) == eq

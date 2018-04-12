@@ -192,19 +192,20 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         def handle_single_value(v):
             # backward compatibility with previous <select> components
             if isinstance(v, basestring):
-                v = v.strip().strip("'").strip('"')
+                v = v.strip('\t\n \'"')
                 if target_column_is_numeric:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     v = utils.string_to_num(v)
-            if v == '<NULL>':
-                return None
-            elif v == '<empty string>':
-                return ''
+                if v == '<NULL>':
+                    return None
+                elif v == '<empty string>':
+                    return ''
             return v
         if isinstance(values, (list, tuple)):
             values = [handle_single_value(v) for v in values]
-        values = handle_single_value(values)
+        else:
+            values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
             values = [values]
         elif not is_list_target and isinstance(values, (tuple, list)):
