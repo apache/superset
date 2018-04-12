@@ -1,6 +1,6 @@
 /* eslint-disable global-require */
 import nvd3Vis from './nvd3_vis';
-import lineMulti from './multi_line';
+import lineMulti from './line_multi';
 
 // You ***should*** use these to reference viz_types in code
 export const VIZ_TYPES = {
