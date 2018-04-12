@@ -1028,7 +1028,7 @@ export const controls = {
     isInt: true,
     validators: [v.integer],
     renderTrigger: true,
-    default: 2,
+    default: 0,
     label: t('Cell Padding'),
     description: t('The distance between cells, in pixels'),
   },
