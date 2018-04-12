@@ -215,7 +215,6 @@ export default function nvd3Vis(slice, payload) {
 
       case 'line_multi':
         chart = nv.models.multiChart();
-        chart.xAxis.scale(d3.time.scale.utc());
         chart.interpolate(fd.line_interpolation);
         break;
 
