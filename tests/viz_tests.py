@@ -16,7 +16,6 @@ from superset.utils import DTTM_ALIAS
 import superset.viz as viz
 
 
-
 class BaseVizTestCase(unittest.TestCase):
 
     def test_constructor_exception_no_datasource(self):
@@ -725,7 +724,7 @@ class TimeSeriesTableVizTestCase(unittest.TestCase):
 class BaseDeckGLVizTestCase(unittest.TestCase):
 
     def test_get_metrics(self):
-        form_data = load_fixture('/deck_path_form_data.json')
+        form_data = load_fixture('deck_path_form_data.json')
         datasource = {'type': 'table'}
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
         result = test_viz_deckgl.get_metrics()
@@ -737,7 +736,7 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         assert result == []
 
     def test_scatterviz_get_metrics(self):
-        form_data = load_fixture('/deck_path_form_data.json')
+        form_data = load_fixture('deck_path_form_data.json')
         datasource = {'type': 'table'}
 
         form_data = {}
@@ -753,7 +752,7 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         assert result is None
 
     def test_get_js_columns(self):
-        form_data = load_fixture('/deck_path_form_data.json')
+        form_data = load_fixture('deck_path_form_data.json')
         datasource = {'type': 'table'}
         mock_d = {
             'a': 'dummy1',
@@ -767,7 +766,7 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
 
     def test_get_properties(self):
         mock_d = {}
-        form_data = load_fixture('/deck_path_form_data.json')
+        form_data = load_fixture('deck_path_form_data.json')
         datasource = {'type': 'table'}
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
@@ -777,7 +776,7 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         self.assertTrue('' in str(context.exception))
 
     def test_process_spatial_query_obj(self):
-        form_data = load_fixture('/deck_path_form_data.json')
+        form_data = load_fixture('deck_path_form_data.json')
         datasource = {'type': 'table'}
         mock_key = 'spatial_key'
         mock_gb = []
@@ -817,7 +816,7 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
             assert expected_results.get(mock_key) == mock_gb
 
     def test_geojson_query_obj(self):
-        form_data = load_fixture('/deck_geojson_form_data.json')
+        form_data = load_fixture('deck_geojson_form_data.json')
         datasource = {'type': 'table'}
         test_viz_deckgl = viz.DeckGeoJson(datasource, form_data)
         results = test_viz_deckgl.query_obj()
