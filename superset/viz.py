@@ -735,12 +735,18 @@ class CalHeatmapViz(BaseViz):
     def get_data(self, df):
         form_data = self.form_data
 
-        df.columns = ['timestamp', 'metric']
-        timestamps = {str(obj['timestamp'].value / 10**9):
-                      obj.get('metric') for obj in df.to_dict('records')}
+        data = {}
+        records = df.to_dict('records')
+        for metric in self.metrics:
+            data[metric] = {
+                str(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                for obj in records
+            }
 
         start = utils.parse_human_datetime(form_data.get('since'))
         end = utils.parse_human_datetime(form_data.get('until'))
+        if not start or not end:
+            raise Exception("Please provide both time bounds (Since and Until)")
         domain = form_data.get('domain_granularity')
         diff_delta = rdelta.relativedelta(end, start)
         diff_secs = (end - start).total_seconds()
@@ -757,7 +763,7 @@ class CalHeatmapViz(BaseViz):
             range_ = diff_secs // (60 * 60) + 1
 
         return {
-            'timestamps': timestamps,
+            'data': data,
             'start': start,
             'domain': domain,
             'subdomain': form_data.get('subdomain_granularity'),
@@ -765,9 +771,10 @@ class CalHeatmapViz(BaseViz):
         }
 
     def query_obj(self):
-        qry = super(CalHeatmapViz, self).query_obj()
-        qry['metrics'] = [self.form_data['metric']]
-        return qry
+        d = super(CalHeatmapViz, self).query_obj()
+        fd = self.form_data
+        d['metrics'] = fd.get('metrics')
+        return d
 
 
 class NVD3Viz(BaseViz):
