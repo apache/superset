@@ -230,6 +230,7 @@ export const controls = {
     default: colorPrimary,
     renderTrigger: true,
   },
+
   legend_position: {
     label: t('Legend Position'),
     description: t('Choose the position of the legend'),
@@ -324,11 +325,17 @@ export const controls = {
     label: t('Linear Color Scheme'),
     choices: [
       ['fire', 'fire'],
-      ['blue_white_yellow', 'blue/white/yellow'],
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
       ['dark_blue', 'light/dark blue'],
       ['pink_grey', 'pink/white/grey'],
+      ['greens', 'greens'],
+      ['purples', 'purples'],
+      ['oranges', 'oranges'],
+      ['blue_white_yellow', 'blue/white/yellow'],
+      ['red_yellow_blue', 'red/yellowish/blue'],
+      ['brown_white_green', 'brown/white/green'],
+      ['purple_white_green', 'purple/white/green'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
@@ -1006,6 +1013,46 @@ export const controls = {
     'relative to the time granularity selected'),
   },
 
+  cell_size: {
+    type: 'TextControl',
+    isInt: true,
+    default: 10,
+    validators: [v.integer],
+    renderTrigger: true,
+    label: t('Cell Size'),
+    description: t('The size of the square cell, in pixels'),
+  },
+
+  cell_padding: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer],
+    renderTrigger: true,
+    default: 0,
+    label: t('Cell Padding'),
+    description: t('The distance between cells, in pixels'),
+  },
+
+  cell_radius: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer],
+    renderTrigger: true,
+    default: 0,
+    label: t('Cell Radius'),
+    description: t('The pixel radius'),
+  },
+
+  steps: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer],
+    renderTrigger: true,
+    default: 10,
+    label: t('Color Steps'),
+    description: t('The number color "steps"'),
+  },
+
   grid_size: {
     type: 'TextControl',
     label: t('Grid Size'),
@@ -1460,6 +1507,14 @@ export const controls = {
     renderTrigger: true,
     default: false,
     description: t('Whether to display the numerical values within the cells'),
+  },
+
+  show_metric_name: {
+    type: 'CheckboxControl',
+    label: t('Show Metric Names'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the metric name as a title'),
   },
 
   x_axis_showminmax: {

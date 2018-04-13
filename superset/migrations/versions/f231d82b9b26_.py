@@ -5,15 +5,14 @@ Revises: e68c4473c581
 Create Date: 2018-03-20 19:47:54.991259
 
 """
-
-# revision identifiers, used by Alembic.
-revision = 'f231d82b9b26'
-down_revision = 'e68c4473c581'
-
 from alembic import op
 import sqlalchemy as sa
 
 from superset.utils import generic_find_uq_constraint_name
+
+# revision identifiers, used by Alembic.
+revision = 'f231d82b9b26'
+down_revision = 'e68c4473c581'
 
 conv = {
     'uq': 'uq_%(table_name)s_%(column_0_name)s',
@@ -44,7 +43,11 @@ def upgrade():
                 [column, 'datasource_id'],
             )
 
+
 def downgrade():
+
+    bind = op.get_bind()
+    insp = sa.engine.reflection.Inspector.from_engine(bind)
 
     # Restore the size of the metric_name column.
     with op.batch_alter_table('metrics', naming_convention=conv) as batch_op:
