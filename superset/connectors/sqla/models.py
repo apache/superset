@@ -447,10 +447,18 @@ class SqlaTable(Model, BaseDatasource):
         return self.get_sqla_table()
 
     def adhoc_metric_to_sa(self, metric):
-        column_name = metric.get('column').get('column_name')
-        sa_metric = self.sqla_aggregations[metric.get('aggregate')](column(column_name))
-        sa_metric = sa_metric.label(metric.get('label'))
-        return sa_metric
+        expressionType = metric.get('expressionType')
+        if expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
+            sa_column = column(metric.get('column').get('column_name'))
+            sa_metric = self.sqla_aggregations[metric.get('aggregate')](sa_column)
+            sa_metric = sa_metric.label(metric.get('label'))
+            return sa_metric
+        elif expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SQL']:
+            sa_metric = literal_column(metric.get('sqlExpression'))
+            sa_metric = sa_metric.label(metric.get('label'))
+            return sa_metric
+        else:
+            return None
 
     def get_sqla_query(  # sqla
             self,

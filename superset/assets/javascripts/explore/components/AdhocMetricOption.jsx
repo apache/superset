@@ -18,6 +18,11 @@ export default class AdhocMetricOption extends React.PureComponent {
   constructor(props) {
     super(props);
     this.closeMetricEditOverlay = this.closeMetricEditOverlay.bind(this);
+    this.onPopoverResize = this.onPopoverResize.bind(this);
+  }
+
+  onPopoverResize() {
+    this.forceUpdate();
   }
 
   closeMetricEditOverlay() {
@@ -28,6 +33,7 @@ export default class AdhocMetricOption extends React.PureComponent {
     const { adhocMetric } = this.props;
     const overlay = (
       <AdhocMetricEditPopover
+        onResize={this.onPopoverResize}
         adhocMetric={adhocMetric}
         onChange={this.props.onMetricEdit}
         onClose={this.closeMetricEditOverlay}
@@ -44,6 +50,7 @@ export default class AdhocMetricOption extends React.PureComponent {
         disabled
         overlay={overlay}
         rootClose
+        shouldUpdatePosition
         defaultOverlayShown={!adhocMetric.fromFormData}
       >
         <Label style={{ margin: this.props.multi ? 0 : 3, cursor: 'pointer' }}>

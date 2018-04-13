@@ -138,3 +138,26 @@
 .datasource-container {
   overflow: auto;
 }
+
+.adhoc-metric-edit-tabs > .nav-tabs {
+  margin-bottom: 6px;
+}
+
+.adhoc-metric-edit-tabs > .nav-tabs > li > a {
+  padding: 4px 4px 4px 4px;
+}
+
+.edit-popover-resize {
+  transform: scaleX(-1);
+  -moz-transform: scaleX(-1);
+  -webkit-transform: scaleX(-1);
+  -ms-transform: scaleX(-1);
+  float: right;
+  margin-top: 18px;
+  margin-right: -10px;
+  cursor: nwse-resize;
+}
+
+#metrics-edit-popover {
+  max-width: none;
+}

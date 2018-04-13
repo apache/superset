@@ -203,6 +203,7 @@ class DruidFuncTestCase(unittest.TestCase):
         ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
         groupby = []
         metrics = [{
+            'expressionType': 'SIMPLE',
             'column': {'type': 'DOUBLE', 'column_name': 'col1'},
             'aggregate': 'SUM',
             'label': 'My Adhoc Metric',
@@ -588,6 +589,7 @@ class DruidFuncTestCase(unittest.TestCase):
         }
 
         adhoc_metric = {
+            'expressionType': 'SIMPLE',
             'column': {'type': 'DOUBLE', 'column_name': 'value'},
             'aggregate': 'SUM',
             'label': 'My Adhoc Metric',
