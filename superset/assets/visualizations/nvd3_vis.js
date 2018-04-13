@@ -527,10 +527,7 @@ export default function nvd3Vis(slice, payload) {
 
       if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
-        // use y axis width if it's wider than axis width/height
-        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-          margins.right = maxYAxis2LabelWidth + marginPad;
-        }
+        margins.right = maxYAxis2LabelWidth + marginPad;
       }
       if (fd.bottom_margin && fd.bottom_margin !== 'auto') {
         margins.bottom = parseInt(fd.bottom_margin, 10);
