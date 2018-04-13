@@ -90,6 +90,17 @@ setup(
         'thrift-sasl>=0.2.1',
         'unicodecsv',
         'unidecode>=0.04.21',
+        # PandasConnector deps
+        # @TODO sort into main deps
+        # prior to merge. Currently,
+        # separate to minimize merge conflicts
+        'beautifulsoup4==4.6.0',
+        'bottleneck==1.2.1',
+        'feather-format==0.4.0',
+        'html5lib==0.999999999',
+        'lxml==3.8.0',
+        'numexpr==2.6.4',
+        'xlrd==1.1.0',
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],

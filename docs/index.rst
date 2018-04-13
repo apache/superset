@@ -74,6 +74,7 @@ Contents
     videos
     gallery
     druid
+    files
     faq
 
 
