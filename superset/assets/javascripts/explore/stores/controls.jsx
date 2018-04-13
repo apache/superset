@@ -1,3 +1,43 @@
+/**
+ * This file exports all controls available for use in the different visualization types
+ *
+ * While the React components located in `controls/components` represent different
+ * types of controls (CheckboxControl, SelectControl, TextControl, ...), the controls here
+ * represent instances of control types, that can be reused across visualisation types.
+ *
+ * When controls are reused across viz types, their values are carried over as a user
+ * changes the chart types.
+ *
+ * While the keys defined in the control itself get passed to the controlType as props,
+ * here's a list of the keys that are common to all controls, and as a result define the
+ * control interface:
+ *
+ * - type: the control type, referencing a React component of the same name
+ * - label: the label as shown in the control's header
+ * - description: shown in the info tooltip of the control's header
+ * - default: the default value when opening a new chart, or changing visualization type
+ * - renderTrigger: a bool that defines whether the visualization should be re-rendered
+     when changed. This should `true` for controls that only affect the rendering (client side)
+     and don't affect the query or backend data processing as those require to re run a query
+     and fetch the data
+ * - validators: an array of functions that will receive the value of the component and
+     should return error messages when the value is not valid. The error message gets
+     bubbled up to the control header, section header and query panel header.
+ * - warning: text shown as a tooltip on a warning icon in the control's header
+ * - error: text shown as a tooltip on a error icon in the control's header
+ * - mapStateToProps: a function that receives the App's state and return an object of k/v
+     to overwrite configuration at runtime. This is useful to alter a component based on
+     anything external to it, like another control's value. For instance it's possible to
+     show a warning based on the value of another component. It's also possible to bind
+     arbitrary data from the redux store to the component this way.
+ * - tabOverride: set to 'data' if you want to force a renderTrigger to show up on the `Data`
+     tab, otherwise `renderTrigger: true` components will show up on the `Style` tab.
+ *
+ * Note that the keys defined in controls in this file that are not listed above represent
+ * props specific for the React component defined as `type`. Also note that this module work
+ * in tandem with `visTypes.js` that defines how controls are composed into sections for
+ * each and every visualization type.
+ */
 import React from 'react';
 import {
   formatSelectOptionsForRange,
@@ -18,6 +58,7 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 const D3_FORMAT_OPTIONS = [
   ['.1s', '.1s | 12k'],
   ['.3s', '.3s | 12.3k'],
+  ['.1%', '.1% | 12.3%'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
   ['.3f', '.3f | 12345.432'],
@@ -129,20 +170,22 @@ export const controls = {
   },
 
   metrics: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
     multi: true,
     label: t('Metrics'),
     validators: [v.nonEmpty],
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
     default: (c) => {
-      const metric = mainMetric(c.options);
+      const metric = mainMetric(c.savedMetrics);
       return metric ? [metric] : null;
     },
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
+    mapStateToProps: (state) => {
+      const datasource = state.datasource;
+      return {
+        columns: datasource ? datasource.columns : [],
+        savedMetrics: datasource ? datasource.metrics : [],
+        datasourceType: datasource && datasource.type,
+      };
+    },
     description: t('One or many metrics to display'),
   },
 
@@ -187,12 +230,13 @@ export const controls = {
     default: colorPrimary,
     renderTrigger: true,
   },
+
   legend_position: {
     label: t('Legend Position'),
     description: t('Choose the position of the legend'),
     type: 'SelectControl',
     clearable: false,
-    default: 'Top right',
+    default: 'tr',
     choices: [
       ['tl', 'Top left'],
       ['tr', 'Top right'],
@@ -219,17 +263,16 @@ export const controls = {
   },
 
   metric: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
+    multi: false,
     label: t('Metric'),
     clearable: false,
-    description: t('Choose the metric'),
     validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    default: c => mainMetric(c.options),
-    valueKey: 'metric_name',
+    default: props => mainMetric(props.savedMetrics),
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasourceType: state.datasource && state.datasource.type,
     }),
   },
 
@@ -282,11 +325,17 @@ export const controls = {
     label: t('Linear Color Scheme'),
     choices: [
       ['fire', 'fire'],
-      ['blue_white_yellow', 'blue/white/yellow'],
       ['white_black', 'white/black'],
       ['black_white', 'black/white'],
       ['dark_blue', 'light/dark blue'],
       ['pink_grey', 'pink/white/grey'],
+      ['greens', 'greens'],
+      ['purples', 'purples'],
+      ['oranges', 'oranges'],
+      ['blue_white_yellow', 'blue/white/yellow'],
+      ['red_yellow_blue', 'red/yellowish/blue'],
+      ['brown_white_green', 'brown/white/green'],
+      ['purple_white_green', 'purple/white/green'],
     ],
     default: 'blue_white_yellow',
     clearable: false,
@@ -685,6 +734,16 @@ export const controls = {
     description: t('Bottom margin, in pixels, allowing for more room for axis labels'),
   },
 
+  x_ticks_layout: {
+    type: 'SelectControl',
+    label: t('X Tick Layout'),
+    choices: formatSelectOptions(['auto', 'flat', '45°', 'staggered']),
+    default: 'auto',
+    clearable: false,
+    renderTrigger: true,
+    description: t('The way the ticks are laid out on the X axis'),
+  },
+
   left_margin: {
     type: 'SelectControl',
     freeForm: true,
@@ -700,21 +759,21 @@ export const controls = {
     freeForm: true,
     label: t('Time Granularity'),
     default: 'one day',
-    choices: formatSelectOptions([
-      'all',
-      '5 seconds',
-      '30 seconds',
-      '1 minute',
-      '5 minutes',
-      '1 hour',
-      '6 hour',
-      '1 day',
-      '7 days',
-      'week',
-      'week_starting_sunday',
-      'week_ending_saturday',
-      'month',
-    ]),
+    choices: [
+      [null, 'all'],
+      ['PT5S', '5 seconds'],
+      ['PT30S', '30 seconds'],
+      ['PT1M', '1 minute'],
+      ['PT5M', '5 minutes'],
+      ['PT1H', '1 hour'],
+      ['PT6H', '6 hour'],
+      ['P1D', '1 day'],
+      ['P7D', '7 days'],
+      ['P1W', 'week'],
+      ['P1W', 'week_starting_sunday'],
+      ['P1W', 'week_ending_saturday'],
+      ['P1M', 'month'],
+    ],
     description: t('The time granularity for the visualization. Note that you ' +
     'can type and use simple natural language as in `10 seconds`, ' +
     '`1 day` or `56 weeks`'),
@@ -954,6 +1013,46 @@ export const controls = {
     'relative to the time granularity selected'),
   },
 
+  cell_size: {
+    type: 'TextControl',
+    isInt: true,
+    default: 10,
+    validators: [v.integer],
+    renderTrigger: true,
+    label: t('Cell Size'),
+    description: t('The size of the square cell, in pixels'),
+  },
+
+  cell_padding: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer],
+    renderTrigger: true,
+    default: 0,
+    label: t('Cell Padding'),
+    description: t('The distance between cells, in pixels'),
+  },
+
+  cell_radius: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer],
+    renderTrigger: true,
+    default: 0,
+    label: t('Cell Radius'),
+    description: t('The pixel radius'),
+  },
+
+  steps: {
+    type: 'TextControl',
+    isInt: true,
+    validators: [v.integer],
+    renderTrigger: true,
+    default: 10,
+    label: t('Color Steps'),
+    description: t('The number color "steps"'),
+  },
+
   grid_size: {
     type: 'TextControl',
     label: t('Grid Size'),
@@ -1106,6 +1205,7 @@ export const controls = {
     freeForm: true,
     label: t('Table Timestamp Format'),
     default: '%Y-%m-%d %H:%M:%S',
+    renderTrigger: true,
     validators: [v.nonEmpty],
     clearable: false,
     choices: D3_TIME_FORMAT_OPTIONS,
@@ -1124,6 +1224,7 @@ export const controls = {
   page_length: {
     type: 'SelectControl',
     freeForm: true,
+    renderTrigger: true,
     label: t('Page Length'),
     default: 0,
     choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
@@ -1158,6 +1259,17 @@ export const controls = {
     default: '.3s',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
+    mapStateToProps: (state) => {
+      const showWarning = (
+          state.controls &&
+          state.controls.num_period_compare &&
+          state.controls.num_period_compare.value !== '');
+      return {
+        warning: showWarning ?
+          t('When `Period Ratio` is set, the Y Axis Format is forced to `.1%`') : null,
+        disabled: showWarning,
+      };
+    },
   },
 
   y_axis_2_format: {
@@ -1352,6 +1464,7 @@ export const controls = {
   table_filter: {
     type: 'CheckboxControl',
     label: t('Table Filter'),
+    renderTrigger: true,
     default: false,
     description: t('Whether to apply filter when table cell is clicked'),
   },
@@ -1396,11 +1509,19 @@ export const controls = {
     description: t('Whether to display the numerical values within the cells'),
   },
 
+  show_metric_name: {
+    type: 'CheckboxControl',
+    label: t('Show Metric Names'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the metric name as a title'),
+  },
+
   x_axis_showminmax: {
     type: 'CheckboxControl',
     label: t('X bounds'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Whether to display the min and max values of the X axis'),
   },
 
@@ -1408,7 +1529,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Y bounds'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Whether to display the min and max values of the Y axis'),
   },
 
@@ -1616,6 +1737,8 @@ export const controls = {
     description: t('Parameters related to the view and perspective on the map'),
     // default is whole world mostly centered
     default: defaultViewport,
+    // Viewport changes shouldn't prompt user to re-run query
+    dontRefreshOnChange: true,
   },
 
   viewport_zoom: {
@@ -1978,7 +2101,7 @@ export const controls = {
     validators: [v.nonEmpty],
     default: [],
     description: t('Pick a set of deck.gl charts to layer on top of one another'),
-    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=deck_',
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=deck_&_flt_7_viz_type=deck_multi',
     placeholder: t('Select charts'),
     onAsyncErrorMessage: t('Error while fetching charts'),
     mutator: (data) => {

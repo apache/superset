@@ -11,30 +11,10 @@ import Legend from '../../Legend';
 
 import * as common from './common';
 import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
+import { getPlaySliderParams } from '../../../javascripts/modules/time';
 import { unitToRadius } from '../../../javascripts/modules/geo';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
-function getStep(timeGrain) {
-  // grain in milliseconds
-  const MINUTE = 60 * 1000;
-  const HOUR = 60 * MINUTE;
-  const DAY = 24 * HOUR;
-  const WEEK = 7 * DAY;
-  const MONTH = 30 * DAY;
-  const YEAR = 365 * DAY;
-
-  const milliseconds = {
-    'Time Column': MINUTE,
-    min: MINUTE,
-    hour: HOUR,
-    day: DAY,
-    week: WEEK,
-    month: MONTH,
-    year: YEAR,
-  };
-
-  return milliseconds[timeGrain];
-}
 
 function getPoints(data) {
   return data.map(d => d.position);
@@ -117,20 +97,10 @@ class DeckGLScatter extends React.PureComponent {
   /* eslint-disable no-unused-vars */
   static getDerivedStateFromProps(nextProps, prevState) {
     const fd = nextProps.slice.formData;
-    const timeGrain = fd.time_grain_sqla || fd.granularity || 'min';
 
-    // find start and end based on the data
+    const timeGrain = fd.time_grain_sqla || fd.granularity || 'PT1M';
     const timestamps = nextProps.payload.data.features.map(f => f.__timestamp);
-    let start = Math.min(...timestamps);
-    let end = Math.max(...timestamps);
-
-    // lock start and end to the closest steps
-    const step = getStep(timeGrain);
-    start -= start % step;
-    end += step - end % step;
-
-    const values = timeGrain != null ? [start, start + step] : [start, end];
-    const disabled = timestamps.every(timestamp => timestamp === null);
+    const { start, end, step, values, disabled } = getPlaySliderParams(timestamps, timeGrain);
 
     const categories = getCategories(fd, nextProps.payload);
 
@@ -220,14 +190,11 @@ class DeckGLScatter extends React.PureComponent {
 DeckGLScatter.propTypes = propTypes;
 
 function deckScatter(slice, payload, setControlValue) {
-  const layer = getLayer(slice.formData, payload, slice);
   const fd = slice.formData;
-  const width = slice.width();
-  const height = slice.height();
   let viewport = {
     ...fd.viewport,
-    width,
-    height,
+    width: slice.width(),
+    height: slice.height(),
   };
 
   if (fd.autozoom) {

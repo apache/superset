@@ -12,6 +12,8 @@ import AnnotationTypes, {
   applyNativeColumns,
 } from '../javascripts/modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
+import { isTruthy } from '../javascripts/utils/common';
+import { t } from '../javascripts/locales';
 
 // CSS
 import '../node_modules/nvd3/build/nv.d3.min.css';
@@ -59,14 +61,14 @@ const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
         const yPos = parseFloat(rectObj.attr('y'));
         const xPos = parseFloat(rectObj.attr('x'));
         const rectWidth = parseFloat(rectObj.attr('width'));
-        const t = groupLabels.append('text')
+        const textEls = groupLabels.append('text')
           .attr('x', xPos) // rough position first, fine tune later
           .attr('y', yPos - 5)
           .text(format(stacked ? totalStackedValues[index] : d.y))
           .attr('transform', transformAttr)
           .attr('class', 'bar-chart-label');
-        const labelWidth = t.node().getBBox().width;
-        t.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+        const labelWidth = textEls.node().getBBox().width;
+        textEls.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
       }
     });
 };
@@ -79,27 +81,28 @@ function getMaxLabelSize(container, axisClass) {
   // axis class = .nv-y2  // second y axis on dual line chart
   // axis class = .nv-x  // x axis on time series line chart
   const labelEls = container.find(`.${axisClass} text`).not('.nv-axislabel');
-  const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength());
-  return Math.max(...labelDimensions);
+  const labelDimensions = labelEls.map(i => labelEls[i].getComputedTextLength() * 0.75);
+  return Math.ceil(Math.max(...labelDimensions));
 }
 
-/* eslint-disable camelcase */
-function formatLabel(column, verbose_map) {
+export function formatLabel(input, verboseMap = {}) {
+  // The input for label may be a string or an array of string
+  // When using the time shift feature, the label contains a '---' in the array
+  const verboseLkp = s => verboseMap[s] || s;
   let label;
-  if (Array.isArray(column) && column.length) {
-    label = verbose_map[column[0]] || column[0];
-    if (column.length > 1) {
-      label += ', ';
+  if (Array.isArray(input) && input.length) {
+    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    label = verboseLabels.join(', ');
+    if (input.length > verboseLabels.length) {
+      label += ' ---';
     }
-    label += column.slice(1).join(', ');
   } else {
-    label = verbose_map[column] || column;
+    label = verboseLkp(input);
   }
   return label;
 }
-/* eslint-enable camelcase */
 
-function nvd3Vis(slice, payload) {
+export default function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
@@ -115,22 +118,6 @@ function nvd3Vis(slice, payload) {
 
   slice.container.html('');
   slice.clearError();
-
-
-  // Calculates the longest label size for stretching bottom margin
-  function calculateStretchMargins(payloadData) {
-    let stretchMargin = 0;
-    const pixelsPerCharX = 4.5; // approx, depends on font size
-    let maxLabelSize = 10; // accommodate for shorter labels
-    payloadData.data.forEach((d) => {
-      const axisLabels = d.values;
-      for (let i = 0; i < axisLabels.length; i++) {
-        maxLabelSize = Math.max(axisLabels[i].x.toString().length, maxLabelSize);
-      }
-    });
-    stretchMargin = Math.ceil(pixelsPerCharX * maxLabelSize);
-    return stretchMargin;
-  }
 
   let width = slice.width();
   const fd = slice.formData;
@@ -160,16 +147,43 @@ function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     let height = slice.height();
+    const isTimeSeries = [
+      'line', 'dual_line', 'area', 'compare', 'bar', 'time_pivot'].indexOf(vizType) >= 0;
+
+    // Handling xAxis ticks settings
+    let xLabelRotation = 0;
+    let staggerLabels = false;
+    if (fd.x_ticks_layout === 'auto') {
+      if (['column', 'dist_bar'].indexOf(vizType) >= 0) {
+        xLabelRotation = 45;
+      } else if (isTimeSeries) {
+        staggerLabels = true;
+      }
+    } else if (fd.x_ticks_layout === 'staggered') {
+      staggerLabels = true;
+    } else if (fd.x_ticks_layout === '45°') {
+      if (isTruthy(fd.show_brush)) {
+        const error = t('You cannot use 45° tick layout along with the time range filter');
+        slice.error(error);
+        return null;
+      }
+      xLabelRotation = 45;
+    }
+    const showBrush = (
+      isTruthy(fd.show_brush) ||
+      (fd.show_brush === 'auto' && height >= minHeightForBrush && fd.x_ticks_layout !== '45°')
+    );
+
     switch (vizType) {
       case 'line':
-        if (
-          fd.show_brush === true ||
-          fd.show_brush === 'yes' ||
-          (fd.show_brush === 'auto' && height >= minHeightForBrush)
-        ) {
+        if (showBrush) {
           chart = nv.models.lineWithFocusChart();
+          if (staggerLabels) {
+            // Give a bit more room to focus area if X axis ticks are staggered
+            chart.focus.margin({ bottom: 40 });
+            chart.focusHeight(80);
+          }
           chart.focus.xScale(d3.time.scale.utc());
-          chart.x2Axis.staggerLabels(false);
         } else {
           chart = nv.models.lineChart();
         }
@@ -177,14 +191,12 @@ function nvd3Vis(slice, payload) {
         // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(fd.line_interpolation);
-        chart.xAxis.staggerLabels(false);
         break;
 
       case 'time_pivot':
         chart = nv.models.lineChart();
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(fd.line_interpolation);
-        chart.xAxis.staggerLabels(false);
         break;
 
       case 'dual_line':
@@ -202,8 +214,7 @@ function nvd3Vis(slice, payload) {
         }
         chart.width(width);
         chart.xAxis
-        .showMaxMin(false)
-        .staggerLabels(true);
+        .showMaxMin(false);
 
         stacked = fd.bar_stacked;
         chart.stacked(stacked);
@@ -219,7 +230,6 @@ function nvd3Vis(slice, payload) {
         chart = nv.models.multiBarChart()
         .showControls(fd.show_controls)
         .reduceXTicks(reduceXTicks)
-        .rotateLabels(45)
         .groupSpacing(0.1); // Distance between each group of bars.
 
         chart.xAxis.showMaxMin(false);
@@ -271,17 +281,14 @@ function nvd3Vis(slice, payload) {
 
       case 'column':
         chart = nv.models.multiBarChart()
-        .reduceXTicks(false)
-        .rotateLabels(45);
+        .reduceXTicks(false);
         break;
 
       case 'compare':
         chart = nv.models.cumulativeLineChart();
         chart.xScale(d3.time.scale.utc());
         chart.useInteractiveGuideline(true);
-        chart.xAxis
-        .showMaxMin(false)
-        .staggerLabels(true);
+        chart.xAxis.showMaxMin(false);
         break;
 
       case 'bubble':
@@ -311,14 +318,12 @@ function nvd3Vis(slice, payload) {
         chart.showControls(fd.show_controls);
         chart.style(fd.stacked_style);
         chart.xScale(d3.time.scale.utc());
-        chart.xAxis.staggerLabels(true);
         break;
 
       case 'box_plot':
         colorKey = 'label';
         chart = nv.models.boxPlotChart();
         chart.x(d => d.label);
-        chart.staggerLabels(true);
         chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
         break;
 
@@ -328,6 +333,19 @@ function nvd3Vis(slice, payload) {
 
       default:
         throw new Error('Unrecognized visualization for nvd3' + vizType);
+    }
+
+    if (chart.xAxis && chart.xAxis.staggerLabels) {
+      chart.xAxis.staggerLabels(staggerLabels);
+    }
+    if (chart.xAxis && chart.xAxis.rotateLabels) {
+      chart.xAxis.rotateLabels(xLabelRotation);
+    }
+    if (chart.x2Axis && chart.x2Axis.staggerLabels) {
+      chart.x2Axis.staggerLabels(staggerLabels);
+    }
+    if (chart.x2Axis && chart.x2Axis.rotateLabels) {
+      chart.x2Axis.rotateLabels(xLabelRotation);
     }
 
     if ('showLegend' in chart && typeof fd.show_legend !== 'undefined') {
@@ -342,9 +360,6 @@ function nvd3Vis(slice, payload) {
       height = Math.min(height, 50);
     }
 
-    chart.height(height);
-    slice.container.css('height', height + 'px');
-
     if (chart.forceY &&
         fd.y_axis_bounds &&
         (fd.y_axis_bounds[0] !== null || fd.y_axis_bounds[1] !== null)) {
@@ -356,12 +371,6 @@ function nvd3Vis(slice, payload) {
     if (fd.x_log_scale) {
       chart.xScale(d3.scale.log());
     }
-    const isTimeSeries = [
-      'line', 'dual_line', 'area', 'compare', 'bar', 'time_pivot'].indexOf(vizType) >= 0;
-    // if x axis format is a date format, rotate label 90 degrees
-    if (isTimeSeries) {
-      chart.xAxis.rotateLabels(45);
-    }
 
     let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
     if (isTimeSeries) {
@@ -369,7 +378,6 @@ function nvd3Vis(slice, payload) {
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
-      height += 30;
     }
     const isXAxisString = ['dist_bar', 'box_plot'].indexOf(vizType) >= 0;
     if (!isXAxisString && chart.xAxis && chart.xAxis.tickFormat) {
@@ -378,7 +386,12 @@ function nvd3Vis(slice, payload) {
 
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      chart.yAxis.tickFormat(yAxisFormatter);
+      if (fd.num_period_compare) {
+        // When computing a "Period Ratio", we force a percentage format
+        chart.yAxis.tickFormat(d3.format('.1%'));
+      } else {
+        chart.yAxis.tickFormat(yAxisFormatter);
+      }
     }
     if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
@@ -392,6 +405,7 @@ function nvd3Vis(slice, payload) {
       }
     }
     setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax);
+    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax);
     setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax);
     setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax);
 
@@ -436,18 +450,6 @@ function nvd3Vis(slice, payload) {
       }
     }
 
-
-    if (fd.bottom_margin === 'auto') {
-      if (vizType === 'dist_bar') {
-        const stretchMargin = calculateStretchMargins(payload);
-        chart.margin({ bottom: stretchMargin });
-      } else {
-        chart.margin({ bottom: 50 });
-      }
-    } else {
-      chart.margin({ bottom: fd.bottom_margin });
-    }
-
     if (vizType === 'dual_line') {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
@@ -456,6 +458,9 @@ function nvd3Vis(slice, payload) {
       customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
       chart.showLegend(width > BREAKPOINTS.small);
     }
+    chart.height(height);
+    slice.container.css('height', height + 'px');
+
     svg
     .datum(data)
     .transition().duration(500)
@@ -472,8 +477,9 @@ function nvd3Vis(slice, payload) {
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
       const containerWidth = slice.container.width();
-      const marginPad = Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03,
-        maxMarginPad);
+      const marginPad = Math.ceil(
+        Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, maxMarginPad),
+      );
       const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
                                               : getMaxLabelSize(slice.container, 'nv-y');
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
@@ -486,36 +492,35 @@ function nvd3Vis(slice, payload) {
       // - measure the width or height of the labels
       // ---- (x axis labels are rotated 45 degrees so we use height),
       // - adjust margins based on these measures and render again
-      if (isTimeSeries && vizType !== 'bar') {
-        const chartMargins = {
-          bottom: maxXAxisLabelHeight + marginPad,
-          right: maxXAxisLabelHeight + marginPad,
-        };
-
-        if (vizType === 'dual_line') {
-          const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
-          // use y axis width if it's wider than axis width/height
-          if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-            chartMargins.right = maxYAxis2LabelWidth + marginPad;
-          }
-        }
-        // apply margins
-        chart.margin(chartMargins);
+      const margins = chart.margin();
+      margins.bottom = 28;
+      if (fd.x_axis_showminmax) {
+        // If x bounds are shown, we need a right margin
+        margins.right = Math.max(20, maxXAxisLabelHeight / 2) + marginPad;
+      }
+      if (xLabelRotation === 45) {
+        margins.bottom = maxXAxisLabelHeight + marginPad;
+        margins.right = maxXAxisLabelHeight + marginPad;
+      } else if (staggerLabels) {
+        margins.bottom = 40;
       }
 
-      if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
-        chart.margin({ bottom: maxXAxisLabelHeight + marginPad + 25 });
+      if (vizType === 'dual_line') {
+        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
+        // use y axis width if it's wider than axis width/height
+        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
+          margins.right = maxYAxis2LabelWidth + marginPad;
+        }
       }
       if (fd.bottom_margin && fd.bottom_margin !== 'auto') {
-        chart.margin().bottom = fd.bottom_margin;
+        margins.bottom = parseInt(fd.bottom_margin, 10);
       }
       if (fd.left_margin && fd.left_margin !== 'auto') {
-        chart.margin().left = fd.left_margin;
+        margins.left = fd.left_margin;
       }
 
-      // Axis labels
-      const margins = chart.margin();
       if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+        margins.bottom += 25;
         let distance = 0;
         if (margins.bottom && !isNaN(margins.bottom)) {
           distance = margins.bottom - 45;
@@ -533,6 +538,28 @@ function nvd3Vis(slice, payload) {
         chart.yAxis.axisLabel(fd.y_axis_label).axisLabelDistance(distance);
       }
 
+      const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
+      if (isTimeSeries && annotationLayers && slice.annotationData) {
+        // Time series annotations add additional data
+        const timeSeriesAnnotations = annotationLayers
+          .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
+        bushel.concat((slice.annotationData[a.name] || []).map((series) => {
+          if (!series) {
+            return {};
+          }
+          const key = Array.isArray(series.key) ?
+            `${a.name}, ${series.key.join(', ')}` : `${a.name}, ${series.key}`;
+          return {
+            ...series,
+            key,
+            color: a.color,
+            strokeWidth: a.width,
+            classed: `${a.opacity} ${a.style}`,
+          };
+        })), []);
+        data.push(...timeSeriesAnnotations);
+      }
+
       // render chart
       svg
       .datum(data)
@@ -544,8 +571,7 @@ function nvd3Vis(slice, payload) {
       // on scroll, hide tooltips. throttle to only 4x/second.
       $(window).scroll(throttle(hideTooltips, 250));
 
-      const annotationLayers = (slice.formData.annotation_layers || []).filter(x => x.show);
-
+      // The below code should be run AFTER rendering because chart is updated in call()
       if (isTimeSeries && annotationLayers) {
         // Formula annotations
         const formulas = annotationLayers.filter(a => a.annotationType === AnnotationTypes.FORMULA)
@@ -565,6 +591,7 @@ function nvd3Vis(slice, payload) {
           xMax = chart.xAxis.scale().domain()[1].valueOf();
           xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
         }
+        xScale.clamp(true);
 
         if (Array.isArray(formulas) && formulas.length) {
           const xValues = [];
@@ -601,7 +628,9 @@ function nvd3Vis(slice, payload) {
           }));
           data.push(...formulaData);
         }
+        const xAxis = chart.xAxis1 ? chart.xAxis1 : chart.xAxis;
         const yAxis = chart.yAxis1 ? chart.yAxis1 : chart.yAxis;
+        const chartWidth = xAxis.scale().range()[1];
         const annotationHeight = yAxis.scale().range()[0];
         const tipFactory = layer => d3tip()
           .attr('class', 'd3-tip')
@@ -620,7 +649,7 @@ function nvd3Vis(slice, payload) {
               '<div>' + body.join(', ') + '</div>';
           });
 
-        if (slice.annotationData && Object.keys(slice.annotationData).length) {
+        if (slice.annotationData) {
           // Event annotations
           annotationLayers.filter(x => (
             x.annotationType === AnnotationTypes.EVENT &&
@@ -642,19 +671,7 @@ function nvd3Vis(slice, payload) {
               };
             }).filter(record => !Number.isNaN(record[e.timeColumn].getMilliseconds()));
 
-            // account for the annotation in the x domain
-            records.forEach((record) => {
-              const timeValue = record[e.timeColumn];
-
-              xMin = Math.min(...[xMin, timeValue]);
-              xMax = Math.max(...[xMax, timeValue]);
-            });
-
             if (records.length) {
-              const domain = [xMin, xMax];
-              xScale.domain(domain);
-              chart.xDomain(domain);
-
               annotations.selectAll('line')
                 .data(records)
                 .enter()
@@ -672,8 +689,23 @@ function nvd3Vis(slice, payload) {
                 .on('mouseout', tip.hide)
                 .call(tip);
             }
-          });
 
+            // update annotation positions on brush event
+            chart.focus.dispatch.on('onBrush.event-annotation', function () {
+              annotations.selectAll('line')
+                .data(records)
+                .attr({
+                  x1: d => xScale(new Date(d[e.timeColumn])),
+                  y1: 0,
+                  x2: d => xScale(new Date(d[e.timeColumn])),
+                  y2: annotationHeight,
+                  opacity: (d) => {
+                    const x = xScale(new Date(d[e.timeColumn]));
+                    return (x > 0) && (x < chartWidth) ? 1 : 0;
+                  },
+                });
+            });
+          });
 
           // Interval annotations
           annotationLayers.filter(x => (
@@ -701,20 +733,7 @@ function nvd3Vis(slice, payload) {
               !Number.isNaN(record[e.intervalEndColumn].getMilliseconds())
             ));
 
-            // account for the annotation in the x domain
-            records.forEach((record) => {
-              const timeValue = record[e.timeColumn];
-              const intervalEndValue = record[e.intervalEndColumn];
-
-              xMin = Math.min(...[xMin, timeValue, intervalEndValue]);
-              xMax = Math.max(...[xMax, timeValue, intervalEndValue]);
-            });
-
             if (records.length) {
-              const domain = [xMin, xMax];
-              xScale.domain(domain);
-              chart.xDomain(domain);
-
               annotations.selectAll('rect')
                 .data(records)
                 .enter()
@@ -736,34 +755,23 @@ function nvd3Vis(slice, payload) {
                 .on('mouseout', tip.hide)
                 .call(tip);
             }
-          });
 
-          // Time series annotations
-          const timeSeriesAnnotations = annotationLayers
-            .filter(a => a.annotationType === AnnotationTypes.TIME_SERIES).reduce((bushel, a) =>
-              bushel.concat((slice.annotationData[a.name] || []).map((series) => {
-                if (!series) {
-                  return {};
-                }
-                const key = Array.isArray(series.key) ?
-                  `${a.name}, ${series.key.join(', ')}` : a.name;
-                return {
-                  ...series,
-                  key,
-                  color: a.color,
-                  strokeWidth: a.width,
-                  classed: `${a.opacity} ${a.style}`,
-                };
-              })), []);
-          data.push(...timeSeriesAnnotations);
+            // update annotation positions on brush event
+            chart.focus.dispatch.on('onBrush.interval-annotation', function () {
+              annotations.selectAll('rect')
+                .data(records)
+                .attr({
+                  x: d => xScale(new Date(d[e.timeColumn])),
+                  width: (d) => {
+                    const x1 = xScale(new Date(d[e.timeColumn]));
+                    const x2 = xScale(new Date(d[e.intervalEndColumn]));
+                    return x2 - x1;
+                  },
+                });
+            });
+          });
         }
       }
-
-      // rerender chart
-      svg.datum(data)
-        .attr('height', height)
-        .attr('width', width)
-        .call(chart);
     }
     return chart;
   };
@@ -775,5 +783,3 @@ function nvd3Vis(slice, payload) {
 
   nv.addGraph(drawGraph);
 }
-
-module.exports = nvd3Vis;

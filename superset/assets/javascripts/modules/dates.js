@@ -42,25 +42,32 @@ export const tickMultiFormat = d3.time.format.multi([
   ],
   // If there are hours that are multiples of 3, show date and AM/PM
   [
-    '%a %b %d',
+    '%a %b %e',
     function (d) {
-      return d.getDate() !== 1;
+      return d.getDate() >= 10;
     },
   ],
-  // If not the first of the month, do "month day, year."
+  // If not the first of the month: "Tue Mar 2"
   [
-    '%B %Y',
+    '%a %b%e',
+    function (d) {
+      return d.getDate() > 1;
+    },
+  ],
+  // If >= 10th of the month, compensate for padding : "Sun Mar 15"
+  [
+    '%b %Y',
     function (d) {
       return d.getMonth() !== 0 && d.getDate() === 1;
     },
   ],
-  // If the first of the month, do "month day, year."
+  // If the first of the month: 'Mar 2020'
   [
     '%Y',
     function () {
       return true;
     },
-  ],  // fall back on month, year
+  ],  // fall back on just year: '2020'
 ]);
 export const formatDate = function (dttm) {
   const d = UTC(new Date(dttm));

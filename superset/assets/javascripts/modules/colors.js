@@ -27,6 +27,20 @@ export const bnbColors = [
   '#b37e00',
   '#988b4e',
 ];
+
+export const lyftColors = [
+  '#EA0B8C',
+  '#6C838E',
+  '#29ABE2',
+  '#33D9C1',
+  '#9DACB9',
+  '#7560AA',
+  '#2D5584',
+  '#831C4A',
+  '#333D47',
+  '#AC2077',
+];
+
 const d3Category10 = d3.scale.category10().range();
 const d3Category20 = d3.scale.category20().range();
 const d3Category20b = d3.scale.category20b().range();
@@ -73,6 +87,7 @@ export const ALL_COLOR_SCHEMES = {
   d3Category20c,
   googleCategory10c,
   googleCategory20c,
+  lyftColors,
 };
 
 export const spectrums = {
@@ -106,6 +121,42 @@ export const spectrums = {
     '#E70B81',
     '#FAFAFA',
     '#666666',
+  ],
+  greens: [
+    '#ffffcc',
+    '#78c679',
+    '#006837',
+  ],
+  purples: [
+    '#f2f0f7',
+    '#9e9ac8',
+    '#54278f',
+  ],
+  oranges: [
+    '#fef0d9',
+    '#fc8d59',
+    '#b30000',
+  ],
+  red_yellow_blue: [
+    '#d7191c',
+    '#fdae61',
+    '#ffffbf',
+    '#abd9e9',
+    '#2c7bb6',
+  ],
+  brown_white_green: [
+    '#a6611a',
+    '#dfc27d',
+    '#f5f5f5',
+    '#80cdc1',
+    '#018571',
+  ],
+  purple_white_green: [
+    '#7b3294',
+    '#c2a5cf',
+    '#f7f7f7',
+    '#a6dba0',
+    '#008837',
   ],
 };
 

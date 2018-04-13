@@ -1,3 +1,7 @@
+/**
+ * This file defines how controls (defined in controls.js) are structured into sections
+ * and associated with each and every visualization type.
+ */
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
 import * as v from '../validators';
 import { t } from '../../locales';
@@ -114,9 +118,16 @@ export const visTypes = {
           ['color_scheme'],
           ['show_legend', 'show_bar_value'],
           ['bar_stacked', 'order_bars'],
-          ['y_axis_format', 'bottom_margin'],
-          ['x_axis_label', 'y_axis_label'],
-          ['reduce_x_ticks', 'show_controls'],
+          ['y_axis_format', 'y_axis_label'],
+          ['show_controls', null],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'reduce_x_ticks'],
         ],
       },
     ],
@@ -139,7 +150,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['metrics', 'groupby'],
+          ['metrics'],
+          ['groupby'],
           ['limit'],
         ],
       },
@@ -177,7 +189,8 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['x_axis_label', 'bottom_margin'],
-          ['x_axis_showminmax', 'x_axis_format'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
         ],
       },
       {
@@ -307,13 +320,21 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Axes'),
+        label: t('X Axis'),
         expanded: true,
         controlSetRows: [
-          ['x_axis_format', 'y_axis_format'],
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
           ['x_axis_showminmax', 'reduce_x_ticks'],
-          ['x_axis_label', 'y_axis_label'],
-          ['y_axis_bounds', 'y_log_scale'],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_showminmax', 'y_log_scale'],
+          ['y_axis_format', 'y_axis_bounds'],
         ],
       },
       sections.NVD3TimeSeries[1],
@@ -337,7 +358,24 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['color_scheme'],
-          ['x_axis_format', 'y_axis_format'],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_showminmax', 'y_log_scale'],
+          ['y_axis_format', 'y_axis_bounds'],
         ],
       },
       sections.NVD3TimeSeries[1],
@@ -719,10 +757,18 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Axes'),
+        label: t('X Axis'),
         expanded: true,
         controlSetRows: [
-          ['x_axis_format', 'x_axis_showminmax'],
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        expanded: true,
+        controlSetRows: [
           ['y_axis_format', 'y_axis_bounds'],
           ['y_log_scale', null],
         ],
@@ -747,12 +793,13 @@ export const visTypes = {
       {
         label: t('GROUP BY'),
         description: t('Use this section if you want a query that aggregates'),
+        expanded: true,
         controlSetRows: [
           ['groupby'],
           ['metrics'],
           ['percent_metrics'],
-          ['include_time'],
-          ['timeseries_limit_metric', 'order_desc'],
+          ['timeseries_limit_metric', 'row_limit'],
+          ['include_time', 'order_desc'],
         ],
       },
       {
@@ -761,13 +808,15 @@ export const visTypes = {
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],
+          ['row_limit', null],
         ],
       },
       {
         label: t('Options'),
+        expanded: true,
         controlSetRows: [
           ['table_timestamp_format'],
-          ['row_limit', 'page_length'],
+          ['page_length', null],
           ['include_search', 'table_filter'],
           ['align_pn', 'color_pn'],
         ],
@@ -928,17 +977,34 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['metric'],
+          ['domain_granularity', 'subdomain_granularity'],
+          ['metrics'],
         ],
       },
       {
-        label: t('Options'),
+        label: t('Chart Options'),
+        expanded: true,
         controlSetRows: [
-          ['domain_granularity'],
-          ['subdomain_granularity'],
+          ['linear_color_scheme'],
+          ['cell_size', 'cell_padding'],
+          ['cell_radius', 'steps'],
+          ['y_axis_format', 'x_axis_time_format'],
+          ['show_legend', 'show_values'],
+          ['show_metric_name', null],
         ],
       },
     ],
+    controlOverrides: {
+      y_axis_format: {
+        label: t('Number Format'),
+      },
+      x_axis_time_format: {
+        label: t('Time Format'),
+      },
+      show_values: {
+        default: false,
+      },
+    },
   },
 
   box_plot: {
@@ -971,7 +1037,9 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['series', 'entity'],
-          ['size', 'limit'],
+          ['x', 'y'],
+          ['size', 'max_bubble_size'],
+          ['limit', null],
         ],
       },
       {
@@ -983,17 +1051,11 @@ export const visTypes = {
         ],
       },
       {
-        label: t('Bubbles'),
-        controlSetRows: [
-          ['size', 'max_bubble_size'],
-        ],
-      },
-      {
         label: t('X Axis'),
         expanded: true,
         controlSetRows: [
           ['x_axis_label', 'left_margin'],
-          ['x', 'x_axis_format'],
+          ['x_axis_format', 'x_ticks_layout'],
           ['x_log_scale', 'x_axis_showminmax'],
         ],
       },
@@ -1002,7 +1064,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['y_axis_label', 'bottom_margin'],
-          ['y', 'y_axis_format'],
+          ['y_axis_format', null],
           ['y_log_scale', 'y_axis_showminmax'],
         ],
       },
@@ -1102,6 +1164,7 @@ export const visTypes = {
         controlSetRows: [
           ['all_columns_x'],
           ['row_limit'],
+          ['groupby'],
         ],
       },
       {
@@ -1111,19 +1174,25 @@ export const visTypes = {
           ['color_scheme'],
           ['link_length'],
           ['x_axis_label', 'y_axis_label'],
+          ['global_opacity'],
           ['normalized'],
         ],
       },
     ],
     controlOverrides: {
       all_columns_x: {
-        label: t('Numeric Column'),
-        description: t('Select the numeric column to draw the histogram'),
+        label: t('Numeric Columns'),
+        description: t('Select the numeric columns to draw the histogram'),
+        multi: true,
       },
       link_length: {
         label: t('No of Bins'),
         description: t('Select number of bins for the histogram'),
         default: 5,
+      },
+      global_opacity: {
+        description: t('Opacity of the bars. Between 0 and 1'),
+        renderTrigger: true,
       },
     },
   },

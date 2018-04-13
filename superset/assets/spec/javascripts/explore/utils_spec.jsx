@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import URI from 'urijs';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../../../javascripts/explore/exploreUtils';
 
-describe('utils', () => {
+describe('exploreUtils', () => {
   const location = window.location;
   const formData = {
     datasource: '1__table',

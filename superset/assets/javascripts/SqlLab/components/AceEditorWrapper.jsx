@@ -28,16 +28,21 @@ const sqlWords = sqlKeywords.map(s => ({
 const propTypes = {
   actions: PropTypes.object.isRequired,
   onBlur: PropTypes.func,
-  onAltEnter: PropTypes.func,
   sql: PropTypes.string.isRequired,
   tables: PropTypes.array,
   queryEditor: PropTypes.object.isRequired,
   height: PropTypes.string,
+  hotkeys: PropTypes.arrayOf(PropTypes.shape({
+    key: PropTypes.string.isRequired,
+    descr: PropTypes.string.isRequired,
+    func: PropTypes.func.isRequired,
+  })),
+  onChange: PropTypes.func,
 };
 
 const defaultProps = {
   onBlur: () => {},
-  onAltEnter: () => {},
+  onChange: () => {},
   tables: [],
 };
 
@@ -48,6 +53,7 @@ class AceEditorWrapper extends React.PureComponent {
       sql: props.sql,
       selectedText: '',
     };
+    this.onChange = this.onChange.bind(this);
   }
   componentDidMount() {
     // Making sure no text is selected from previous mount
@@ -67,7 +73,6 @@ class AceEditorWrapper extends React.PureComponent {
   }
   onAltEnter() {
     this.props.onBlur(this.state.sql);
-    this.props.onAltEnter();
   }
   onEditorLoad(editor) {
     editor.commands.addCommand({
@@ -76,6 +81,13 @@ class AceEditorWrapper extends React.PureComponent {
       exec: () => {
         this.onAltEnter();
       },
+    });
+    this.props.hotkeys.forEach((keyConfig) => {
+      editor.commands.addCommand({
+        name: keyConfig.name,
+        bindKey: { win: keyConfig.key, mac: keyConfig.key },
+        exec: keyConfig.func,
+      });
     });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
@@ -87,6 +99,10 @@ class AceEditorWrapper extends React.PureComponent {
           this.props.queryEditor, selectedText);
       }
     });
+  }
+  onChange(text) {
+    this.setState({ sql: text });
+    this.props.onChange(text);
   }
   getCompletions(aceEditor, session, pos, prefix, callback) {
     callback(null, this.state.words);
@@ -116,9 +132,6 @@ class AceEditorWrapper extends React.PureComponent {
       }
     });
   }
-  textChange(text) {
-    this.setState({ sql: text });
-  }
   render() {
     return (
       <AceEditor
@@ -127,7 +140,7 @@ class AceEditorWrapper extends React.PureComponent {
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
         height={this.props.height}
-        onChange={this.textChange.bind(this)}
+        onChange={this.onChange}
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion

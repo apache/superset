@@ -11,7 +11,7 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import appbuilder, db, sm, utils
+from superset import db, security_manager, utils
 from superset.models.sql_lab import Query
 from superset.sql_lab import convert_results_to_df
 from .base_tests import SupersetTestCase
@@ -56,7 +56,7 @@ class SqlLabTests(SupersetTestCase):
 
     def test_sql_json_has_access(self):
         main_db = self.get_main_database(db.session)
-        sm.add_permission_view_menu('database_access', main_db.perm)
+        security_manager.add_permission_view_menu('database_access', main_db.perm)
         db.session.commit()
         main_db_permission_view = (
             db.session.query(ab_models.PermissionView)
@@ -66,17 +66,17 @@ class SqlLabTests(SupersetTestCase):
             .filter(ab_models.Permission.name == 'database_access')
             .first()
         )
-        astronaut = sm.add_role('Astronaut')
-        sm.add_permission_role(astronaut, main_db_permission_view)
+        astronaut = security_manager.add_role('Astronaut')
+        security_manager.add_permission_role(astronaut, main_db_permission_view)
         # Astronaut role is Gamma + sqllab +  main db permissions
-        for perm in sm.find_role('Gamma').permissions:
-            sm.add_permission_role(astronaut, perm)
-        for perm in sm.find_role('sql_lab').permissions:
-            sm.add_permission_role(astronaut, perm)
+        for perm in security_manager.find_role('Gamma').permissions:
+            security_manager.add_permission_role(astronaut, perm)
+        for perm in security_manager.find_role('sql_lab').permissions:
+            security_manager.add_permission_role(astronaut, perm)
 
-        gagarin = appbuilder.sm.find_user('gagarin')
+        gagarin = security_manager.find_user('gagarin')
         if not gagarin:
-            appbuilder.sm.add_user(
+            security_manager.add_user(
                 'gagarin', 'Iurii', 'Gagarin', 'gagarin@cosmos.ussr',
                 astronaut,
                 password='general')
@@ -139,14 +139,14 @@ class SqlLabTests(SupersetTestCase):
         self.login('admin')
 
         # Test search queries on user Id
-        user_id = appbuilder.sm.find_user('admin').id
+        user_id = security_manager.find_user('admin').id
         data = self.get_json_resp(
             '/superset/search_queries?user_id={}'.format(user_id))
         self.assertEquals(2, len(data))
         user_ids = {k['userId'] for k in data}
         self.assertEquals(set([user_id]), user_ids)
 
-        user_id = appbuilder.sm.find_user('gamma_sqllab').id
+        user_id = security_manager.find_user('gamma_sqllab').id
         resp = self.get_resp(
             '/superset/search_queries?user_id={}'.format(user_id))
         data = json.loads(resp)
@@ -225,6 +225,37 @@ class SqlLabTests(SupersetTestCase):
 
         self.assertEquals(len(data), cdf.size)
         self.assertEquals(len(cols), len(cdf.columns))
+
+    def test_sqllab_viz(self):
+        payload = {
+            'chartType': 'dist_bar',
+            'datasourceName': 'test_viz_flow_table',
+            'schema': 'superset',
+            'columns': {
+                'viz_type': {
+                    'is_date': False,
+                    'type': 'STRING',
+                    'nam:qe': 'viz_type',
+                    'is_dim': True,
+                },
+                'ccount': {
+                    'is_date': False,
+                    'type': 'OBJECT',
+                    'name': 'ccount',
+                    'is_dim': True,
+                    'agg': 'sum',
+                },
+            },
+            'sql': """\
+                SELECT viz_type, count(1) as ccount
+                FROM slices
+                WHERE viz_type LIKE '%%a%%'
+                GROUP BY viz_type""",
+            'dbId': 1,
+        }
+        data = {'data': json.dumps(payload)}
+        resp = self.get_json_resp('/superset/sqllab_viz/', data=data)
+        self.assertIn('table_id', resp)
 
 
 if __name__ == '__main__':
