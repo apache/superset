@@ -208,7 +208,7 @@ In case that the reverse proxy is used for providing ssl encryption,
 an explicit definition of the `X-Forwarded-Proto` may be required.
 For the Apache webserver this can be set as follows: ::
 
-　RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Proto "https"
 
 Configuration
 -------------
@@ -375,7 +375,7 @@ It is possible to tweak the database connection information using the
 parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
 find an ``extra`` field as a ``JSON`` blob.
 
-.. image:: _static/img/tutorial/add_db.png
+.. image:: images/tutorial/add_db.png
    :scale: 30 %
 
 This JSON string contains extra configuration elements. The ``engine_params``
@@ -410,6 +410,16 @@ in your config file to point to that function. ::
         return 'secret'
 
     SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_lookup_password
+
+A common pattern is to use environment variables to make secrets available.
+``SQLALCHEMY_CUSTOM_PASSWORD_STORE`` can also be used for that purpose. ::
+
+    def example_password_as_env_var(url):
+        # assuming the uri looks like
+        # mysql://localhost?superset_user:{SUPERSET_PASSWORD}
+        return url.password.format(os.environ)
+
+    SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_password_as_env_var
 
 
 SSL Access to databases

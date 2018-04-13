@@ -52,7 +52,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = "Apache Superset"
-copyright = None
+copyright = 'Apache Software Foundation'
 author = u'Maxime Beauchemin'
 
 # The version info for the project you're documenting, acts as replacement for
