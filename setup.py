@@ -93,6 +93,7 @@ setup(
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
+        'console_log': ['console_log==0.2.10'],
     },
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
