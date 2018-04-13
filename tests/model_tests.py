@@ -97,3 +97,11 @@ class DatabaseModelTestCase(SupersetTestCase):
         FROM bart_lines
         LIMIT 100""".format(**locals()))
         assert sql.startswith(expected)
+
+    def test_grains_dict(self):
+        uri = 'mysql://root@localhost'
+        database = Database(sqlalchemy_uri=uri)
+        d = database.grains_dict()
+        self.assertEquals(d.get('day').function, 'DATE({col})')
+        self.assertEquals(d.get('P1D').function, 'DATE({col})')
+        self.assertEquals(d.get('Time Column').function, '{col}')

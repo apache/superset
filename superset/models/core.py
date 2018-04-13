@@ -786,7 +786,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.time_grains
 
     def grains_dict(self):
-        return {grain.duration: grain for grain in self.grains()}
+        """Allowing to lookup grain by either label or duration
+
+        For backward compatibility"""
+        d = {grain.duration: grain for grain in self.grains()}
+        d.update({grain.label: grain for grain in self.grains()})
+        return d
 
     def get_extra(self):
         extra = {}
