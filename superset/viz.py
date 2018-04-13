@@ -2046,7 +2046,8 @@ class BaseDeckGLViz(BaseViz):
         gb = list(set(gb))
         if metrics:
             d['groupby'] = gb
-            d['metrics'] = self.get_metrics()
+            d['metrics'] = metrics
+            d['columns'] = []
         else:
             d['columns'] = gb
 
