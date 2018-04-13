@@ -12,7 +12,8 @@ const langTools = ace.acequire('ace/ext/language_tools');
 const keywords = (
   'SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|GROUP|BY|ORDER|LIMIT|OFFSET|HAVING|AS|CASE|' +
   'WHEN|ELSE|END|TYPE|LEFT|RIGHT|JOIN|ON|OUTER|DESC|ASC|UNION|CREATE|TABLE|PRIMARY|KEY|IF|' +
-  'FOREIGN|NOT|REFERENCES|DEFAULT|NULL|INNER|CROSS|NATURAL|DATABASE|DROP|GRANT'
+  'FOREIGN|NOT|REFERENCES|DEFAULT|NULL|INNER|CROSS|NATURAL|DATABASE|DROP|GRANT|SUM|MAX|MIN|COUNT|' +
+  'AVG|DISTINCT'
 );
 
 const dataTypes = (
@@ -21,7 +22,7 @@ const dataTypes = (
 );
 
 const sqlKeywords = [].concat(keywords.split('|'), dataTypes.split('|'));
-const sqlWords = sqlKeywords.map(s => ({
+export const sqlWords = sqlKeywords.map(s => ({
   name: s, value: s, score: 60, meta: 'sql',
 }));
 

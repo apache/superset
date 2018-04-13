@@ -1,7 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Button, ControlLabel, FormGroup, Popover } from 'react-bootstrap';
+import { Button, ControlLabel, FormGroup, Popover, Tab, Tabs } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
+import AceEditor from 'react-ace';
+import 'brace/mode/sql';
+import 'brace/theme/github';
+import 'brace/ext/language_tools';
 
 import { AGGREGATES } from '../constants';
 import { t } from '../../locales';
@@ -9,13 +13,17 @@ import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 import OnPasteSelect from '../../components/OnPasteSelect';
 import AdhocMetricEditPopoverTitle from './AdhocMetricEditPopoverTitle';
 import columnType from '../propTypes/columnType';
-import AdhocMetric from '../AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../AdhocMetric';
 import ColumnOption from '../../components/ColumnOption';
+import { sqlWords } from '../../SqlLab/components/AceEditorWrapper';
+
+const langTools = ace.acequire('ace/ext/language_tools');
 
 const propTypes = {
   adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
   onChange: PropTypes.func.isRequired,
   onClose: PropTypes.func.isRequired,
+  onResize: PropTypes.func.isRequired,
   columns: PropTypes.arrayOf(columnType),
   datasourceType: PropTypes.string,
 };
@@ -24,14 +32,25 @@ const defaultProps = {
   columns: [],
 };
 
+const startingWidth = 300;
+const startingHeight = 180;
+
 export default class AdhocMetricEditPopover extends React.Component {
   constructor(props) {
     super(props);
     this.onSave = this.onSave.bind(this);
     this.onColumnChange = this.onColumnChange.bind(this);
     this.onAggregateChange = this.onAggregateChange.bind(this);
+    this.onSqlExpressionChange = this.onSqlExpressionChange.bind(this);
     this.onLabelChange = this.onLabelChange.bind(this);
-    this.state = { adhocMetric: this.props.adhocMetric };
+    this.onDragDown = this.onDragDown.bind(this);
+    this.onMouseMove = this.onMouseMove.bind(this);
+    this.onMouseUp = this.onMouseUp.bind(this);
+    this.state = {
+      adhocMetric: this.props.adhocMetric,
+      width: startingWidth,
+      height: startingHeight,
+    };
     this.selectProps = {
       multi: false,
       name: 'select-column',
@@ -40,6 +59,23 @@ export default class AdhocMetricEditPopover extends React.Component {
       clearable: true,
       selectWrap: VirtualizedSelect,
     };
+    if (langTools) {
+      const words = sqlWords.concat(this.props.columns.map(column => (
+        { name: column.column_name, value: column.column_name, score: 50, meta: 'column' }
+      )));
+      const completer = {
+        getCompletions: (aceEditor, session, pos, prefix, callback) => {
+          callback(null, words);
+        },
+      };
+      langTools.setCompleters([completer]);
+    }
+    document.addEventListener('mouseup', this.onMouseUp);
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('mouseup', this.onMouseUp);
+    document.removeEventListener('mousemove', this.onMouseMove);
   }
 
   onSave() {
@@ -48,7 +84,10 @@ export default class AdhocMetricEditPopover extends React.Component {
   }
 
   onColumnChange(column) {
-    this.setState({ adhocMetric: this.state.adhocMetric.duplicateWith({ column }) });
+    this.setState({ adhocMetric: this.state.adhocMetric.duplicateWith({
+      column,
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+    }) });
   }
 
   onAggregateChange(aggregate) {
@@ -56,6 +95,16 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.setState({
       adhocMetric: this.state.adhocMetric.duplicateWith({
         aggregate: aggregate && aggregate.aggregate,
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+      }),
+    });
+  }
+
+  onSqlExpressionChange(sqlExpression) {
+    this.setState({
+      adhocMetric: this.state.adhocMetric.duplicateWith({
+        sqlExpression,
+        expressionType: EXPRESSION_TYPES.SQL,
       }),
     });
   }
@@ -68,13 +117,44 @@ export default class AdhocMetricEditPopover extends React.Component {
     });
   }
 
+  onDragDown(e) {
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.dragStartWidth = this.state.width;
+    this.dragStartHeight = this.state.height;
+    document.addEventListener('mousemove', this.onMouseMove);
+  }
+
+  onMouseMove(e) {
+    this.props.onResize();
+    this.setState({
+      width: Math.max(this.dragStartWidth + (e.clientX - this.dragStartX), startingWidth),
+      height: Math.max(this.dragStartHeight + (e.clientY - this.dragStartY) * 2, startingHeight),
+    });
+  }
+
+  onMouseUp() {
+    document.removeEventListener('mousemove', this.onMouseMove);
+  }
+
   render() {
-    const { adhocMetric, columns, onChange, onClose, datasourceType, ...popoverProps } = this.props;
+    const {
+      adhocMetric: propsAdhocMetric,
+      columns,
+      onChange,
+      onClose,
+      onResize,
+      datasourceType,
+      ...popoverProps
+    } = this.props;
+
+    const { adhocMetric } = this.state;
 
     const columnSelectProps = {
       placeholder: t('%s column(s)', columns.length),
       options: columns,
-      value: this.state.adhocMetric.column && this.state.adhocMetric.column.column_name,
+      value: (adhocMetric.column && adhocMetric.column.column_name) ||
+        adhocMetric.inferSqlExpressionColumn(),
       onChange: this.onColumnChange,
       optionRenderer: VirtualizedRendererWrap(option => (
         <ColumnOption column={option} showType />
@@ -86,7 +166,7 @@ export default class AdhocMetricEditPopover extends React.Component {
     const aggregateSelectProps = {
       placeholder: t('%s aggregates(s)', Object.keys(AGGREGATES).length),
       options: Object.keys(AGGREGATES).map(aggregate => ({ aggregate })),
-      value: this.state.adhocMetric.aggregate,
+      value: adhocMetric.aggregate || adhocMetric.inferSqlExpressionAggregate(),
       onChange: this.onAggregateChange,
       optionRenderer: VirtualizedRendererWrap(aggregate => aggregate.aggregate),
       valueRenderer: aggregate => aggregate.aggregate,
@@ -101,13 +181,13 @@ export default class AdhocMetricEditPopover extends React.Component {
 
     const popoverTitle = (
       <AdhocMetricEditPopoverTitle
-        adhocMetric={this.state.adhocMetric}
+        adhocMetric={adhocMetric}
         onChange={this.onLabelChange}
       />
     );
 
-    const stateIsValid = this.state.adhocMetric.column && this.state.adhocMetric.aggregate;
-    const hasUnsavedChanges = this.state.adhocMetric.equals(this.props.adhocMetric);
+    const stateIsValid = adhocMetric.isValid();
+    const hasUnsavedChanges = !adhocMetric.equals(propsAdhocMetric);
 
     return (
       <Popover
@@ -115,24 +195,54 @@ export default class AdhocMetricEditPopover extends React.Component {
         title={popoverTitle}
         {...popoverProps}
       >
-        <FormGroup>
-          <ControlLabel><strong>column</strong></ControlLabel>
-          <OnPasteSelect {...this.selectProps} {...columnSelectProps} />
-        </FormGroup>
-        <FormGroup>
-          <ControlLabel><strong>aggregate</strong></ControlLabel>
-          <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} />
-        </FormGroup>
-        <Button
-          disabled={!stateIsValid}
-          bsStyle={(hasUnsavedChanges || !stateIsValid) ? 'default' : 'primary'}
-          bsSize="small"
-          className="m-r-5"
-          onClick={this.onSave}
+        <Tabs
+          id="adhoc-metric-edit-tabs"
+          defaultActiveKey={adhocMetric.expressionType}
+          className="adhoc-metric-edit-tabs"
+          style={{ height: this.state.height, width: this.state.width }}
         >
-          Save
-        </Button>
-        <Button bsSize="small" onClick={this.props.onClose}>Close</Button>
+          <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SIMPLE} title="Simple">
+            <FormGroup>
+              <ControlLabel><strong>column</strong></ControlLabel>
+              <OnPasteSelect {...this.selectProps} {...columnSelectProps} />
+            </FormGroup>
+            <FormGroup>
+              <ControlLabel><strong>aggregate</strong></ControlLabel>
+              <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} />
+            </FormGroup>
+          </Tab>
+          {
+            this.props.datasourceType !== 'druid' &&
+            <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">
+              <FormGroup>
+                <AceEditor
+                  mode="sql"
+                  theme="github"
+                  height={(this.state.height - 40) + 'px'}
+                  onChange={this.onSqlExpressionChange}
+                  width="100%"
+                  showGutter={false}
+                  value={adhocMetric.sqlExpression || adhocMetric.getDefaultLabel()}
+                  editorProps={{ $blockScrolling: true }}
+                  enableLiveAutocompletion
+                />
+              </FormGroup>
+            </Tab>
+          }
+        </Tabs>
+        <div>
+          <Button
+            disabled={!stateIsValid}
+            bsStyle={(hasUnsavedChanges && stateIsValid) ? 'primary' : 'default'}
+            bsSize="small"
+            className="m-r-5"
+            onClick={this.onSave}
+          >
+            Save
+          </Button>
+          <Button bsSize="small" onClick={this.props.onClose}>Close</Button>
+          <i onMouseDown={this.onDragDown} className="glyphicon glyphicon-resize-full edit-popover-resize" />
+        </div>
       </Popover>
     );
   }
