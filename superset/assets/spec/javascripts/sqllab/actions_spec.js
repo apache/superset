@@ -3,7 +3,7 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
-import * as actions from '../../../javascripts/SqlLab/actions';
+import * as actions from '../../../src/SqlLab/actions';
 import { query } from './fixtures';
 
 describe('async actions', () => {

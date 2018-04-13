@@ -6,10 +6,10 @@ import d3 from 'd3';
 import Mustache from 'mustache';
 import { Sparkline, LineSeries, PointSeries, VerticalReferenceLine, WithTooltip } from '@data-ui/sparkline';
 
-import MetricOption from '../javascripts/components/MetricOption';
-import { d3format } from '../javascripts/modules/utils';
-import { formatDateThunk } from '../javascripts/modules/dates';
-import InfoTooltipWithTrigger from '../javascripts/components/InfoTooltipWithTrigger';
+import MetricOption from '../components/MetricOption';
+import { d3format } from '../modules/utils';
+import { formatDateThunk } from '../modules/dates';
+import InfoTooltipWithTrigger from '../components/InfoTooltipWithTrigger';
 import './time_table.css';
 
 const SPARKLINE_MARGIN = {

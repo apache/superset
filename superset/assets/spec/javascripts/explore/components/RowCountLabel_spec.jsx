@@ -4,9 +4,9 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Label } from 'react-bootstrap';
 
-import TooltipWrapper from './../../../../javascripts/components/TooltipWrapper';
+import TooltipWrapper from './../../../../src/components/TooltipWrapper';
 
-import RowCountLabel from '../../../../javascripts/explore/components/RowCountLabel';
+import RowCountLabel from '../../../../src/explore/components/RowCountLabel';
 
 describe('RowCountLabel', () => {
   const defaultProps = {

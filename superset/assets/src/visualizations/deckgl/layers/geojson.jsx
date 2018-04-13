@@ -5,8 +5,8 @@ import { GeoJsonLayer } from 'deck.gl';
 
 import DeckGLContainer from './../DeckGLContainer';
 import * as common from './common';
-import { hexToRGB } from '../../../javascripts/modules/colors';
-import sandboxedEval from '../../../javascripts/modules/sandbox';
+import { hexToRGB } from '../../../modules/colors';
+import sandboxedEval from '../../../modules/sandbox';
 
 const propertyMap = {
   fillColor: 'fillColor',

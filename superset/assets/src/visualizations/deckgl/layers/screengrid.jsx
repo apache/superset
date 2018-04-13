@@ -9,8 +9,8 @@ import { ScreenGridLayer } from 'deck.gl';
 import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
 
 import * as common from './common';
-import { getPlaySliderParams } from '../../../javascripts/modules/time';
-import sandboxedEval from '../../../javascripts/modules/sandbox';
+import { getPlaySliderParams } from '../../../modules/time';
+import sandboxedEval from '../../../modules/sandbox';
 
 function getPoints(data) {
   return data.map(d => d.position);

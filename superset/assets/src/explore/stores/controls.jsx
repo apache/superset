@@ -118,7 +118,7 @@ const groupByControl = {
 
 const sandboxUrl = (
   'https://github.com/apache/incubator-superset/' +
-  'blob/master/superset/assets/javascripts/modules/sandbox.js');
+  'blob/master/superset/assets/src/modules/sandbox.js');
 const jsFunctionInfo = (
   <div>
     {t('For more information about objects are in context in the scope of this function, refer to the')}

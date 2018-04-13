@@ -7,14 +7,14 @@ import VirtualizedSelect from 'react-virtualized-select';
 import { Creatable } from 'react-select';
 import { Button } from 'react-bootstrap';
 
-import DateFilterControl from '../javascripts/explore/components/controls/DateFilterControl';
-import ControlRow from '../javascripts/explore/components/ControlRow';
-import Control from '../javascripts/explore/components/Control';
-import controls from '../javascripts/explore/stores/controls';
-import OnPasteSelect from '../javascripts/components/OnPasteSelect';
-import VirtualizedRendererWrap from '../javascripts/components/VirtualizedRendererWrap';
+import DateFilterControl from '../explore/components/controls/DateFilterControl';
+import ControlRow from '../explore/components/ControlRow';
+import Control from '../explore/components/Control';
+import controls from '../explore/stores/controls';
+import OnPasteSelect from '../components/OnPasteSelect';
+import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
 import './filter_box.css';
-import { t } from '../javascripts/locales';
+import { t } from '../locales';
 
 // maps control names to their key in extra_filters
 const timeFilterMap = {

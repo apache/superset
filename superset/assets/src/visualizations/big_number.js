@@ -1,9 +1,9 @@
 import d3 from 'd3';
 import d3tip from 'd3-tip';
-import { d3FormatPreset, d3TimeFormatPreset } from '../javascripts/modules/utils';
+import { d3FormatPreset, d3TimeFormatPreset } from '../modules/utils';
 
 import './big_number.css';
-import '../stylesheets/d3tip.css';
+import '../../stylesheets/d3tip.css';
 
 function bigNumberVis(slice, payload) {
   const div = d3.select(slice.selector);

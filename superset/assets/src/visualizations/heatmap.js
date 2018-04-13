@@ -3,8 +3,8 @@ import d3 from 'd3';
 import d3legend from 'd3-svg-legend';
 import d3tip from 'd3-tip';
 
-import { colorScalerFactory } from '../javascripts/modules/colors';
-import '../stylesheets/d3tip.css';
+import { colorScalerFactory } from '../modules/colors';
+import '../../stylesheets/d3tip.css';
 import './heatmap.css';
 
 function cmp(a, b) {

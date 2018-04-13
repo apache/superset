@@ -1,8 +1,8 @@
 /* eslint no-use-before-define: ["error", { "functions": false }] */
 import d3 from 'd3';
 import nv from 'nvd3';
-import { d3TimeFormatPreset } from '../javascripts/modules/utils';
-import { getColorFromScheme } from '../javascripts/modules/colors';
+import { d3TimeFormatPreset } from '../modules/utils';
+import { getColorFromScheme } from '../modules/colors';
 
 import './rose.css';
 

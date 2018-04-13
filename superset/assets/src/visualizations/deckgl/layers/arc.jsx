@@ -6,7 +6,7 @@ import { ArcLayer } from 'deck.gl';
 import DeckGLContainer from './../DeckGLContainer';
 
 import * as common from './common';
-import sandboxedEval from '../../../javascripts/modules/sandbox';
+import sandboxedEval from '../../../modules/sandbox';
 
 function getPoints(data) {
   const points = [];

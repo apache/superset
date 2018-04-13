@@ -1,7 +1,7 @@
 import dompurify from 'dompurify';
 import { fitBounds } from 'viewport-mercator-project';
 
-import sandboxedEval from '../../../javascripts/modules/sandbox';
+import sandboxedEval from '../../../modules/sandbox';
 
 export function getBounds(points) {
   const latExt = d3.extent(points, d => d[1]);

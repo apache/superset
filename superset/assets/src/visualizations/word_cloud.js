@@ -1,7 +1,7 @@
 /* eslint-disable  no-use-before-define */
 import d3 from 'd3';
 import cloudLayout from 'd3-cloud';
-import { getColorFromScheme } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../modules/colors';
 
 function wordCloudChart(slice, payload) {
   const chart = d3.select(slice.selector);

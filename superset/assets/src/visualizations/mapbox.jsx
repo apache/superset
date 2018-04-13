@@ -17,7 +17,7 @@ import {
   DEFAULT_LONGITUDE,
   DEFAULT_LATITUDE,
   DEFAULT_ZOOM,
-} from '../javascripts/utils/common';
+} from '../utils/common';
 import './mapbox.css';
 
 const NOOP = () => {};
@@ -58,7 +58,7 @@ class ScatterPlotGlowOverlay extends React.Component {
     ctx.shadowColor = '';
   }
 
-  // Modified: https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
+  // Modified: https://github.com/uber/react-map-gl/blob/master/overlays/scatterplot.react.js
   redraw() {
     const props = this.props;
     const pixelRatio = window.devicePixelRatio || 1;

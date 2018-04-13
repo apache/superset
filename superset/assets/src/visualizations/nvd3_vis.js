@@ -3,20 +3,20 @@ import $ from 'jquery';
 import throttle from 'lodash.throttle';
 import d3 from 'd3';
 import nv from 'nvd3';
+import 'nvd3/build/nv.d3.min.css';
 import mathjs from 'mathjs';
 import moment from 'moment';
 import d3tip from 'd3-tip';
 
-import { getColorFromScheme } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
   applyNativeColumns,
-} from '../javascripts/modules/AnnotationTypes';
-import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../javascripts/modules/utils';
-import { isTruthy } from '../javascripts/utils/common';
-import { t } from '../javascripts/locales';
+} from '../modules/AnnotationTypes';
+import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
+import { isTruthy } from '../utils/common';
+import { t } from '../locales';
 
 // CSS
-import '../node_modules/nvd3/build/nv.d3.min.css';
 import './nvd3_vis.css';
 import { VIZ_TYPES } from './main';
 

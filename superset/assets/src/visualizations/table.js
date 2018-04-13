@@ -2,7 +2,7 @@ import d3 from 'd3';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 
-import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../javascripts/modules/utils';
+import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../modules/utils';
 import './table.css';
 
 const $ = require('jquery');

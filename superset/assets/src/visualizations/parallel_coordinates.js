@@ -1,9 +1,9 @@
 import d3 from 'd3';
-import '../vendor/parallel_coordinates/d3.parcoords.css';
+import '../../vendor/parallel_coordinates/d3.parcoords.css';
 import './parallel_coordinates.css';
 
-d3.parcoords = require('../vendor/parallel_coordinates/d3.parcoords.js');
-d3.divgrid = require('../vendor/parallel_coordinates/divgrid.js');
+d3.parcoords = require('../../vendor/parallel_coordinates/d3.parcoords.js');
+d3.divgrid = require('../../vendor/parallel_coordinates/divgrid.js');
 
 const $ = require('jquery');
 

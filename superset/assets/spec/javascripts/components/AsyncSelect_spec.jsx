@@ -5,7 +5,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import AsyncSelect from '../../../javascripts/components/AsyncSelect';
+import AsyncSelect from '../../../src/components/AsyncSelect';
 
 describe('AsyncSelect', () => {
   const mockedProps = {

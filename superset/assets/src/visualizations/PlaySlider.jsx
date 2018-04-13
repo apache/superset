@@ -8,7 +8,7 @@ import 'bootstrap-slider/dist/css/bootstrap-slider.min.css';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
 import './PlaySlider.css';
 
-import { t } from '../javascripts/locales';
+import { t } from '../locales';
 
 const propTypes = {
   start: PropTypes.number.isRequired,

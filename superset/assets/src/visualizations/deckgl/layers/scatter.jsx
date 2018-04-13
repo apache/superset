@@ -10,10 +10,10 @@ import AnimatableDeckGLContainer from '../AnimatableDeckGLContainer';
 import Legend from '../../Legend';
 
 import * as common from './common';
-import { getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
-import { getPlaySliderParams } from '../../../javascripts/modules/time';
-import { unitToRadius } from '../../../javascripts/modules/geo';
-import sandboxedEval from '../../../javascripts/modules/sandbox';
+import { getColorFromScheme, hexToRGB } from '../../../modules/colors';
+import { getPlaySliderParams } from '../../../modules/time';
+import { unitToRadius } from '../../../modules/geo';
+import sandboxedEval from '../../../modules/sandbox';
 
 
 function getPoints(data) {

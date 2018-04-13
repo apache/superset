@@ -3,8 +3,8 @@
 import d3 from 'd3';
 import {
   d3TimeFormatPreset,
-} from '../javascripts/modules/utils';
-import { getColorFromScheme } from '../javascripts/modules/colors';
+} from '../modules/utils';
+import { getColorFromScheme } from '../modules/colors';
 
 import './partition.css';
 

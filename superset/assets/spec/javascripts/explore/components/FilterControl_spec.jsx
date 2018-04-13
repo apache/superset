@@ -5,8 +5,8 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import FilterControl from '../../../../javascripts/explore/components/controls/FilterControl';
-import Filter from '../../../../javascripts/explore/components/controls/Filter';
+import FilterControl from '../../../../src/explore/components/controls/FilterControl';
+import Filter from '../../../../src/explore/components/controls/Filter';
 
 const $ = window.$ = require('jquery');
 

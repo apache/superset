@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import d3 from 'd3';
-import { getColorFromScheme } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../modules/colors';
 import './chord.css';
 
 function chordViz(slice, json) {

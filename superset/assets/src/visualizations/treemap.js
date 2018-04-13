@@ -1,6 +1,6 @@
 /* eslint-disable no-shadow, no-param-reassign, no-underscore-dangle, no-use-before-define */
 import d3 from 'd3';
-import { getColorFromScheme } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../modules/colors';
 
 require('./treemap.css');
 

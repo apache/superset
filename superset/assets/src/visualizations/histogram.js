@@ -1,6 +1,6 @@
 import d3 from 'd3';
 import nv from 'nvd3';
-import { getColorFromScheme } from '../javascripts/modules/colors';
+import { getColorFromScheme } from '../modules/colors';
 
 require('./histogram.css');
 

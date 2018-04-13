@@ -2,7 +2,7 @@ import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
 import $ from 'jquery';
 
-import { d3format, fixDataTableBodyHeight } from '../javascripts/modules/utils';
+import { d3format, fixDataTableBodyHeight } from '../modules/utils';
 import './pivot_table.css';
 
 dt(window, $);

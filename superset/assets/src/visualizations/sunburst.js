@@ -1,7 +1,7 @@
 /* eslint-disable no-underscore-dangle, no-param-reassign */
 import d3 from 'd3';
-import { getColorFromScheme } from '../javascripts/modules/colors';
-import { wrapSvgText } from '../javascripts/modules/utils';
+import { getColorFromScheme } from '../modules/colors';
+import { wrapSvgText } from '../modules/utils';
 
 require('./sunburst.css');
 

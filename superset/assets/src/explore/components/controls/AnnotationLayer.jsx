@@ -462,7 +462,7 @@ export default class AnnotationLayer extends React.PureComponent {
         <SelectControl
           name="annotation-layer-stroke"
           label="Style"
-            // see '../../../../visualizations/nvd3_vis.css'
+            // see '../../../visualizations/nvd3_vis.css'
           options={[
               { value: 'solid', label: 'Solid' },
               { value: 'dashed', label: 'Dashed' },
@@ -475,7 +475,7 @@ export default class AnnotationLayer extends React.PureComponent {
         <SelectControl
           name="annotation-layer-opacity"
           label="Opacity"
-            // see '../../../../visualizations/nvd3_vis.css'
+            // see '../../../visualizations/nvd3_vis.css'
           options={[
               { value: '', label: 'Solid' },
               { value: 'opacityLow', label: '0.2' },

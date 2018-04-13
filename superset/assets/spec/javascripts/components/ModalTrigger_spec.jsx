@@ -2,7 +2,7 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import ModalTrigger from '../../../javascripts/components/ModalTrigger';
+import ModalTrigger from '../../../src/components/ModalTrigger';
 
 describe('ModalTrigger', () => {
   const defaultProps = {

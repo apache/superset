@@ -1,11 +1,11 @@
 import d3 from 'd3';
 
-import { colorScalerFactory } from '../javascripts/modules/colors';
-import CalHeatMap from '../vendor/cal-heatmap/cal-heatmap';
-import '../vendor/cal-heatmap/cal-heatmap.css';
-import { d3TimeFormatPreset, d3FormatPreset } from '../javascripts/modules/utils';
+import { colorScalerFactory } from '../modules/colors';
+import CalHeatMap from '../../vendor/cal-heatmap/cal-heatmap';
+import '../../vendor/cal-heatmap/cal-heatmap.css';
+import { d3TimeFormatPreset, d3FormatPreset } from '../modules/utils';
 import './cal_heatmap.css';
-import { UTC } from '../javascripts/modules/dates';
+import { UTC } from '../modules/dates';
 
 const UTCTS = uts => UTC(new Date(uts)).getTime();
 

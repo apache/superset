@@ -9,7 +9,7 @@ import {
   EVENT_NAME,
   ENTITY_ID,
 } from '@data-ui/event-flow';
-import { t } from '../javascripts/locales';
+import { t } from '../locales';
 
 /*
  * This function takes the slice object and json payload as input and renders a
