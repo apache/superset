@@ -227,12 +227,7 @@ describe('FilterControl', () => {
     // Sets active to null after success
     $.ajax.getCall(0).args[0].success(['opt1', 'opt2', null, '']);
     expect(wrapper.state().filters[0].valuesLoading).to.equal(false);
-    expect(wrapper.state().filters[0].valueChoices).to.deep.equal([
-      { value: 'opt1', label: 'opt1' },
-      { value: 'opt2', label: 'opt2' },
-      { value: '<NULL>', label: '<NULL>' },
-      { value: '', label: '<empty string>' },
-    ]);
+    expect(wrapper.state().filters[0].valueChoices).to.deep.equal(['opt1', 'opt2', null, '']);
     expect(wrapper.state().activeRequest).to.equal(null);
   });
 

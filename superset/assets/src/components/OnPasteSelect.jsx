@@ -2,31 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 
-
-function optionLabel(opt) {
-  if (opt === null) {
-    return '<NULL>';
-  } else if (opt === '') {
-    return '<empty string>';
-  } else if (opt === true) {
-    return '<true>';
-  } else if (opt === '') {
-    return '<false>';
-  }
-  return opt;
-}
-function optionValue(opt) {
-  if (opt === null) {
-    return '<NULL>';
-  }
-  return opt;
-}
-function optionFromValue(opt) {
-  // From a list of options, handles special values & labels
-  return { value: optionValue(opt), label: optionLabel(opt) };
-}
-
-
 export default class OnPasteSelect extends React.Component {
   onPaste(evt) {
     if (!this.props.multi) {
@@ -80,7 +55,6 @@ export default class OnPasteSelect extends React.Component {
       this.pasteInput = ref;
     };
     const inputProps = { onPaste: this.onPaste.bind(this) };
-    console.log(this.props);
     return (
       <SelectComponent
         {...this.props}

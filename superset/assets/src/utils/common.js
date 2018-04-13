@@ -113,6 +113,8 @@ export function optionLabel(opt) {
     return '<true>';
   } else if (opt === false) {
     return '<false>';
+  } else if (typeof opt !== 'string' && opt.toString) {
+    return opt.toString();
   }
   return opt;
 }

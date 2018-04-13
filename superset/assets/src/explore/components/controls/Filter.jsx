@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import { t } from '../../../locales';
-import OnPasteSelect from '../../../components/OnPasteSelect';
 import SelectControl from './SelectControl';
 
 const operatorsArr = [
