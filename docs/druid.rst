@@ -1,16 +1,14 @@
 Druid
 =====
 
-Superset works well with Druid, though currently not all
-advanced features out of Druid are covered. This page clarifies what is
-covered and what isn't and explains how to use some of the features.
+Superset has a native connector to Druid, and a majority of Druid's
+features are accessible through Superset.
 
 .. note ::
-    Currently Airbnb runs against Druid ``0.8.x`` and previous /
-    following versions are not tested against.
-
-Supported
-'''''''''
+    Druid now supports SQL and can be accessed through Superset's
+    SQLAlchemy connector. The long term vision is to deprecate
+    the Druid native REST connector and query Druid exclusively through
+    the SQL interface.
 
 Aggregations
 ------------
@@ -28,7 +26,7 @@ element correspond to Druid aggregation definition. You can create your own
 aggregations manually from the ``List Druid Metric`` tab following Druid
 documentation.
 
-.. image:: _static/img/druid_agg.png
+.. image:: images/druid_agg.png
    :scale: 50 %
 
 Post-Aggregations
@@ -41,8 +39,9 @@ json post-aggregation definition (as specified in the Druid docs) in the
 Json field.
 
 
-Not yet supported
-'''''''''''''''''
+Unsupported Features
+--------------------
 
-- Regex filters
-- Lookups / joins
+.. note ::
+    Unclear at this point, this section of the documentation could use
+    some input.
