@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import $ from 'jquery';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 
 import CssEditor from './CssEditor';
@@ -9,10 +10,10 @@ import SliceAdder from './SliceAdder';
 import { t } from '../../locales';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
-const $ = window.$ = require('jquery');
-
 const propTypes = {
-  dashboard: PropTypes.object.isRequired,
+  dashboardInfo: PropTypes.object.isRequired,
+  dashboardTitle: PropTypes.string.isRequired,
+  layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   slices: PropTypes.array,
   userId: PropTypes.string.isRequired,
@@ -20,7 +21,6 @@ const propTypes = {
   onSave: PropTypes.func,
   onChange: PropTypes.func,
   renderSlices: PropTypes.func,
-  serialize: PropTypes.func,
   startPeriodicRender: PropTypes.func,
   editMode: PropTypes.bool,
 };
@@ -60,7 +60,7 @@ class Controls extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      css: props.dashboard.css || '',
+      css: '',
       cssTemplates: [],
     };
     this.refresh = this.refresh.bind(this);
@@ -114,12 +114,12 @@ class Controls extends React.PureComponent {
     }
   }
   render() {
-    const { dashboard, userId, filters,
-      addSlicesToDashboard, startPeriodicRender,
-      serialize, onSave, editMode } = this.props;
+    const { dashboardTitle, layout, userId, filters,
+      addSlicesToDashboard, startPeriodicRender, onSave,
+      editMode } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
-      + `${dashboard.dashboard_title}&Body=${emailBody}`;
+      + `${dashboardTitle}&Body=${emailBody}`;
     let saveText = t('Save as');
     if (editMode) {
       saveText = t('Save');
@@ -144,9 +144,9 @@ class Controls extends React.PureComponent {
             }
           />
           <SaveModal
-            dashboard={dashboard}
+            dashboard={this.props.dashboardInfo}
+            layout={layout}
             filters={filters}
-            serialize={serialize}
             onSave={onSave}
             css={this.state.css}
             triggerNode={
@@ -162,7 +162,7 @@ class Controls extends React.PureComponent {
               text={t('Edit properties')}
               tooltip={t("Edit the dashboards's properties")}
               faIcon="edit"
-              onClick={() => { window.location = `/dashboardmodelview/edit/${dashboard.id}`; }}
+              onClick={() => { window.location = `/dashboardmodelview/edit/${this.props.dashboardInfo.id}`; }}
             />
           }
           {editMode &&
@@ -175,7 +175,6 @@ class Controls extends React.PureComponent {
           }
           {editMode &&
             <SliceAdder
-              dashboard={dashboard}
               addSlicesToDashboard={addSlicesToDashboard}
               userId={userId}
               triggerNode={

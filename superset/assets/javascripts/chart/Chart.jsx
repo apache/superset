@@ -17,7 +17,7 @@ import './chart.css';
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
-  chartKey: PropTypes.string.isRequired,
+  chartId: PropTypes.number.isRequired,
   containerId: PropTypes.string.isRequired,
   datasource: PropTypes.object.isRequired,
   formData: PropTypes.object.isRequired,
@@ -42,7 +42,6 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
-  clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   onQuery: PropTypes.func,
   onDismissRefreshOverlay: PropTypes.func,
@@ -51,7 +50,6 @@ const propTypes = {
 const defaultProps = {
   addFilter: () => ({}),
   getFilters: () => ({}),
-  clearFilter: () => ({}),
   removeFilter: () => ({}),
 };
 
@@ -67,7 +65,6 @@ class Chart extends React.PureComponent {
     this.datasource = props.datasource;
     this.addFilter = this.addFilter.bind(this);
     this.getFilters = this.getFilters.bind(this);
-    this.clearFilter = this.clearFilter.bind(this);
     this.removeFilter = this.removeFilter.bind(this);
     this.headerHeight = this.headerHeight.bind(this);
     this.height = this.height.bind(this);
@@ -78,7 +75,7 @@ class Chart extends React.PureComponent {
     if (this.props.triggerQuery) {
       this.props.actions.runQuery(this.props.formData, false,
         this.props.timeout,
-        this.props.chartKey,
+        this.props.chartId,
       );
     }
   }
@@ -116,10 +113,6 @@ class Chart extends React.PureComponent {
 
   addFilter(col, vals, merge = true, refresh = true) {
     this.props.addFilter(col, vals, merge, refresh);
-  }
-
-  clearFilter() {
-    this.props.clearFilter();
   }
 
   removeFilter(col, vals, refresh = true) {
@@ -192,15 +185,15 @@ class Chart extends React.PureComponent {
       // [re]rendering the visualization
       viz(this, qr, this.props.setControlValue);
       Logger.append(LOG_ACTIONS_RENDER_EVENT, {
-        label: this.props.chartKey,
+        label: 'slice_' + this.props.chartId,
         vis_type: this.props.vizType,
         start_offset: renderStart,
         duration: Logger.getTimestamp() - renderStart,
       });
-      this.props.actions.chartRenderingSucceeded(this.props.chartKey);
+      this.props.actions.chartRenderingSucceeded(this.props.chartId);
     } catch (e) {
       console.error(e);  // eslint-disable-line
-      this.props.actions.chartRenderingFailed(e, this.props.chartKey);
+      this.props.actions.chartRenderingFailed(e, this.props.chartId);
     }
   }
 

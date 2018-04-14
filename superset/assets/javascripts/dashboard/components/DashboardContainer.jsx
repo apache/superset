@@ -1,28 +1,34 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import * as dashboardActions from '../actions';
+import * as dashboardActions from '../actions/dashboard';
+import { saveSliceName } from '../actions/sliceEntities';
 import * as chartActions from '../../chart/chartAction';
-import Dashboard from '../v2/components/Dashboard';
+import Dashboard from './Dashboard';
 
-function mapStateToProps(/* { charts, dashboard, impressionId } */) {
+function mapStateToProps({ datasources, sliceEntities, charts,
+                           dashboardInfo, dashboardState,
+                           dashboardLayout, impressionId }) {
   return {
-    // initMessages: dashboard.common.flash_messages,
-    // timeout: dashboard.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    // dashboard: dashboard.dashboard,
-    // slices: charts,
-    // datasources: dashboard.datasources,
-    // filters: dashboard.filters,
-    // refresh: !!dashboard.refresh,
-    // userId: dashboard.userId,
-    // isStarred: !!dashboard.isStarred,
-    // editMode: dashboard.editMode,
-    // impressionId,
+    initMessages: dashboardInfo.common.flash_messages,
+    timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
+    userId: dashboardInfo.userId,
+    dashboardInfo,
+    dashboardState,
+    charts,
+    datasources,
+    slices: sliceEntities,
+    layout: dashboardLayout.present,
+    impressionId,
   };
 }
 
 function mapDispatchToProps(dispatch) {
-  const actions = { ...chartActions, ...dashboardActions };
+  const actions = {
+    ...chartActions,
+    ...dashboardActions,
+    saveSliceName,
+  };
   return {
     actions: bindActionCreators(actions, dispatch),
   };

@@ -71,7 +71,7 @@ class DashboardGrid extends React.PureComponent {
   }
 
   render() {
-    const { gridComponent, handleComponentDrop, depth, editMode } = this.props;
+    const { gridComponent, handleComponentDrop, depth, editMode, cells } = this.props;
     const { isResizing, rowGuideTop } = this.state;
 
     return (
@@ -93,6 +93,7 @@ class DashboardGrid extends React.PureComponent {
                     index={index}
                     availableColumnCount={GRID_COLUMN_COUNT}
                     columnWidth={columnWidth}
+                    cells={cells}
                     onResizeStart={this.handleResizeStart}
                     onResize={this.handleResize}
                     onResizeStop={this.handleResizeStop}

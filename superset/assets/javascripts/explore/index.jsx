@@ -47,7 +47,7 @@ const chartKey = getChartKey(bootstrappedState);
 const initState = {
   charts: {
     [chartKey]: {
-      chartKey,
+      id: chartKey,
       chartAlert: null,
       chartStatus: 'loading',
       chartUpdateEndTime: null,

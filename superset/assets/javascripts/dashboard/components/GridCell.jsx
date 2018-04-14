@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 
 import SliceHeader from './SliceHeader';
 import ChartContainer from '../../chart/ChartContainer';
+import { slicePropShape } from '../v2/util/propShapes';
 
 import '../../../stylesheets/dashboard.css';
 
@@ -16,8 +17,8 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
-  slice: PropTypes.object,
-  chartKey: PropTypes.string,
+  slice: slicePropShape.isRequired,
+  chartId: PropTypes.number.isRequired,
   formData: PropTypes.object,
   filters: PropTypes.object,
   forceRefresh: PropTypes.func,
@@ -28,7 +29,6 @@ const propTypes = {
   exportCSV: PropTypes.func,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
-  clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   editMode: PropTypes.bool,
   annotationQuery: PropTypes.object,
@@ -43,7 +43,6 @@ const defaultProps = {
   exportCSV: () => ({}),
   addFilter: () => ({}),
   getFilters: () => ({}),
-  clearFilter: () => ({}),
   removeFilter: () => ({}),
   editMode: false,
 };
@@ -55,7 +54,6 @@ class GridCell extends React.PureComponent {
     const sliceId = this.props.slice.slice_id;
     this.addFilter = this.props.addFilter.bind(this, sliceId);
     this.getFilters = this.props.getFilters.bind(this, sliceId);
-    this.clearFilter = this.props.clearFilter.bind(this, sliceId);
     this.removeFilter = this.props.removeFilter.bind(this, sliceId);
   }
 
@@ -92,7 +90,7 @@ class GridCell extends React.PureComponent {
     const {
       isExpanded, isLoading, isCached, cachedDttm,
       removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
-      chartKey, slice, datasource, formData, timeout, annotationQuery,
+      chartId, slice, datasource, formData, timeout, annotationQuery,
       exploreChart, exportCSV,
     } = this.props;
     return (
@@ -132,17 +130,16 @@ class GridCell extends React.PureComponent {
           <input type="hidden" value="false" />
           <ChartContainer
             containerId={`slice-container-${slice.slice_id}`}
-            chartKey={chartKey}
+            chartId={chartId}
             datasource={datasource}
             formData={formData}
             headerHeight={this.headerHeight(slice)}
             height={this.height(slice)}
             width={this.width()}
             timeout={timeout}
-            vizType={slice.formData.viz_type}
+            vizType={slice.viz_type}
             addFilter={this.addFilter}
             getFilters={this.getFilters}
-            clearFilter={this.clearFilter}
             removeFilter={this.removeFilter}
           />
         </div>
