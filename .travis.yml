@@ -7,14 +7,12 @@ cache:
   - pip
 env:
   - TOXENV=javascript
-  - TOXENV=py27-flake8
+  - TOXENV=flake8
   - TOXENV=py27-mysql
   - TOXENV=py27-sqlite
-  - TOXENV=py27-pylint
-  - TOXENV=py34-flake8
   - TOXENV=py34-postgres
-  - TOXENV=py34-pylint
   - TOXENV=py34-sqlite
+  - TOXENV=pylint
 before_script:
   - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
