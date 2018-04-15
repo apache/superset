@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
-"""The main config file for Superset
-
-All configuration in this file can be overridden by providing a superset_config
-in your PYTHONPATH as there is a ``from superset_config import *``
-at the end of this file.
-"""
+"""The main config file for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import OrderedDict
-import imp
 import json
 import os
-import sys
 
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
@@ -323,8 +316,6 @@ JINJA_CONTEXT_ADDONS = {}
 # by humans.
 ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
-CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
-
 # If a callable is specified, it will be called at app startup while passing
 # a reference to the Flask app. This can be used to alter the Flask app
 # in whatever way.
@@ -411,25 +402,3 @@ SQL_QUERY_MUTATOR = None
 # When not using gunicorn, (nginx for instance), you may want to disable
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
-
-try:
-    if CONFIG_PATH_ENV_VAR in os.environ:
-        # Explicitly import config module that is not in pythonpath; useful
-        # for case where app is being executed via pex.
-        print('Loaded your LOCAL configuration at [{}]'.format(
-            os.environ[CONFIG_PATH_ENV_VAR]))
-        module = sys.modules[__name__]
-        override_conf = imp.load_source(
-            'superset_config',
-            os.environ[CONFIG_PATH_ENV_VAR])
-        for key in dir(override_conf):
-            if key.isupper():
-                setattr(module, key, getattr(override_conf, key))
-
-    else:
-        from superset_config import *  # noqa
-        import superset_config
-        print('Loaded your LOCAL configuration at [{}]'.format(
-            superset_config.__file__))
-except ImportError:
-    pass

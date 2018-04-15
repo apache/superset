@@ -167,7 +167,7 @@ in that context. Also note that the development web
 server (`superset runserver -d`) is not intended for production use.
 
 If not using gunicorn, you may want to disable the use of flask-compress
-by setting `ENABLE_FLASK_COMPRESS = False` in your `superset_config.py`
+by setting `ENABLE_FLASK_COMPRESS = False` in your config file.
 
 Flask-AppBuilder Permissions
 ----------------------------
@@ -183,7 +183,7 @@ by setting the :envvar:`SUPERSET_UPDATE_PERMS` environment variable to `0`.
 The value `1` enables it, `0` disables it. Note if undefined the functionality
 is enabled to maintain backwards compatibility.
 
-In a production environment initialization could take on the following form:
+In a production environment initialization could take on the following form: ::
 
   export SUPERSET_UPDATE_PERMS=1
   superset init
@@ -213,8 +213,13 @@ For the Apache webserver this can be set as follows: ::
 Configuration
 -------------
 
-To configure your application, you need to create a file (module)
-``superset_config.py`` and make sure it is in your PYTHONPATH. Here are some
+You can configure your application by overriding the default values with the
+contents of the file the ``SUPERSET_CONFIG_FILE`` environment variable points
+to, i.e., ::
+
+    export SUPERSET_CONFIG_FILE=/path/to/config/file
+
+Note the file is typically named ``superset.conf``. Here are some
 of the parameters you can copy / paste in that configuration module: ::
 
     #---------------------------------------------------------
@@ -250,12 +255,12 @@ of the parameters you can copy / paste in that configuration module: ::
 
 All the parameters and default values defined in
 https://github.com/apache/incubator-superset/blob/master/superset/config.py
-can be altered in your local ``superset_config.py`` .
+can be altered in your local config file.
 Administrators will want to
 read through the file to understand what can be configured locally
 as well as the default values in place.
 
-Since ``superset_config.py`` acts as a Flask configuration module, it
+Since the config file acts as a Flask configuration module, it
 can be used to alter the settings Flask itself,
 as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
 ``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
@@ -341,7 +346,7 @@ Caching
 
 Superset uses `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ for
 caching purpose. Configuring your caching backend is as easy as providing
-a ``CACHE_CONFIG``, constant in your ``superset_config.py`` that
+a ``CACHE_CONFIG``, constant in your config file that
 complies with the Flask-Cache specifications.
 
 Flask-Cache supports multiple caching backends (Redis, Memcached,
@@ -356,7 +361,7 @@ For setting your timeouts, this is done in the Superset metadata and goes
 up the "timeout searchpath", from your slice configuration, to your
 data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
-	
+
 .. code-block:: python
 
     CACHE_CONFIG = {
@@ -462,7 +467,7 @@ The extra CORS Dependency must be installed:
     superset[cors]
 
 
-The following keys in `superset_config.py` can be specified to configure CORS:
+The following keys in the config file can be specified to configure CORS:
 
 
 * ``ENABLE_CORS``: Must be set to True in order to enable CORS
@@ -473,7 +478,7 @@ MIDDLEWARE
 ----------
 
 Superset allows you to add your own middleware. To add your own middleware, update the ``ADDITIONAL_MIDDLEWARE`` key in
-your `superset_config.py`. ``ADDITIONAL_MIDDLEWARE`` should be a list of your additional middleware classes.
+your config file. ``ADDITIONAL_MIDDLEWARE`` should be a list of your additional middleware classes.
 
 For example, to use AUTH_REMOTE_USER from behind a proxy server like nginx, you have to add a simple middleware class to
 add the value of ``HTTP_X_PROXY_REMOTE_USER`` (or any other custom header from the proxy) to Gunicorn's ``REMOTE_USER``
@@ -525,7 +530,7 @@ necessary to configure an asynchronous backend for Superset which consist of:
   results
 
 Configuring Celery requires defining a ``CELERY_CONFIG`` in your
-``superset_config.py``. Both the worker and web server processes should
+config file. Both the worker and web server processes should
 have the same configuration.
 
 .. code-block:: python
@@ -544,10 +549,10 @@ To start a Celery worker to leverage the configuration run: ::
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
-configuration key in your ``superset_config.py``. It's possible to use
+configuration key in your config file. It's possible to use
 Memcached, Redis, S3 (https://pypi.python.org/pypi/s3werkzeugcache),
 memory or the file system (in a single server-type setup or for testing),
-or to write your own caching interface. Your ``superset_config.py`` may
+or to write your own caching interface. Your config file may
 look something like:
 
 .. code-block:: python
@@ -637,7 +642,7 @@ Superset is instrumented to log events to StatsD if desired. Most endpoints hit
 are logged as well as key events like query start and end in SQL Lab.
 
 To setup StatsD logging, it's a matter of configuring the logger in your
-``superset_config.py``.
+config file.
 
 .. code-block:: python
 

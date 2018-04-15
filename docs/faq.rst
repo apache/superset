@@ -69,7 +69,7 @@ There are many reasons may cause long query timing out.
 
   ``superset runserver -t 300``
 
-- If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response from Superset server (which is processing long queries), these web servers will send 504 status code to clients directly. Superset has a client-side timeout limit to address this issue. If query didn't come back within clint-side timeout (60 seconds by default), Superset will display warning message to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change the timeout settings in ``superset_config.py``:
+- If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response from Superset server (which is processing long queries), these web servers will send 504 status code to clients directly. Superset has a client-side timeout limit to address this issue. If query didn't come back within clint-side timeout (60 seconds by default), Superset will display warning message to avoid gateway timeout message. If you have a longer gateway timeout limit, you can change the timeout settings in the config file:
 
   ``SUPERSET_WEBSERVER_TIMEOUT = 60``
 
@@ -78,7 +78,7 @@ Why is the map not visible in the mapbox visualization?
 -------------------------------------------------------
 
 You need to register to mapbox.com, get an API key and configure it as
-``MAPBOX_API_KEY`` in ``superset_config.py``.
+``MAPBOX_API_KEY`` in the config file.
 
 
 How to add dynamic filters to a dashboard?
@@ -177,7 +177,7 @@ __ https://www.sqlite.org/lockingv3.html
 
 You can override this path using the ``SUPERSET_HOME`` environment variable.
 
-Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db'`` in superset_config.py (create the file if needed), then adding the directory where superset_config.py lives to PYTHONPATH environment variable (e.g. ``export PYTHONPATH=/opt/logs/sandbox/airbnb/``).
+Another work around is to change where superset stores the sqlite database by adding ``SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db'`` in the config file.
 
 What if the table schema changed?
 ---------------------------------

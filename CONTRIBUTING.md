@@ -349,7 +349,7 @@ underscore `_` "function".
 We use `import {t, tn, TCT} from locales;` in js, JSX file, locales is in `./superset/assets/javascripts/` directory.
 
 To enable changing language in your environment, you can simply add the
-`LANGUAGES` parameter to your `superset_config.py`. Having more than one
+`LANGUAGES` parameter to your config file. Having more than one
 options here will add a language selection dropdown on the right side of the
 navigation bar.
 

@@ -23,7 +23,6 @@ from superset.connectors.connector_registry import ConnectorRegistry
 from superset.security import SupersetSecurityManager
 
 APP_DIR = os.path.dirname(__file__)
-CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
 if not os.path.exists(config.DATA_DIR):
     os.makedirs(config.DATA_DIR)
@@ -32,7 +31,8 @@ with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
     frontend_config = json.load(f)
 
 app = Flask(__name__)
-app.config.from_object(CONFIG_MODULE)
+app.config.from_object('superset.config')
+app.config.from_envvar('SUPERSET_CONFIG_FILE', silent=True)
 conf = app.config
 
 #################################################################
