@@ -7,10 +7,10 @@ from __future__ import unicode_literals
 import textwrap
 
 from sqlalchemy.engine.url import make_url
-from tests.base_tests import SupersetTestCase
 
 from superset import db
 from superset.models.core import Database
+from .base_tests import SupersetTestCase
 
 
 class DatabaseModelTestCase(SupersetTestCase):

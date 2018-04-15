@@ -10,10 +10,9 @@ import unittest
 from mock import Mock, patch
 import pandas as pd
 
-from tests.utils import load_fixture
-
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
+from .utils import load_fixture
 
 
 class BaseVizTestCase(unittest.TestCase):
