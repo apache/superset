@@ -746,7 +746,7 @@ class CalHeatmapViz(BaseViz):
         start = utils.parse_human_datetime(form_data.get('since'))
         end = utils.parse_human_datetime(form_data.get('until'))
         if not start or not end:
-            raise Exception("Please provide both time bounds (Since and Until)")
+            raise Exception('Please provide both time bounds (Since and Until)')
         domain = form_data.get('domain_granularity')
         diff_delta = rdelta.relativedelta(end, start)
         diff_secs = (end - start).total_seconds()
