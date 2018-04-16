@@ -75,6 +75,7 @@ export default class SpatialControl extends React.Component {
       }
     } else if (type === spatialTypes.geohash) {
       value.geohashCol = this.state.geohashCol;
+      value.reverseCheckbox = this.state.reverseCheckbox;
       if (!value.geohashCol) {
         errors.push(errMsg);
       }
@@ -168,6 +169,10 @@ export default class SpatialControl extends React.Component {
               <Col md={6}>
                 Column
                 {this.renderSelect('geohashCol', spatialTypes.geohash)}
+              </Col>
+              <Col md={6}>
+                {t('Reverse lat/long ')}
+                <Checkbox checked={this.state.reverseCheckbox} onChange={this.toggleCheckbox} />
               </Col>
             </Row>
           </PopoverSection>

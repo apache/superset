@@ -4,8 +4,8 @@ import { fitBounds } from 'viewport-mercator-project';
 import sandboxedEval from '../../../javascripts/modules/sandbox';
 
 export function getBounds(points) {
-  const latExt = d3.extent(points, d => d[1]);
-  const lngExt = d3.extent(points, d => d[0]);
+  const latExt = d3.extent(points, d => d[1] ? d[1] : null);
+  const lngExt = d3.extent(points, d => d[0] ? d[0] : null);
   return [
     [lngExt[0], latExt[0]],
     [lngExt[1], latExt[1]],
