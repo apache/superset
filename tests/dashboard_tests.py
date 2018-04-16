@@ -304,8 +304,8 @@ class DashboardTests(SupersetTestCase):
         )
         if not dash:
             dash = models.Dashboard()
-            dash.dashboard_title = "Empty Dashboard"
-            dash.slug = "empty_dashboard"
+            dash.dashboard_title = 'Empty Dashboard'
+            dash.slug = 'empty_dashboard'
         else:
             dash.slices = []
             dash.owners = []
