@@ -496,7 +496,7 @@ export default function nvd3Vis(slice, payload) {
 
       // match number of ticks in both axes
       const difference = ticks1.length - ticks2.length;
-      if (difference !== 0) {
+      if (ticks1.length && ticks2.length && difference !== 0) {
         const smallest = difference < 0 ? ticks1 : ticks2;
         const delta = smallest[1] - smallest[0];
         for (let i = 0; i < Math.abs(difference); i++) {
@@ -506,12 +506,11 @@ export default function nvd3Vis(slice, payload) {
             smallest.push(smallest[smallest.length - 1] + delta);
           }
         }
+        chart.yDomain1([ticks1[0], ticks1[ticks1.length - 1]]);
+        chart.yDomain2([ticks2[0], ticks2[ticks2.length - 1]]);
+        chart.yAxis1.tickValues(ticks1);
+        chart.yAxis2.tickValues(ticks2);
       }
-
-      chart.yDomain1([ticks1[0], ticks1[ticks1.length - 1]]);
-      chart.yDomain2([ticks2[0], ticks2[ticks2.length - 1]]);
-      chart.yAxis1.tickValues(ticks1);
-      chart.yAxis2.tickValues(ticks2);
     }
 
     if (fd.show_markers) {
