@@ -488,6 +488,32 @@ export default function nvd3Vis(slice, payload) {
     .attr('width', width)
     .call(chart);
 
+    // align yAxis1 and yAxis2 ticks
+    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+      const count = chart.yAxis1.ticks();
+      const ticks1 = chart.yAxis1.scale().domain(chart.yAxis1.domain()).nice(count).ticks(count);
+      const ticks2 = chart.yAxis2.scale().domain(chart.yAxis2.domain()).nice(count).ticks(count);
+
+      // match number of ticks in both axes
+      const difference = ticks1.length - ticks2.length;
+      if (difference !== 0) {
+        const smallest = difference < 0 ? ticks1 : ticks2;
+        const delta = smallest[1] - smallest[0];
+        for (let i = 0; i < Math.abs(difference); i++) {
+          if (i % 2 === 0) {
+            smallest.unshift(smallest[0] - delta);
+          } else {
+            smallest.push(smallest[smallest.length - 1] + delta);
+          }
+        }
+      }
+
+      chart.yDomain1([ticks1[0], ticks1[ticks1.length - 1]]);
+      chart.yDomain2([ticks2[0], ticks2[ticks2.length - 1]]);
+      chart.yAxis1.tickValues(ticks1);
+      chart.yAxis2.tickValues(ticks2);
+    }
+
     if (fd.show_markers) {
       svg.selectAll('.nv-point')
       .style('stroke-opacity', 1)
