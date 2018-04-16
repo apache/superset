@@ -1,8 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-  Button, ButtonGroup, FormControl, InputGroup,
-  Label, OverlayTrigger, Popover, Glyphicon,
+  Button,
+  ButtonGroup,
+  FormControl,
+  Glyphicon,
+  InputGroup,
+  Label,
+  OverlayTrigger,
+  Popover,
+  Tab,
+  Tabs,
 } from 'react-bootstrap';
 import Select from 'react-select';
 import Datetime from 'react-datetime';
@@ -91,103 +99,110 @@ export default class DateFilterControl extends React.Component {
     return (
       <Popover id="filter-popover">
         <div style={{ width: '250px' }}>
-          <PopoverSection
-            title="Fixed"
-            isSelected={this.state.type === 'fix'}
-            onSelect={this.setType.bind(this, 'fix')}
-          >
-            <InputGroup bsSize="small">
-              <InputGroup.Addon>
-                <Glyphicon glyph="calendar" />
-              </InputGroup.Addon>
-              <Datetime
-                inputProps={{ className: 'form-control input-sm' }}
-                dateFormat="YYYY-MM-DD"
-                defaultValue={this.state.dttm}
-                onFocus={this.setType.bind(this, 'fix')}
-                onChange={this.setDatetime.bind(this)}
-                timeFormat="h:mm:ss"
-              />
-            </InputGroup>
-          </PopoverSection>
-          <PopoverSection
-            title="Relative"
-            isSelected={this.state.type === 'rel'}
-            onSelect={this.setType.bind(this, 'rel')}
-          >
-            <div className="clearfix">
-              <div style={{ width: '50px' }} className="input-inline">
-                <FormControl
-                  onFocus={this.setType.bind(this, 'rel')}
-                  value={this.state.num}
-                  onChange={this.onNumberChange.bind(this)}
-                  bsSize="small"
-                />
-              </div>
-              <div style={{ width: '95px' }} className="input-inline">
-                <Select
-                  onFocus={this.setType.bind(this, 'rel')}
-                  value={this.state.grain}
-                  clearable={false}
-                  options={TIME_GRAIN_OPTIONS.map(s => ({ label: s, value: s }))}
-                  onChange={this.onControlChange.bind(this, 'grain')}
-                />
-              </div>
-              <div style={{ width: '95px' }} className="input-inline">
-                <Select
-                  value={this.state.rel}
-                  onFocus={this.setType.bind(this, 'rel')}
-                  clearable={false}
-                  options={RELATIVE_TIME_OPTIONS.map(s => ({ label: s, value: s }))}
-                  onChange={this.onControlChange.bind(this, 'rel')}
-                />
-              </div>
-            </div>
-          </PopoverSection>
-          <PopoverSection
-            title="Free form"
-            isSelected={this.state.type === 'free'}
-            onSelect={this.setType.bind(this, 'free')}
-            info={
+          <Tabs defaultActiveKey={2} id="uncontrolled-tab-example" bsStyle="pills">
+            <Tab eventKey={1} title="Relative">
+            Tab 1 content
+          </Tab>
+            <Tab eventKey={2} title="Fixed/Freeform">
+              <PopoverSection
+                title="Fixed"
+                isSelected={this.state.type === 'fix'}
+                onSelect={this.setType.bind(this, 'fix')}
+              >
+                <InputGroup bsSize="small">
+                  <InputGroup.Addon>
+                    <Glyphicon glyph="calendar" />
+                  </InputGroup.Addon>
+                  <Datetime
+                    inputProps={{ className: 'form-control input-sm' }}
+                    dateFormat="YYYY-MM-DD"
+                    defaultValue={this.state.dttm}
+                    onFocus={this.setType.bind(this, 'fix')}
+                    onChange={this.setDatetime.bind(this)}
+                    timeFormat="h:mm:ss"
+                  />
+                </InputGroup>
+              </PopoverSection>
+              <PopoverSection
+                title="Relative"
+                isSelected={this.state.type === 'rel'}
+                onSelect={this.setType.bind(this, 'rel')}
+              >
+                <div className="clearfix">
+                  <div style={{ width: '50px' }} className="input-inline">
+                    <FormControl
+                      onFocus={this.setType.bind(this, 'rel')}
+                      value={this.state.num}
+                      onChange={this.onNumberChange.bind(this)}
+                      bsSize="small"
+                    />
+                  </div>
+                  <div style={{ width: '95px' }} className="input-inline">
+                    <Select
+                      onFocus={this.setType.bind(this, 'rel')}
+                      value={this.state.grain}
+                      clearable={false}
+                      options={TIME_GRAIN_OPTIONS.map(s => ({ label: s, value: s }))}
+                      onChange={this.onControlChange.bind(this, 'grain')}
+                    />
+                  </div>
+                  <div style={{ width: '95px' }} className="input-inline">
+                    <Select
+                      value={this.state.rel}
+                      onFocus={this.setType.bind(this, 'rel')}
+                      clearable={false}
+                      options={RELATIVE_TIME_OPTIONS.map(s => ({ label: s, value: s }))}
+                      onChange={this.onControlChange.bind(this, 'rel')}
+                    />
+                  </div>
+                </div>
+              </PopoverSection>
+              <PopoverSection
+                title="Free form"
+                isSelected={this.state.type === 'free'}
+                onSelect={this.setType.bind(this, 'free')}
+                info={
               'Superset supports smart date parsing. Strings like `last sunday` or ' +
               '`last october` can be used.'
             }
-          >
-            <FormControl
-              onFocus={this.setType.bind(this, 'free')}
-              value={this.state.free}
-              onChange={this.onFreeChange.bind(this)}
-              bsSize="small"
-            />
-          </PopoverSection>
-          <div className="clearfix">
-            <Button
-              bsSize="small"
-              className="float-left ok"
-              bsStyle="primary"
-              onClick={this.close.bind(this)}
-            >
+              >
+                <FormControl
+                  onFocus={this.setType.bind(this, 'free')}
+                  value={this.state.free}
+                  onChange={this.onFreeChange.bind(this)}
+                  bsSize="small"
+                />
+              </PopoverSection>
+              <div className="clearfix">
+                <Button
+                  bsSize="small"
+                  className="float-left ok"
+                  bsStyle="primary"
+                  onClick={this.close.bind(this)}
+                >
               Ok
             </Button>
-            <ButtonGroup
-              className="float-right"
-            >
-              <Button
-                bsSize="small"
-                className="now"
-                onClick={this.setValueAndClose.bind(this, 'now')}
-              >
+                <ButtonGroup
+                  className="float-right"
+                >
+                  <Button
+                    bsSize="small"
+                    className="now"
+                    onClick={this.setValueAndClose.bind(this, 'now')}
+                  >
                 now
               </Button>
-              <Button
-                bsSize="small"
-                className="clear"
-                onClick={this.setValueAndClose.bind(this, '')}
-              >
+                  <Button
+                    bsSize="small"
+                    className="clear"
+                    onClick={this.setValueAndClose.bind(this, '')}
+                  >
                 clear
               </Button>
-            </ButtonGroup>
-          </div>
+                </ButtonGroup>
+              </div>
+            </Tab>
+          </Tabs>
         </div>
       </Popover>
     );
