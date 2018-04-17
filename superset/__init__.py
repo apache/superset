@@ -78,7 +78,9 @@ for bp in conf.get('BLUEPRINTS'):
 if conf.get('SILENCE_FAB'):
     logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
-if not app.debug:
+if app.debug:
+    app.logger.setLevel(logging.DEBUG)
+else:
     # In production mode, add log handler to sys.stderr.
     app.logger.addHandler(logging.StreamHandler())
     app.logger.setLevel(logging.INFO)

@@ -47,6 +47,10 @@ logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
+ADHOC_METRIC_EXPRESSION_TYPES = {
+    'SIMPLE': 'SIMPLE',
+    'SQL': 'SQL',
+}
 
 JS_MAX_INTEGER = 9007199254740991   # Largest int Java Script can handle 2^53-1
 
@@ -804,10 +808,21 @@ def get_or_create_main_db():
 
 
 def is_adhoc_metric(metric):
-    return (isinstance(metric, dict) and
-            metric['column'] and
-            metric['aggregate'] and
-            metric['label'])
+    return (
+        isinstance(metric, dict) and
+        (
+            (
+                metric['expressionType'] == ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE'] and
+                metric['column'] and
+                metric['aggregate']
+            ) or
+            (
+                metric['expressionType'] == ADHOC_METRIC_EXPRESSION_TYPES['SQL'] and
+                metric['sqlExpression']
+            )
+        ) and
+        metric['label']
+    )
 
 
 def get_metric_names(metrics):

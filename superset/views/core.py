@@ -746,8 +746,10 @@ class R(BaseSupersetView):
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-        return('http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-            request=request, directory=directory, obj=obj))
+        return Response(
+            'http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
+                request=request, directory=directory, obj=obj),
+            mimetype='text/plain')
 
     @expose('/msg/')
     def msg(self):
@@ -2144,6 +2146,7 @@ class Superset(BaseSupersetView):
             table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
         table.schema = data.get('schema')
+        table.is_sqllab_view = True
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)

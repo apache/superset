@@ -1,9 +1,14 @@
-.cal_heatmap .slice_container {
+.slice_container.cal_heatmap {
   padding: 10px;
   position: static !important;
+  overflow: auto !important;
 }
 
 .cal_heatmap .slice_container .ch-tooltip {
   margin-left: 20px;
   margin-top: 5px;
+}
+.graph-legend rect {
+  stroke: #aaa;
+  stroke-location: inside;
 }

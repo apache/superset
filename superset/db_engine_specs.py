@@ -424,7 +424,7 @@ class SqliteEngineSpec(BaseEngineSpec):
               'PT1H'),
         Grain('day', _('day'), 'DATE({col})', 'P1D'),
         Grain('week', _('week'),
-              "DATE({col}, -strftime('%w', {col}) || ' days')",
+              "DATE({col}, -strftime('%W', {col}) || ' days')",
               'P1W'),
         Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
@@ -869,7 +869,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         """Uploads a csv file and creates a superset datasource in Hive."""
         def get_column_names(filepath):
             with open(filepath, 'rb') as f:
-                return unicodecsv.reader(f, encoding='utf-8-sig').next()
+                return next(unicodecsv.reader(f, encoding='utf-8-sig'))
 
         table_name = form.name.data
         filename = form.csv_file.data.filename

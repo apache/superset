@@ -122,6 +122,42 @@ export const spectrums = {
     '#FAFAFA',
     '#666666',
   ],
+  greens: [
+    '#ffffcc',
+    '#78c679',
+    '#006837',
+  ],
+  purples: [
+    '#f2f0f7',
+    '#9e9ac8',
+    '#54278f',
+  ],
+  oranges: [
+    '#fef0d9',
+    '#fc8d59',
+    '#b30000',
+  ],
+  red_yellow_blue: [
+    '#d7191c',
+    '#fdae61',
+    '#ffffbf',
+    '#abd9e9',
+    '#2c7bb6',
+  ],
+  brown_white_green: [
+    '#a6611a',
+    '#dfc27d',
+    '#f5f5f5',
+    '#80cdc1',
+    '#018571',
+  ],
+  purple_white_green: [
+    '#7b3294',
+    '#c2a5cf',
+    '#f7f7f7',
+    '#a6dba0',
+    '#008837',
+  ],
 };
 
 /**

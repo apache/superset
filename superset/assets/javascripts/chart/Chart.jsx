@@ -153,6 +153,10 @@ class Chart extends React.PureComponent {
     this.props.actions.chartRenderingFailed(e, this.props.chartKey);
   }
 
+  verboseMetricName(metric) {
+    return this.props.datasource.verbose_map[metric] || metric;
+  }
+
   render_template(s) {
     const context = {
       width: this.width(),

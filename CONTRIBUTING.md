@@ -200,6 +200,19 @@ Check the [OS dependencies](https://superset.incubator.apache.org/installation.h
     superset runserver -d
 
 
+### Logging to the browser console
+
+When debugging your application, you can have the server logs sent directly to the browser console:
+
+    superset runserver -d --console-log
+
+You can log anything to the browser console, including objects:
+
+    from superset import app
+    app.logger.error('An exception occurred!')
+    app.logger.info(form_data)
+
+
 ## Setting up the node / npm javascript environment
 
 `superset/assets` contains all npm-managed, front end assets.

@@ -8,7 +8,7 @@ import { shallow } from 'enzyme';
 import MetricsControl from '../../../../javascripts/explore/components/controls/MetricsControl';
 import { AGGREGATES } from '../../../../javascripts/explore/constants';
 import OnPasteSelect from '../../../../javascripts/components/OnPasteSelect';
-import AdhocMetric from '../../../../javascripts/explore/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../../javascripts/explore/AdhocMetric';
 
 const defaultProps = {
   name: 'metrics',
@@ -73,6 +73,7 @@ describe('MetricsControl', () => {
       const { wrapper } = setup({
         value: [
           {
+            expressionType: EXPRESSION_TYPES.SIMPLE,
             column: { type: 'double', column_name: 'value' },
             aggregate: AGGREGATES.SUM,
             label: 'SUM(value)',
@@ -87,12 +88,14 @@ describe('MetricsControl', () => {
       expect(adhocMetric.optionName.length).to.be.above(10);
       expect(wrapper.state('value')).to.deep.equal([
         {
+          expressionType: EXPRESSION_TYPES.SIMPLE,
           column: { type: 'double', column_name: 'value' },
           aggregate: AGGREGATES.SUM,
           fromFormData: true,
           label: 'SUM(value)',
           hasCustomLabel: false,
           optionName: 'blahblahblah',
+          sqlExpression: null,
         },
         'avg__value',
       ]);
@@ -117,12 +120,14 @@ describe('MetricsControl', () => {
       const adhocMetric = onChange.lastCall.args[0][0];
       expect(adhocMetric instanceof AdhocMetric).to.be.true;
       expect(onChange.lastCall.args).to.deep.equal([[{
+        expressionType: EXPRESSION_TYPES.SIMPLE,
         column: valueColumn,
         aggregate: AGGREGATES.SUM,
         label: 'SUM(value)',
         fromFormData: false,
         hasCustomLabel: false,
         optionName: adhocMetric.optionName,
+        sqlExpression: null,
       }]]);
     });
 
