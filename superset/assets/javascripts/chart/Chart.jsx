@@ -200,7 +200,7 @@ class Chart extends React.PureComponent {
   render() {
     const isLoading = this.props.chartStatus === 'loading';
     return (
-      <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}>
+      <div className={`${isLoading ? 'is-loading' : ''}`}>
         {this.renderTooltip()}
         {isLoading &&
           <Loading size={25} />
