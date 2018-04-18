@@ -34,7 +34,7 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_ignores_invalid_filter_objects(self):
         filtr = {'col': 'col1', 'op': '=='}
         filters = [filtr]
-        self.assertEqual(None, DruidDatasource.get_filters(filters, []))
+        self.assertIsNone(DruidDatasource.get_filters(filters, []))
 
     def test_get_filters_constructs_filter_in(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['a', 'b', 'c']}
@@ -108,7 +108,7 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr1 = {'col': 'A', 'op': 'in', 'val': []}
         filtr2 = {'col': 'A', 'op': 'not in', 'val': []}
         res = DruidDatasource.get_filters([filtr1, filtr2], [])
-        self.assertEqual(None, res)
+        self.assertIsNone(res)
 
     def test_get_filters_constructs_equals_for_in_not_in_single_value(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['a']}
@@ -119,14 +119,15 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr = {'col': 'A', 'op': '==', 'val': ['a', 'b']}
         res = DruidDatasource.get_filters([filtr], [])
         self.assertEqual('a', res.filter['filter']['value'])
+
         filtr = {'col': 'A', 'op': '==', 'val': []}
         res = DruidDatasource.get_filters([filtr], [])
-        self.assertEqual('', res.filter['filter']['value'])
+        self.assertIsNone(res.filter['filter']['value'])
 
     def test_get_filters_handles_none_for_string_types(self):
         filtr = {'col': 'A', 'op': '==', 'val': None}
         res = DruidDatasource.get_filters([filtr], [])
-        self.assertEqual('', res.filter['filter']['value'])
+        self.assertIsNone(res)
 
     def test_get_filters_extracts_values_in_quotes(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['  "a" ']}

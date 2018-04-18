@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import json
 
+from past.builtins import basestring
 from sqlalchemy import (
     and_, Boolean, Column, Integer, String, Text,
 )
@@ -184,6 +185,35 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'columns': [o.data for o in self.columns],
             'verbose_map': verbose_map,
         }
+
+    @staticmethod
+    def filter_values_handler(
+            values, target_column_is_numeric=False, is_list_target=False):
+        def handle_single_value(v):
+            # backward compatibility with previous <select> components
+            if isinstance(v, basestring):
+                v = v.strip('\t\n \'"')
+                if target_column_is_numeric:
+                    # For backwards compatibility and edge cases
+                    # where a column data type might have changed
+                    v = utils.string_to_num(v)
+                if v == '<NULL>':
+                    return None
+                elif v == '<empty string>':
+                    return ''
+            return v
+        if isinstance(values, (list, tuple)):
+            values = [handle_single_value(v) for v in values]
+        else:
+            values = handle_single_value(values)
+        if is_list_target and not isinstance(values, (tuple, list)):
+            values = [values]
+        elif not is_list_target and isinstance(values, (tuple, list)):
+            if len(values) > 0:
+                values = values[0]
+            else:
+                values = None
+        return values
 
     def get_query_str(self, query_obj):
         """Returns a query as a string

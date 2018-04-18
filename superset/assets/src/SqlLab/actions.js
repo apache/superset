@@ -2,6 +2,7 @@
 import shortid from 'shortid';
 import { now } from '../modules/dates';
 import { t } from '../locales';
+import { COMMON_ERR_MESSAGES } from '../common';
 
 const $ = require('jquery');
 
@@ -163,7 +164,7 @@ export function runQuery(query) {
           }
         }
         if (msg.indexOf('CSRF token') > 0) {
-          msg = t('Your session timed out, please refresh your page and try again.');
+          msg = COMMON_ERR_MESSAGES.SESSION_TIMED_OUT;
         }
         dispatch(queryFailed(query, msg));
       },

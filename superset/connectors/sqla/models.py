@@ -11,7 +11,6 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
-from past.builtins import basestring
 import six
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -574,28 +573,21 @@ class SqlaTable(Model, BaseDatasource):
         where_clause_and = []
         having_clause_and = []
         for flt in filter:
-            if not all([flt.get(s) for s in ['col', 'op', 'val']]):
+            if not all([flt.get(s) for s in ['col', 'op']]):
                 continue
             col = flt['col']
             op = flt['op']
-            eq = flt['val']
             col_obj = cols.get(col)
+            is_list_target = op in ('in', 'not in')
+            eq = self.filter_values_handler(
+                flt.get('val'),
+                target_column_is_numeric=col_obj.is_num,
+                is_list_target=is_list_target)
             if col_obj:
                 if op in ('in', 'not in'):
-                    values = []
-                    for v in eq:
-                        # For backwards compatibility and edge cases
-                        # where a column data type might have changed
-                        if isinstance(v, basestring):
-                            v = v.strip("'").strip('"')
-                            if col_obj.is_num:
-                                v = utils.string_to_num(v)
-
-                        # Removing empty strings and non numeric values
-                        # targeting numeric columns
-                        if v is not None:
-                            values.append(v)
-                    cond = col_obj.sqla_col.in_(values)
+                    cond = col_obj.sqla_col.in_(eq)
+                    if '<NULL>' in eq:
+                        cond = or_(cond, col_obj.sqla_col == None)  # noqa
                     if op == 'not in':
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -616,6 +608,10 @@ class SqlaTable(Model, BaseDatasource):
                         where_clause_and.append(col_obj.sqla_col <= eq)
                     elif op == 'LIKE':
                         where_clause_and.append(col_obj.sqla_col.like(eq))
+                    elif op == 'IS NULL':
+                        where_clause_and.append(col_obj.sqla_col == None)  # noqa
+                    elif op == 'IS NOT NULL':
+                        where_clause_and.append(col_obj.sqla_col != None)  # noqa
         if extras:
             where = extras.get('where')
             if where:

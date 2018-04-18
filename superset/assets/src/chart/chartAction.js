@@ -1,6 +1,7 @@
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../logger';
+import { COMMON_ERR_MESSAGES } from '../common';
 
 const $ = window.$ = require('jquery');
 
@@ -160,12 +161,16 @@ export function runQuery(formData, force = false, timeout = 60, key) {
             errObject = err.responseJSON;
           } else if (err.stack) {
             errObject = {
-              error: 'Unexpected error: ' + err.description,
+              error: t('Unexpected error: ') + err.description,
               stacktrace: err.stack,
+            };
+          } else if (err.responseText && err.responseText.indexOf('CSRF') >= 0) {
+            errObject = {
+              error: COMMON_ERR_MESSAGES.SESSION_TIMED_OUT,
             };
           } else {
             errObject = {
-              error: 'Unexpected error.',
+              error: t('Unexpected error.'),
             };
           }
           dispatch(chartUpdateFailed(errObject, key));

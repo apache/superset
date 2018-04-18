@@ -61,7 +61,7 @@ export default class AlteredSliceTag extends React.Component {
         return '[]';
       }
       return value.map((v) => {
-        const filterVal = v.val.constructor === Array ? `[${v.val.join(', ')}]` : v.val;
+        const filterVal = v.val && v.val.constructor === Array ? `[${v.val.join(', ')}]` : v.val;
         return `${v.col} ${v.op} ${filterVal}`;
       }).join(', ');
     } else if (controls[key] && controls[key].type === 'BoundsControl') {

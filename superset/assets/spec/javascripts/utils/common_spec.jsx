@@ -1,6 +1,6 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
-import { isTruthy } from '../../../src/utils/common';
+import { isTruthy, optionFromValue } from '../../../src/utils/common';
 
 describe('utils/common', () => {
   describe('isTruthy', () => {
@@ -38,6 +38,16 @@ describe('utils/common', () => {
     });
     it('string auto is false', () => {
       expect(isTruthy('false')).to.equal(false);
+    });
+  });
+  describe('optionFromValue', () => {
+    it('converts values as expected', () => {
+      expect(optionFromValue(false)).to.deep.equal({ value: false, label: '<false>' });
+      expect(optionFromValue(true)).to.deep.equal({ value: true, label: '<true>' });
+      expect(optionFromValue(null)).to.deep.equal({ value: '<NULL>', label: '<NULL>' });
+      expect(optionFromValue('')).to.deep.equal({ value: '', label: '<empty string>' });
+      expect(optionFromValue('foo')).to.deep.equal({ value: 'foo', label: 'foo' });
+      expect(optionFromValue(5)).to.deep.equal({ value: 5, label: '5' });
     });
   });
 });
