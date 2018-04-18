@@ -5,8 +5,7 @@ import * as actions from '../actions/dashboard';
 export default function(state = {}, action) {
   const actionHandlers = {
     [actions.UPDATE_DASHBOARD_TITLE]() {
-      const newDashboard = { ...state.dashboard, dashboard_title: action.title };
-      return { ...state, dashboard: newDashboard };
+      return { ...state, title: action.title };
     },
     [actions.ADD_SLICE]() {
       const updatedSliceIds = new Set(state.sliceIds);
@@ -46,28 +45,32 @@ export default function(state = {}, action) {
       return { ...state, showBuilderPane: !state.showBuilderPane };
     },
     [actions.TOGGLE_EXPAND_SLICE]() {
-      const updatedExpandedSlices = { ...state.dashboard.metadata.expanded_slices };
+      const updatedExpandedSlices = { ...state.expandedSlices };
       const sliceId = action.slice.slice_id;
       if (action.isExpanded) {
         updatedExpandedSlices[sliceId] = true;
       } else {
         delete updatedExpandedSlices[sliceId];
       }
-      const metadata = { ...state.dashboard.metadata, expanded_slices: updatedExpandedSlices };
-      const newDashboard = { ...state.dashboard, metadata };
-      return { ...state, dashboard: newDashboard };
+      return { ...state, expandedSlices: updatedExpandedSlices };
+    },
+    [actions.ON_CHANGE]() {
+      return { ...state, hasUnsavedChanges: true };
+    },
+    [actions.ON_SAVE]() {
+      return { ...state, hasUnsavedChanges: false };
     },
 
     // filters
     [actions.ADD_FILTER]() {
-      const hasSelectedFilter = state.dashboard.sliceIds.has(action.chart.slice_id);
+      const hasSelectedFilter = state.sliceIds.has(action.chart.id);
       if (!hasSelectedFilter) {
         return state;
       }
 
       let filters = state.filters;
       const { chart, col, vals, merge, refresh } = action;
-      const sliceId = chart.slice_id;
+      const sliceId = chart.id;
       const filterKeys = ['__from', '__to', '__time_col',
         '__time_grain', '__time_origin', '__granularity'];
       if (filterKeys.indexOf(col) >= 0 ||

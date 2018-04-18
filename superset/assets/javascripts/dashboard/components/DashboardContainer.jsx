@@ -1,9 +1,16 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import * as dashboardActions from '../actions/dashboard';
+import {
+  toggleExpandSlice,
+  addFilter,
+  removeFilter,
+  addSliceToDashboard,
+  removeSliceFromDashboard,
+  onChange,
+} from '../actions/dashboard';
 import { saveSliceName } from '../actions/sliceEntities';
-import * as chartActions from '../../chart/chartAction';
+import { refreshChart, runQuery, renderTriggered } from '../../chart/chartAction';
 import Dashboard from './Dashboard';
 
 function mapStateToProps({ datasources, sliceEntities, charts,
@@ -25,9 +32,16 @@ function mapStateToProps({ datasources, sliceEntities, charts,
 
 function mapDispatchToProps(dispatch) {
   const actions = {
-    ...chartActions,
-    ...dashboardActions,
+    refreshChart,
+    runQuery,
+    renderTriggered,
     saveSliceName,
+    toggleExpandSlice,
+    addFilter,
+    removeFilter,
+    addSliceToDashboard,
+    removeSliceFromDashboard,
+    onChange,
   };
   return {
     actions: bindActionCreators(actions, dispatch),

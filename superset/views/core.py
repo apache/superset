@@ -1585,8 +1585,8 @@ class Superset(BaseSupersetView):
         # find slices in the position data
         slice_ids = []
         for value in positions.values():
-            if value.get('meta') and value.get('meta').get('chartKey'):
-                slice_ids.append(int(value.get('meta').get('chartKey')[6:]))
+            if value.get('meta') and value.get('meta').get('chartId'):
+                slice_ids.append(int(value.get('meta').get('chartId')))
         session = db.session()
         Slice = models.Slice  # noqa
         current_slices = session.query(Slice).filter(

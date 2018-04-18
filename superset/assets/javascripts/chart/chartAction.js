@@ -185,3 +185,10 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     ]);
   };
 }
+
+export function refreshChart(chart, force, timeout) {
+  return dispatch => (
+    dispatch(runQuery(chart.latestQueryFormData, force, timeout, chart.id))
+  );
+}
+

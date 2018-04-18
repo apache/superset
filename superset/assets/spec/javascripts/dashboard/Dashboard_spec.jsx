@@ -71,7 +71,7 @@ describe('Dashboard', () => {
     let spy;
     beforeEach(() => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
-      spy = sinon.spy(wrapper.instance(), 'fetchCharts');
+      spy = sinon.spy(mockedProps.actions, 'runQuery');
     });
     afterEach(() => {
       spy.restore();
@@ -81,13 +81,13 @@ describe('Dashboard', () => {
       const filterKey = Object.keys(defaultFilters)[1];
       wrapper.instance().refreshExcept(filterKey);
       expect(spy.callCount).to.equal(1);
-      expect(spy.getCall(0).args[0].length).to.equal(1);
+      const slice_id = spy.getCall(0).args[0].slice_id;
+      expect(slice_id).to.equal(248);
     });
 
     it('should refresh all slices', () => {
       wrapper.instance().refreshExcept();
-      expect(spy.callCount).to.equal(1);
-      expect(spy.getCall(0).args[0].length).to.equal(3);
+      expect(spy.callCount).to.equal(3);
     });
   });
 
@@ -100,7 +100,7 @@ describe('Dashboard', () => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
       prevProp = wrapper.instance().props;
       refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
-      fetchSlicesStub = sinon.stub(wrapper.instance(), 'fetchCharts');
+      fetchSlicesStub = sinon.stub(mockedProps.actions, 'fetchCharts');
     });
     afterEach(() => {
       fetchSlicesStub.restore();
@@ -187,8 +187,8 @@ describe('Dashboard', () => {
         dashboardState,
       });
       wrapper.instance().componentDidUpdate(prevProp);
-      const fetchArgs = fetchSlicesStub.lastCall.args[0];
-      expect(fetchArgs).to.have.length(2);
+      expect(refreshExceptSpy.callCount).to.equal(1);
+      expect(refreshExceptSpy.lastCall.args[0]).to.equal('256');
     });
 
     it('should not refresh filter_immune_slices', () => {
@@ -204,8 +204,8 @@ describe('Dashboard', () => {
         dashboardState,
       });
       wrapper.instance().componentDidUpdate(prevProp);
-      const fetchArgs = fetchSlicesStub.lastCall.args[0];
-      expect(fetchArgs).to.have.length(1);
+      expect(refreshExceptSpy.callCount).to.equal(1);
+      expect(refreshExceptSpy.lastCall.args[0]).to.equal('257');
     });
   });
 });
