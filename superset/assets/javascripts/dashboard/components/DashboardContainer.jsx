@@ -17,7 +17,7 @@ function mapStateToProps({ datasources, sliceEntities, charts,
     dashboardState,
     charts,
     datasources,
-    slices: sliceEntities,
+    slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
   };

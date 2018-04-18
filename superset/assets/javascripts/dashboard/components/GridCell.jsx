@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 import SliceHeader from './SliceHeader';
 import ChartContainer from '../../chart/ChartContainer';
-import { slicePropShape } from '../v2/util/propShapes';
+import { chartPropShape, slicePropShape } from '../v2/util/propShapes';
 
 const propTypes = {
   timeout: PropTypes.number,
@@ -16,11 +16,10 @@ const propTypes = {
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
   slice: slicePropShape.isRequired,
-  chartId: PropTypes.number.isRequired,
+  chart: chartPropShape.isRequired,
   formData: PropTypes.object,
   filters: PropTypes.object,
   forceRefresh: PropTypes.func,
-  removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   exploreChart: PropTypes.func,
@@ -34,7 +33,6 @@ const propTypes = {
 
 const defaultProps = {
   forceRefresh: () => ({}),
-  removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
@@ -50,7 +48,7 @@ class GridCell extends React.PureComponent {
     super(props);
 
     const sliceId = this.props.slice.slice_id;
-    this.addFilter = this.props.addFilter.bind(this, sliceId);
+    this.addFilter = this.props.addFilter.bind(this, this.props.chart);
     this.getFilters = this.props.getFilters.bind(this, sliceId);
     this.removeFilter = this.props.removeFilter.bind(this, sliceId);
   }
@@ -87,9 +85,9 @@ class GridCell extends React.PureComponent {
   render() {
     const {
       isExpanded, isLoading, isCached, cachedDttm,
-      removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
-      chartId, slice, datasource, formData, timeout, annotationQuery,
-      exploreChart, exportCSV,
+      updateSliceName, toggleExpandSlice, forceRefresh,
+      chart, slice, datasource, formData, timeout, annotationQuery,
+      exploreChart, exportCSV, editMode,
     } = this.props;
     return (
       <div
@@ -102,11 +100,10 @@ class GridCell extends React.PureComponent {
             isExpanded={isExpanded}
             isCached={isCached}
             cachedDttm={cachedDttm}
-            removeSlice={removeSlice}
             updateSliceName={updateSliceName}
             toggleExpandSlice={toggleExpandSlice}
             forceRefresh={forceRefresh}
-            editMode={this.props.editMode}
+            editMode={editMode}
             annotationQuery={annotationQuery}
             exploreChart={exploreChart}
             exportCSV={exportCSV}
@@ -130,7 +127,7 @@ class GridCell extends React.PureComponent {
           <input type="hidden" value="false" />
           <ChartContainer
             containerId={`slice-container-${slice.slice_id}`}
-            chartId={chartId}
+            chartId={chart.id}
             datasource={datasource}
             formData={formData}
             headerHeight={this.headerHeight(slice)}

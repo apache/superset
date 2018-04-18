@@ -11,7 +11,6 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
   cachedDttm: PropTypes.string,
-  removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,

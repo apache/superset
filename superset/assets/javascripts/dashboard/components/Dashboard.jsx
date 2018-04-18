@@ -12,6 +12,7 @@ import {
 } from '../v2/util/propShapes';
 import { exportChart } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
+import { getChartIdsFromLayout } from '../util/dashboardHelper';
 import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
   LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
 import { t } from '../../locales';
@@ -67,11 +68,13 @@ class Dashboard extends React.PureComponent {
     this.getFormDataExtra = this.getFormDataExtra.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.exportCSV = this.exportCSV.bind(this);
+    this.toggleBuilderPane = this.toggleBuilderPane.bind(this);
     this.props.actions.fetchFaveStar = this.props.actions.fetchFaveStar.bind(this);
     this.props.actions.saveFaveStar = this.props.actions.saveFaveStar.bind(this);
     this.props.actions.saveSliceName = this.props.actions.saveSliceName.bind(this);
-    this.props.actions.removeSlice = this.props.actions.removeSlice.bind(this);
-    this.props.actions.removeChart = this.props.actions.removeChart.bind(this);
+    this.props.actions.addSliceToDashboard = this.props.actions.addSliceToDashboard.bind(this);
+    this.props.actions.removeSliceFromDashboard =
+      this.props.actions.removeSliceFromDashboard.bind(this);
     this.props.actions.toggleExpandSlice = this.props.actions.toggleExpandSlice.bind(this);
     this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
     this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
@@ -88,6 +91,18 @@ class Dashboard extends React.PureComponent {
     ) {
       Logger.end(this.loadingLog);
       this.firstLoad = false;
+    }
+
+    const currentChartIds = getChartIdsFromLayout(this.props.layout);
+    const nextChartIds = getChartIdsFromLayout(nextProps.layout);
+    if (currentChartIds.length < nextChartIds.length) {
+      // adding new chart
+      const newChartId = nextChartIds.find((key) => (currentChartIds.indexOf(key) === -1));
+      this.props.actions.addSliceToDashboard(newChartId);
+    } else if (currentChartIds.length > nextChartIds.length) {
+      // remove chart
+      const removedChartId = currentChartIds.find((key) => (nextChartIds.indexOf(key) === -1));
+      this.props.actions.removeSliceFromDashboard(this.props.charts[removedChartId]);
     }
   }
 
@@ -139,9 +154,11 @@ class Dashboard extends React.PureComponent {
   }
 
   getFormDataExtra(chart) {
-    const formDataExtra = Object.assign({}, chart.formData);
     const extraFilters = this.effectiveExtraFilters(chart.id);
-    formDataExtra.extra_filters = formDataExtra.filters.concat(extraFilters);
+    const formDataExtra = {
+      ...chart.formData,
+      extra_filters: extraFilters,
+    };
     return formDataExtra;
   }
 
@@ -233,6 +250,11 @@ class Dashboard extends React.PureComponent {
     this.onChange();
   }
 
+  toggleBuilderPane() {
+    this.props.actions.toggleBuilderPane();
+    this.rerenderCharts()
+  }
+
   fetchChart(chart, force = false) {
     return this.props.actions.runQuery(
       this.getFormDataExtra(chart), force, this.props.timeout, chart.id,
@@ -259,12 +281,14 @@ class Dashboard extends React.PureComponent {
     });
   }
 
-  exploreChart(chart) {
+  exploreChart(chartId) {
+    const chart = this.props.charts[chartId];
     const formData = this.getFormDataExtra(chart);
     exportChart(formData);
   }
 
-  exportCSV(chart) {
+  exportCSV(chartId) {
+    const chart = this.props.charts[chartId];
     const formData = this.getFormDataExtra(chart);
     exportChart(formData, 'csv');
   }
@@ -279,7 +303,7 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
-    const { title, expandedSlices = {}, filters, sliceIds, editMode } = this.props.dashboardState;
+    const { title, expandedSlices = {}, filters, sliceIds, editMode, showBuilderPane } = this.props.dashboardState;
 
     return (
       <div id="dashboard-container">
@@ -302,6 +326,8 @@ class Dashboard extends React.PureComponent {
             startPeriodicRender={this.startPeriodicRender}
             editMode={editMode}
             setEditMode={this.props.actions.setEditMode}
+            showBuilderPane={showBuilderPane}
+            toggleBuilderPane={this.toggleBuilderPane}
           />
         </div>
         <GridLayout
@@ -321,8 +347,6 @@ class Dashboard extends React.PureComponent {
             exportCSV={this.exportCSV}
             fetchChart={this.fetchChart}
             saveSliceName={this.props.actions.saveSliceName}
-            removeSlice={this.props.actions.removeSlice}
-            removeChart={this.props.actions.removeChart}
             toggleExpandSlice={this.props.actions.toggleExpandSlice}
             addFilter={this.props.actions.addFilter}
             getFilters={this.getFilters}

@@ -22,14 +22,11 @@ const propTypes = {
   exportCSV: PropTypes.func,
   fetchChart: PropTypes.func,
   saveSliceName: PropTypes.func,
-  removeSlice: PropTypes.func,
-  removeChart: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
   removeFilter: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
-  showBuilderPane: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -41,9 +38,7 @@ const defaultProps = {
   exploreChart: () => ({}),
   exportCSV: () => ({}),
   fetchChart: () => ({}),
-  saveSlice: () => ({}),
-  removeSlice: () => ({}),
-  removeChart: () => ({}),
+  saveSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   addFilter: () => ({}),
   getFilters: () => ({}),
@@ -55,7 +50,6 @@ class GridLayout extends React.Component {
     super(props);
 
     this.forceRefresh = this.forceRefresh.bind(this);
-    this.removeSlice = this.removeSlice.bind(this);
     this.updateSliceName = this.props.dashboardInfo.dash_edit_perm ?
       this.updateSliceName.bind(this) : null;
   }
@@ -120,42 +114,44 @@ class GridLayout extends React.Component {
       const key = sliceId;
       const currentChart = this.props.charts[key];
       const currentSlice = this.props.slices[key];
-      const currentDatasource = this.props.datasources[currentChart.form_data.datasource];
-      const queryResponse = currentChart.queryResponse || {};
-      cells[key] = (
-        <div
-          id={key}
-          key={sliceId}
-          className={cx('widget', `${currentSlice.viz_type}`, { 'is-edit': this.props.editMode })}
-          ref={this.getWidgetId(sliceId)}
-        >
-          <GridCell
-            slice={currentSlice}
-            chartId={key}
-            datasource={currentDatasource}
-            filters={this.props.filters}
-            formData={this.props.getFormDataExtra(currentChart)}
-            timeout={this.props.timeout}
-            widgetHeight={this.getWidgetHeight(sliceId)}
-            widgetWidth={this.getWidgetWidth(sliceId)}
-            exploreChart={this.props.exploreChart}
-            exportCSV={this.props.exportCSV}
-            isExpanded={!!this.isExpanded(sliceId)}
-            isLoading={currentChart.chartStatus === 'loading'}
-            isCached={queryResponse.is_cached}
-            cachedDttm={queryResponse.cached_dttm}
-            toggleExpandSlice={this.props.toggleExpandSlice}
-            forceRefresh={this.forceRefresh}
-            removeSlice={this.removeSlice}
-            updateSliceName={this.updateSliceName}
-            addFilter={this.props.addFilter}
-            getFilters={this.props.getFilters}
-            removeFilter={this.props.removeFilter}
-            editMode={this.props.editMode}
-            annotationQuery={currentChart.annotationQuery}
-            annotationError={currentChart.annotationError}
-          />
-        </div>);
+      if (currentChart) {
+        const currentDatasource = this.props.datasources[currentChart.form_data.datasource];
+        const queryResponse = currentChart.queryResponse || {};
+        cells[key] = (
+          <div
+            id={key}
+            key={sliceId}
+            className={cx('widget', `${currentSlice.viz_type}`, {'is-edit': this.props.editMode})}
+            ref={this.getWidgetId(sliceId)}
+          >
+            <GridCell
+              slice={currentSlice}
+              chart={currentChart}
+              datasource={currentDatasource}
+              filters={this.props.filters}
+              formData={this.props.getFormDataExtra(currentChart)}
+              timeout={this.props.timeout}
+              widgetHeight={this.getWidgetHeight(sliceId)}
+              widgetWidth={this.getWidgetWidth(sliceId)}
+              exploreChart={this.props.exploreChart}
+              exportCSV={this.props.exportCSV}
+              isExpanded={!!this.isExpanded(sliceId)}
+              isLoading={currentChart.chartStatus === 'loading'}
+              isCached={queryResponse.is_cached}
+              cachedDttm={queryResponse.cached_dttm}
+              toggleExpandSlice={this.props.toggleExpandSlice}
+              forceRefresh={this.forceRefresh}
+              updateSliceName={this.updateSliceName}
+              addFilter={this.props.addFilter}
+              getFilters={this.props.getFilters}
+              removeFilter={this.props.removeFilter}
+              editMode={this.props.editMode}
+              annotationQuery={currentChart.annotationQuery}
+              annotationError={currentChart.annotationError}
+            />
+          </div>
+        );
+      }
     });
 
     return (
