@@ -2,8 +2,9 @@ import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
-let cachedMetadata = null;
-let cachedFormdata = {};
+const cachedDashboardMetadataByChart = {};
+const cachedFiltersByChart = {};
+const cachedFormdataByChart = {};
 
 export default function getFormDataWithExtraFilters({
   chart,
@@ -11,13 +12,15 @@ export default function getFormDataWithExtraFilters({
   filters,
   sliceId,
 }) {
-  // dashboard metadata has not changed use cache if possible
-  if (cachedMetadata === dashboardMetadata && cachedFormdata[sliceId]) {
-    return cachedFormdata[sliceId];
-  } else if (cachedMetadata !== dashboardMetadata) {
-    // changes to dashboardMetadata should invalidate all caches
-    cachedMetadata = dashboardMetadata;
-    cachedFormdata = {};
+  // if dashboard metadata + filters have not changed, use cache if possible
+  if (
+    cachedDashboardMetadataByChart[sliceId] &&
+    cachedDashboardMetadataByChart[sliceId] === dashboardMetadata &&
+    cachedFiltersByChart[sliceId] &&
+    cachedFiltersByChart[sliceId] === filters &&
+    cachedFormdataByChart[sliceId]
+  ) {
+    return cachedFormdataByChart[sliceId];
   }
 
   const extraFilters = getEffectiveExtraFilters({
@@ -34,7 +37,9 @@ export default function getFormDataWithExtraFilters({
     ],
   };
 
-  cachedFormdata[sliceId] = formData;
+  cachedDashboardMetadataByChart[sliceId] = dashboardMetadata;
+  cachedFiltersByChart[sliceId] = filters;
+  cachedFormdataByChart[sliceId] = formData;
 
   return formData;
 }

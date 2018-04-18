@@ -64,45 +64,44 @@ class SliceHeader extends React.PureComponent {
 
     return (
       <div className="chart-header" ref={innerRef}>
-        <div className="col-md-12">
-          <div className="header">
-            <EditableTitle
-              title={slice.slice_name}
-              canEdit={!!this.props.updateSliceName && this.props.editMode}
-              onSaveTitle={this.onSaveTitle}
-              noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
+        <div className="header">
+          <EditableTitle
+            title={slice.slice_name}
+            canEdit={!!this.props.updateSliceName && this.props.editMode}
+            onSaveTitle={this.onSaveTitle}
+            noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
+            showTooltip={!!this.props.updateSliceName && this.props.editMode}
+          />
+          {!!Object.values(this.props.annotationQuery || {}).length &&
+            <TooltipWrapper
+              label="annotations-loading"
+              placement="top"
+              tooltip={annoationsLoading}
+            >
+              <i className="fa fa-refresh warning" />
+            </TooltipWrapper>
+          }
+          {!!Object.values(this.props.annotationError || {}).length &&
+            <TooltipWrapper
+              label="annoation-errors"
+              placement="top"
+              tooltip={annoationsError}
+            >
+              <i className="fa fa-exclamation-circle danger" />
+            </TooltipWrapper>
+          }
+          {!this.props.editMode &&
+            <SliceHeaderControls
+              slice={slice}
+              isCached={isCached}
+              isExpanded={isExpanded}
+              cachedDttm={cachedDttm}
+              toggleExpandSlice={toggleExpandSlice}
+              forceRefresh={forceRefresh}
+              exploreChart={exploreChart}
+              exportCSV={exportCSV}
             />
-            {!!Object.values(this.props.annotationQuery || {}).length &&
-              <TooltipWrapper
-                label="annotations-loading"
-                placement="top"
-                tooltip={annoationsLoading}
-              >
-                <i className="fa fa-refresh warning" />
-              </TooltipWrapper>
-            }
-            {!!Object.values(this.props.annotationError || {}).length &&
-              <TooltipWrapper
-                label="annoation-errors"
-                placement="top"
-                tooltip={annoationsError}
-              >
-                <i className="fa fa-exclamation-circle danger" />
-              </TooltipWrapper>
-            }
-            {!this.props.editMode &&
-              <SliceHeaderControls
-                slice={slice}
-                isCached={isCached}
-                isExpanded={isExpanded}
-                cachedDttm={cachedDttm}
-                toggleExpandSlice={toggleExpandSlice}
-                forceRefresh={forceRefresh}
-                exploreChart={exploreChart}
-                exportCSV={exportCSV}
-              />
-            }
-          </div>
+          }
         </div>
       </div>
     );

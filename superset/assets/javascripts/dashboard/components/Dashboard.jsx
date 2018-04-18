@@ -3,12 +3,16 @@ import PropTypes from 'prop-types';
 
 import AlertsWrapper from '../../components/AlertsWrapper';
 import DashboardBuilder from '../v2/containers/DashboardBuilder';
-// import GridLayout from './GridLayout';
 import { slicePropShape } from '../reducers/propShapes';
-// import { exportChart } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
-import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
-  LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
+import getFormDataWithExtraFilters from '../v2/util/charts/getFormDataWithExtraFilters';
+import {
+  Logger,
+  ActionLog,
+  LOG_ACTIONS_PAGE_LOAD,
+  LOG_ACTIONS_LOAD_EVENT,
+  LOG_ACTIONS_RENDER_EVENT,
+} from '../../logger';
 import { t } from '../../locales';
 
 import '../../../stylesheets/dashboard.less';
@@ -57,24 +61,6 @@ class Dashboard extends React.PureComponent {
       eventNames: [LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT],
     });
     Logger.start(this.loadingLog);
-
-    // this.rerenderCharts = this.rerenderCharts.bind(this);
-    // this.getFormDataExtra = this.getFormDataExtra.bind(this);
-    // this.exploreChart = this.exploreChart.bind(this);
-    // this.exportCSV = this.exportCSV.bind(this);
-
-    // this.props.actions.saveSliceName = this.props.actions.saveSliceName.bind(this);
-    // this.props.actions.removeSliceFromDashboard =
-      // this.props.actions.removeSliceFromDashboard.bind(this);
-    // this.props.actions.toggleExpandSlice =
-      // this.props.actions.toggleExpandSlice.bind(this);
-    // this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
-    // this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
-  }
-
-  componentDidMount() {
-    // grid does this now
-    // window.addEventListener('resize', this.rerenderCharts);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -144,17 +130,6 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  // getFormDataExtra(chart) {
-  //   const formDataExtra = Object.assign({}, chart.formData);
-  //   const extraFilters = this.effectiveExtraFilters(chart.slice_id);
-  //   formDataExtra.extra_filters = formDataExtra.filters.concat(extraFilters);
-  //   return formDataExtra;
-  // }
-
-  getFilters(sliceId) {
-    return this.props.filters[sliceId];
-  }
-
   getChartKeysFromLayout(layout) {
     return Object.values(layout)
       .reduce((chartKeys, value) => {
@@ -171,77 +146,26 @@ class Dashboard extends React.PureComponent {
     return message; // Gecko + Webkit, Safari, Chrome etc.
   }
 
-  // effectiveExtraFilters(sliceId) {
-  //   const metadata = this.props.dashboard.metadata;
-  //   const filters = this.props.filters;
-  //   const f = [];
-  //   const immuneSlices = metadata.filter_immune_slices || [];
-  //   if (sliceId && immuneSlices.includes(sliceId)) {
-  //     // The slice is immune to dashboard filters
-  //     return f;
-  //   }
-  //
-  //   // Building a list of fields the slice is immune to filters on
-  //   let immuneToFields = [];
-  //   if (
-  //     sliceId &&
-  //     metadata.filter_immune_slice_fields &&
-  //     metadata.filter_immune_slice_fields[sliceId]) {
-  //     immuneToFields = metadata.filter_immune_slice_fields[sliceId];
-  //   }
-  //   for (const filteringSliceId in filters) {
-  //     if (filteringSliceId === sliceId.toString()) {
-  //       // Filters applied by the slice don't apply to itself
-  //       continue;
-  //     }
-  //     for (const field in filters[filteringSliceId]) {
-  //       if (!immuneToFields.includes(field)) {
-  //         f.push({
-  //           col: field,
-  //           op: 'in',
-  //           val: filters[filteringSliceId][field],
-  //         });
-  //       }
-  //     }
-  //   }
-  //   return f;
-  // }
-
   refreshExcept(filterKey) {
     const immune = this.props.dashboard.metadata.filter_immune_slices || [];
     let charts = this.getAllCharts();
     if (filterKey) {
-      charts = charts.filter(slice => (
-        String(slice.slice_id) !== filterKey &&
-        immune.indexOf(slice.slice_id) === -1
+      charts = charts.filter(chart => (
+        String(chart.slice_id) !== filterKey &&
+        immune.indexOf(chart.slice_id) === -1
       ));
     }
     charts.forEach((chart) => {
-      const updatedFormData = this.getFormDataExtra(chart);
+      const updatedFormData = getFormDataWithExtraFilters({
+        chart,
+        dashboardMetadata: this.props.dashboard.metadata,
+        filters: this.props.filters,
+        sliceId: chart.chartKey,
+      });
+
       this.props.actions.runQuery(updatedFormData, false, this.props.timeout, chart.chartKey);
     });
   }
-
-  // exploreChart(chartKey) {
-  //   const chart = this.props.charts[chartKey];
-  //   const formData = this.getFormDataExtra(chart);
-  //   exportChart(formData);
-  // }
-  //
-  // exportCSV(chartKey) {
-  //   const chart = this.props.charts[chartKey];
-  //   const formData = this.getFormDataExtra(chart);
-  //   exportChart(formData, 'csv');
-  // }
-
-  // re-render chart without fetch
-  // rerenderCharts() {
-  //   this.getAllCharts().forEach((chart) => {
-  //     setTimeout(() => {
-  //       this.props.actions.renderTriggered(new Date().getTime(), chart.chartKey);
-  //     }, 50);
-  //   });
-  // }
 
   render() {
     return (

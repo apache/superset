@@ -1,3 +1,4 @@
+import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 
@@ -51,6 +52,9 @@ class Chart extends React.Component {
   }
 
   shouldComponentUpdate(nextProps, nextState) {
+    // this logic mostly pertains to chart resizing. we keep a copy of the dimensions in
+    // state so that we can buffer component size updates and only update on the final call
+    // which improves performance significantly
     if (nextState.width !== this.state.width || nextState.height !== this.state.height) {
       return true;
     }
@@ -58,7 +62,6 @@ class Chart extends React.Component {
     for (let i = 0; i < updateOnPropChange.length; i += 1) {
       const prop = updateOnPropChange[i];
       if (nextProps[prop] !== this.props[prop]) {
-        console.log(prop, 'changed')
         return true;
       }
     }
@@ -104,7 +107,7 @@ class Chart extends React.Component {
     this.setState(() => ({ width, height }));
   }
 
-  addFilter(args) {
+  addFilter(...args) {
     this.props.addFilter(this.props.chart, ...args);
   }
 
@@ -141,9 +144,10 @@ class Chart extends React.Component {
     const { queryResponse } = chart;
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
+    const overflowable = slice && slice.viz_type === 'filter_box';
 
     return (
-      <div className="dashboard-chart">
+      <div className={cx('dashboard-chart', overflowable && 'dashboard-chart--overflowable')}>
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
