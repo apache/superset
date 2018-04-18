@@ -3,8 +3,8 @@
  * and associated with each and every visualization type.
  */
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
-import * as v from '../validators';
-import { t } from '../../locales';
+import * as v from './validators';
+import { t } from '../locales';
 
 export const sections = {
   druidTimeSeries: {

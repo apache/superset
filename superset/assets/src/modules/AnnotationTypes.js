@@ -1,5 +1,5 @@
-import { VIZ_TYPES } from '../visualizations/main';
-import vizTypes from '../explore/stores/visTypes';
+import { VIZ_TYPES } from '../visualizations';
+import vizTypes from '../explore/visTypes';
 
 export const ANNOTATION_TYPES = {
   FORMULA: 'FORMULA',

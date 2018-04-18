@@ -10,7 +10,7 @@ import { Button } from 'react-bootstrap';
 import DateFilterControl from '../explore/components/controls/DateFilterControl';
 import ControlRow from '../explore/components/ControlRow';
 import Control from '../explore/components/Control';
-import controls from '../explore/stores/controls';
+import controls from '../explore/controls';
 import OnPasteSelect from '../components/OnPasteSelect';
 import VirtualizedRendererWrap from '../components/VirtualizedRendererWrap';
 import './filter_box.css';

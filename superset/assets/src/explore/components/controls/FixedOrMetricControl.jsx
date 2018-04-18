@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Label, Popover, OverlayTrigger } from 'react-bootstrap';
 
-import controls from '../../stores/controls';
+import controls from '../../controls';
 import TextControl from './TextControl';
 import SelectControl from './SelectControl';
 import ControlHeader from '../ControlHeader';

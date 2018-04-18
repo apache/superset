@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Button, Panel } from 'react-bootstrap';
 import Select from 'react-virtualized-select';
-import visTypes from '../explore/stores/visTypes';
+import visTypes from '../explore/visTypes';
 import { t } from '../locales';
 
 const propTypes = {
