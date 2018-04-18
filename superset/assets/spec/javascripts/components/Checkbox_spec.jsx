@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
 
-import Checkbox from '../../../javascripts/components/Checkbox';
+import Checkbox from '../../../src/components/Checkbox';
 
 describe('Checkbox', () => {
   const defaultProps = {

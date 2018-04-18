@@ -4,8 +4,8 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { user } from './fixtures';
-import RecentActivity from '../../../javascripts/profile/components/RecentActivity';
-import TableLoader from '../../../javascripts/profile/components/TableLoader';
+import RecentActivity from '../../../src/profile/components/RecentActivity';
+import TableLoader from '../../../src/profile/components/TableLoader';
 
 
 describe('RecentActivity', () => {

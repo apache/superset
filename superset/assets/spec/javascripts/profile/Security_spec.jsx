@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { user, userNoPerms } from './fixtures';
-import Security from '../../../javascripts/profile/components/Security';
+import Security from '../../../src/profile/components/Security';
 
 
 describe('Security', () => {

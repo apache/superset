@@ -4,8 +4,8 @@ import { mount, shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import HighlightedSql from '../../../javascripts/SqlLab/components/HighlightedSql';
-import ModalTrigger from '../../../javascripts/components/ModalTrigger';
+import HighlightedSql from '../../../src/SqlLab/components/HighlightedSql';
+import ModalTrigger from '../../../src/components/ModalTrigger';
 
 
 describe('HighlightedSql', () => {

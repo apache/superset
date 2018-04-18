@@ -6,7 +6,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import QuerySearch from '../../../javascripts/SqlLab/components/QuerySearch';
+import QuerySearch from '../../../src/SqlLab/components/QuerySearch';
 
 describe('QuerySearch', () => {
   const mockedProps = {

@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { mount } from 'enzyme';
-import FilterableTable from '../../../../javascripts/components/FilterableTable/FilterableTable';
+import FilterableTable from '../../../../src/components/FilterableTable/FilterableTable';
 
 describe('FilterableTable', () => {
   const mockedProps = {

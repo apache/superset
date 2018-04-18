@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import AdhocMetric, { EXPRESSION_TYPES } from '../../../javascripts/explore/AdhocMetric';
-import { AGGREGATES } from '../../../javascripts/explore/constants';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../src/explore/AdhocMetric';
+import { AGGREGATES } from '../../../src/explore/constants';
 
 const valueColumn = { type: 'DOUBLE', column_name: 'value' };
 

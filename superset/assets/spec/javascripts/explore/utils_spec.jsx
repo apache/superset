@@ -1,7 +1,7 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import URI from 'urijs';
-import { getExploreUrlAndPayload, getExploreLongUrl } from '../../../javascripts/explore/exploreUtils';
+import { getExploreUrlAndPayload, getExploreLongUrl } from '../../../src/explore/exploreUtils';
 
 describe('exploreUtils', () => {
   const location = window.location;

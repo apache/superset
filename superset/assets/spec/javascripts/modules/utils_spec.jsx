@@ -4,7 +4,7 @@ import {
   tryNumify, slugify, formatSelectOptionsForRange, d3format,
   d3FormatPreset, d3TimeFormatPreset, defaultNumberFormatter,
   mainMetric,
-} from '../../../javascripts/modules/utils';
+} from '../../../src/modules/utils';
 
 describe('utils', () => {
   it('tryNumify works as expected', () => {
