@@ -1,7 +1,7 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 
-import { unitToRadius } from '../../../javascripts/modules/geo';
+import { unitToRadius } from '../../../src/modules/geo';
 
 const METER_TO_MILE = 1609.34;
 

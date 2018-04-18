@@ -6,8 +6,8 @@ import { expect } from 'chai';
 
 import $ from 'jquery';
 import { table, defaultQueryEditor, databases, tables } from './fixtures';
-import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
-import TableElement from '../../../javascripts/SqlLab/components/TableElement';
+import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
+import TableElement from '../../../src/SqlLab/components/TableElement';
 
 global.notify = {
   error: () => {},

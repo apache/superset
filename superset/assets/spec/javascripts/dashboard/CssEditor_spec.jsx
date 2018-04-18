@@ -3,7 +3,7 @@ import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import CssEditor from '../../../javascripts/dashboard/components/CssEditor';
+import CssEditor from '../../../src/dashboard/components/CssEditor';
 
 describe('CssEditor', () => {
   const mockedProps = {

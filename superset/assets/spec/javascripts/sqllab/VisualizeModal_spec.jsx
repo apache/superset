@@ -11,11 +11,11 @@ import sinon from 'sinon';
 import $ from 'jquery';
 import shortid from 'shortid';
 import { queries } from './fixtures';
-import { sqlLabReducer } from '../../../javascripts/SqlLab/reducers';
-import * as actions from '../../../javascripts/SqlLab/actions';
-import { VISUALIZE_VALIDATION_ERRORS } from '../../../javascripts/SqlLab/constants';
-import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
-import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
+import { sqlLabReducer } from '../../../src/SqlLab/reducers';
+import * as actions from '../../../src/SqlLab/actions';
+import { VISUALIZE_VALIDATION_ERRORS } from '../../../src/SqlLab/constants';
+import VisualizeModal from '../../../src/SqlLab/components/VisualizeModal';
+import * as exploreUtils from '../../../src/explore/exploreUtils';
 
 global.notify = {
   info: () => {},

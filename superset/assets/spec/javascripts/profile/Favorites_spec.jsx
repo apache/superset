@@ -4,8 +4,8 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { user } from './fixtures';
-import Favorites from '../../../javascripts/profile/components/Favorites';
-import TableLoader from '../../../javascripts/profile/components/TableLoader';
+import Favorites from '../../../src/profile/components/Favorites';
+import TableLoader from '../../../src/profile/components/TableLoader';
 
 describe('Favorites', () => {
   const mockedProps = {

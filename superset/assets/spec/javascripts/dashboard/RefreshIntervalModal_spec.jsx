@@ -3,7 +3,7 @@ import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import RefreshIntervalModal from '../../../javascripts/dashboard/components/RefreshIntervalModal';
+import RefreshIntervalModal from '../../../src/dashboard/components/RefreshIntervalModal';
 
 describe('RefreshIntervalModal', () => {
   const mockedProps = {

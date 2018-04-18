@@ -6,9 +6,9 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import OnPasteSelect from '../../../../javascripts/components/OnPasteSelect';
-import VirtualizedRendererWrap from '../../../../javascripts/components/VirtualizedRendererWrap';
-import SelectControl from '../../../../javascripts/explore/components/controls/SelectControl';
+import OnPasteSelect from '../../../../src/components/OnPasteSelect';
+import VirtualizedRendererWrap from '../../../../src/components/VirtualizedRendererWrap';
+import SelectControl from '../../../../src/explore/components/controls/SelectControl';
 
 const defaultProps = {
   choices: [['1 year ago', '1 year ago'], ['today', 'today']],
