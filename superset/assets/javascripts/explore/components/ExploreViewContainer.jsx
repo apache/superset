@@ -11,7 +11,7 @@ import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../stores/store';
-import { chartPropType } from '../../chart/chartReducer';
+import { chartPropShape } from '../../dashboard/v2/util/propShapes';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
@@ -22,7 +22,7 @@ const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  chart: PropTypes.shape(chartPropType).isRequired,
+  chart: chartPropShape.isRequired,
   slice: PropTypes.object,
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
@@ -72,7 +72,7 @@ class ExploreViewContainer extends React.Component {
     }
     if (np.controls.viz_type.value !== this.props.controls.viz_type.value) {
       this.props.actions.resetControls();
-      this.props.actions.triggerQuery(true, this.props.chart.chartKey);
+      this.props.actions.triggerQuery(true, this.props.chart.id);
     }
     if (np.controls.datasource.value !== this.props.controls.datasource.value) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
@@ -81,8 +81,8 @@ class ExploreViewContainer extends React.Component {
     const changedControlKeys = this.findChangedControlKeys(this.props.controls, np.controls);
     if (this.hasDisplayControlChanged(changedControlKeys, np.controls)) {
       this.props.actions.updateQueryFormData(
-        getFormDataFromControls(np.controls), this.props.chart.chartKey);
-      this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.chartKey);
+        getFormDataFromControls(np.controls), this.props.chart.id);
+      this.props.actions.renderTriggered(new Date().getTime(), this.props.chart.id);
     }
     if (this.hasQueryControlChanged(changedControlKeys, np.controls)) {
       this.setState({ chartIsStale: true, refreshOverlayVisible: true });
@@ -107,7 +107,7 @@ class ExploreViewContainer extends React.Component {
   onQuery() {
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
-    this.props.actions.triggerQuery(true, this.props.chart.chartKey);
+    this.props.actions.triggerQuery(true, this.props.chart.id);
 
     this.setState({ chartIsStale: false, refreshOverlayVisible: false });
     this.addHistory({});
@@ -151,7 +151,7 @@ class ExploreViewContainer extends React.Component {
   triggerQueryIfNeeded() {
     if (this.props.chart.triggerQuery && !this.hasErrors()) {
       this.props.actions.runQuery(this.props.form_data, false,
-        this.props.timeout, this.props.chart.chartKey);
+        this.props.timeout, this.props.chart.id);
     }
   }
 
@@ -191,7 +191,7 @@ class ExploreViewContainer extends React.Component {
         formData,
         false,
         this.props.timeout,
-        this.props.chart.chartKey,
+        this.props.chart.id,
       );
     }
   }

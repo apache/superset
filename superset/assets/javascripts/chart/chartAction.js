@@ -111,6 +111,11 @@ export function updateQueryFormData(value, key) {
   return { type: UPDATE_QUERY_FORM_DATA, value, key };
 }
 
+export const ADD_CHART = 'ADD_CHART';
+export function addChart(chart, key) {
+  return { type: ADD_CHART, chart, key };
+}
+
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, force = false, timeout = 60, key) {
   return (dispatch) => {
@@ -133,7 +138,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       .then(() => queryRequest)
       .then((queryResponse) => {
         Logger.append(LOG_ACTIONS_LOAD_EVENT, {
-          label: key,
+          label: 'slice_' + key,
           is_cached: queryResponse.is_cached,
           row_count: queryResponse.rowcount,
           datasource: formData.datasource,
@@ -180,3 +185,10 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     ]);
   };
 }
+
+export function refreshChart(chart, force, timeout) {
+  return dispatch => (
+    dispatch(runQuery(chart.latestQueryFormData, force, timeout, chart.id))
+  );
+}
+

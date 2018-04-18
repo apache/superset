@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
 
-import { chartPropType } from '../../chart/chartReducer';
+import { chartPropShape } from '../../dashboard/v2/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
 
@@ -27,7 +27,7 @@ const propTypes = {
   standalone: PropTypes.bool,
   timeout: PropTypes.number,
   refreshOverlayVisible: PropTypes.bool,
-  chart: PropTypes.shape(chartPropType),
+  chart: chartPropShape,
   errorMessage: PropTypes.node,
 };
 
@@ -45,7 +45,7 @@ class ExploreChartPanel extends React.PureComponent {
         formData={this.props.form_data}
         height={this.getHeight()}
         slice={this.props.slice}
-        chartKey={this.props.chart.chartKey}
+        chartId={this.props.chart.id}
         setControlValue={this.props.actions.setControlValue}
         timeout={this.props.timeout}
         vizType={this.props.vizType}

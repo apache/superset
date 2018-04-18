@@ -1,25 +1,10 @@
 /* eslint camelcase: 0 */
-import PropTypes from 'prop-types';
-
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
 import { t } from '../locales';
 
-export const chartPropType = {
-  chartKey: PropTypes.string.isRequired,
-  chartAlert: PropTypes.string,
-  chartStatus: PropTypes.string,
-  chartUpdateEndTime: PropTypes.number,
-  chartUpdateStartTime: PropTypes.number,
-  latestQueryFormData: PropTypes.object,
-  queryRequest: PropTypes.object,
-  queryResponse: PropTypes.object,
-  triggerQuery: PropTypes.bool,
-  lastRendered: PropTypes.number,
-};
-
 export const chart = {
-  chartKey: '',
+  id: 0,
   chartAlert: null,
   chartStatus: 'loading',
   chartUpdateEndTime: null,
@@ -33,6 +18,12 @@ export const chart = {
 
 export default function chartReducer(charts = {}, action) {
   const actionHandlers = {
+    [actions.ADD_CHART]() {
+      return {
+        ...chart,
+        ...action.chart,
+      };
+    },
     [actions.CHART_UPDATE_SUCCEEDED](state) {
       return { ...state,
         chartStatus: 'success',
