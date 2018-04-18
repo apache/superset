@@ -12,6 +12,7 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
+import errno
 import functools
 import json
 import logging
@@ -827,3 +828,11 @@ def is_adhoc_metric(metric):
 
 def get_metric_names(metrics):
     return [metric['label'] if is_adhoc_metric(metric) else metric for metric in metrics]
+
+
+def ensure_path_exists(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if not (os.path.isdir(path) and exc.errno == errno.EEXIST):
+            raise
