@@ -1277,12 +1277,29 @@ class DruidDatasource(Model, BaseDatasource):
             client.query_builder.last_query.query_dict, indent=2)
         return query_str
 
+    @staticmethod
+    def homogenize_types(df, groupby_cols):
+        """Converting all GROUPBY columns to strings
+
+        When grouping by a numeric (say FLOAT) column, pydruid returns
+        strings in the dataframe. This creates issues downstream related
+        to having mixed types in the dataframe
+
+        Here we replace None with <NULL> and make the whole series a
+        str instead of an object.
+        """
+        for col in groupby_cols:
+            df[col] = df[col].fillna('<NULL>').astype(str)
+        return df
+
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         client = self.cluster.get_pydruid_client()
         query_str = self.get_query_str(
             client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
+
+        df = self.homogenize_types(df, query_obj.get('groupby', []))
 
         if df is None or df.size == 0:
             raise Exception(_('No data was returned.'))
@@ -1322,40 +1339,31 @@ class DruidDatasource(Model, BaseDatasource):
             query=query_str,
             duration=datetime.now() - qry_start_dttm)
 
-    @staticmethod
-    def get_filters(raw_filters, num_cols):  # noqa
+    @classmethod
+    def get_filters(cls, raw_filters, num_cols):  # noqa
+        """Given Superset filter data structure, returns pydruid Filter(s)"""
         filters = None
         for flt in raw_filters:
-            if not all(f in flt for f in ['col', 'op', 'val']):
+            col = flt.get('col')
+            op = flt.get('op')
+            eq = flt.get('val')
+            if (
+                    not col or
+                    not op or
+                    (eq is None and op not in ('IS NULL', 'IS NOT NULL'))):
                 continue
-
-            col = flt['col']
-            op = flt['op']
-            eq = flt['val']
             cond = None
-            if op in ('in', 'not in'):
-                eq = [
-                    types.replace('"', '').strip()
-                    if isinstance(types, string_types)
-                    else types
-                    for types in eq]
-            elif not isinstance(flt['val'], string_types):
-                eq = eq[0] if eq and len(eq) > 0 else ''
-
             is_numeric_col = col in num_cols
-            if is_numeric_col:
-                if op in ('in', 'not in'):
-                    eq = [utils.string_to_num(v) for v in eq]
-                else:
-                    eq = utils.string_to_num(eq)
-
+            is_list_target = op in ('in', 'not in')
+            eq = cls.filter_values_handler(
+                eq, is_list_target=is_list_target,
+                target_column_is_numeric=is_numeric_col)
             if op == '==':
                 cond = Dimension(col) == eq
             elif op == '!=':
                 cond = Dimension(col) != eq
             elif op in ('in', 'not in'):
                 fields = []
-
                 # ignore the filter if it has no value
                 if not len(eq):
                     continue
@@ -1365,10 +1373,8 @@ class DruidDatasource(Model, BaseDatasource):
                     for s in eq:
                         fields.append(Dimension(col) == s)
                     cond = Filter(type='or', fields=fields)
-
                 if op == 'not in':
                     cond = ~cond
-
             elif op == 'regex':
                 cond = Filter(type='regex', pattern=eq, dimension=col)
             elif op == '>=':
@@ -1385,6 +1391,10 @@ class DruidDatasource(Model, BaseDatasource):
                     col, None, eq,
                     upperStrict=True, alphaNumeric=is_numeric_col,
                 )
+            elif op == 'IS NULL':
+                cond = Dimension(col) == None  # NOQA
+            elif op == 'IS NOT NULL':
+                cond = Dimension(col) != None  # NOQA
 
             if filters:
                 filters = Filter(type='and', fields=[
