@@ -312,7 +312,7 @@ def update_datasources_cache():
             database.all_table_names(force=True)
             database.all_view_names(force=True)
         except Exception as e:
-            print('{}'.format(e.message))
+            print('{}'.format(str(e)))
 
 
 @manager.option(
