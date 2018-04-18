@@ -1,3 +1,4 @@
+/* global window */
 import React from 'react';
 import PropTypes from 'prop-types';
 
@@ -19,7 +20,12 @@ import '../../../stylesheets/dashboard.less';
 import '../v2/stylesheets/index.less';
 
 const propTypes = {
-  actions: PropTypes.object,
+  actions: PropTypes.shape({
+    addSliceToDashboard: PropTypes.func.isRequired,
+    onChange: PropTypes.func.isRequired,
+    removeSliceFromDashboard: PropTypes.func.isRequired,
+    runQuery: PropTypes.func.isRequired,
+  }).isRequired,
   initMessages: PropTypes.array,
   dashboard: PropTypes.object.isRequired,
   charts: PropTypes.object.isRequired,
@@ -34,7 +40,7 @@ const propTypes = {
   showBuilderPane: PropTypes.bool,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   editMode: PropTypes.bool,
-  impressionId: PropTypes.string,
+  impressionId: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
@@ -113,10 +119,6 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  componentWillUnmount() {
-    // window.removeEventListener('resize', this.rerenderCharts);
-  }
-
   onBeforeUnload(hasChanged) {
     if (hasChanged) {
       window.addEventListener('beforeunload', this.unload);
@@ -169,11 +171,8 @@ class Dashboard extends React.PureComponent {
 
   render() {
     return (
-      <div id="dashboard-container">
-        <div id="dashboard-header">
-          <AlertsWrapper initMessages={this.props.initMessages} />
-        </div>
-
+      <div>
+        <AlertsWrapper initMessages={this.props.initMessages} />
         <DashboardBuilder />
       </div>
     );

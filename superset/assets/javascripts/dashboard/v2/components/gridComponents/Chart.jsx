@@ -7,6 +7,7 @@ import SliceHeader from '../../../components/SliceHeader';
 import ChartContainer from '../../../../chart/ChartContainer';
 import { chartPropType } from '../../../../chart/chartReducer';
 import { slicePropShape } from '../../../reducers/propShapes';
+import { VIZ_TYPES } from '../../../../../visualizations/main';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -29,8 +30,12 @@ const propTypes = {
   isExpanded: PropTypes.bool.isRequired,
 };
 
-const updateOnPropChange = Object.keys(propTypes)
+// we use state + shouldComponentUpdate() logic to prevent perf-wrecking
+// resizing across all slices on a dashboard
+const RESIZE_TIMEOUT = 350;
+const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes)
   .filter(prop => prop !== 'width' && prop !== 'height');
+const OVERFLOWABLE_VIZ_TYPES = new Set([VIZ_TYPES.filter_box]);
 
 class Chart extends React.Component {
   constructor(props) {
@@ -59,8 +64,8 @@ class Chart extends React.Component {
       return true;
     }
 
-    for (let i = 0; i < updateOnPropChange.length; i += 1) {
-      const prop = updateOnPropChange[i];
+    for (let i = 0; i < SHOULD_UPDATE_ON_PROP_CHANGES.length; i += 1) {
+      const prop = SHOULD_UPDATE_ON_PROP_CHANGES[i];
       if (nextProps[prop] !== this.props[prop]) {
         return true;
       }
@@ -68,7 +73,7 @@ class Chart extends React.Component {
 
     if (nextProps.width !== this.props.width || nextProps.height !== this.props.height) {
       clearTimeout(this.resizeTimeout);
-      this.resizeTimeout = setTimeout(this.resize, 350);
+      this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
     }
 
     return false;
@@ -144,10 +149,10 @@ class Chart extends React.Component {
     const { queryResponse } = chart;
     const isCached = queryResponse && queryResponse.is_cached;
     const cachedDttm = queryResponse && queryResponse.cached_dttm;
-    const overflowable = slice && slice.viz_type === 'filter_box';
+    const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice && slice.viz_type);
 
     return (
-      <div className={cx('dashboard-chart', overflowable && 'dashboard-chart--overflowable')}>
+      <div className={cx('dashboard-chart', isOverflowable && 'dashboard-chart--overflowable')}>
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}

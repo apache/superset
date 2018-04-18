@@ -15,6 +15,8 @@ import {
   GRID_BASE_UNIT,
 } from '../../util/constants';
 
+const CHART_MARGIN = 32;
+
 const propTypes = {
   id: PropTypes.string.isRequired,
   parentId: PropTypes.string.isRequired,
@@ -109,11 +111,14 @@ class ChartHolder extends React.Component {
             onResizeStop={onResizeStop}
             editMode={editMode}
           >
-            <div ref={dragSourceRef} className="dashboard-component dashboard-component-chart">
+            <div
+              ref={dragSourceRef}
+              className="dashboard-component dashboard-component-chart-holder"
+            >
               <Chart
                 id={component.meta.chartKey}
-                width={widthMultiple * columnWidth}
-                height={component.meta.height * GRID_BASE_UNIT}
+                width={(widthMultiple * columnWidth) - CHART_MARGIN}
+                height={(component.meta.height * GRID_BASE_UNIT) - CHART_MARGIN}
               />
               {editMode &&
                 <HoverMenu position="top">
