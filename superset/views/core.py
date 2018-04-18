@@ -347,15 +347,17 @@ class CsvToDatabaseView(SimpleFormView):
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
+        path = os.path.join(config['UPLOAD_FOLDER'], csv_filename)
         try:
-            csv_file.save(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            utils.ensure_path_exists(config['UPLOAD_FOLDER'])
+            csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
             table.database = form.data.get('con')
             table.database_id = table.database.id
             table.database.db_engine_spec.create_table_from_csv(form, table)
         except Exception as e:
             try:
-                os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+                os.remove(path)
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
@@ -365,7 +367,7 @@ class CsvToDatabaseView(SimpleFormView):
                 'danger')
             return redirect('/csvtodatabaseview/form')
 
-        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+        os.remove(path)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
         message = _('CSV file "{0}" uploaded to table "{1}" in '
