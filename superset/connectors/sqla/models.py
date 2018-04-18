@@ -129,9 +129,10 @@ class TableColumn(Model, BaseColumn):
                     expr = db_spec.epoch_to_dttm().format(col=expr)
                 elif pdf == 'epoch_ms':
                     expr = db_spec.epoch_ms_to_dttm().format(col=expr)
-            grain = self.table.database.grains_dict().get(time_grain, '{col}')
-            expr = grain.function.format(col=expr)
-        return literal_column(expr, type_=DateTime).label(DTTM_ALIAS)
+            grain = self.table.database.grains_dict().get(time_grain)
+            literal = grain.function if grain else '{col}'
+            literal = expr.format(col=expr)
+        return literal_column(literal, type_=DateTime).label(DTTM_ALIAS)
 
     @classmethod
     def import_obj(cls, i_column):

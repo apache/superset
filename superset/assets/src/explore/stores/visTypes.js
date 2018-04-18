@@ -95,6 +95,15 @@ export const sections = {
   ],
 };
 
+const timeGrainSqlaAnimationOverrides = {
+  default: null,
+  mapStateToProps: state => ({
+    choices: (state.datasource) ?
+      state.datasource.time_grain_sqla.filter(o => o[0] !== null) :
+      null,
+  }),
+};
+
 export const visTypes = {
   dist_bar: {
     label: t('Distribution - Bar Chart'),
@@ -555,6 +564,7 @@ export const visTypes = {
         description: t("Metric used as a weight for the grid's coloring"),
         validators: [v.nonEmpty],
       },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 
@@ -738,6 +748,7 @@ export const visTypes = {
       size: {
         validators: [],
       },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 
