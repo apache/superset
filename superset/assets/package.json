@@ -17,7 +17,7 @@
     "build": "NODE_ENV=production webpack --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx .",
-    "sync-backend": "babel-node --presets env javascripts/syncBackend.js"
+    "sync-backend": "babel-node --presets env src/syncBackend.js"
   },
   "repository": {
     "type": "git",

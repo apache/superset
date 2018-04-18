@@ -4,8 +4,8 @@ import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 
 import RunQueryActionButton
-  from '../../../../javascripts/SqlLab/components/RunQueryActionButton';
-import Button from '../../../../javascripts/components/Button';
+  from '../../../../src/SqlLab/components/RunQueryActionButton';
+import Button from '../../../../src/components/Button';
 
 describe('RunQueryActionButton', () => {
   let wrapper;

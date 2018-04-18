@@ -1,7 +1,7 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 
-import { ALL_COLOR_SCHEMES, getColorFromScheme, hexToRGB } from '../../../javascripts/modules/colors';
+import { ALL_COLOR_SCHEMES, getColorFromScheme, hexToRGB } from '../../../src/modules/colors';
 
 describe('colors', () => {
   it('default to bnbColors', () => {

@@ -5,9 +5,9 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { Alert, ProgressBar, Button } from 'react-bootstrap';
-import FilterableTable from '../../../javascripts/components/FilterableTable/FilterableTable';
-import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
-import ResultSet from '../../../javascripts/SqlLab/components/ResultSet';
+import FilterableTable from '../../../src/components/FilterableTable/FilterableTable';
+import VisualizeModal from '../../../src/SqlLab/components/VisualizeModal';
+import ResultSet from '../../../src/SqlLab/components/ResultSet';
 import { queries, stoppedQuery, runningQuery, cachedQuery } from './fixtures';
 
 describe('ResultSet', () => {

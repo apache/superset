@@ -5,9 +5,9 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 
-import CheckboxControl from '../../../../javascripts/explore/components/controls/CheckboxControl';
-import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
-import Checkbox from '../../../../javascripts/components/Checkbox';
+import CheckboxControl from '../../../../src/explore/components/controls/CheckboxControl';
+import ControlHeader from '../../../../src/explore/components/ControlHeader';
+import Checkbox from '../../../../src/components/Checkbox';
 
 const defaultProps = {
   name: 'show_legend',

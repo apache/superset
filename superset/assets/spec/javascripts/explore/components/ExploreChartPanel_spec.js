@@ -5,7 +5,7 @@
 // import { expect } from 'chai';
 // import { describe, it } from 'mocha';
 
-// import ChartContainer from '../../../../javascripts/explore/components/ChartContainer';
+// import ChartContainer from '../../../../src/explore/components/ChartContainer';
 
 // describe('ChartContainer', () => {
 //   const mockProps = {

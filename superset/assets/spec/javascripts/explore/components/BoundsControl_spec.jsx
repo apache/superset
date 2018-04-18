@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { mount } from 'enzyme';
 
-import BoundsControl from '../../../../javascripts/explore/components/controls/BoundsControl';
+import BoundsControl from '../../../../src/explore/components/controls/BoundsControl';
 
 const defaultProps = {
   name: 'y_axis_bounds',

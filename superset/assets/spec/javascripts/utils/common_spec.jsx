@@ -1,6 +1,6 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
-import { isTruthy } from '../../../javascripts/utils/common';
+import { isTruthy } from '../../../src/utils/common';
 
 describe('utils/common', () => {
   describe('isTruthy', () => {

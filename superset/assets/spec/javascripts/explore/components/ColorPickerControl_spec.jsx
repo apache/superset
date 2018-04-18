@@ -7,8 +7,8 @@ import { OverlayTrigger } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
 
 import ColorPickerControl from
-  '../../../../javascripts/explore/components/controls/ColorPickerControl';
-import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+  '../../../../src/explore/components/controls/ColorPickerControl';
+import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
   value: { },

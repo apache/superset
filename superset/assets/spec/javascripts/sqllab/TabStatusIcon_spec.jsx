@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import TabStatusIcon from '../../../javascripts/SqlLab/components/TabStatusIcon';
+import TabStatusIcon from '../../../src/SqlLab/components/TabStatusIcon';
 
 function setup() {
   const onClose = sinon.spy();
