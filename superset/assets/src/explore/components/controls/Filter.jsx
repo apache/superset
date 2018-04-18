@@ -2,8 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
-import SelectControl from './SelectControl';
 import { t } from '../../../locales';
+import SelectControl from './SelectControl';
 
 const operatorsArr = [
   { val: 'in', type: 'array', useSelect: true, multi: true },
@@ -16,6 +16,8 @@ const operatorsArr = [
   { val: '<', type: 'string', havingOnly: true },
   { val: 'regex', type: 'string', datasourceTypes: ['druid'] },
   { val: 'LIKE', type: 'string', datasourceTypes: ['table'] },
+  { val: 'IS NULL', type: null },
+  { val: 'IS NOT NULL', type: null },
 ];
 const operators = {};
 operatorsArr.forEach((op) => {
@@ -90,6 +92,10 @@ export default class Filter extends React.Component {
 
   renderFilterFormControl(filter) {
     const operator = operators[filter.op];
+    if (operator.type === null) {
+      // IS NULL or IS NOT NULL
+      return null;
+    }
     if (operator.useSelect && !this.props.having) {
       // TODO should use a simple Select, not a control here...
       return (

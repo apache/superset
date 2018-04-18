@@ -74,6 +74,7 @@
     "moment": "^2.20.1",
     "mousetrap": "^1.6.1",
     "mustache": "^2.2.1",
+    "npm": "^5.7.1",
     "nvd3": "1.8.6",
     "object.entries": "^1.0.4",
     "object.keys": "^0.1.0",
