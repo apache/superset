@@ -20,7 +20,11 @@ const GRID_RATIO = 4;
 const ROW_HEIGHT = 8;
 const generateId = (() => {
   let componentId = 1;
-  return () => (componentId++);
+  return () => {
+    const id = componentId;
+    componentId += 1;
+    return id;
+  };
 })();
 
 /**
@@ -50,11 +54,10 @@ function getBoundary(positions) {
 }
 
 function getRowContainer() {
-  const id = 'DASHBOARD_ROW_TYPE-' + generateId();
   return {
     version: 'v2',
     type: ROW_TYPE,
-    id,
+    id: `DASHBOARD_ROW_TYPE-${generateId()}`,
     children: [],
     meta: {
       background: 'BACKGROUND_TRANSPARENT',
@@ -63,11 +66,10 @@ function getRowContainer() {
 }
 
 function getColContainer() {
-  const id = 'DASHBOARD_COLUMN_TYPE-' + generateId();
   return {
     version: 'v2',
     type: COLUMN_TYPE,
-    id,
+    id: `DASHBOARD_COLUMN_TYPE-${generateId()}`,
     children: [],
     meta: {
       background: 'BACKGROUND_TRANSPARENT',
@@ -88,11 +90,11 @@ function getChartHolder(item) {
   return {
     version: 'v2',
     type: CHART_TYPE,
-    id: 'DASHBOARD_CHART_TYPE-' + generateId(),
+    id: `DASHBOARD_CHART_TYPE-${generateId()}`,
     children: [],
     meta: {
       width: converted.size_x,
-      height: Math.round(converted.size_y * 100 / ROW_HEIGHT),
+      height: Math.round((converted.size_y * 100) / ROW_HEIGHT),
       chartId: slice_id,
     },
   };
@@ -105,6 +107,22 @@ function getChildrenMax(items, attr, layout) {
 function getChildrenSum(items, attr, layout) {
   return items.reduce((preValue, child) => (preValue + layout[child].meta[attr]), 0);
 }
+
+// function getChildrenMax(items, attr, layout) {
+//   return Math.max.apply(null, items.map((childId) => {
+//     const child = layout[childId];
+//     if (child.type === ROW_TYPE && attr === 'width') {
+//       // rows don't have widths themselves
+//       return getChildrenSum(child.children, attr, layout);
+//     } else if (child.type === COLUMN_TYPE && attr === 'height') {
+//       // columns don't have heights themselves
+//       return getChildrenSum(child.children, attr, layout);
+//     }
+//
+//     return child.meta[attr];
+//   }));
+// }
+
 
 function sortByRowId(item1, item2) {
   return item1.row - item2.row;
@@ -174,7 +192,7 @@ function doConvert(positions, level, parent, root) {
       currentItems = upper.slice();
       layers.push(lower);
     }
-    currentRow++;
+    currentRow += 1;
   }
 
   layers.forEach((layer) => {
@@ -247,7 +265,7 @@ function doConvert(positions, level, parent, root) {
 
           currentItems = upper.slice();
         }
-        currentCol++;
+        currentCol += 1;
       }
     }
 
@@ -278,13 +296,13 @@ export default function (dashboard) {
     if (!pos) {
       // append new slices to dashboard bottom, 3 slices per row
       pos = {
-        col: (newSliceCounter % 3) * 16 + 1,
-        row: lastRowId + Math.floor(newSliceCounter / 3) * 16,
+        col: ((newSliceCounter % 3) * 16) + 1,
+        row: lastRowId + (Math.floor(newSliceCounter / 3) * 16),
         size_x: 16,
         size_y: 16,
         slice_id: String(sliceId),
       };
-      newSliceCounter++;
+      newSliceCounter += 1;
     }
 
     positions.push(pos);
@@ -292,7 +310,6 @@ export default function (dashboard) {
 
   const root = {
     [DASHBOARD_ROOT_ID]: {
-      version: 'v2',
       type: DASHBOARD_ROOT_TYPE,
       id: DASHBOARD_ROOT_ID,
       children: [DASHBOARD_GRID_ID],
@@ -317,6 +334,5 @@ export default function (dashboard) {
     }
   });
 
-  // console.log(JSON.stringify(root));
   return root;
 }

@@ -7,10 +7,9 @@ import {
   resizeComponent,
 } from '../actions/dashboardLayout';
 
-function mapStateToProps({ dashboardState: dashboard }, ownProps) {
+function mapStateToProps({ dashboardState }) {
   return {
-    editMode: dashboard.editMode,
-    cells: ownProps.cells,
+    editMode: dashboardState.editMode,
   };
 }
 

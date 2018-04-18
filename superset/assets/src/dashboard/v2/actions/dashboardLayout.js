@@ -1,6 +1,6 @@
 import { addInfoToast } from './messageToasts';
 import { CHART_TYPE, MARKDOWN_TYPE, TABS_TYPE } from '../util/componentTypes';
-import { DASHBOARD_ROOT_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
+import { DASHBOARD_ROOT_ID, NEW_COMPONENTS_SOURCE_ID, GRID_MIN_COLUMN_COUNT } from '../util/constants';
 import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';
 
@@ -62,12 +62,10 @@ export function resizeComponent({ id, width, height }) {
     const { dashboardLayout: undoableLayout } = getState();
     const { present: dashboard } = undoableLayout;
     const component = dashboard[id];
-
-    if (
-      component &&
-      (component.meta.width !== width || component.meta.height !== height)
-    ) {
-      // update the size of this component + any resizable children
+    const widthChanged = width && component.meta.width !== width;
+    const heightChanged = height && component.meta.height !== height;
+    if (component && (widthChanged || heightChanged)) {
+      // update the size of this component
       const updatedComponents = {
         [id]: {
           ...component,
@@ -79,6 +77,8 @@ export function resizeComponent({ id, width, height }) {
         },
       };
 
+      // set any resizable children to have a minimum width so that
+      // the chances that they are validly movable to future containers is maximized
       component.children.forEach((childId) => {
         const child = dashboard[childId];
         if ([CHART_TYPE, MARKDOWN_TYPE].includes(child.type)) {
@@ -86,14 +86,16 @@ export function resizeComponent({ id, width, height }) {
             ...child,
             meta: {
               ...child.meta,
-              width: width || child.meta.width,
+              width: GRID_MIN_COLUMN_COUNT,
               height: height || child.meta.height,
             },
           };
         }
       });
 
-      dispatch(updateComponents(updatedComponents));
+      dispatch(
+        updateComponents(updatedComponents),
+      );
     }
   };
 }

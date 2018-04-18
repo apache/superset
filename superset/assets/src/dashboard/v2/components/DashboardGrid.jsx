@@ -1,5 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+// ParentSize uses resize observer so the dashboard will update size
+// when its container size changes, due to e.g., builder side panel opening
 import ParentSize from '@vx/responsive/build/components/ParentSize';
 
 import { componentShape } from '../util/propShapes';
@@ -34,6 +36,7 @@ class DashboardGrid extends React.PureComponent {
     this.handleResize = this.handleResize.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
     this.getRowGuidePosition = this.getRowGuidePosition.bind(this);
+    this.setGridRef = this.setGridRef.bind(this);
   }
 
   getRowGuidePosition(resizeRef) {
@@ -41,6 +44,10 @@ class DashboardGrid extends React.PureComponent {
       return resizeRef.getBoundingClientRect().bottom - this.grid.getBoundingClientRect().top - 1;
     }
     return null;
+  }
+
+  setGridRef(ref) {
+    this.grid = ref;
   }
 
   handleResizeStart({ ref, direction }) {
@@ -71,73 +78,72 @@ class DashboardGrid extends React.PureComponent {
   }
 
   render() {
-    const { gridComponent, handleComponentDrop, depth, editMode, cells } = this.props;
+    const { gridComponent, handleComponentDrop, depth, editMode } = this.props;
     const { isResizing, rowGuideTop } = this.state;
 
     return (
-      <div className="grid-container" ref={(ref) => { this.grid = ref; }}>
+      <div className="grid-container" ref={this.setGridRef}>
         <ParentSize>
-          {({ width }) => {
-            // account for (COLUMN_COUNT - 1) gutters
+          {(({ width }) => {
             const columnPlusGutterWidth = (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
             const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
+            return (
+              width < 50 ? null : (
+                <div className="grid-content">
+                  {gridComponent.children.map((id, index) => (
+                    <DashboardComponent
+                      key={id}
+                      id={id}
+                      parentId={gridComponent.id}
+                      depth={depth + 1}
+                      index={index}
+                      availableColumnCount={GRID_COLUMN_COUNT}
+                      columnWidth={columnWidth}
+                      onResizeStart={this.handleResizeStart}
+                      onResize={this.handleResize}
+                      onResizeStop={this.handleResizeStop}
+                    />
+                  ))}
 
-            return width < 50 ? null : (
-              <div className="grid-content">
-                {gridComponent.children.map((id, index) => (
-                  <DashboardComponent
-                    key={id}
-                    id={id}
-                    parentId={gridComponent.id}
-                    depth={depth + 1}
-                    index={index}
-                    availableColumnCount={GRID_COLUMN_COUNT}
-                    columnWidth={columnWidth}
-                    cells={cells}
-                    onResizeStart={this.handleResizeStart}
-                    onResize={this.handleResize}
-                    onResizeStop={this.handleResizeStop}
-                  />
-                ))}
+                  {/* render an empty drop target */}
+                  {editMode &&
+                    <DragDroppable
+                      component={gridComponent}
+                      depth={depth}
+                      parentComponent={null}
+                      index={gridComponent.children.length}
+                      orientation="column"
+                      onDrop={handleComponentDrop}
+                      className="empty-grid-droptarget"
+                      editMode
+                    >
+                      {({ dropIndicatorProps }) => dropIndicatorProps &&
+                        <div className="drop-indicator drop-indicator--top" />}
+                    </DragDroppable>}
 
-                {/* render an empty drop target */}
-                {editMode &&
-                  <DragDroppable
-                    component={gridComponent}
-                    depth={depth}
-                    parentComponent={null}
-                    index={gridComponent.children.length}
-                    orientation="column"
-                    onDrop={handleComponentDrop}
-                    className="empty-grid-droptarget"
-                    editMode
-                  >
-                    {({ dropIndicatorProps }) => dropIndicatorProps &&
-                      <div className="drop-indicator drop-indicator--top" />}
-                  </DragDroppable>}
+                  {isResizing && Array(GRID_COLUMN_COUNT).fill(null).map((_, i) => (
+                    <div
+                      key={`grid-column-${i}`}
+                      className="grid-column-guide"
+                      style={{
+                        left: (i * GRID_GUTTER_SIZE) + (i * columnWidth),
+                        width: columnWidth,
+                      }}
+                    />
+                  ))}
 
-                {isResizing && Array(GRID_COLUMN_COUNT).fill(null).map((_, i) => (
-                  <div
-                    key={`grid-column-${i}`}
-                    className="grid-column-guide"
-                    style={{
-                      left: (i * GRID_GUTTER_SIZE) + (i * columnWidth),
-                      width: columnWidth,
-                    }}
-                  />
-                ))}
-
-                {isResizing && rowGuideTop &&
-                  <div
-                    className="grid-row-guide"
-                    style={{
-                      top: rowGuideTop,
-                      width,
-                    }}
-                  />}
-              </div>
+                  {isResizing && rowGuideTop &&
+                    <div
+                      className="grid-row-guide"
+                      style={{
+                        top: rowGuideTop,
+                        width,
+                      }}
+                    />}
+                </div>
+              )
             );
-          }}
+          })}
         </ParentSize>
       </div>
     );

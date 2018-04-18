@@ -33,8 +33,7 @@ class BuilderComponentPane extends React.PureComponent {
         <div className="dashboard-builder-sidepane-header">
           Insert components
           {this.state.showSlices &&
-            <i className="fa fa-times close trigger" onClick={this.closeSlicesPane} role="none" />
-          }
+            <i className="fa fa-times close trigger" onClick={this.closeSlicesPane} role="none" />}
         </div>
 
         <div className="component-layer">
@@ -52,7 +51,6 @@ class BuilderComponentPane extends React.PureComponent {
 
           <NewHeader />
           <NewDivider />
-
           <NewTabs />
           <NewRow />
           <NewColumn />

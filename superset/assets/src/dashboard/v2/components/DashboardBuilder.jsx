@@ -20,8 +20,6 @@ import {
 } from '../util/constants';
 
 const propTypes = {
-  cells: PropTypes.object.isRequired,
-
   // redux
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
@@ -68,7 +66,7 @@ class DashboardBuilder extends React.Component {
     const gridComponent = dashboardLayout[gridComponentId];
 
     return (
-      <div className={cx('dashboard-v2', editMode && 'dashboard-v2--editing')}>
+      <div className={cx('dashboard', editMode && 'dashboard--editing')}>
         {topLevelTabs || !editMode ? ( // you cannot drop on/displace tabs if they already exist
           <DashboardHeader />
         ) : (
@@ -108,7 +106,6 @@ class DashboardBuilder extends React.Component {
               index={0}
               renderTabContent={false}
               onChangeTab={this.handleChangeTab}
-              cells={this.props.cells}
             />
           </WithPopoverMenu>}
 
@@ -116,7 +113,6 @@ class DashboardBuilder extends React.Component {
           <DashboardGrid
             gridComponent={gridComponent}
             depth={DASHBOARD_ROOT_DEPTH + 1}
-            cells={this.props.cells}
           />
           {this.props.editMode && this.props.showBuilderPane &&
             <BuilderComponentPane />

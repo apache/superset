@@ -56,7 +56,10 @@ const defaultProps = {
 // because columns are not multiples of a single variable (width = n*cols + (n-1) * gutters)
 // we snap to the base unit and then snap to _actual_ column multiples on stop
 const SNAP_TO_GRID = [GRID_BASE_UNIT, GRID_BASE_UNIT];
-
+const HANDLE_CLASSES = {
+  right: 'resizable-container-handle--right',
+  bottom: 'resizable-container-handle--bottom',
+};
 class ResizableContainer extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -150,18 +153,15 @@ class ResizableContainer extends React.PureComponent {
           || undefined,
     };
 
-    if (!editMode) {
-      return (
-        <div style={{ ...size }}>
-          {children}
-        </div>
-      );
-    }
-
     let enableConfig = resizableConfig.notAdjustable;
-    if (adjustableWidth && adjustableHeight) enableConfig = resizableConfig.widthAndHeight;
-    else if (adjustableWidth) enableConfig = resizableConfig.widthOnly;
-    else if (adjustableHeight) enableConfig = resizableConfig.heightOnly;
+
+    if (editMode && adjustableWidth && adjustableHeight) {
+      enableConfig = resizableConfig.widthAndHeight;
+    } else if (editMode && adjustableWidth) {
+      enableConfig = resizableConfig.widthOnly;
+    } else if (editMode && adjustableHeight) {
+      enableConfig = resizableConfig.heightOnly;
+    }
 
     const { isResizing } = this.state;
 
@@ -190,6 +190,7 @@ class ResizableContainer extends React.PureComponent {
           'resizable-container',
           isResizing && 'resizable-container--resizing',
         )}
+        handleClasses={HANDLE_CLASSES}
       >
         {children}
       </Resizable>

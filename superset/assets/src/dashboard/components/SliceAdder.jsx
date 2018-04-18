@@ -24,6 +24,7 @@ const propTypes = {
 const defaultProps = {
   selectedSliceIds: new Set(),
   editMode: false,
+  errorMessage: '',
 };
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
@@ -122,6 +123,7 @@ class SliceAdder extends React.Component {
 
     return (
       <DragDroppable
+        key={key}
         component={{ type, id, meta }}
         parentComponent={{ id: NEW_COMPONENTS_SOURCE_ID, type: NEW_COMPONENT_SOURCE_TYPE }}
         index={0}
@@ -149,7 +151,9 @@ class SliceAdder extends React.Component {
                 </div>
                 <div className="item">
                   <span>Data source </span>
-                  <span dangerouslySetInnerHTML={{ __html: cellData.datasource_link }} />
+                  <span // eslint-disable-next-line react/no-danger
+                    dangerouslySetInnerHTML={{ __html: cellData.datasource_link }}
+                  />
                 </div>
               </div>
             </div>
@@ -179,18 +183,20 @@ class SliceAdder extends React.Component {
           />
         </div>
 
-        {this.props.isLoading &&
+        {this.props.isLoading && (
           <img
             src="/static/assets/images/loading.gif"
             className="loading"
             alt="loading"
-          />
-        }
-        <div className={this.props.errorMessage ? '' : 'hidden'}>
-          {this.props.errorMessage}
-        </div>
-        <div className={!this.props.isLoading ? '' : 'hidden'}>
-          {this.state.filteredSlices.length > 0 &&
+          />)}
+
+        {this.props.errorMessage && (
+          <div>
+            {this.props.errorMessage}
+          </div>)}
+
+        {!this.props.isLoading &&
+          !this.propsthis.state.filteredSlices.length > 0 && (
             <List
               width={376}
               height={500}
@@ -200,9 +206,7 @@ class SliceAdder extends React.Component {
               searchTerm={this.state.searchTerm}
               sortBy={this.state.sortBy}
               selectedSliceIds={this.props.selectedSliceIds}
-            />
-          }
-        </div>
+            />)}
       </div>
     );
   }

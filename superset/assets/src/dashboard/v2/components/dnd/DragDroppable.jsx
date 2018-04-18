@@ -74,7 +74,7 @@ class DragDroppable extends React.Component {
       editMode,
     } = this.props;
 
-    if (!editMode) return children({});
+    // if (!editMode) return children({});
 
     const { dropIndicator } = this.state;
 
@@ -90,7 +90,7 @@ class DragDroppable extends React.Component {
           className,
         )}
       >
-        {children({
+        {children(!editMode ? {} : {
           dragSourceRef,
           dropIndicatorProps: isDraggingOver && dropIndicator && {
             className: cx(

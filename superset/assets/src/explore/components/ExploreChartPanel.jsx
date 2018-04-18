@@ -38,14 +38,15 @@ class ExploreChartPanel extends React.PureComponent {
   }
 
   renderChart() {
+    const { chart } = this.props;
     return (
       <ChartContainer
+        chartId={chart.id}
         containerId={this.props.containerId}
         datasource={this.props.datasource}
         formData={this.props.form_data}
         height={this.getHeight()}
         slice={this.props.slice}
-        chartId={this.props.chart.id}
         setControlValue={this.props.actions.setControlValue}
         timeout={this.props.timeout}
         vizType={this.props.vizType}
@@ -53,6 +54,16 @@ class ExploreChartPanel extends React.PureComponent {
         errorMessage={this.props.errorMessage}
         onQuery={this.props.onQuery}
         onDismissRefreshOverlay={this.props.onDismissRefreshOverlay}
+        annotationData={chart.annotationData}
+        chartAlert={chart.chartAlert}
+        chartStatus={chart.chartStatus}
+        chartUpdateEndTime={chart.chartUpdateEndTime}
+        chartUpdateStartTime={chart.chartUpdateStartTime}
+        latestQueryFormData={chart.latestQueryFormData}
+        lastRendered={chart.lastRendered}
+        queryResponse={chart.queryResponse}
+        queryRequest={chart.queryRequest}
+        triggerQuery={chart.triggerQuery}
       />
     );
   }
