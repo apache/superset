@@ -2,8 +2,8 @@ import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import $ from 'jquery';
-import * as exploreUtils from '../../../javascripts/explore/exploreUtils';
-import * as actions from '../../../javascripts/chart/chartAction';
+import * as exploreUtils from '../../../src/explore/exploreUtils';
+import * as actions from '../../../src/chart/chartAction';
 
 describe('chart actions', () => {
   let dispatch;

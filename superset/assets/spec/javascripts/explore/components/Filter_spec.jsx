@@ -6,8 +6,8 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import Filter from '../../../../javascripts/explore/components/controls/Filter';
-import SelectControl from '../../../../javascripts/explore/components/controls/SelectControl';
+import Filter from '../../../../src/explore/components/controls/Filter';
+import SelectControl from '../../../../src/explore/components/controls/SelectControl';
 
 const defaultProps = {
   changeFilter: sinon.spy(),

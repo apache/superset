@@ -8,7 +8,7 @@ import {
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
- } from '../../../javascripts/modules/dates';
+ } from '../../../src/modules/dates';
 
 describe('tickMultiFormat', () => {
   it('is a function', () => {

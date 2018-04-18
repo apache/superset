@@ -7,7 +7,7 @@ import { describe, it } from 'mocha';
 import VirtualizedSelect from 'react-virtualized-select';
 import Select, { Creatable } from 'react-select';
 
-import OnPasteSelect from '../../../javascripts/components/OnPasteSelect';
+import OnPasteSelect from '../../../src/components/OnPasteSelect';
 
 const defaultProps = {
   onChange: sinon.spy(),

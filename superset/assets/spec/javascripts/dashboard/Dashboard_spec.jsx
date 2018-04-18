@@ -4,9 +4,9 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import * as dashboardActions from '../../../javascripts/dashboard/actions';
-import * as chartActions from '../../../javascripts/chart/chartAction';
-import Dashboard from '../../../javascripts/dashboard/components/Dashboard';
+import * as dashboardActions from '../../../src/dashboard/actions';
+import * as chartActions from '../../../src/chart/chartAction';
+import Dashboard from '../../../src/dashboard/components/Dashboard';
 import { defaultFilters, dashboard, charts } from './fixtures';
 
 describe('Dashboard', () => {

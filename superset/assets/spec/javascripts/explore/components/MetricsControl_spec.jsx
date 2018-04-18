@@ -5,10 +5,10 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import MetricsControl from '../../../../javascripts/explore/components/controls/MetricsControl';
-import { AGGREGATES } from '../../../../javascripts/explore/constants';
-import OnPasteSelect from '../../../../javascripts/components/OnPasteSelect';
-import AdhocMetric, { EXPRESSION_TYPES } from '../../../../javascripts/explore/AdhocMetric';
+import MetricsControl from '../../../../src/explore/components/controls/MetricsControl';
+import { AGGREGATES } from '../../../../src/explore/constants';
+import OnPasteSelect from '../../../../src/components/OnPasteSelect';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/AdhocMetric';
 
 const defaultProps = {
   name: 'metrics',

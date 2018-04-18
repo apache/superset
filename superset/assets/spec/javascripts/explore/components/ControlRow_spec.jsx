@@ -2,7 +2,7 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
-import ControlSetRow from '../../../../javascripts/explore/components/ControlRow';
+import ControlSetRow from '../../../../src/explore/components/ControlRow';
 
 describe('ControlSetRow', () => {
   it('renders a single row with one element', () => {

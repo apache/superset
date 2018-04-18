@@ -3,7 +3,7 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import AlertContainer from 'react-alert';
-import AlertsWrapper from '../../../javascripts/components/AlertsWrapper';
+import AlertsWrapper from '../../../src/components/AlertsWrapper';
 
 describe('AlertsWrapper', () => {
   let wrapper;

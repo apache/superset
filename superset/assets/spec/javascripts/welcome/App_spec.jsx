@@ -4,7 +4,7 @@ import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import App from '../../../javascripts/welcome/App';
+import App from '../../../src/welcome/App';
 
 describe('App', () => {
   const mockedProps = {};

@@ -6,9 +6,9 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 import { Label, OverlayTrigger } from 'react-bootstrap';
 
-import AdhocMetric from '../../../../javascripts/explore/AdhocMetric';
-import AdhocMetricOption from '../../../../javascripts/explore/components/AdhocMetricOption';
-import { AGGREGATES } from '../../../../javascripts/explore/constants';
+import AdhocMetric from '../../../../src/explore/AdhocMetric';
+import AdhocMetricOption from '../../../../src/explore/components/AdhocMetricOption';
+import { AGGREGATES } from '../../../../src/explore/constants';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },
