@@ -1,5 +1,6 @@
 .grid-column {
   width: 100%;
+  position: relative;
 }
 
 /* gutters between elements in a column */
@@ -8,12 +9,12 @@
 }
 
 .dashboard-v2--editing .grid-column:after {
-  border: 1px dashed transparent;
+  border: 1px solid transparent;
   content: "";
   position: absolute;
   width: 100%;
   height: 100%;
-  top: 1px;
+  top: 0;
   left: 0;
   z-index: 1;
   pointer-events: none;

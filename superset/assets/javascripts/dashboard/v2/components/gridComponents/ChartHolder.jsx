@@ -1,15 +1,19 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import Chart from '../../containers/Chart';
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
 import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
-import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';
-import { ROW_TYPE } from '../../util/componentTypes';
-import { GRID_MIN_COLUMN_COUNT, GRID_MIN_ROW_UNITS } from '../../util/constants';
+import { ROW_TYPE, COLUMN_TYPE } from '../../util/componentTypes';
+import {
+  GRID_MIN_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
+  GRID_BASE_UNIT,
+} from '../../util/constants';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -19,7 +23,6 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
-  chart: PropTypes.object,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -73,6 +76,11 @@ class ChartHolder extends React.Component {
       editMode,
     } = this.props;
 
+    // inherit the size of parent columns
+    const widthMultiple = parentComponent.type === COLUMN_TYPE
+      ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
+      : component.meta.width || GRID_MIN_COLUMN_COUNT;
+
     return (
       <DragDroppable
         component={component}
@@ -90,34 +98,31 @@ class ChartHolder extends React.Component {
             adjustableWidth={parentComponent.type === ROW_TYPE}
             adjustableHeight
             widthStep={columnWidth}
-            widthMultiple={component.meta.width}
+            widthMultiple={widthMultiple}
+            heightStep={GRID_BASE_UNIT}
             heightMultiple={component.meta.height}
             minWidthMultiple={GRID_MIN_COLUMN_COUNT}
             minHeightMultiple={GRID_MIN_ROW_UNITS}
-            maxWidthMultiple={availableColumnCount + (component.meta.width || 0)}
+            maxWidthMultiple={availableColumnCount + widthMultiple}
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
             editMode={editMode}
           >
-            {editMode &&
-              <HoverMenu innerRef={dragSourceRef} position="top">
-                <DragHandle position="top" />
-              </HoverMenu>}
+            <div ref={dragSourceRef} className="dashboard-component dashboard-component-chart">
+              <Chart
+                id={component.meta.chartKey}
+                width={widthMultiple * columnWidth}
+                height={component.meta.height * GRID_BASE_UNIT}
+              />
+              {editMode &&
+                <HoverMenu position="top">
+                  <DragHandle position="top" />
+                  <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+                </HoverMenu>}
+            </div>
 
-            <WithPopoverMenu
-              onChangeFocus={this.handleChangeFocus}
-              menuItems={[
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
-              ]}
-              editMode={editMode}
-            >
-              <div className="dashboard-component dashboard-component-chart">
-                {this.props.chart}
-              </div>
-
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-            </WithPopoverMenu>
+            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </ResizableContainer>
         )}
       </DragDroppable>

@@ -123,6 +123,7 @@ class SliceAdder extends React.Component {
 
     return (
       <DragDroppable
+        key={key}
         component={{ type, id, meta }}
         parentComponent={{ id: NEW_COMPONENTS_SOURCE_ID, type: NEW_COMPONENT_SOURCE_TYPE }}
         index={0}
@@ -134,7 +135,6 @@ class SliceAdder extends React.Component {
       <div
         ref={dragSourceRef}
         className="chart-card-container"
-        key={key}
         style={style}
       >
         <div className={cx('chart-card', { 'is-selected': isSelected })}>

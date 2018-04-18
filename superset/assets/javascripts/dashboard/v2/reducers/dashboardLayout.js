@@ -1,4 +1,8 @@
-import { DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
+import {
+  DASHBOARD_ROOT_ID,
+  DASHBOARD_GRID_ID,
+  GRID_MIN_COLUMN_COUNT,
+  NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -70,17 +74,17 @@ const actionHandlers = {
     const { destination, dragging } = dropResult;
     const newEntities = newEntitiesFromDrop({ dropResult, components: state });
 
-    // inherit the width of a column parent
+    // if column is a parent, set any resizable children to have a minimum width so that
+    // the chances that they are validly movable to future containers is maximized
     if (destination.type === COLUMN_TYPE && [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)) {
       const newEntitiesArray = Object.values(newEntities);
       const component = newEntitiesArray.find(entity => entity.type === dragging.type);
-      const parentColumn = newEntities[destination.id];
 
       newEntities[component.id] = {
         ...component,
         meta: {
           ...component.meta,
-          width: parentColumn.meta.width,
+          width: GRID_MIN_COLUMN_COUNT,
         },
       };
     }

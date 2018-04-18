@@ -11,10 +11,6 @@ text.nv-axislabel {
   font-size: 14px;
 }
 
-.slice_container.dist_bar {
-  overflow-x: auto !important;
-}
-
 .dist_bar svg.nvd3-svg {
   width: auto;
   font-size: 14px;
@@ -63,4 +59,3 @@ g.opacityMedium path, line.opacityMedium {
 g.opacityHigh path, line.opacityHigh {
   stroke-opacity: .8
 }
-

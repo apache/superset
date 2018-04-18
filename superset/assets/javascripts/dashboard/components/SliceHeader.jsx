@@ -7,6 +7,7 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 import SliceHeaderControls from './SliceHeaderControls';
 
 const propTypes = {
+  innerRef: PropTypes.func,
   slice: PropTypes.object.isRequired,
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
@@ -22,6 +23,7 @@ const propTypes = {
 };
 
 const defaultProps = {
+  innerRef: null,
   forceRefresh: () => ({}),
   removeSlice: () => ({}),
   updateSliceName: () => ({}),
@@ -46,15 +48,22 @@ class SliceHeader extends React.PureComponent {
 
   render() {
     const {
-      slice, isExpanded, isCached, cachedDttm,
-      toggleExpandSlice, forceRefresh,
-      exploreChart, exportCSV,
+      slice,
+      isExpanded,
+      isCached,
+      cachedDttm,
+      toggleExpandSlice,
+      forceRefresh,
+      exploreChart,
+      exportCSV,
+      innerRef,
     } = this.props;
+
     const annoationsLoading = t('Annotation layers are still loading.');
     const annoationsError = t('One ore more annotation layers failed loading.');
 
     return (
-      <div className="row chart-header">
+      <div className="chart-header" ref={innerRef}>
         <div className="col-md-12">
           <div className="header">
             <EditableTitle

@@ -5,7 +5,6 @@ import Mustache from 'mustache';
 import { Tooltip } from 'react-bootstrap';
 
 import { d3format } from '../modules/utils';
-import { chartPropType } from './chartReducer';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
@@ -18,7 +17,7 @@ import './chart.css';
 const propTypes = {
   annotationData: PropTypes.object,
   actions: PropTypes.object,
-  chart: PropTypes.shape(chartPropType).isRequired,
+  sliceId: PropTypes.string.isRequired,
   containerId: PropTypes.string.isRequired,
   datasource: PropTypes.object.isRequired,
   formData: PropTypes.object,
@@ -62,7 +61,7 @@ class Chart extends React.PureComponent {
     this.annotationData = props.annotationData;
     this.containerId = props.containerId;
     this.selector = `#${this.containerId}`;
-    this.formData = props.formData || props.chart.formData;
+    this.formData = props.formData;
     this.datasource = props.datasource;
     this.addFilter = this.addFilter.bind(this);
     this.getFilters = this.getFilters.bind(this);
@@ -73,12 +72,15 @@ class Chart extends React.PureComponent {
   }
 
   componentDidMount() {
-    const formData = this.props.formData || this.props.chart.formData;
     if (this.props.triggerQuery) {
+      const formData = this.props.formData;
       this.props.actions.runQuery(formData, false,
         this.props.timeout,
-        this.props.chart.chartKey,
+        this.props.sliceId,
       );
+    } else {
+      // when drag/dropping in a dashboard, a chart may be unmounted/remounted but still have data
+      this.renderViz();
     }
   }
 
@@ -86,7 +88,7 @@ class Chart extends React.PureComponent {
     this.annotationData = nextProps.annotationData;
     this.containerId = nextProps.containerId;
     this.selector = `#${this.containerId}`;
-    this.formData = nextProps.formData || nextProps.chart.formData;
+    this.formData = nextProps.formData;
     this.datasource = nextProps.datasource;
   }
 
@@ -95,11 +97,12 @@ class Chart extends React.PureComponent {
         this.props.queryResponse &&
         ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
         !this.props.queryResponse.error && (
-        prevProps.annotationData !== this.props.annotationData ||
-        prevProps.queryResponse !== this.props.queryResponse ||
-        prevProps.height !== this.props.height ||
-        prevProps.width !== this.props.width ||
-        prevProps.lastRendered !== this.props.lastRendered)
+          prevProps.annotationData !== this.props.annotationData ||
+          prevProps.queryResponse !== this.props.queryResponse ||
+          prevProps.height !== this.props.height ||
+          prevProps.width !== this.props.width ||
+          prevProps.lastRendered !== this.props.lastRendered
+        )
     ) {
       this.renderViz();
     }
@@ -128,7 +131,8 @@ class Chart extends React.PureComponent {
   }
 
   width() {
-    return this.props.width || this.container.el.offsetWidth;
+    return this.props.width ||
+      (this.container && this.container.el && this.container.el.offsetWidth);
   }
 
   headerHeight() {
@@ -136,7 +140,8 @@ class Chart extends React.PureComponent {
   }
 
   height() {
-    return this.props.height || this.container.el.offsetHeight;
+    return this.props.height
+      || (this.container && this.container.el && this.container.el.offsetHeight);
   }
 
   d3format(col, number) {
@@ -156,7 +161,6 @@ class Chart extends React.PureComponent {
 
   renderTooltip() {
     if (this.state.tooltip) {
-      /* eslint-disable react/no-danger */
       return (
         <Tooltip
           className="chart-tooltip"
@@ -166,55 +170,54 @@ class Chart extends React.PureComponent {
           positionLeft={this.state.tooltip.x + 30}
           arrowOffsetTop={10}
         >
-          <div dangerouslySetInnerHTML={{ __html: this.state.tooltip.content }} />
+          <div // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: this.state.tooltip.content }}
+          />
         </Tooltip>
       );
-      /* eslint-enable react/no-danger */
     }
     return null;
   }
 
   renderViz() {
-    const viz = visMap[this.props.vizType];
-    // allow props.formData overwrite chart's own formData
-    const fd = this.props.formData || this.props.chart.formData;
-    const qr = this.props.queryResponse;
+    const { vizType, formData, queryResponse, setControlValue, sliceId, chartStatus } = this.props;
+    const visRenderer = visMap[vizType];
     const renderStart = Logger.getTimestamp();
     try {
       // Executing user-defined data mutator function
-      if (fd.js_data) {
-        qr.data = sandboxedEval(fd.js_data)(qr.data);
+      if (formData.js_data) {
+        queryResponse.data = sandboxedEval(formData.js_data)(queryResponse.data);
       }
-      // [re]rendering the visualization
-      viz(this, qr, this.props.setControlValue);
+      visRenderer(this, queryResponse, setControlValue);
+      if (chartStatus !== 'rendered') {
+        this.props.actions.chartRenderingSucceeded(sliceId);
+      }
       Logger.append(LOG_ACTIONS_RENDER_EVENT, {
-        label: this.props.chart.chartKey,
-        vis_type: this.props.vizType,
+        label: sliceId,
+        vis_type: vizType,
         start_offset: renderStart,
         duration: Logger.getTimestamp() - renderStart,
       });
-      this.props.actions.chartRenderingSucceeded(this.props.chart.chartKey);
     } catch (e) {
-      console.error(e);  // eslint-disable-line
-      this.props.actions.chartRenderingFailed(e, this.props.chart.chartKey);
+      console.error(e); // eslint-disable-line no-console
+      this.props.actions.chartRenderingFailed(e, sliceId);
     }
   }
 
   render() {
     const isLoading = this.props.chartStatus === 'loading';
+
+    // this allows <Loading /> to be positioned in the middle of the chart
+    const containerStyles = isLoading ? { height: this.height(), width: this.width() } : null;
     return (
-      <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}
-      >
+      <div className={`chart-container ${isLoading ? 'is-loading' : ''}`} style={containerStyles}>
         {this.renderTooltip()}
-        {isLoading &&
-          <Loading size={25} />
-        }
+        {isLoading && <Loading size={75} />}
         {this.props.chartAlert &&
-        <StackTraceMessage
-          message={this.props.chartAlert}
-          queryResponse={this.props.queryResponse}
-        />
-        }
+          <StackTraceMessage
+            message={this.props.chartAlert}
+            queryResponse={this.props.queryResponse}
+          />}
 
         {!isLoading &&
           !this.props.chartAlert &&
@@ -225,8 +228,8 @@ class Chart extends React.PureComponent {
             width={this.width()}
             onQuery={this.props.onQuery}
             onDismiss={this.props.onDismissRefreshOverlay}
-          />
-        }
+          />}
+
         {!isLoading && !this.props.chartAlert &&
           <ChartBody
             containerId={this.containerId}

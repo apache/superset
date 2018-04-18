@@ -54,12 +54,11 @@ class WithPopoverMenu extends React.PureComponent {
   }
 
   handleClick(event) {
-    const { onChangeFocus, shouldFocus: shouldFocusFunc, disableClick, editMode } = this.props;
-    const shouldFocus = shouldFocusFunc(event, this.container);
-
-    if (!editMode) {
+    if (!this.props.editMode) {
       return;
     }
+    const { onChangeFocus, shouldFocus: shouldFocusFunc, disableClick } = this.props;
+    const shouldFocus = shouldFocusFunc(event, this.container);
 
     if (!disableClick && shouldFocus && !this.state.isFocused) {
       // if not focused, set focus and add a window event listener to capture outside clicks

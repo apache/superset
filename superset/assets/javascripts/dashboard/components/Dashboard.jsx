@@ -2,9 +2,10 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import AlertsWrapper from '../../components/AlertsWrapper';
-import GridLayout from './GridLayout';
+import DashboardBuilder from '../v2/containers/DashboardBuilder';
+// import GridLayout from './GridLayout';
 import { slicePropShape } from '../reducers/propShapes';
-import { exportChart } from '../../explore/exploreUtils';
+// import { exportChart } from '../../explore/exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
   LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
@@ -18,7 +19,7 @@ const propTypes = {
   initMessages: PropTypes.array,
   dashboard: PropTypes.object.isRequired,
   charts: PropTypes.object.isRequired,
-  slices:  PropTypes.objectOf(slicePropShape).isRequired,
+  slices: PropTypes.objectOf(slicePropShape).isRequired,
   datasources: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object,
@@ -57,22 +58,23 @@ class Dashboard extends React.PureComponent {
     });
     Logger.start(this.loadingLog);
 
-    this.rerenderCharts = this.rerenderCharts.bind(this);
-    this.getFormDataExtra = this.getFormDataExtra.bind(this);
-    this.exploreChart = this.exploreChart.bind(this);
-    this.exportCSV = this.exportCSV.bind(this);
+    // this.rerenderCharts = this.rerenderCharts.bind(this);
+    // this.getFormDataExtra = this.getFormDataExtra.bind(this);
+    // this.exploreChart = this.exploreChart.bind(this);
+    // this.exportCSV = this.exportCSV.bind(this);
 
-    this.props.actions.saveSliceName = this.props.actions.saveSliceName.bind(this);
-    this.props.actions.removeSliceFromDashboard =
-      this.props.actions.removeSliceFromDashboard.bind(this);
-    this.props.actions.toggleExpandSlice =
-      this.props.actions.toggleExpandSlice.bind(this);
-    this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
-    this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
+    // this.props.actions.saveSliceName = this.props.actions.saveSliceName.bind(this);
+    // this.props.actions.removeSliceFromDashboard =
+      // this.props.actions.removeSliceFromDashboard.bind(this);
+    // this.props.actions.toggleExpandSlice =
+      // this.props.actions.toggleExpandSlice.bind(this);
+    // this.props.actions.addFilter = this.props.actions.addFilter.bind(this);
+    // this.props.actions.removeFilter = this.props.actions.removeFilter.bind(this);
   }
 
   componentDidMount() {
-    window.addEventListener('resize', this.rerenderCharts);
+    // grid does this now
+    // window.addEventListener('resize', this.rerenderCharts);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -126,7 +128,7 @@ class Dashboard extends React.PureComponent {
   }
 
   componentWillUnmount() {
-    window.removeEventListener('resize', this.rerenderCharts);
+    // window.removeEventListener('resize', this.rerenderCharts);
   }
 
   onBeforeUnload(hasChanged) {
@@ -142,12 +144,12 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  getFormDataExtra(chart) {
-    const formDataExtra = Object.assign({}, chart.formData);
-    const extraFilters = this.effectiveExtraFilters(chart.slice_id);
-    formDataExtra.extra_filters = formDataExtra.filters.concat(extraFilters);
-    return formDataExtra;
-  }
+  // getFormDataExtra(chart) {
+  //   const formDataExtra = Object.assign({}, chart.formData);
+  //   const extraFilters = this.effectiveExtraFilters(chart.slice_id);
+  //   formDataExtra.extra_filters = formDataExtra.filters.concat(extraFilters);
+  //   return formDataExtra;
+  // }
 
   getFilters(sliceId) {
     return this.props.filters[sliceId];
@@ -169,41 +171,41 @@ class Dashboard extends React.PureComponent {
     return message; // Gecko + Webkit, Safari, Chrome etc.
   }
 
-  effectiveExtraFilters(sliceId) {
-    const metadata = this.props.dashboard.metadata;
-    const filters = this.props.filters;
-    const f = [];
-    const immuneSlices = metadata.filter_immune_slices || [];
-    if (sliceId && immuneSlices.includes(sliceId)) {
-      // The slice is immune to dashboard filters
-      return f;
-    }
-
-    // Building a list of fields the slice is immune to filters on
-    let immuneToFields = [];
-    if (
-      sliceId &&
-      metadata.filter_immune_slice_fields &&
-      metadata.filter_immune_slice_fields[sliceId]) {
-      immuneToFields = metadata.filter_immune_slice_fields[sliceId];
-    }
-    for (const filteringSliceId in filters) {
-      if (filteringSliceId === sliceId.toString()) {
-        // Filters applied by the slice don't apply to itself
-        continue;
-      }
-      for (const field in filters[filteringSliceId]) {
-        if (!immuneToFields.includes(field)) {
-          f.push({
-            col: field,
-            op: 'in',
-            val: filters[filteringSliceId][field],
-          });
-        }
-      }
-    }
-    return f;
-  }
+  // effectiveExtraFilters(sliceId) {
+  //   const metadata = this.props.dashboard.metadata;
+  //   const filters = this.props.filters;
+  //   const f = [];
+  //   const immuneSlices = metadata.filter_immune_slices || [];
+  //   if (sliceId && immuneSlices.includes(sliceId)) {
+  //     // The slice is immune to dashboard filters
+  //     return f;
+  //   }
+  //
+  //   // Building a list of fields the slice is immune to filters on
+  //   let immuneToFields = [];
+  //   if (
+  //     sliceId &&
+  //     metadata.filter_immune_slice_fields &&
+  //     metadata.filter_immune_slice_fields[sliceId]) {
+  //     immuneToFields = metadata.filter_immune_slice_fields[sliceId];
+  //   }
+  //   for (const filteringSliceId in filters) {
+  //     if (filteringSliceId === sliceId.toString()) {
+  //       // Filters applied by the slice don't apply to itself
+  //       continue;
+  //     }
+  //     for (const field in filters[filteringSliceId]) {
+  //       if (!immuneToFields.includes(field)) {
+  //         f.push({
+  //           col: field,
+  //           op: 'in',
+  //           val: filters[filteringSliceId][field],
+  //         });
+  //       }
+  //     }
+  //   }
+  //   return f;
+  // }
 
   refreshExcept(filterKey) {
     const immune = this.props.dashboard.metadata.filter_immune_slices || [];
@@ -220,26 +222,26 @@ class Dashboard extends React.PureComponent {
     });
   }
 
-  exploreChart(chartKey) {
-    const chart = this.props.charts[chartKey];
-    const formData = this.getFormDataExtra(chart);
-    exportChart(formData);
-  }
-
-  exportCSV(chartKey) {
-    const chart = this.props.charts[chartKey];
-    const formData = this.getFormDataExtra(chart);
-    exportChart(formData, 'csv');
-  }
+  // exploreChart(chartKey) {
+  //   const chart = this.props.charts[chartKey];
+  //   const formData = this.getFormDataExtra(chart);
+  //   exportChart(formData);
+  // }
+  //
+  // exportCSV(chartKey) {
+  //   const chart = this.props.charts[chartKey];
+  //   const formData = this.getFormDataExtra(chart);
+  //   exportChart(formData, 'csv');
+  // }
 
   // re-render chart without fetch
-  rerenderCharts() {
-    this.getAllCharts().forEach((chart) => {
-      setTimeout(() => {
-        this.props.actions.renderTriggered(new Date().getTime(), chart.chartKey);
-      }, 50);
-    });
-  }
+  // rerenderCharts() {
+  //   this.getAllCharts().forEach((chart) => {
+  //     setTimeout(() => {
+  //       this.props.actions.renderTriggered(new Date().getTime(), chart.chartKey);
+  //     }, 50);
+  //   });
+  // }
 
   render() {
     return (
@@ -247,27 +249,8 @@ class Dashboard extends React.PureComponent {
         <div id="dashboard-header">
           <AlertsWrapper initMessages={this.props.initMessages} />
         </div>
-        <GridLayout
-            dashboard={this.props.dashboard}
-            layout={this.props.layout}
-            datasources={this.props.datasources}
-            slices={this.props.slices}
-            filters={this.props.filters}
-            charts={this.props.charts}
-            timeout={this.props.timeout}
-            onChange={this.onChange}
-            rerenderCharts={this.rerenderCharts}
-            getFormDataExtra={this.getFormDataExtra}
-            exploreChart={this.exploreChart}
-            exportCSV={this.exportCSV}
-            refreshChart={this.props.actions.refreshChart}
-            saveSliceName={this.props.actions.saveSliceName}
-            toggleExpandSlice={this.props.actions.toggleExpandSlice}
-            addFilter={this.props.actions.addFilter}
-            getFilters={this.getFilters}
-            removeFilter={this.props.actions.removeFilter}
-            editMode={this.props.editMode}
-          />
+
+        <DashboardBuilder />
       </div>
     );
   }

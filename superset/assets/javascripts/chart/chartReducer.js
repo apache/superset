@@ -159,7 +159,10 @@ export default function chartReducer(charts = {}, action) {
   }
 
   if (action.type in actionHandlers) {
-    return { ...charts, [action.key]: actionHandlers[action.type](charts[action.key], action) };
+    return {
+      ...charts,
+      [action.key]: actionHandlers[action.type](charts[action.key], action),
+    };
   }
 
   return charts;

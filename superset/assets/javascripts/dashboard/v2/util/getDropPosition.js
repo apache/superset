@@ -8,7 +8,7 @@ export const DROP_LEFT = 'DROP_LEFT';
 
 // this defines how close the mouse must be to the edge of a component to display
 // a sibling type drop indicator
-const SIBLING_DROP_THRESHOLD = 15;
+const SIBLING_DROP_THRESHOLD = 20;
 
 export default function getDropPosition(monitor, Component) {
   const {

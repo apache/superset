@@ -6,6 +6,7 @@ import { saveSliceName } from '../actions/allSlices';
 import * as chartActions from '../../chart/chartAction';
 import Dashboard from './Dashboard';
 
+// @TODO remove unneeded actionsn + props
 function mapStateToProps({ datasources, allSlices, charts, dashboard, dashboardLayout, impressionId }) {
   return {
     initMessages: dashboard.common.flash_messages,

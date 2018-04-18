@@ -1,12 +1,22 @@
 .grid-container {
+  min-height: 100%;
   position: relative;
   margin: 24px;
+  /* without this, the grid will not get smaller upon toggling the builder panel on */
+  min-width: 0;
+  width: 100%;
+}
+
+/* this is the ParentSize wrapper  */
+.grid-container > div:first-child {
+  height: inherit !important;
 }
 
 .grid-content {
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
+  margin-bottom: 100px;
 }
 
 /* gutters between rows */
@@ -23,7 +33,7 @@
 .grid-column-guide {
   position: absolute;
   top: 0;
-  height: 100%;
+  min-height: 100%;
   background-color: rgba(68, 192, 255, 0.05);
   pointer-events: none;
   box-shadow: inset 0 0 0 1px rgba(68, 192, 255, 0.5);

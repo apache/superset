@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import ComponentLookup from '../components/gridComponents';
 import getTotalChildWidth from '../util/getChildWidth';
 import { componentShape } from '../util/propShapes';
-import { CHART_TYPE, COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
+import { COLUMN_TYPE, ROW_TYPE } from '../util/componentTypes';
 import { GRID_MIN_COLUMN_COUNT } from '../util/constants';
 
 import {
@@ -25,9 +25,15 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-function mapStateToProps({ dashboardLayout: undoableLayout, dashboard }, ownProps) {
+function mapStateToProps({
+  dashboardLayout: undoableLayout,
+  dashboard,
+  allSlices,
+  charts,
+  datasources,
+}, ownProps) {
   const dashboardLayout = undoableLayout.present;
-  const { id, parentId, cells } = ownProps;
+  const { id, parentId } = ownProps;
   const component = dashboardLayout[id];
   const props = {
     component,
@@ -51,11 +57,6 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboard }, ownProp
         );
       }
     });
-  } else if (props.component.type === CHART_TYPE) {
-    const chartKey = props.component.meta && props.component.meta.chartKey;
-    if (chartKey) {
-      props.chart = cells[chartKey];
-    }
   }
 
   return props;

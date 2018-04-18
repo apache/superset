@@ -19,7 +19,7 @@ const propTypes = {
   slice: slicePropShape.isRequired,
   chart: PropTypes.shape(chartPropType).isRequired,
   formData: PropTypes.object,
-  filters: PropTypes.object,
+  // filters: PropTypes.object,
   refreshChart: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
@@ -90,10 +90,20 @@ class GridCell extends React.PureComponent {
 
   render() {
     const {
-      isExpanded, isLoading, isCached, cachedDttm,
-      updateSliceName, toggleExpandSlice,
-      chart, slice, datasource, formData, timeout, annotationQuery,
-      exploreChart, exportCSV,
+      isExpanded,
+      isLoading,
+      isCached,
+      cachedDttm,
+      updateSliceName,
+      toggleExpandSlice,
+      chart,
+      slice,
+      datasource,
+      formData,
+      timeout,
+      annotationQuery,
+      exploreChart,
+      exportCSV,
     } = this.props;
 
     return (

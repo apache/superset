@@ -93,17 +93,27 @@ function getChartHolder(item) {
   };
 }
 
-function getChildrenMax(items, attr, layout) {
-  return Math.max.apply(null, items.map(child => {
-    return layout[child].meta[attr];
-  }));
-}
-
 function getChildrenSum(items, attr, layout) {
   return items.reduce((preValue, child) => {
     return preValue + layout[child].meta[attr];
   }, 0);
 }
+
+function getChildrenMax(items, attr, layout) {
+  return Math.max.apply(null, items.map((childId) => {
+    const child = layout[childId];
+    if (child.type === ROW_TYPE && attr === 'width') {
+      // rows don't have widths themselves
+      return getChildrenSum(child.children, attr, layout);
+    } else if (child.type === COLUMN_TYPE && attr === 'height') {
+      // columns don't have heights themselves
+      return getChildrenSum(child.children, attr, layout);
+    }
+
+    return child.meta[attr];
+  }));
+}
+
 
 function sortByRowId(item1, item2) {
   return item1.row - item2.row;
@@ -232,17 +242,15 @@ function doConvert(positions, level, parent, root) {
           }
 
           // add col meta
+          // colContainer.meta.width = getChildrenMax(colContainer.children, 'width', root);
+          // colContainer.meta.height = getChildrenSum(colContainer.children, 'height', root);
           colContainer.meta.width = getChildrenMax(colContainer.children, 'width', root);
-          colContainer.meta.height = getChildrenSum(colContainer.children, 'height', root);
 
           currentItems = upper.slice();
         }
         currentCol++;
       }
     }
-
-    rowContainer.meta.width = getChildrenSum(rowContainer.children, 'width', root);
-    rowContainer.meta.height = getChildrenMax(rowContainer.children, 'height', root);
   });
 }
 
@@ -305,4 +313,3 @@ export default function(dashboard) {
   // console.log(JSON.stringify(root));
   return root;
 }
-
