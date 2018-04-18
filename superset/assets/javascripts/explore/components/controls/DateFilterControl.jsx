@@ -3,12 +3,17 @@ import PropTypes from 'prop-types';
 import {
   Button,
   ButtonGroup,
+  DropdownButton,
+  Form,
   FormControl,
+  FormGroup,
   Glyphicon,
   InputGroup,
   Label,
+  MenuItem,
   OverlayTrigger,
   Popover,
+  Radio,
   Tab,
   Tabs,
 } from 'react-bootstrap';
@@ -99,10 +104,33 @@ export default class DateFilterControl extends React.Component {
     return (
       <Popover id="filter-popover">
         <div style={{ width: '250px' }}>
-          <Tabs defaultActiveKey={2} id="uncontrolled-tab-example" bsStyle="pills">
+          <Tabs defaultActiveKey={1} id="uncontrolled-tab-example" bsStyle="pills">
             <Tab eventKey={1} title="Relative">
-            Tab 1 content
-          </Tab>
+      <form>
+              <FormGroup>
+                <Radio name="relative">Yesterday</Radio>
+                <Radio name="relative">Last week</Radio>
+                <Radio name="relative">Last month</Radio>
+                <Radio name="relative">Last year</Radio>
+                <Radio name="relative">
+                  <FormControl.Static>Last</FormControl.Static>
+                  <FormControl type="text" />
+                  <DropdownButton
+                    componentClass={InputGroup.Button}
+                    id="input-dropdown-addon"
+                    title="Action"
+                  >
+                    <MenuItem key="1">seconds</MenuItem>
+                    <MenuItem key="2">minutes</MenuItem>
+                    <MenuItem key="3">hours</MenuItem>
+                    <MenuItem key="4">days</MenuItem>
+                    <MenuItem key="5">weeks</MenuItem>
+                    <MenuItem key="6">months</MenuItem>
+                    <MenuItem key="7">years</MenuItem>
+                  </DropdownButton>
+                </Radio>
+              </FormGroup>
+            </Tab>
             <Tab eventKey={2} title="Fixed/Freeform">
               <PopoverSection
                 title="Fixed"
@@ -164,7 +192,7 @@ export default class DateFilterControl extends React.Component {
                 info={
               'Superset supports smart date parsing. Strings like `last sunday` or ' +
               '`last october` can be used.'
-            }
+                }
               >
                 <FormControl
                   onFocus={this.setType.bind(this, 'free')}
