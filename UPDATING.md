@@ -7,3 +7,4 @@ assists people when migrating to a new version.
 
 * [4565](https://github.com/apache/incubator-superset/pull/4565)
 * [4587](https://github.com/apache/incubator-superset/pull/4587)
+* [4835](https://github.com/apache/incubator-superset/pull/4835)
