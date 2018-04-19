@@ -4,7 +4,7 @@ import $ from 'jquery';
 
 import { formatDate, UTC } from './dates';
 
-const siFormatter = d3.format('.3s');
+const siFormatter = d3.format('.1s');
 
 export function defaultNumberFormatter(n) {
   let si = siFormatter(n);

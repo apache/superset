@@ -31,7 +31,7 @@ module.exports = function (slice, payload) {
   slice.container.find('tbody tr').each(function () {
     $(this).find('td').each(function (i) {
       const metric = cols[i];
-      const format = slice.datasource.column_formats[metric] || fd.number_format || '.3s';
+      const format = slice.datasource.column_formats[metric] || fd.number_format || '.1s';
       const tdText = $(this)[0].textContent;
       if (!isNaN(tdText) && tdText !== '') {
         $(this)[0].textContent = d3format(format, tdText);

@@ -13,6 +13,7 @@ import AnnotationTypes, {
   applyNativeColumns,
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
+import { formatDateVerbose } from '../modules/dates';
 import { isTruthy } from '../utils/common';
 import { t } from '../locales';
 
@@ -31,7 +32,7 @@ const BREAKPOINTS = {
 };
 
 const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
-  const format = d3.format(axisFormat || '.3s');
+  const format = d3.format(axisFormat || '.1s');
   const countSeriesDisplayed = data.length;
 
   const totalStackedValues = stacked && data.length !== 0 ?
@@ -136,7 +137,7 @@ export default function nvd3Vis(slice, payload) {
   };
 
   const vizType = fd.viz_type;
-  const f = d3.format('.3s');
+  const formatter = d3.format('.1s');
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
@@ -156,8 +157,6 @@ export default function nvd3Vis(slice, payload) {
     if (fd.x_ticks_layout === 'auto') {
       if (['column', 'dist_bar'].indexOf(vizType) >= 0) {
         xLabelRotation = 45;
-      } else if (isTimeSeries) {
-        staggerLabels = true;
       }
     } else if (fd.x_ticks_layout === 'staggered') {
       staggerLabels = true;
@@ -264,7 +263,7 @@ export default function nvd3Vis(slice, payload) {
         if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
           chart.labelType(fd.pie_label_type);
         } else if (fd.pie_label_type === 'key_value') {
-          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
+          chart.labelType(d => `${d.data.x}: ${d3.format('.1s')(d.data.y)}`);
         }
         chart.cornerRadius(true);
 
@@ -303,9 +302,9 @@ export default function nvd3Vis(slice, payload) {
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[fd.entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(fd.x, f(p.x));
-          s += row(fd.y, f(p.y));
-          s += row(fd.size, f(p.size));
+          s += row(fd.x, formatter(p.x));
+          s += row(fd.y, formatter(p.y));
+          s += row(fd.size, formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -397,6 +396,13 @@ export default function nvd3Vis(slice, payload) {
       chart.y2Axis.tickFormat(yAxisFormatter);
     }
 
+    if (chart.yAxis) {
+      chart.yAxis.ticks(5);
+    }
+    if (chart.y2Axis) {
+      chart.y2Axis.ticks(5);
+    }
+
 
     // Set showMaxMin for all axis
     function setAxisShowMaxMin(axis, showminmax) {
@@ -425,10 +431,11 @@ export default function nvd3Vis(slice, payload) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         // Custom sorted tooltip
+        // use a verbose formatter for times
         chart.interactiveLayer.tooltip.contentGenerator((d) => {
           let tooltip = '';
           tooltip += "<table><thead><tr><td colspan='3'>"
-            + `<strong class='x-value'>${xAxisFormatter(d.value)}</strong>`
+            + `<strong class='x-value'>${formatDateVerbose(d.value)}</strong>`
             + '</td></tr></thead><tbody>';
           d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
           d.series.forEach((series) => {

@@ -12,7 +12,40 @@ export function UTC(dttm) {
     dttm.getUTCSeconds(),
   );
 }
-export const tickMultiFormat = d3.time.format.multi([
+
+export const tickMultiFormat = (() => {
+  const formatMillisecond = d3.time.format('.%Lms');
+  const formatSecond = d3.time.format(':%Ss');
+  const formatMinute = d3.time.format('%I:%M');
+  const formatHour = d3.time.format('%I %p');
+  const formatDay = d3.time.format('%a %d');
+  const formatWeek = d3.time.format('%b %d');
+  const formatMonth = d3.time.format('%B');
+  const formatYear = d3.time.format('%Y');
+
+  return function tickMultiFormatConcise(date) {
+    let formatter;
+    if (d3.time.second(date) < date) {
+      formatter = formatMillisecond;
+    } else if (d3.time.minute(date) < date) {
+      formatter = formatSecond;
+    } else if (d3.time.hour(date) < date) {
+      formatter = formatMinute;
+    } else if (d3.time.day(date) < date) {
+      formatter = formatHour;
+    } else if (d3.time.month(date) < date) {
+      formatter = d3.time.week(date) < date ? formatDay : formatWeek;
+    } else if (d3.time.year(date) < date) {
+      formatter = formatMonth;
+    } else {
+      formatter = formatYear;
+    }
+
+    return formatter(date);
+  };
+})();
+
+export const tickMultiFormatVerbose = d3.time.format.multi([
   [
     '.%L',
     function (d) {
@@ -72,6 +105,11 @@ export const tickMultiFormat = d3.time.format.multi([
 export const formatDate = function (dttm) {
   const d = UTC(new Date(dttm));
   return tickMultiFormat(d);
+};
+
+export const formatDateVerbose = function (dttm) {
+  const d = UTC(new Date(dttm));
+  return tickMultiFormatVerbose(d);
 };
 
 export const formatDateThunk = function (format) {
