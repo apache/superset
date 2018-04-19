@@ -8,7 +8,7 @@ import { initEnhancer } from '../reduxUtils';
 import { appSetup } from '../common';
 import { initJQueryAjax } from '../modules/utils';
 import DashboardContainer from './components/DashboardContainer';
-import getInitialState from './reducers/initState';
+import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 
 appSetup();

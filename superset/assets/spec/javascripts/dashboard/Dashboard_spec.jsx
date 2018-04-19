@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import * as sliceActions from '../../../src/dashboard/actions/sliceEntities';
-import * as dashboardActions from '../../../src/dashboard/actions/dashboard';
+import * as dashboardActions from '../../../src/dashboard/actions/dashboardState';
 import * as chartActions from '../../../src/chart/chartAction';
 import Dashboard from '../../../src/dashboard/components/Dashboard';
 import { defaultFilters, dashboardState, dashboardInfo, dashboardLayout,

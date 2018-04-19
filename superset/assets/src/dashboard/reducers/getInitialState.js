@@ -49,14 +49,12 @@ export default function (bootstrapData) {
   delete dashboard.position_json;
   delete dashboard.css;
 
-  // charts: dynamic queries
-  // slices: saved data from slices table
-  const charts = {};
+  const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
   dashboard.slices.forEach((slice) => {
     const key = slice.slice_id;
-    charts[key] = { ...chart,
+    chartQueries[key] = { ...chart,
       id: key,
       form_data: slice.form_data,
       formData: applyDefaultFormData(slice.form_data),
@@ -80,7 +78,7 @@ export default function (bootstrapData) {
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
-    charts,
+    charts: chartQueries,
     dashboardInfo: {  /* readOnly props */
       id: dashboard.id,
       slug: dashboard.slug,

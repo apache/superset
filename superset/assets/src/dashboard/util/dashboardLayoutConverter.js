@@ -243,7 +243,6 @@ function doConvert(positions, level, parent, root) {
 
             // add col meta
             colContainer.meta.width = getChildrenMax(colContainer.children, 'width', root);
-            colContainer.meta.height = getChildrenSum(colContainer.children, 'height', root);
           }
 
           currentItems = upper.slice();
@@ -253,7 +252,6 @@ function doConvert(positions, level, parent, root) {
     }
 
     rowContainer.meta.width = getChildrenSum(rowContainer.children, 'width', root);
-    rowContainer.meta.height = getChildrenMax(rowContainer.children, 'height', root);
   });
 }
 
@@ -316,11 +314,6 @@ export default function (dashboard) {
     if (ROW_TYPE === item.type) {
       const meta = item.meta;
       delete meta.width;
-      delete meta.height;
-    }
-    if (COLUMN_TYPE === item.type) {
-      const meta = item.meta;
-      delete meta.height;
     }
   });
 

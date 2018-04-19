@@ -1,7 +1,7 @@
 import { combineReducers } from 'redux';
 
 import charts from '../../chart/chartReducer';
-import dashboardState from './dashboard';
+import dashboardState from './dashboardState';
 import datasources from './datasources';
 import sliceEntities from './sliceEntities';
 import dashboardLayout from '../v2/reducers/index';

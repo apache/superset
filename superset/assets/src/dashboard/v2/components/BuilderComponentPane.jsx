@@ -1,5 +1,4 @@
 import React from 'react';
-import PropTypes from 'prop-types';
 import cx from 'classnames';
 
 import NewColumn from './gridComponents/new/NewColumn';
@@ -9,9 +8,7 @@ import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import SliceAdderContainer from '../../../dashboard/components/SliceAdderContainer';
 
-const propTypes = {
-  editMode: PropTypes.bool.isRequired,
-};
+import '../stylesheets/builder-sidepane.less';
 
 class BuilderComponentPane extends React.PureComponent {
   constructor(props) {
@@ -68,7 +65,5 @@ class BuilderComponentPane extends React.PureComponent {
     );
   }
 }
-
-BuilderComponentPane.propTypes = propTypes;
 
 export default BuilderComponentPane;

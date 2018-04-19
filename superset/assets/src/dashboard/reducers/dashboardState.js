@@ -1,14 +1,26 @@
 /* eslint-disable camelcase */
 import { merge as mergeArray } from 'd3';
 
-import * as actions from '../actions/dashboard';
+import {
+  ADD_SLICE,
+  ADD_FILTER,
+  ON_CHANGE,
+  ON_SAVE,
+  REMOVE_SLICE,
+  REMOVE_FILTER,
+  SET_EDIT_MODE,
+  TOGGLE_BUILDER_PANE,
+  TOGGLE_EXPAND_SLICE,
+  TOGGLE_FAVE_STAR,
+  UPDATE_DASHBOARD_TITLE,
+} from '../actions/dashboardState';
 
 export default function (state = {}, action) {
   const actionHandlers = {
-    [actions.UPDATE_DASHBOARD_TITLE]() {
+    [UPDATE_DASHBOARD_TITLE]() {
       return { ...state, title: action.title };
     },
-    [actions.ADD_SLICE]() {
+    [ADD_SLICE]() {
       const updatedSliceIds = new Set(state.sliceIds);
       updatedSliceIds.add(action.slice.slice_id);
       return {
@@ -16,7 +28,7 @@ export default function (state = {}, action) {
         sliceIds: updatedSliceIds,
       };
     },
-    [actions.REMOVE_SLICE]() {
+    [REMOVE_SLICE]() {
       const sliceId = action.sliceId;
       const updatedSliceIds = new Set(state.sliceIds);
       updatedSliceIds.delete(sliceId);
@@ -36,16 +48,16 @@ export default function (state = {}, action) {
         refresh,
       };
     },
-    [actions.TOGGLE_FAVE_STAR]() {
+    [TOGGLE_FAVE_STAR]() {
       return { ...state, isStarred: action.isStarred };
     },
-    [actions.SET_EDIT_MODE]() {
+    [SET_EDIT_MODE]() {
       return { ...state, editMode: action.editMode };
     },
-    [actions.TOGGLE_BUILDER_PANE]() {
+    [TOGGLE_BUILDER_PANE]() {
       return { ...state, showBuilderPane: !state.showBuilderPane };
     },
-    [actions.TOGGLE_EXPAND_SLICE]() {
+    [TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };
       const sliceId = action.sliceId;
       if (updatedExpandedSlices[sliceId]) {
@@ -55,15 +67,15 @@ export default function (state = {}, action) {
       }
       return { ...state, expandedSlices: updatedExpandedSlices };
     },
-    [actions.ON_CHANGE]() {
+    [ON_CHANGE]() {
       return { ...state, hasUnsavedChanges: true };
     },
-    [actions.ON_SAVE]() {
+    [ON_SAVE]() {
       return { ...state, hasUnsavedChanges: false };
     },
 
     // filters
-    [actions.ADD_FILTER]() {
+    [ADD_FILTER]() {
       const hasSelectedFilter = state.sliceIds.has(action.chart.id);
       if (!hasSelectedFilter) {
         return state;
@@ -93,7 +105,7 @@ export default function (state = {}, action) {
       }
       return { ...state, filters, refresh };
     },
-    [actions.REMOVE_FILTER]() {
+    [REMOVE_FILTER]() {
       const { sliceId, col, vals, refresh } = action;
       const excluded = new Set(vals);
       const valFilter = val => !excluded.has(val);

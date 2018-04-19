@@ -13,7 +13,7 @@ import {
   updateDashboardTitle,
   onChange,
   onSave,
-} from '../../actions/dashboard';
+} from '../../actions/dashboardState';
 import {
   handleComponentDrop,
 } from '../actions/dashboardLayout';

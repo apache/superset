@@ -8,7 +8,7 @@ import {
   addSliceToDashboard,
   removeSliceFromDashboard,
   onChange,
-} from '../actions/dashboard';
+} from '../actions/dashboardState';
 import { saveSliceName } from '../actions/sliceEntities';
 import { refreshChart, runQuery, renderTriggered } from '../../chart/chartAction';
 import Dashboard from './Dashboard';

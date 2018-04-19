@@ -11,7 +11,7 @@ import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../v2/util/constants';
 import { slicePropShape } from '../v2/util/propShapes';
 
 const propTypes = {
-  actions: PropTypes.object,
+  fetchAllSlices: PropTypes.func.isRequired,
   isLoading: PropTypes.bool.isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   lastUpdated: PropTypes.number.isRequired,
@@ -50,7 +50,7 @@ class SliceAdder extends React.Component {
   }
 
   componentDidMount() {
-    this.slicesRequest = this.props.actions.fetchAllSlices(this.props.userId);
+    this.slicesRequest = this.props.fetchAllSlices(this.props.userId);
   }
 
   componentWillReceiveProps(nextProps) {

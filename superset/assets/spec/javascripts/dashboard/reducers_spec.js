@@ -1,8 +1,8 @@
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import reducers from '../../../src/dashboard/reducers/dashboard';
-import * as actions from '../../../src/dashboard/actions/dashboard';
+import reducers from '../../../src/dashboard/reducers/dashboardState';
+import * as actions from '../../../src/dashboard/actions/dashboardState';
 import { defaultFilters, dashboardState as initState } from './fixtures';
 
 describe('Dashboard reducers', () => {
