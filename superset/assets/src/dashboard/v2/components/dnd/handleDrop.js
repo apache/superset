@@ -35,6 +35,7 @@ export default function handleDrop(props, monitor, Component) {
     dragging: {
       id: draggingItem.id,
       type: draggingItem.type,
+      meta: draggingItem.meta,
     },
   };
 

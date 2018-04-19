@@ -153,7 +153,8 @@ const mockDashboardData = {
 };
 export const {
   dashboardState, dashboardInfo,
-  chartQueries, datasources, sliceEntities } = getInitialState({
+  charts, datasources, sliceEntities,
+  dashboardLayout } = getInitialState({
   common: {},
   dashboard_data: mockDashboardData,
   datasources: {},

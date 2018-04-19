@@ -4,23 +4,24 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
+import * as sliceActions from '../../../src/dashboard/actions/sliceEntities';
 import * as dashboardActions from '../../../src/dashboard/actions/dashboard';
 import * as chartActions from '../../../src/chart/chartAction';
 import Dashboard from '../../../src/dashboard/components/Dashboard';
-import { defaultFilters, dashboardState, dashboardInfo,
-  chartQueries, datasources, sliceEntities } from './fixtures';
+import { defaultFilters, dashboardState, dashboardInfo, dashboardLayout,
+  charts, datasources, sliceEntities } from './fixtures';
 
 describe('Dashboard', () => {
   const mockedProps = {
-    actions: { ...chartActions, ...dashboardActions },
+    actions: { ...chartActions, ...dashboardActions, ...sliceActions },
     initMessages: [],
     dashboardState,
     dashboardInfo,
-    charts: chartQueries,
-    slices: sliceEntities,
+    charts,
+    slices: sliceEntities.slices,
     datasources,
+    layout: dashboardLayout.present,
     timeout: 60,
-    isStarred: false,
     userId: dashboardInfo.userId,
   };
 
@@ -32,7 +33,7 @@ describe('Dashboard', () => {
 
   it('should handle metadata default_filters', () => {
     const wrapper = shallow(<Dashboard {...mockedProps} />);
-    expect(wrapper.instance().props.filters).deep.equal(defaultFilters);
+    expect(wrapper.instance().props.dashboardState.filters).deep.equal(defaultFilters);
   });
 
   describe('getFormDataExtra', () => {
@@ -40,7 +41,7 @@ describe('Dashboard', () => {
     let selectedChart;
     beforeEach(() => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
-      selectedChart = charts['slice_248'];
+      selectedChart = charts[248];
     });
 
     it('should carry default_filters', () => {
@@ -50,11 +51,15 @@ describe('Dashboard', () => {
     });
 
     it('should carry updated filter', () => {
-      wrapper.setProps({
+      const dashboardState = {
+        ...wrapper.props('dashboardState'),
         filters: {
           256: { region: [] },
           257: { country_name: ['France'] },
         },
+      };
+      wrapper.setProps({
+        dashboardState,
       });
       const extraFilters = wrapper.instance().getFormDataExtra(selectedChart).extra_filters;
       expect(extraFilters[1]).to.deep.equal({ col: 'country_name', op: 'in', val: ['France'] });
@@ -66,7 +71,7 @@ describe('Dashboard', () => {
     let spy;
     beforeEach(() => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
-      spy = sinon.spy(wrapper.instance(), 'fetchCharts');
+      spy = sinon.spy(mockedProps.actions, 'runQuery');
     });
     afterEach(() => {
       spy.restore();
@@ -76,13 +81,13 @@ describe('Dashboard', () => {
       const filterKey = Object.keys(defaultFilters)[1];
       wrapper.instance().refreshExcept(filterKey);
       expect(spy.callCount).to.equal(1);
-      expect(spy.getCall(0).args[0].length).to.equal(1);
+      const slice_id = spy.getCall(0).args[0].slice_id;
+      expect(slice_id).to.equal(248);
     });
 
     it('should refresh all slices', () => {
       wrapper.instance().refreshExcept();
-      expect(spy.callCount).to.equal(1);
-      expect(spy.getCall(0).args[0].length).to.equal(3);
+      expect(spy.callCount).to.equal(3);
     });
   });
 
@@ -95,7 +100,7 @@ describe('Dashboard', () => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
       prevProp = wrapper.instance().props;
       refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
-      fetchSlicesStub = sinon.stub(wrapper.instance(), 'fetchCharts');
+      fetchSlicesStub = sinon.stub(mockedProps.actions, 'fetchCharts');
     });
     afterEach(() => {
       fetchSlicesStub.restore();
@@ -107,48 +112,63 @@ describe('Dashboard', () => {
         refreshExceptSpy.reset();
       });
       it('no change', () => {
-        wrapper.setProps({
-          refresh: true,
+        const dashboardState = {
+          ...wrapper.props('dashboardState'),
           filters: {
             256: { region: [] },
             257: { country_name: ['United States'] },
           },
+        };
+        wrapper.setProps({
+          dashboardState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(0);
       });
 
       it('remove filter', () => {
-        wrapper.setProps({
+        const dashboardState = {
+          ...wrapper.props('dashboardState'),
           refresh: true,
           filters: {
             256: { region: [] },
           },
+        };
+        wrapper.setProps({
+          dashboardState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(1);
       });
 
       it('change filter', () => {
-        wrapper.setProps({
+        const dashboardState = {
+          ...wrapper.props('dashboardState'),
           refresh: true,
           filters: {
             256: { region: [] },
             257: { country_name: ['Canada'] },
           },
+        };
+        wrapper.setProps({
+          dashboardState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(1);
       });
 
       it('add filter', () => {
-        wrapper.setProps({
+        const dashboardState = {
+          ...wrapper.props('dashboardState'),
           refresh: true,
           filters: {
             256: { region: [] },
             257: { country_name: ['Canada'] },
             258: { another_filter: ['new'] },
           },
+        };
+        wrapper.setProps({
+          dashboardState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(1);
@@ -156,28 +176,36 @@ describe('Dashboard', () => {
     });
 
     it('should refresh if refresh flag is true', () => {
-      wrapper.setProps({
+      const dashboardState = {
+        ...wrapper.props('dashboardState'),
         refresh: true,
         filters: {
           256: { region: ['Asian'] },
         },
+      };
+      wrapper.setProps({
+        dashboardState,
       });
       wrapper.instance().componentDidUpdate(prevProp);
-      const fetchArgs = fetchSlicesStub.lastCall.args[0];
-      expect(fetchArgs).to.have.length(2);
+      expect(refreshExceptSpy.callCount).to.equal(1);
+      expect(refreshExceptSpy.lastCall.args[0]).to.equal('256');
     });
 
     it('should not refresh filter_immune_slices', () => {
-      wrapper.setProps({
+      const dashboardState = {
+        ...wrapper.props('dashboardState'),
         refresh: true,
         filters: {
           256: { region: [] },
           257: { country_name: ['Canada'] },
         },
+      };
+      wrapper.setProps({
+        dashboardState,
       });
       wrapper.instance().componentDidUpdate(prevProp);
-      const fetchArgs = fetchSlicesStub.lastCall.args[0];
-      expect(fetchArgs).to.have.length(1);
+      expect(refreshExceptSpy.callCount).to.equal(1);
+      expect(refreshExceptSpy.lastCall.args[0]).to.equal('257');
     });
   });
 });

@@ -1,4 +1,5 @@
 import { chart } from '../../chart/chartReducer';
+import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
@@ -28,12 +29,12 @@ export default function(bootstrapData) {
   }
 
   // dashboard layout
-  const position_json = dashboard.position_json;
+  const positionJson = dashboard.position_json;
   let layout;
-  if (!position_json || !position_json['DASHBOARD_ROOT_ID']) {
+  if (!positionJson || !positionJson['DASHBOARD_ROOT_ID']) {
     layout = layoutConverter(dashboard);
   } else {
-    layout = position_json;
+    layout = positionJson;
   }
 
   const dashboardLayout = {
@@ -44,9 +45,10 @@ export default function(bootstrapData) {
   delete dashboard.position_json;
   delete dashboard.css;
 
-  // charts and allSlices
+  // charts: dynamic queries
+  // slices: saved data from slices table
   const charts = {},
-    sliceEntities = {},
+    slices = {},
     sliceIds = new Set();
   dashboard.slices.forEach((slice) => {
     const key = slice.slice_id;
@@ -56,14 +58,14 @@ export default function(bootstrapData) {
       formData: applyDefaultFormData(slice.form_data),
     };
 
-    sliceEntities[key] = {
+    slices[key] = {
       slice_id: key,
       slice_url: slice.slice_url,
       slice_name: slice.slice_name,
       form_data: slice.form_data,
       edit_url: slice.edit_url,
       viz_type: slice.form_data.viz_type,
-      datasource: slice.datasource,
+      datasource: slice.form_data.datasource,
       description: slice.description,
       description_markeddown: slice.description_markeddown,
     };
@@ -73,7 +75,7 @@ export default function(bootstrapData) {
 
   return {
     datasources,
-    sliceEntities,
+    sliceEntities: { ...initSliceEntities, slices, isLoading: false },
     charts,
     dashboardInfo: {  /* readOnly props */
       id: dashboard.id,

@@ -12,6 +12,7 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState: dash
     dashboardLayout: undoableLayout.present,
     cells: ownProps.cells,
     editMode: dashboard.editMode,
+    showBuilderPane: dashboard.showBuilderPane,
   };
 }
 

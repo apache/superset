@@ -3,7 +3,7 @@ import { expect } from 'chai';
 
 import reducers from '../../../src/dashboard/reducers/dashboard';
 import * as actions from '../../../src/dashboard/actions/dashboard';
-import { defaultFilters, dashboardState as initState, sliceEntities as allSlices } from './fixtures';
+import { defaultFilters, dashboardState as initState } from './fixtures';
 
 describe('Dashboard reducers', () => {
   it('should initialized', () => {
@@ -13,11 +13,11 @@ describe('Dashboard reducers', () => {
   it('should remove slice', () => {
     const action = {
       type: actions.REMOVE_SLICE,
-      slice: allSlices['slice_248'],
+      sliceId: 248,
     };
 
-    const { dashboard, filters, refresh } = reducers(initState, action);
-    expect(dashboard.sliceIds.size).to.be.equal(2);
+    const { sliceIds, filters, refresh } = reducers(initState, action);
+    expect(sliceIds.size).to.be.equal(2);
     expect(filters).to.deep.equal(defaultFilters);
     expect(refresh).to.equal(false);
   });
@@ -25,13 +25,13 @@ describe('Dashboard reducers', () => {
   it('should remove filter slice', () => {
     const action = {
       type: actions.REMOVE_SLICE,
-      slice: allSlices['slice_256'],
+      sliceId: 256,
     };
     const initFilters = Object.keys(initState.filters);
     expect(initFilters).to.have.length(2);
 
-    const { dashboard, filters, refresh } = reducers(initState, action);
-    expect(dashboard.sliceIds.size).to.equal(2);
+    const { sliceIds, filters, refresh } = reducers(initState, action);
+    expect(sliceIds.size).to.equal(2);
     expect(Object.keys(filters)).to.have.length(1);
     expect(refresh).to.equal(true);
   });
