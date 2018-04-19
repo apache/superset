@@ -23,6 +23,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  cells: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,
@@ -92,6 +93,7 @@ class Row extends React.PureComponent {
       onResizeStop,
       handleComponentDrop,
       editMode,
+      cells,
     } = this.props;
 
     const rowItems = rowComponent.children || [];
@@ -142,19 +144,20 @@ class Row extends React.PureComponent {
                 </HoverMenu>}
 
               {rowItems.map((componentId, itemIndex) => (
-                <DashboardComponent
-                  key={componentId}
-                  id={componentId}
-                  parentId={rowComponent.id}
-                  depth={depth + 1}
-                  index={itemIndex}
-                  availableColumnCount={availableColumnCount - occupiedColumnCount}
-                  columnWidth={columnWidth}
-                  onResizeStart={onResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                />
-              ))}
+
+                  <DashboardComponent
+                    key={componentId}
+                    id={componentId}
+                    parentId={rowComponent.id}
+                    depth={depth + 1}
+                    index={itemIndex }
+                    availableColumnCount={availableColumnCount - occupiedColumnCount}
+                    columnWidth={columnWidth}
+                    cells={cells}onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                  />
+                ))}
 
               {dropIndicatorProps && <div {...dropIndicatorProps} />}
             </div>

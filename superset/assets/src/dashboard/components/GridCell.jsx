@@ -4,8 +4,7 @@ import PropTypes from 'prop-types';
 
 import SliceHeader from './SliceHeader';
 import ChartContainer from '../../chart/ChartContainer';
-
-import '../../../stylesheets/dashboard.css';
+import { chartPropShape, slicePropShape } from '../v2/util/propShapes';
 
 const propTypes = {
   timeout: PropTypes.number,
@@ -16,34 +15,30 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
-  slice: PropTypes.object,
-  chartKey: PropTypes.string,
+  slice: slicePropShape.isRequired,
+  chart: chartPropShape.isRequired,
   formData: PropTypes.object,
   filters: PropTypes.object,
-  forceRefresh: PropTypes.func,
-  removeSlice: PropTypes.func,
+  refreshChart: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
-  clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   editMode: PropTypes.bool,
   annotationQuery: PropTypes.object,
 };
 
 const defaultProps = {
-  forceRefresh: () => ({}),
-  removeSlice: () => ({}),
+  refreshChart: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
   addFilter: () => ({}),
   getFilters: () => ({}),
-  clearFilter: () => ({}),
   removeFilter: () => ({}),
   editMode: false,
 };
@@ -53,9 +48,9 @@ class GridCell extends React.PureComponent {
     super(props);
 
     const sliceId = this.props.slice.slice_id;
-    this.addFilter = this.props.addFilter.bind(this, sliceId);
+    this.forceRefresh = this.forceRefresh.bind(this);
+    this.addFilter = this.props.addFilter.bind(this, this.props.chart);
     this.getFilters = this.props.getFilters.bind(this, sliceId);
-    this.clearFilter = this.props.clearFilter.bind(this, sliceId);
     this.removeFilter = this.props.removeFilter.bind(this, sliceId);
   }
 
@@ -68,7 +63,7 @@ class GridCell extends React.PureComponent {
   }
 
   width() {
-    return this.props.widgetWidth - 10;
+    return this.props.widgetWidth - 32;
   }
 
   height(slice) {
@@ -80,7 +75,7 @@ class GridCell extends React.PureComponent {
       descriptionHeight = this.refs[descriptionId].offsetHeight + 10;
     }
 
-    return widgetHeight - headerHeight - descriptionHeight;
+    return widgetHeight - headerHeight - descriptionHeight - 32;
   }
 
   headerHeight(slice) {
@@ -88,13 +83,18 @@ class GridCell extends React.PureComponent {
     return this.refs[headerId] ? this.refs[headerId].offsetHeight : 30;
   }
 
+  forceRefresh() {
+    return this.props.refreshChart(this.props.chart, true, this.props.timeout);
+  }
+
   render() {
     const {
       isExpanded, isLoading, isCached, cachedDttm,
-      removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
-      chartKey, slice, datasource, formData, timeout, annotationQuery,
-      exploreChart, exportCSV,
+      updateSliceName, toggleExpandSlice,
+      chart, slice, datasource, formData, timeout, annotationQuery,
+      exploreChart, exportCSV, editMode,
     } = this.props;
+
     return (
       <div
         className={isLoading ? 'slice-cell-highlight' : 'slice-cell'}
@@ -106,11 +106,10 @@ class GridCell extends React.PureComponent {
             isExpanded={isExpanded}
             isCached={isCached}
             cachedDttm={cachedDttm}
-            removeSlice={removeSlice}
             updateSliceName={updateSliceName}
             toggleExpandSlice={toggleExpandSlice}
-            forceRefresh={forceRefresh}
-            editMode={this.props.editMode}
+            forceRefresh={this.forceRefresh}
+            editMode={editMode}
             annotationQuery={annotationQuery}
             exploreChart={exploreChart}
             exportCSV={exportCSV}
@@ -128,21 +127,23 @@ class GridCell extends React.PureComponent {
           ref={this.getDescriptionId(slice)}
           dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
         />
-        <div className="row chart-container">
+        <div
+          className="chart-container"
+          style={{ width: this.width(), height: this.height(slice) }}
+        >
           <input type="hidden" value="false" />
           <ChartContainer
             containerId={`slice-container-${slice.slice_id}`}
-            chartKey={chartKey}
+            chartId={chart.id}
             datasource={datasource}
             formData={formData}
             headerHeight={this.headerHeight(slice)}
             height={this.height(slice)}
             width={this.width()}
             timeout={timeout}
-            vizType={slice.formData.viz_type}
+            vizType={slice.viz_type}
             addFilter={this.addFilter}
             getFilters={this.getFilters}
-            clearFilter={this.clearFilter}
             removeFilter={this.removeFilter}
           />
         </div>
