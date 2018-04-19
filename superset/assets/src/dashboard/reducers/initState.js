@@ -2,6 +2,7 @@ import { chart } from '../../chart/chartReducer';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
+import layoutConverter from '../util/dashboardLayoutConverter';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;
@@ -27,9 +28,17 @@ export default function(bootstrapData) {
   }
 
   // dashboard layout
+  const position_json = dashboard.position_json;
+  let layout;
+  if (!position_json || !position_json['DASHBOARD_ROOT_ID']) {
+    layout = layoutConverter(dashboard);
+  } else {
+    layout = position_json;
+  }
+
   const dashboardLayout = {
     past: [],
-    present: dashboard.position_json,
+    present: layout,
     future: [],
   };
   delete dashboard.position_json;

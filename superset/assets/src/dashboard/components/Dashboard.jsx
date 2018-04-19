@@ -16,7 +16,7 @@ import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
   LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../logger';
 import { t } from '../../locales';
 
-import '../../../stylesheets/dashboard.css';
+import '../../../stylesheets/dashboard.less';
 import '../v2/stylesheets/index.less';
 
 const propTypes = {
@@ -215,7 +215,7 @@ class Dashboard extends React.PureComponent {
     const immune = this.props.dashboardInfo.metadata.timed_refresh_immune_slices || [];
     const refreshAll = () => {
       const affectedSlices = this.getAllCharts()
-        .filter(chart => immune.indexOf(chart.slice_id) === -1);
+        .filter(chart => immune.indexOf(chart.id) === -1);
       this.fetchCharts(affectedSlices, true, interval * 0.2);
     };
     const fetchAndRender = () => {
@@ -304,11 +304,10 @@ class Dashboard extends React.PureComponent {
             setEditMode={this.props.actions.setEditMode}
           />
         </div>
-        <div id="grid-container" className="slice-grid gridster">
-          <GridLayout
+        <GridLayout
             dashboardInfo={this.props.dashboardInfo}
-            datasources={this.props.datasources}
             layout={this.props.layout}
+            datasources={this.props.datasources}
             slices={this.props.slices}
             sliceIds={sliceIds}
             expandedSlices={expandedSlices}
@@ -316,6 +315,7 @@ class Dashboard extends React.PureComponent {
             charts={this.props.charts}
             timeout={this.props.timeout}
             onChange={this.onChange}
+            rerenderCharts={this.rerenderCharts}
             getFormDataExtra={this.getFormDataExtra}
             exploreChart={this.exploreChart}
             exportCSV={this.exportCSV}
@@ -329,7 +329,6 @@ class Dashboard extends React.PureComponent {
             removeFilter={this.props.actions.removeFilter}
             editMode={editMode}
           />
-        </div>
       </div>
     );
   }
