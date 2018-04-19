@@ -10,12 +10,13 @@ import { t } from '../../locales';
 import Checkbox from '../../components/Checkbox';
 
 const propTypes = {
-  css: PropTypes.string,
-  dashboard: PropTypes.object.isRequired,
+  dashboardId: PropTypes.number.isRequired,
+  dashboardTitle: PropTypes.string.isRequired,
+  expandedSlices: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   triggerNode: PropTypes.node.isRequired,
   filters: PropTypes.object.isRequired,
-  onSave: PropTypes.func,
+  onSave: PropTypes.func.isRequired,
 };
 
 class SaveModal extends React.PureComponent {
@@ -23,7 +24,7 @@ class SaveModal extends React.PureComponent {
     super(props);
     this.state = {
       saveType: 'overwrite',
-      newDashName: props.dashboard.dashboard_title + ' [copy]',
+      newDashName: props.dashboardTitle + ' [copy]',
       duplicateSlices: false,
     };
     this.modal = null;
@@ -72,18 +73,17 @@ class SaveModal extends React.PureComponent {
     });
   }
   saveDashboard(saveType, newDashboardTitle) {
-    const { dashboard, layout: positions, css, filters } = this.props;
+    const { dashboardTitle, layout: positions, expandedSlices, filters, dashboardId } = this.props;
     const data = {
       positions,
-      css,
-      expanded_slices: dashboard.metadata.expanded_slices || {},
-      dashboard_title: dashboard.dashboard_title,
+      expanded_slices: expandedSlices,
+      dashboard_title: dashboardTitle,
       default_filters: JSON.stringify(filters),
       duplicate_slices: this.state.duplicateSlices,
     };
     let url = null;
     if (saveType === 'overwrite') {
-      url = `/superset/save_dash/${dashboard.id}/`;
+      url = `/superset/save_dash/${dashboardId}/`;
       this.saveDashboardRequest(data, url, saveType);
     } else if (saveType === 'newDashboard') {
       if (!newDashboardTitle) {
@@ -94,7 +94,7 @@ class SaveModal extends React.PureComponent {
         });
       } else {
         data.dashboard_title = newDashboardTitle;
-        url = `/superset/copy_dash/${dashboard.id}/`;
+        url = `/superset/copy_dash/${dashboardId}/`;
         this.saveDashboardRequest(data, url, saveType);
       }
     }
@@ -113,7 +113,7 @@ class SaveModal extends React.PureComponent {
               onChange={this.handleSaveTypeChange}
               checked={this.state.saveType === 'overwrite'}
             >
-              {t('Overwrite Dashboard [%s]', this.props.dashboard.dashboard_title)}
+              {t('Overwrite Dashboard [%s]', this.props.dashboardTitle)}
             </Radio>
             <hr />
             <Radio
