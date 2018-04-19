@@ -186,8 +186,6 @@ export default function nvd3Vis(slice, payload) {
         } else {
           chart = nv.models.lineChart();
         }
-        // To alter the tooltip header
-        // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(fd.line_interpolation);
         break;
@@ -374,6 +372,8 @@ export default function nvd3Vis(slice, payload) {
     let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
     if (isTimeSeries) {
       xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
+      // In tooltips, always use the verbose time format
+      chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
