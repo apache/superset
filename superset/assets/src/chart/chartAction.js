@@ -134,7 +134,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       .then(() => queryRequest)
       .then((queryResponse) => {
         Logger.append(LOG_ACTIONS_LOAD_EVENT, {
-          label: key,
+          label: 'slice_' + key,
           is_cached: queryResponse.is_cached,
           row_count: queryResponse.rowcount,
           datasource: formData.datasource,

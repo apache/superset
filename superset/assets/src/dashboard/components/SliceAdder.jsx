@@ -9,7 +9,6 @@ import { t } from '../../locales';
 require('react-bootstrap-table/css/react-bootstrap-table.css');
 
 const propTypes = {
-  dashboard: PropTypes.object.isRequired,
   triggerNode: PropTypes.node.isRequired,
   userId: PropTypes.string.isRequired,
   addSlicesToDashboard: PropTypes.func,
@@ -54,7 +53,7 @@ class SliceAdder extends React.Component {
       success: (response) => {
         // Prepare slice data for table
         const slices = response.result.map(slice => ({
-          id: slice.id,
+          id: slice.slice_id,
           sliceName: slice.slice_name,
           vizType: slice.viz_type,
           datasourceLink: slice.datasource_link,
@@ -98,7 +97,7 @@ class SliceAdder extends React.Component {
 
   toggleSlice(slice) {
     const selectionMap = Object.assign({}, this.state.selectionMap);
-    selectionMap[slice.id] = !selectionMap[slice.id];
+    selectionMap[slice.slice_id] = !selectionMap[slice.slice_id];
     this.setState({ selectionMap });
   }
 

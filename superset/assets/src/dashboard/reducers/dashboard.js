@@ -3,12 +3,12 @@ import { combineReducers } from 'redux';
 import d3 from 'd3';
 import shortid from 'shortid';
 
-import charts, { chart } from '../chart/chartReducer';
+import charts, { chart } from '../../chart/chartReducer';
 import * as actions from './actions';
-import { getParam } from '../modules/utils';
-import { alterInArr, removeFromArr } from '../reduxUtils';
-import { applyDefaultFormData } from '../explore/stores/store';
-import { getColorFromScheme } from '../modules/colors';
+import { getParam } from '../../modules/utils';
+import { alterInArr, removeFromArr } from '../../reduxUtils';
+import { applyDefaultFormData } from '../../explore/stores/store';
+import { getColorFromScheme } from '../../modules/colors';
 
 export function getInitialState(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;

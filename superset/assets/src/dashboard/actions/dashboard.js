@@ -1,25 +1,14 @@
 /* global notify */
 import $ from 'jquery';
-import { getExploreUrlAndPayload } from '../explore/exploreUtils';
 
 export const ADD_FILTER = 'ADD_FILTER';
 export function addFilter(sliceId, col, vals, merge = true, refresh = true) {
   return { type: ADD_FILTER, sliceId, col, vals, merge, refresh };
 }
 
-export const CLEAR_FILTER = 'CLEAR_FILTER';
-export function clearFilter(sliceId) {
-  return { type: CLEAR_FILTER, sliceId };
-}
-
 export const REMOVE_FILTER = 'REMOVE_FILTER';
 export function removeFilter(sliceId, col, vals, refresh = true) {
   return { type: REMOVE_FILTER, sliceId, col, vals, refresh };
-}
-
-export const UPDATE_DASHBOARD_LAYOUT = 'UPDATE_DASHBOARD_LAYOUT';
-export function updateDashboardLayout(layout) {
-  return { type: UPDATE_DASHBOARD_LAYOUT, layout };
 }
 
 export const UPDATE_DASHBOARD_TITLE = 'UPDATE_DASHBOARD_TITLE';
@@ -46,45 +35,6 @@ export function addSlicesToDashboard(dashboardId, sliceIds) {
 export const REMOVE_SLICE = 'REMOVE_SLICE';
 export function removeSlice(slice) {
   return { type: REMOVE_SLICE, slice };
-}
-
-export const UPDATE_SLICE_NAME = 'UPDATE_SLICE_NAME';
-export function updateSliceName(slice, sliceName) {
-  return { type: UPDATE_SLICE_NAME, slice, sliceName };
-}
-export function saveSlice(slice, sliceName) {
-  const oldName = slice.slice_name;
-  return (dispatch) => {
-    const sliceParams = {};
-    sliceParams.slice_id = slice.slice_id;
-    sliceParams.action = 'overwrite';
-    sliceParams.slice_name = sliceName;
-
-    const { url, payload } = getExploreUrlAndPayload({
-      formData: slice.form_data,
-      endpointType: 'base',
-      force: false,
-      curUrl: null,
-      requestParams: sliceParams,
-    });
-    return $.ajax({
-      url,
-      type: 'POST',
-      data: {
-        form_data: JSON.stringify(payload),
-      },
-      success: () => {
-        dispatch(updateSliceName(slice, sliceName));
-        notify.success('This slice name was saved successfully.');
-      },
-      error: () => {
-        // if server-side reject the overwrite action,
-        // revert to old state
-        dispatch(updateSliceName(slice, oldName));
-        notify.error("You don't have the rights to alter this slice");
-      },
-    });
-  };
 }
 
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';

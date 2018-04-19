@@ -4,29 +4,30 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import * as dashboardActions from '../../../src/dashboard/actions';
+import * as dashboardActions from '../../../src/dashboard/actions/dashboard';
 import * as chartActions from '../../../src/chart/chartAction';
 import Dashboard from '../../../src/dashboard/components/Dashboard';
-import { defaultFilters, dashboard, charts } from './fixtures';
+import { defaultFilters, dashboardState, dashboardInfo,
+  chartQueries, datasources, sliceEntities } from './fixtures';
 
 describe('Dashboard', () => {
   const mockedProps = {
     actions: { ...chartActions, ...dashboardActions },
     initMessages: [],
-    dashboard: dashboard.dashboard,
-    slices: charts,
-    filters: dashboard.filters,
-    datasources: dashboard.datasources,
-    refresh: false,
+    dashboardState,
+    dashboardInfo,
+    charts: chartQueries,
+    slices: sliceEntities,
+    datasources,
     timeout: 60,
     isStarred: false,
-    userId: dashboard.userId,
+    userId: dashboardInfo.userId,
   };
 
   it('should render', () => {
     const wrapper = shallow(<Dashboard {...mockedProps} />);
     expect(wrapper.find('#dashboard-container')).to.have.length(1);
-    expect(wrapper.instance().getAllSlices()).to.have.length(3);
+    expect(wrapper.instance().getAllCharts()).to.have.length(3);
   });
 
   it('should handle metadata default_filters', () => {
@@ -36,14 +37,14 @@ describe('Dashboard', () => {
 
   describe('getFormDataExtra', () => {
     let wrapper;
-    let selectedSlice;
+    let selectedChart;
     beforeEach(() => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
-      selectedSlice = wrapper.instance().props.dashboard.slices[1];
+      selectedChart = charts['slice_248'];
     });
 
     it('should carry default_filters', () => {
-      const extraFilters = wrapper.instance().getFormDataExtra(selectedSlice).extra_filters;
+      const extraFilters = wrapper.instance().getFormDataExtra(selectedChart).extra_filters;
       expect(extraFilters[0]).to.deep.equal({ col: 'region', op: 'in', val: [] });
       expect(extraFilters[1]).to.deep.equal({ col: 'country_name', op: 'in', val: ['United States'] });
     });
@@ -55,7 +56,7 @@ describe('Dashboard', () => {
           257: { country_name: ['France'] },
         },
       });
-      const extraFilters = wrapper.instance().getFormDataExtra(selectedSlice).extra_filters;
+      const extraFilters = wrapper.instance().getFormDataExtra(selectedChart).extra_filters;
       expect(extraFilters[1]).to.deep.equal({ col: 'country_name', op: 'in', val: ['France'] });
     });
   });
@@ -65,7 +66,7 @@ describe('Dashboard', () => {
     let spy;
     beforeEach(() => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
-      spy = sinon.spy(wrapper.instance(), 'fetchSlices');
+      spy = sinon.spy(wrapper.instance(), 'fetchCharts');
     });
     afterEach(() => {
       spy.restore();
@@ -94,7 +95,7 @@ describe('Dashboard', () => {
       wrapper = shallow(<Dashboard {...mockedProps} />);
       prevProp = wrapper.instance().props;
       refreshExceptSpy = sinon.spy(wrapper.instance(), 'refreshExcept');
-      fetchSlicesStub = sinon.stub(wrapper.instance(), 'fetchSlices');
+      fetchSlicesStub = sinon.stub(wrapper.instance(), 'fetchCharts');
     });
     afterEach(() => {
       fetchSlicesStub.restore();
