@@ -39,7 +39,7 @@ function worldMapChart(slice, payload) {
     mapData[d.country] = d;
   });
 
-  const formatter = d3.format('.1s');
+  const formatter = d3.format('.3s');
 
   container.show();
 

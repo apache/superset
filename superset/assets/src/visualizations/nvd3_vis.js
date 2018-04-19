@@ -32,7 +32,7 @@ const BREAKPOINTS = {
 };
 
 const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
-  const format = d3.format(axisFormat || '.1s');
+  const format = d3.format(axisFormat || '.3s');
   const countSeriesDisplayed = data.length;
 
   const totalStackedValues = stacked && data.length !== 0 ?
@@ -137,7 +137,7 @@ export default function nvd3Vis(slice, payload) {
   };
 
   const vizType = fd.viz_type;
-  const formatter = d3.format('.1s');
+  const formatter = d3.format('.3s');
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
@@ -261,7 +261,7 @@ export default function nvd3Vis(slice, payload) {
         if (fd.pie_label_type !== 'key_percent' && fd.pie_label_type !== 'key_value') {
           chart.labelType(fd.pie_label_type);
         } else if (fd.pie_label_type === 'key_value') {
-          chart.labelType(d => `${d.data.x}: ${d3.format('.1s')(d.data.y)}`);
+          chart.labelType(d => `${d.data.x}: ${d3.format('.3s')(d.data.y)}`);
         }
         chart.cornerRadius(true);
 
@@ -410,10 +410,12 @@ export default function nvd3Vis(slice, payload) {
         axis.showMaxMin(showminmax);
       }
     }
-    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax);
-    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax);
-    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax);
-    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax);
+
+    // If these are undefined, they register as truthy
+    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax || false);
+    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax || false);
+    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax || false);
+    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax || false);
 
     if (vizType === 'time_pivot') {
       chart.color((d) => {

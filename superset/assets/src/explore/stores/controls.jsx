@@ -56,13 +56,13 @@ const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
-  ['.1s', '.1s (12345.432 => 12.3k)'],
-  ['.3s', '.3s (12345.432 => 12.345k)'],
-  ['.1%', '.1% (12345.432 => 12.3%)'],
-  ['.3%', '.3% (12345.432 => 1234543.210%)'],
+  ['.1s', '.1s (12345.432 => 10k)'],
+  ['.3s', '.3s (12345.432 => 12.3k)'],
+  [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
+  ['.3%', '.3% (12345.432 => 1234543.200%)'],
   ['.4r', '.4r (12345.432 => 12350)'],
-  ['.3f', '.3f (12345.432 => 12345.432)'],
-  ['+,', '+, (12345.432 => +12,345.4321)'],
+  [',.3f', ',.3f (12345.432 => 12,345.432)'],
+  ['+,', '+, (12345.432 => +12,345.432)'],
   ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
 ];
 
@@ -1236,7 +1236,7 @@ export const controls = {
     freeForm: true,
     label: t('X Axis Format'),
     renderTrigger: true,
-    default: '.1s',
+    default: '.3s',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
@@ -1256,7 +1256,7 @@ export const controls = {
     freeForm: true,
     label: t('Y Axis Format'),
     renderTrigger: true,
-    default: '.1s',
+    default: '.3s',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
     mapStateToProps: (state) => {
@@ -1276,7 +1276,7 @@ export const controls = {
     type: 'SelectControl',
     freeForm: true,
     label: t('Right Axis Format'),
-    default: '.1s',
+    default: '.3s',
     choices: D3_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
