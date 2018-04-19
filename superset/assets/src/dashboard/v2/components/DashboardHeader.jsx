@@ -52,7 +52,7 @@ class DashboardHeader extends React.Component {
       <div className="dashboard-header">
         <div className="dashboard-component-header header-large">
           <EditableTitle
-            title={component.meta.text}
+            title={'Test title'}
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
             canEdit={editMode}

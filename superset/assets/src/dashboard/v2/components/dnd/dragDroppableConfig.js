@@ -17,6 +17,7 @@ export const dragConfig = [
       return {
         type: component.type,
         id: component.id,
+        meta: component.meta,
         index,
         parentId: parentComponent.id,
         parentType: parentComponent.type,

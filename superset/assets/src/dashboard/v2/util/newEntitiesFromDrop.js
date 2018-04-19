@@ -11,9 +11,10 @@ export default function newEntitiesFromDrop({ dropResult, components }) {
   const { dragging, destination } = dropResult;
 
   const dragType = dragging.type;
+  const dragMeta = dragging.meta;
   const dropEntity = components[destination.id];
   const dropType = dropEntity.type;
-  let newDropChild = newComponentFactory(dragType);
+  let newDropChild = newComponentFactory(dragType, dragMeta);
   const wrapChildInRow = shouldWrapChildInRow({ parentType: dropType, childType: dragType });
 
   const newEntities = {

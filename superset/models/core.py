@@ -146,6 +146,11 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         datasource = self.datasource
         return datasource.link if datasource else None
 
+    def datasource_name_text(self):
+        # pylint: disable=no-member
+        datasource = self.datasource
+        return datasource.name if datasource else None
+
     @property
     def datasource_edit_url(self):
         # pylint: disable=no-member
@@ -338,14 +343,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def url(self):
-        if self.json_metadata:
-            # add default_filters to the preselect_filters of dashboard
-            json_metadata = json.loads(self.json_metadata)
-            default_filters = json_metadata.get('default_filters')
-            if default_filters:
-                filters = parse.quote(default_filters.encode('utf8'))
-                return '/superset/dashboard/{}/?preselect_filters={}'.format(
-                    self.slug or self.id, filters)
         return '/superset/dashboard/{}/'.format(self.slug or self.id)
 
     @property

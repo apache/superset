@@ -1,51 +1,49 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { Responsive, WidthProvider } from 'react-grid-layout';
+import cx from 'classnames';
 
 import GridCell from './GridCell';
-
-require('react-grid-layout/css/styles.css');
-require('react-resizable/css/styles.css');
-
-const ResponsiveReactGridLayout = WidthProvider(Responsive);
+import { slicePropShape, chartPropShape } from '../v2/util/propShapes';
+import DashboardBuilder from '../v2/containers/DashboardBuilder';
 
 const propTypes = {
-  dashboard: PropTypes.object.isRequired,
+  dashboardInfo: PropTypes.shape().isRequired,
+  layout: PropTypes.object.isRequired,
   datasources: PropTypes.object,
-  charts: PropTypes.object.isRequired,
+  charts: PropTypes.objectOf(chartPropShape).isRequired,
+  slices: PropTypes.objectOf(slicePropShape).isRequired,
+  expandedSlices: PropTypes.object.isRequired,
+  sliceIds: PropTypes.object.isRequired,
   filters: PropTypes.object,
   timeout: PropTypes.number,
   onChange: PropTypes.func,
+  rerenderCharts: PropTypes.func,
   getFormDataExtra: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
-  fetchSlice: PropTypes.func,
-  saveSlice: PropTypes.func,
-  removeSlice: PropTypes.func,
-  removeChart: PropTypes.func,
-  updateDashboardLayout: PropTypes.func,
+  refreshChart: PropTypes.func,
+  saveSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
-  clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
+  showBuilderPane: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
+  expandedSlices: {},
+  filters: {},
+  timeout: 60,
   onChange: () => ({}),
   getFormDataExtra: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
-  fetchSlice: () => ({}),
-  saveSlice: () => ({}),
-  removeSlice: () => ({}),
-  removeChart: () => ({}),
-  updateDashboardLayout: () => ({}),
+  refreshChart: () => ({}),
+  saveSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   addFilter: () => ({}),
   getFilters: () => ({}),
-  clearFilter: () => ({}),
   removeFilter: () => ({}),
 };
 
@@ -53,141 +51,101 @@ class GridLayout extends React.Component {
   constructor(props) {
     super(props);
 
-    this.onResizeStop = this.onResizeStop.bind(this);
-    this.onDragStop = this.onDragStop.bind(this);
-    this.forceRefresh = this.forceRefresh.bind(this);
-    this.removeSlice = this.removeSlice.bind(this);
-    this.updateSliceName = this.props.dashboard.dash_edit_perm ?
+    this.updateSliceName = this.props.dashboardInfo.dash_edit_perm ?
       this.updateSliceName.bind(this) : null;
   }
 
-  onResizeStop(layout) {
-    this.props.updateDashboardLayout(layout);
-    this.props.onChange();
+  componentDidUpdate(prevProps) {
+    if (prevProps.editMode !== this.props.editMode ||
+      prevProps.showBuilderPane !== this.props.showBuilderPane) {
+      this.props.rerenderCharts();
+    }
   }
 
-  onDragStop(layout) {
-    this.props.updateDashboardLayout(layout);
-    this.props.onChange();
+  getWidgetId(sliceId) {
+    return 'widget_' + sliceId;
   }
 
-  getWidgetId(slice) {
-    return 'widget_' + slice.slice_id;
-  }
-
-  getWidgetHeight(slice) {
-    const widgetId = this.getWidgetId(slice);
+  getWidgetHeight(sliceId) {
+    const widgetId = this.getWidgetId(sliceId);
     if (!widgetId || !this.refs[widgetId]) {
       return 400;
     }
-    return this.refs[widgetId].offsetHeight;
+    return this.refs[widgetId].parentNode.clientHeight;
   }
 
-  getWidgetWidth(slice) {
-    const widgetId = this.getWidgetId(slice);
+  getWidgetWidth(sliceId) {
+    const widgetId = this.getWidgetId(sliceId);
     if (!widgetId || !this.refs[widgetId]) {
       return 400;
     }
-    return this.refs[widgetId].offsetWidth;
-  }
-
-  findSliceIndexById(sliceId) {
-    return this.props.dashboard.slices
-      .map(slice => (slice.slice_id)).indexOf(sliceId);
-  }
-
-  forceRefresh(sliceId) {
-    return this.props.fetchSlice(this.props.charts['slice_' + sliceId], true);
-  }
-
-  removeSlice(slice) {
-    if (!slice) {
-      return;
-    }
-
-    // remove slice dashboard and charts
-    this.props.removeSlice(slice);
-    this.props.removeChart(this.props.charts['slice_' + slice.slice_id].chartKey);
-    this.props.onChange();
+    return this.refs[widgetId].parentNode.clientWidth;
   }
 
   updateSliceName(sliceId, sliceName) {
-    const index = this.findSliceIndexById(sliceId);
-    if (index === -1) {
+    const key = sliceId;
+    const currentSlice = this.props.slices[key];
+    if (!currentSlice || currentSlice.slice_name === sliceName) {
       return;
     }
 
-    const currentSlice = this.props.dashboard.slices[index];
-    if (currentSlice.slice_name === sliceName) {
-      return;
-    }
-
-    this.props.saveSlice(currentSlice, sliceName);
+    this.props.saveSliceName(currentSlice, sliceName);
   }
 
-  isExpanded(slice) {
-    return this.props.dashboard.metadata.expanded_slices &&
-      this.props.dashboard.metadata.expanded_slices[slice.slice_id];
+  isExpanded(sliceId) {
+    return this.props.expandedSlices[sliceId];
   }
 
   render() {
-    const cells = this.props.dashboard.slices.map((slice) => {
-      const chartKey = `slice_${slice.slice_id}`;
-      const currentChart = this.props.charts[chartKey];
-      const queryResponse = currentChart.queryResponse || {};
-      return (
-        <div
-          id={'slice_' + slice.slice_id}
-          key={slice.slice_id}
-          data-slice-id={slice.slice_id}
-          className={`widget ${slice.form_data.viz_type}`}
-          ref={this.getWidgetId(slice)}
-        >
-          <GridCell
-            slice={slice}
-            chartKey={chartKey}
-            datasource={this.props.datasources[slice.form_data.datasource]}
-            filters={this.props.filters}
-            formData={this.props.getFormDataExtra(slice)}
-            timeout={this.props.timeout}
-            widgetHeight={this.getWidgetHeight(slice)}
-            widgetWidth={this.getWidgetWidth(slice)}
-            exploreChart={this.props.exploreChart}
-            exportCSV={this.props.exportCSV}
-            isExpanded={!!this.isExpanded(slice)}
-            isLoading={currentChart.chartStatus === 'loading'}
-            isCached={queryResponse.is_cached}
-            cachedDttm={queryResponse.cached_dttm}
-            toggleExpandSlice={this.props.toggleExpandSlice}
-            forceRefresh={this.forceRefresh}
-            removeSlice={this.removeSlice}
-            updateSliceName={this.updateSliceName}
-            addFilter={this.props.addFilter}
-            getFilters={this.props.getFilters}
-            clearFilter={this.props.clearFilter}
-            removeFilter={this.props.removeFilter}
-            editMode={this.props.editMode}
-            annotationQuery={currentChart.annotationQuery}
-            annotationError={currentChart.annotationError}
-          />
-        </div>);
+    const cells = {};
+    this.props.sliceIds.forEach((sliceId) => {
+      const key = sliceId;
+      const currentChart = this.props.charts[key];
+      const currentSlice = this.props.slices[key];
+      if (currentChart) {
+        const currentDatasource = this.props.datasources[currentChart.form_data.datasource];
+        const queryResponse = currentChart.queryResponse || {};
+        cells[key] = (
+          <div
+            id={key}
+            key={sliceId}
+            className={cx('widget', `${currentSlice.viz_type}`, { 'is-edit': this.props.editMode })}
+            ref={this.getWidgetId(sliceId)}
+          >
+            <GridCell
+              slice={currentSlice}
+              chart={currentChart}
+              datasource={currentDatasource}
+              filters={this.props.filters}
+              formData={this.props.getFormDataExtra(currentChart)}
+              timeout={this.props.timeout}
+              widgetHeight={this.getWidgetHeight(sliceId)}
+              widgetWidth={this.getWidgetWidth(sliceId)}
+              exploreChart={this.props.exploreChart}
+              exportCSV={this.props.exportCSV}
+              isExpanded={!!this.isExpanded(sliceId)}
+              isLoading={currentChart.chartStatus === 'loading'}
+              isCached={queryResponse.is_cached}
+              cachedDttm={queryResponse.cached_dttm}
+              toggleExpandSlice={this.props.toggleExpandSlice}
+              refreshChart={this.props.refreshChart}
+              updateSliceName={this.updateSliceName}
+              addFilter={this.props.addFilter}
+              getFilters={this.props.getFilters}
+              removeFilter={this.props.removeFilter}
+              editMode={this.props.editMode}
+              annotationQuery={currentChart.annotationQuery}
+              annotationError={currentChart.annotationError}
+            />
+          </div>
+        );
+      }
     });
 
     return (
-      <ResponsiveReactGridLayout
-        className="layout"
-        layouts={{ lg: this.props.dashboard.layout }}
-        onResizeStop={this.onResizeStop}
-        onDragStop={this.onDragStop}
-        cols={{ lg: 48, md: 48, sm: 40, xs: 32, xxs: 24 }}
-        rowHeight={10}
-        autoSize
-        margin={[20, 20]}
-        useCSSTransforms
-        draggableHandle=".drag"
-      >
-        {cells}
-      </ResponsiveReactGridLayout>
+      <DashboardBuilder
+        cells={cells}
+      />
     );
   }
 }
