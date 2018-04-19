@@ -20,15 +20,18 @@ import {
 } from '../util/constants';
 
 const propTypes = {
+  cells: PropTypes.object.isRequired,
+
   // redux
   dashboardLayout: PropTypes.object.isRequired,
   deleteTopLevelTabs: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
+  showBuilderPane: PropTypes.bool,
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
-  editMode: true,
+  showBuilderPane: false,
 };
 
 class DashboardBuilder extends React.Component {
@@ -105,6 +108,7 @@ class DashboardBuilder extends React.Component {
               index={0}
               renderTabContent={false}
               onChangeTab={this.handleChangeTab}
+              cells={this.props.cells}
             />
           </WithPopoverMenu>}
 
@@ -112,8 +116,11 @@ class DashboardBuilder extends React.Component {
           <DashboardGrid
             gridComponent={gridComponent}
             depth={DASHBOARD_ROOT_DEPTH + 1}
+            cells={this.props.cells}
           />
-          {editMode && <BuilderComponentPane />}
+          {this.props.editMode && this.props.showBuilderPane &&
+            <BuilderComponentPane />
+          }
         </div>
         <ToastPresenter />
       </div>

@@ -6,7 +6,6 @@ function getToastUuid(type) {
 
 export const ADD_TOAST = 'ADD_TOAST';
 export function addToast({ toastType, text }) {
-  debugger;
   return {
     type: ADD_TOAST,
     payload: {
