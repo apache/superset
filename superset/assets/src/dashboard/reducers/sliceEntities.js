@@ -8,7 +8,7 @@ export const initSliceEntities = {
   lastUpdated: 0,
 };
 
-export default function(state = initSliceEntities, action) {
+export default function (state = initSliceEntities, action) {
   const actionHandlers = {
     [actions.UPDATE_SLICE_NAME]() {
       const updatedSlice = {
@@ -25,7 +25,7 @@ export default function(state = initSliceEntities, action) {
       return {
         ...state,
         isLoading: true,
-      }
+      };
     },
     [actions.SET_ALL_SLICES]() {
       return {
@@ -33,7 +33,7 @@ export default function(state = initSliceEntities, action) {
         isLoading: false,
         slices: { ...state.slices, ...action.slices }, // append more slices
         lastUpdated: new Date().getTime(),
-      }
+      };
     },
     [actions.FETCH_ALL_SLICES_FAILED]() {
       const respJSON = action.error.responseJSON;
@@ -46,8 +46,8 @@ export default function(state = initSliceEntities, action) {
         isLoading: false,
         errorMessage,
         lastUpdated: new Date().getTime(),
-      }
-    }
+      };
+    },
   };
 
   if (action.type in actionHandlers) {

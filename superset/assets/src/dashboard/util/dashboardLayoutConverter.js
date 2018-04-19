@@ -1,3 +1,6 @@
+/* eslint-disable no-param-reassign */
+/* eslint-disable camelcase */
+/* eslint-disable no-loop-func */
 import {
   ROW_TYPE,
   COLUMN_TYPE,
@@ -15,10 +18,10 @@ import {
 const MAX_RECURSIVE_LEVEL = 6;
 const GRID_RATIO = 4;
 const ROW_HEIGHT = 8;
-const generateId = function() {
+const generateId = (() => {
   let componentId = 1;
   return () => (componentId++);
-}();
+})();
 
 /**
  *
@@ -26,12 +29,14 @@ const generateId = function() {
  * @returns boundary object {top: number, bottom: number, left: number, right: number}
  */
 function getBoundary(positions) {
-  let top = Number.MAX_VALUE, bottom = 0,
-    left = Number.MAX_VALUE, right = 1;
-  positions.forEach(item => {
+  let top = Number.MAX_VALUE;
+  let bottom = 0;
+  let left = Number.MAX_VALUE;
+  let right = 1;
+  positions.forEach((item) => {
     const { row, col, size_x, size_y } = item;
     if (row <= top) top = row;
-    if (col <= left ) left = col;
+    if (col <= left) left = col;
     if (bottom <= row + size_y) bottom = row + size_y;
     if (right <= col + size_x) right = col + size_x;
   });
@@ -40,7 +45,7 @@ function getBoundary(positions) {
     top,
     bottom,
     left,
-    right
+    right,
   };
 }
 
@@ -87,22 +92,18 @@ function getChartHolder(item) {
     children: [],
     meta: {
       width: converted.size_x,
-      height: Math.round(converted.size_y * 100 / ROW_HEIGHT ),
+      height: Math.round(converted.size_y * 100 / ROW_HEIGHT),
       chartId: slice_id,
     },
   };
 }
 
 function getChildrenMax(items, attr, layout) {
-  return Math.max.apply(null, items.map(child => {
-    return layout[child].meta[attr];
-  }));
+  return Math.max.apply(null, items.map(child => (layout[child].meta[attr])));
 }
 
 function getChildrenSum(items, attr, layout) {
-  return items.reduce((preValue, child) => {
-    return preValue + layout[child].meta[attr];
-  }, 0);
+  return items.reduce((preValue, child) => (preValue + layout[child].meta[attr]), 0);
 }
 
 function sortByRowId(item1, item2) {
@@ -115,17 +116,16 @@ function sortByColId(item1, item2) {
 
 function hasOverlap(positions, xAxis = true) {
   return positions.slice()
-    .sort(!!xAxis ? sortByColId : sortByRowId)
+    .sort(xAxis ? sortByColId : sortByRowId)
     .some((item, index, arr) => {
       if (index === arr.length - 1) {
         return false;
       }
 
-      if (!!xAxis) {
+      if (xAxis) {
         return (item.col + item.size_x) > arr[index + 1].col;
-      } else {
-        return (item.row + item.size_y) > arr[index + 1].row;
       }
+      return (item.row + item.size_y) > arr[index + 1].row;
     });
 }
 
@@ -155,20 +155,19 @@ function doConvert(positions, level, parent, root) {
   const layers = [];
   let currentRow = top + 1;
   while (currentItems.length && currentRow <= bottom) {
-    const upper = [],
-      lower = [];
+    const upper = [];
+    const lower = [];
 
-    const isRowDivider = currentItems.every(item => {
-      const { row, col, size_x, size_y } = item;
+    const isRowDivider = currentItems.every((item) => {
+      const { row, size_y } = item;
       if (row + size_y <= currentRow) {
         lower.push(item);
         return true;
       } else if (row >= currentRow) {
         upper.push(item);
         return true;
-      } else {
-        return false;
       }
+      return false;
     });
 
     if (isRowDivider) {
@@ -197,7 +196,7 @@ function doConvert(positions, level, parent, root) {
 
     currentItems = layer.slice();
     if (!hasOverlap(currentItems)) {
-      currentItems.sort(sortByColId).forEach(item => {
+      currentItems.sort(sortByColId).forEach((item) => {
         const chartHolder = getChartHolder(item);
         root[chartHolder.id] = chartHolder;
         rowContainer.children.push(chartHolder.id);
@@ -206,20 +205,19 @@ function doConvert(positions, level, parent, root) {
       // find col dividers for each layer
       let currentCol = left + 1;
       while (currentItems.length && currentCol <= right) {
-        const upper = [],
-          lower = [];
+        const upper = [];
+        const lower = [];
 
-        const isColDivider = currentItems.every(item => {
-          const { row, col, size_x, size_y } = item;
+        const isColDivider = currentItems.every((item) => {
+          const { col, size_x } = item;
           if (col + size_x <= currentCol) {
             lower.push(item);
             return true;
           } else if (col >= currentCol) {
             upper.push(item);
             return true;
-          } else {
-            return false;
           }
+          return false;
         });
 
         if (isColDivider) {
@@ -234,13 +232,13 @@ function doConvert(positions, level, parent, root) {
             rowContainer.children.push(colContainer.id);
 
             if (!hasOverlap(lower, false)) {
-              lower.sort(sortByRowId).forEach(item => {
+              lower.sort(sortByRowId).forEach((item) => {
                 const chartHolder = getChartHolder(item);
                 root[chartHolder.id] = chartHolder;
                 colContainer.children.push(chartHolder.id);
               });
             } else {
-              doConvert(lower, level+2, colContainer, root);
+              doConvert(lower, level + 2, colContainer, root);
             }
 
             // add col meta
@@ -259,11 +257,12 @@ function doConvert(positions, level, parent, root) {
   });
 }
 
-export default function(dashboard) {
+export default function (dashboard) {
   const positions = [];
 
   // position data clean up. some dashboard didn't have position_json
-  let { position_json, posDict = {} } = dashboard;
+  let { position_json } = dashboard;
+  const posDict = {};
   if (Array.isArray(position_json)) {
     position_json.forEach((position) => {
       posDict[position.slice_id] = position;
@@ -313,7 +312,7 @@ export default function(dashboard) {
   doConvert(positions, 0, root[DASHBOARD_GRID_ID], root);
 
   // remove row's width/height and col's height
-  Object.values(root).forEach(item => {
+  Object.values(root).forEach((item) => {
     if (ROW_TYPE === item.type) {
       const meta = item.meta;
       delete meta.width;
@@ -328,4 +327,3 @@ export default function(dashboard) {
   // console.log(JSON.stringify(root));
   return root;
 }
-

@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 import $ from 'jquery';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
@@ -60,8 +61,8 @@ export function saveFaveStar(id, isStarred) {
 }
 
 export const TOGGLE_EXPAND_SLICE = 'TOGGLE_EXPAND_SLICE';
-export function toggleExpandSlice(slice, isExpanded) {
-  return { type: TOGGLE_EXPAND_SLICE, slice, isExpanded };
+export function toggleExpandSlice(sliceId) {
+  return { type: TOGGLE_EXPAND_SLICE, sliceId };
 }
 
 export const SET_EDIT_MODE = 'SET_EDIT_MODE';
@@ -77,6 +78,27 @@ export function onChange() {
 export const ON_SAVE = 'ON_SAVE';
 export function onSave() {
   return { type: ON_SAVE };
+}
+
+export function fetchCharts(chartList = [], force = false, interval = 0) {
+  return (dispatch, getState) => {
+    const timeout = getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+    if (!interval) {
+      chartList.forEach(chart => (dispatch(refreshChart(chart, force, timeout))));
+      return;
+    }
+
+    const { metadata: meta } = getState().dashboardInfo;
+    const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
+    if (typeof meta.stagger_refresh !== 'boolean') {
+      meta.stagger_refresh = meta.stagger_refresh === undefined ?
+        true : meta.stagger_refresh === 'true';
+    }
+    const delay = meta.stagger_refresh ? refreshTime / (chartList.length - 1) : 0;
+    chartList.forEach((chart, i) => {
+      setTimeout(() => dispatch(refreshChart(chart, force, timeout)), delay * i);
+    });
+  };
 }
 
 let refreshTimer = null;
@@ -107,28 +129,7 @@ export function startPeriodicRender(interval) {
     };
 
     fetchAndRender();
-  }
-}
-
-export function fetchCharts(chartList = [], force = false, interval = 0) {
-  return (dispatch, getState) => {
-    const timeout = getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
-    if (!interval) {
-      chartList.forEach(chart => (dispatch(refreshChart(chart, force, timeout))));
-      return;
-    }
-
-    const { metadata: meta } = getState().dashboardInfo;
-    const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
-    if (typeof meta.stagger_refresh !== 'boolean') {
-      meta.stagger_refresh = meta.stagger_refresh === undefined ?
-        true : meta.stagger_refresh === 'true';
-    }
-    const delay = meta.stagger_refresh ? refreshTime / (chartList.length - 1) : 0;
-    chartList.forEach((chart, i) => {
-      setTimeout(() => dispatch(refreshChart(chart, force, timeout)), delay * i);
-    });
-  }
+  };
 }
 
 export const TOGGLE_BUILDER_PANE = 'TOGGLE_BUILDER_PANE';

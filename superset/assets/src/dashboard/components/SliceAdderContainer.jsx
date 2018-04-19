@@ -18,7 +18,7 @@ function mapStateToProps({ sliceEntities, dashboardInfo, dashboardState }) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({fetchAllSlices}, dispatch),
+    actions: bindActionCreators({ fetchAllSlices }, dispatch),
   };
 }
 

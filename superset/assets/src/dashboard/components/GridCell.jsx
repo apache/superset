@@ -127,8 +127,9 @@ class GridCell extends React.PureComponent {
           ref={this.getDescriptionId(slice)}
           dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
         />
-        <div className="chart-container"
-             style={{ width: this.width(), height: this.height(slice) }}
+        <div
+          className="chart-container"
+          style={{ width: this.width(), height: this.height(slice) }}
         >
           <input type="hidden" value="false" />
           <ChartContainer

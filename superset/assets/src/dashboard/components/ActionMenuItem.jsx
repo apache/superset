@@ -13,7 +13,7 @@ export function MenuItemContent({ faIcon, text, tooltip, children }) {
       {text} {''}
       <InfoTooltipWithTrigger
         tooltip={tooltip}
-        label={faIcon ? `dash-${faIcon}`: ''}
+        label={faIcon ? `dash-${faIcon}` : ''}
         placement="top"
       />
       {children}
@@ -40,4 +40,6 @@ export function ActionMenuItem(props) {
 }
 ActionMenuItem.propTypes = {
   onClick: PropTypes.func,
+  href: PropTypes.string,
+  target: PropTypes.string,
 };

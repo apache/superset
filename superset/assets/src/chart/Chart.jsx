@@ -89,15 +89,14 @@ class Chart extends React.PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    if (
-        this.props.queryResponse &&
-        ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
-        !this.props.queryResponse.error && (
-        prevProps.annotationData !== this.props.annotationData ||
-        prevProps.queryResponse !== this.props.queryResponse ||
-        prevProps.height !== this.props.height ||
-        prevProps.width !== this.props.width ||
-        prevProps.lastRendered !== this.props.lastRendered)
+    if (this.props.queryResponse &&
+      ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
+      !this.props.queryResponse.error && (
+      prevProps.annotationData !== this.props.annotationData ||
+      prevProps.queryResponse !== this.props.queryResponse ||
+      prevProps.height !== this.props.height ||
+      prevProps.width !== this.props.width ||
+      prevProps.lastRendered !== this.props.lastRendered)
     ) {
       this.renderViz();
     }
@@ -143,7 +142,7 @@ class Chart extends React.PureComponent {
   }
 
   error(e) {
-    this.props.actions.chartRenderingFailed(e, this.props.chartKey);
+    this.props.actions.chartRenderingFailed(e, this.props.chartId);
   }
 
   verboseMetricName(metric) {

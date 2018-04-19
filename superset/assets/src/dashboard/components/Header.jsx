@@ -7,11 +7,13 @@ import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import { chartPropShape } from '../v2/util/propShapes';
 import { t } from '../../locales';
 
 const propTypes = {
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
+  charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -106,21 +108,21 @@ class Header extends React.PureComponent {
     return (
       <div className="dashboard-header">
         <div className="dashboard-component-header header-large">
-            <EditableTitle
-              title={dashboardTitle}
-              canEdit={this.props.dashboardInfo.dash_save_perm && editMode}
-              onSaveTitle={this.handleChangeText}
-              showTooltip={editMode}
+          <EditableTitle
+            title={dashboardTitle}
+            canEdit={this.props.dashboardInfo.dash_save_perm && editMode}
+            onSaveTitle={this.handleChangeText}
+            showTooltip={editMode}
+          />
+          <span className="favstar m-r-5">
+            <FaveStar
+              itemId={this.props.dashboardInfo.id}
+              fetchFaveStar={this.props.fetchFaveStar}
+              saveFaveStar={this.props.saveFaveStar}
+              isStarred={this.props.isStarred}
             />
-            <span className="favstar m-r-5">
-              <FaveStar
-                itemId={this.props.dashboardInfo.id}
-                fetchFaveStar={this.props.fetchFaveStar}
-                saveFaveStar={this.props.saveFaveStar}
-                isStarred={this.props.isStarred}
-              />
-            </span>
-            {this.renderUnsaved()}
+          </span>
+          {this.renderUnsaved()}
         </div>
         <ButtonToolbar>
           <ButtonGroup>

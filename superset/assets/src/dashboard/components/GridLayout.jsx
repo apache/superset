@@ -12,7 +12,8 @@ const propTypes = {
   datasources: PropTypes.object,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
-  expandedSlices: PropTypes.object,
+  expandedSlices: PropTypes.object.isRequired,
+  sliceIds: PropTypes.object.isRequired,
   filters: PropTypes.object,
   timeout: PropTypes.number,
   onChange: PropTypes.func,
@@ -54,6 +55,13 @@ class GridLayout extends React.Component {
       this.updateSliceName.bind(this) : null;
   }
 
+  componentDidUpdate(prevProps) {
+    if (prevProps.editMode !== this.props.editMode ||
+      prevProps.showBuilderPane !== this.props.showBuilderPane) {
+      this.props.rerenderCharts();
+    }
+  }
+
   getWidgetId(sliceId) {
     return 'widget_' + sliceId;
   }
@@ -88,12 +96,6 @@ class GridLayout extends React.Component {
     return this.props.expandedSlices[sliceId];
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.editMode !== this.props.editMode ||
-      prevProps.showBuilderPane != this.props.showBuilderPane) {
-      this.props.rerenderCharts();
-    }
-  }
   render() {
     const cells = {};
     this.props.sliceIds.forEach((sliceId) => {

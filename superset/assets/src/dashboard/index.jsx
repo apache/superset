@@ -20,7 +20,7 @@ const initState = getInitialState(bootstrapData);
 
 const store = createStore(
   rootReducer, initState, compose(applyMiddleware(thunk), initEnhancer(false)));
-console.log(store.getState())
+
 ReactDOM.render(
   <Provider store={store}>
     <DashboardContainer />

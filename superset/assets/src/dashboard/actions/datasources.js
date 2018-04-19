@@ -21,15 +21,15 @@ export function fetchDatasourceMetadata(key) {
     const datasource = datasources[key];
 
     if (datasource) {
-      return dispatch(setDatasource(datasource, key))
-    } else {
-      const url = `/superset/fetch_datasource_metadata?datasourceKey=${key}`;
-      return $.ajax({
-        type: 'GET',
-        url,
-        success: datasource => dispatch(setDatasource(datasource, key)),
-        error: error => dispatch(fetchDatasourceFailed(error.responseJSON.error, key)),
-      });
+      return dispatch(setDatasource(datasource, key));
     }
+
+    const url = `/superset/fetch_datasource_metadata?datasourceKey=${key}`;
+    return $.ajax({
+      type: 'GET',
+      url,
+      success: data => dispatch(setDatasource(data, key)),
+      error: error => dispatch(fetchDatasourceFailed(error.responseJSON.error, key)),
+    });
   };
 }

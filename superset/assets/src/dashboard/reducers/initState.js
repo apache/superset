@@ -1,11 +1,15 @@
+/* eslint-disable camelcase */
+import shortid from 'shortid';
+
 import { chart } from '../../chart/chartReducer';
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
 import layoutConverter from '../util/dashboardLayoutConverter';
+import { DASHBOARD_ROOT_ID } from '../v2/util/constants';
 
-export default function(bootstrapData) {
+export default function (bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;
   delete common.locale;
   delete common.language_pack;
@@ -31,7 +35,7 @@ export default function(bootstrapData) {
   // dashboard layout
   const positionJson = dashboard.position_json;
   let layout;
-  if (!positionJson || !positionJson['DASHBOARD_ROOT_ID']) {
+  if (!positionJson || !positionJson[DASHBOARD_ROOT_ID]) {
     layout = layoutConverter(dashboard);
   } else {
     layout = positionJson;
@@ -47,9 +51,9 @@ export default function(bootstrapData) {
 
   // charts: dynamic queries
   // slices: saved data from slices table
-  const charts = {},
-    slices = {},
-    sliceIds = new Set();
+  const charts = {};
+  const slices = {};
+  const sliceIds = new Set();
   dashboard.slices.forEach((slice) => {
     const key = slice.slice_id;
     charts[key] = { ...chart,
@@ -102,5 +106,6 @@ export default function(bootstrapData) {
     },
     dashboardLayout,
     messageToasts: [],
+    impressionId: shortid.generate(),
   };
 }

@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 /* global notify */
 import $ from 'jquery';
 
@@ -61,9 +62,9 @@ export function fetchAllSlices(userId) {
       return $.ajax({
         url: uri,
         type: 'GET',
-        success: response => {
+        success: (response) => {
           const slices = {};
-          response.result.forEach(slice => {
+          response.result.forEach((slice) => {
             const form_data = JSON.parse(slice.params);
             slices[slice.id] = {
               slice_id: slice.id,
@@ -79,13 +80,14 @@ export function fetchAllSlices(userId) {
               description_markdown: slice.description_markeddown,
               viz_type: slice.viz_type,
               modified: slice.modified,
-            }});
+            };
+          });
           return dispatch(setAllSlices(slices));
         },
         error: error => dispatch(fetchAllSlicesFailed(error)),
       });
-    } else {
-      return dispatch(setAllSlices(sliceEntities.slices));
     }
+
+    return dispatch(setAllSlices(sliceEntities.slices));
   };
 }

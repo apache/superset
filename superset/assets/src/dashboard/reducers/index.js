@@ -1,5 +1,4 @@
 import { combineReducers } from 'redux';
-import shortid from 'shortid';
 
 import charts from '../../chart/chartReducer';
 import dashboardState from './dashboard';
@@ -9,13 +8,7 @@ import dashboardLayout from '../v2/reducers/index';
 import messageToasts from '../v2/reducers/messageToasts';
 
 const dashboardInfo = (state = {}) => (state);
-
-const impressionId = (state = '') => {
-  if (!state) {
-    state = shortid.generate();
-  }
-  return state;
-};
+const impressionId = (state = '') => (state);
 
 export default combineReducers({
   charts,

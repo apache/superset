@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { List } from 'react-virtualized';
-import SearchInput, {createFilter} from 'react-search-input';
+import SearchInput, { createFilter } from 'react-search-input';
 
 import DragDroppable from '../v2/components/dnd/DragDroppable';
 import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../v2/util/componentTypes';
@@ -31,7 +31,7 @@ const KEYS_TO_SORT = [
   { key: 'slice_name', label: 'Name' },
   { key: 'viz_type', label: 'Visualization' },
   { key: 'datasource_name', label: 'Datasource' },
-  { key: 'changed_on', label: 'Recent' }
+  { key: 'changed_on', label: 'Recent' },
 ];
 
 class SliceAdder extends React.Component {
@@ -40,7 +40,7 @@ class SliceAdder extends React.Component {
     this.state = {
       filteredSlices: [],
       searchTerm: '',
-      sortBy: KEYS_TO_SORT.findIndex((item) => ('changed_on' === item.key)),
+      sortBy: KEYS_TO_SORT.findIndex(item => (item.key === 'changed_on')),
     };
 
     this.rowRenderer = this.rowRenderer.bind(this);
@@ -53,12 +53,6 @@ class SliceAdder extends React.Component {
     this.slicesRequest = this.props.actions.fetchAllSlices(this.props.userId);
   }
 
-  componentWillUnmount() {
-    if (this.slicesRequest && this.slicesRequest.abort) {
-      this.slicesRequest.abort();
-    }
-  }
-
   componentWillReceiveProps(nextProps) {
     if (nextProps.lastUpdated !== this.props.lastUpdated) {
       this.setState({
@@ -69,17 +63,28 @@ class SliceAdder extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    if (this.slicesRequest && this.slicesRequest.abort) {
+      this.slicesRequest.abort();
+    }
+  }
+
+  getFilteredSortedSlices(searchTerm, sortBy) {
+    return Object.values(this.props.slices)
+      .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
+      .sort(this.sortByComparator(KEYS_TO_SORT[sortBy].key));
+  }
+
   sortByComparator(attr) {
-    const desc = 'changed_on' === attr ? -1 : 1;
+    const desc = (attr === 'changed_on') ? -1 : 1;
 
     return (a, b) => {
       if (a[attr] < b[attr]) {
         return -1 * desc;
       } else if (a[attr] > b[attr]) {
         return 1 * desc;
-      } else {
-        return 0;
       }
+      return 0;
     };
   }
 
@@ -89,12 +94,6 @@ class SliceAdder extends React.Component {
 
       this.searchUpdated(ev.target.value);
     }
-  }
-
-  getFilteredSortedSlices(searchTerm, sortBy) {
-    return Object.values(this.props.slices)
-      .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
-      .sort(this.sortByComparator(KEYS_TO_SORT[sortBy].key));
   }
 
   searchUpdated(searchTerm) {
@@ -108,7 +107,7 @@ class SliceAdder extends React.Component {
     this.setState({
       sortBy,
       filteredSlices: this.getFilteredSortedSlices(this.state.searchTerm, sortBy),
-    })
+    });
   }
 
   rowRenderer({ key, index, style }) {
@@ -131,33 +130,33 @@ class SliceAdder extends React.Component {
         editMode={this.props.editMode}
       >
         {({ dragSourceRef }) => (
-      <div
-        ref={dragSourceRef}
-        className="chart-card-container"
-        key={key}
-        style={style}
-      >
-        <div className={cx('chart-card', { 'is-selected': isSelected })}>
-          <div className="card-title">{cellData.slice_name}</div>
-          <div className="card-body">
-            <div className="item">
-              <label>Modified </label>
-              <span>{duration}</span>
-            </div>
-            <div className="item">
-              <label>Visualization </label>
-              <span>{cellData.viz_type}</span>
-            </div>
-            <div className="item">
-              <label>Data source </label>
-              <span dangerouslySetInnerHTML={{ __html: cellData.datasource_link }} />
+          <div
+            ref={dragSourceRef}
+            className="chart-card-container"
+            key={key}
+            style={style}
+          >
+            <div className={cx('chart-card', { 'is-selected': isSelected })}>
+              <div className="card-title">{cellData.slice_name}</div>
+              <div className="card-body">
+                <div className="item">
+                  <span>Modified </span>
+                  <span>{duration}</span>
+                </div>
+                <div className="item">
+                  <span>Visualization </span>
+                  <span>{cellData.viz_type}</span>
+                </div>
+                <div className="item">
+                  <span>Data source </span>
+                  <span dangerouslySetInnerHTML={{ __html: cellData.datasource_link }} />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
         )}
       </DragDroppable>
-    )
+    );
   }
 
   render() {

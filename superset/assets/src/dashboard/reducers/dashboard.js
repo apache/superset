@@ -3,7 +3,7 @@ import { merge as mergeArray } from 'd3';
 
 import * as actions from '../actions/dashboard';
 
-export default function(state = {}, action) {
+export default function (state = {}, action) {
   const actionHandlers = {
     [actions.UPDATE_DASHBOARD_TITLE]() {
       return { ...state, title: action.title };
@@ -47,11 +47,11 @@ export default function(state = {}, action) {
     },
     [actions.TOGGLE_EXPAND_SLICE]() {
       const updatedExpandedSlices = { ...state.expandedSlices };
-      const sliceId = action.slice.slice_id;
-      if (action.isExpanded) {
-        updatedExpandedSlices[sliceId] = true;
-      } else {
+      const sliceId = action.sliceId;
+      if (updatedExpandedSlices[sliceId]) {
         delete updatedExpandedSlices[sliceId];
+      } else {
+        updatedExpandedSlices[sliceId] = true;
       }
       return { ...state, expandedSlices: updatedExpandedSlices };
     },
@@ -113,4 +113,4 @@ export default function(state = {}, action) {
     return actionHandlers[action.type]();
   }
   return state;
-};
+}

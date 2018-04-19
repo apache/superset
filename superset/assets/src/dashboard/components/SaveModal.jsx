@@ -49,7 +49,6 @@ class SaveModal extends React.PureComponent {
   saveDashboardRequest(data, url, saveType) {
     const saveModal = this.modal;
     const onSaveDashboard = this.props.onSave;
-    Object.assign(data, { css: this.props.css });
     $.ajax({
       type: 'POST',
       url,

@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 import React from 'react';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
@@ -51,7 +52,7 @@ describe('Dashboard', () => {
     });
 
     it('should carry updated filter', () => {
-      const dashboardState = {
+      const newState = {
         ...wrapper.props('dashboardState'),
         filters: {
           256: { region: [] },
@@ -59,7 +60,7 @@ describe('Dashboard', () => {
         },
       };
       wrapper.setProps({
-        dashboardState,
+        dashboardState: newState,
       });
       const extraFilters = wrapper.instance().getFormDataExtra(selectedChart).extra_filters;
       expect(extraFilters[1]).to.deep.equal({ col: 'country_name', op: 'in', val: ['France'] });
@@ -112,7 +113,7 @@ describe('Dashboard', () => {
         refreshExceptSpy.reset();
       });
       it('no change', () => {
-        const dashboardState = {
+        const newState = {
           ...wrapper.props('dashboardState'),
           filters: {
             256: { region: [] },
@@ -120,14 +121,14 @@ describe('Dashboard', () => {
           },
         };
         wrapper.setProps({
-          dashboardState,
+          dashboardState: newState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(0);
       });
 
       it('remove filter', () => {
-        const dashboardState = {
+        const newState = {
           ...wrapper.props('dashboardState'),
           refresh: true,
           filters: {
@@ -135,14 +136,14 @@ describe('Dashboard', () => {
           },
         };
         wrapper.setProps({
-          dashboardState,
+          dashboardState: newState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(1);
       });
 
       it('change filter', () => {
-        const dashboardState = {
+        const newState = {
           ...wrapper.props('dashboardState'),
           refresh: true,
           filters: {
@@ -151,14 +152,14 @@ describe('Dashboard', () => {
           },
         };
         wrapper.setProps({
-          dashboardState,
+          dashboardState: newState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(1);
       });
 
       it('add filter', () => {
-        const dashboardState = {
+        const newState = {
           ...wrapper.props('dashboardState'),
           refresh: true,
           filters: {
@@ -168,7 +169,7 @@ describe('Dashboard', () => {
           },
         };
         wrapper.setProps({
-          dashboardState,
+          dashboardState: newState,
         });
         wrapper.instance().componentDidUpdate(prevProp);
         expect(refreshExceptSpy.callCount).to.equal(1);
@@ -176,7 +177,7 @@ describe('Dashboard', () => {
     });
 
     it('should refresh if refresh flag is true', () => {
-      const dashboardState = {
+      const newState = {
         ...wrapper.props('dashboardState'),
         refresh: true,
         filters: {
@@ -184,7 +185,7 @@ describe('Dashboard', () => {
         },
       };
       wrapper.setProps({
-        dashboardState,
+        dashboardState: newState,
       });
       wrapper.instance().componentDidUpdate(prevProp);
       expect(refreshExceptSpy.callCount).to.equal(1);
@@ -192,7 +193,7 @@ describe('Dashboard', () => {
     });
 
     it('should not refresh filter_immune_slices', () => {
-      const dashboardState = {
+      const newState = {
         ...wrapper.props('dashboardState'),
         refresh: true,
         filters: {
@@ -201,7 +202,7 @@ describe('Dashboard', () => {
         },
       };
       wrapper.setProps({
-        dashboardState,
+        dashboardState: newState,
       });
       wrapper.instance().componentDidUpdate(prevProp);
       expect(refreshExceptSpy.callCount).to.equal(1);

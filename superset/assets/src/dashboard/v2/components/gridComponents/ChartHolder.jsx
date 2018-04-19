@@ -19,7 +19,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   depth: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
-  chart: PropTypes.object,
+  chart: PropTypes.object.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number.isRequired,

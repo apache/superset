@@ -30,7 +30,7 @@ class SliceHeaderControls extends React.PureComponent {
     super(props);
     this.exportCSV = this.props.exportCSV.bind(this, this.props.slice.slice_id);
     this.exploreChart = this.props.exploreChart.bind(this, this.props.slice.slice_id);
-    this.toggleExpandSlice = this.props.toggleExpandSlice.bind(this, this.props.slice);
+    this.toggleExpandSlice = this.props.toggleExpandSlice.bind(this, this.props.slice.slice_id);
     this.toggleControls = this.toggleControls.bind(this);
 
     this.state = {
@@ -70,7 +70,7 @@ class SliceHeaderControls extends React.PureComponent {
           <ActionMenuItem
             text={t('Toggle chart description')}
             tooltip={t('Toggle chart description')}
-            onClick={() => { this.toggleExpandSlice(!this.props.isExpanded) }}
+            onClick={this.toggleExpandSlice}
           />
         }
 

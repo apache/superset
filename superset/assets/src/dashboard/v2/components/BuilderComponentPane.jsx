@@ -10,7 +10,7 @@ import NewTabs from './gridComponents/new/NewTabs';
 import SliceAdderContainer from '../../../dashboard/components/SliceAdderContainer';
 
 const propTypes = {
-  editMode: PropTypes.bool,
+  editMode: PropTypes.bool.isRequired,
 };
 
 class BuilderComponentPane extends React.PureComponent {
@@ -27,7 +27,7 @@ class BuilderComponentPane extends React.PureComponent {
   showSlices(show) {
     this.setState({
       showSlices: show,
-    })
+    });
   }
 
   render() {
@@ -36,12 +36,16 @@ class BuilderComponentPane extends React.PureComponent {
         <div className="dashboard-builder-sidepane-header">
           Insert components
           {this.state.showSlices &&
-            <i className="fa fa-times close trigger" onClick={this.closeSlicesPane}/>
+            <i className="fa fa-times close trigger" onClick={this.closeSlicesPane} role="none" />
           }
         </div>
 
         <div className="component-layer">
-          <div className="dragdroppable dragdroppable-row" onClick={this.openSlicesPane}>
+          <div
+            className="dragdroppable dragdroppable-row"
+            onClick={this.openSlicesPane}
+            role="none"
+          >
             <div className="new-component static">
               <div className="new-component-placeholder fa fa-area-chart" />
               Chart
@@ -50,8 +54,7 @@ class BuilderComponentPane extends React.PureComponent {
           </div>
 
           <NewHeader />
-        <NewDivider />
-
+          <NewDivider />
 
           <NewTabs />
           <NewRow />

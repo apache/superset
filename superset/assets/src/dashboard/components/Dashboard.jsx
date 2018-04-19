@@ -24,7 +24,7 @@ const propTypes = {
   dashboardInfo: dashboardInfoPropShape.isRequired,
   dashboardState: dashboardStatePropShape.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
-  slices:  PropTypes.objectOf(slicePropShape).isRequired,
+  slices: PropTypes.objectOf(slicePropShape).isRequired,
   datasources: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
@@ -86,25 +86,26 @@ class Dashboard extends React.PureComponent {
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
     if (currentChartIds.length < nextChartIds.length) {
       // adding new chart
-      const newChartId = nextChartIds.find((key) => (currentChartIds.indexOf(key) === -1));
+      const newChartId = nextChartIds.find(key => (currentChartIds.indexOf(key) === -1));
       this.props.actions.addSliceToDashboard(newChartId);
       this.props.actions.onChange();
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
-      const removedChartId = currentChartIds.find((key) => (nextChartIds.indexOf(key) === -1));
+      const removedChartId = currentChartIds.find(key => (nextChartIds.indexOf(key) === -1));
       this.props.actions.removeSliceFromDashboard(this.props.charts[removedChartId]);
       this.props.actions.onChange();
     }
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.dashboardState.refresh) {
+    const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
+    if (refresh) {
       let changedFilterKey;
       const prevFiltersKeySet = new Set(Object.keys(prevProps.dashboardState.filters));
-      Object.keys(this.props.dashboardState.filters).some((key) => {
+      Object.keys(filters).some((key) => {
         prevFiltersKeySet.delete(key);
         if (prevProps.dashboardState.filters[key] === undefined ||
-          !areObjectsEqual(prevProps.dashboardState.filters[key], this.props.dashboardState.filters[key])) {
+          !areObjectsEqual(prevProps.dashboardState.filters[key], filters[key])) {
           changedFilterKey = key;
           return true;
         }
@@ -116,7 +117,7 @@ class Dashboard extends React.PureComponent {
       }
     }
 
-    if (this.props.hasUnsavedChanges) {
+    if (hasUnsavedChanges) {
       this.onBeforeUnload(true);
     } else {
       this.onBeforeUnload(false);
@@ -199,7 +200,9 @@ class Dashboard extends React.PureComponent {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
     let charts = this.getAllCharts();
     if (filterKey) {
-      charts = charts.filter(chart => (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1));
+      charts = charts.filter(
+        chart => (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1),
+      );
     }
     charts.forEach((chart) => {
       const updatedFormData = this.getFormDataExtra(chart);
