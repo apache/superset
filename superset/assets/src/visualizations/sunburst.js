@@ -43,8 +43,8 @@ function sunburstVis(slice, payload) {
       return Math.sqrt(d.y + d.dy);
     });
 
-  const formatNum = d3.format('.3s');
-  const formatPerc = d3.format('.3p');
+  const formatNum = d3.format('.1s');
+  const formatPerc = d3.format('.1p');
 
   container.select('svg').remove();
 

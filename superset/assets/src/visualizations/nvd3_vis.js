@@ -13,6 +13,7 @@ import AnnotationTypes, {
   applyNativeColumns,
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
+import { formatDateVerbose } from '../modules/dates';
 import { isTruthy } from '../utils/common';
 import { t } from '../locales';
 
@@ -136,7 +137,7 @@ export default function nvd3Vis(slice, payload) {
   };
 
   const vizType = fd.viz_type;
-  const f = d3.format('.3s');
+  const formatter = d3.format('.3s');
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
@@ -156,8 +157,6 @@ export default function nvd3Vis(slice, payload) {
     if (fd.x_ticks_layout === 'auto') {
       if (['column', 'dist_bar'].indexOf(vizType) >= 0) {
         xLabelRotation = 45;
-      } else if (isTimeSeries) {
-        staggerLabels = true;
       }
     } else if (fd.x_ticks_layout === 'staggered') {
       staggerLabels = true;
@@ -187,8 +186,6 @@ export default function nvd3Vis(slice, payload) {
         } else {
           chart = nv.models.lineChart();
         }
-        // To alter the tooltip header
-        // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(fd.line_interpolation);
         break;
@@ -303,9 +300,9 @@ export default function nvd3Vis(slice, payload) {
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[fd.entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(fd.x, f(p.x));
-          s += row(fd.y, f(p.y));
-          s += row(fd.size, f(p.size));
+          s += row(fd.x, formatter(p.x));
+          s += row(fd.y, formatter(p.y));
+          s += row(fd.size, formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -375,6 +372,8 @@ export default function nvd3Vis(slice, payload) {
     let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
     if (isTimeSeries) {
       xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
+      // In tooltips, always use the verbose time format
+      chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
@@ -397,6 +396,13 @@ export default function nvd3Vis(slice, payload) {
       chart.y2Axis.tickFormat(yAxisFormatter);
     }
 
+    if (chart.yAxis) {
+      chart.yAxis.ticks(5);
+    }
+    if (chart.y2Axis) {
+      chart.y2Axis.ticks(5);
+    }
+
 
     // Set showMaxMin for all axis
     function setAxisShowMaxMin(axis, showminmax) {
@@ -404,10 +410,12 @@ export default function nvd3Vis(slice, payload) {
         axis.showMaxMin(showminmax);
       }
     }
-    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax);
-    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax);
-    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax);
-    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax);
+
+    // If these are undefined, they register as truthy
+    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax || false);
+    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax || false);
+    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax || false);
+    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax || false);
 
     if (vizType === 'time_pivot') {
       chart.color((d) => {
@@ -425,10 +433,11 @@ export default function nvd3Vis(slice, payload) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         // Custom sorted tooltip
+        // use a verbose formatter for times
         chart.interactiveLayer.tooltip.contentGenerator((d) => {
           let tooltip = '';
           tooltip += "<table><thead><tr><td colspan='3'>"
-            + `<strong class='x-value'>${xAxisFormatter(d.value)}</strong>`
+            + `<strong class='x-value'>${formatDateVerbose(d.value)}</strong>`
             + '</td></tr></thead><tbody>';
           d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
           d.series.forEach((series) => {
