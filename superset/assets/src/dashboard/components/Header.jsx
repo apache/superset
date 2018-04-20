@@ -95,15 +95,27 @@ class Header extends React.PureComponent {
         bsSize="small"
         onClick={this.toggleEditMode}
       >
-        {btnText}
+        {editMode ? t('Switch to View Mode') : t('Edit Dashboard')}
       </Button>);
   }
   render() {
     const {
-      dashboardTitle, layout, filters, expandedSlices,
-      onUndo, onRedo, canUndo, canRedo,
-      onChange, onSave, editMode,
+      dashboardTitle,
+      layout,
+      filters,
+      expandedSlices,
+      onUndo,
+      onRedo,
+      canUndo,
+      canRedo,
+      onChange,
+      onSave,
+      editMode,
+      showBuilderPane,
+      dashboardInfo,
     } = this.props;
+
+    const userCanEdit = dashboardInfo.dash_save_perm;
 
     return (
       <div className="dashboard-header">
@@ -125,24 +137,43 @@ class Header extends React.PureComponent {
           {this.renderUnsaved()}
         </div>
         <ButtonToolbar>
-          <ButtonGroup>
-            <Button
-              bsSize="small"
-              onClick={onUndo}
-              disabled={!canUndo}
-            >
-              Undo
-            </Button>
-            <Button
-              bsSize="small"
-              onClick={onRedo}
-              disabled={!canRedo}
-            >
-              Redo
-            </Button>
-            {this.renderInsertButton()}
-            {this.renderEditButton()}
-          </ButtonGroup>
+          {userCanEdit && (
+            <ButtonGroup>
+              {editMode && (
+                <Button
+                  bsSize="small"
+                  onClick={onUndo}
+                  disabled={!canUndo}
+                >
+                  Undo
+                </Button>)}
+
+              {editMode && (
+                <Button
+                  bsSize="small"
+                  onClick={onRedo}
+                  disabled={!canRedo}
+                >
+                  Redo
+                </Button>)}
+
+              {editMode && (
+                <Button
+                  bsSize="small"
+                  onClick={this.props.toggleBuilderPane}
+                >
+                  {showBuilderPane ? t('Hide builder pane') : t('Insert components')}
+                </Button>)}
+
+              <Button
+                bsSize="small"
+                onClick={this.toggleEditMode}
+              >
+                {editMode ? t('Switch to View Mode') : t('Edit Dashboard')}
+              </Button>
+            </ButtonGroup>
+          )}
+
           <Controls
             dashboardInfo={this.props.dashboardInfo}
             dashboardTitle={dashboardTitle}

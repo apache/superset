@@ -27,9 +27,9 @@ export default function (bootstrapData) {
   // the dashboard's JSON metadata
   if (dashboard.metadata && dashboard.metadata.label_colors) {
     const colorMap = dashboard.metadata.label_colors;
-    for (const label in colorMap) {
+    Object.keys(colorMap).forEach((label) => {
       getColorFromScheme(label, null, colorMap[label]);
-    }
+    });
   }
 
   // dashboard layout

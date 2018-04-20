@@ -196,7 +196,7 @@ class SliceAdder extends React.Component {
           </div>)}
 
         {!this.props.isLoading &&
-          !this.propsthis.state.filteredSlices.length > 0 && (
+          this.state.filteredSlices.length > 0 && (
             <List
               width={376}
               height={500}

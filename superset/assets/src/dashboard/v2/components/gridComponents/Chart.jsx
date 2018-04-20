@@ -6,11 +6,11 @@ import { exportChart } from '../../../../explore/exploreUtils';
 import SliceHeader from '../../../components/SliceHeader';
 import ChartContainer from '../../../../chart/ChartContainer';
 import { chartPropType } from '../../../../chart/chartReducer';
-import { slicePropShape } from '../../../reducers/propShapes';
-import { VIZ_TYPES } from '../../../../../visualizations/main';
+import { slicePropShape } from '../../util/propShapes';
+import { VIZ_TYPES } from '../../../../visualizations/main';
 
 const propTypes = {
-  id: PropTypes.string.isRequired,
+  id: PropTypes.number.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
 
@@ -183,7 +183,7 @@ class Chart extends React.Component {
         />
         <ChartContainer
           containerId={`slice-container-${slice.slice_id}`}
-          sliceId={id}
+          chartId={id}
           datasource={datasource}
           formData={formData}
           headerHeight={this.getHeaderHeight()}
