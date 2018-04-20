@@ -177,7 +177,7 @@ def convert_results_to_df(cursor_description, data):
     import pandas as pd
     """Convert raw query results to a DataFrame."""
     column_names = (
-        [col[0] for col in cursor_description] if cursor_description else [])
+        [col for col in cursor_description] if cursor_description else [])
     column_names = dedup(column_names)
 
     # check whether the result set has any nested dict columns
@@ -188,9 +188,9 @@ def convert_results_to_df(cursor_description, data):
     else:
         df_data = []
 
+    pdf = pd.DataFrame(df_data, columns=column_names)
     cdf = dataframe.SupersetDataFrame(
-        pd.DataFrame(df_data, columns=column_names))
-
+        pdf)
     return cdf
 
 
@@ -927,9 +927,3 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
         del fd['adhoc_filters']
-
-
-
-def prefetch_key(key):
-    # given a key, this returns the location of the prefetched key
-    return key + "_prefetch"

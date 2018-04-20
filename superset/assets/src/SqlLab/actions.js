@@ -78,9 +78,11 @@ export function startQuery(query) {
 export function querySuccess(query, results) {
   return { type: QUERY_SUCCESS, query, results };
 }
+
 export function prefetchSuccess(query, results) {
   return { type: PREFETCH_SUCCESS, query, results };
 }
+
 export function queryFailed(query, msg) {
   return { type: QUERY_FAILED, query, msg };
 }
@@ -103,18 +105,14 @@ export function requestQueryResults(query) {
 
 export function fetchQueryResults(query) {
   return function (dispatch) {
-  dispatch(requestQueryResults(query));
-    let sqlJsonUrl = `/superset/results/${query.resultsKey}`;
-
-    if (query.state === 'prefetched') {
-      sqlJsonUrl += '_prefetch';
-    }
+    dispatch(requestQueryResults(query));
+    const sqlJsonUrl = `/superset/results/${query.resultsKey}/`;
     $.ajax({
       type: 'GET',
       dataType: 'json',
       url: sqlJsonUrl,
       success(results) {
-        if (results.status === "prefetched") {
+        if (results.status === 'prefetched') {
           dispatch(prefetchSuccess(query, results));
         } else {
           dispatch(querySuccess(query, results));

@@ -55,7 +55,6 @@ export default class ResultSet extends React.PureComponent {
         this.clearQueryResults(nextProps.query),
       );
     }
-
     if (nextProps.query.resultsKey
       && nextProps.query.resultsKey !== this.props.query.resultsKey) {
       this.fetchResults(nextProps.query);
@@ -64,16 +63,10 @@ export default class ResultSet extends React.PureComponent {
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
       let csvButton;
-      let next;
       if (this.props.csv && this.props.query.state === 'success') {
         csvButton = (
           <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
             <i className="fa fa-file-text-o" /> {t('.CSV')}
-          </Button>
-        );
-        next = (
-          <Button bsSize="small" onClick={ () => {this.fetchResults(this.props.query);} } >
-            <i className="fa fa-file-text-o" /> {t('Next page of results')}
           </Button>
         );
       }
@@ -106,7 +99,6 @@ export default class ResultSet extends React.PureComponent {
               <ButtonGroup>
                 {visualizeButton}
                 {csvButton}
-                {next}
               </ButtonGroup>
             </div>
             <div className="pull-right">

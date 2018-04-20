@@ -74,8 +74,8 @@ class BaseEngineSpec(object):
     inner_joins = True
 
     @classmethod
-    def fetch_data(cls, cursor, limit):
-        if cls.limit_method == LimitMethod.FETCH_MANY:
+    def fetch_data(cls, cursor, limit, prefetch=False):
+        if cls.limit_method == LimitMethod.FETCH_MANY or prefetch:
             return cursor.fetchmany(limit)
         return cursor.fetchall()
 
@@ -728,9 +728,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         }
 
     @classmethod
-    def prefetch_results(cls, cursor, query, cache_timeout, session, limit=1000):
+    def prefetch_results(cls, cursor, query, cache_timeout, session, limit):
         data = cursor.fetchmany(limit)
-        cdf = utils.convert_results_to_df(cursor.description, data)
+        column_names = cls.get_normalized_column_names(cursor.description)
+        cdf = utils.convert_results_to_df(column_names, data)
         payload = dict(query_id=query.id)
         payload.update({
             'status': utils.QueryStatus.PREFETCHED,
@@ -741,7 +742,7 @@ class PrestoEngineSpec(BaseEngineSpec):
 
         json_payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
         key = '{}'.format(uuid.uuid4())
-        prefetch_key = key + '_prefetch'
+        prefetch_key = key
         results_backend.set(
             prefetch_key, utils.zlib_compress(json_payload), cache_timeout)
         query.status = utils.QueryStatus.PREFETCHED
@@ -760,20 +761,19 @@ class PrestoEngineSpec(BaseEngineSpec):
         while polled:
             # Update the object and wait for the kill signal.
             stats = polled.get('stats', {})
-            processed_rows = stats['processedRows']
-
             query = session.query(type(query)).filter_by(id=query.id).one()
             if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
 
             if (
-                config.get('PREFETCH_PRESTO') and
-                processed_rows > 1000 and
-                not query.has_loaded_early
+                config.get('PREFETCH_ASYNC') and
+                (not query.has_loaded_early)
             ):
                 query.has_loaded_early = True
-                PrestoEngineSpec.prefetch_results(cursor, query, cache_timeout, session)
+                limit = config.get('PREFETCH_ROWS')
+                PrestoEngineSpec.prefetch_results(
+                    cursor, query, cache_timeout, session, limit)
 
             if stats:
                 completed_splits = float(stats.get('completedSplits'))
@@ -1111,6 +1111,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
                 break
+            if hive.ttypes.TOperationState.RUNNING_STATE == polled.operationState:
+                BaseEngineSpec.fetch_data(cursor, 100, prefetch=True)
 
             log = cursor.fetch_logs() or ''
             if log:

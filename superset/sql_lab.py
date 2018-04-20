@@ -9,22 +9,12 @@ from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
-<<<<<<< HEAD
 from contextlib2 import contextmanager
-import numpy as np
-import pandas as pd
-=======
->>>>>>> prefetch asyncronous query results from presto
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
-<<<<<<< HEAD
-from superset import app, dataframe, db, results_backend, security_manager, utils
-=======
 from superset import app, db, results_backend, security_manager, utils
-from superset.db_engine_specs import LimitMethod
->>>>>>> prefetch asyncronous query results from presto
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import get_celery_app, QueryStatus
@@ -37,27 +27,6 @@ SQLLAB_TIMEOUT = config.get('SQLLAB_ASYNC_TIME_LIMIT_SEC', 600)
 
 class SqlLabException(Exception):
     pass
-
-
-def dedup(l, suffix='__'):
-    """De-duplicates a list of string by suffixing a counter
-
-    Always returns the same number of entries as provided, and always returns
-    unique values.
-
-    >>> print(','.join(dedup(['foo', 'bar', 'bar', 'bar'])))
-    foo,bar,bar__1,bar__2
-    """
-    new_l = []
-    seen = {}
-    for s in l:
-        if s in seen:
-            seen[s] += 1
-            s += suffix + str(seen[s])
-        else:
-            seen[s] = 0
-        new_l.append(s)
-    return new_l
 
 
 def get_query(query_id, session, retry_count=5):
@@ -104,32 +73,12 @@ def session_scope(nullpool):
         session.close()
 
 
-def convert_results_to_df(column_names, data):
-    """Convert raw query results to a DataFrame."""
-    column_names = dedup(column_names)
-
-    # check whether the result set has any nested dict columns
-    if data:
-        first_row = data[0]
-        has_dict_col = any([isinstance(c, dict) for c in first_row])
-        df_data = list(data) if has_dict_col else np.array(data, dtype=object)
-    else:
-        df_data = []
-
-    cdf = dataframe.SupersetDataFrame(
-        pd.DataFrame(df_data, columns=column_names))
-
-    return cdf
-
-
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
     ctask, query_id, rendered_query, return_results=True, store_results=False,
         user_name=None):
     """Executes the sql query returns the results."""
-<<<<<<< HEAD
     with session_scope(not ctask.request.called_directly) as session:
-
         try:
             return execute_sql(
                 ctask, query_id, rendered_query, return_results, store_results, user_name,
@@ -137,7 +86,6 @@ def get_sql_results(
         except Exception as e:
             logging.exception(e)
             stats_logger.incr('error_sqllab_unhandled')
-            sesh = get_session(not ctask.request.called_directly)
             query = get_query(query_id, session)
             query.error_message = str(e)
             query.status = QueryStatus.FAILED
@@ -176,9 +124,6 @@ def execute_sql(
 
     if store_results and not results_backend:
         return handle_error("Results backend isn't configured.")
-        cache_timeout = database.cache_timeout
-        if cache_timeout is None:
-            cache_timeout = config.get('CACHE_DEFAULT_TIMEOUT', 0)
 
     # Limit enforced only for retrieving the data, not for the CTA queries.
     superset_query = SupersetQuery(rendered_query)
@@ -233,7 +178,7 @@ def execute_sql(
         logging.info('Handling cursor')
         db_engine_spec.handle_cursor(cursor, query, session)
         logging.info('Fetching data: {}'.format(query.to_dict()))
-        data = db_engine_spec.fetch_data(cursor, query)
+        data = db_engine_spec.fetch_data(cursor, query.limit)
     except SoftTimeLimitExceeded as e:
         logging.exception(e)
         if conn is not None:
@@ -255,12 +200,6 @@ def execute_sql(
         conn.close()
 
     if query.status == utils.QueryStatus.STOPPED:
-<<<<<<< HEAD
-        return handle_error('The query has been stopped')
-
-    cdf = convert_results_to_df(column_names, data)
-
-=======
         return json.dumps(
             {
                 'query_id': query.id,
@@ -269,8 +208,13 @@ def execute_sql(
             },
             default=utils.json_iso_dttm_ser)
 
-    cdf = utils.convert_results_to_df(cursor_description, data)
->>>>>>> prefetch asyncronous query results from presto
+    if query.has_loaded_early:
+        preloaded_data = results_backend.get(query.results_key)
+        preloaded_data = json.loads(
+            utils.zlib_decompress_to_string(preloaded_data))['data']
+        preloaded_data = [list(row.values()) for row in preloaded_data]
+        data = preloaded_data + data
+    cdf = utils.convert_results_to_df(column_names, data)
     query.rows = cdf.size
     query.progress = 100
     query.status = QueryStatus.SUCCESS
@@ -285,12 +229,11 @@ def execute_sql(
     query.end_time = utils.now_as_float()
     session.merge(query)
     session.flush()
-    new_key = query.results_key if cdf.data else utils.prefetch_key(query.results_key)
 
     payload.update({
         'status': query.status,
         'data': cdf.data if cdf.data else [],
-        'results_key': new_key
+        'results_key': query.results_key,
         'columns': cdf.columns if cdf.columns else [],
         'query': query.to_dict(),
     })
