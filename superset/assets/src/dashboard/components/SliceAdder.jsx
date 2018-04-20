@@ -5,14 +5,11 @@ import { List } from 'react-virtualized';
 import SearchInput, { createFilter } from 'react-search-input';
 
 import AddSliceCard from './AddSliceCard';
-import AddSliceDragPreview from '../v2/components/dnd/AddSliceDragPreview';
-import DragDroppable from '../v2/components/dnd/DragDroppable';
-import {
-  CHART_TYPE,
-  NEW_COMPONENT_SOURCE_TYPE,
-} from '../v2/util/componentTypes';
-import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../v2/util/constants';
-import { slicePropShape } from '../v2/util/propShapes';
+import AddSliceDragPreview from './dnd/AddSliceDragPreview';
+import DragDroppable from './dnd/DragDroppable';
+import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../util/componentTypes';
+import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
+import { slicePropShape } from '../util/propShapes';
 
 const propTypes = {
   fetchAllSlices: PropTypes.func.isRequired,
@@ -40,6 +37,19 @@ const KEYS_TO_SORT = [
 ];
 
 class SliceAdder extends React.Component {
+  static sortByComparator(attr) {
+    const desc = attr === 'changed_on' ? -1 : 1;
+
+    return (a, b) => {
+      if (a[attr] < b[attr]) {
+        return -1 * desc;
+      } else if (a[attr] > b[attr]) {
+        return 1 * desc;
+      }
+      return 0;
+    };
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -63,7 +73,9 @@ class SliceAdder extends React.Component {
       this.setState({
         filteredSlices: Object.values(nextProps.slices)
           .filter(createFilter(this.state.searchTerm, KEYS_TO_FILTERS))
-          .sort(this.sortByComparator(KEYS_TO_SORT[this.state.sortBy].key)),
+          .sort(
+            SliceAdder.sortByComparator(KEYS_TO_SORT[this.state.sortBy].key),
+          ),
       });
     }
   }
@@ -77,20 +89,7 @@ class SliceAdder extends React.Component {
   getFilteredSortedSlices(searchTerm, sortBy) {
     return Object.values(this.props.slices)
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
-      .sort(this.sortByComparator(KEYS_TO_SORT[sortBy].key));
-  }
-
-  sortByComparator(attr) {
-    const desc = attr === 'changed_on' ? -1 : 1;
-
-    return (a, b) => {
-      if (a[attr] < b[attr]) {
-        return -1 * desc;
-      } else if (a[attr] > b[attr]) {
-        return 1 * desc;
-      }
-      return 0;
-    };
+      .sort(SliceAdder.sortByComparator(KEYS_TO_SORT[sortBy].key));
   }
 
   handleKeyPress(ev) {
@@ -209,7 +208,7 @@ class SliceAdder extends React.Component {
             />
           )}
 
-        {/* Drag preview is just a single fixed position element */}
+        {/* Drag preview is just a single fixed-position element */}
         <AddSliceDragPreview slices={this.state.filteredSlices} />
       </div>
     );

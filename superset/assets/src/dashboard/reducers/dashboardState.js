@@ -9,6 +9,7 @@ import {
   REMOVE_SLICE,
   REMOVE_FILTER,
   SET_EDIT_MODE,
+  SET_UNSAVED_CHANGES,
   TOGGLE_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
@@ -126,6 +127,10 @@ export default function dashboardStateReducer(state = {}, action) {
         filters = { ...filters, [sliceId]: newFilter };
       }
       return { ...state, filters, refresh };
+    },
+    [SET_UNSAVED_CHANGES]() {
+      const { hasUnsavedChanges } = action.payload;
+      return { ...state, hasUnsavedChanges };
     },
   };
 

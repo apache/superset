@@ -66,6 +66,7 @@ class DragDroppable extends React.Component {
 
   setRef(ref) {
     this.ref = ref;
+    // this is needed for a custom drag preview
     if (this.props.useEmptyDragPreview) {
       this.props.dragPreviewRef(getEmptyImage(), {
         // IE fallback: specify that we'd rather screenshot the node

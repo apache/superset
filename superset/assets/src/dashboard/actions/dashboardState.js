@@ -6,6 +6,11 @@ import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/stores/store';
 
+export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
+export function setUnsavedChanges(hasUnsavedChanges) {
+  return { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges } };
+}
+
 export const ADD_FILTER = 'ADD_FILTER';
 export function addFilter(chart, col, vals, merge = true, refresh = true) {
   return { type: ADD_FILTER, chart, col, vals, merge, refresh };

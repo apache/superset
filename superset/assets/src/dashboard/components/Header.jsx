@@ -8,7 +8,7 @@ import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
 // import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import SaveModal from './SaveModal';
-import { chartPropShape } from '../v2/util/propShapes';
+import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
 
 const propTypes = {
@@ -63,44 +63,7 @@ class Header extends React.PureComponent {
   toggleEditMode() {
     this.props.setEditMode(!this.props.editMode);
   }
-  // renderUnsaved() {
-  //   if (!this.props.hasUnsavedChanges) {
-  //     return null;
-  //   }
-  //   return (
-  //     <InfoTooltipWithTrigger
-  //       label="unsaved"
-  //       tooltip={t('Unsaved changes')}
-  //       icon="exclamation-triangle"
-  //       className="text-danger m-r-5"
-  //       placement="top"
-  //     />
-  //   );
-  // }
-  // renderInsertButton() {
-  //   if (!this.props.editMode) {
-  //     return null;
-  //   }
-  //   const btnText = this.props.showBuilderPane
-  //     ? t('Hide builder pane')
-  //     : t('Insert components');
-  //   return (
-  //     <Button bsSize="small" onClick={this.props.toggleBuilderPane}>
-  //       {btnText}
-  //     </Button>
-  //   );
-  // }
-  // renderEditButton() {
-  //   if (!this.props.dashboardInfo.dash_save_perm) {
-  //     return null;
-  //   }
-  //
-  //   return (
-  //     <Button bsSize="small" onClick={this.toggleEditMode}>
-  //       {this.props.editMode ? t('Switch to View Mode') : t('Edit Dashboard')}
-  //     </Button>
-  //   );
-  // }
+
   render() {
     const {
       dashboardTitle,

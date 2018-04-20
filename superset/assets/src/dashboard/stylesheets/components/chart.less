@@ -1,0 +1,69 @@
+.dashboard-component-chart-holder {
+  width: 100%;
+  height: 100%;
+  color: @gray-dark;
+  background-color: white;
+  position: relative;
+  padding: 16px;
+}
+
+.dashboard-chart {
+  overflow: hidden;
+}
+
+.dashboard-chart.dashboard-chart--overflowable {
+  overflow: visible;
+}
+
+.dashboard--editing .dashboard-component-chart-holder:after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  z-index: 1;
+  pointer-events: none;
+  border: 1px solid transparent;
+}
+
+.dashboard--editing
+  .resizable-container:hover
+  > .dashboard-component-chart-holder:after,
+.dashboard--editing .dashboard-component-chart-holder:hover:after {
+  box-shadow: inset 0 0 0 1.4px @gray-light;
+}
+
+.dashboard--editing
+  .resizable-container.resizable-container--resizing:hover
+  > .dashboard-component-chart-holder:after {
+  box-shadow: inset 0 0 0 1.4px @indicator-color;
+}
+
+.dashboard--editing
+  .dashboard-component-chart-holder
+  .dashboard-chart
+  .chart-container {
+  cursor: move;
+  opacity: 0.2;
+}
+
+.dashboard--editing
+  .dashboard-component-chart-holder:hover
+  .dashboard-chart
+  .chart-container {
+  opacity: 1;
+}
+
+.dashboard--editing
+  .dashboard-component-chart-holder
+  .dashboard-chart
+  .slice_container {
+  /* disable chart interactions in edit mode */
+  pointer-events: none;
+}
+
+.dashboard-chart .chart-header {
+  font-size: 16px;
+  font-weight: bold;
+}

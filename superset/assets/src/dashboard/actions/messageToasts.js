@@ -1,7 +1,16 @@
-import { INFO_TOAST, SUCCESS_TOAST, WARNING_TOAST, DANGER_TOAST } from '../util/constants';
+import {
+  INFO_TOAST,
+  SUCCESS_TOAST,
+  WARNING_TOAST,
+  DANGER_TOAST,
+} from '../util/constants';
 
 function getToastUuid(type) {
-  return `${Math.random().toString(16).slice(2)}-${type}-${Math.random().toString(16).slice(2)}`;
+  return `${Math.random()
+    .toString(16)
+    .slice(2)}-${type}-${Math.random()
+    .toString(16)
+    .slice(2)}`;
 }
 
 export const ADD_TOAST = 'ADD_TOAST';

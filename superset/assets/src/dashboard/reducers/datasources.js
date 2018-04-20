@@ -1,8 +1,8 @@
-import * as actions from '../actions/datasources';
+import { SET_DATASOURCE } from '../actions/datasources';
 
 export default function datasourceReducer(datasources = {}, action) {
   const actionHandlers = {
-    [actions.SET_DATASOURCE]() {
+    [SET_DATASOURCE]() {
       return action.datasource;
     },
   };

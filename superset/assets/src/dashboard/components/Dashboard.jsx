@@ -3,17 +3,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import AlertsWrapper from '../../components/AlertsWrapper';
-
-import { getChartIdsFromLayout } from '../util/dashboardHelper';
-import DashboardBuilder from '../v2/containers/DashboardBuilder';
+import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
+import DashboardBuilder from '../containers/DashboardBuilder';
 import {
   chartPropShape,
   slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
-} from '../v2/util/propShapes';
+} from '../util/propShapes';
 import { areObjectsEqual } from '../../reduxUtils';
-import getFormDataWithExtraFilters from '../v2/util/charts/getFormDataWithExtraFilters';
+import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import {
   Logger,
   ActionLog,
@@ -23,8 +22,7 @@ import {
 } from '../../logger';
 import { t } from '../../locales';
 
-import '../../../stylesheets/dashboard.less';
-import '../v2/stylesheets/index.less';
+import '../stylesheets/index.less';
 
 const propTypes = {
   actions: PropTypes.shape({

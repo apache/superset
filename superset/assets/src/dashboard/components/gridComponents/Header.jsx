@@ -4,7 +4,7 @@ import cx from 'classnames';
 
 import DragDroppable from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
-import EditableTitle from '../../../../components/EditableTitle';
+import EditableTitle from '../../../components/EditableTitle';
 import HoverMenu from '../menu/HoverMenu';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import BackgroundStyleDropdown from '../menu/BackgroundStyleDropdown';

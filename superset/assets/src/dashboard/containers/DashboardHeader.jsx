@@ -2,7 +2,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import DashboardHeader from '../../components/Header';
+import DashboardHeader from '../components/Header';
 import {
   setEditMode,
   toggleBuilderPane,
@@ -13,7 +13,7 @@ import {
   updateDashboardTitle,
   onChange,
   onSave,
-} from '../../actions/dashboardState';
+} from '../actions/dashboardState';
 import { handleComponentDrop } from '../actions/dashboardLayout';
 
 function mapStateToProps({

@@ -7,7 +7,7 @@ import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
 import layoutConverter from '../util/dashboardLayoutConverter';
-import { DASHBOARD_ROOT_ID } from '../v2/util/constants';
+import { DASHBOARD_ROOT_ID } from '../util/constants';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;

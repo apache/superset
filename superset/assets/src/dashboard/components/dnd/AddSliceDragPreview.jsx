@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { DragLayer } from 'react-dnd';
 
-import AddSliceCard from '../../../components/AddSliceCard';
+import AddSliceCard from '../AddSliceCard';
 import { slicePropShape } from '../../util/propShapes';
 import {
   NEW_COMPONENT_SOURCE_TYPE,

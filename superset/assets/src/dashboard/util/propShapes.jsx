@@ -10,7 +10,6 @@ import {
 } from './constants';
 
 export const componentShape = PropTypes.shape({
-  // eslint-disable-line
   id: PropTypes.string.isRequired,
   type: PropTypes.oneOf(Object.values(componentTypes)).isRequired,
   children: PropTypes.arrayOf(PropTypes.string),

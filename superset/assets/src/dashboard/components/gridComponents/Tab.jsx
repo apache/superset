@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 
 import DashboardComponent from '../../containers/DashboardComponent';
 import DragDroppable from '../dnd/DragDroppable';
-import EditableTitle from '../../../../components/EditableTitle';
+import EditableTitle from '../../../components/EditableTitle';
 import DeleteComponentButton from '../DeleteComponentButton';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
 import { componentShape } from '../../util/propShapes';

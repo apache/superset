@@ -2,12 +2,12 @@ import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { exportChart } from '../../../../explore/exploreUtils';
-import SliceHeader from '../../../components/SliceHeader';
-import ChartContainer from '../../../../chart/ChartContainer';
-import { chartPropType } from '../../../../chart/chartReducer';
+import { exportChart } from '../../../explore/exploreUtils';
+import SliceHeader from '../SliceHeader';
+import ChartContainer from '../../../chart/ChartContainer';
+import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
-import { VIZ_TYPES } from '../../../../visualizations/main';
+import { VIZ_TYPES } from '../../../visualizations/main';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -31,7 +31,7 @@ const propTypes = {
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
-// resizing across all slices on a dashboard
+// resizing across all slices on a dashboard on every update
 const RESIZE_TIMEOUT = 350;
 const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
   prop => prop !== 'width' && prop !== 'height',
@@ -193,7 +193,6 @@ class Chart extends React.Component {
           slice.description_markeddown && (
             <div
               className="slice_description bs-callout bs-callout-default"
-              style={isExpanded ? null : { display: 'none' }}
               ref={this.setDescriptionRef}
               // eslint-disable-next-line react/no-danger
               dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
@@ -201,7 +200,7 @@ class Chart extends React.Component {
           )}
 
         <ChartContainer
-          containerId={`slice-container-${slice.slice_id}`}
+          containerId={`slice-container-${id}`}
           chartId={id}
           datasource={datasource}
           formData={formData}

@@ -1,4 +1,4 @@
-import { t } from '../../../locales';
+import { t } from '../../locales';
 import { BACKGROUND_TRANSPARENT, BACKGROUND_WHITE } from './constants';
 
 export default [

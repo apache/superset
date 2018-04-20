@@ -1,3 +1,5 @@
+import shortid from 'shortid';
+
 import {
   CHART_TYPE,
   COLUMN_TYPE,
@@ -26,9 +28,8 @@ const typeToDefaultMetaData = {
   [TAB_TYPE]: { text: 'New Tab' },
 };
 
-// @TODO this should be replaced by a more robust algorithm
 function uuid(type) {
-  return `${type}-${Math.random().toString(16)}`;
+  return `${type}-${shortid.generate()}`;
 }
 
 export default function entityFactory(type, meta) {

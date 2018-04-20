@@ -1,6 +1,11 @@
 import { addInfoToast } from './messageToasts';
+import { setUnsavedChanges } from './dashboardState';
 import { CHART_TYPE, MARKDOWN_TYPE, TABS_TYPE } from '../util/componentTypes';
-import { DASHBOARD_ROOT_ID, NEW_COMPONENTS_SOURCE_ID, GRID_MIN_COLUMN_COUNT } from '../util/constants';
+import {
+  DASHBOARD_ROOT_ID,
+  NEW_COMPONENTS_SOURCE_ID,
+  GRID_MIN_COLUMN_COUNT,
+} from '../util/constants';
 import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';
 
@@ -79,7 +84,7 @@ export function resizeComponent({ id, width, height }) {
 
       // set any resizable children to have a minimum width so that
       // the chances that they are validly movable to future containers is maximized
-      component.children.forEach((childId) => {
+      component.children.forEach(childId => {
         const child = dashboard[childId];
         if ([CHART_TYPE, MARKDOWN_TYPE].includes(child.type)) {
           updatedComponents[childId] = {
@@ -93,9 +98,8 @@ export function resizeComponent({ id, width, height }) {
         }
       });
 
-      dispatch(
-        updateComponents(updatedComponents),
-      );
+      dispatch(updateComponents(updatedComponents));
+      dispatch(setUnsavedChanges(true));
     }
   };
 }
@@ -114,13 +118,18 @@ export function moveComponent(dropResult) {
 export const HANDLE_COMPONENT_DROP = 'HANDLE_COMPONENT_DROP';
 export function handleComponentDrop(dropResult) {
   return (dispatch, getState) => {
-    const overflowsParent = dropOverflowsParent(dropResult, getState().dashboardLayout.present);
+    const overflowsParent = dropOverflowsParent(
+      dropResult,
+      getState().dashboardLayout.present,
+    );
 
     if (overflowsParent) {
-      return dispatch(addInfoToast(
-        `Parent does not have enough space for this component.
+      return dispatch(
+        addInfoToast(
+          `Parent does not have enough space for this component.
          Try decreasing its width or add it to a new row.`,
-      ));
+        ),
+      );
     }
 
     const { source, destination } = dropResult;
@@ -132,12 +141,10 @@ export function handleComponentDrop(dropResult) {
     } else if (destination && isNewComponent) {
       dispatch(createComponent(dropResult));
     } else if (
-      destination
-      && source
-      && !( // ensure it has moved
-        destination.id === source.id
-        && destination.index === source.index
-      )
+      destination &&
+      source &&
+      !// ensure it has moved
+      (destination.id === source.id && destination.index === source.index)
     ) {
       dispatch(moveComponent(dropResult));
     }
@@ -148,11 +155,19 @@ export function handleComponentDrop(dropResult) {
       const { present: layout } = undoableLayout;
       const sourceComponent = layout[source.id];
 
-      if (sourceComponent.type === TABS_TYPE && sourceComponent.children.length === 0) {
-        const parentId = findParentId({ childId: source.id, components: layout });
+      if (
+        sourceComponent.type === TABS_TYPE &&
+        sourceComponent.children.length === 0
+      ) {
+        const parentId = findParentId({
+          childId: source.id,
+          components: layout,
+        });
         dispatch(deleteComponent(source.id, parentId));
       }
     }
+
+    dispatch(setUnsavedChanges(true));
 
     return null;
   };
