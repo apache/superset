@@ -39,7 +39,7 @@ function worldMapChart(slice, payload) {
     mapData[d.country] = d;
   });
 
-  const f = d3.format('.3s');
+  const formatter = d3.format('.3s');
 
   container.show();
 
@@ -58,7 +58,7 @@ function worldMapChart(slice, payload) {
       highlightFillColor: '#005a63',
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) => (
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${f(d.m1)}</div>`
+        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(d.m1)}</div>`
       ),
     },
     bubblesConfig: {
@@ -68,7 +68,7 @@ function worldMapChart(slice, payload) {
       popupOnHover: true,
       radius: null,
       popupTemplate: (geo, d) => (
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${f(d.m2)}</div>`
+        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(d.m2)}</div>`
       ),
       fillOpacity: 0.5,
       animate: true,
