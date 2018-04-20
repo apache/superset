@@ -162,9 +162,6 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
     [actions.QUERY_SUCCESS]() {
-      if (action.query.state === 'stopped') {
-        return state;
-      }
       let rows;
       if (action.results.data) {
         rows = action.results.data.length;
@@ -174,7 +171,7 @@ export const sqlLabReducer = function (state, action) {
         progress: 100,
         results: action.results,
         rows,
-        state: 'success',
+        state: action.query.state,
         errorMessage: null,
         cached: false,
       };
