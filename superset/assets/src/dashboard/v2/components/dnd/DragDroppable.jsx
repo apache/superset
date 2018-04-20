@@ -1,3 +1,4 @@
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { DragSource, DropTarget } from 'react-dnd';
@@ -19,6 +20,7 @@ const propTypes = {
   style: PropTypes.object,
   onDrop: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
+  useEmptyDragPreview: PropTypes.bool,
 
   // from react-dnd
   isDragging: PropTypes.bool.isRequired,
@@ -37,6 +39,7 @@ const defaultProps = {
   children() {},
   onDrop() {},
   orientation: 'row',
+  useEmptyDragPreview: false,
 };
 
 class DragDroppable extends React.Component {
@@ -58,7 +61,15 @@ class DragDroppable extends React.Component {
 
   setRef(ref) {
     this.ref = ref;
-    this.props.dragPreviewRef(ref);
+    if (this.props.useEmptyDragPreview) {
+      this.props.dragPreviewRef(getEmptyImage(), {
+        // IE fallback: specify that we'd rather screenshot the node
+        // when it already knows it's being dragged so we can hide it with CSS.
+        captureDraggingState: true,
+      });
+    } else {
+      this.props.dragPreviewRef(ref);
+    }
     this.props.droppableRef(ref);
   }
 
@@ -73,8 +84,6 @@ class DragDroppable extends React.Component {
       style,
       editMode,
     } = this.props;
-
-    // if (!editMode) return children({});
 
     const { dropIndicator } = this.state;
 

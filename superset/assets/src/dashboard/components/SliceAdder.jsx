@@ -1,10 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import cx from 'classnames';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 import { List } from 'react-virtualized';
 import SearchInput, { createFilter } from 'react-search-input';
 
+import AddSliceCard from './AddSliceCard';
+import AddSliceDragPreview from '../v2/components/dnd/AddSliceDragPreview';
 import DragDroppable from '../v2/components/dnd/DragDroppable';
 import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../v2/util/componentTypes';
 import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../v2/util/constants';
@@ -113,7 +114,6 @@ class SliceAdder extends React.Component {
 
   rowRenderer({ key, index, style }) {
     const cellData = this.state.filteredSlices[index];
-    const duration = cellData.modified ? cellData.modified.replace(/<[^>]*>/g, '') : '';
     const isSelected = this.props.selectedSliceIds.has(cellData.slice_id);
     const type = CHART_TYPE;
     const id = NEW_CHART_ID;
@@ -126,38 +126,24 @@ class SliceAdder extends React.Component {
         key={key}
         component={{ type, id, meta }}
         parentComponent={{ id: NEW_COMPONENTS_SOURCE_ID, type: NEW_COMPONENT_SOURCE_TYPE }}
-        index={0}
+        index={index}
         depth={0}
         disableDragDrop={isSelected}
         editMode={this.props.editMode}
+        // we must use a custom drag preview within the List because
+        // it does not seem to work within a fixed-position container
+        useEmptyDragPreview
       >
         {({ dragSourceRef }) => (
-          <div
-            ref={dragSourceRef}
-            className="chart-card-container"
-            key={key}
+          <AddSliceCard
+            innerRef={dragSourceRef}
             style={style}
-          >
-            <div className={cx('chart-card', { 'is-selected': isSelected })}>
-              <div className="card-title">{cellData.slice_name}</div>
-              <div className="card-body">
-                <div className="item">
-                  <span>Modified </span>
-                  <span>{duration}</span>
-                </div>
-                <div className="item">
-                  <span>Visualization </span>
-                  <span>{cellData.viz_type}</span>
-                </div>
-                <div className="item">
-                  <span>Data source </span>
-                  <span // eslint-disable-next-line react/no-danger
-                    dangerouslySetInnerHTML={{ __html: cellData.datasource_link }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+            sliceName={cellData.slice_name}
+            lastModified={cellData.modified ? cellData.modified.replace(/<[^>]*>/g, '') : ''}
+            visType={cellData.viz_type}
+            datasourceLink={cellData.datasource_link}
+            isSelected={isSelected}
+          />
         )}
       </DragDroppable>
     );
@@ -207,6 +193,9 @@ class SliceAdder extends React.Component {
               sortBy={this.state.sortBy}
               selectedSliceIds={this.props.selectedSliceIds}
             />)}
+
+        {/* Drag preview is just a single fixed position element */}
+        <AddSliceDragPreview slices={this.state.filteredSlices} />
       </div>
     );
   }

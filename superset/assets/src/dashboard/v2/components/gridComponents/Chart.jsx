@@ -167,6 +167,7 @@ class Chart extends React.Component {
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
         />
+
         {/*
           This usage of dangerouslySetInnerHTML is safe since it is being used to render
           markdown that is sanitized with bleach. See:
@@ -174,13 +175,15 @@ class Chart extends React.Component {
           and
              https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
         */}
-        <div
-          className="slice_description bs-callout bs-callout-default"
-          style={isExpanded ? null : { display: 'none' }}
-          ref={this.setDescriptionRef}
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-        />
+        {isExpanded && slice.description_markeddown && (
+          <div
+            className="slice_description bs-callout bs-callout-default"
+            style={isExpanded ? null : { display: 'none' }}
+            ref={this.setDescriptionRef}
+            // eslint-disable-next-line react/no-danger
+            dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
+          />)}
+
         <ChartContainer
           containerId={`slice-container-${slice.slice_id}`}
           chartId={id}

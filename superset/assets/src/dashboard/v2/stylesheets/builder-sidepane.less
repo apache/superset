@@ -1,4 +1,17 @@
 .dashboard-builder-sidepane {
+  background: white;
+  flex: 0 0 376px;
+  border: 1px solid @gray-light;
+  z-index: 10;
+  position: relative;
+
+  .dashboard-builder-sidepane-header {
+    font-size: 15px;
+    font-weight: 700;
+    border-bottom: 1px solid @gray-light;
+    padding: 14px;
+  }
+
   .trigger {
     height: 25px;
     width: 25px;
@@ -25,7 +38,7 @@
     position: absolute;
     width: 2px;
     top: 51px;
-    right: 1px;
+    right: 0;
     background: #fff;
     transition-property: width;
     transition-duration: 1s;
@@ -39,18 +52,19 @@
 
   .chart-card-container {
     padding: 16px;
-    cursor: move;
 
     .chart-card {
       border: 1px solid #ccc;
       height: 120px;
       padding: 16px;
       pointer-events: unset;
+      cursor: move;
     }
 
     .chart-card.is-selected {
       opacity: 0.45;
       pointer-events: none;
+      cursor: not-allowed;
     }
 
     .card-title {

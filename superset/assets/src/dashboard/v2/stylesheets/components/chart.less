@@ -7,6 +7,22 @@
   padding: 16px
 }
 
+// .dashboard-component-chart-holder:after {
+//   width: 100%;
+//   height: 100%;
+//   position: absolute;
+//   top: 0;
+//   left: 0;
+//   z-index: 100;
+//   // background: repeating-linear-gradient(
+//   //   45deg,
+//   //   rgba(68, 192, 255, 0.5),
+//   //   rgba(68, 192, 255, 0.5) 10px,
+//   //   rgba(255, 255, 255, 0.5) 10px,
+//   //   rgba(255, 255, 255, 0.5) 20px
+//   // );
+// }
+
 .dashboard-chart {
   overflow: hidden;
 }
@@ -15,9 +31,9 @@
   overflow: visible;
 }
 
-.dashboard--editing .dashboard-component-chart-holder {
-  border: 1px solid transparent;
-}
+// .dashboard--editing .dashboard-component-chart-holder {
+//   border: 1px solid transparent;
+// }
 
 .dashboard--editing .dashboard-component-chart-holder:after {
   content: "";
@@ -28,17 +44,20 @@
   left: 0px;
   z-index: 1;
   pointer-events: none;
-  border: 1px solid transparent;
+  // border: 1px solid transparent;
+  // box-shadow: inset 0 0 0 1px @gray;
 }
 
 
 .dashboard--editing .resizable-container:hover > .dashboard-component-chart-holder:after,
 .dashboard--editing .dashboard-component-chart-holder:hover:after {
-  border: 1.4px solid @gray;
+  // border: 1.4px solid @gray;
+  box-shadow: inset 0 0 0 1px @gray;
 }
 
 .dashboard--editing .resizable-container.resizable-container--resizing:hover > .dashboard-component-chart-holder:after {
-  border: 1.4px solid @indicator-color;
+  // border: 1.4px solid @indicator-color;
+  box-shadow: inset 0 0 0 1px @indicator-color;
 }
 
 .dashboard--editing .dashboard-component-chart-holder .dashboard-chart .chart-container {

@@ -8,8 +8,6 @@ import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import SliceAdderContainer from '../../../dashboard/components/SliceAdderContainer';
 
-import '../stylesheets/builder-sidepane.less';
-
 class BuilderComponentPane extends React.PureComponent {
   constructor(props) {
     super(props);
