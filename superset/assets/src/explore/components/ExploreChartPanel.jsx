@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Panel } from 'react-bootstrap';
 
-import { chartPropShape } from '../../dashboard/v2/util/propShapes';
+import { chartPropShape } from '../../dashboard/util/propShapes';
 import ChartContainer from '../../chart/ChartContainer';
 import ExploreChartHeader from './ExploreChartHeader';
 

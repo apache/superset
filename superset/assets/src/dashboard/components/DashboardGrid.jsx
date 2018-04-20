@@ -90,6 +90,24 @@ class DashboardGrid extends React.PureComponent {
             const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
             return width < 50 ? null : (
               <div className="grid-content">
+                {editMode && (
+                  <DragDroppable
+                    component={gridComponent}
+                    depth={depth}
+                    parentComponent={null}
+                    index={0}
+                    orientation="column"
+                    onDrop={handleComponentDrop}
+                    editMode
+                  >
+                    {({ dropIndicatorProps }) =>
+                      dropIndicatorProps && (
+                        <div className="drop-indicator drop-indicator--bottom" />
+                      )
+                    }
+                  </DragDroppable>
+                )}
+
                 {gridComponent.children.map((id, index) => (
                   <DashboardComponent
                     key={id}

@@ -7,7 +7,7 @@ import thunk from 'redux-thunk';
 import { initEnhancer } from '../reduxUtils';
 import { appSetup } from '../common';
 import { initJQueryAjax } from '../modules/utils';
-import DashboardContainer from './components/DashboardContainer';
+import DashboardContainer from './containers/Dashboard';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 

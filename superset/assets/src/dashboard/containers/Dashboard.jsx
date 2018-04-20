@@ -7,7 +7,7 @@ import {
   onChange,
 } from '../actions/dashboardState';
 import { runQuery } from '../../chart/chartAction';
-import Dashboard from './Dashboard';
+import Dashboard from '../components/Dashboard';
 
 function mapStateToProps({
   datasources,

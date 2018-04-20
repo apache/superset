@@ -6,7 +6,7 @@ import NewDivider from './gridComponents/new/NewDivider';
 import NewHeader from './gridComponents/new/NewHeader';
 import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
-import SliceAdderContainer from './SliceAdderContainer';
+import SliceAdderContainer from '../containers/SliceAdder';
 
 class BuilderComponentPane extends React.PureComponent {
   constructor(props) {

@@ -117,7 +117,7 @@ class ChartHolder extends React.Component {
             >
               <Chart
                 id={component.meta.chartId}
-                width={widthMultiple * columnWidth - CHART_MARGIN}
+                width={widthMultiple * columnWidth}
                 height={component.meta.height * GRID_BASE_UNIT - CHART_MARGIN}
               />
               {editMode && (
