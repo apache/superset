@@ -15,6 +15,7 @@ import imp
 import json
 import os
 import sys
+import traceback
 
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
@@ -432,4 +433,4 @@ try:
         print('Loaded your LOCAL configuration at [{}]'.format(
             superset_config.__file__))
 except ImportError:
-    pass
+    print(traceback.format_exc())
