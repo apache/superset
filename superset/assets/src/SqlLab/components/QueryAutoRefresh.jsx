@@ -8,7 +8,7 @@ const $ = require('jquery');
 
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
-const QUERY_POLL_WINDOW = 21600000; // 6 hours.
+const MAX_QUERY_AGE_TO_POLL = 21600000;
 
 class QueryAutoRefresh extends React.PureComponent {
   componentWillMount() {
@@ -18,12 +18,14 @@ class QueryAutoRefresh extends React.PureComponent {
     this.stopTimer();
   }
   shouldCheckForQueries() {
-    // if there are started or running queries < 6 hours old, this method should return true
+    // if there are started or running queries, this method should return true
     const { queries } = this.props;
+    const now = new Date().getTime();
     return Object.values(queries)
-      .filter(q => (q.startDttm >= this.props.queriesLastUpdate - QUERY_POLL_WINDOW))
-      .some(q =>
-      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0);
+      .some(
+        q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
+        now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
+      );
   }
   startTimer() {
     if (!(this.timer)) {
@@ -35,7 +37,7 @@ class QueryAutoRefresh extends React.PureComponent {
     this.timer = null;
   }
   stopwatch() {
-    // only poll /superset/queries/ if there are started or running queries started <6 hours ago
+    // only poll /superset/queries/ if there are started or running queries
     if (this.shouldCheckForQueries()) {
       const url = `/superset/queries/${this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS}`;
       $.getJSON(url, (data) => {
