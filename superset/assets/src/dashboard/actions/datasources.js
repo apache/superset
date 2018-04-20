@@ -29,7 +29,8 @@ export function fetchDatasourceMetadata(key) {
       type: 'GET',
       url,
       success: data => dispatch(setDatasource(data, key)),
-      error: error => dispatch(fetchDatasourceFailed(error.responseJSON.error, key)),
+      error: error =>
+        dispatch(fetchDatasourceFailed(error.responseJSON.error, key)),
     });
   };
 }

@@ -7,15 +7,12 @@ const propTypes = {
   onDelete: PropTypes.func.isRequired,
 };
 
-const defaultProps = {
-};
+const defaultProps = {};
 
 export default class DeleteComponentButton extends React.PureComponent {
   render() {
     const { onDelete } = this.props;
-    return (
-      <IconButton onClick={onDelete} className="fa fa-trash" />
-    );
+    return <IconButton onClick={onDelete} className="fa fa-trash" />;
   }
 }
 

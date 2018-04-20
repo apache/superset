@@ -1,11 +1,7 @@
 import shouldWrapChildInRow from './shouldWrapChildInRow';
 import newComponentFactory from './newComponentFactory';
 
-import {
-  ROW_TYPE,
-  TABS_TYPE,
-  TAB_TYPE,
-} from './componentTypes';
+import { ROW_TYPE, TABS_TYPE, TAB_TYPE } from './componentTypes';
 
 export default function newEntitiesFromDrop({ dropResult, components }) {
   const { dragging, destination } = dropResult;
@@ -15,7 +11,10 @@ export default function newEntitiesFromDrop({ dropResult, components }) {
   const dropEntity = components[destination.id];
   const dropType = dropEntity.type;
   let newDropChild = newComponentFactory(dragType, dragMeta);
-  const wrapChildInRow = shouldWrapChildInRow({ parentType: dropType, childType: dragType });
+  const wrapChildInRow = shouldWrapChildInRow({
+    parentType: dropType,
+    childType: dragType,
+  });
 
   const newEntities = {
     [newDropChild.id]: newDropChild,
@@ -26,7 +25,8 @@ export default function newEntitiesFromDrop({ dropResult, components }) {
     rowWrapper.children = [newDropChild.id];
     newEntities[rowWrapper.id] = rowWrapper;
     newDropChild = rowWrapper;
-  } else if (dragType === TABS_TYPE) { // create a new tab component
+  } else if (dragType === TABS_TYPE) {
+    // create a new tab component
     const tabChild = newComponentFactory(TAB_TYPE);
     newDropChild.children = [tabChild.id];
     newEntities[tabChild.id] = tabChild;

@@ -25,13 +25,16 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-function mapStateToProps({
-  dashboardLayout: undoableLayout,
-  dashboardState,
-  sliceEntities,
-  charts,
-  datasources,
-}, ownProps) {
+function mapStateToProps(
+  {
+    dashboardLayout: undoableLayout,
+    dashboardState,
+    sliceEntities,
+    charts,
+    datasources,
+  },
+  ownProps,
+) {
   const dashboardLayout = undoableLayout.present;
   const { id, parentId } = ownProps;
   const component = dashboardLayout[id];
@@ -44,11 +47,14 @@ function mapStateToProps({
   // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components
   if (props.component.type === ROW_TYPE) {
-    props.occupiedColumnCount = getTotalChildWidth({ id, components: dashboardLayout });
+    props.occupiedColumnCount = getTotalChildWidth({
+      id,
+      components: dashboardLayout,
+    });
   } else if (props.component.type === COLUMN_TYPE) {
     props.minColumnWidth = GRID_MIN_COLUMN_COUNT;
 
-    component.children.forEach((childId) => {
+    component.children.forEach(childId => {
       // rows don't have widths, so find the width of its children
       if (dashboardLayout[childId].type === ROW_TYPE) {
         props.minColumnWidth = Math.max(
@@ -63,12 +69,15 @@ function mapStateToProps({
 }
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({
-    createComponent,
-    deleteComponent,
-    updateComponents,
-    handleComponentDrop,
-  }, dispatch);
+  return bindActionCreators(
+    {
+      createComponent,
+      deleteComponent,
+      updateComponents,
+      handleComponentDrop,
+    },
+    dispatch,
+  );
 }
 
 class DashboardComponent extends React.PureComponent {

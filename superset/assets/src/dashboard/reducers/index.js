@@ -7,8 +7,8 @@ import sliceEntities from './sliceEntities';
 import dashboardLayout from '../v2/reducers/index';
 import messageToasts from '../v2/reducers/messageToasts';
 
-const dashboardInfo = (state = {}) => (state);
-const impressionId = (state = '') => (state);
+const dashboardInfo = (state = {}) => state;
+const impressionId = (state = '') => state;
 
 export default combineReducers({
   charts,

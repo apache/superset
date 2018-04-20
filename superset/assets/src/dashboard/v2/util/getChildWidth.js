@@ -4,7 +4,7 @@ export default function getTotalChildWidth({ id, components }) {
 
   let width = 0;
 
-  (component.children || []).forEach((childId) => {
+  (component.children || []).forEach(childId => {
     const child = components[childId] || {};
     width += (child.meta || {}).width || 0;
   });

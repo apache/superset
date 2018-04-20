@@ -52,6 +52,20 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
+  static onBeforeUnload(hasChanged) {
+    if (hasChanged) {
+      window.addEventListener('beforeunload', Dashboard.unload);
+    } else {
+      window.removeEventListener('beforeunload', Dashboard.unload);
+    }
+  }
+
+  static unload() {
+    const message = t('You have unsaved changes.');
+    window.event.returnValue = message; // Gecko + IE
+    return message; // Gecko + Webkit, Safari, Chrome etc.
+  }
+
   constructor(props) {
     super(props);
 
@@ -67,9 +81,12 @@ class Dashboard extends React.PureComponent {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (this.firstLoad &&
-      Object.values(nextProps.charts)
-        .every(chart => (['rendered', 'failed', 'stopped'].indexOf(chart.chartStatus) > -1))
+    if (
+      this.firstLoad &&
+      Object.values(nextProps.charts).every(
+        chart =>
+          ['rendered', 'failed', 'stopped'].indexOf(chart.chartStatus) > -1,
+      )
     ) {
       Logger.end(this.loadingLog);
       this.firstLoad = false;
@@ -79,13 +96,19 @@ class Dashboard extends React.PureComponent {
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
     if (currentChartIds.length < nextChartIds.length) {
       // adding new chart
-      const newChartId = nextChartIds.find(key => (currentChartIds.indexOf(key) === -1));
+      const newChartId = nextChartIds.find(
+        key => currentChartIds.indexOf(key) === -1,
+      );
       this.props.actions.addSliceToDashboard(newChartId);
       this.props.actions.onChange();
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
-      const removedChartId = currentChartIds.find(key => (nextChartIds.indexOf(key) === -1));
-      this.props.actions.removeSliceFromDashboard(this.props.charts[removedChartId]);
+      const removedChartId = currentChartIds.find(
+        key => nextChartIds.indexOf(key) === -1,
+      );
+      this.props.actions.removeSliceFromDashboard(
+        this.props.charts[removedChartId],
+      );
       this.props.actions.onChange();
     }
   }
@@ -94,11 +117,15 @@ class Dashboard extends React.PureComponent {
     const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
     if (refresh) {
       let changedFilterKey;
-      const prevFiltersKeySet = new Set(Object.keys(prevProps.dashboardState.filters));
-      Object.keys(filters).some((key) => {
+      const prevFiltersKeySet = new Set(
+        Object.keys(prevProps.dashboardState.filters),
+      );
+      Object.keys(filters).some(key => {
         prevFiltersKeySet.delete(key);
-        if (prevProps.dashboardState.filters[key] === undefined ||
-          !areObjectsEqual(prevProps.dashboardState.filters[key], filters[key])) {
+        if (
+          prevProps.dashboardState.filters[key] === undefined ||
+          !areObjectsEqual(prevProps.dashboardState.filters[key], filters[key])
+        ) {
           changedFilterKey = key;
           return true;
         }
@@ -111,17 +138,9 @@ class Dashboard extends React.PureComponent {
     }
 
     if (hasUnsavedChanges) {
-      this.onBeforeUnload(true);
+      Dashboard.onBeforeUnload(true);
     } else {
-      this.onBeforeUnload(false);
-    }
-  }
-
-  onBeforeUnload(hasChanged) {
-    if (hasChanged) {
-      window.addEventListener('beforeunload', this.unload);
-    } else {
-      window.removeEventListener('beforeunload', this.unload);
+      Dashboard.onBeforeUnload(false);
     }
   }
 
@@ -130,31 +149,16 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  getChartKeysFromLayout(layout) {
-    return Object.values(layout)
-      .reduce((chartKeys, value) => {
-        if (value && value.meta && value.meta.chartKey) {
-          chartKeys.push(value.meta.chartKey);
-        }
-        return chartKeys;
-      }, []);
-  }
-
-  unload() {
-    const message = t('You have unsaved changes.');
-    window.event.returnValue = message; // Gecko + IE
-    return message; // Gecko + Webkit, Safari, Chrome etc.
-  }
-
   refreshExcept(filterKey) {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
     let charts = this.getAllCharts();
     if (filterKey) {
       charts = charts.filter(
-        chart => String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1,
+        chart =>
+          String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1,
       );
     }
-    charts.forEach((chart) => {
+    charts.forEach(chart => {
       const updatedFormData = getFormDataWithExtraFilters({
         chart,
         dashboardMetadata: this.props.dashboardInfo.metadata,
@@ -162,7 +166,12 @@ class Dashboard extends React.PureComponent {
         sliceId: chart.id,
       });
 
-      this.props.actions.runQuery(updatedFormData, false, this.props.timeout, chart.id);
+      this.props.actions.runQuery(
+        updatedFormData,
+        false,
+        this.props.timeout,
+        chart.id,
+      );
     });
   }
 

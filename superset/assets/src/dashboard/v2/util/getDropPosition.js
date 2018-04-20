@@ -22,7 +22,11 @@ export default function getDropPosition(monitor, Component) {
   const draggingItem = monitor.getItem();
 
   // if dropped self on self, do nothing
-  if (!draggingItem || draggingItem.id === component.id || !isDraggingOverShallow) {
+  if (
+    !draggingItem ||
+    draggingItem.id === component.id ||
+    !isDraggingOverShallow
+  ) {
     return null;
   }
 
@@ -34,7 +38,8 @@ export default function getDropPosition(monitor, Component) {
 
   const parentType = parentComponent && parentComponent.type;
   const parentDepth = // see isValidChild.js for why tabs don't increment child depth
-    componentDepth + (parentType === TAB_TYPE || parentType === TABS_TYPE ? 0 : -1);
+    componentDepth +
+    (parentType === TAB_TYPE || parentType === TABS_TYPE ? 0 : -1);
 
   const validSibling = isValidChild({
     parentType,
@@ -47,10 +52,13 @@ export default function getDropPosition(monitor, Component) {
   }
 
   const hasChildren = (component.children || []).length > 0;
-  const childDropOrientation = orientation === 'row' ? 'vertical' : 'horizontal';
-  const siblingDropOrientation = orientation === 'row' ? 'horizontal' : 'vertical';
+  const childDropOrientation =
+    orientation === 'row' ? 'vertical' : 'horizontal';
+  const siblingDropOrientation =
+    orientation === 'row' ? 'horizontal' : 'vertical';
 
-  if (validChild && !validSibling) { // easiest case, insert as child
+  if (validChild && !validSibling) {
+    // easiest case, insert as child
     if (childDropOrientation === 'vertical') {
       return hasChildren ? DROP_RIGHT : DROP_LEFT;
     }
@@ -64,10 +72,12 @@ export default function getDropPosition(monitor, Component) {
   if (validSibling && !validChild) {
     if (siblingDropOrientation === 'vertical') {
       const refMiddleX =
-        refBoundingRect.left + ((refBoundingRect.right - refBoundingRect.left) / 2);
+        refBoundingRect.left +
+        (refBoundingRect.right - refBoundingRect.left) / 2;
       return clientOffset.x < refMiddleX ? DROP_LEFT : DROP_RIGHT;
     }
-    const refMiddleY = refBoundingRect.top + ((refBoundingRect.bottom - refBoundingRect.top) / 2);
+    const refMiddleY =
+      refBoundingRect.top + (refBoundingRect.bottom - refBoundingRect.top) / 2;
     return clientOffset.y < refMiddleY ? DROP_TOP : DROP_BOTTOM;
   }
 

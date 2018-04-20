@@ -142,15 +142,15 @@ class ResizableContainer extends React.PureComponent {
 
     const size = {
       width: adjustableWidth
-        ? ((widthStep + gutterWidth) * widthMultiple) - gutterWidth
-        : (staticWidthMultiple && staticWidthMultiple * widthStep)
-          || staticWidth
-          || undefined,
+        ? (widthStep + gutterWidth) * widthMultiple - gutterWidth
+        : (staticWidthMultiple && staticWidthMultiple * widthStep) ||
+          staticWidth ||
+          undefined,
       height: adjustableHeight
         ? heightStep * heightMultiple
-        : (staticHeightMultiple && staticHeightMultiple * heightStep)
-          || staticHeight
-          || undefined,
+        : (staticHeightMultiple && staticHeightMultiple * heightStep) ||
+          staticHeight ||
+          undefined,
     };
 
     let enableConfig = resizableConfig.notAdjustable;
@@ -169,18 +169,27 @@ class ResizableContainer extends React.PureComponent {
       <Resizable
         enable={enableConfig}
         grid={SNAP_TO_GRID}
-        minWidth={adjustableWidth
-          ? (minWidthMultiple * (widthStep + gutterWidth)) - gutterWidth
-          : undefined}
-        minHeight={adjustableHeight
-          ? (minHeightMultiple * heightStep)
-          : undefined}
-        maxWidth={adjustableWidth
-          ? Math.max(size.width, (maxWidthMultiple * (widthStep + gutterWidth)) - gutterWidth)
-          : undefined}
-        maxHeight={adjustableHeight
-          ? Math.max(size.height, maxHeightMultiple * heightStep)
-          : undefined}
+        minWidth={
+          adjustableWidth
+            ? minWidthMultiple * (widthStep + gutterWidth) - gutterWidth
+            : undefined
+        }
+        minHeight={
+          adjustableHeight ? minHeightMultiple * heightStep : undefined
+        }
+        maxWidth={
+          adjustableWidth
+            ? Math.max(
+                size.width,
+                maxWidthMultiple * (widthStep + gutterWidth) - gutterWidth,
+              )
+            : undefined
+        }
+        maxHeight={
+          adjustableHeight
+            ? Math.max(size.height, maxHeightMultiple * heightStep)
+            : undefined
+        }
         size={size}
         onResizeStart={this.handleResizeStart}
         onResize={this.handleResize}

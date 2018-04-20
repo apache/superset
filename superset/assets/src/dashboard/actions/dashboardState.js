@@ -39,20 +39,19 @@ export function toggleFaveStar(isStarred) {
 
 export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(id) {
-  return function (dispatch) {
+  return function fetchFaveStarThunk(dispatch) {
     const url = `${FAVESTAR_BASE_URL}/${id}/count`;
-    return $.get(url)
-      .done((data) => {
-        if (data.count > 0) {
-          dispatch(toggleFaveStar(true));
-        }
-      });
+    return $.get(url).done(data => {
+      if (data.count > 0) {
+        dispatch(toggleFaveStar(true));
+      }
+    });
   };
 }
 
 export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(id, isStarred) {
-  return function (dispatch) {
+  return function saveFaveStarThunk(dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
     const url = `${FAVESTAR_BASE_URL}/${id}/${urlSuffix}/`;
     $.get(url);
@@ -82,21 +81,29 @@ export function onSave() {
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
   return (dispatch, getState) => {
-    const timeout = getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+    const timeout = getState().dashboardInfo.common.conf
+      .SUPERSET_WEBSERVER_TIMEOUT;
     if (!interval) {
-      chartList.forEach(chart => (dispatch(refreshChart(chart, force, timeout))));
+      chartList.forEach(chart => dispatch(refreshChart(chart, force, timeout)));
       return;
     }
 
     const { metadata: meta } = getState().dashboardInfo;
     const refreshTime = Math.max(interval, meta.stagger_time || 5000); // default 5 seconds
     if (typeof meta.stagger_refresh !== 'boolean') {
-      meta.stagger_refresh = meta.stagger_refresh === undefined ?
-        true : meta.stagger_refresh === 'true';
+      meta.stagger_refresh =
+        meta.stagger_refresh === undefined
+          ? true
+          : meta.stagger_refresh === 'true';
     }
-    const delay = meta.stagger_refresh ? refreshTime / (chartList.length - 1) : 0;
+    const delay = meta.stagger_refresh
+      ? refreshTime / (chartList.length - 1)
+      : 0;
     chartList.forEach((chart, i) => {
-      setTimeout(() => dispatch(refreshChart(chart, force, timeout)), delay * i);
+      setTimeout(
+        () => dispatch(refreshChart(chart, force, timeout)),
+        delay * i,
+      );
     });
   };
 }
@@ -116,9 +123,9 @@ export function startPeriodicRender(interval) {
     const { metadata } = getState().dashboardInfo;
     const immune = metadata.timed_refresh_immune_slices || [];
     const refreshAll = () => {
-      const affected =
-        Object.values(getState().charts)
-          .filter(chart => immune.indexOf(chart.id) === -1);
+      const affected = Object.values(getState().charts).filter(
+        chart => immune.indexOf(chart.id) === -1,
+      );
       return dispatch(fetchCharts(affected, true, interval * 0.2));
     };
     const fetchAndRender = () => {
@@ -149,17 +156,15 @@ export function addSliceToDashboard(id) {
       formData: applyDefaultFormData(form_data),
     };
 
-    return Promise
-      .all([
-        dispatch(addChart(newChart, id)),
-        dispatch(fetchDatasourceMetadata(form_data.datasource)),
-      ])
-      .then(() => dispatch(addSlice(selectedSlice)));
+    return Promise.all([
+      dispatch(addChart(newChart, id)),
+      dispatch(fetchDatasourceMetadata(form_data.datasource)),
+    ]).then(() => dispatch(addSlice(selectedSlice)));
   };
 }
 
 export function removeSliceFromDashboard(chart) {
-  return (dispatch) => {
+  return dispatch => {
     dispatch(removeSlice(chart.id));
     dispatch(removeChart(chart.id));
   };

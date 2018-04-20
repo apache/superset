@@ -7,9 +7,7 @@ import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 export function MenuItemContent({ faIcon, text, tooltip, children }) {
   return (
     <span>
-      {faIcon &&
-        <i className={`fa fa-${faIcon}`}>&nbsp;</i>
-      }
+      {faIcon && <i className={`fa fa-${faIcon}`}>&nbsp;</i>}
       {text} {''}
       <InfoTooltipWithTrigger
         tooltip={tooltip}
@@ -20,6 +18,7 @@ export function MenuItemContent({ faIcon, text, tooltip, children }) {
     </span>
   );
 }
+
 MenuItemContent.propTypes = {
   faIcon: PropTypes.string,
   text: PropTypes.string,
@@ -27,19 +26,40 @@ MenuItemContent.propTypes = {
   children: PropTypes.node,
 };
 
-export function ActionMenuItem(props) {
+MenuItemContent.defaultProps = {
+  faIcon: '',
+  text: '',
+  tooltip: null,
+  children: null,
+};
+
+export function ActionMenuItem({
+  onClick,
+  href,
+  target,
+  text,
+  tooltip,
+  children,
+  faIcon,
+}) {
   return (
-    <MenuItem
-      onClick={props.onClick}
-      href={props.href}
-      target={props.target}
-    >
-      <MenuItemContent {...props} />
+    <MenuItem onClick={onClick} href={href} target={target}>
+      <MenuItemContent faIcon={faIcon} text={text} tooltip={tooltip}>
+        {children}
+      </MenuItemContent>
     </MenuItem>
   );
 }
+
 ActionMenuItem.propTypes = {
   onClick: PropTypes.func,
   href: PropTypes.string,
   target: PropTypes.string,
+  ...MenuItemContent.propTypes,
+};
+
+ActionMenuItem.defaultProps = {
+  onClick() {},
+  href: null,
+  target: null,
 };

@@ -31,6 +31,11 @@ const defaultProps = {
   exploreChart: () => ({}),
   exportCSV: () => ({}),
   editMode: false,
+  annotationQuery: {},
+  annotationError: {},
+  cachedDttm: null,
+  isCached: false,
+  isExpanded: false,
 };
 
 class SliceHeader extends React.PureComponent {
@@ -69,10 +74,12 @@ class SliceHeader extends React.PureComponent {
             title={slice.slice_name}
             canEdit={!!this.props.updateSliceName && this.props.editMode}
             onSaveTitle={this.onSaveTitle}
-            noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
+            noPermitTooltip={
+              "You don't have the rights to alter this dashboard."
+            }
             showTooltip={!!this.props.updateSliceName && this.props.editMode}
           />
-          {!!Object.values(this.props.annotationQuery || {}).length &&
+          {!!Object.values(this.props.annotationQuery).length && (
             <TooltipWrapper
               label="annotations-loading"
               placement="top"
@@ -80,8 +87,8 @@ class SliceHeader extends React.PureComponent {
             >
               <i className="fa fa-refresh warning" />
             </TooltipWrapper>
-          }
-          {!!Object.values(this.props.annotationError || {}).length &&
+          )}
+          {!!Object.values(this.props.annotationError).length && (
             <TooltipWrapper
               label="annoation-errors"
               placement="top"
@@ -89,8 +96,8 @@ class SliceHeader extends React.PureComponent {
             >
               <i className="fa fa-exclamation-circle danger" />
             </TooltipWrapper>
-          }
-          {!this.props.editMode &&
+          )}
+          {!this.props.editMode && (
             <SliceHeaderControls
               slice={slice}
               isCached={isCached}
@@ -101,7 +108,7 @@ class SliceHeader extends React.PureComponent {
               exploreChart={exploreChart}
               exportCSV={exportCSV}
             />
-          }
+          )}
         </div>
       </div>
     );

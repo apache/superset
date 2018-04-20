@@ -6,22 +6,14 @@ export function reorder(list, startIndex, endIndex) {
   return result;
 }
 
-export default function reorderItem({
-  entitiesMap,
-  source,
-  destination,
-}) {
+export default function reorderItem({ entitiesMap, source, destination }) {
   const current = [...entitiesMap[source.id].children];
   const next = [...entitiesMap[destination.id].children];
   const target = current[source.index];
 
   // moving to same list
   if (source.id === destination.id) {
-    const reordered = reorder(
-      current,
-      source.index,
-      destination.index,
-    );
+    const reordered = reorder(current, source.index, destination.index);
 
     const result = {
       ...entitiesMap,

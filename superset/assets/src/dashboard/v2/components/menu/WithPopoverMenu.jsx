@@ -57,7 +57,11 @@ class WithPopoverMenu extends React.PureComponent {
     if (!this.props.editMode) {
       return;
     }
-    const { onChangeFocus, shouldFocus: shouldFocusFunc, disableClick } = this.props;
+    const {
+      onChangeFocus,
+      shouldFocus: shouldFocusFunc,
+      disableClick,
+    } = this.props;
     const shouldFocus = shouldFocusFunc(event, this.container);
 
     if (!disableClick && shouldFocus && !this.state.isFocused) {
@@ -96,12 +100,15 @@ class WithPopoverMenu extends React.PureComponent {
         {children}
         {editMode &&
           isFocused &&
-          menuItems.length > 0 &&
-            <div className="popover-menu" >
+          menuItems.length > 0 && (
+            <div className="popover-menu">
               {menuItems.map((node, i) => (
-                <div className="menu-item" key={`menu-item-${i}`}>{node}</div>
+                <div className="menu-item" key={`menu-item-${i}`}>
+                  {node}
+                </div>
               ))}
-            </div>}
+            </div>
+          )}
       </div>
     );
   }

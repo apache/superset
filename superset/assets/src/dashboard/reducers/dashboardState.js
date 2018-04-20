@@ -15,7 +15,7 @@ import {
   UPDATE_DASHBOARD_TITLE,
 } from '../actions/dashboardState';
 
-export default function (state = {}, action) {
+export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
     [UPDATE_DASHBOARD_TITLE]() {
       return { ...state, title: action.title };
@@ -84,15 +84,23 @@ export default function (state = {}, action) {
       let filters = state.filters;
       const { chart, col, vals, merge, refresh } = action;
       const sliceId = chart.id;
-      const filterKeys = ['__from', '__to', '__time_col',
-        '__time_grain', '__time_origin', '__granularity'];
-      if (filterKeys.indexOf(col) >= 0 ||
-        action.chart.formData.groupby.indexOf(col) !== -1) {
+      const filterKeys = [
+        '__from',
+        '__to',
+        '__time_col',
+        '__time_grain',
+        '__time_origin',
+        '__granularity',
+      ];
+      if (
+        filterKeys.indexOf(col) >= 0 ||
+        action.chart.formData.groupby.indexOf(col) !== -1
+      ) {
         let newFilter = {};
         if (!(sliceId in filters)) {
           // Straight up set the filters if none existed for the slice
           newFilter = { [col]: vals };
-        } else if (filters[sliceId] && !(col in filters[sliceId]) || !merge) {
+        } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
           newFilter = { ...filters[sliceId], [col]: vals };
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return

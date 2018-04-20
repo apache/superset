@@ -9,7 +9,7 @@ import { getColorFromScheme } from '../../modules/colors';
 import layoutConverter from '../util/dashboardLayoutConverter';
 import { DASHBOARD_ROOT_ID } from '../v2/util/constants';
 
-export default function (bootstrapData) {
+export default function(bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;
   delete common.locale;
   delete common.language_pack;
@@ -18,7 +18,9 @@ export default function (bootstrapData) {
   let filters = {};
   try {
     // allow request parameter overwrite dashboard metadata
-    filters = JSON.parse(getParam('preselect_filters') || dashboard.metadata.default_filters);
+    filters = JSON.parse(
+      getParam('preselect_filters') || dashboard.metadata.default_filters,
+    );
   } catch (e) {
     //
   }
@@ -27,7 +29,7 @@ export default function (bootstrapData) {
   // the dashboard's JSON metadata
   if (dashboard.metadata && dashboard.metadata.label_colors) {
     const colorMap = dashboard.metadata.label_colors;
-    Object.keys(colorMap).forEach((label) => {
+    Object.keys(colorMap).forEach(label => {
       getColorFromScheme(label, null, colorMap[label]);
     });
   }
@@ -52,9 +54,10 @@ export default function (bootstrapData) {
   const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
-  dashboard.slices.forEach((slice) => {
+  dashboard.slices.forEach(slice => {
     const key = slice.slice_id;
-    chartQueries[key] = { ...chart,
+    chartQueries[key] = {
+      ...chart,
       id: key,
       form_data: slice.form_data,
       formData: applyDefaultFormData(slice.form_data),
@@ -79,13 +82,16 @@ export default function (bootstrapData) {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
     charts: chartQueries,
-    dashboardInfo: {  /* readOnly props */
+    dashboardInfo: {
+      // read-only data
       id: dashboard.id,
       slug: dashboard.slug,
       metadata: {
-        filter_immune_slice_fields: dashboard.metadata.filter_immune_slice_fields,
+        filter_immune_slice_fields:
+          dashboard.metadata.filter_immune_slice_fields,
         filter_immune_slices: dashboard.metadata.filter_immune_slices,
-        timed_refresh_immune_slices: dashboard.metadata.timed_refresh_immune_slices,
+        timed_refresh_immune_slices:
+          dashboard.metadata.timed_refresh_immune_slices,
       },
       userId: user_id,
       dash_edit_perm: dashboard.dash_edit_perm,

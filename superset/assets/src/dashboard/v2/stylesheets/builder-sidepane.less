@@ -15,7 +15,7 @@
   .trigger {
     height: 25px;
     width: 25px;
-    color: #879399;
+    color: @gray;
     position: relative;
 
     &.close {
@@ -39,7 +39,7 @@
     width: 2px;
     top: 51px;
     right: 0;
-    background: #fff;
+    background: white;
     transition-property: width;
     transition-duration: 1s;
     transition-timing-function: ease;
@@ -54,16 +54,14 @@
     padding: 16px;
 
     .chart-card {
-      border: 1px solid #ccc;
+      border: 1px solid @gray-light;
       height: 120px;
       padding: 16px;
-      pointer-events: unset;
       cursor: move;
     }
 
     .chart-card.is-selected {
       opacity: 0.45;
-      pointer-events: none;
       cursor: not-allowed;
     }
 
@@ -102,7 +100,7 @@
       input {
         margin-left: 16px;
         width: 169px;
-        border: 1px solid #b3b3b3;
+        border: 1px solid @gray;
 
         &:focus {
           outline: none;

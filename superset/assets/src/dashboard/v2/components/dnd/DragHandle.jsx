@@ -26,9 +26,11 @@ export default class DragHandle extends React.PureComponent {
           position === 'top' && 'drag-handle--top',
         )}
       >
-        {Array(dotCount).fill(null).map((_, i) => (
-          <div key={`handle-dot-${i}`} className="drag-handle-dot" />
-        ))}
+        {Array(dotCount)
+          .fill(null)
+          .map((_, i) => (
+            <div key={`handle-dot-${i}`} className="drag-handle-dot" />
+          ))}
       </div>
     );
   }

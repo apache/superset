@@ -5,7 +5,11 @@ export default function findParentId({ childId, components = {} }) {
   for (let i = 0; i < ids.length - 1; i += 1) {
     const id = ids[i];
     const component = components[id] || {};
-    if (id !== childId && component.children && component.children.includes(childId)) {
+    if (
+      id !== childId &&
+      component.children &&
+      component.children.includes(childId)
+    ) {
       parentId = id;
       break;
     }

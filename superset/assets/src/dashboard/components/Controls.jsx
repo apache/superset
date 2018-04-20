@@ -1,3 +1,4 @@
+/* global window */
 import React from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
@@ -8,6 +9,24 @@ import SaveModal from './SaveModal';
 import { ActionMenuItem, MenuItemContent } from './ActionMenuItem';
 import { t } from '../../locales';
 
+function updateDom(css) {
+  const className = 'CssEditor-css';
+  const head = document.head || document.getElementsByTagName('head')[0];
+  let style = document.querySelector(`.${className}`);
+
+  if (!style) {
+    style = document.createElement('style');
+    style.className = className;
+    style.type = 'text/css';
+    head.appendChild(style);
+  }
+  if (style.styleSheet) {
+    style.styleSheet.cssText = css;
+  } else {
+    style.innerHTML = css;
+  }
+}
+
 const propTypes = {
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
@@ -15,11 +34,16 @@ const propTypes = {
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   slices: PropTypes.array,
-  onSave: PropTypes.func,
-  onChange: PropTypes.func,
-  forceRefreshAllCharts: PropTypes.func,
-  startPeriodicRender: PropTypes.func,
+  onSave: PropTypes.func.isRequired,
+  onChange: PropTypes.func.isRequired,
+  forceRefreshAllCharts: PropTypes.func.isRequired,
+  startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool,
+};
+
+const defaultProps = {
+  editMode: false,
+  slices: [],
 };
 
 class Controls extends React.PureComponent {
@@ -29,13 +53,12 @@ class Controls extends React.PureComponent {
       css: '',
       cssTemplates: [],
     };
-    this.toggleModal = this.toggleModal.bind(this);
-    this.updateDom = this.updateDom.bind(this);
   }
-  componentWillMount() {
-    this.updateDom(this.state.css);
 
-    $.get('/csstemplateasyncmodelview/api/read', (data) => {
+  componentWillMount() {
+    updateDom(this.state.css);
+
+    $.get('/csstemplateasyncmodelview/api/read', data => {
       const cssTemplates = data.result.map(row => ({
         value: row.template_name,
         css: row.css,
@@ -44,57 +67,48 @@ class Controls extends React.PureComponent {
       this.setState({ cssTemplates });
     });
   }
-  toggleModal(modal) {
-    let currentModal;
-    if (modal !== this.state.currentModal) {
-      currentModal = modal;
-    }
-    this.setState({ currentModal });
-  }
+
   changeCss(css) {
     this.setState({ css }, () => {
-      this.updateDom(css);
+      updateDom(css);
     });
     this.props.onChange();
   }
-  updateDom(css) {
-    const className = 'CssEditor-css';
-    const head = document.head || document.getElementsByTagName('head')[0];
-    let style = document.querySelector('.' + className);
 
-    if (!style) {
-      style = document.createElement('style');
-      style.className = className;
-      style.type = 'text/css';
-      head.appendChild(style);
-    }
-    if (style.styleSheet) {
-      style.styleSheet.cssText = css;
-    } else {
-      style.innerHTML = css;
-    }
-  }
   render() {
-    const { dashboardTitle, layout, filters, expandedSlices,
-      startPeriodicRender, forceRefreshAllCharts, onSave,
-      editMode } = this.props;
+    const {
+      dashboardTitle,
+      layout,
+      filters,
+      expandedSlices,
+      startPeriodicRender,
+      forceRefreshAllCharts,
+      onSave,
+      editMode,
+    } = this.props;
+
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
-    const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
-      + `${dashboardTitle}&Body=${emailBody}`;
-    let saveText = t('Save as');
-    if (editMode) {
-      saveText = t('Save');
-    }
+    const emailLink =
+      'mailto:?Subject=Superset%20Dashboard%20' +
+      `${dashboardTitle}&Body=${emailBody}`;
+
     return (
       <span>
-        <DropdownButton title="Actions" bsSize="small" id="bg-nested-dropdown" pullRight>
+        <DropdownButton
+          title="Actions"
+          bsSize="small"
+          id="bg-nested-dropdown"
+          pullRight
+        >
           <ActionMenuItem
             text={t('Force Refresh')}
             tooltip={t('Force refresh the whole dashboard')}
             onClick={forceRefreshAllCharts}
           />
           <RefreshIntervalModal
-            onChange={refreshInterval => startPeriodicRender(refreshInterval * 1000)}
+            onChange={refreshInterval =>
+              startPeriodicRender(refreshInterval * 1000)
+            }
             triggerNode={
               <MenuItemContent
                 text={t('Set autorefresh')}
@@ -112,30 +126,39 @@ class Controls extends React.PureComponent {
             css={this.state.css}
             triggerNode={
               <MenuItemContent
-                text={saveText}
+                text={editMode ? t('Save') : t('Save as')}
                 tooltip={t('Save the dashboard')}
               />
             }
+            isMenuItem
           />
-          {editMode &&
+          {editMode && (
             <ActionMenuItem
               text={t('Edit properties')}
               tooltip={t("Edit the dashboards's properties")}
-              onClick={() => { window.location = `/dashboardmodelview/edit/${this.props.dashboardInfo.id}`; }}
+              onClick={() => {
+                window.location = `/dashboardmodelview/edit/${
+                  this.props.dashboardInfo.id
+                }`;
+              }}
             />
-          }
-          {editMode &&
+          )}
+          {editMode && (
             <ActionMenuItem
               text={t('Email')}
               tooltip={t('Email a link to this dashboard')}
-              onClick={() => { window.location = emailLink; }}
+              onClick={() => {
+                window.location = emailLink;
+              }}
             />
-          }
+          )}
         </DropdownButton>
       </span>
     );
   }
 }
+
 Controls.propTypes = propTypes;
+Controls.defaultProps = defaultProps;
 
 export default Controls;

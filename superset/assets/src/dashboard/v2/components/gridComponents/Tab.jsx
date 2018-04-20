@@ -123,13 +123,7 @@ export default class Tab extends React.PureComponent {
 
   renderTab() {
     const { isFocused } = this.state;
-    const {
-      component,
-      parentComponent,
-      index,
-      depth,
-      editMode,
-    } = this.props;
+    const { component, parentComponent, index, depth, editMode } = this.props;
 
     return (
       <DragDroppable
@@ -149,9 +143,15 @@ export default class Tab extends React.PureComponent {
           <div className="dragdroppable-tab" ref={dragSourceRef}>
             <WithPopoverMenu
               onChangeFocus={this.handleChangeFocus}
-              menuItems={parentComponent.children.length <= 1 ? [] : [
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />,
-              ]}
+              menuItems={
+                parentComponent.children.length <= 1
+                  ? []
+                  : [
+                      <DeleteComponentButton
+                        onDelete={this.handleDeleteComponent}
+                      />,
+                    ]
+              }
               editMode={editMode}
             >
               <EditableTitle
@@ -171,7 +171,9 @@ export default class Tab extends React.PureComponent {
 
   render() {
     const { renderType } = this.props;
-    return renderType === RENDER_TAB ? this.renderTab() : this.renderTabContent();
+    return renderType === RENDER_TAB
+      ? this.renderTab()
+      : this.renderTabContent();
   }
 }
 

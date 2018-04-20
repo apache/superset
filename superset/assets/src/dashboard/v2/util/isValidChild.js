@@ -1,19 +1,19 @@
 /* eslint max-len: 0 */
 /**
-  * When determining if a component is a valid child of another component we must consider both
-  *   - parent + child component types
-  *   - component depth, or depth of nesting of container components
-  *
-  * We consider types because some components aren't containers (e.g. a heading) and we consider
-  * depth to prevent infinite nesting of container components.
-  *
-  * The following example container nestings should be valid, which means that some containers
-  * don't increase the (depth) of their children, namely tabs and tab:
-  *   (a) root (0) > grid (1) >                         row (2) > column (3) > row (4) > non-container (5)
-  *   (b) root (0) > grid (1) >    tabs (2) > tab (2) > row (2) > column (3) > row (4) > non-container (5)
-  *   (c) root (0) > top-tab (1) >                      row (2) > column (3) > row (4) > non-container (5)
-  *   (d) root (0) > top-tab (1) > tabs (2) > tab (2) > row (2) > column (3) > row (4) > non-container (5)
-  */
+ * When determining if a component is a valid child of another component we must consider both
+ *   - parent + child component types
+ *   - component depth, or depth of nesting of container components
+ *
+ * We consider types because some components aren't containers (e.g. a heading) and we consider
+ * depth to prevent infinite nesting of container components.
+ *
+ * The following example container nestings should be valid, which means that some containers
+ * don't increase the (depth) of their children, namely tabs and tab:
+ *   (a) root (0) > grid (1) >                         row (2) > column (3) > row (4) > non-container (5)
+ *   (b) root (0) > grid (1) >    tabs (2) > tab (2) > row (2) > column (3) > row (4) > non-container (5)
+ *   (c) root (0) > top-tab (1) >                      row (2) > column (3) > row (4) > non-container (5)
+ *   (d) root (0) > top-tab (1) > tabs (2) > tab (2) > row (2) > column (3) > row (4) > non-container (5)
+ */
 import {
   CHART_TYPE,
   COLUMN_TYPE,

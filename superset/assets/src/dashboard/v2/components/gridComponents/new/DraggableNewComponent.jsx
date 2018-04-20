@@ -23,7 +23,10 @@ export default class DraggableNewComponent extends React.PureComponent {
     return (
       <DragDroppable
         component={{ type, id }}
-        parentComponent={{ id: NEW_COMPONENTS_SOURCE_ID, type: NEW_COMPONENT_SOURCE_TYPE }}
+        parentComponent={{
+          id: NEW_COMPONENTS_SOURCE_ID,
+          type: NEW_COMPONENT_SOURCE_TYPE,
+        }}
         index={0}
         depth={0}
         editMode

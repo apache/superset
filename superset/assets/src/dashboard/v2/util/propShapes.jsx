@@ -2,13 +2,17 @@ import PropTypes from 'prop-types';
 import componentTypes from './componentTypes';
 import backgroundStyleOptions from './backgroundStyleOptions';
 import headerStyleOptions from './headerStyleOptions';
-import { INFO_TOAST, SUCCESS_TOAST, WARNING_TOAST, DANGER_TOAST } from './constants';
+import {
+  INFO_TOAST,
+  SUCCESS_TOAST,
+  WARNING_TOAST,
+  DANGER_TOAST,
+} from './constants';
 
-export const componentShape = PropTypes.shape({ // eslint-disable-line
+export const componentShape = PropTypes.shape({
+  // eslint-disable-line
   id: PropTypes.string.isRequired,
-  type: PropTypes.oneOf(
-    Object.values(componentTypes),
-  ).isRequired,
+  type: PropTypes.oneOf(Object.values(componentTypes)).isRequired,
   children: PropTypes.arrayOf(PropTypes.string),
   meta: PropTypes.shape({
     // Dimensions
@@ -25,7 +29,12 @@ export const componentShape = PropTypes.shape({ // eslint-disable-line
 
 export const toastShape = PropTypes.shape({
   id: PropTypes.string.isRequired,
-  toastType: PropTypes.oneOf([INFO_TOAST, SUCCESS_TOAST, WARNING_TOAST, DANGER_TOAST]).isRequired,
+  toastType: PropTypes.oneOf([
+    INFO_TOAST,
+    SUCCESS_TOAST,
+    WARNING_TOAST,
+    DANGER_TOAST,
+  ]).isRequired,
   text: PropTypes.string.isRequired,
 });
 

@@ -2,7 +2,8 @@ import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
   GRID_MIN_COLUMN_COUNT,
-  NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
+  NEW_COMPONENTS_SOURCE_ID,
+} from '../util/constants';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -27,7 +28,9 @@ import {
 
 const actionHandlers = {
   [UPDATE_COMPONENTS](state, action) {
-    const { payload: { nextComponents } } = action;
+    const {
+      payload: { nextComponents },
+    } = action;
     return {
       ...state,
       ...nextComponents,
@@ -35,7 +38,9 @@ const actionHandlers = {
   },
 
   [DELETE_COMPONENT](state, action) {
-    const { payload: { id, parentId } } = action;
+    const {
+      payload: { id, parentId },
+    } = action;
 
     if (!parentId || !id || !state[id] || !state[parentId]) return state;
 
@@ -48,10 +53,13 @@ const actionHandlers = {
       delete nextComponents[componentId];
 
       const { children = [] } = component;
-      children.forEach((childId) => { recursivelyDeleteChildren(childId, componentId); });
+      children.forEach(childId => {
+        recursivelyDeleteChildren(childId, componentId);
+      });
 
       const parent = nextComponents[componentParentId];
-      if (parent) { // may have been deleted in another recursion
+      if (parent) {
+        // may have been deleted in another recursion
         const componentIndex = (parent.children || []).indexOf(componentId);
         if (componentIndex > -1) {
           const nextChildren = [...parent.children];
@@ -70,15 +78,22 @@ const actionHandlers = {
   },
 
   [CREATE_COMPONENT](state, action) {
-    const { payload: { dropResult } } = action;
+    const {
+      payload: { dropResult },
+    } = action;
     const { destination, dragging } = dropResult;
     const newEntities = newEntitiesFromDrop({ dropResult, components: state });
 
     // if column is a parent, set any resizable children to have a minimum width so that
     // the chances that they are validly movable to future containers is maximized
-    if (destination.type === COLUMN_TYPE && [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)) {
+    if (
+      destination.type === COLUMN_TYPE &&
+      [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)
+    ) {
       const newEntitiesArray = Object.values(newEntities);
-      const component = newEntitiesArray.find(entity => entity.type === dragging.type);
+      const component = newEntitiesArray.find(
+        entity => entity.type === dragging.type,
+      );
 
       newEntities[component.id] = {
         ...component,
@@ -96,7 +111,9 @@ const actionHandlers = {
   },
 
   [MOVE_COMPONENT](state, action) {
-    const { payload: { dropResult } } = action;
+    const {
+      payload: { dropResult },
+    } = action;
     const { source, destination, dragging } = dropResult;
 
     if (!source || !destination || !dragging) return state;
@@ -123,7 +140,10 @@ const actionHandlers = {
     }
 
     // inherit the width of a column parent
-    if (destination.type === COLUMN_TYPE && [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)) {
+    if (
+      destination.type === COLUMN_TYPE &&
+      [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)
+    ) {
       const component = nextEntities[dragging.id];
       const parentColumn = nextEntities[destination.id];
       nextEntities[dragging.id] = {
@@ -142,7 +162,9 @@ const actionHandlers = {
   },
 
   [CREATE_TOP_LEVEL_TABS](state, action) {
-    const { payload: { dropResult } } = action;
+    const {
+      payload: { dropResult },
+    } = action;
     const { source, dragging } = dropResult;
 
     // move children of current root to be children of the dragging tab
@@ -157,7 +179,9 @@ const actionHandlers = {
       const draggingTab = state[draggingTabId];
 
       // move all children except the one that is dragging
-      const childrenToMove = [...topLevelComponent.children].filter(id => id !== dragging.id);
+      const childrenToMove = [...topLevelComponent.children].filter(
+        id => id !== dragging.id,
+      );
 
       return {
         ...state,
@@ -171,10 +195,7 @@ const actionHandlers = {
         },
         [draggingTabId]: {
           ...draggingTab,
-          children: [
-            ...draggingTab.children,
-            ...childrenToMove,
-          ],
+          children: [...draggingTab.children, ...childrenToMove],
         },
       };
     }
@@ -182,12 +203,19 @@ const actionHandlers = {
     // create new component
     const newEntities = newEntitiesFromDrop({ dropResult, components: state });
     const newEntitiesArray = Object.values(newEntities);
-    const tabComponent = newEntitiesArray.find(component => component.type === TAB_TYPE);
-    const tabsComponent = newEntitiesArray.find(component => component.type === TABS_TYPE);
+    const tabComponent = newEntitiesArray.find(
+      component => component.type === TAB_TYPE,
+    );
+    const tabsComponent = newEntitiesArray.find(
+      component => component.type === TABS_TYPE,
+    );
 
     tabComponent.children = [...topLevelComponent.children];
     newEntities[topLevelId] = { ...topLevelComponent, children: [] };
-    newEntities[DASHBOARD_ROOT_ID] = { ...rootComponent, children: [tabsComponent.id] };
+    newEntities[DASHBOARD_ROOT_ID] = {
+      ...rootComponent,
+      children: [tabsComponent.id],
+    };
 
     return {
       ...state,
@@ -205,7 +233,7 @@ const actionHandlers = {
     let childrenToMove = [];
     const nextEntities = { ...state };
 
-    topLevelTabs.children.forEach((tabId) => {
+    topLevelTabs.children.forEach(tabId => {
       const tabComponent = state[tabId];
       childrenToMove = [...childrenToMove, ...tabComponent.children];
       delete nextEntities[tabId];
@@ -219,7 +247,7 @@ const actionHandlers = {
     };
 
     nextEntities[DASHBOARD_GRID_ID] = {
-      ...(state[DASHBOARD_GRID_ID]),
+      ...state[DASHBOARD_GRID_ID],
       children: childrenToMove,
     };
 

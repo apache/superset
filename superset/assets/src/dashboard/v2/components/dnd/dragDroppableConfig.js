@@ -38,15 +38,11 @@ export const dropConfig = [
   {
     hover(props, monitor, component) {
       if (
-        component
-        && component.decoratedComponentInstance
-        && component.decoratedComponentInstance.mounted
+        component &&
+        component.decoratedComponentInstance &&
+        component.decoratedComponentInstance.mounted
       ) {
-        handleHover(
-          props,
-          monitor,
-          component.decoratedComponentInstance,
-        );
+        handleHover(props, monitor, component.decoratedComponentInstance);
       }
     },
     // note:

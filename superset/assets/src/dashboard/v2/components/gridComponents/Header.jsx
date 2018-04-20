@@ -30,8 +30,7 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
-const defaultProps = {
-};
+const defaultProps = {};
 
 class Header extends React.PureComponent {
   constructor(props) {
@@ -43,7 +42,10 @@ class Header extends React.PureComponent {
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
     this.handleChangeSize = this.handleUpdateMeta.bind(this, 'headerSize');
-    this.handleChangeBackground = this.handleUpdateMeta.bind(this, 'background');
+    this.handleChangeBackground = this.handleUpdateMeta.bind(
+      this,
+      'background',
+    );
     this.handleChangeText = this.handleUpdateMeta.bind(this, 'text');
   }
 
@@ -88,7 +90,8 @@ class Header extends React.PureComponent {
     );
 
     const rowStyle = backgroundStyleOptions.find(
-      opt => opt.value === (component.meta.background || BACKGROUND_TRANSPARENT),
+      opt =>
+        opt.value === (component.meta.background || BACKGROUND_TRANSPARENT),
     );
 
     return (
@@ -104,10 +107,11 @@ class Header extends React.PureComponent {
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <div ref={dragSourceRef}>
-            {editMode &&
+            {editMode && (
               <HoverMenu position="left">
                 <DragHandle position="left" />
-              </HoverMenu>}
+              </HoverMenu>
+            )}
 
             <WithPopoverMenu
               onChangeFocus={this.handleChangeFocus}

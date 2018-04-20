@@ -17,16 +17,17 @@ export default function getEffectiveExtraFilters({
   if (
     sliceId &&
     dashboardMetadata.filter_immune_slice_fields &&
-    dashboardMetadata.filter_immune_slice_fields[sliceId]) {
+    dashboardMetadata.filter_immune_slice_fields[sliceId]
+  ) {
     immuneToFields = dashboardMetadata.filter_immune_slice_fields[sliceId];
   }
 
-  Object.keys(filters).forEach((filteringSliceId) => {
+  Object.keys(filters).forEach(filteringSliceId => {
     if (filteringSliceId === sliceId.toString()) {
       // Filters applied by the slice don't apply to itself
       return;
     }
-    Object.keys(filters[filteringSliceId]).forEach((field) => {
+    Object.keys(filters[filteringSliceId]).forEach(field => {
       if (!immuneToFields.includes(field)) {
         effectiveFilters.push({
           col: field,

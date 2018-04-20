@@ -33,8 +33,9 @@ const propTypes = {
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
 // resizing across all slices on a dashboard
 const RESIZE_TIMEOUT = 350;
-const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes)
-  .filter(prop => prop !== 'width' && prop !== 'height');
+const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
+  prop => prop !== 'width' && prop !== 'height',
+);
 const OVERFLOWABLE_VIZ_TYPES = new Set([VIZ_TYPES.filter_box]);
 
 class Chart extends React.Component {
@@ -60,7 +61,10 @@ class Chart extends React.Component {
     // this logic mostly pertains to chart resizing. we keep a copy of the dimensions in
     // state so that we can buffer component size updates and only update on the final call
     // which improves performance significantly
-    if (nextState.width !== this.state.width || nextState.height !== this.state.height) {
+    if (
+      nextState.width !== this.state.width ||
+      nextState.height !== this.state.height
+    ) {
       return true;
     }
 
@@ -71,7 +75,10 @@ class Chart extends React.Component {
       }
     }
 
-    if (nextProps.width !== this.props.width || nextProps.height !== this.props.height) {
+    if (
+      nextProps.width !== this.props.width ||
+      nextProps.height !== this.props.height
+    ) {
       clearTimeout(this.resizeTimeout);
       this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
     }
@@ -89,8 +96,10 @@ class Chart extends React.Component {
 
   getChartHeight() {
     const headerHeight = this.getHeaderHeight();
-    const descriptionHeight = this.props.isExpanded && this.descriptionRef
-      ? this.descriptionRef.offsetHeight : 0;
+    const descriptionHeight =
+      this.props.isExpanded && this.descriptionRef
+        ? this.descriptionRef.offsetHeight
+        : 0;
 
     return this.state.height - headerHeight - descriptionHeight;
   }
@@ -152,7 +161,12 @@ class Chart extends React.Component {
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice && slice.viz_type);
 
     return (
-      <div className={cx('dashboard-chart', isOverflowable && 'dashboard-chart--overflowable')}>
+      <div
+        className={cx(
+          'dashboard-chart',
+          isOverflowable && 'dashboard-chart--overflowable',
+        )}
+      >
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
@@ -175,14 +189,16 @@ class Chart extends React.Component {
           and
              https://github.com/apache/incubator-superset/commit/b6fcc22d5a2cb7a5e92599ed5795a0169385a825
         */}
-        {isExpanded && slice.description_markeddown && (
-          <div
-            className="slice_description bs-callout bs-callout-default"
-            style={isExpanded ? null : { display: 'none' }}
-            ref={this.setDescriptionRef}
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
-          />)}
+        {isExpanded &&
+          slice.description_markeddown && (
+            <div
+              className="slice_description bs-callout bs-callout-default"
+              style={isExpanded ? null : { display: 'none' }}
+              ref={this.setDescriptionRef}
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
+            />
+          )}
 
         <ChartContainer
           containerId={`slice-container-${slice.slice_id}`}

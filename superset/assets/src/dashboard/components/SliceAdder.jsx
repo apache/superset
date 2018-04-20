@@ -7,7 +7,10 @@ import SearchInput, { createFilter } from 'react-search-input';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from '../v2/components/dnd/AddSliceDragPreview';
 import DragDroppable from '../v2/components/dnd/DragDroppable';
-import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../v2/util/componentTypes';
+import {
+  CHART_TYPE,
+  NEW_COMPONENT_SOURCE_TYPE,
+} from '../v2/util/componentTypes';
 import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../v2/util/constants';
 import { slicePropShape } from '../v2/util/propShapes';
 
@@ -42,7 +45,7 @@ class SliceAdder extends React.Component {
     this.state = {
       filteredSlices: [],
       searchTerm: '',
-      sortBy: KEYS_TO_SORT.findIndex(item => (item.key === 'changed_on')),
+      sortBy: KEYS_TO_SORT.findIndex(item => item.key === 'changed_on'),
     };
 
     this.rowRenderer = this.rowRenderer.bind(this);
@@ -78,7 +81,7 @@ class SliceAdder extends React.Component {
   }
 
   sortByComparator(attr) {
-    const desc = (attr === 'changed_on') ? -1 : 1;
+    const desc = attr === 'changed_on' ? -1 : 1;
 
     return (a, b) => {
       if (a[attr] < b[attr]) {
@@ -101,14 +104,20 @@ class SliceAdder extends React.Component {
   searchUpdated(searchTerm) {
     this.setState({
       searchTerm,
-      filteredSlices: this.getFilteredSortedSlices(searchTerm, this.state.sortBy),
+      filteredSlices: this.getFilteredSortedSlices(
+        searchTerm,
+        this.state.sortBy,
+      ),
     });
   }
 
   handleSelect(sortBy) {
     this.setState({
       sortBy,
-      filteredSlices: this.getFilteredSortedSlices(this.state.searchTerm, sortBy),
+      filteredSlices: this.getFilteredSortedSlices(
+        this.state.searchTerm,
+        sortBy,
+      ),
     });
   }
 
@@ -125,7 +134,10 @@ class SliceAdder extends React.Component {
       <DragDroppable
         key={key}
         component={{ type, id, meta }}
-        parentComponent={{ id: NEW_COMPONENTS_SOURCE_ID, type: NEW_COMPONENT_SOURCE_TYPE }}
+        parentComponent={{
+          id: NEW_COMPONENTS_SOURCE_ID,
+          type: NEW_COMPONENT_SOURCE_TYPE,
+        }}
         index={index}
         depth={0}
         disableDragDrop={isSelected}
@@ -139,7 +151,9 @@ class SliceAdder extends React.Component {
             innerRef={dragSourceRef}
             style={style}
             sliceName={cellData.slice_name}
-            lastModified={cellData.modified ? cellData.modified.replace(/<[^>]*>/g, '') : ''}
+            lastModified={
+              cellData.modified ? cellData.modified.replace(/<[^>]*>/g, '') : ''
+            }
             visType={cellData.viz_type}
             datasourceLink={cellData.datasource_link}
             isSelected={isSelected}
@@ -159,7 +173,9 @@ class SliceAdder extends React.Component {
             id="slice-adder-sortby"
           >
             {KEYS_TO_SORT.map((item, index) => (
-              <MenuItem key={item.key} eventKey={index}>{item.label}</MenuItem>
+              <MenuItem key={item.key} eventKey={index}>
+                {item.label}
+              </MenuItem>
             ))}
           </DropdownButton>
 
@@ -174,12 +190,10 @@ class SliceAdder extends React.Component {
             src="/static/assets/images/loading.gif"
             className="loading"
             alt="loading"
-          />)}
+          />
+        )}
 
-        {this.props.errorMessage && (
-          <div>
-            {this.props.errorMessage}
-          </div>)}
+        {this.props.errorMessage && <div>{this.props.errorMessage}</div>}
 
         {!this.props.isLoading &&
           this.state.filteredSlices.length > 0 && (
@@ -192,7 +206,8 @@ class SliceAdder extends React.Component {
               searchTerm={this.state.searchTerm}
               sortBy={this.state.sortBy}
               selectedSliceIds={this.props.selectedSliceIds}
-            />)}
+            />
+          )}
 
         {/* Drag preview is just a single fixed position element */}
         <AddSliceDragPreview slices={this.state.filteredSlices} />

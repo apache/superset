@@ -19,16 +19,13 @@ class ToastPresenter extends React.Component {
     const { toasts, removeToast } = this.props;
 
     return (
-      toasts.length > 0 &&
+      toasts.length > 0 && (
         <div className="toast-presenter">
           {toasts.map(toast => (
-            <Toast
-              key={toast.id}
-              toast={toast}
-              onCloseToast={removeToast}
-            />
+            <Toast key={toast.id} toast={toast} onCloseToast={removeToast} />
           ))}
         </div>
+      )
     );
   }
 }

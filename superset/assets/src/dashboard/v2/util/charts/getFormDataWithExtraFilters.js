@@ -31,10 +31,7 @@ export default function getFormDataWithExtraFilters({
 
   const formData = {
     ...chart.formData,
-    extra_filters: [
-      ...chart.formData.filters,
-      ...extraFilters,
-    ],
+    extra_filters: [...chart.formData.filters, ...extraFilters],
   };
 
   cachedDashboardMetadataByChart[sliceId] = dashboardMetadata;

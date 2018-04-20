@@ -19,7 +19,9 @@ const propTypes = {
 
 const defaultProps = {
   renderButton: option => option.label,
-  renderOption: option => <div className={option.className}>{option.label}</div>,
+  renderOption: option => (
+    <div className={option.className}>{option.label}</div>
+  ),
 };
 
 class PopoverDropdown extends React.PureComponent {

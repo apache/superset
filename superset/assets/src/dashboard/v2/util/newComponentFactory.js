@@ -9,10 +9,7 @@ import {
   TAB_TYPE,
 } from './componentTypes';
 
-import {
-  MEDIUM_HEADER,
-  BACKGROUND_TRANSPARENT,
-} from './constants';
+import { MEDIUM_HEADER, BACKGROUND_TRANSPARENT } from './constants';
 
 const typeToDefaultMetaData = {
   [CHART_TYPE]: { width: 3, height: 30 },

@@ -40,8 +40,7 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
 };
 
-const defaultProps = {
-};
+const defaultProps = {};
 
 class Column extends React.PureComponent {
   constructor(props) {
@@ -49,7 +48,10 @@ class Column extends React.PureComponent {
     this.state = {
       isFocused: false,
     };
-    this.handleChangeBackground = this.handleUpdateMeta.bind(this, 'background');
+    this.handleChangeBackground = this.handleUpdateMeta.bind(
+      this,
+      'background',
+    );
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
   }
@@ -96,7 +98,9 @@ class Column extends React.PureComponent {
 
     const columnItems = columnComponent.children || [];
     const backgroundStyle = backgroundStyleOptions.find(
-      opt => opt.value === (columnComponent.meta.background || BACKGROUND_TRANSPARENT),
+      opt =>
+        opt.value ===
+        (columnComponent.meta.background || BACKGROUND_TRANSPARENT),
     );
 
     return (
@@ -117,7 +121,9 @@ class Column extends React.PureComponent {
             widthStep={columnWidth}
             widthMultiple={columnComponent.meta.width}
             minWidthMultiple={minColumnWidth}
-            maxWidthMultiple={availableColumnCount + (columnComponent.meta.width || 0)}
+            maxWidthMultiple={
+              availableColumnCount + (columnComponent.meta.width || 0)
+            }
             onResizeStart={onResizeStart}
             onResize={onResize}
             onResizeStop={onResizeStop}
@@ -143,15 +149,18 @@ class Column extends React.PureComponent {
                   backgroundStyle.className,
                 )}
               >
-                {editMode &&
+                {editMode && (
                   <HoverMenu innerRef={dragSourceRef} position="top">
                     <DragHandle position="top" />
-                    <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+                    <DeleteComponentButton
+                      onDelete={this.handleDeleteComponent}
+                    />
                     <IconButton
                       onClick={this.handleChangeFocus}
                       className="fa fa-cog"
                     />
-                  </HoverMenu>}
+                  </HoverMenu>
+                )}
 
                 {columnItems.map((componentId, itemIndex) => (
                   <DashboardComponent
@@ -159,7 +168,7 @@ class Column extends React.PureComponent {
                     id={componentId}
                     parentId={columnComponent.id}
                     depth={depth + 1}
-                    index={itemIndex }
+                    index={itemIndex}
                     availableColumnCount={columnComponent.meta.width}
                     columnWidth={columnWidth}
                     onResizeStart={onResizeStart}
@@ -174,7 +183,6 @@ class Column extends React.PureComponent {
           </ResizableContainer>
         )}
       </DragDroppable>
-
     );
   }
 }

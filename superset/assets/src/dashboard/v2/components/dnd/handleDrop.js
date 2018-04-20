@@ -1,4 +1,9 @@
-import getDropPosition, { DROP_TOP, DROP_RIGHT, DROP_BOTTOM, DROP_LEFT } from '../../util/getDropPosition';
+import getDropPosition, {
+  DROP_TOP,
+  DROP_RIGHT,
+  DROP_BOTTOM,
+  DROP_LEFT,
+} from '../../util/getDropPosition';
 
 export default function handleDrop(props, monitor, Component) {
   // this may happen due to throttling
@@ -22,9 +27,12 @@ export default function handleDrop(props, monitor, Component) {
   const draggingItem = monitor.getItem();
 
   const dropAsChildOrSibling =
-    (orientation === 'row' && (dropPosition === DROP_TOP || dropPosition === DROP_BOTTOM)) ||
-    (orientation === 'column' && (dropPosition === DROP_LEFT || dropPosition === DROP_RIGHT))
-    ? 'sibling' : 'child';
+    (orientation === 'row' &&
+      (dropPosition === DROP_TOP || dropPosition === DROP_BOTTOM)) ||
+    (orientation === 'column' &&
+      (dropPosition === DROP_LEFT || dropPosition === DROP_RIGHT))
+      ? 'sibling'
+      : 'child';
 
   const dropResult = {
     source: {
@@ -49,8 +57,10 @@ export default function handleDrop(props, monitor, Component) {
   } else {
     // if the item is in the same list with a smaller index, you must account for the
     // "missing" index upon movement within the list
-    const sameParent = parentComponent && draggingItem.parentId === parentComponent.id;
-    const sameParentLowerIndex = sameParent && draggingItem.index < componentIndex;
+    const sameParent =
+      parentComponent && draggingItem.parentId === parentComponent.id;
+    const sameParentLowerIndex =
+      sameParent && draggingItem.index < componentIndex;
 
     let nextIndex = sameParentLowerIndex ? componentIndex - 1 : componentIndex;
     if (dropPosition === DROP_BOTTOM || dropPosition === DROP_RIGHT) {

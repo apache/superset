@@ -16,10 +16,13 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState }) {
 }
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({
-    deleteTopLevelTabs,
-    handleComponentDrop,
-  }, dispatch);
+  return bindActionCreators(
+    {
+      deleteTopLevelTabs,
+      handleComponentDrop,
+    },
+    dispatch,
+  );
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardBuilder);

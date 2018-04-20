@@ -13,7 +13,10 @@ export const initSliceEntities = {
   lastUpdated: 0,
 };
 
-export default function (state = initSliceEntities, action) {
+export default function sliceEntitiesReducer(
+  state = initSliceEntities,
+  action,
+) {
   const actionHandlers = {
     [UPDATE_SLICE_NAME]() {
       const updatedSlice = {
@@ -44,8 +47,9 @@ export default function (state = initSliceEntities, action) {
       const respJSON = action.error.responseJSON;
       const errorMessage =
         t('Sorry, there was an error adding slices to this dashboard: ') +
-        (respJSON && respJSON.message) ? respJSON.message :
-          error.responseText;
+        (respJSON && respJSON.message)
+          ? respJSON.message
+          : action.error.responseText;
       return {
         ...state,
         isLoading: false,

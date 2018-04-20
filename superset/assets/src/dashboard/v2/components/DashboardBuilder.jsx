@@ -35,8 +35,10 @@ const defaultProps = {
 class DashboardBuilder extends React.Component {
   static shouldFocusTabs(event, container) {
     // don't focus the tabs when we click on a tab
-    return event.target.tagName === 'UL' || (
-      /icon-button/.test(event.target.className) && container.contains(event.target)
+    return (
+      event.target.tagName === 'UL' ||
+      (/icon-button/.test(event.target.className) &&
+        container.contains(event.target))
     );
   }
 
@@ -54,13 +56,21 @@ class DashboardBuilder extends React.Component {
 
   render() {
     const { tabIndex } = this.state;
-    const { handleComponentDrop, dashboardLayout, deleteTopLevelTabs, editMode } = this.props;
+    const {
+      handleComponentDrop,
+      dashboardLayout,
+      deleteTopLevelTabs,
+      editMode,
+    } = this.props;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
-    const topLevelTabs = rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
+    const topLevelTabs =
+      rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
 
     const gridComponentId = topLevelTabs
-      ? topLevelTabs.children[Math.min(topLevelTabs.children.length - 1, tabIndex)]
+      ? topLevelTabs.children[
+          Math.min(topLevelTabs.children.length - 1, tabIndex)
+        ]
       : DASHBOARD_GRID_ID;
 
     const gridComponent = dashboardLayout[gridComponentId];
@@ -85,9 +95,10 @@ class DashboardBuilder extends React.Component {
                 {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </div>
             )}
-          </DragDroppable>)}
+          </DragDroppable>
+        )}
 
-        {topLevelTabs &&
+        {topLevelTabs && (
           <WithPopoverMenu
             shouldFocus={DashboardBuilder.shouldFocusTabs}
             menuItems={[
@@ -107,16 +118,16 @@ class DashboardBuilder extends React.Component {
               renderTabContent={false}
               onChangeTab={this.handleChangeTab}
             />
-          </WithPopoverMenu>}
+          </WithPopoverMenu>
+        )}
 
         <div className="dashboard-content">
           <DashboardGrid
             gridComponent={gridComponent}
             depth={DASHBOARD_ROOT_DEPTH + 1}
           />
-          {this.props.editMode && this.props.showBuilderPane &&
-            <BuilderComponentPane />
-          }
+          {this.props.editMode &&
+            this.props.showBuilderPane && <BuilderComponentPane />}
         </div>
         <ToastPresenter />
       </div>

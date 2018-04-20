@@ -38,8 +38,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
-const defaultProps = {
-};
+const defaultProps = {};
 
 class ChartHolder extends React.Component {
   constructor(props) {
@@ -79,9 +78,10 @@ class ChartHolder extends React.Component {
     } = this.props;
 
     // inherit the size of parent columns
-    const widthMultiple = parentComponent.type === COLUMN_TYPE
-      ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-      : component.meta.width || GRID_MIN_COLUMN_COUNT;
+    const widthMultiple =
+      parentComponent.type === COLUMN_TYPE
+        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
+        : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
     return (
       <DragDroppable
@@ -117,14 +117,17 @@ class ChartHolder extends React.Component {
             >
               <Chart
                 id={component.meta.chartId}
-                width={(widthMultiple * columnWidth) - CHART_MARGIN}
-                height={(component.meta.height * GRID_BASE_UNIT) - CHART_MARGIN}
+                width={widthMultiple * columnWidth - CHART_MARGIN}
+                height={component.meta.height * GRID_BASE_UNIT - CHART_MARGIN}
               />
-              {editMode &&
+              {editMode && (
                 <HoverMenu position="top">
                   <DragHandle position="top" />
-                  <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-                </HoverMenu>}
+                  <DeleteComponentButton
+                    onDelete={this.handleDeleteComponent}
+                  />
+                </HoverMenu>
+              )}
             </div>
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}

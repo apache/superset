@@ -14,12 +14,14 @@ import {
   onChange,
   onSave,
 } from '../../actions/dashboardState';
-import {
-  handleComponentDrop,
-} from '../actions/dashboardLayout';
+import { handleComponentDrop } from '../actions/dashboardLayout';
 
-function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState: dashboard,
-                           dashboardInfo, charts }) {
+function mapStateToProps({
+  dashboardLayout: undoableLayout,
+  dashboardState: dashboard,
+  dashboardInfo,
+  charts,
+}) {
   return {
     dashboardInfo,
     canUndo: undoableLayout.past.length > 0,
@@ -38,21 +40,23 @@ function mapStateToProps({ dashboardLayout: undoableLayout, dashboardState: dash
 }
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({
-    handleComponentDrop,
-    onUndo: UndoActionCreators.undo,
-    onRedo: UndoActionCreators.redo,
-    setEditMode,
-    toggleBuilderPane,
-    fetchFaveStar,
-    saveFaveStar,
-    fetchCharts,
-    startPeriodicRender,
-    updateDashboardTitle,
-    onChange,
-    onSave,
-  }, dispatch);
+  return bindActionCreators(
+    {
+      handleComponentDrop,
+      onUndo: UndoActionCreators.undo,
+      onRedo: UndoActionCreators.redo,
+      setEditMode,
+      toggleBuilderPane,
+      fetchFaveStar,
+      saveFaveStar,
+      fetchCharts,
+      startPeriodicRender,
+      updateDashboardTitle,
+      onChange,
+      onSave,
+    },
+    dispatch,
+  );
 }
-
 
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardHeader);

@@ -10,7 +10,10 @@ export default function datasourceReducer(datasources = {}, action) {
   if (action.type in actionHandlers) {
     return {
       ...datasources,
-      [action.key]: actionHandlers[action.type](datasources[action.key], action),
+      [action.key]: actionHandlers[action.type](
+        datasources[action.key],
+        action,
+      ),
     };
   }
   return datasources;

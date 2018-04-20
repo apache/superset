@@ -29,11 +29,7 @@ function AddSliceCard({
   visType,
 }) {
   return (
-    <div
-      ref={innerRef}
-      className="chart-card-container"
-      style={style}
-    >
+    <div ref={innerRef} className="chart-card-container" style={style}>
       <div className={cx('chart-card', isSelected && 'is-selected')}>
         <div className="card-title">{sliceName}</div>
         <div className="card-body">

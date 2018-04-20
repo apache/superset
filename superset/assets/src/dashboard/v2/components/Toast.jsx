@@ -4,7 +4,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 import { toastShape } from '../util/propShapes';
-import { INFO_TOAST, SUCCESS_TOAST, WARNING_TOAST, DANGER_TOAST } from '../util/constants';
+import {
+  INFO_TOAST,
+  SUCCESS_TOAST,
+  WARNING_TOAST,
+  DANGER_TOAST,
+} from '../util/constants';
 
 const propTypes = {
   toast: toastShape.isRequired,
@@ -60,7 +65,9 @@ class Toast extends React.Component {
 
   render() {
     const { visible } = this.state;
-    const { toast: { toastType, text } } = this.props;
+    const {
+      toast: { toastType, text },
+    } = this.props;
 
     return (
       <Alert

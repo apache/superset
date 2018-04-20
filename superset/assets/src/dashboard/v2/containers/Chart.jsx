@@ -1,13 +1,18 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
-import { addFilter, removeFilter, toggleExpandSlice } from '../../actions/dashboardState';
+import {
+  addFilter,
+  removeFilter,
+  toggleExpandSlice,
+} from '../../actions/dashboardState';
 import { refreshChart } from '../../../chart/chartAction';
 import getFormDataWithExtraFilters from '../../v2/util/charts/getFormDataWithExtraFilters';
 import { saveSliceName } from '../../actions/sliceEntities';
 import Chart from '../components/gridComponents/Chart';
 
-function mapStateToProps({
+function mapStateToProps(
+  {
     charts: chartQueries,
     dashboardInfo,
     dashboardState,
@@ -39,13 +44,16 @@ function mapStateToProps({
 }
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({
-    saveSliceName,
-    toggleExpandSlice,
-    addFilter,
-    refreshChart,
-    removeFilter,
-  }, dispatch);
+  return bindActionCreators(
+    {
+      saveSliceName,
+      toggleExpandSlice,
+      addFilter,
+      refreshChart,
+      removeFilter,
+    },
+    dispatch,
+  );
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(Chart);

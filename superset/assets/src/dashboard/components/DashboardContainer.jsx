@@ -34,12 +34,15 @@ function mapStateToProps({
 
 function mapDispatchToProps(dispatch) {
   return {
-    actions: bindActionCreators({
-      addSliceToDashboard,
-      onChange,
-      removeSliceFromDashboard,
-      runQuery,
-    }, dispatch),
+    actions: bindActionCreators(
+      {
+        addSliceToDashboard,
+        onChange,
+        removeSliceFromDashboard,
+        runQuery,
+      },
+      dispatch,
+    ),
   };
 }
 

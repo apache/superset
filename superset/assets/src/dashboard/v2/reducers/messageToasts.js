@@ -8,7 +8,9 @@ export default function messageToastsReducer(toasts = [], action) {
     }
 
     case REMOVE_TOAST: {
-      const { payload: { id } } = action;
+      const {
+        payload: { id },
+      } = action;
       return [...toasts].filter(toast => toast.id !== id);
     }
 

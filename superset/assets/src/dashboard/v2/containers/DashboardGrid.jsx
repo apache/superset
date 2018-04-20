@@ -14,10 +14,13 @@ function mapStateToProps({ dashboardState }) {
 }
 
 function mapDispatchToProps(dispatch) {
-  return bindActionCreators({
-    handleComponentDrop,
-    resizeComponent,
-  }, dispatch);
+  return bindActionCreators(
+    {
+      handleComponentDrop,
+      resizeComponent,
+    },
+    dispatch,
+  );
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardGrid);

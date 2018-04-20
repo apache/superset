@@ -51,10 +51,11 @@ class Divider extends React.PureComponent {
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
           <div ref={dragSourceRef}>
-            {editMode &&
+            {editMode && (
               <HoverMenu position="left">
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>}
+              </HoverMenu>
+            )}
 
             <div className="dashboard-component dashboard-component-divider" />
 

@@ -106,9 +106,10 @@ class Tabs extends React.PureComponent {
     // Ensure dropped tab is visible
     const { destination } = dropResult;
     if (destination) {
-      const dropTabIndex = destination.id === component.id
-        ? destination.index // dropped ON tabs
-        : component.children.indexOf(destination.id); // dropped IN tab
+      const dropTabIndex =
+        destination.id === component.id
+          ? destination.index // dropped ON tabs
+          : component.children.indexOf(destination.id); // dropped IN tab
 
       if (dropTabIndex > -1) {
         setTimeout(() => {
@@ -147,13 +148,17 @@ class Tabs extends React.PureComponent {
         onDrop={handleComponentDrop}
         editMode={editMode}
       >
-        {({ dropIndicatorProps: tabsDropIndicatorProps, dragSourceRef: tabsDragSourceRef }) => (
+        {({
+          dropIndicatorProps: tabsDropIndicatorProps,
+          dragSourceRef: tabsDragSourceRef,
+        }) => (
           <div className="dashboard-component dashboard-component-tabs">
-            {editMode &&
+            {editMode && (
               <HoverMenu innerRef={tabsDragSourceRef} position="left">
                 <DragHandle position="left" />
                 <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>}
+              </HoverMenu>
+            )}
 
             <BootstrapTabs
               id={tabsComponent.id}
@@ -187,37 +192,39 @@ class Tabs extends React.PureComponent {
                     render potentially-expensive charts (this also enables lazy loading
                     their content)
                   */}
-                  {tabIndex === selectedTabIndex && renderTabContent &&
-                    <DashboardComponent
-                      id={tabId}
-                      parentId={tabsComponent.id}
-                      depth={depth} // see isValidChild.js for why tabs don't increment child depth
-                      index={tabIndex}
-                      renderType={RENDER_TAB_CONTENT}
-                      availableColumnCount={availableColumnCount}
-                      columnWidth={columnWidth}
-                      onResizeStart={onResizeStart}
-                      onResize={onResize}
-                      onResizeStop={onResizeStop}
-                      onDropOnTab={this.handleDropOnTab}
-                    />}
+                  {tabIndex === selectedTabIndex &&
+                    renderTabContent && (
+                      <DashboardComponent
+                        id={tabId}
+                        parentId={tabsComponent.id}
+                        depth={depth} // see isValidChild.js for why tabs don't increment child depth
+                        index={tabIndex}
+                        renderType={RENDER_TAB_CONTENT}
+                        availableColumnCount={availableColumnCount}
+                        columnWidth={columnWidth}
+                        onResizeStart={onResizeStart}
+                        onResize={onResize}
+                        onResizeStop={onResizeStop}
+                        onDropOnTab={this.handleDropOnTab}
+                      />
+                    )}
                 </BootstrapTab>
               ))}
 
               {editMode &&
-                tabIds.length < MAX_TAB_COUNT &&
+                tabIds.length < MAX_TAB_COUNT && (
                   <BootstrapTab
                     eventKey={NEW_TAB_INDEX}
                     title={<div className="fa fa-plus" />}
-                  />}
-
+                  />
+                )}
             </BootstrapTabs>
 
             {/* don't indicate that a drop on root is allowed when tabs already exist */}
-            {tabsDropIndicatorProps
-              && parentComponent.id !== DASHBOARD_ROOT_ID
-              && <div {...tabsDropIndicatorProps} />}
-
+            {tabsDropIndicatorProps &&
+              parentComponent.id !== DASHBOARD_ROOT_ID && (
+                <div {...tabsDropIndicatorProps} />
+              )}
           </div>
         )}
       </DragDroppable>
