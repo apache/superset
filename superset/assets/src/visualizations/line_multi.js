@@ -1,5 +1,5 @@
 import nvd3Vis from './nvd3_vis';
-import { getExploreLongUrl } from '../javascripts/explore/exploreUtils';
+import { getExploreLongUrl } from '../explore/exploreUtils';
 
 
 export default function lineMulti(slice, payload) {
@@ -18,9 +18,10 @@ export default function lineMulti(slice, payload) {
     ...payload.data.slices.axis2.map(subslice => [2, subslice]),
   ];
   subslices.forEach(([yAxis, subslice]) => {
-    let filters = subslice.form_data.filters.concat(fd.filters);
+    let filters = subslice.form_data.filters || [];
+    filters.concat(fd.filters);
     if (fd.extra_filters) {
-      filters = filter.concat(fd.extra_filters);
+      filters = filters.concat(fd.extra_filters);
     }
     const fdCopy = {
       ...subslice.form_data,
