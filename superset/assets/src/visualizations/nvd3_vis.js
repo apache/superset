@@ -138,6 +138,7 @@ export default function nvd3Vis(slice, payload) {
 
   const vizType = fd.viz_type;
   const formatter = d3.format('.3s');
+  const percentageFormatter = d3.format('.1%');
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
@@ -252,7 +253,7 @@ export default function nvd3Vis(slice, payload) {
       case 'pie':
         chart = nv.models.pieChart();
         colorKey = 'x';
-        chart.valueFormat(f);
+        chart.valueFormat(formatter);
         if (fd.donut) {
           chart.donut(true);
         }
@@ -331,6 +332,12 @@ export default function nvd3Vis(slice, payload) {
       default:
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
+
+
+    if (fd.contribution) {
+      chart.valueFormat(percentageFormatter);
+    }
+
 
     if (chart.xAxis && chart.xAxis.staggerLabels) {
       chart.xAxis.staggerLabels(staggerLabels);
