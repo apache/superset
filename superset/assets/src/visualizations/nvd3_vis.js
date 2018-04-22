@@ -333,11 +333,9 @@ export default function nvd3Vis(slice, payload) {
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
 
-
     if (fd.contribution) {
       chart.valueFormat(percentageFormatter);
     }
-
 
     if (chart.xAxis && chart.xAxis.staggerLabels) {
       chart.xAxis.staggerLabels(staggerLabels);
