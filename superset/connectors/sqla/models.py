@@ -289,7 +289,7 @@ class SqlaTable(Model, BaseDatasource):
     }
 
     def __repr__(self):
-        return self.name
+        return self.full_name
 
     @property
     def connection(self):
