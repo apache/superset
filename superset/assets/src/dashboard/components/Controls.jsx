@@ -1,69 +1,34 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { DropdownButton, MenuItem } from 'react-bootstrap';
+import $ from 'jquery';
+import { DropdownButton } from 'react-bootstrap';
 
-import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
-import SliceAdder from './SliceAdder';
+import { ActionMenuItem, MenuItemContent } from './ActionMenuItem';
 import { t } from '../../locales';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
-
-const $ = window.$ = require('jquery');
 
 const propTypes = {
-  dashboard: PropTypes.object.isRequired,
+  dashboardInfo: PropTypes.object.isRequired,
+  dashboardTitle: PropTypes.string.isRequired,
+  layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
+  expandedSlices: PropTypes.object.isRequired,
   slices: PropTypes.array,
-  userId: PropTypes.string.isRequired,
-  addSlicesToDashboard: PropTypes.func,
   onSave: PropTypes.func,
   onChange: PropTypes.func,
-  renderSlices: PropTypes.func,
-  serialize: PropTypes.func,
+  forceRefreshAllCharts: PropTypes.func,
   startPeriodicRender: PropTypes.func,
   editMode: PropTypes.bool,
-};
-
-function MenuItemContent({ faIcon, text, tooltip, children }) {
-  return (
-    <span>
-      <i className={`fa fa-${faIcon}`} /> {text} {''}
-      <InfoTooltipWithTrigger
-        tooltip={tooltip}
-        label={`dash-${faIcon}`}
-        placement="top"
-      />
-      {children}
-    </span>
-  );
-}
-MenuItemContent.propTypes = {
-  faIcon: PropTypes.string.isRequired,
-  text: PropTypes.string,
-  tooltip: PropTypes.string,
-  children: PropTypes.node,
-};
-
-function ActionMenuItem(props) {
-  return (
-    <MenuItem onClick={props.onClick}>
-      <MenuItemContent {...props} />
-    </MenuItem>
-  );
-}
-ActionMenuItem.propTypes = {
-  onClick: PropTypes.func,
 };
 
 class Controls extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      css: props.dashboard.css || '',
+      css: '',
       cssTemplates: [],
     };
-    this.refresh = this.refresh.bind(this);
     this.toggleModal = this.toggleModal.bind(this);
     this.updateDom = this.updateDom.bind(this);
   }
@@ -78,10 +43,6 @@ class Controls extends React.PureComponent {
       }));
       this.setState({ cssTemplates });
     });
-  }
-  refresh() {
-    // Force refresh all slices
-    this.props.renderSlices(true);
   }
   toggleModal(modal) {
     let currentModal;
@@ -114,12 +75,12 @@ class Controls extends React.PureComponent {
     }
   }
   render() {
-    const { dashboard, userId, filters,
-      addSlicesToDashboard, startPeriodicRender,
-      serialize, onSave, editMode } = this.props;
+    const { dashboardTitle, layout, filters, expandedSlices,
+      startPeriodicRender, forceRefreshAllCharts, onSave,
+      editMode } = this.props;
     const emailBody = t('Checkout this dashboard: %s', window.location.href);
     const emailLink = 'mailto:?Subject=Superset%20Dashboard%20'
-      + `${dashboard.dashboard_title}&Body=${emailBody}`;
+      + `${dashboardTitle}&Body=${emailBody}`;
     let saveText = t('Save as');
     if (editMode) {
       saveText = t('Save');
@@ -130,8 +91,7 @@ class Controls extends React.PureComponent {
           <ActionMenuItem
             text={t('Force Refresh')}
             tooltip={t('Force refresh the whole dashboard')}
-            faIcon="refresh"
-            onClick={this.refresh}
+            onClick={forceRefreshAllCharts}
           />
           <RefreshIntervalModal
             onChange={refreshInterval => startPeriodicRender(refreshInterval * 1000)}
@@ -139,21 +99,21 @@ class Controls extends React.PureComponent {
               <MenuItemContent
                 text={t('Set autorefresh')}
                 tooltip={t('Set the auto-refresh interval for this session')}
-                faIcon="clock-o"
               />
             }
           />
           <SaveModal
-            dashboard={dashboard}
+            dashboardId={this.props.dashboardInfo.id}
+            dashboardTitle={dashboardTitle}
+            layout={layout}
             filters={filters}
-            serialize={serialize}
+            expandedSlices={expandedSlices}
             onSave={onSave}
             css={this.state.css}
             triggerNode={
               <MenuItemContent
                 text={saveText}
                 tooltip={t('Save the dashboard')}
-                faIcon="save"
               />
             }
           />
@@ -161,8 +121,7 @@ class Controls extends React.PureComponent {
             <ActionMenuItem
               text={t('Edit properties')}
               tooltip={t("Edit the dashboards's properties")}
-              faIcon="edit"
-              onClick={() => { window.location = `/dashboardmodelview/edit/${dashboard.id}`; }}
+              onClick={() => { window.location = `/dashboardmodelview/edit/${this.props.dashboardInfo.id}`; }}
             />
           }
           {editMode &&
@@ -170,36 +129,6 @@ class Controls extends React.PureComponent {
               text={t('Email')}
               tooltip={t('Email a link to this dashboard')}
               onClick={() => { window.location = emailLink; }}
-              faIcon="envelope"
-            />
-          }
-          {editMode &&
-            <SliceAdder
-              dashboard={dashboard}
-              addSlicesToDashboard={addSlicesToDashboard}
-              userId={userId}
-              triggerNode={
-                <MenuItemContent
-                  text={t('Add Slices')}
-                  tooltip={t('Add some slices to this dashboard')}
-                  faIcon="plus"
-                />
-              }
-            />
-          }
-          {editMode &&
-            <CssEditor
-              dashboard={dashboard}
-              triggerNode={
-                <MenuItemContent
-                  text={t('Edit CSS')}
-                  tooltip={t('Change the style of the dashboard using CSS code')}
-                  faIcon="css3"
-                />
-              }
-              initialCss={this.state.css}
-              templates={this.state.cssTemplates}
-              onChange={this.changeCss.bind(this)}
             />
           }
         </DropdownButton>

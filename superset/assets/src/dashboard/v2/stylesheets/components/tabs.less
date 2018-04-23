@@ -1,0 +1,80 @@
+.dashboard-component-tabs {
+  width: 100%;
+  background-color: white;
+}
+
+.dashboard-component-tabs .dashboard-component-tabs-content {
+  min-height: 48px;
+  margin-top: 1px;
+}
+
+.dashboard-component-tabs .nav-tabs {
+  border-bottom: none;
+}
+
+/* by moving padding from <a/> to <li/> we can restrict the selected tab indicator to text width */
+.dashboard-component-tabs .nav-tabs > li {
+  margin: 0 16px;
+}
+
+.dashboard-component-tabs .nav-tabs > li > a {
+  color: @almost-black;
+  border: none;
+  padding: 12px 0 14px 0;
+  font-size: 15px;
+  margin-right: 0;
+}
+
+.dashboard-component-tabs .nav-tabs > li.active > a {
+  border: none;
+}
+
+.dashboard-component-tabs .nav-tabs > li.active > a:after {
+  content: "";
+  position: absolute;
+  height: 3px;
+  width: 100%;
+  bottom: 0;
+  background: linear-gradient(to right, #E32464, #2C2261);
+}
+
+.dashboard-component-tabs .nav-tabs > li > a:hover {
+  border: none;
+  background: inherit;
+  color: @almost-black;
+}
+
+.dashboard-component-tabs .nav-tabs > li > a:focus {
+  outline: none;
+  background: #fff;
+}
+
+.dashboard-component-tabs .nav-tabs > li .dragdroppable-tab {
+  cursor: move;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator {
+  top: -12px !important;
+  height: ~"calc(100% + 24px)" !important;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--left {
+  left: -12px !important;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--right {
+  right: -12px !important;
+}
+
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--top,
+.dashboard-component-tabs .nav-tabs > li .drop-indicator--bottom {
+  left: -12px !important;
+  width: ~"calc(100% + 24px)" !important; /* escape for .less */
+  opacity: 0.4;
+}
+
+.dashboard-component-tabs li .fa-plus {
+  color: @gray-dark;
+  font-size: 14px;
+  margin-top: 3px;
+}

@@ -8,14 +8,15 @@ import { initEnhancer } from '../reduxUtils';
 import { appSetup } from '../common';
 import { initJQueryAjax } from '../modules/utils';
 import DashboardContainer from './components/DashboardContainer';
-import rootReducer, { getInitialState } from './reducers';
+import getInitialState from './reducers/getInitialState';
+import rootReducer from './reducers/index';
 
 appSetup();
 initJQueryAjax();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-const initState = Object.assign({}, getInitialState(bootstrapData));
+const initState = getInitialState(bootstrapData);
 
 const store = createStore(
   rootReducer, initState, compose(applyMiddleware(thunk), initEnhancer(false)));
@@ -26,4 +27,3 @@ ReactDOM.render(
   </Provider>,
   appContainer,
 );
-

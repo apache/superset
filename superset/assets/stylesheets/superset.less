@@ -162,7 +162,6 @@ li.widget:hover {
 div.widget .chart-header {
   padding-top: 8px;
   color: #333;
-  border-bottom: 1px solid #aaa;
   margin: 0 10px;
 }
 
@@ -176,10 +175,6 @@ div.widget .chart-header {
   margin-right: 10px;
 }
 
-
-div.widget .chart-header a {
-  margin-left: 5px;
-}
 
 #is_cached {
   display: none;
@@ -228,34 +223,42 @@ table.table-no-hover tr:hover {
 }
 
 .editable-title input {
-    padding: 2px 6px 3px 6px;
+  outline: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  cursor: initial;
 }
 
 .editable-title input[type="button"] {
-    border-color: transparent;
-    background: transparent;
-    white-space: normal;
-    text-align: left;
+  border-color: transparent;
+  background: transparent;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: normal;
+  text-align: left;
 }
 
-.editable-title input[type="button"]:hover {
-    cursor: text;
+.editable-title.editable-title--editable {
+  cursor: pointer;
 }
 
-.editable-title input[type="button"]:focus {
-    outline: none;
+.editable-title.editable-title--editing {
+  cursor: text;
 }
+
 .m-r-5 {
-    margin-right: 5px;
+  margin-right: 5px;
 }
 .m-r-3 {
-    margin-right: 3px;
+  margin-right: 3px;
 }
 .m-t-5 {
-    margin-top: 5px;
+  margin-top: 5px;
 }
 .m-t-10 {
-    margin-top: 10px;
+  margin-top: 10px;
 }
 .m-b-10 {
     margin-bottom: 10px;
@@ -448,6 +451,17 @@ g.annotation-container {
   background: white;
   color: @brand-primary;
   border-color: @brand-primary;
+}
+
+.fave-unfave-icon {
+  .fa-star-o,
+  .fa-star {
+    &,
+    &:hover,
+    &:active {
+      color: #263238;
+    }
+  }
 }
 
 .metric-edit-popover-label-input {
