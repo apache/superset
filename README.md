@@ -150,6 +150,7 @@ the world know they are using Superset. Join our growing community!
  - [Aktia Bank plc](https://www.aktia.com)
  - [Amino](https://amino.com)
  - [Ascendica Development](http://ascendicadevelopment.com)
+ - [Astronomer](https://www.astronomer.io)
  - [Brilliant.org](https://brilliant.org/)
  - [Capital Service S.A.](http://capitalservice.pl)
  - [Clark.de](http://clark.de/)
