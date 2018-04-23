@@ -138,7 +138,6 @@ export default function nvd3Vis(slice, payload) {
 
   const vizType = fd.viz_type;
   const formatter = d3.format('.3s');
-  const percentageFormatter = d3.format('.1%');
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
@@ -333,10 +332,6 @@ export default function nvd3Vis(slice, payload) {
         throw new Error('Unrecognized visualization for nvd3' + vizType);
     }
 
-    if (fd.contribution) {
-      chart.valueFormat(percentageFormatter);
-    }
-
     if (chart.xAxis && chart.xAxis.staggerLabels) {
       chart.xAxis.staggerLabels(staggerLabels);
     }
@@ -390,9 +385,10 @@ export default function nvd3Vis(slice, payload) {
 
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      if (fd.num_period_compare) {
-        // When computing a "Period Ratio", we force a percentage format
-        chart.yAxis.tickFormat(d3.format('.1%'));
+      if (fd.num_period_compare || fd.contribution) {
+        // When computing a "Period Ratio" or "Contribution" selected, we force a percentage format
+        const percentageFormat = d3.format('.1%');
+        chart.yAxis.tickFormat(percentageFormat);
       } else {
         chart.yAxis.tickFormat(yAxisFormatter);
       }
