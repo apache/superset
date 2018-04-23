@@ -7,6 +7,7 @@ import 'nvd3/build/nv.d3.min.css';
 import mathjs from 'mathjs';
 import moment from 'moment';
 import d3tip from 'd3-tip';
+import dompurify from 'dompurify';
 
 import { getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
@@ -448,7 +449,7 @@ export default function nvd3Vis(slice, payload) {
                     `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
                   '></div>' +
                 '</td>' +
-                `<td>${series.key}</td>` +
+                `<td>${dompurify.sanitize(series.key)}</td>` +
                 `<td>${yAxisFormatter(series.value)}</td>` +
               '</tr>'
             );
