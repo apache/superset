@@ -52,6 +52,7 @@ For **Debian** and **Ubuntu**, the following command will ensure that
 the required dependencies are installed: ::
 
     sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
+    sudo apt-get install libmysqlclient-dev
 
 **Ubuntu 16.04** If you have python3.5 installed alongside with python2.7, as is default on **Ubuntu 16.04 LTS**, run this command also
 
@@ -64,6 +65,7 @@ that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
     sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
+    sudo yum install mysql-devel
 
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
