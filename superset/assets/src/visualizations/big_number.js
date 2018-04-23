@@ -1,5 +1,6 @@
 import d3 from 'd3';
 import d3tip from 'd3-tip';
+import dompurify from 'dompurify';
 import { d3FormatPreset, d3TimeFormatPreset } from '../modules/utils';
 
 import './big_number.css';
@@ -153,7 +154,7 @@ function bigNumberVis(slice, payload) {
 
     const renderTooltip = (d) => {
       const date = formatDate(d[0]);
-      const value = f(d[1]);
+      const value = dompurify.sanitize(f(d[1]));
       return `
         <div>
           <span style="margin-right: 10px;">${date}: </span>
