@@ -558,7 +558,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     # short unique name, used in permissions
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
-    password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
+    password = Column(EncryptedType(String(1024), config.get('SECRET_KEY'), padding='pkcs5'))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=False)

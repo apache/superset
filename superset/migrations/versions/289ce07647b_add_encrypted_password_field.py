@@ -9,7 +9,7 @@ Create Date: 2015-11-21 11:18:00.650587
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy_utils  import EncryptedType
+from sqlalchemy_utils.types.encrypted.encrypted_type import EncryptedType
 
 # revision identifiers, used by Alembic.
 revision = '289ce07647b'
