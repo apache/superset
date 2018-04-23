@@ -1,30 +1,31 @@
 /* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
-import $ from 'jquery';
-
 import { Button, FormControl, FormGroup, Radio } from 'react-bootstrap';
 import { getAjaxErrorMsg } from '../../modules/utils';
 import ModalTrigger from '../../components/ModalTrigger';
 import { t } from '../../locales';
 import Checkbox from '../../components/Checkbox';
 
+const $ = window.$ = require('jquery');
+
 const propTypes = {
-  dashboardId: PropTypes.number.isRequired,
-  dashboardTitle: PropTypes.string.isRequired,
-  expandedSlices: PropTypes.object.isRequired,
-  layout: PropTypes.object.isRequired,
+  css: PropTypes.string,
+  dashboard: PropTypes.object.isRequired,
   triggerNode: PropTypes.node.isRequired,
   filters: PropTypes.object.isRequired,
-  onSave: PropTypes.func.isRequired,
+  serialize: PropTypes.func,
+  onSave: PropTypes.func,
 };
 
 class SaveModal extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
+      dashboard: props.dashboard,
+      css: props.css,
       saveType: 'overwrite',
-      newDashName: props.dashboardTitle + ' [copy]',
+      newDashName: props.dashboard.dashboard_title + ' [copy]',
       duplicateSlices: false,
     };
     this.modal = null;
@@ -49,6 +50,7 @@ class SaveModal extends React.PureComponent {
   saveDashboardRequest(data, url, saveType) {
     const saveModal = this.modal;
     const onSaveDashboard = this.props.onSave;
+    Object.assign(data, { css: this.props.css });
     $.ajax({
       type: 'POST',
       url,
@@ -72,17 +74,19 @@ class SaveModal extends React.PureComponent {
     });
   }
   saveDashboard(saveType, newDashboardTitle) {
-    const { dashboardTitle, layout: positions, expandedSlices, filters, dashboardId } = this.props;
+    const dashboard = this.props.dashboard;
+    const positions = this.props.serialize();
     const data = {
       positions,
-      expanded_slices: expandedSlices,
-      dashboard_title: dashboardTitle,
-      default_filters: JSON.stringify(filters),
+      css: this.state.css,
+      expanded_slices: dashboard.metadata.expanded_slices || {},
+      dashboard_title: dashboard.dashboard_title,
+      default_filters: JSON.stringify(this.props.filters),
       duplicate_slices: this.state.duplicateSlices,
     };
     let url = null;
     if (saveType === 'overwrite') {
-      url = `/superset/save_dash/${dashboardId}/`;
+      url = `/superset/save_dash/${dashboard.id}/`;
       this.saveDashboardRequest(data, url, saveType);
     } else if (saveType === 'newDashboard') {
       if (!newDashboardTitle) {
@@ -93,7 +97,7 @@ class SaveModal extends React.PureComponent {
         });
       } else {
         data.dashboard_title = newDashboardTitle;
-        url = `/superset/copy_dash/${dashboardId}/`;
+        url = `/superset/copy_dash/${dashboard.id}/`;
         this.saveDashboardRequest(data, url, saveType);
       }
     }
@@ -112,7 +116,7 @@ class SaveModal extends React.PureComponent {
               onChange={this.handleSaveTypeChange}
               checked={this.state.saveType === 'overwrite'}
             >
-              {t('Overwrite Dashboard [%s]', this.props.dashboardTitle)}
+              {t('Overwrite Dashboard [%s]', this.props.dashboard.dashboard_title)}
             </Radio>
             <hr />
             <Radio

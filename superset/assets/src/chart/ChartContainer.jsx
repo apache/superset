@@ -5,7 +5,7 @@ import * as Actions from './chartAction';
 import Chart from './Chart';
 
 function mapStateToProps({ charts }, ownProps) {
-  const chart = charts[ownProps.chartId];
+  const chart = charts[ownProps.chartKey];
   return {
     annotationData: chart.annotationData,
     chartAlert: chart.chartAlert,

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { chartPropShape } from '../../dashboard/v2/util/propShapes';
+import { chartPropType } from '../../chart/chartReducer';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
 import EditableTitle from '../../components/EditableTitle';
@@ -28,13 +28,13 @@ const propTypes = {
   table_name: PropTypes.string,
   form_data: PropTypes.object,
   timeout: PropTypes.number,
-  chart: chartPropShape,
+  chart: PropTypes.shape(chartPropType),
 };
 
 class ExploreChartHeader extends React.PureComponent {
   runQuery() {
     this.props.actions.runQuery(this.props.form_data, true,
-      this.props.timeout, this.props.chart.id);
+      this.props.timeout, this.props.chart.chartKey);
   }
 
   updateChartTitleOrSaveSlice(newTitle) {

@@ -4,7 +4,8 @@ import PropTypes from 'prop-types';
 
 import SliceHeader from './SliceHeader';
 import ChartContainer from '../../chart/ChartContainer';
-import { chartPropShape, slicePropShape } from '../v2/util/propShapes';
+
+import '../../../stylesheets/dashboard.css';
 
 const propTypes = {
   timeout: PropTypes.number,
@@ -15,30 +16,34 @@ const propTypes = {
   isExpanded: PropTypes.bool,
   widgetHeight: PropTypes.number,
   widgetWidth: PropTypes.number,
-  slice: slicePropShape.isRequired,
-  chart: chartPropShape.isRequired,
+  slice: PropTypes.object,
+  chartKey: PropTypes.string,
   formData: PropTypes.object,
   filters: PropTypes.object,
-  refreshChart: PropTypes.func,
+  forceRefresh: PropTypes.func,
+  removeSlice: PropTypes.func,
   updateSliceName: PropTypes.func,
   toggleExpandSlice: PropTypes.func,
   exploreChart: PropTypes.func,
   exportCSV: PropTypes.func,
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
+  clearFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   editMode: PropTypes.bool,
   annotationQuery: PropTypes.object,
 };
 
 const defaultProps = {
-  refreshChart: () => ({}),
+  forceRefresh: () => ({}),
+  removeSlice: () => ({}),
   updateSliceName: () => ({}),
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
   addFilter: () => ({}),
   getFilters: () => ({}),
+  clearFilter: () => ({}),
   removeFilter: () => ({}),
   editMode: false,
 };
@@ -48,9 +53,9 @@ class GridCell extends React.PureComponent {
     super(props);
 
     const sliceId = this.props.slice.slice_id;
-    this.forceRefresh = this.forceRefresh.bind(this);
-    this.addFilter = this.props.addFilter.bind(this, this.props.chart);
+    this.addFilter = this.props.addFilter.bind(this, sliceId);
     this.getFilters = this.props.getFilters.bind(this, sliceId);
+    this.clearFilter = this.props.clearFilter.bind(this, sliceId);
     this.removeFilter = this.props.removeFilter.bind(this, sliceId);
   }
 
@@ -63,7 +68,7 @@ class GridCell extends React.PureComponent {
   }
 
   width() {
-    return this.props.widgetWidth - 32;
+    return this.props.widgetWidth - 10;
   }
 
   height(slice) {
@@ -75,7 +80,7 @@ class GridCell extends React.PureComponent {
       descriptionHeight = this.refs[descriptionId].offsetHeight + 10;
     }
 
-    return widgetHeight - headerHeight - descriptionHeight - 32;
+    return widgetHeight - headerHeight - descriptionHeight;
   }
 
   headerHeight(slice) {
@@ -83,18 +88,13 @@ class GridCell extends React.PureComponent {
     return this.refs[headerId] ? this.refs[headerId].offsetHeight : 30;
   }
 
-  forceRefresh() {
-    return this.props.refreshChart(this.props.chart, true, this.props.timeout);
-  }
-
   render() {
     const {
       isExpanded, isLoading, isCached, cachedDttm,
-      updateSliceName, toggleExpandSlice,
-      chart, slice, datasource, formData, timeout, annotationQuery,
-      exploreChart, exportCSV, editMode,
+      removeSlice, updateSliceName, toggleExpandSlice, forceRefresh,
+      chartKey, slice, datasource, formData, timeout, annotationQuery,
+      exploreChart, exportCSV,
     } = this.props;
-
     return (
       <div
         className={isLoading ? 'slice-cell-highlight' : 'slice-cell'}
@@ -106,10 +106,11 @@ class GridCell extends React.PureComponent {
             isExpanded={isExpanded}
             isCached={isCached}
             cachedDttm={cachedDttm}
+            removeSlice={removeSlice}
             updateSliceName={updateSliceName}
             toggleExpandSlice={toggleExpandSlice}
-            forceRefresh={this.forceRefresh}
-            editMode={editMode}
+            forceRefresh={forceRefresh}
+            editMode={this.props.editMode}
             annotationQuery={annotationQuery}
             exploreChart={exploreChart}
             exportCSV={exportCSV}
@@ -127,23 +128,21 @@ class GridCell extends React.PureComponent {
           ref={this.getDescriptionId(slice)}
           dangerouslySetInnerHTML={{ __html: slice.description_markeddown }}
         />
-        <div
-          className="chart-container"
-          style={{ width: this.width(), height: this.height(slice) }}
-        >
+        <div className="row chart-container">
           <input type="hidden" value="false" />
           <ChartContainer
             containerId={`slice-container-${slice.slice_id}`}
-            chartId={chart.id}
+            chartKey={chartKey}
             datasource={datasource}
             formData={formData}
             headerHeight={this.headerHeight(slice)}
             height={this.height(slice)}
             width={this.width()}
             timeout={timeout}
-            vizType={slice.viz_type}
+            vizType={slice.formData.viz_type}
             addFilter={this.addFilter}
             getFilters={this.getFilters}
+            clearFilter={this.clearFilter}
             removeFilter={this.removeFilter}
           />
         </div>

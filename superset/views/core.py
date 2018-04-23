@@ -517,10 +517,9 @@ appbuilder.add_view_no_menu(SliceAsync)
 
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
-        'id', 'slice_name', 'slice_url', 'edit_url', 'viz_type', 'params',
-        'description', 'description_markeddown',
-        'datasource_name_text', 'datasource_link',
-        'owners', 'modified', 'changed_on']
+        'id', 'slice_name', 'slice_link', 'viz_type',
+        'datasource_link', 'owners', 'modified', 'changed_on']
+    show_columns = list(set(SliceModelView.edit_columns + list_columns))
 
 
 appbuilder.add_view_no_menu(SliceAddView)
@@ -1589,17 +1588,9 @@ class Superset(BaseSupersetView):
     @staticmethod
     def _set_dash_metadata(dashboard, data):
         positions = data['positions']
-        # find slices in the position data
-        slice_ids = []
-        for value in positions.values():
-            if value.get('meta') and value.get('meta').get('chartId'):
-                slice_ids.append(int(value.get('meta').get('chartId')))
-        session = db.session()
-        Slice = models.Slice  # noqa
-        current_slices = session.query(Slice).filter(
-            Slice.id.in_(slice_ids)).all()
-
-        dashboard.slices = current_slices
+        slice_ids = [int(d['slice_id']) for d in positions]
+        dashboard.slices = [o for o in dashboard.slices if o.id in slice_ids]
+        positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data['css']
@@ -1612,11 +1603,7 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
-        default_filters_data = json.loads(data.get('default_filters', ''))
-        for key in default_filters_data.keys():
-            if int(key) not in slice_ids:
-                del default_filters_data[key]
-        md['default_filters'] = json.dumps(default_filters_data)
+        md['default_filters'] = data.get('default_filters', '')
         dashboard.json_metadata = json.dumps(md, indent=4)
 
     @api

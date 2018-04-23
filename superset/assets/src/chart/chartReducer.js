@@ -1,10 +1,25 @@
 /* eslint camelcase: 0 */
+import PropTypes from 'prop-types';
+
 import { now } from '../modules/dates';
 import * as actions from './chartAction';
 import { t } from '../locales';
 
+export const chartPropType = {
+  chartKey: PropTypes.string.isRequired,
+  chartAlert: PropTypes.string,
+  chartStatus: PropTypes.string,
+  chartUpdateEndTime: PropTypes.number,
+  chartUpdateStartTime: PropTypes.number,
+  latestQueryFormData: PropTypes.object,
+  queryRequest: PropTypes.object,
+  queryResponse: PropTypes.object,
+  triggerQuery: PropTypes.bool,
+  lastRendered: PropTypes.number,
+};
+
 export const chart = {
-  id: 0,
+  chartKey: '',
   chartAlert: null,
   chartStatus: 'loading',
   chartUpdateEndTime: null,
@@ -18,12 +33,6 @@ export const chart = {
 
 export default function chartReducer(charts = {}, action) {
   const actionHandlers = {
-    [actions.ADD_CHART]() {
-      return {
-        ...chart,
-        ...action.chart,
-      };
-    },
     [actions.CHART_UPDATE_SUCCEEDED](state) {
       return { ...state,
         chartStatus: 'success',
@@ -61,12 +70,12 @@ export default function chartReducer(charts = {}, action) {
       return { ...state,
         chartStatus: 'failed',
         chartAlert: (
-          `${t('Query timeout')} - ` +
-          t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
-          t('Perhaps your data has grown, your database is under unusual load, ' +
-            'or you are simply querying a data source that is too large ' +
-            'to be processed within the timeout range. ' +
-            'If that is the case, we recommend that you summarize your data further.')),
+            `${t('Query timeout')} - ` +
+            t(`visualization queries are set to timeout at ${action.timeout} seconds. `) +
+            t('Perhaps your data has grown, your database is under unusual load, ' +
+                'or you are simply querying a data source that is too large ' +
+                'to be processed within the timeout range. ' +
+                'If that is the case, we recommend that you summarize your data further.')),
       };
     },
     [actions.CHART_UPDATE_FAILED](state) {

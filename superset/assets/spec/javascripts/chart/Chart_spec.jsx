@@ -20,7 +20,7 @@ describe('Chart', () => {
   };
   const mockedProps = {
     ...chart,
-    id: 223,
+    chartKey: 'slice_223',
     containerId: 'slice-container-223',
     datasource: {},
     formData: {},
