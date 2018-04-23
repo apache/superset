@@ -693,7 +693,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
         eng = self.get_sqla_engine(schema=schema)
-        df = pd.read_sql(sql, eng)
+        df = pd.read_sql_query(sql, eng)
 
         def needs_conversion(df_series):
             if df_series.empty:
