@@ -88,10 +88,9 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.SET_EXPLORE_CONTROLS]() {
-      const controls = getControlsState(state, action.formData);
       return {
         ...state,
-        ...controls,
+        controls: getControlsState(state, action.formData),
       };
     },
     [actions.UPDATE_CHART_TITLE]() {
@@ -102,10 +101,9 @@ export default function exploreReducer(state = {}, action) {
       };
     },
     [actions.RESET_FIELDS]() {
-      const controls = getControlsState(state, getFormDataFromControls(state.controls));
       return {
         ...state,
-        ...controls,
+        controls: getControlsState(state, getFormDataFromControls(state.controls)),
       };
     },
     [actions.CREATE_NEW_SLICE]() {
