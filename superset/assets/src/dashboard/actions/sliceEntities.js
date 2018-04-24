@@ -9,16 +9,15 @@ export function updateSliceName(key, sliceName) {
 
 export function saveSliceName(slice, sliceName) {
   const oldName = slice.slice_name;
-  return (dispatch) => {
+  return dispatch => {
     const sliceParams = {};
     sliceParams.slice_id = slice.slice_id;
     sliceParams.action = 'overwrite';
     sliceParams.slice_name = sliceName;
 
-    const url = slice.slice_url + '&' +
-      Object.keys(sliceParams)
-      .map(key => (key + '=' + sliceParams[key]))
-      .join('&');
+    const url = `${slice.slice_url}&${Object.keys(sliceParams)
+      .map(key => `${key}=${sliceParams[key]}`)
+      .join('&')}`;
     const key = slice.slice_id;
     return $.ajax({
       url,
@@ -54,7 +53,7 @@ export function fetchAllSlicesFailed(error) {
 
 export function fetchAllSlices(userId) {
   return (dispatch, getState) => {
-    const { sliceEntities }  = getState();
+    const { sliceEntities } = getState();
     if (sliceEntities.lastUpdated === 0) {
       dispatch(fetchAllSlicesStarted());
 
@@ -62,9 +61,9 @@ export function fetchAllSlices(userId) {
       return $.ajax({
         url: uri,
         type: 'GET',
-        success: (response) => {
+        success: response => {
           const slices = {};
-          response.result.forEach((slice) => {
+          response.result.forEach(slice => {
             const form_data = JSON.parse(slice.params);
             slices[slice.id] = {
               slice_id: slice.id,
