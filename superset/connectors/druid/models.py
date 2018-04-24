@@ -1155,22 +1155,26 @@ class DruidDatasource(Model, BaseDatasource):
             query_start = time.time()
             client.scan(**qry)
             query_stop = time.time()
-            logging.debug('%s took %0.4f seconds' % (query_transaction_id, (query_stop - query_start)))
+            logging.debug('%s took %0.4f seconds'
+                          % (query_transaction_id, (query_stop - query_start)))
         elif len(groupby) == 0 and not having_filters:
-            logging.info('%s: Running timeseries query for no groupby values' % query_transaction_id)
+            logging.info('%s: Running timeseries query for no groupby values'
+                         % query_transaction_id)
             del qry['dimensions']
             qry['context'] = {'queryId': query_transaction_id}
             query_start = time.time()
             client.timeseries(**qry)
             query_stop = time.time()
-            logging.debug('%s took %0.4f seconds' % (query_transaction_id, (query_stop - query_start)))
+            logging.debug('%s took %0.4f seconds'
+                          % (query_transaction_id, (query_stop - query_start)))
         elif (
                 not having_filters and
                 len(groupby) == 1 and
                 order_desc
         ):
             dim = list(qry.get('dimensions'))[0]
-            logging.info('{}: Running two-phase topn query for dimension [{}]'.format(query_transaction_id, dim))
+            logging.info('%s: Running two-phase topn query for dimension [%s]'
+                         % (query_transaction_id, str(dim)))
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
@@ -1196,7 +1200,8 @@ class DruidDatasource(Model, BaseDatasource):
             query_start = time.time()
             client.topn(**pre_qry)
             query_stop = time.time()
-            logging.debug('%s took %0.4f seconds' % (query_transaction_id, (query_stop - query_start)))
+            logging.debug('%s took %0.4f seconds'
+                          % (query_transaction_id, (query_stop - query_start)))
             logging.info('%s: Phase 1 Complete' % query_transaction_id)
             if phase == 2:
                 query_str += '// Two phase query\n// Phase 1\n'
@@ -1222,14 +1227,17 @@ class DruidDatasource(Model, BaseDatasource):
             query_start = time.time()
             client.topn(**qry)
             query_stop = time.time()
-            logging.debug('%s took %0.4f seconds' % (query_transaction_id, (query_stop - query_start)))
+            logging.debug('%s took %0.4f seconds'
+                          % (query_transaction_id, (query_stop - query_start)))
             logging.info('%s: Phase 2 Complete' % query_transaction_id)
         elif len(groupby) > 0 or having_filters:
             # If grouping on multiple fields or using a having filter
             # we have to force a groupby query
-            logging.info('{}: Running groupby query for dimensions [{}]'.format(query_transaction_id, dimensions))
+            logging.info('%s: Running groupby query for dimensions [%s]'
+                         % (query_transaction_id, dimensions))
             if timeseries_limit and is_timeseries:
-                logging.info('%s: Running two-phase query for timeseries' % query_transaction_id)
+                logging.info('%s: Running two-phase query for timeseries'
+                             % query_transaction_id)
                 pre_qry = deepcopy(qry)
                 pre_qry_dims = self._dimensions_to_values(qry['dimensions'])
                 pre_qry['dimensions'] = list(set(pre_qry_dims))
@@ -1264,7 +1272,8 @@ class DruidDatasource(Model, BaseDatasource):
                 query_start = time.time()
                 client.groupby(**pre_qry)
                 query_stop = time.time()
-                logging.debug('%s took %0.4f seconds' % (query_transaction_id, (query_stop - query_start)))
+                logging.debug('%s took %0.4f seconds'
+                              % (query_transaction_id, (query_stop - query_start)))
                 logging.info('%s: Phase 1 Complete' % query_transaction_id)
                 query_str += '// Two phase query\n// Phase 1\n'
                 query_str += json.dumps(
@@ -1299,7 +1308,8 @@ class DruidDatasource(Model, BaseDatasource):
             query_start = time.time()
             client.groupby(**qry)
             query_stop = time.time()
-            logging.debug('%s took %0.4f seconds' % (query_transaction_id, (query_stop - query_start)))
+            logging.debug('%s took %0.4f seconds'
+                          % (query_transaction_id, (query_stop - query_start)))
             if phase == 1:
                 logging.info('%s: Query Complete' % query_transaction_id)
             else:
