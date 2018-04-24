@@ -26,7 +26,8 @@ import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
 const RELATIVE_TIME_OPTIONS = ['ago', 'from now'];
-const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'days', 'weeks', 'months', 'years'];
+const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
+const TIME_FRAMES = ['Yesterday', 'Last week', 'Last month', 'Last year'];
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -44,17 +45,39 @@ const defaultProps = {
   value: '',
 };
 
+
+const MyDTPicker = React.createClass({
+    render() {
+        return <Datetime renderInput={this.renderInput} />;
+    },
+    renderInput(props, openCalendar, closeCalendar) {
+        function clear() {
+            props.onChange({ target: { value: '' } });
+        }
+        return (
+          <div>
+            <input {...props} />
+            <button onClick={openCalendar}>open calendar</button>
+            <button onClick={closeCalendar}>close calendar</button>
+            <button onClick={clear}>clear</button>
+          </div>
+        );
+    },
+});
+
+
 export default class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
     const value = props.value || '';
     this.state = {
       num: '7',
-      grain: 'days',
+      grain: TIME_GRAIN_OPTIONS[3],
       rel: 'ago',
       dttm: '',
       type: 'free',
       free: '',
+      relative: TIME_FRAMES[0],
     };
     const words = value.split(' ');
     if (words.length >= 3 && RELATIVE_TIME_OPTIONS.indexOf(words[2]) >= 0) {
@@ -101,37 +124,72 @@ export default class DateFilterControl extends React.Component {
     this.refs.trigger.hide();
   }
   renderPopover() {
+    const menuItems = TIME_GRAIN_OPTIONS.map((grain, index) => (
+      <MenuItem
+        onSelect={grain => this.setState({ grain })}
+        key={index}
+        eventKey={grain}
+        active={grain === this.state.grain}
+      >{grain}
+      </MenuItem>
+      ));
+    const timeFrames = TIME_FRAMES.map((timeFrame, index) => (
+      <Radio
+        checked={this.state.relative === timeFrame}
+        onChange={() => this.setState({ relative: timeFrame })}
+      >{timeFrame}
+      </Radio>
+      ));
     return (
       <Popover id="filter-popover">
         <div style={{ width: '250px' }}>
-          <Tabs defaultActiveKey={1} id="uncontrolled-tab-example" bsStyle="pills">
+          <Tabs defaultActiveKey={1} id="relative" bsStyle="pills">
             <Tab eventKey={1} title="Relative">
-      <form>
               <FormGroup>
-                <Radio name="relative">Yesterday</Radio>
-                <Radio name="relative">Last week</Radio>
-                <Radio name="relative">Last month</Radio>
-                <Radio name="relative">Last year</Radio>
-                <Radio name="relative">
-                  <FormControl.Static>Last</FormControl.Static>
-                  <FormControl type="text" />
-                  <DropdownButton
-                    componentClass={InputGroup.Button}
-                    id="input-dropdown-addon"
-                    title="Action"
-                  >
-                    <MenuItem key="1">seconds</MenuItem>
-                    <MenuItem key="2">minutes</MenuItem>
-                    <MenuItem key="3">hours</MenuItem>
-                    <MenuItem key="4">days</MenuItem>
-                    <MenuItem key="5">weeks</MenuItem>
-                    <MenuItem key="6">months</MenuItem>
-                    <MenuItem key="7">years</MenuItem>
-                  </DropdownButton>
+                {timeFrames}
+                <Radio
+                  checked={this.state.relative === 'user-defined'}
+                  onChange={() => this.setState({ relative: 'user-defined' })}
+                >
+                  <div className="clearfix centered">
+                    <div style={{ marginRight: '5px' }} className="input-inline">
+                      Last
+                    </div>
+                    <div style={{ width: '50px', marginTop: '-4px' }} className="input-inline">
+                      <FormControl
+                        bsSize="small"
+                        type="text"
+                        onChange={this.onNumberChange.bind(this)}
+                        onFocus={() => this.setState({ relative: 'user-defined' })}
+                        value={this.state.num}
+                      />
+                    </div>
+                    <div style={{ width: '95px', marginTop: '-4px' }} className="input-inline">
+                      <DropdownButton
+                        bsSize="small"
+                        componentClass={InputGroup.Button}
+                        id="input-dropdown-addon"
+                        title={this.state.grain}
+                        onFocus={() => this.setState({ relative: 'user-defined' })}
+                      >
+                        {menuItems}
+                      </DropdownButton>
+                    </div>
+                  </div>
                 </Radio>
               </FormGroup>
             </Tab>
-            <Tab eventKey={2} title="Fixed/Freeform">
+            <Tab eventKey={2} title="Fixed">
+              <FormGroup>
+                <InputGroup bsSize="small">
+                  <InputGroup.Addon onClick={() => console.log('clicked indeed')}>
+                    <Glyphicon glyph="calendar" />
+                  </InputGroup.Addon>
+                  <MyDTPicker />
+                </InputGroup>
+              </FormGroup>
+            </Tab>
+            <Tab eventKey={3} title="Old">
               <PopoverSection
                 title="Fixed"
                 isSelected={this.state.type === 'fix'}
@@ -201,36 +259,18 @@ export default class DateFilterControl extends React.Component {
                   bsSize="small"
                 />
               </PopoverSection>
-              <div className="clearfix">
-                <Button
-                  bsSize="small"
-                  className="float-left ok"
-                  bsStyle="primary"
-                  onClick={this.close.bind(this)}
-                >
-              Ok
-            </Button>
-                <ButtonGroup
-                  className="float-right"
-                >
-                  <Button
-                    bsSize="small"
-                    className="now"
-                    onClick={this.setValueAndClose.bind(this, 'now')}
-                  >
-                now
-              </Button>
-                  <Button
-                    bsSize="small"
-                    className="clear"
-                    onClick={this.setValueAndClose.bind(this, '')}
-                  >
-                clear
-              </Button>
-                </ButtonGroup>
-              </div>
             </Tab>
           </Tabs>
+          <div className="clearfix">
+            <Button
+              bsSize="small"
+              className="float-right ok"
+              bsStyle="primary"
+              onClick={this.close.bind(this)}
+            >
+              Ok
+            </Button>
+          </div>
         </div>
       </Popover>
     );
