@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { MenuItem } from 'react-bootstrap';
 
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 export function MenuItemContent({ faIcon, text, tooltip, children }) {
   return (

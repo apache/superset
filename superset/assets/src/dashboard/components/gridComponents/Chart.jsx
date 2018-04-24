@@ -161,12 +161,7 @@ class Chart extends React.Component {
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice && slice.viz_type);
 
     return (
-      <div
-        className={cx(
-          'dashboard-chart',
-          isOverflowable && 'dashboard-chart--overflowable',
-        )}
-      >
+      <div>
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
@@ -199,30 +194,37 @@ class Chart extends React.Component {
             />
           )}
 
-        <ChartContainer
-          containerId={`slice-container-${id}`}
-          chartId={id}
-          datasource={datasource}
-          formData={formData}
-          headerHeight={this.getHeaderHeight()}
-          height={this.getChartHeight()}
-          width={width}
-          timeout={timeout}
-          vizType={slice.viz_type}
-          addFilter={this.addFilter}
-          getFilters={this.getFilters}
-          removeFilter={this.removeFilter}
-          annotationData={chart.annotationData}
-          chartAlert={chart.chartAlert}
-          chartStatus={chart.chartStatus}
-          chartUpdateEndTime={chart.chartUpdateEndTime}
-          chartUpdateStartTime={chart.chartUpdateStartTime}
-          latestQueryFormData={chart.latestQueryFormData}
-          lastRendered={chart.lastRendered}
-          queryResponse={chart.queryResponse}
-          queryRequest={chart.queryRequest}
-          triggerQuery={chart.triggerQuery}
-        />
+        <div
+          className={cx(
+            'dashboard-chart',
+            isOverflowable && 'dashboard-chart--overflowable',
+          )}
+        >
+          <ChartContainer
+            containerId={`slice-container-${id}`}
+            chartId={id}
+            datasource={datasource}
+            formData={formData}
+            headerHeight={this.getHeaderHeight()}
+            height={this.getChartHeight()}
+            width={width}
+            timeout={timeout}
+            vizType={slice.viz_type}
+            addFilter={this.addFilter}
+            getFilters={this.getFilters}
+            removeFilter={this.removeFilter}
+            annotationData={chart.annotationData}
+            chartAlert={chart.chartAlert}
+            chartStatus={chart.chartStatus}
+            chartUpdateEndTime={chart.chartUpdateEndTime}
+            chartUpdateStartTime={chart.chartUpdateStartTime}
+            latestQueryFormData={chart.latestQueryFormData}
+            lastRendered={chart.lastRendered}
+            queryResponse={chart.queryResponse}
+            queryRequest={chart.queryRequest}
+            triggerQuery={chart.triggerQuery}
+          />
+        </div>
       </div>
     );
   }

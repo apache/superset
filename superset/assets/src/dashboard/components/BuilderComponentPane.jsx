@@ -6,7 +6,7 @@ import NewDivider from './gridComponents/new/NewDivider';
 import NewHeader from './gridComponents/new/NewHeader';
 import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
-import SliceAdderContainer from '../containers/SliceAdder';
+import SliceAdder from '../containers/SliceAdder';
 
 class BuilderComponentPane extends React.PureComponent {
   constructor(props) {
@@ -60,7 +60,7 @@ class BuilderComponentPane extends React.PureComponent {
         </div>
 
         <div className={cx('slices-layer', this.state.showSlices && 'show')}>
-          <SliceAdderContainer />
+          <SliceAdder />
         </div>
       </div>
     );
