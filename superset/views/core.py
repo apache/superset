@@ -1946,7 +1946,7 @@ class Superset(BaseSupersetView):
         table_name = request.args.get('table_name')
         db_name = request.args.get('db_name')
         druid_cluster_name = request.args.get('druid_cluster')
-        druid_datasource_name = request.args.get('druid_datasource')
+        druid_ds_name = request.args.get('druid_datasource')
 
         if slice_id:
             slices = session.query(models.Slice).filter_by(id=slice_id).all()
@@ -1969,21 +1969,20 @@ class Superset(BaseSupersetView):
             slices = session.query(models.Slice).filter_by(
                 datasource_id=table.id,
                 datasource_type=table.type).all()
-        elif druid_cluster_name and druid_datasource_name:
+        elif druid_cluster_name and druid_ds_name:
             from superset.connectors.druid.models import DruidCluster, DruidDatasource
 
             registry = ConnectorRegistry.sources['druid']
             druid_datasource = (session.query(registry)
-                .join(DruidCluster)
-                .filter(
-                    DruidCluster.cluster_name == druid_cluster_name or
-                    DruidDatasource.datasource_name == druid_datasource_name
-                )
-            ).first()
+                                .join(DruidCluster)
+                                .filter(
+                                    DruidCluster.cluster_name == druid_cluster_name or
+                                    DruidDatasource.datasource_name == druid_ds_name)
+                                ).first()
             if not druid_datasource:
                 return json_error_response(__(
                     "Datasource '%(d)s' wasn't found in the druid cluster '%(c)s'",
-                    d=druid_datasource_name, cache=druid_cluster_name), status=404)
+                    d=druid_ds_name, cache=druid_cluster_name), status=404)
             slices = session.query(models.Slice).filter_by(
                 datasource_id=druid_datasource.id,
                 datasource_type=druid_datasource.type
@@ -1991,7 +1990,8 @@ class Superset(BaseSupersetView):
         else:
             return json_error_response(__(
                 'Malformed request. slice_id or table_name and db_name '
-                ' or druid_cluster and druid_datasource arguments are expected'), status=400)
+                ' or druid_cluster and druid_datasource arguments are expected'),
+                status=400)
 
         total_slices = len(slices)
         processed_slices = 0
@@ -2006,9 +2006,10 @@ class Superset(BaseSupersetView):
             lock.acquire()
             processed_slices = processed_slices + 1
             if error:
-                errors.append('%s - %s' % (slice.slice_name, utils.error_msg_from_exception(error)))
-            logging.debug('Caching warming progress: %0.2f%%' % (float(processed_slices) / float(total_slices)
-                                                                 * float(100.0)))
+                errors.append('%s - %s'
+                              % (slice.slice_name, utils.error_msg_from_exception(error)))
+            logging.debug('Caching warming progress: %0.2f%%'
+                          % float(processed_slices) / float(total_slices) * float(100.0))
             lock.release()
 
         def cache_slice(slc):
@@ -2016,7 +2017,8 @@ class Superset(BaseSupersetView):
                 obj = slc.get_viz(force=True)
                 obj.get_json()
             except Exception as e:
-                errors.append('%s - %s' % (slc.slice_name, utils.error_msg_from_exception(e)))
+                errors.append('%s - %s'
+                              % (slc.slice_name, utils.error_msg_from_exception(e)))
 
         pool = ThreadPool()
         start_time = time.time()
