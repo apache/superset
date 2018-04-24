@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { getFormDataFromControls, defaultControls }
-  from '../../../../src/explore/stores/store';
+  from '../../../../src/explore/store';
 import {
   ControlPanelsContainer,
 } from '../../../../src/explore/components/ControlPanelsContainer';
