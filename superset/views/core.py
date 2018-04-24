@@ -11,6 +11,7 @@ import os
 import re
 import time
 import traceback
+from multiprocessing.pool import ThreadPool
 from urllib import parse
 
 from flask import (
@@ -23,6 +24,7 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
+from multiprocessing import RLock
 from six import text_type
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
@@ -1943,11 +1945,9 @@ class Superset(BaseSupersetView):
         slice_id = request.args.get('slice_id')
         table_name = request.args.get('table_name')
         db_name = request.args.get('db_name')
+        druid_cluster_name = request.args.get('druid_cluster')
+        druid_datasource_name = request.args.get('druid_datasource')
 
-        if not slice_id and not (table_name and db_name):
-            return json_error_response(__(
-                'Malformed request. slice_id or table_name and db_name '
-                'arguments are expected'), status=400)
         if slice_id:
             slices = session.query(models.Slice).filter_by(id=slice_id).all()
             if not slices:
@@ -1969,13 +1969,65 @@ class Superset(BaseSupersetView):
             slices = session.query(models.Slice).filter_by(
                 datasource_id=table.id,
                 datasource_type=table.type).all()
+        elif druid_cluster_name and druid_datasource_name:
+            from superset.connectors.druid.models import DruidCluster, DruidDatasource
 
-        for slc in slices:
+            registry = ConnectorRegistry.sources['druid']
+            druid_datasource = (session.query(registry)
+                .join(DruidCluster)
+                .filter(
+                    DruidCluster.cluster_name == druid_cluster_name or
+                    DruidDatasource.datasource_name == druid_datasource_name
+                )
+            ).first()
+            if not druid_datasource:
+                return json_error_response(__(
+                    "Datasource '%(d)s' wasn't found in the druid cluster '%(c)s'",
+                    d=druid_datasource_name, cache=druid_cluster_name), status=404)
+            slices = session.query(models.Slice).filter_by(
+                datasource_id=druid_datasource.id,
+                datasource_type=druid_datasource.type
+            ).all()
+        else:
+            return json_error_response(__(
+                'Malformed request. slice_id or table_name and db_name '
+                ' or druid_cluster and druid_datasource arguments are expected'), status=400)
+
+        total_slices = len(slices)
+        processed_slices = 0
+        lock = RLock()
+        errors = []
+
+        def cached_slice(slice, error):
+            global processed_slices
+            global total_slices
+            global errors
+
+            lock.acquire()
+            processed_slices = processed_slices + 1
+            if error:
+                errors.append('%s - %s' % (slice.slice_name, utils.error_msg_from_exception(error)))
+            logging.debug('Caching warming progress: %0.2f%%' % (float(processed_slices) / float(total_slices)
+                                                                 * float(100.0)))
+            lock.release()
+
+        def cache_slice(slc):
             try:
                 obj = slc.get_viz(force=True)
                 obj.get_json()
             except Exception as e:
-                return json_error_response(utils.error_msg_from_exception(e))
+                errors.append('%s - %s' % (slc.slice_name, utils.error_msg_from_exception(e)))
+
+        pool = ThreadPool()
+        start_time = time.time()
+        pool.map(cache_slice, slices)
+        pool.close()
+        pool.join()
+        stop_time = time.time()
+        logging.debug('Cache warming took %0.1f seconds' % (stop_time - start_time))
+        if len(errors) > 0:
+            return json_error_response('\n'.join(errors))
+
         return json_success(json.dumps(
             [{'slice_id': slc.id, 'slice_name': slc.slice_name}
              for slc in slices]))
