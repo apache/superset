@@ -100,7 +100,7 @@ Druid!
 ------
 
 On top of having the ability to query your relational databases,
-Superset has ships with deep integration with Druid (a real time distributed
+Superset ships with deep integration with Druid (a real time distributed
 column-store). When querying Druid,
 Superset can query humongous amounts of data on top of real time dataset.
 Note that Superset does not require Druid in any way to function, it's simply
