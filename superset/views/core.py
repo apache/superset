@@ -7,11 +7,12 @@ from __future__ import unicode_literals
 from datetime import datetime, timedelta
 import json
 import logging
+from multiprocessing import RLock
+from multiprocessing.pool import ThreadPool
 import os
 import re
 import time
 import traceback
-from multiprocessing.pool import ThreadPool
 from urllib import parse
 
 from flask import (
@@ -24,7 +25,6 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
-from multiprocessing import RLock
 from six import text_type
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
@@ -1985,7 +1985,7 @@ class Superset(BaseSupersetView):
                     d=druid_ds_name, cache=druid_cluster_name), status=404)
             slices = session.query(models.Slice).filter_by(
                 datasource_id=druid_datasource.id,
-                datasource_type=druid_datasource.type
+                datasource_type=druid_datasource.type,
             ).all()
         else:
             return json_error_response(__(
