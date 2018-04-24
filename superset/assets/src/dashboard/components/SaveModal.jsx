@@ -1,4 +1,4 @@
-/* global notify */
+/* global notify, window */
 import React from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
@@ -17,6 +17,11 @@ const propTypes = {
   triggerNode: PropTypes.node.isRequired,
   filters: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
+  isMenuItem: PropTypes.bool,
+};
+
+const defaultProps = {
+  isMenuItem: false,
 };
 
 class SaveModal extends React.PureComponent {
@@ -24,28 +29,38 @@ class SaveModal extends React.PureComponent {
     super(props);
     this.state = {
       saveType: 'overwrite',
-      newDashName: props.dashboardTitle + ' [copy]',
+      newDashName: `${props.dashboardTitle} [copy]`,
       duplicateSlices: false,
     };
     this.modal = null;
     this.handleSaveTypeChange = this.handleSaveTypeChange.bind(this);
     this.handleNameChange = this.handleNameChange.bind(this);
     this.saveDashboard = this.saveDashboard.bind(this);
+    this.setModalRef = this.setModalRef.bind(this);
+    this.toggleDuplicateSlices = this.toggleDuplicateSlices.bind(this);
   }
+
+  setModalRef(ref) {
+    this.modal = ref;
+  }
+
   toggleDuplicateSlices() {
     this.setState({ duplicateSlices: !this.state.duplicateSlices });
   }
+
   handleSaveTypeChange(event) {
     this.setState({
       saveType: event.target.value,
     });
   }
+
   handleNameChange(event) {
     this.setState({
       newDashName: event.target.value,
       saveType: 'newDashboard',
     });
   }
+
   saveDashboardRequest(data, url, saveType) {
     const saveModal = this.modal;
     const onSaveDashboard = this.props.onSave;
@@ -67,12 +82,25 @@ class SaveModal extends React.PureComponent {
       error(error) {
         saveModal.close();
         const errorMsg = getAjaxErrorMsg(error);
-        notify.error(t('Sorry, there was an error saving this dashboard: ') + '</ br>' + errorMsg);
+        notify.error(
+          `${t(
+            'Sorry, there was an error saving this dashboard: ',
+          )}</ br>${errorMsg}`,
+        );
       },
     });
   }
-  saveDashboard(saveType, newDashboardTitle) {
-    const { dashboardTitle, layout: positions, expandedSlices, filters, dashboardId } = this.props;
+
+  saveDashboard() {
+    const { saveType, newDashName } = this.state;
+    const {
+      dashboardTitle,
+      layout: positions,
+      expandedSlices,
+      filters,
+      dashboardId,
+    } = this.props;
+
     const data = {
       positions,
       expanded_slices: expandedSlices,
@@ -80,29 +108,27 @@ class SaveModal extends React.PureComponent {
       default_filters: JSON.stringify(filters),
       duplicate_slices: this.state.duplicateSlices,
     };
+
     let url = null;
     if (saveType === 'overwrite') {
       url = `/superset/save_dash/${dashboardId}/`;
       this.saveDashboardRequest(data, url, saveType);
     } else if (saveType === 'newDashboard') {
-      if (!newDashboardTitle) {
-        this.modal.close();
-        showModal({
-          title: t('Error'),
-          body: t('You must pick a name for the new dashboard'),
-        });
+      if (!newDashName) {
+        notify.error('You must pick a name for the new dashboard');
       } else {
-        data.dashboard_title = newDashboardTitle;
+        data.dashboard_title = newDashName;
         url = `/superset/copy_dash/${dashboardId}/`;
         this.saveDashboardRequest(data, url, saveType);
       }
     }
   }
+
   render() {
     return (
       <ModalTrigger
-        ref={(modal) => { this.modal = modal; }}
-        isMenuItem
+        ref={this.setModalRef}
+        isMenuItem={this.props.isMenuItem}
         triggerNode={this.props.triggerNode}
         modalTitle={t('Save Dashboard')}
         modalBody={
@@ -132,7 +158,7 @@ class SaveModal extends React.PureComponent {
             <div className="m-l-25 m-t-5">
               <Checkbox
                 checked={this.state.duplicateSlices}
-                onChange={this.toggleDuplicateSlices.bind(this)}
+                onChange={this.toggleDuplicateSlices}
               />
               <span className="m-l-5">also copy (duplicate) slices</span>
             </div>
@@ -140,10 +166,7 @@ class SaveModal extends React.PureComponent {
         }
         modalFooter={
           <div>
-            <Button
-              bsStyle="primary"
-              onClick={() => { this.saveDashboard(this.state.saveType, this.state.newDashName); }}
-            >
+            <Button bsStyle="primary" onClick={this.saveDashboard}>
               {t('Save')}
             </Button>
           </div>
@@ -152,6 +175,8 @@ class SaveModal extends React.PureComponent {
     );
   }
 }
+
 SaveModal.propTypes = propTypes;
+SaveModal.defaultProps = defaultProps;
 
 export default SaveModal;

@@ -1,7 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { chartPropShape } from '../../dashboard/v2/util/propShapes';
+import { chartPropShape } from '../../dashboard/util/propShapes';
 import ExploreActionButtons from './ExploreActionButtons';
 import RowCountLabel from './RowCountLabel';
 import EditableTitle from '../../components/EditableTitle';

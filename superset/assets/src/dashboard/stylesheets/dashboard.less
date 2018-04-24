@@ -1,0 +1,104 @@
+// @import './less/cosmo/variables.less';
+
+.dashboard .chart-header {
+  position: relative;
+
+  .dropdown.btn-group {
+    position: absolute;
+    right: 0;
+  }
+
+  .dropdown-menu.dropdown-menu-right {
+    right: 7px;
+    top: -3px;
+  }
+}
+
+.slice-header-controls-trigger {
+  border: 0;
+  padding: 0 0 0 20px;
+  background: none;
+  outline: none;
+  box-shadow: none;
+  color: #263238;
+
+  &.is-cached {
+    color: red;
+  }
+
+  &:hover,
+  &:focus {
+    background: none;
+    cursor: pointer;
+  }
+
+  .controls-container.dropdown-menu {
+    top: 0;
+    left: unset;
+    right: 10px;
+
+    &.is-open {
+      display: block;
+    }
+
+    & li {
+      white-space: nowrap;
+    }
+  }
+}
+
+.modal img.loading {
+  width: 50px;
+  margin: 0;
+  position: relative;
+}
+
+.react-bs-container-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.hidden,
+#pageDropDown {
+  display: none;
+}
+
+.separator .chart-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.dashboard .title {
+  margin: 0 20px;
+}
+
+.dashboard .title .favstar {
+  font-size: 20px;
+  line-height: 1em;
+  position: relative;
+  top: -5px;
+}
+
+.ace_gutter {
+  z-index: 0;
+}
+.ace_content {
+  z-index: 0;
+}
+.ace_scrollbar {
+  z-index: 0;
+}
+.slice_container .alert {
+  margin: 10px;
+}
+
+i.danger {
+  color: red;
+}
+
+i.warning {
+  color: orange;
+}

@@ -1602,7 +1602,7 @@ class Superset(BaseSupersetView):
         dashboard.slices = current_slices
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
-        dashboard.css = data['css']
+        dashboard.css = data.get('css')
         dashboard.dashboard_title = data['dashboard_title']
 
         if 'filter_immune_slices' not in md:
