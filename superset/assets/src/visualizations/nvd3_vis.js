@@ -20,7 +20,7 @@ import { t } from '../locales';
 
 // CSS
 import './nvd3_vis.css';
-import { VIZ_TYPES } from './main';
+import { VIZ_TYPES } from './';
 
 const minBarWidth = 15;
 // Limit on how large axes margins can grow as the chart window is resized

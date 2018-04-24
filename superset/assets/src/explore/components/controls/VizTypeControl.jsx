@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import {
   Label, Row, Col, FormControl, Modal, OverlayTrigger,
   Tooltip } from 'react-bootstrap';
-import visTypes from '../../stores/visTypes';
+import visTypes from '../../visTypes';
 import ControlHeader from '../ControlHeader';
 import { t } from '../../../locales';
 
