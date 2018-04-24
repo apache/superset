@@ -24,7 +24,7 @@ import { ALL_COLOR_SCHEMES } from '../../../modules/colors';
 import PopoverSection from '../../../components/PopoverSection';
 import ControlHeader from '../ControlHeader';
 import { nonEmpty } from '../../validators';
-import vizTypes from '../../stores/visTypes';
+import vizTypes from '../../visTypes';
 
 const AUTOMATIC_COLOR = '';
 

@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import { getControlsState, getFormDataFromControls } from '../stores/store';
+import { getControlsState, getFormDataFromControls } from '../store';
 import * as actions from '../actions/exploreActions';
 
 export default function exploreReducer(state = {}, action) {

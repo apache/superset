@@ -10,7 +10,7 @@ import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
 import { getChartKey } from './exploreUtils';
 import AlertsWrapper from '../components/AlertsWrapper';
-import { getControlsState, getFormDataFromControls } from './stores/store';
+import { getControlsState, getFormDataFromControls } from './store';
 import { initJQueryAjax } from '../modules/utils';
 import ExploreViewContainer from './components/ExploreViewContainer';
 import rootReducer from './reducers/index';

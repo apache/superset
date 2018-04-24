@@ -43,14 +43,14 @@ import {
   formatSelectOptionsForRange,
   formatSelectOptions,
   mainMetric,
-} from '../../modules/utils';
-import * as v from '../validators';
-import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
-import { defaultViewport } from '../../modules/geo';
-import MetricOption from '../../components/MetricOption';
-import ColumnOption from '../../components/ColumnOption';
-import OptionDescription from '../../components/OptionDescription';
-import { t } from '../../locales';
+} from '../modules/utils';
+import * as v from './validators';
+import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
+import { defaultViewport } from '../modules/geo';
+import MetricOption from '../components/MetricOption';
+import ColumnOption from '../components/ColumnOption';
+import OptionDescription from '../components/OptionDescription';
+import { t } from '../locales';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
