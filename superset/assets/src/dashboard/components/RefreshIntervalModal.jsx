@@ -16,7 +16,7 @@ const defaultProps = {
 };
 
 const options = [
-  [0, t('Don\'t refresh')],
+  [0, t("Don't refresh")],
   [10, t('10 seconds')],
   [30, t('30 seconds')],
   [60, t('1 minute')],
@@ -47,7 +47,7 @@ class RefreshIntervalModal extends React.PureComponent {
             <Select
               options={options}
               value={this.state.refreshFrequency}
-              onChange={(opt) => {
+              onChange={opt => {
                 const value = opt ? opt.value : options[0].value;
                 this.setState({
                   refreshFrequency: value,

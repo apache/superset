@@ -20,6 +20,9 @@ export default function Loading(props) {
         padding: 0,
         margin: 0,
         position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -60%)',
       }}
     />
   );

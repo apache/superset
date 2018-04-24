@@ -8,19 +8,23 @@ import {
   DASHBOARD_HEADER_TYPE,
   DASHBOARD_ROOT_TYPE,
   DASHBOARD_GRID_TYPE,
-} from '../v2/util/componentTypes';
+} from './componentTypes';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_HEADER_ID,
   DASHBOARD_ROOT_ID,
-} from '../v2/util/constants';
+} from './constants';
 
 const MAX_RECURSIVE_LEVEL = 6;
 const GRID_RATIO = 4;
 const ROW_HEIGHT = 8;
 const generateId = (() => {
   let componentId = 1;
-  return () => (componentId++);
+  return () => {
+    const id = componentId;
+    componentId += 1;
+    return id;
+  };
 })();
 
 /**
@@ -33,7 +37,7 @@ function getBoundary(positions) {
   let bottom = 0;
   let left = Number.MAX_VALUE;
   let right = 1;
-  positions.forEach((item) => {
+  positions.forEach(item => {
     const { row, col, size_x, size_y } = item;
     if (row <= top) top = row;
     if (col <= left) left = col;
@@ -50,11 +54,10 @@ function getBoundary(positions) {
 }
 
 function getRowContainer() {
-  const id = 'DASHBOARD_ROW_TYPE-' + generateId();
   return {
     version: 'v2',
     type: ROW_TYPE,
-    id,
+    id: `DASHBOARD_ROW_TYPE-${generateId()}`,
     children: [],
     meta: {
       background: 'BACKGROUND_TRANSPARENT',
@@ -63,11 +66,10 @@ function getRowContainer() {
 }
 
 function getColContainer() {
-  const id = 'DASHBOARD_COLUMN_TYPE-' + generateId();
   return {
     version: 'v2',
     type: COLUMN_TYPE,
-    id,
+    id: `DASHBOARD_COLUMN_TYPE-${generateId()}`,
     children: [],
     meta: {
       background: 'BACKGROUND_TRANSPARENT',
@@ -88,7 +90,7 @@ function getChartHolder(item) {
   return {
     version: 'v2',
     type: CHART_TYPE,
-    id: 'DASHBOARD_CHART_TYPE-' + generateId(),
+    id: `DASHBOARD_CHART_TYPE-${generateId()}`,
     children: [],
     meta: {
       width: converted.size_x,
@@ -99,12 +101,30 @@ function getChartHolder(item) {
 }
 
 function getChildrenMax(items, attr, layout) {
-  return Math.max.apply(null, items.map(child => (layout[child].meta[attr])));
+  return Math.max.apply(null, items.map(child => layout[child].meta[attr]));
 }
 
 function getChildrenSum(items, attr, layout) {
-  return items.reduce((preValue, child) => (preValue + layout[child].meta[attr]), 0);
+  return items.reduce(
+    (preValue, child) => preValue + layout[child].meta[attr],
+    0,
+  );
 }
+
+// function getChildrenMax(items, attr, layout) {
+//   return Math.max.apply(null, items.map((childId) => {
+//     const child = layout[childId];
+//     if (child.type === ROW_TYPE && attr === 'width') {
+//       // rows don't have widths themselves
+//       return getChildrenSum(child.children, attr, layout);
+//     } else if (child.type === COLUMN_TYPE && attr === 'height') {
+//       // columns don't have heights themselves
+//       return getChildrenSum(child.children, attr, layout);
+//     }
+//
+//     return child.meta[attr];
+//   }));
+// }
 
 function sortByRowId(item1, item2) {
   return item1.row - item2.row;
@@ -115,7 +135,8 @@ function sortByColId(item1, item2) {
 }
 
 function hasOverlap(positions, xAxis = true) {
-  return positions.slice()
+  return positions
+    .slice()
     .sort(xAxis ? sortByColId : sortByRowId)
     .some((item, index, arr) => {
       if (index === arr.length - 1) {
@@ -123,9 +144,9 @@ function hasOverlap(positions, xAxis = true) {
       }
 
       if (xAxis) {
-        return (item.col + item.size_x) > arr[index + 1].col;
+        return item.col + item.size_x > arr[index + 1].col;
       }
-      return (item.row + item.size_y) > arr[index + 1].row;
+      return item.row + item.size_y > arr[index + 1].row;
     });
 }
 
@@ -158,7 +179,7 @@ function doConvert(positions, level, parent, root) {
     const upper = [];
     const lower = [];
 
-    const isRowDivider = currentItems.every((item) => {
+    const isRowDivider = currentItems.every(item => {
       const { row, size_y } = item;
       if (row + size_y <= currentRow) {
         lower.push(item);
@@ -174,10 +195,10 @@ function doConvert(positions, level, parent, root) {
       currentItems = upper.slice();
       layers.push(lower);
     }
-    currentRow++;
+    currentRow += 1;
   }
 
-  layers.forEach((layer) => {
+  layers.forEach(layer => {
     if (layer.length === 0) {
       return;
     }
@@ -196,7 +217,7 @@ function doConvert(positions, level, parent, root) {
 
     currentItems = layer.slice();
     if (!hasOverlap(currentItems)) {
-      currentItems.sort(sortByColId).forEach((item) => {
+      currentItems.sort(sortByColId).forEach(item => {
         const chartHolder = getChartHolder(item);
         root[chartHolder.id] = chartHolder;
         rowContainer.children.push(chartHolder.id);
@@ -208,7 +229,7 @@ function doConvert(positions, level, parent, root) {
         const upper = [];
         const lower = [];
 
-        const isColDivider = currentItems.every((item) => {
+        const isColDivider = currentItems.every(item => {
           const { col, size_x } = item;
           if (col + size_x <= currentCol) {
             lower.push(item);
@@ -232,7 +253,7 @@ function doConvert(positions, level, parent, root) {
             rowContainer.children.push(colContainer.id);
 
             if (!hasOverlap(lower, false)) {
-              lower.sort(sortByRowId).forEach((item) => {
+              lower.sort(sortByRowId).forEach(item => {
                 const chartHolder = getChartHolder(item);
                 root[chartHolder.id] = chartHolder;
                 colContainer.children.push(chartHolder.id);
@@ -242,37 +263,47 @@ function doConvert(positions, level, parent, root) {
             }
 
             // add col meta
-            colContainer.meta.width = getChildrenMax(colContainer.children, 'width', root);
+            colContainer.meta.width = getChildrenMax(
+              colContainer.children,
+              'width',
+              root,
+            );
           }
 
           currentItems = upper.slice();
         }
-        currentCol++;
+        currentCol += 1;
       }
     }
 
-    rowContainer.meta.width = getChildrenSum(rowContainer.children, 'width', root);
+    rowContainer.meta.width = getChildrenSum(
+      rowContainer.children,
+      'width',
+      root,
+    );
   });
 }
 
-export default function (dashboard) {
+export default function(dashboard) {
   const positions = [];
 
   // position data clean up. some dashboard didn't have position_json
   let { position_json } = dashboard;
   const posDict = {};
   if (Array.isArray(position_json)) {
-    position_json.forEach((position) => {
+    position_json.forEach(position => {
       posDict[position.slice_id] = position;
     });
   } else {
     position_json = [];
   }
 
-  const lastRowId = Math.max(0, Math.max.apply(null,
-    position_json.map(pos => (pos.row + pos.size_y))));
+  const lastRowId = Math.max(
+    0,
+    Math.max.apply(null, position_json.map(pos => pos.row + pos.size_y)),
+  );
   let newSliceCounter = 0;
-  dashboard.slices.forEach((slice) => {
+  dashboard.slices.forEach(slice => {
     const sliceId = slice.slice_id;
     let pos = posDict[sliceId];
     if (!pos) {
@@ -284,7 +315,7 @@ export default function (dashboard) {
         size_y: 16,
         slice_id: String(sliceId),
       };
-      newSliceCounter++;
+      newSliceCounter += 1;
     }
 
     positions.push(pos);
@@ -292,7 +323,6 @@ export default function (dashboard) {
 
   const root = {
     [DASHBOARD_ROOT_ID]: {
-      version: 'v2',
       type: DASHBOARD_ROOT_TYPE,
       id: DASHBOARD_ROOT_ID,
       children: [DASHBOARD_GRID_ID],
@@ -310,13 +340,12 @@ export default function (dashboard) {
   doConvert(positions, 0, root[DASHBOARD_GRID_ID], root);
 
   // remove row's width/height and col's height
-  Object.values(root).forEach((item) => {
+  Object.values(root).forEach(item => {
     if (ROW_TYPE === item.type) {
       const meta = item.meta;
       delete meta.width;
     }
   });
 
-  // console.log(JSON.stringify(root));
   return root;
 }

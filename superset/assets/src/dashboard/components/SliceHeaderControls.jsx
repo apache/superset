@@ -23,14 +23,23 @@ const defaultProps = {
   toggleExpandSlice: () => ({}),
   exploreChart: () => ({}),
   exportCSV: () => ({}),
+  cachedDttm: null,
+  isCached: false,
+  isExpanded: false,
 };
 
 class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
     super(props);
     this.exportCSV = this.props.exportCSV.bind(this, this.props.slice.slice_id);
-    this.exploreChart = this.props.exploreChart.bind(this, this.props.slice.slice_id);
-    this.toggleExpandSlice = this.props.toggleExpandSlice.bind(this, this.props.slice.slice_id);
+    this.exploreChart = this.props.exploreChart.bind(
+      this,
+      this.props.slice.slice_id,
+    );
+    this.toggleExpandSlice = this.props.toggleExpandSlice.bind(
+      this,
+      this.props.slice.slice_id,
+    );
     this.toggleControls = this.toggleControls.bind(this);
 
     this.state = {
@@ -48,9 +57,9 @@ class SliceHeaderControls extends React.PureComponent {
     const slice = this.props.slice;
     const isCached = this.props.isCached;
     const cachedWhen = moment.utc(this.props.cachedDttm).fromNow();
-    const refreshTooltip = isCached ?
-      t('Served from data cached %s . Click to force refresh.', cachedWhen) :
-      t('Force refresh data');
+    const refreshTooltip = isCached
+      ? t('Served from data cached %s . Click to force refresh.', cachedWhen)
+      : t('Force refresh data');
 
     // @TODO account for
     //  dashboard.dashboard.superset_can_explore
@@ -59,7 +68,9 @@ class SliceHeaderControls extends React.PureComponent {
       <DropdownButton
         title=""
         id={`slice_${slice.slice_id}-controls`}
-        className={cx('slice-header-controls-trigger', 'fa fa-ellipsis-v', { 'is-cached': isCached })}
+        className={cx('slice-header-controls-trigger', 'fa fa-ellipsis-v', {
+          'is-cached': isCached,
+        })}
         pullRight
         noCaret
       >
@@ -69,17 +80,17 @@ class SliceHeaderControls extends React.PureComponent {
           onClick={this.props.forceRefresh}
         />
 
-        {slice.description &&
+        {slice.description && (
           <ActionMenuItem
             text={t('Toggle chart description')}
             tooltip={t('Toggle chart description')}
             onClick={this.toggleExpandSlice}
           />
-        }
+        )}
 
         <ActionMenuItem
           text={t('Edit chart')}
-          tooltip={t('Edit the chart\'s properties')}
+          tooltip={t("Edit the chart's properties")}
           href={slice.edit_url}
           target="_blank"
         />
