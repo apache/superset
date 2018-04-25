@@ -339,7 +339,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
-        Grain('second', _('minute'), "DATE_TRUNC('SECOND', {col})", 'PT1S'),
+        Grain('second', _('second'), "DATE_TRUNC('SECOND', {col})", 'PT1S'),
         Grain('minute', _('minute'), "DATE_TRUNC('MINUTE', {col})", 'PT1M'),
         Grain('hour', _('hour'), "DATE_TRUNC('HOUR', {col})", 'PT1H'),
         Grain('day', _('day'), "DATE_TRUNC('DAY', {col})", 'P1D'),
