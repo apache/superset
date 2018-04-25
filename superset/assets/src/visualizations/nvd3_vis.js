@@ -301,8 +301,8 @@ export default function nvd3Vis(slice, payload) {
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[fd.entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(fd.x, formatter(p.x));
-          s += row(fd.y, formatter(p.y));
+          s += row(fd.x, xAxisFormatter(p.x));
+          s += row(fd.y, yAxisFormatter(p.y));
           s += row(fd.size, formatter(p.size));
           s += '</table>';
           return s;
