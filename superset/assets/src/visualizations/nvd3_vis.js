@@ -123,8 +123,10 @@ export default function nvd3Vis(slice, payload) {
 
   let width = slice.width();
   const fd = slice.formData;
+  
   let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
   const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+  
   const barchartWidth = function () {
     let bars;
     if (fd.bar_stacked) {
@@ -371,7 +373,7 @@ export default function nvd3Vis(slice, payload) {
       chart.xScale(d3.scale.log());
     }
 
-    let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
+    //let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
     if (isTimeSeries) {
       xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
       // In tooltips, always use the verbose time format
@@ -385,7 +387,7 @@ export default function nvd3Vis(slice, payload) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
-    const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
+    //const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
       if (fd.num_period_compare || fd.contribution) {
         // When computing a "Period Ratio" or "Contribution" selected, we force a percentage format
