@@ -123,7 +123,8 @@ export default function nvd3Vis(slice, payload) {
 
   let width = slice.width();
   const fd = slice.formData;
-
+  let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
+  const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
   const barchartWidth = function () {
     let bars;
     if (fd.bar_stacked) {
