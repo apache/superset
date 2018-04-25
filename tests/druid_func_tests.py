@@ -14,6 +14,7 @@ import superset.connectors.druid.models as models
 from superset.connectors.druid.models import (
     DruidColumn, DruidDatasource, DruidMetric,
 )
+from superset.exceptions import SupersetException
 
 
 def mock_metric(metric_name, is_postagg=False):
@@ -33,7 +34,7 @@ class DruidFuncTestCase(unittest.TestCase):
     def test_get_filters_ignores_invalid_filter_objects(self):
         filtr = {'col': 'col1', 'op': '=='}
         filters = [filtr]
-        self.assertEqual(None, DruidDatasource.get_filters(filters, []))
+        self.assertIsNone(DruidDatasource.get_filters(filters, []))
 
     def test_get_filters_constructs_filter_in(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['a', 'b', 'c']}
@@ -107,7 +108,7 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr1 = {'col': 'A', 'op': 'in', 'val': []}
         filtr2 = {'col': 'A', 'op': 'not in', 'val': []}
         res = DruidDatasource.get_filters([filtr1, filtr2], [])
-        self.assertEqual(None, res)
+        self.assertIsNone(res)
 
     def test_get_filters_constructs_equals_for_in_not_in_single_value(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['a']}
@@ -118,14 +119,15 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr = {'col': 'A', 'op': '==', 'val': ['a', 'b']}
         res = DruidDatasource.get_filters([filtr], [])
         self.assertEqual('a', res.filter['filter']['value'])
+
         filtr = {'col': 'A', 'op': '==', 'val': []}
         res = DruidDatasource.get_filters([filtr], [])
-        self.assertEqual('', res.filter['filter']['value'])
+        self.assertIsNone(res.filter['filter']['value'])
 
     def test_get_filters_handles_none_for_string_types(self):
         filtr = {'col': 'A', 'op': '==', 'val': None}
         res = DruidDatasource.get_filters([filtr], [])
-        self.assertEqual('', res.filter['filter']['value'])
+        self.assertIsNone(res)
 
     def test_get_filters_extracts_values_in_quotes(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['  "a" ']}
@@ -157,9 +159,9 @@ class DruidFuncTestCase(unittest.TestCase):
         col1 = DruidColumn(column_name='col1')
         col2 = DruidColumn(column_name='col2')
         ds.columns = [col1, col2]
-        all_metrics = []
+        aggs = []
         post_aggs = ['some_agg']
-        ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
+        ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = []
         metrics = ['metric1']
         ds.get_having_filters = Mock(return_value=[])
@@ -202,6 +204,7 @@ class DruidFuncTestCase(unittest.TestCase):
         ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
         groupby = []
         metrics = [{
+            'expressionType': 'SIMPLE',
             'column': {'type': 'DOUBLE', 'column_name': 'col1'},
             'aggregate': 'SUM',
             'label': 'My Adhoc Metric',
@@ -242,9 +245,9 @@ class DruidFuncTestCase(unittest.TestCase):
         col1 = DruidColumn(column_name='col1')
         col2 = DruidColumn(column_name='col2')
         ds.columns = [col1, col2]
-        all_metrics = ['metric1']
+        aggs = ['metric1']
         post_aggs = ['some_agg']
-        ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
+        ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = ['col1']
         metrics = ['metric1']
         ds.get_having_filters = Mock(return_value=[])
@@ -316,9 +319,9 @@ class DruidFuncTestCase(unittest.TestCase):
         col1 = DruidColumn(column_name='col1')
         col2 = DruidColumn(column_name='col2')
         ds.columns = [col1, col2]
-        all_metrics = []
+        aggs = []
         post_aggs = ['some_agg']
-        ds._metrics_and_post_aggs = Mock(return_value=(all_metrics, post_aggs))
+        ds._metrics_and_post_aggs = Mock(return_value=(aggs, post_aggs))
         groupby = ['col1', 'col2']
         metrics = ['metric1']
         ds.get_having_filters = Mock(return_value=[])
@@ -512,10 +515,10 @@ class DruidFuncTestCase(unittest.TestCase):
         depends_on('I', ['H', 'K'])
         depends_on('J', 'K')
         depends_on('K', ['m8', 'm9'])
-        all_metrics, saved_metrics, postaggs = DruidDatasource.metrics_and_post_aggs(
+        aggs, postaggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
-        expected_metrics = set(all_metrics)
-        self.assertEqual(9, len(all_metrics))
+        expected_metrics = set(aggs.keys())
+        self.assertEqual(9, len(aggs))
         for i in range(1, 10):
             expected_metrics.remove('m' + str(i))
         self.assertEqual(0, len(expected_metrics))
@@ -587,51 +590,47 @@ class DruidFuncTestCase(unittest.TestCase):
         }
 
         adhoc_metric = {
+            'expressionType': 'SIMPLE',
             'column': {'type': 'DOUBLE', 'column_name': 'value'},
             'aggregate': 'SUM',
             'label': 'My Adhoc Metric',
         }
 
         metrics = ['some_sum']
-        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert saved_metrics == ['some_sum']
-        assert adhoc_metrics == []
+        assert set(saved_metrics.keys()) == {'some_sum'}
         assert post_aggs == {}
 
         metrics = [adhoc_metric]
-        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert saved_metrics == []
-        assert adhoc_metrics == [adhoc_metric]
+        assert set(saved_metrics.keys()) == set([adhoc_metric['label']])
         assert post_aggs == {}
 
         metrics = ['some_sum', adhoc_metric]
-        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
-        assert saved_metrics == ['some_sum']
-        assert adhoc_metrics == [adhoc_metric]
+        assert set(saved_metrics.keys()) == {'some_sum', adhoc_metric['label']}
         assert post_aggs == {}
 
         metrics = ['quantile_p95']
-        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
         result_postaggs = set(['quantile_p95'])
-        assert saved_metrics == ['a_histogram']
-        assert adhoc_metrics == []
+        assert set(saved_metrics.keys()) == {'a_histogram'}
         assert set(post_aggs.keys()) == result_postaggs
 
         metrics = ['aCustomPostAgg']
-        saved_metrics, adhoc_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        saved_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics, metrics_dict)
 
         result_postaggs = set(['aCustomPostAgg'])
-        assert saved_metrics == ['aCustomMetric']
-        assert adhoc_metrics == []
+        assert set(saved_metrics.keys()) == {'aCustomMetric'}
         assert set(post_aggs.keys()) == result_postaggs
 
     def test_druid_type_from_adhoc_metric(self):
@@ -663,3 +662,157 @@ class DruidFuncTestCase(unittest.TestCase):
             'label': 'My Adhoc Metric',
         })
         assert(druid_type == 'cardinality')
+
+    def test_run_query_order_by_metrics(self):
+        client = Mock()
+        client.query_builder.last_query.query_dict = {'mock': 0}
+        from_dttm = Mock()
+        to_dttm = Mock()
+        ds = DruidDatasource(datasource_name='datasource')
+        ds.get_having_filters = Mock(return_value=[])
+        dim1 = DruidColumn(column_name='dim1')
+        dim2 = DruidColumn(column_name='dim2')
+        metrics_dict = {
+            'count1': DruidMetric(
+                metric_name='count1',
+                metric_type='count',
+                json=json.dumps({'type': 'count', 'name': 'count1'}),
+            ),
+            'sum1': DruidMetric(
+                metric_name='sum1',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum1'}),
+            ),
+            'sum2': DruidMetric(
+                metric_name='sum2',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum2'}),
+            ),
+            'div1': DruidMetric(
+                metric_name='div1',
+                metric_type='postagg',
+                json=json.dumps({
+                    'fn': '/',
+                    'type': 'arithmetic',
+                    'name': 'div1',
+                    'fields': [
+                        {
+                            'fieldName': 'sum1',
+                            'type': 'fieldAccess',
+                        },
+                        {
+                            'fieldName': 'sum2',
+                            'type': 'fieldAccess',
+                        },
+                    ],
+                }),
+            ),
+        }
+        ds.columns = [dim1, dim2]
+        ds.metrics = list(metrics_dict.values())
+
+        groupby = ['dim1']
+        metrics = ['count1']
+        granularity = 'all'
+        # get the counts of the top 5 'dim1's, order by 'sum1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='sum1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.topn.call_args_list[0][1]
+        self.assertEqual('dim1', qry_obj['dimension'])
+        self.assertEqual('sum1', qry_obj['metric'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertEqual({'count1', 'sum1'}, set(aggregations.keys()))
+        self.assertEqual(set(), set(post_aggregations.keys()))
+
+        # get the counts of the top 5 'dim1's, order by 'div1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='div1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.topn.call_args_list[1][1]
+        self.assertEqual('dim1', qry_obj['dimension'])
+        self.assertEqual('div1', qry_obj['metric'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertEqual({'count1', 'sum1', 'sum2'}, set(aggregations.keys()))
+        self.assertEqual({'div1'}, set(post_aggregations.keys()))
+
+        groupby = ['dim1', 'dim2']
+        # get the counts of the top 5 ['dim1', 'dim2']s, order by 'sum1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='sum1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.groupby.call_args_list[0][1]
+        self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
+        self.assertEqual('sum1', qry_obj['limit_spec']['columns'][0]['dimension'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertEqual({'count1', 'sum1'}, set(aggregations.keys()))
+        self.assertEqual(set(), set(post_aggregations.keys()))
+
+        # get the counts of the top 5 ['dim1', 'dim2']s, order by 'div1'
+        ds.run_query(
+            groupby, metrics, granularity, from_dttm, to_dttm,
+            timeseries_limit=5, timeseries_limit_metric='div1',
+            client=client, order_desc=True, filter=[],
+        )
+        qry_obj = client.groupby.call_args_list[1][1]
+        self.assertEqual({'dim1', 'dim2'}, set(qry_obj['dimensions']))
+        self.assertEqual('div1', qry_obj['limit_spec']['columns'][0]['dimension'])
+        aggregations = qry_obj['aggregations']
+        post_aggregations = qry_obj['post_aggregations']
+        self.assertEqual({'count1', 'sum1', 'sum2'}, set(aggregations.keys()))
+        self.assertEqual({'div1'}, set(post_aggregations.keys()))
+
+    def test_get_aggregations(self):
+        ds = DruidDatasource(datasource_name='datasource')
+        metrics_dict = {
+            'sum1': DruidMetric(
+                metric_name='sum1',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum1'}),
+            ),
+            'sum2': DruidMetric(
+                metric_name='sum2',
+                metric_type='doubleSum',
+                json=json.dumps({'type': 'doubleSum', 'name': 'sum2'}),
+            ),
+            'div1': DruidMetric(
+                metric_name='div1',
+                metric_type='postagg',
+                json=json.dumps({
+                    'fn': '/',
+                    'type': 'arithmetic',
+                    'name': 'div1',
+                    'fields': [
+                        {
+                            'fieldName': 'sum1',
+                            'type': 'fieldAccess',
+                        },
+                        {
+                            'fieldName': 'sum2',
+                            'type': 'fieldAccess',
+                        },
+                    ],
+                }),
+            ),
+        }
+        metric_names = ['sum1', 'sum2']
+        aggs = ds.get_aggregations(metrics_dict, metric_names)
+        expected_agg = {name: metrics_dict[name].json_obj for name in metric_names}
+        self.assertEqual(expected_agg, aggs)
+
+        metric_names = ['sum1', 'col1']
+        self.assertRaises(
+            SupersetException, ds.get_aggregations, metrics_dict, metric_names)
+
+        metric_names = ['sum1', 'div1']
+        self.assertRaises(
+            SupersetException, ds.get_aggregations, metrics_dict, metric_names)

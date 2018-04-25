@@ -3,9 +3,9 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import ExploreChartHeader from '../../../../javascripts/explore/components/ExploreChartHeader';
-import ExploreActionButtons from '../../../../javascripts/explore/components/ExploreActionButtons';
-import EditableTitle from '../../../../javascripts/components/EditableTitle';
+import ExploreChartHeader from '../../../../src/explore/components/ExploreChartHeader';
+import ExploreActionButtons from '../../../../src/explore/components/ExploreActionButtons';
+import EditableTitle from '../../../../src/components/EditableTitle';
 
 const mockProps = {
   actions: {},

@@ -61,6 +61,7 @@ GB_RESULT_SET = [
         'timestamp': '2012-01-01T00:00:00.000Z',
         'event': {
             'dim1': 'Canada',
+            'dim2': 'boy',
             'metric1': 12345678,
         },
     },
@@ -69,6 +70,7 @@ GB_RESULT_SET = [
         'timestamp': '2012-01-01T00:00:00.000Z',
         'event': {
             'dim1': 'USA',
+            'dim2': 'girl',
             'metric1': 12345678 / 2,
         },
     },
@@ -136,8 +138,8 @@ class DruidTests(SupersetTestCase):
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
 
-        resp = self.get_resp('/superset/explore/druid/{}/'.format(
-            datasource_id))
+        resp = self.get_resp(
+            '/superset/explore/druid/{}/'.format(datasource_id))
         self.assertIn('test_datasource', resp)
         form_data = {
             'viz_type': 'table',
@@ -165,7 +167,7 @@ class DruidTests(SupersetTestCase):
             'row_limit': 5000,
             'include_search': 'false',
             'metrics': ['count'],
-            'groupby': ['dim1', 'dim2d'],
+            'groupby': ['dim1', 'dim2'],
             'force': 'true',
         }
         # two groupby
@@ -376,13 +378,19 @@ class DruidTests(SupersetTestCase):
                     'double{}'.format(agg.capitalize()),
                 )
 
-            # Augment a metric.
-            metadata = SEGMENT_METADATA[:]
-            metadata[0]['columns']['metric1']['type'] = 'LONG'
-            instance = PyDruid.return_value
-            instance.segment_metadata.return_value = metadata
-            cluster.refresh_datasources()
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_refresh_metadata_augment_type(self, PyDruid):
+        self.login(username='admin')
+        cluster = self.get_cluster(PyDruid)
+        cluster.refresh_datasources()
 
+        metadata = SEGMENT_METADATA[:]
+        metadata[0]['columns']['metric1']['type'] = 'LONG'
+        instance = PyDruid.return_value
+        instance.segment_metadata.return_value = metadata
+        cluster.refresh_datasources()
+
+        for i, datasource in enumerate(cluster.datasources):
             metrics = (
                 db.session.query(DruidMetric)
                 .filter(DruidMetric.datasource_id == datasource.id)
@@ -396,6 +404,37 @@ class DruidTests(SupersetTestCase):
                     metric.json_obj['type'],
                     'long{}'.format(agg.capitalize()),
                 )
+
+    @patch('superset.connectors.druid.models.PyDruid')
+    def test_refresh_metadata_augment_verbose_name(self, PyDruid):
+        self.login(username='admin')
+        cluster = self.get_cluster(PyDruid)
+        cluster.refresh_datasources()
+
+        for i, datasource in enumerate(cluster.datasources):
+            metrics = (
+                db.session.query(DruidMetric)
+                .filter(DruidMetric.datasource_id == datasource.id)
+                .filter(DruidMetric.metric_name.like('%__metric1'))
+            )
+
+            for metric in metrics:
+                metric.verbose_name = metric.metric_name
+
+            db.session.commit()
+
+        # The verbose name should not change during a refresh.
+        cluster.refresh_datasources()
+
+        for i, datasource in enumerate(cluster.datasources):
+            metrics = (
+                db.session.query(DruidMetric)
+                .filter(DruidMetric.datasource_id == datasource.id)
+                .filter(DruidMetric.metric_name.like('%__metric1'))
+            )
+
+            for metric in metrics:
+                self.assertEqual(metric.verbose_name, metric.metric_name)
 
     def test_urls(self):
         cluster = self.get_test_cluster_obj()

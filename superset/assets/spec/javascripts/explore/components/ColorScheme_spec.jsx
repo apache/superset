@@ -6,8 +6,8 @@ import { mount } from 'enzyme';
 import { Creatable } from 'react-select';
 
 import ColorSchemeControl from
-  '../../../../javascripts/explore/components/controls/ColorSchemeControl';
-import { ALL_COLOR_SCHEMES } from '../../../../javascripts/modules/colors';
+  '../../../../src/explore/components/controls/ColorSchemeControl';
+import { ALL_COLOR_SCHEMES } from '../../../../src/modules/colors';
 
 const defaultProps = {
   options: Object.keys(ALL_COLOR_SCHEMES).map(s => ([s, s])),

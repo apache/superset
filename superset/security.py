@@ -349,9 +349,14 @@ class SupersetSecurityManager(SecurityManager):
                     self.is_alpha_only(pvm))
 
     def is_sql_lab_pvm(self, pvm):
-        return pvm.view_menu.name in {'SQL Lab'} or pvm.permission.name in {
-            'can_sql_json', 'can_csv', 'can_search_queries',
-        }
+        return (
+            pvm.view_menu.name in {
+                'SQL Lab', 'SQL Editor', 'Query Search', 'Saved Queries',
+            } or
+            pvm.permission.name in {
+                'can_sql_json', 'can_csv', 'can_search_queries', 'can_sqllab_viz',
+                'can_sqllab',
+            })
 
     def is_granter_pvm(self, pvm):
         return pvm.permission.name in {

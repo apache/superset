@@ -7,9 +7,9 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import App from '../../../javascripts/SqlLab/components/App';
-import TabbedSqlEditors from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
-import { sqlLabReducer } from '../../../javascripts/SqlLab/reducers';
+import App from '../../../src/SqlLab/components/App';
+import TabbedSqlEditors from '../../../src/SqlLab/components/TabbedSqlEditors';
+import { sqlLabReducer } from '../../../src/SqlLab/reducers';
 
 describe('App', () => {
   const middlewares = [thunk];

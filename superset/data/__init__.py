@@ -1301,7 +1301,7 @@ def load_deck_dash():
         "row_limit": 5000,
         "since": None,
         "size": "count",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "until": None,
         "viewport": {
             "bearing": -4.952916738791771,
@@ -1359,7 +1359,7 @@ def load_deck_dash():
         },
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Screen Grid slice")
@@ -1408,7 +1408,7 @@ def load_deck_dash():
         "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Hex slice")
@@ -1457,7 +1457,7 @@ def load_deck_dash():
         "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Grid slice")
@@ -1474,62 +1474,62 @@ def load_deck_dash():
     polygon_tbl = db.session.query(TBL) \
                     .filter_by(table_name='sf_population_polygons').first()
     slice_data = {
-            "datasource": "11__table",
-            "viz_type": "deck_polygon",
-            "slice_id": 41,
-            "granularity_sqla": None,
-            "time_grain_sqla": None,
-            "since": None,
-            "until": None,
-            "line_column": "contour",
-            "line_type": "json",
-            "mapbox_style": "mapbox://styles/mapbox/light-v9",
-            "viewport": {
-                "longitude": -122.43388541747726,
-                "latitude": 37.752020331384834,
-                "zoom": 11.133995608594631,
-                "bearing": 37.89506450385642,
-                "pitch": 60,
-                "width": 667,
-                "height": 906,
-                "altitude": 1.5,
-                "maxZoom": 20,
-                "minZoom": 0,
-                "maxPitch": 60,
-                "minPitch": 0,
-                "maxLatitude": 85.05113,
-                "minLatitude": -85.05113
-            },
-            "reverse_long_lat": False,
-            "fill_color_picker": {
-                "r": 3,
-                "g": 65,
-                "b": 73,
-                "a": 1
-            },
-            "stroke_color_picker": {
-                "r": 0,
-                "g": 122,
-                "b": 135,
-                "a": 1
-            },
-            "filled": True,
-            "stroked": False,
-            "extruded": True,
-            "point_radius_scale": 100,
-            "js_columns": [
-                "population",
-                "area"
-            ],
-            "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
-             d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
-             return d;\n}",
-            "js_tooltip": "",
-            "js_onclick_href": "",
-            "where": "",
-            "having": "",
-            "filters": []
-        }
+        "datasource": "11__table",
+        "viz_type": "deck_polygon",
+        "slice_id": 41,
+        "granularity_sqla": None,
+        "time_grain_sqla": None,
+        "since": None,
+        "until": None,
+        "line_column": "contour",
+        "line_type": "json",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "longitude": -122.43388541747726,
+            "latitude": 37.752020331384834,
+            "zoom": 11.133995608594631,
+            "bearing": 37.89506450385642,
+            "pitch": 60,
+            "width": 667,
+            "height": 906,
+            "altitude": 1.5,
+            "maxZoom": 20,
+            "minZoom": 0,
+            "maxPitch": 60,
+            "minPitch": 0,
+            "maxLatitude": 85.05113,
+            "minLatitude": -85.05113
+        },
+        "reverse_long_lat": False,
+        "fill_color_picker": {
+            "r": 3,
+            "g": 65,
+            "b": 73,
+            "a": 1
+        },
+        "stroke_color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "filled": True,
+        "stroked": False,
+        "extruded": True,
+        "point_radius_scale": 100,
+        "js_columns": [
+            "population",
+            "area"
+        ],
+        "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
+         d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
+         return d;\n}",
+        "js_tooltip": "",
+        "js_onclick_href": "",
+        "where": "",
+        "having": "",
+        "filters": []
+    }
 
     print("Creating Polygon slice")
     slc = Slice(
@@ -1543,52 +1543,52 @@ def load_deck_dash():
     slices.append(slc)
 
     slice_data = {
-            "datasource": "10__table",
-            "viz_type": "deck_arc",
-            "slice_id": 42,
-            "granularity_sqla": "dttm",
-            "time_grain_sqla": "Time Column",
-            "since": None,
-            "until": None,
-            "start_spatial": {
-                "type": "latlong",
-                "latCol": "LATITUDE",
-                "lonCol": "LONGITUDE"
-            },
-            "end_spatial": {
-                "type": "latlong",
-                "latCol": "LATITUDE_DEST",
-                "lonCol": "LONGITUDE_DEST"
-            },
-            "row_limit": 5000,
-            "mapbox_style": "mapbox://styles/mapbox/light-v9",
-            "viewport": {
-                "altitude": 1.5,
-                "bearing": 8.546256357301871,
-                "height": 642,
-                "latitude": 44.596651438714254,
-                "longitude": -91.84340711201104,
-                "maxLatitude": 85.05113,
-                "maxPitch": 60,
-                "maxZoom": 20,
-                "minLatitude": -85.05113,
-                "minPitch": 0,
-                "minZoom": 0,
-                "pitch": 60,
-                "width": 997,
-                "zoom": 2.929837070560775
-            },
-            "color_picker": {
-                "r": 0,
-                "g": 122,
-                "b": 135,
-                "a": 1
-            },
-            "stroke_width": 1,
-            "where": "",
-            "having": "",
-            "filters": []
-        }
+        "datasource": "10__table",
+        "viz_type": "deck_arc",
+        "slice_id": 42,
+        "granularity_sqla": "dttm",
+        "time_grain_sqla": "Time Column",
+        "since": None,
+        "until": None,
+        "start_spatial": {
+            "type": "latlong",
+            "latCol": "LATITUDE",
+            "lonCol": "LONGITUDE"
+        },
+        "end_spatial": {
+            "type": "latlong",
+            "latCol": "LATITUDE_DEST",
+            "lonCol": "LONGITUDE_DEST"
+        },
+        "row_limit": 5000,
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "altitude": 1.5,
+            "bearing": 8.546256357301871,
+            "height": 642,
+            "latitude": 44.596651438714254,
+            "longitude": -91.84340711201104,
+            "maxLatitude": 85.05113,
+            "maxPitch": 60,
+            "maxZoom": 20,
+            "minLatitude": -85.05113,
+            "minPitch": 0,
+            "minZoom": 0,
+            "pitch": 60,
+            "width": 997,
+            "zoom": 2.929837070560775
+        },
+        "color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "stroke_width": 1,
+        "where": "",
+        "having": "",
+        "filters": []
+    }
 
     print("Creating Arc slice")
     slc = Slice(

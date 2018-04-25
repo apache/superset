@@ -19,6 +19,7 @@ from pandas.core.common import _maybe_box_datetimelike
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from past.builtins import basestring
 
+from superset.utils import JS_MAX_INTEGER
 
 INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
@@ -51,9 +52,17 @@ class SupersetDataFrame(object):
     @property
     def data(self):
         # work around for https://github.com/pandas-dev/pandas/issues/18372
-        return [dict((k, _maybe_box_datetimelike(v))
-                     for k, v in zip(self.__df.columns, np.atleast_1d(row)))
+        data = [dict((k, _maybe_box_datetimelike(v))
+                for k, v in zip(self.__df.columns, np.atleast_1d(row)))
                 for row in self.__df.values]
+        for d in data:
+            for k, v in list(d.items()):
+                # if an int is too big for Java Script to handle
+                # convert it to a string
+                if isinstance(v, int):
+                    if abs(v) > JS_MAX_INTEGER:
+                        d[k] = str(v)
+        return data
 
     @classmethod
     def db_type(cls, dtype):

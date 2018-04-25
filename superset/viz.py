@@ -17,6 +17,7 @@ import inspect
 from itertools import product
 import logging
 import math
+import re
 import traceback
 import uuid
 
@@ -35,7 +36,7 @@ from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
 from superset import app, cache, get_manifest_file, utils
-from superset.utils import DTTM_ALIAS, merge_extra_filters
+from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
 config = app.config
@@ -87,6 +88,17 @@ class BaseViz(object):
         self._any_cache_key = None
         self._any_cached_dttm = None
         self._extra_chart_data = None
+
+    @staticmethod
+    def handle_js_int_overflow(data):
+        for d in data.get('records', dict()):
+            for k, v in list(d.items()):
+                if isinstance(v, int):
+                    # if an int is too big for Java Script to handle
+                    # convert it to a string
+                    if abs(v) > JS_MAX_INTEGER:
+                        d[k] = str(v)
+        return data
 
     def run_extra_queries(self):
         """Lyfecycle method to use when more than one query is needed
@@ -170,10 +182,20 @@ class BaseViz(object):
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
+
+            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
             df = df.fillna(fillna)
         return df
+
+    @staticmethod
+    def df_metrics_to_num(df, metrics):
+        """Converting metrics to numeric when pandas.read_sql cannot"""
+        for col, dtype in df.dtypes.items():
+            if dtype.type == np.object_ and col in metrics:
+                df[col] = pd.to_numeric(df[col])
 
     def query_obj(self):
         """Building a query object"""
@@ -258,6 +280,8 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
+        if self.form_data.get('cache_timeout'):
+            return int(self.form_data.get('cache_timeout'))
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
         if (
@@ -505,10 +529,13 @@ class TableViz(BaseViz):
             ):
                 del df[m]
 
-        return dict(
-            records=df.to_dict(orient='records'),
-            columns=list(df.columns),
-        )
+        data = self.handle_js_int_overflow(
+            dict(
+                records=df.to_dict(orient='records'),
+                columns=list(df.columns),
+            ))
+
+        return data
 
     def json_dumps(self, obj, sort_keys=False):
         if self.form_data.get('all_columns'):
@@ -708,12 +735,18 @@ class CalHeatmapViz(BaseViz):
     def get_data(self, df):
         form_data = self.form_data
 
-        df.columns = ['timestamp', 'metric']
-        timestamps = {str(obj['timestamp'].value / 10**9):
-                      obj.get('metric') for obj in df.to_dict('records')}
+        data = {}
+        records = df.to_dict('records')
+        for metric in self.metrics:
+            data[metric] = {
+                str(obj[DTTM_ALIAS].value / 10**9): obj.get(metric)
+                for obj in records
+            }
 
         start = utils.parse_human_datetime(form_data.get('since'))
         end = utils.parse_human_datetime(form_data.get('until'))
+        if not start or not end:
+            raise Exception('Please provide both time bounds (Since and Until)')
         domain = form_data.get('domain_granularity')
         diff_delta = rdelta.relativedelta(end, start)
         diff_secs = (end - start).total_seconds()
@@ -730,7 +763,7 @@ class CalHeatmapViz(BaseViz):
             range_ = diff_secs // (60 * 60) + 1
 
         return {
-            'timestamps': timestamps,
+            'data': data,
             'start': start,
             'domain': domain,
             'subdomain': form_data.get('subdomain_granularity'),
@@ -738,9 +771,10 @@ class CalHeatmapViz(BaseViz):
         }
 
     def query_obj(self):
-        qry = super(CalHeatmapViz, self).query_obj()
-        qry['metrics'] = [self.form_data['metric']]
-        return qry
+        d = super(CalHeatmapViz, self).query_obj()
+        fd = self.form_data
+        d['metrics'] = fd.get('metrics')
+        return d
 
 
 class NVD3Viz(BaseViz):
@@ -1023,17 +1057,23 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ys = series[name]
             if df[name].dtype.kind not in 'biufc':
                 continue
-            series_title = name
+            if isinstance(name, list):
+                series_title = [str(title) for title in name]
+            elif isinstance(name, tuple):
+                series_title = tuple(str(title) for title in name)
+            else:
+                series_title = str(name)
             if (
                     isinstance(series_title, (list, tuple)) and
                     len(series_title) > 1 and
                     len(self.metrics) == 1):
                 # Removing metric from series name if only one metric
                 series_title = series_title[1:]
-            if isinstance(series_title, string_types):
-                series_title += title_suffix
-            elif title_suffix and isinstance(series_title, (list, tuple)):
-                series_title = text_type(series_title[-1]) + title_suffix
+            if title_suffix:
+                if isinstance(series_title, string_types):
+                    series_title = (series_title, title_suffix)
+                elif isinstance(series_title, (list, tuple)):
+                    series_title = series_title + (title_suffix,)
 
             values = []
             for ds in df.index:
@@ -1060,7 +1100,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         df = df.fillna(0)
         if fd.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
-
         if not aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
@@ -1333,15 +1372,31 @@ class HistogramViz(BaseViz):
         d = super(HistogramViz, self).query_obj()
         d['row_limit'] = self.form_data.get(
             'row_limit', int(config.get('VIZ_ROW_LIMIT')))
-        numeric_column = self.form_data.get('all_columns_x')
-        if numeric_column is None:
-            raise Exception(_('Must have one numeric column specified'))
-        d['columns'] = [numeric_column]
+        numeric_columns = self.form_data.get('all_columns_x')
+        if numeric_columns is None:
+            raise Exception(_('Must have at least one numeric column specified'))
+        self.columns = numeric_columns
+        d['columns'] = numeric_columns + self.groupby
+        # override groupby entry to avoid aggregation
+        d['groupby'] = []
         return d
 
     def get_data(self, df):
         """Returns the chart data"""
-        chart_data = df[df.columns[0]].values.tolist()
+        chart_data = []
+        if len(self.groupby) > 0:
+            groups = df.groupby(self.groupby)
+        else:
+            groups = [((), df)]
+        for keys, data in groups:
+            if isinstance(keys, str):
+                keys = (keys,)
+            # removing undesirable characters
+            keys = [re.sub(r'\W+', r'_', k) for k in keys]
+            chart_data.extend([{
+                'key': '__'.join([c] + keys),
+                'values': data[c].tolist()}
+                for c in self.columns])
         return chart_data
 
 
@@ -1384,7 +1439,7 @@ class DistributionBarViz(DistributionPieViz):
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         chart_data = []
-        for name, ys in pt.iteritems():
+        for name, ys in pt.items():
             if pt[name].dtype.kind not in 'biufc' or name in self.groupby:
                 continue
             if isinstance(name, string_types):
@@ -1395,7 +1450,7 @@ class DistributionBarViz(DistributionPieViz):
                 l = [str(s) for s in name[1:]]  # noqa: E741
                 series_title = ', '.join(l)
             values = []
-            for i, v in ys.iteritems():
+            for i, v in ys.items():
                 x = i
                 if isinstance(x, (tuple, list)):
                     x = ', '.join([text_type(s) for s in x])
@@ -1988,9 +2043,11 @@ class BaseDeckGLViz(BaseViz):
         if fd.get('js_columns'):
             gb += fd.get('js_columns')
         metrics = self.get_metrics()
+        gb = list(set(gb))
         if metrics:
             d['groupby'] = gb
-            d['metrics'] = self.get_metrics()
+            d['metrics'] = metrics
+            d['columns'] = []
         else:
             d['columns'] = gb
 
@@ -2048,6 +2105,7 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def get_properties(self, d):
         return {
+            'metric': d.get(self.metric),
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
@@ -2071,11 +2129,18 @@ class DeckScreengrid(BaseDeckGLViz):
     viz_type = 'deck_screengrid'
     verbose_name = _('Deck.gl - Screen Grid')
     spatial_control_keys = ['spatial']
+    is_timeseries = True
+
+    def query_obj(self):
+        fd = self.form_data
+        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
+        return super(DeckScreengrid, self).query_obj()
 
     def get_properties(self, d):
         return {
             'position': d.get('spatial'),
             'weight': d.get(self.metric) or 1,
+            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
         }
 
 
