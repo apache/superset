@@ -3690,3 +3690,22 @@ msgstr ""
 #: superset/views/sql_lab.py:79
 msgid "Saved Queries"
 msgstr "Requêtes sauvegardées"
+
+#: superset/templates/appbuilder/navbar_menu.html
+#: superset/templates/appbuilder/navbar.html:27
+msgid "List Users"
+msgstr "Lister les utilisateurs"
+
+#: superset/templates/appbuilder/navbar_menu.html
+#: superset/templates/appbuilder/navbar.html:27
+msgid "List Roles"
+msgstr "Lister les rôles"
+
+#: superset/templates/appbuilder/navbar_menu.html
+#: superset/templates/appbuilder/navbar.html:27
+msgid "User's Statistics"
+msgstr "Statistiques utilisateurs"
+
+#: superset/views/base.py:127
+msgid "Export to YAML"
+msgstr "Exporter en YAML"
