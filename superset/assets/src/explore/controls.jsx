@@ -796,6 +796,78 @@ export const controls = {
     'domain_granularity. Should be larger or equal to Time Grain'),
   },
 
+  start_time_column: {
+    type: 'SelectControl',
+    label: t('Start Time Column'),
+    description: "The start_time column for the visualization.",
+    default: null,
+    clearable: false,
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    mapStateToProps: (state) => {
+      const newState = {};
+      if (state.datasource) {
+        newState.options = state.datasource.columns.filter(c => c.is_dttm);
+      }
+      return newState;
+    }
+  },
+
+  end_time_column: {
+    type: 'SelectControl',
+    label: t('End Time Column'),
+    description: "The end_time column for the visualization.",
+    default: null,
+    clearable: false,
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    mapStateToProps: (state) => {
+      const newState = {};
+      if (state.datasource) {
+        newState.options = state.datasource.columns.filter(c => c.is_dttm);
+      }
+      return newState;
+    }
+  },
+
+  task_column: {
+    type: 'SelectControl',
+    label: t('Task Column'),
+    description: "The task / taskname column for the visualization.",
+    default: null,
+    clearable: false,
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    mapStateToProps: (state) => {
+      const newState = {};
+      if (state.datasource) {
+        newState.options = state.datasource.columns.filter(c => c.groupby);
+      }
+      return newState;
+    }
+  },
+
+  status_column: {
+    type: 'SelectControl',
+    label: t('Status Column'),
+    description: "The status column of tasks for the visualization.",
+    default: null,
+    clearable: false,
+    optionRenderer: c => <ColumnOption column={c} showType />,
+    valueRenderer: c => <ColumnOption column={c} />,
+    valueKey: 'column_name',
+    mapStateToProps: (state) => {
+      const newState = {};
+      if (state.datasource) {
+        newState.options = state.datasource.columns.filter(c => c.groupby);
+      }
+      return newState;
+    }
+  },
+
   link_length: {
     type: 'SelectControl',
     freeForm: true,

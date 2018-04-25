@@ -777,6 +777,55 @@ class CalHeatmapViz(BaseViz):
         return d
 
 
+class GanttViz(BaseViz):
+
+    """Gantt Chart Visualization"""
+
+    viz_type = 'gantt'
+    verbose_name = _('Gantt Chart')
+    credits = (
+        '<a href=https://github.com/dk8996/Gantt-Chart</a>')
+    is_timeseries = True
+
+    def get_data(self, df):
+        fd = self.form_data
+
+        data = df.to_dict('records')
+
+        start = utils.parse_human_datetime(fd.get('since'))
+        end = utils.parse_human_datetime(fd.get('until'))
+        if not start or not end:
+            raise Exception('Please provide both time bounds (Since and Until)')
+        diff_delta = rdelta.relativedelta(end, start)
+        diff_secs = (end - start).total_seconds()
+
+        task_column = fd.get('task_column')
+        status_column = fd.get('status_column')
+        start_time_column = fd.get('start_time_column')
+        end_time_column = fd.get('end_time_column')
+
+        return {
+            'data': data,
+            'start': start,
+            'end': end,
+            'task_column': task_column,
+            'status_column': status_column,
+            'start_time_column': start_time_column,
+            'end_time_column': end_time_column,
+        }
+
+    def query_obj(self):
+        d = super(GanttViz, self).query_obj()
+        fd = self.form_data
+        d['groupby'] = [
+            fd.get('task_column'),
+            fd.get('status_column'),
+            fd.get('start_time_column'),
+            fd.get('end_time_column'),
+        ]
+        return d
+
+
 class NVD3Viz(BaseViz):
 
     """Base class for all nvd3 vizs"""

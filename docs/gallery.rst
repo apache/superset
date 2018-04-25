@@ -33,6 +33,10 @@ Visualizations Gallery
    :scale: 25 %
 
 
+.. image:: images/viz_thumbnails/gantt.png
+   :scale: 25 %
+
+
 .. image:: images/viz_thumbnails/chord.png
    :scale: 25 %
 
@@ -187,4 +191,3 @@ Visualizations Gallery
 
 .. image:: images/viz_thumbnails/world_map.png
    :scale: 25 %
-

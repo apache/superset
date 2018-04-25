@@ -1,0 +1,94 @@
+.gantt-chart-container {
+    pointer-events: all;
+}
+
+.wf-gantt-bar {
+    cursor: default !important;
+}
+
+.wf-gantt-x-axis {
+    pointer-events: all;
+}
+
+.gantt-chart .x.axis .tick line {
+    stroke: #a1a1a1;
+    stroke-dasharray: 2, 5;
+}
+
+.gantt-chart .y.axis .tick text {
+    fill: #434343;
+    font-weight: bold;
+}
+
+.gantt-chart .y.axis .domain {
+    visibility: hidden;
+}
+
+.wf-gantt-chart {
+    max-height: 550px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+
+/* Gant chart styles*/
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #8994a0;
+    shape-rendering: crispEdges;
+}
+
+.wf-legend-item-text {
+    font-size: 12px;
+}
+
+.pane {
+    fill: none;
+    pointer-events: all;
+}
+
+.gantt-chart-container {
+    pointer-events: all;
+}
+
+.wf-gantt-bar {
+    cursor: default !important;
+}
+
+.wf-gantt-x-axis {
+    pointer-events: all;
+}
+
+.gantt-chart .x.axis .tick line {
+    stroke: #a1a1a1;
+    stroke-dasharray: 2, 5;
+}
+
+.gantt-chart .y.axis .tick text {
+    fill: #434343;
+    font-weight: bold;
+}
+
+.gantt-chart .y.axis .domain {
+    visibility: hidden;
+}
+
+.wf-gantt-chart {
+    max-height: 550px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+.c3-tooltip-container {
+  background-color: #fff;
+  border: 1px solid #999;
+  border-radius: 2px;
+  padding: 0.2em;
+}
+
+.c3-tooltip-container th,td {
+  font-size: 80%;
+  padding: 0.2em;
+}

@@ -976,6 +976,60 @@ def load_random_time_series_data():
     merge_slice(slc)
 
 
+def load_task_data():
+    with open(os.path.join(DATA_FOLDER, 'tasks.json')) as f:
+        pdf = pd.read_json(f)
+    pdf.startDate = pd.to_datetime(pdf.startDate)
+    pdf.endDate = pd.to_datetime(pdf.endDate)
+    pdf.to_sql(
+        'tasks',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'endDate': DateTime,
+            'startDate': DateTime,
+            'status': String(20),
+            'taskName': String(20)
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table [tasks] reference")
+    obj = db.session.query(TBL).filter_by(table_name='tasks').first()
+    if not obj:
+        obj = TBL(table_name='tasks')
+    obj.main_dttm_col = 'startDate'
+    obj.database = utils.get_or_create_main_db()
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "granularity": "hour",
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "7 years ago",
+        "until": "now",
+        "metric": "count",
+        "where": "",
+        "viz_type": "gantt",
+        "start_time": "startDate",
+        "end_time": "endDate",
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Gantt Chart",
+        viz_type='gantt',
+        datasource_type='table',
+        datasource_id=tbl.id,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+
+
 def load_country_map_data():
     """Loading data for map with country map"""
     csv_path = os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv')

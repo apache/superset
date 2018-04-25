@@ -1018,6 +1018,37 @@ export const visTypes = {
     },
   },
 
+  gantt: {
+    label: t('Gantt Chart'),
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['task_column', 'status_column'],
+          ['start_time_column', 'end_time_column'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_time_format'],
+          ['show_legend', null],
+        ],
+      },
+    ],
+    controlOverrides: {
+      x_axis_time_format: {
+        label: t('Time Format'),
+      },
+      show_values: {
+        default: false,
+      },
+    },
+  },
+
   box_plot: {
     label: t('Box Plot'),
     controlPanelSections: [

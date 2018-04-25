@@ -184,6 +184,11 @@ msgstr ""
 msgid "Calendar Heatmap"
 msgstr ""
 
+#: superset/assets/javascripts/explore/stores/visTypes.js:???
+#: superset/viz.py:???
+msgid "Gantt Chart"
+msgstr ""
+
 #: superset/assets/javascripts/explore/stores/visTypes.js:502
 #: superset/viz.py:621
 msgid "Box Plot"
@@ -5285,4 +5290,3 @@ msgstr ""
 
 #~ msgid "Select [%s]"
 #~ msgstr ""
-

@@ -185,12 +185,21 @@ def load_examples(load_test_data):
     print('Loading [BART lines]')
     data.load_bart_lines()
 
+    print('Loading [Task data]')
+    data.load_task_data()
+
     if load_test_data:
         print('Loading [Unicode test data]')
         data.load_unicode_test_data()
 
     print('Loading DECK.gl demo')
     data.load_deck_dash()
+
+
+# TODO: remove after DEV
+@manager.command
+def load_tasks():
+    data.load_task_data()
 
 
 @manager.option(
@@ -232,7 +241,7 @@ def refresh_druid(datasource, merge):
          'files to import (*.yaml or *.yml)')
 @manager.option(
     '-s', '--sync', dest='sync', default='',
-    help='comma seperated list of element types to synchronize '
+    help='comma separated list of element types to synchronize '
          'e.g. "metrics,columns" deletes metrics and columns in the DB '
          'that are not specified in the YAML file')
 @manager.option(
