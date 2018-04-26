@@ -4,10 +4,10 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import { chart as initChart } from '../../../javascripts/chart/chartReducer';
-import Chart from '../../../javascripts/chart/Chart';
-import ChartBody from '../../../javascripts/chart/ChartBody';
-import Loading from '../../../javascripts/components/Loading';
+import { chart as initChart } from '../../../src/chart/chartReducer';
+import Chart from '../../../src/chart/Chart';
+import ChartBody from '../../../src/chart/ChartBody';
+import Loading from '../../../src/components/Loading';
 
 describe('Chart', () => {
   const chart = {

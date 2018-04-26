@@ -7,13 +7,13 @@
 // import { shallow } from 'enzyme';
 
 // import ExploreViewContainer
-//   from '../../../../javascripts/explore/components/ExploreViewContainer';
+//   from '../../../../src/explore/components/ExploreViewContainer';
 // import QueryAndSaveBtns
-//   from '../../../../javascripts/explore/components/QueryAndSaveBtns';
+//   from '../../../../src/explore/components/QueryAndSaveBtns';
 // import ControlPanelsContainer
-//   from '../../../../javascripts/explore/components/ControlPanelsContainer';
+//   from '../../../../src/explore/components/ControlPanelsContainer';
 // import ChartContainer
-//   from '../../../../javascripts/explore/components/ChartContainer';
+//   from '../../../../src/explore/components/ChartContainer';
 
 // describe('ExploreViewContainer', () => {
 //   it('renders', () => {

@@ -208,7 +208,7 @@ In case that the reverse proxy is used for providing ssl encryption,
 an explicit definition of the `X-Forwarded-Proto` may be required.
 For the Apache webserver this can be set as follows: ::
 
-　RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Proto "https"
 
 Configuration
 -------------
@@ -242,17 +242,29 @@ of the parameters you can copy / paste in that configuration module: ::
     WTF_CSRF_ENABLED = True
     # Add endpoints that need to be exempt from CSRF protection
     WTF_CSRF_EXEMPT_LIST = []
+    # A CSRF token that expires in 1 year
+    WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
     # Set this API key to enable Mapbox visualizations
     MAPBOX_API_KEY = ''
 
-This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Superset. Please consult
+All the parameters and default values defined in
+https://github.com/apache/incubator-superset/blob/master/superset/config.py
+can be altered in your local ``superset_config.py`` .
+Administrators will want to
+read through the file to understand what can be configured locally
+as well as the default values in place.
+
+Since ``superset_config.py`` acts as a Flask configuration module, it
+can be used to alter the settings Flask itself,
+as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
+``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
+framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
 <http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
-for more information on how to configure Superset.
+for more information on how to configure it.
 
-Please make sure to change:
+Make sure to change:
 
 * *SQLALCHEMY_DATABASE_URI*, by default it is stored at *~/.superset/superset.db*
 * *SECRET_KEY*, to a long random string
@@ -286,7 +298,9 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  sqlite       |                                     | ``sqlite://``                                   |
 +---------------+-------------------------------------+-------------------------------------------------+
-|  Redshift     | ``pip install sqlalchemy-redshift`` | ``postgresql+psycopg2://``                      |
+|  Snowflake    | ``pip install snowflake-sqlalchemy``| ``snowflake://``                                |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Redshift     | ``pip install sqlalchemy-redshift`` | ``redshift+psycopg2://``                        |
 +---------------+-------------------------------------+-------------------------------------------------+
 |  MSSQL        | ``pip install pymssql``             | ``mssql://``                                    |
 +---------------+-------------------------------------+-------------------------------------------------+
@@ -363,7 +377,7 @@ It is possible to tweak the database connection information using the
 parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
 find an ``extra`` field as a ``JSON`` blob.
 
-.. image:: _static/img/tutorial/add_db.png
+.. image:: images/tutorial/add_db.png
    :scale: 30 %
 
 This JSON string contains extra configuration elements. The ``engine_params``
@@ -398,6 +412,16 @@ in your config file to point to that function. ::
         return 'secret'
 
     SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_lookup_password
+
+A common pattern is to use environment variables to make secrets available.
+``SQLALCHEMY_CUSTOM_PASSWORD_STORE`` can also be used for that purpose. ::
+
+    def example_password_as_env_var(url):
+        # assuming the uri looks like
+        # mysql://localhost?superset_user:{SUPERSET_PASSWORD}
+        return url.password.format(os.environ)
+
+    SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_password_as_env_var
 
 
 SSL Access to databases

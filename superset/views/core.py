@@ -347,15 +347,17 @@ class CsvToDatabaseView(SimpleFormView):
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
+        path = os.path.join(config['UPLOAD_FOLDER'], csv_filename)
         try:
-            csv_file.save(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            utils.ensure_path_exists(config['UPLOAD_FOLDER'])
+            csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
             table.database = form.data.get('con')
             table.database_id = table.database.id
             table.database.db_engine_spec.create_table_from_csv(form, table)
         except Exception as e:
             try:
-                os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+                os.remove(path)
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
@@ -365,7 +367,7 @@ class CsvToDatabaseView(SimpleFormView):
                 'danger')
             return redirect('/csvtodatabaseview/form')
 
-        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+        os.remove(path)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
         message = _('CSV file "{0}" uploaded to table "{1}" in '
@@ -746,8 +748,10 @@ class R(BaseSupersetView):
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-        return('http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-            request=request, directory=directory, obj=obj))
+        return Response(
+            'http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
+                request=request, directory=directory, obj=obj),
+            mimetype='text/plain')
 
     @expose('/msg/')
     def msg(self):
@@ -1474,24 +1478,6 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose('/activity_per_day')
-    def activity_per_day(self):
-        """endpoint to power the calendar heatmap on the welcome page"""
-        Log = models.Log  # noqa
-        qry = (
-            db.session
-            .query(
-                Log.dt,
-                sqla.func.count())
-            .group_by(Log.dt)
-            .all()
-        )
-        payload = {str(time.mktime(dt.timetuple())):
-                   ccount for dt, ccount in qry if dt}
-        return json_success(json.dumps(payload))
-
-    @api
-    @has_access_api
     @expose('/schemas/<db_id>/')
     def schemas(self, db_id):
         db_id = int(db_id)
@@ -2074,6 +2060,7 @@ class Superset(BaseSupersetView):
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
             'common': self.common_bootsrap_payload(),
+            'editMode': request.args.get('edit') == 'true',
         }
 
         if request.args.get('json') == 'true':
@@ -2160,6 +2147,8 @@ class Superset(BaseSupersetView):
         if not table:
             table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
+        table.schema = data.get('schema')
+        table.is_sqllab_view = True
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)

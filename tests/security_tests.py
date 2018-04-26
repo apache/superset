@@ -55,7 +55,6 @@ class RolePermissionTests(SupersetTestCase):
 
         self.assertIn(('can_add_slices', 'Superset'), perm_set)
         self.assertIn(('can_copy_dash', 'Superset'), perm_set)
-        self.assertIn(('can_activity_per_day', 'Superset'), perm_set)
         self.assertIn(('can_created_dashboards', 'Superset'), perm_set)
         self.assertIn(('can_created_slices', 'Superset'), perm_set)
         self.assertIn(('can_csv', 'Superset'), perm_set)

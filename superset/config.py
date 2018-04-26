@@ -164,7 +164,7 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
-    'pt-BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
+    'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
 }
 # ---------------------------------------------------
@@ -356,6 +356,9 @@ SILENCE_FAB = True
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ''
+
+# CSRF token timeout, set to None for a token that never expires
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 7
 
 # This link should lead to a page with instructions on how to gain access to a
 # Datasource. It will be placed at the bottom of permissions errors.

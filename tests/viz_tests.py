@@ -12,9 +12,11 @@ import pandas as pd
 
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
+from .utils import load_fixture
 
 
 class BaseVizTestCase(unittest.TestCase):
+
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
@@ -77,6 +79,8 @@ class BaseVizTestCase(unittest.TestCase):
         results.df.empty = False
         datasource.query = Mock(return_value=results)
         test_viz = viz.BaseViz(datasource, form_data)
+
+        test_viz.df_metrics_to_num = Mock()
         test_viz.get_fillna_for_columns = Mock(return_value=0)
         test_viz.get_df(query_obj)
         mock_call = df.__setitem__.mock_calls[0]
@@ -634,3 +638,188 @@ class RoseVisTestCase(unittest.TestCase):
             ],
         }
         self.assertEqual(expected, res)
+
+
+class TimeSeriesTableVizTestCase(unittest.TestCase):
+
+    def test_get_data_metrics(self):
+        form_data = {
+            'metrics': ['sum__A', 'count'],
+            'groupby': [],
+        }
+        datasource = Mock()
+        raw = {}
+        t1 = pd.Timestamp('2000')
+        t2 = pd.Timestamp('2002')
+        raw[DTTM_ALIAS] = [t1, t2]
+        raw['sum__A'] = [15, 20]
+        raw['count'] = [6, 7]
+        df = pd.DataFrame(raw)
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data
+        self.assertEqual(set(['count', 'sum__A']), set(data['columns']))
+        time_format = '%Y-%m-%d %H:%M:%S'
+        expected = {
+            t1.strftime(time_format): {
+                'sum__A': 15,
+                'count': 6,
+            },
+            t2.strftime(time_format): {
+                'sum__A': 20,
+                'count': 7,
+            },
+        }
+        self.assertEqual(expected, data['records'])
+
+    def test_get_data_group_by(self):
+        form_data = {
+            'metrics': ['sum__A'],
+            'groupby': ['groupby1'],
+        }
+        datasource = Mock()
+        raw = {}
+        t1 = pd.Timestamp('2000')
+        t2 = pd.Timestamp('2002')
+        raw[DTTM_ALIAS] = [t1, t1, t1, t2, t2, t2]
+        raw['sum__A'] = [15, 20, 25, 30, 35, 40]
+        raw['groupby1'] = ['a1', 'a2', 'a3', 'a1', 'a2', 'a3']
+        df = pd.DataFrame(raw)
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data
+        self.assertEqual(set(['a1', 'a2', 'a3']), set(data['columns']))
+        time_format = '%Y-%m-%d %H:%M:%S'
+        expected = {
+            t1.strftime(time_format): {
+                'a1': 15,
+                'a2': 20,
+                'a3': 25,
+            },
+            t2.strftime(time_format): {
+                'a1': 30,
+                'a2': 35,
+                'a3': 40,
+            },
+        }
+        self.assertEqual(expected, data['records'])
+
+    @patch('superset.viz.BaseViz.query_obj')
+    def test_query_obj_throws_metrics_and_groupby(self, super_query_obj):
+        datasource = Mock()
+        form_data = {
+            'groupby': ['a'],
+        }
+        super_query_obj.return_value = {}
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        with self.assertRaises(Exception):
+            test_viz.query_obj()
+        form_data['metrics'] = ['x', 'y']
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        with self.assertRaises(Exception):
+            test_viz.query_obj()
+
+
+class BaseDeckGLVizTestCase(unittest.TestCase):
+
+    def test_get_metrics(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == [form_data.get('size')]
+
+        form_data = {}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == []
+
+    def test_scatterviz_get_metrics(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {'type': 'metric', 'value': 'int'}
+        result = test_viz_deckgl.get_metrics()
+        assert result == ['int']
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {}
+        result = test_viz_deckgl.get_metrics()
+        assert result is None
+
+    def test_get_js_columns(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        mock_d = {
+            'a': 'dummy1',
+            'b': 'dummy2',
+            'c': 'dummy3',
+        }
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_js_columns(mock_d)
+
+        assert result == {'color': None}
+
+    def test_get_properties(self):
+        mock_d = {}
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(NotImplementedError) as context:
+            test_viz_deckgl.get_properties(mock_d)
+
+        self.assertTrue('' in str(context.exception))
+
+    def test_process_spatial_query_obj(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        mock_key = 'spatial_key'
+        mock_gb = []
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(ValueError) as context:
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+
+        self.assertTrue('Bad spatial key' in str(context.exception))
+
+        test_form_data = {
+            'latlong_key': {
+                'type': 'latlong',
+                'lonCol': 'lon',
+                'latCol': 'lat',
+            },
+            'delimited_key': {
+                'type': 'delimited',
+                'lonlatCol': 'lonlat',
+            },
+            'geohash_key': {
+                'type': 'geohash',
+                'geohashCol': 'geo',
+            },
+        }
+
+        datasource = {'type': 'table'}
+        expected_results = {
+            'latlong_key': ['lon', 'lat'],
+            'delimited_key': ['lonlat'],
+            'geohash_key': ['geo'],
+        }
+        for mock_key in ['latlong_key', 'delimited_key', 'geohash_key']:
+            mock_gb = []
+            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data)
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+            assert expected_results.get(mock_key) == mock_gb
+
+    def test_geojson_query_obj(self):
+        form_data = load_fixture('deck_geojson_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.DeckGeoJson(datasource, form_data)
+        results = test_viz_deckgl.query_obj()
+
+        assert results['metrics'] == []
+        assert results['groupby'] == []
+        assert results['columns'] == ['test_col']

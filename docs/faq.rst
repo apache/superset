@@ -48,8 +48,10 @@ https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed
 Can I upload and visualize csv data?
 ------------------------------------
 
-Yes, using the ``Upload a CSV`` button under the ``Sources``
-menu item. This brings up a form that allows you specify required information. After creating the table from CSV, it can then be loaded like any other on the ``Sources -> Tables``page.
+Yes, using the ``Upload a CSV`` button under the ``Sources`` menu item.
+This brings up a form that allows you specify required information.
+After creating the table from CSV, it can then be loaded like any
+other on the ``Sources -> Tables`` page.
 
 
 Why are my queries timing out?
@@ -168,7 +170,7 @@ Here, the entire dashboard will refresh at once if periodic refresh is on. The s
 2.5 seconds is ignored.
 
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------
 By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
 
 __ https://www.sqlite.org/lockingv3.html
