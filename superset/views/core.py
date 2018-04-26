@@ -750,8 +750,8 @@ class R(BaseSupersetView):
         db.session.commit()
         scheme = request.scheme
         return Response(
-            '{scheme}://{request.headers[Host]}/{directory}?r={obj.id}'.format(  
-            scheme = scheme, request=request, directory=directory, obj=obj),  
+            '{scheme}://{request.headers[Host]}/{directory}?r={obj.id}'.format(
+            scheme=scheme, request=request, directory=directory, obj=obj),
             mimetype='text/plain')
 
     @expose('/msg/')
