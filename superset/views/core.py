@@ -751,7 +751,7 @@ class R(BaseSupersetView):
         scheme = request.scheme
         return Response(
             '{scheme}://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-            scheme=scheme, request=request, directory=directory, obj=obj),
+                scheme=scheme, request=request, directory=directory, obj=obj),
             mimetype='text/plain')
 
     @expose('/msg/')
