@@ -105,3 +105,9 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals(d.get('day').function, 'DATE({col})')
         self.assertEquals(d.get('P1D').function, 'DATE({col})')
         self.assertEquals(d.get('Time Column').function, '{col}')
+
+    def test_get_timestamp_expression(self):
+        tbl = self.get_table_by_name('birth_names')
+        ds_col = tbl.get_column('ds')
+        sqla_literal = ds_col.get_timestamp_expression(None)
+        self.assertEquals(str(sqla_literal.compile()), 'ds')

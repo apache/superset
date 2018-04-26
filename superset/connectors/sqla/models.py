@@ -120,6 +120,7 @@ class TableColumn(Model, BaseColumn):
         expr = self.expression or self.column_name
         if not self.expression and not time_grain:
             return column(expr, type_=DateTime).label(DTTM_ALIAS)
+        literal = '{col}'
         if time_grain:
             pdf = self.python_date_format
             if pdf in ('epoch_s', 'epoch_ms'):
@@ -130,8 +131,9 @@ class TableColumn(Model, BaseColumn):
                 elif pdf == 'epoch_ms':
                     expr = db_spec.epoch_ms_to_dttm().format(col=expr)
             grain = self.table.database.grains_dict().get(time_grain)
-            literal = grain.function if grain else '{col}'
-            literal = expr.format(col=expr)
+            if grain:
+                literal = grain.function
+        literal = expr.format(col=expr)
         return literal_column(literal, type_=DateTime).label(DTTM_ALIAS)
 
     @classmethod
