@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """a collection of model-related helper classes and functions"""
 from __future__ import absolute_import
 from __future__ import division
