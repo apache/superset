@@ -748,9 +748,10 @@ class R(BaseSupersetView):
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
+        scheme = request.scheme
         return Response(
-            'http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-                request=request, directory=directory, obj=obj),
+            '{scheme}://{request.headers[Host]}/{directory}?r={obj.id}'.format(  
+            scheme = scheme, request=request, directory=directory, obj=obj),  
             mimetype='text/plain')
 
     @expose('/msg/')
