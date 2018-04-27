@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React from 'react';
 import cx from 'classnames';
 import { StickyContainer, Sticky } from 'react-sticky';
