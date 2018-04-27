@@ -145,7 +145,7 @@ class SqlEditor extends React.PureComponent {
     this.props.actions.setActiveSouthPaneTab('Results');
   }
   stopQuery() {
-    if (this.props.latestQuery && this.props.latestQuery.state === 'running') {
+    if (this.props.latestQuery && ['running', 'pending'].indexOf(this.props.latestQuery.state) >= 0) {
       this.props.actions.postStopQuery(this.props.latestQuery);
     }
   }
