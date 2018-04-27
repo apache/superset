@@ -10,7 +10,7 @@ import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
-import { getFormDataFromControls } from '../stores/store';
+import { getFormDataFromControls } from '../store';
 import { chartPropType } from '../../chart/chartReducer';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';

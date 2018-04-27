@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import {
   tickMultiFormat,
   formatDate,
+  formatDateVerbose,
   fDuration,
   now,
   epochTimeXHoursAgo,
@@ -25,13 +26,35 @@ describe('formatDate', () => {
     expect(formatDate(new Date('2020-01-01'))).to.equal('2020');
   });
 
+  it('shows only month when 1st of month', () => {
+    expect(formatDate(new Date('2020-03-01'))).to.equal('March');
+  });
+
+  it('does not show day of week when it is Sunday', () => {
+    expect(formatDate(new Date('2020-03-15'))).to.equal('Mar 15');
+  });
+
+  it('shows weekday when it is not Sunday (and no ms/sec/min/hr)', () => {
+    expect(formatDate(new Date('2020-03-03'))).to.equal('Tue 03');
+  });
+});
+
+describe('formatDateVerbose', () => {
+  it('is a function', () => {
+    assert.isFunction(formatDateVerbose);
+  });
+
+  it('shows only year when 1st day of the year', () => {
+    expect(formatDateVerbose(new Date('2020-01-01'))).to.equal('2020');
+  });
+
   it('shows month and year when 1st of month', () => {
-    expect(formatDate(new Date('2020-03-01'))).to.equal('Mar 2020');
+    expect(formatDateVerbose(new Date('2020-03-01'))).to.equal('Mar 2020');
   });
 
   it('shows weekday when any day of the month', () => {
-    expect(formatDate(new Date('2020-03-03'))).to.equal('Tue Mar 3');
-    expect(formatDate(new Date('2020-03-15'))).to.equal('Sun Mar 15');
+    expect(formatDateVerbose(new Date('2020-03-03'))).to.equal('Tue Mar 3');
+    expect(formatDateVerbose(new Date('2020-03-15'))).to.equal('Sun Mar 15');
   });
 });
 

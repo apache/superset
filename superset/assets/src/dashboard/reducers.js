@@ -7,7 +7,7 @@ import charts, { chart } from '../chart/chartReducer';
 import * as actions from './actions';
 import { getParam } from '../modules/utils';
 import { alterInArr, removeFromArr } from '../reduxUtils';
-import { applyDefaultFormData } from '../explore/stores/store';
+import { applyDefaultFormData } from '../explore/store';
 import { getColorFromScheme } from '../modules/colors';
 
 export function getInitialState(bootstrapData) {

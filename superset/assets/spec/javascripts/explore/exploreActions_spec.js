@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import $ from 'jquery';
 import * as chartActions from '../../../src/chart/chartAction';
 import * as actions from '../../../src/explore/actions/exploreActions';
-import { defaultState } from '../../../src/explore/stores/store';
+import { defaultState } from '../../../src/explore/store';
 import exploreReducer from '../../../src/explore/reducers/exploreReducer';
 
 describe('reducers', () => {

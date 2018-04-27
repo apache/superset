@@ -61,7 +61,6 @@ setup(
         'flask-compress',
         'flask-migrate',
         'flask-script',
-        'flask-sqlalchemy',
         'flask-testing',
         'flask-wtf',
         'flower',  # deprecated

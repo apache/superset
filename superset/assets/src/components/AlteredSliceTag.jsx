@@ -4,7 +4,7 @@ import { Table, Tr, Td, Thead, Th } from 'reactable';
 import { isEqual, isEmpty } from 'underscore';
 
 import TooltipWrapper from './TooltipWrapper';
-import { controls } from '../explore/stores/controls';
+import { controls } from '../explore/controls';
 import ModalTrigger from './ModalTrigger';
 import { t } from '../locales';
 

@@ -1,6 +1,7 @@
 import d3 from 'd3';
 import dt from 'datatables.net-bs';
 import 'datatables.net-bs/css/dataTables.bootstrap.css';
+import dompurify from 'dompurify';
 
 import { fixDataTableBodyHeight, d3TimeFormatPreset } from '../modules/utils';
 import './table.css';
@@ -87,7 +88,7 @@ function tableVis(slice, payload) {
         html = tsFormatter(val);
       }
       if (typeof (val) === 'string') {
-        html = `<span class="like-pre">${val}</span>`;
+        html = `<span class="like-pre">${dompurify.sanitize(val)}</span>`;
       }
       if (isMetric) {
         html = slice.d3format(c, val);
