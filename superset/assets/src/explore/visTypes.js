@@ -892,6 +892,7 @@ export const visTypes = {
         controlSetRows: [
           ['groupby', 'columns'],
           ['metrics'],
+          ['row_limit', null],
         ],
       },
       {
