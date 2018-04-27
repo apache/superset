@@ -2056,7 +2056,7 @@ class Superset(BaseSupersetView):
             'dash_save_perm': dash_save_perm,
             'dash_edit_perm': dash_edit_perm,
             'superset_can_explore': superset_can_explore,
-            'slice_can_edit': slice_can_edit
+            'slice_can_edit': slice_can_edit,
         })
 
         bootstrap_data = {
