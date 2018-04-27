@@ -186,7 +186,7 @@ SliceHeader.defaultProps = defaultProps;
 function mapStateToProps({ dashboard }) {
   return {
     superset_can_explore: dashboard.dashboard.superset_can_explore,
-    slice_can_edit: dashboard.dashboard.slice_can_edit
+    slice_can_edit: dashboard.dashboard.slice_can_edit,
   };
 }
 
