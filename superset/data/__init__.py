@@ -188,7 +188,7 @@ def load_world_bank_health_n_pop():
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "year",
+        "granularity_sqla": "year",
         "groupby": [],
         "metric": 'sum__SP_POP_TOTL',
         "metrics": ["sum__SP_POP_TOTL"],
@@ -593,7 +593,7 @@ def load_birth_names():
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "ds",
+        "granularity_sqla": "ds",
         "groupby": [],
         "metric": 'sum__num',
         "metrics": ["sum__num"],
@@ -642,7 +642,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="big_number", granularity="ds",
+                viz_type="big_number", granularity_sqla="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
         Slice(
             slice_name="Genders",
@@ -675,7 +675,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="line", groupby=['name'],
-                granularity='ds', rich_tooltip=True, show_legend=True)),
+                granularity_sqla='ds', rich_tooltip=True, show_legend=True)),
         Slice(
             slice_name="Average and Sum Trends",
             viz_type='dual_line',
@@ -684,7 +684,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="dual_line", metric='avg__num', metric_2='sum__num',
-                granularity='ds')),
+                granularity_sqla='ds')),
         Slice(
             slice_name="Title",
             viz_type='markup',
@@ -729,7 +729,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="big_number_total", granularity="ds",
+                viz_type="big_number_total", granularity_sqla="ds",
                 filters=[{
                     'col': 'gender',
                     'op': 'in',
@@ -876,7 +876,7 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "dttm",
+        "granularity_sqla": "dttm",
         "groupby": [],
         "metric": 'sum__value',
         "row_limit": config.get("ROW_LIMIT"),
@@ -954,7 +954,7 @@ def load_random_time_series_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "day",
+        "granularity_sqla": "day",
         "row_limit": config.get("ROW_LIMIT"),
         "since": "1 year ago",
         "until": "now",
@@ -1017,7 +1017,7 @@ def load_country_map_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "",
+        "granularity_sqla": "",
         "since": "",
         "until": "",
         "where": "",
@@ -1092,7 +1092,7 @@ def load_long_lat_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "day",
+        "granularity_sqla": "day",
         "since": "2014-01-01",
         "until": "now",
         "where": "",
@@ -1172,7 +1172,7 @@ def load_multiformat_time_series_data():
         slice_data = {
             "metric": 'count',
             "granularity_sqla": col.column_name,
-            "granularity": "day",
+            "granularity_sqla": "day",
             "row_limit": config.get("ROW_LIMIT"),
             "since": "1 year ago",
             "until": "now",

@@ -117,22 +117,24 @@ class TableColumn(Model, BaseColumn):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
+        pdf = self.python_date_format
+        is_epoch = pdf in ('epoch_s', 'epoch_ms')
+        if not self.expression and not time_grain and not is_epoch:
+            return column(self.column_name, type_=DateTime).label(DTTM_ALIAS)
+
         expr = self.expression or self.column_name
-        if not self.expression and not time_grain:
-            return column(expr, type_=DateTime).label(DTTM_ALIAS)
+        if is_epoch:
+            # if epoch, translate to DATE using db specific conf
+            db_spec = self.table.database.db_engine_spec
+            if pdf == 'epoch_s':
+                expr = db_spec.epoch_to_dttm().format(col=expr)
+            elif pdf == 'epoch_ms':
+                expr = db_spec.epoch_ms_to_dttm().format(col=expr)
         if time_grain:
-            pdf = self.python_date_format
-            if pdf in ('epoch_s', 'epoch_ms'):
-                # if epoch, translate to DATE using db specific conf
-                db_spec = self.table.database.db_engine_spec
-                if pdf == 'epoch_s':
-                    expr = db_spec.epoch_to_dttm().format(col=expr)
-                elif pdf == 'epoch_ms':
-                    expr = db_spec.epoch_ms_to_dttm().format(col=expr)
             grain = self.table.database.grains_dict().get(time_grain)
-            literal = grain.function if grain else '{col}'
-            literal = expr.format(col=expr)
-        return literal_column(literal, type_=DateTime).label(DTTM_ALIAS)
+            if grain:
+                expr = grain.function.format(col=expr)
+        return literal_column(expr, type_=DateTime).label(DTTM_ALIAS)
 
     @classmethod
     def import_obj(cls, i_column):
