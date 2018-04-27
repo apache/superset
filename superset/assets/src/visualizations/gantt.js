@@ -2,11 +2,11 @@ import d3 from 'd3';
 import moment from 'moment';
 
 
-import { d3TimeFormatPreset } from '../javascripts/modules/utils';
+//import { d3TimeFormatPreset } from '../modules/utils';
 
 import './gantt.css';
-import '../vendor/d3-gantt-chart/gantt-chart-d3.css';
-import { d3gantt } from '../vendor/d3-gantt-chart/gantt-chart-d3';
+import '../../vendor/d3-gantt-chart/gantt-chart-d3.css';
+import { d3gantt } from '../../vendor/d3-gantt-chart/gantt-chart-d3';
 d3.gantt = d3gantt;
 
 function ganttVis(slice, payload) {
