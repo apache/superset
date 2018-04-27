@@ -105,3 +105,64 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals(d.get('day').function, 'DATE({col})')
         self.assertEquals(d.get('P1D').function, 'DATE({col})')
         self.assertEquals(d.get('Time Column').function, '{col}')
+
+
+class SqlaTableModelTestCase(SupersetTestCase):
+
+    def test_get_timestamp_expression(self):
+        tbl = self.get_table_by_name('birth_names')
+        ds_col = tbl.get_column('ds')
+        sqla_literal = ds_col.get_timestamp_expression(None)
+        self.assertEquals(str(sqla_literal.compile()), 'ds')
+
+        sqla_literal = ds_col.get_timestamp_expression('P1D')
+        compiled = '{}'.format(sqla_literal.compile())
+        if tbl.database.backend == 'mysql':
+            self.assertEquals(compiled, 'DATE(ds)')
+
+        ds_col.expression = 'DATE_ADD(ds, 1)'
+        sqla_literal = ds_col.get_timestamp_expression('P1D')
+        compiled = '{}'.format(sqla_literal.compile())
+        if tbl.database.backend == 'mysql':
+            self.assertEquals(compiled, 'DATE(DATE_ADD(ds, 1))')
+
+    def test_get_timestamp_expression_epoch(self):
+        tbl = self.get_table_by_name('birth_names')
+        ds_col = tbl.get_column('ds')
+
+        ds_col.expression = None
+        ds_col.python_date_format = 'epoch_s'
+        sqla_literal = ds_col.get_timestamp_expression(None)
+        compiled = '{}'.format(sqla_literal.compile())
+        if tbl.database.backend == 'mysql':
+            self.assertEquals(compiled, 'from_unixtime(ds)')
+
+        ds_col.python_date_format = 'epoch_s'
+        sqla_literal = ds_col.get_timestamp_expression('P1D')
+        compiled = '{}'.format(sqla_literal.compile())
+        if tbl.database.backend == 'mysql':
+            self.assertEquals(compiled, 'DATE(from_unixtime(ds))')
+
+        ds_col.expression = 'DATE_ADD(ds, 1)'
+        sqla_literal = ds_col.get_timestamp_expression('P1D')
+        compiled = '{}'.format(sqla_literal.compile())
+        if tbl.database.backend == 'mysql':
+            self.assertEquals(compiled, 'DATE(from_unixtime(DATE_ADD(ds, 1)))')
+
+    def test_get_timestamp_expression_backward(self):
+        tbl = self.get_table_by_name('birth_names')
+        ds_col = tbl.get_column('ds')
+
+        ds_col.expression = None
+        ds_col.python_date_format = None
+        sqla_literal = ds_col.get_timestamp_expression('day')
+        compiled = '{}'.format(sqla_literal.compile())
+        if tbl.database.backend == 'mysql':
+            self.assertEquals(compiled, 'DATE(ds)')
+
+        ds_col.expression = None
+        ds_col.python_date_format = None
+        sqla_literal = ds_col.get_timestamp_expression('Time Column')
+        compiled = '{}'.format(sqla_literal.compile())
+        if tbl.database.backend == 'mysql':
+            self.assertEquals(compiled, 'ds')
