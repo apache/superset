@@ -14,7 +14,7 @@ flask-wtf==0.14.2
 flower==0.9.2
 future==0.16.0
 geopy==1.11.0
-gunicorn==19.7.1
+gunicorn==19.8.0
 humanize==0.5.1
 idna==2.6
 markdown==2.6.11
