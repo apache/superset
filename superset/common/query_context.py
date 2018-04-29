@@ -41,7 +41,6 @@ class QueryContext:
     to retrieve the data payload for a given viz.
     """
 
-    default_fillna = 0
     cache_type = 'df'
     enforce_numerical_metrics = True
 
@@ -103,7 +102,6 @@ class QueryContext:
                 self.df_metrics_to_num(df, query_object)
 
             df.replace([np.inf, -np.inf], np.nan)
-            df = self.handle_nulls(df)
         return {
             'query': result.query,
             'status': result.status,
@@ -117,27 +115,6 @@ class QueryContext:
         for col, dtype in df.dtypes.items():
             if dtype.type == np.object_ and col in metrics:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
-
-    def handle_nulls(self, df):
-        fillna = self.get_fillna_for_columns(df.columns)
-        return df.fillna(fillna)
-
-    def get_fillna_for_col(self, col):
-        """Returns the value to use as filler for a specific Column.type"""
-        if col and col.is_string:
-            return ' NULL'
-        return self.default_fillna
-
-    def get_fillna_for_columns(self, columns=None):
-        """Returns a dict or scalar that can be passed to DataFrame.fillna"""
-        if columns is None:
-            return self.default_fillna
-        columns_dict = {col.column_name: col for col in self.datasource.columns}
-        fillna = {
-            c: self.get_fillna_for_col(columns_dict.get(c))
-            for c in columns
-        }
-        return fillna
 
     def get_data(self, df):
         return df.to_dict(orient='records')

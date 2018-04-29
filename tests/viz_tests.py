@@ -84,18 +84,6 @@ class BaseVizTestCase(SupersetTestCase):
         self.assertEqual(test_viz.metric_labels, expect_metric_labels)
         self.assertEqual(test_viz.all_metrics, expect_metric_labels)
 
-    def test_get_fillna_returns_default_on_null_columns(self):
-        form_data = {
-            'viz_type': 'table',
-            'token': '12345',
-        }
-        datasource = self.get_datasource_mock()
-        test_viz = viz.BaseViz(datasource, form_data)
-        self.assertEqual(
-            test_viz.default_fillna,
-            test_viz.get_fillna_for_columns(),
-        )
-
     def test_get_df_returns_empty_df(self):
         form_data = {'dummy': 123}
         query_obj = {'granularity': 'day'}
