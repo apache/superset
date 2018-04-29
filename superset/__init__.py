@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Package's main module!"""
 from __future__ import absolute_import
 from __future__ import division
