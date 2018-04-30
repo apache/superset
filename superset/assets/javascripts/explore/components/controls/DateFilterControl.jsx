@@ -78,6 +78,7 @@ export default class DateFilterControl extends React.Component {
       type: 'free',
       free: '',
       relative: TIME_FRAMES[0],
+      relativeTo: 'now',
     };
     const words = value.split(' ');
     if (words.length >= 3 && RELATIVE_TIME_OPTIONS.indexOf(words[2]) >= 0) {
@@ -141,7 +142,7 @@ export default class DateFilterControl extends React.Component {
       </Radio>
       ));
     return (
-      <Popover id="filter-popover">
+      <Popover id="filter-popover" placement="top" positionTop={0}>
         <div style={{ width: '250px' }}>
           <Tabs defaultActiveKey={1} id="relative" bsStyle="pills">
             <Tab eventKey={1} title="Relative">
@@ -177,6 +178,19 @@ export default class DateFilterControl extends React.Component {
                     </div>
                   </div>
                 </Radio>
+                <div className="clearfix centered" style={{ marginTop: '20px' }}>
+                  <div style={{ marginRight: '5px' }} className="input-inline">
+                     Relative to
+                    </div>
+                  <div style={{ marginTop: '-4px' }} className="input-inline">
+                    <FormControl
+                      bsSize="small"
+                      type="text"
+                      onChange={event => this.setState({ relativeTo: event.target.value })}
+                      value={this.state.relativeTo}
+                    />
+                  </div>
+                </div>
               </FormGroup>
             </Tab>
             <Tab eventKey={2} title="Fixed">
