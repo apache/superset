@@ -220,6 +220,7 @@ class DruidFuncTestCase(unittest.TestCase):
         filtr = {'col': 'A', 'op': '==', 'val': None}
         col = DruidColumn(column_name='A')
         column_dict = {'A': col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertIsNone(res)
 
     def test_get_filters_extracts_values_in_quotes(self):

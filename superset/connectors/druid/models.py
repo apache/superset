@@ -1402,7 +1402,7 @@ class DruidDatasource(Model, BaseDatasource):
                     not op or
                     (eq is None and op not in ('IS NULL', 'IS NOT NULL'))):
                 continue
-                
+
             # Check if this dimension uses an extraction function
             # If so, create the appropriate pydruid extraction object
             column_def = columns_dict.get(col)
