@@ -267,6 +267,8 @@ export const visTypes = {
       },
     },
     sectionOverrides: {
+      sqlClause: [],
+      filters: [[]],
       datasourceAndVizType: {
         label: t('Chart Type'),
         controlSetRows: [
@@ -1786,10 +1788,14 @@ export function sectionsToRender(vizType, datasourceType) {
   const sectionsCopy = { ...sections };
   if (viz.sectionOverrides) {
     Object.entries(viz.sectionOverrides).forEach(([section, overrides]) => {
-      sectionsCopy[section] = {
-        ...sectionsCopy[section],
-        ...overrides,
-      };
+      if (typeof overrides === 'object' && overrides.constructor === Object) {
+        sectionsCopy[section] = {
+          ...sectionsCopy[section],
+          ...overrides,
+        };
+      } else {
+        sectionsCopy[section] = overrides;
+      }
     });
   }
 
