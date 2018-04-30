@@ -868,6 +868,17 @@ export const controls = {
     }
   },
 
+  style_mappings: {
+    type: 'StyleMappingControl',
+    label: '',
+    default: [],
+    description: 'Map a style to certain values in a column.',
+    renderTrigger: true,
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
+  },
+
   link_length: {
     type: 'SelectControl',
     freeForm: true,

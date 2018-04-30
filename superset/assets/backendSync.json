@@ -1196,6 +1196,12 @@
       "clearable": false,
       "valueKey": "column_name"
     },
+    "style_mappings": {
+      "type": "StyleMappingControl",
+      "label": "",
+      "default": [],
+      "description": ""
+    },
     "link_length": {
       "type": "SelectControl",
       "freeForm": true,

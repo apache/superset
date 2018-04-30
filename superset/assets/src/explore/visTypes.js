@@ -1034,6 +1034,7 @@ export const visTypes = {
         label: t('Chart Options'),
         expanded: true,
         controlSetRows: [
+          ['style_mappings'],
           ['x_axis_time_format'],
           ['show_legend', null],
         ],

@@ -2,7 +2,7 @@ import d3 from 'd3';
 import moment from 'moment';
 
 
-//import { d3TimeFormatPreset } from '../modules/utils';
+//import { d3TimeFormatPreset } from '../../src/modules/utils';
 
 import './gantt.css';
 import '../../vendor/d3-gantt-chart/gantt-chart-d3.css';
