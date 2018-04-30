@@ -92,7 +92,7 @@ function heatmapVis(slice, payload) {
   const height = slice.height();
   const hmWidth = width - (margin.left + margin.right);
   const hmHeight = height - (margin.bottom + margin.top);
-  const fp = d3.format('.3p');
+  const fp = d3.format('.2%');
 
   const xScale = ordScale('x', null, fd.sort_x_axis);
   const yScale = ordScale('y', null, fd.sort_y_axis);
@@ -102,7 +102,9 @@ function heatmapVis(slice, payload) {
   const Y = 1;
   const heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
 
-  const color = colorScalerFactory(fd.linear_color_scheme);
+  const minBound = fd.y_axis_bounds[0] || 0;
+  const maxBound = fd.y_axis_bounds[1] || 1;
+  const colorScaler = colorScalerFactory(fd.linear_color_scheme, null, null, [minBound, maxBound]);
 
   const scale = [
     d3.scale.linear()
@@ -149,11 +151,9 @@ function heatmapVis(slice, payload) {
   }
 
   if (fd.show_legend) {
-    const legendScaler = colorScalerFactory(
-      fd.linear_color_scheme, null, null, payload.data.extents);
     const colorLegend = d3.legend.color()
     .labelFormat(valueFormatter)
-    .scale(legendScaler)
+    .scale(colorScaler)
     .shapePadding(0)
     .cells(50)
     .shapeWidth(10)
@@ -183,7 +183,7 @@ function heatmapVis(slice, payload) {
         s += '<div><b>' + fd.all_columns_y + ': </b>' + obj.y + '<div>';
         s += '<div><b>' + fd.metric + ': </b>' + valueFormatter(obj.v) + '<div>';
         if (fd.show_perc) {
-          s += '<div><b>%: </b>' + fp(obj.perc) + '<div>';
+          s += '<div><b>%: </b>' + fp(fd.normalized ? obj.rank : obj.perc) + '<div>';
         }
         tip.style('display', null);
       } else {
@@ -246,7 +246,7 @@ function heatmapVis(slice, payload) {
     const image = context.createImageData(heatmapDim[0], heatmapDim[1]);
     const pixs = {};
     data.forEach((d) => {
-      const c = d3.rgb(color(d.perc));
+      const c = d3.rgb(colorScaler(fd.normalized ? d.rank : d.perc));
       const x = xScale(d.x);
       const y = yScale(d.y);
       pixs[x + (y * xScale.domain().length)] = c;
