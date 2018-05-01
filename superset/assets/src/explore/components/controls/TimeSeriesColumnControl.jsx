@@ -30,7 +30,7 @@ const colTypeOptions = [
   { value: 'avg', label: 'Period Average' },
 ];
 
-export default class TimeSeriesColumnControl extends React.Component {
+export default class TimeSeriesColumnControl extends React.PureComponent {
   constructor(props) {
     super(props);
     const state = { ...props };

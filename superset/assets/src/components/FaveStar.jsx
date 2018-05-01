@@ -11,7 +11,7 @@ const propTypes = {
   isStarred: PropTypes.bool.isRequired,
 };
 
-export default class FaveStar extends React.Component {
+export default class FaveStar extends React.PureComponent {
   componentDidMount() {
     this.props.fetchFaveStar(this.props.itemId);
   }

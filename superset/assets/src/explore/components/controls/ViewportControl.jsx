@@ -34,7 +34,7 @@ const defaultProps = {
   value: defaultViewport,
 };
 
-export default class ViewportControl extends React.Component {
+export default class ViewportControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onChange = this.onChange.bind(this);

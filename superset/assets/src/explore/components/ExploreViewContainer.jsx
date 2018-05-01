@@ -32,7 +32,7 @@ const propTypes = {
   impressionId: PropTypes.string,
 };
 
-class ExploreViewContainer extends React.Component {
+class ExploreViewContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.firstLoad = true;

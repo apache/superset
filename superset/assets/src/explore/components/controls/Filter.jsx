@@ -43,7 +43,7 @@ const defaultProps = {
   valueChoices: [],
 };
 
-export default class Filter extends React.Component {
+export default class Filter extends React.PureComponent {
 
   switchFilterValue(prevOp, nextOp) {
     if (operators[prevOp].type !== operators[nextOp].type) {

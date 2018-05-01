@@ -6,7 +6,7 @@ const propTypes = {
   tabState: PropTypes.string.isRequired,
 };
 
-class TabStatusIcon extends React.Component {
+class TabStatusIcon extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onMouseOver = this.onMouseOver.bind(this);

@@ -48,7 +48,7 @@ const defaultProps = {
   instantFiltering: true,
 };
 
-class FilterBox extends React.Component {
+class FilterBox extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

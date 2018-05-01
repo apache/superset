@@ -15,7 +15,7 @@ const propTypes = {
   addSlicesToDashboard: PropTypes.func,
 };
 
-class SliceAdder extends React.Component {
+class SliceAdder extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

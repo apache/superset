@@ -9,7 +9,7 @@ const propTypes = {
   latestQueryFormData: PropTypes.object.isRequired,
 };
 
-export default class EmbedCodeButton extends React.Component {
+export default class EmbedCodeButton extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

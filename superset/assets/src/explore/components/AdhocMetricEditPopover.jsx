@@ -35,7 +35,7 @@ const defaultProps = {
 const startingWidth = 300;
 const startingHeight = 180;
 
-export default class AdhocMetricEditPopover extends React.Component {
+export default class AdhocMetricEditPopover extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onSave = this.onSave.bind(this);

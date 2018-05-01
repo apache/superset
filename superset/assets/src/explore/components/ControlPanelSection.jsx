@@ -18,7 +18,7 @@ const defaultProps = {
   hasErrors: false,
 };
 
-export default class ControlPanelSection extends React.Component {
+export default class ControlPanelSection extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = { expanded: this.props.startExpanded };

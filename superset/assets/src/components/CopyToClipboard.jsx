@@ -21,7 +21,7 @@ const defaultProps = {
   tooltipText: t('Copy to clipboard'),
 };
 
-export default class CopyToClipboard extends React.Component {
+export default class CopyToClipboard extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

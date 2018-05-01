@@ -30,7 +30,7 @@ const defaultProps = {
   className: '',
 };
 
-export default class ModalTrigger extends React.Component {
+export default class ModalTrigger extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 
 import './paired_ttest.css';
 
-class TTestTable extends React.Component {
+class TTestTable extends React.PureComponent {
 
   constructor(props) {
     super(props);

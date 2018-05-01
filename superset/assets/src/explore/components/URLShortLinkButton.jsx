@@ -10,7 +10,7 @@ const propTypes = {
   latestQueryFormData: PropTypes.object.isRequired,
 };
 
-export default class URLShortLinkButton extends React.Component {
+export default class URLShortLinkButton extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

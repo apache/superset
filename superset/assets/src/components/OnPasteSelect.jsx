@@ -2,7 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 
-export default class OnPasteSelect extends React.Component {
+export default class OnPasteSelect extends React.PureComponent {
   onPaste(evt) {
     if (!this.props.multi) {
       return;

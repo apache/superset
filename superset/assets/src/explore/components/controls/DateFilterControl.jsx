@@ -31,7 +31,7 @@ const defaultProps = {
   value: '',
 };
 
-export default class DateFilterControl extends React.Component {
+export default class DateFilterControl extends React.PureComponent {
   constructor(props) {
     super(props);
     const value = props.value || '';

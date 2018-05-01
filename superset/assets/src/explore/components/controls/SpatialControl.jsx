@@ -30,7 +30,7 @@ const defaultProps = {
   choices: [],
 };
 
-export default class SpatialControl extends React.Component {
+export default class SpatialControl extends React.PureComponent {
   constructor(props) {
     super(props);
     const v = props.value || {};

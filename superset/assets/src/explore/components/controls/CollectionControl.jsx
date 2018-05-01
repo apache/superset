@@ -42,7 +42,7 @@ const SortableListGroup = SortableContainer(ListGroup);
 const SortableDragger = SortableHandle(() => (
   <i className="fa fa-bars text-primary" style={{ cursor: 'ns-resize' }} />));
 
-export default class CollectionControl extends React.Component {
+export default class CollectionControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onAdd = this.onAdd.bind(this);

@@ -25,7 +25,7 @@ const defaultProps = {
   disabled: false,
 };
 
-export default class TextControl extends React.Component {
+export default class TextControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onChange = this.onChange.bind(this);
