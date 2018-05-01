@@ -776,8 +776,8 @@ export const controls = {
       ['P1D', '1 day'],
       ['P7D', '7 days'],
       ['P1W', 'week'],
-      ['1969-12-28T00:00:00Z/P1W', 'week_starting_sunday'],
-      ['P1W/1970-01-03T00:00:00Z', 'week_ending_saturday'],
+      ['week_starting_sunday', 'week starting Sunday'],
+      ['week_ending_saturday', 'week ending Saturday'],
       ['P1M', 'month'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +
