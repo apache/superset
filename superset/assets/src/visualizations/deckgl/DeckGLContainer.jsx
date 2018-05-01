@@ -17,7 +17,7 @@ const defaultProps = {
   onViewportChange: () => {},
 };
 
-export default class DeckGLContainer extends React.Component {
+export default class DeckGLContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

@@ -24,7 +24,7 @@ const defaultProps = {
   hovered: false,
 };
 
-export default class ControlHeader extends React.Component {
+export default class ControlHeader extends React.PureComponent {
   renderOptionalIcons() {
     if (this.props.hovered) {
       return (

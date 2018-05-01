@@ -49,7 +49,7 @@ const defaultProps = {
   removeFilter: () => ({}),
 };
 
-class GridLayout extends React.Component {
+class GridLayout extends React.PureComponent {
   constructor(props) {
     super(props);
 

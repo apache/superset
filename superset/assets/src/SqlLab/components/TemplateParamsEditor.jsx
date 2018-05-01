@@ -27,7 +27,7 @@ const defaultProps = {
   code: '{}',
 };
 
-export default class TemplateParamsEditor extends React.Component {
+export default class TemplateParamsEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     const codeText = props.code || '{}';

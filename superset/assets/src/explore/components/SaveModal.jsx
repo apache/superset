@@ -20,7 +20,7 @@ const propTypes = {
   datasource: PropTypes.object,
 };
 
-class SaveModal extends React.Component {
+class SaveModal extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

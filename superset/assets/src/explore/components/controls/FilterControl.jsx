@@ -18,7 +18,7 @@ const defaultProps = {
   value: [],
 };
 
-export default class FilterControl extends React.Component {
+export default class FilterControl extends React.PureComponent {
 
   constructor(props) {
     super(props);

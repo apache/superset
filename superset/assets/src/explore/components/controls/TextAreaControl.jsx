@@ -38,7 +38,7 @@ const defaultProps = {
   readOnly: false,
 };
 
-export default class TextAreaControl extends React.Component {
+export default class TextAreaControl extends React.PureComponent {
   onControlChange(event) {
     this.props.onChange(event.target.value);
   }

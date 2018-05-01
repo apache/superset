@@ -24,7 +24,7 @@ const propTypes = {
   shrink: PropTypes.bool,
 };
 
-class HighlightedSql extends React.Component {
+class HighlightedSql extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

@@ -14,7 +14,7 @@ const defaultProps = {
   value: [null, null],
 };
 
-export default class BoundsControl extends React.Component {
+export default class BoundsControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

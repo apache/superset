@@ -8,7 +8,7 @@ const propTypes = {
   onChange: PropTypes.func.isRequired,
 };
 
-export default class AdhocMetricEditPopoverTitle extends React.Component {
+export default class AdhocMetricEditPopoverTitle extends React.PureComponent {
   constructor(props) {
     super(props);
     this.onMouseOver = this.onMouseOver.bind(this);

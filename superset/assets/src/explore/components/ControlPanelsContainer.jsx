@@ -21,7 +21,7 @@ const propTypes = {
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
 };
 
-class ControlPanelsContainer extends React.Component {
+class ControlPanelsContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.removeAlert = this.removeAlert.bind(this);

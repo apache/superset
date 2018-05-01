@@ -20,7 +20,7 @@ const defaultProps = {
   step: 1,
 };
 
-export default class AnimatableDeckGLContainer extends React.Component {
+export default class AnimatableDeckGLContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     const { getLayers, start, end, step, values, disabled, viewport, ...other } = props;

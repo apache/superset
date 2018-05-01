@@ -22,7 +22,7 @@ import './mapbox.css';
 
 const NOOP = () => {};
 
-class ScatterPlotGlowOverlay extends React.Component {
+class ScatterPlotGlowOverlay extends React.PureComponent {
   componentDidMount() {
     this.redraw();
   }
@@ -239,7 +239,7 @@ ScatterPlotGlowOverlay.contextTypes = {
   isDragging: PropTypes.bool,
 };
 
-class MapboxViz extends React.Component {
+class MapboxViz extends React.PureComponent {
   constructor(props) {
     super(props);
     const longitude = this.props.viewportLongitude || DEFAULT_LONGITUDE;

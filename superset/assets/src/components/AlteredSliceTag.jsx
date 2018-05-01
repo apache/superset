@@ -13,7 +13,7 @@ const propTypes = {
   currentFormData: PropTypes.object.isRequired,
 };
 
-export default class AlteredSliceTag extends React.Component {
+export default class AlteredSliceTag extends React.PureComponent {
 
   constructor(props) {
     super(props);
