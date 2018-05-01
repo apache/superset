@@ -10,8 +10,8 @@ export const getPlaySliderParams = function (timestamps, timeGrain) {
     // Here, time grain is a time interval instead of a simple duration, either
     // `reference/duration` or `duration/reference`. We need to parse the
     // duration and make sure that start and end are in the right places. For
-    // example, if `reference` is a saturday and `duration` is 1 week (P1W)
-    // then both start and end should be saturdays.
+    // example, if `reference` is a Saturday and `duration` is 1 week (P1W)
+    // then both start and end should be Saturdays.
     const parts = timeGrain.split('/', 2);
     let reference;
     if (parts[0].endsWith('Z')) {  // ISO string
