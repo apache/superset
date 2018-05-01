@@ -20,6 +20,7 @@ const CHART_STATUS_MAP = {
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
+  addHistory: PropTypes.func,
   can_overwrite: PropTypes.bool.isRequired,
   can_download: PropTypes.bool.isRequired,
   isStarred: PropTypes.bool.isRequired,
@@ -48,6 +49,7 @@ class ExploreChartHeader extends React.PureComponent {
           this.props.actions.createNewSlice(
             data.can_add, data.can_download, data.can_overwrite,
             data.slice, data.form_data);
+          this.props.addHistory({ isReplace: true, title: `[chart] ${data.slice.slice_name}` });
         } else {
           this.props.actions.updateChartTitle(newTitle);
         }
