@@ -227,16 +227,10 @@ class Chart extends React.PureComponent {
         });
 
         this.props.actions.chartRenderingSucceeded(this.props.chartKey);
-<<<<<<< HEAD:superset/assets/src/chart/Chart.jsx
-      });
-    } catch (e) {
-      this.props.actions.chartRenderingFailed(e, this.props.chartKey);
-=======
       } catch (e) {
         console.error(e);  // eslint-disable-line
         this.props.actions.chartRenderingFailed(e, this.props.chartKey);
       }
->>>>>>> [lazy-load] push renderVis function to <Chart /> state:superset/assets/javascripts/chart/Chart.jsx
     }
   }
 
