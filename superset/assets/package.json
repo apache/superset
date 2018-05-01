@@ -126,7 +126,6 @@
     "babel-istanbul": "^0.12.2",
     "babel-loader": "^7.0.0",
     "babel-plugin-css-modules-transform": "^1.1.0",
-    "babel-plugin-dynamic-import-webpack": "^1.0.2",
     "babel-polyfill": "^6.23.0",
     "babel-preset-airbnb": "^2.1.1",
     "chai": "^4.0.2",
