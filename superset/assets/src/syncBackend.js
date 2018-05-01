@@ -1,7 +1,7 @@
 /* eslint no-console: 0 */
 import fs from 'fs';
 import path from 'path';
-import { controls } from './explore/stores/controls';
+import { controls } from './explore/controls';
 
 function exportFile(fileLocation, content) {
   fs.writeFile(fileLocation, content, function (err) {

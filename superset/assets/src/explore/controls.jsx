@@ -43,27 +43,27 @@ import {
   formatSelectOptionsForRange,
   formatSelectOptions,
   mainMetric,
-} from '../../modules/utils';
-import * as v from '../validators';
-import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
-import { defaultViewport } from '../../modules/geo';
-import MetricOption from '../../components/MetricOption';
-import ColumnOption from '../../components/ColumnOption';
-import OptionDescription from '../../components/OptionDescription';
-import { t } from '../../locales';
+} from '../modules/utils';
+import * as v from './validators';
+import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
+import { defaultViewport } from '../modules/geo';
+import MetricOption from '../components/MetricOption';
+import ColumnOption from '../components/ColumnOption';
+import OptionDescription from '../components/OptionDescription';
+import { t } from '../locales';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
-  ['.1s', '.1s | 12k'],
-  ['.3s', '.3s | 12.3k'],
-  ['.1%', '.1% | 12.3%'],
-  ['.3%', '.3% | 1234543.210%'],
-  ['.4r', '.4r | 12350'],
-  ['.3f', '.3f | 12345.432'],
-  ['+,', '+, | +12,345.4321'],
-  ['$,.2f', '$,.2f | $12,345.43'],
+  ['.1s', '.1s (12345.432 => 10k)'],
+  ['.3s', '.3s (12345.432 => 12.3k)'],
+  [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
+  ['.3%', '.3% (12345.432 => 1234543.200%)'],
+  ['.4r', '.4r (12345.432 => 12350)'],
+  [',.3f', ',.3f (12345.432 => 12,345.432)'],
+  ['+,', '+, (12345.432 => +12,345.432)'],
+  ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
 ];
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
@@ -387,8 +387,10 @@ export const controls = {
   xscale_interval: {
     type: 'SelectControl',
     label: t('XScale Interval'),
+    renderTrigger: true,
     choices: formatSelectOptionsForRange(1, 50),
     default: '1',
+    clearable: false,
     description: t('Number of steps to take between ticks when ' +
     'displaying the X scale'),
   },
@@ -397,7 +399,9 @@ export const controls = {
     type: 'SelectControl',
     label: t('YScale Interval'),
     choices: formatSelectOptionsForRange(1, 50),
-    default: null,
+    default: '1',
+    clearable: false,
+    renderTrigger: true,
     description: t('Number of steps to take between ticks when ' +
     'displaying the Y scale'),
   },
@@ -726,6 +730,7 @@ export const controls = {
 
   bottom_margin: {
     type: 'SelectControl',
+    clearable: false,
     freeForm: true,
     label: t('Bottom Margin'),
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
@@ -747,6 +752,7 @@ export const controls = {
   left_margin: {
     type: 'SelectControl',
     freeForm: true,
+    clearable: false,
     label: t('Left Margin'),
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
@@ -1537,7 +1543,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Rich Tooltip'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('The rich tooltip shows a list of all series for that ' +
     'point in time'),
   },

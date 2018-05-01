@@ -4,11 +4,11 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert, Tab, Tabs } from 'react-bootstrap';
-import visTypes, { sectionsToRender } from '../stores/visTypes';
+import visTypes, { sectionsToRender } from '../visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import ControlRow from './ControlRow';
 import Control from './Control';
-import controls from '../stores/controls';
+import controls from '../controls';
 import * as actions from '../actions/exploreActions';
 
 const propTypes = {

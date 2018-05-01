@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
 from __future__ import absolute_import
 from __future__ import division

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """This module contains the 'Viz' objects
 
 These objects represent the backend of all the visualizations that
@@ -1832,11 +1833,6 @@ class HeatmapViz(BaseViz):
         overall = False
         max_ = df.v.max()
         min_ = df.v.min()
-        bounds = fd.get('y_axis_bounds')
-        if bounds and bounds[0] is not None:
-            min_ = bounds[0]
-        if bounds and bounds[1] is not None:
-            max_ = bounds[1]
         if norm == 'heatmap':
             overall = True
         else:
@@ -1848,8 +1844,10 @@ class HeatmapViz(BaseViz):
                     gb.apply(
                         lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
                 )
+                df['rank'] = gb.apply(lambda x: x.v.rank(pct=True))
         if overall:
             df['perc'] = (df.v - min_) / (max_ - min_)
+            df['rank'] = df.v.rank(pct=True)
         return {
             'records': df.to_dict(orient='records'),
             'extents': [min_, max_],

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 #
 # Copyright (C) 2016 Andi Albrecht, albrecht.andi@gmail.com
 #

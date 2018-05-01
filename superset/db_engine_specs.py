@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
 This modules stores logic specific to different database engines. Things
@@ -332,6 +333,22 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         tables = inspector.get_table_names(schema)
         tables.extend(inspector.get_foreign_table_names(schema))
         return sorted(tables)
+
+
+class SnowflakeEngineSpec(PostgresBaseEngineSpec):
+    engine = 'snowflake'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'), "DATE_TRUNC('SECOND', {col})", 'PT1S'),
+        Grain('minute', _('minute'), "DATE_TRUNC('MINUTE', {col})", 'PT1M'),
+        Grain('hour', _('hour'), "DATE_TRUNC('HOUR', {col})", 'PT1H'),
+        Grain('day', _('day'), "DATE_TRUNC('DAY', {col})", 'P1D'),
+        Grain('week', _('week'), "DATE_TRUNC('WEEK', {col})", 'P1W'),
+        Grain('month', _('month'), "DATE_TRUNC('MONTH', {col})", 'P1M'),
+        Grain('quarter', _('quarter'), "DATE_TRUNC('QUARTER', {col})", 'P0.25Y'),
+        Grain('year', _('year'), "DATE_TRUNC('YEAR', {col})", 'P1Y'),
+    )
 
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
