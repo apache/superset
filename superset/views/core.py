@@ -6,7 +6,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
-import json
 import logging
 import os
 import re
@@ -24,6 +23,7 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
+import simplejson as json
 from six import text_type
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
@@ -2327,7 +2327,8 @@ class Superset(BaseSupersetView):
             payload_json = json.loads(payload)
             payload_json['data'] = payload_json['data'][:display_limit]
         return json_success(
-            json.dumps(payload_json, default=utils.json_iso_dttm_ser))
+            json.dumps(
+                payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True))
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
@@ -2435,7 +2436,7 @@ class Superset(BaseSupersetView):
 
             resp = json_success(json.dumps(
                 {'query': query.to_dict()}, default=utils.json_int_dttm_ser,
-                allow_nan=False), status=202)
+                ignore_nan=True), status=202)
             session.commit()
             return resp
 
@@ -2453,7 +2454,7 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True)
             payload = json.dumps(
-                data, default=utils.pessimistic_json_iso_dttm_ser)
+                data, default=utils.pessimistic_json_iso_dttm_ser, ignore_nan=True)
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))
