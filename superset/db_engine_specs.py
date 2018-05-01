@@ -1260,7 +1260,7 @@ class BQEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
@@ -1291,7 +1291,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
