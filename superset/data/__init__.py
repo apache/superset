@@ -1,4 +1,5 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -188,7 +189,7 @@ def load_world_bank_health_n_pop():
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "year",
+        "granularity_sqla": "year",
         "groupby": [],
         "metric": 'sum__SP_POP_TOTL',
         "metrics": ["sum__SP_POP_TOTL"],
@@ -593,7 +594,7 @@ def load_birth_names():
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "ds",
+        "granularity_sqla": "ds",
         "groupby": [],
         "metric": 'sum__num',
         "metrics": ["sum__num"],
@@ -642,7 +643,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="big_number", granularity="ds",
+                viz_type="big_number", granularity_sqla="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
         Slice(
             slice_name="Genders",
@@ -675,7 +676,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="line", groupby=['name'],
-                granularity='ds', rich_tooltip=True, show_legend=True)),
+                granularity_sqla='ds', rich_tooltip=True, show_legend=True)),
         Slice(
             slice_name="Average and Sum Trends",
             viz_type='dual_line',
@@ -684,7 +685,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="dual_line", metric='avg__num', metric_2='sum__num',
-                granularity='ds')),
+                granularity_sqla='ds')),
         Slice(
             slice_name="Title",
             viz_type='markup',
@@ -729,7 +730,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="big_number_total", granularity="ds",
+                viz_type="big_number_total", granularity_sqla="ds",
                 filters=[{
                     'col': 'gender',
                     'op': 'in',
@@ -876,7 +877,7 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "dttm",
+        "granularity_sqla": "dttm",
         "groupby": [],
         "metric": 'sum__value',
         "row_limit": config.get("ROW_LIMIT"),
@@ -954,7 +955,7 @@ def load_random_time_series_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "day",
+        "granularity_sqla": "day",
         "row_limit": config.get("ROW_LIMIT"),
         "since": "1 year ago",
         "until": "now",
@@ -1017,7 +1018,7 @@ def load_country_map_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "",
+        "granularity_sqla": "",
         "since": "",
         "until": "",
         "where": "",
@@ -1092,7 +1093,7 @@ def load_long_lat_data():
     tbl = obj
 
     slice_data = {
-        "granularity": "day",
+        "granularity_sqla": "day",
         "since": "2014-01-01",
         "until": "now",
         "where": "",
@@ -1172,7 +1173,7 @@ def load_multiformat_time_series_data():
         slice_data = {
             "metric": 'count',
             "granularity_sqla": col.column_name,
-            "granularity": "day",
+            "granularity_sqla": "day",
             "row_limit": config.get("ROW_LIMIT"),
             "since": "1 year ago",
             "until": "now",
@@ -1301,7 +1302,7 @@ def load_deck_dash():
         "row_limit": 5000,
         "since": None,
         "size": "count",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "until": None,
         "viewport": {
             "bearing": -4.952916738791771,
@@ -1359,7 +1360,7 @@ def load_deck_dash():
         },
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Screen Grid slice")
@@ -1408,7 +1409,7 @@ def load_deck_dash():
         "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Hex slice")
@@ -1457,7 +1458,7 @@ def load_deck_dash():
         "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Grid slice")
@@ -1474,62 +1475,62 @@ def load_deck_dash():
     polygon_tbl = db.session.query(TBL) \
                     .filter_by(table_name='sf_population_polygons').first()
     slice_data = {
-            "datasource": "11__table",
-            "viz_type": "deck_polygon",
-            "slice_id": 41,
-            "granularity_sqla": None,
-            "time_grain_sqla": None,
-            "since": None,
-            "until": None,
-            "line_column": "contour",
-            "line_type": "json",
-            "mapbox_style": "mapbox://styles/mapbox/light-v9",
-            "viewport": {
-                "longitude": -122.43388541747726,
-                "latitude": 37.752020331384834,
-                "zoom": 11.133995608594631,
-                "bearing": 37.89506450385642,
-                "pitch": 60,
-                "width": 667,
-                "height": 906,
-                "altitude": 1.5,
-                "maxZoom": 20,
-                "minZoom": 0,
-                "maxPitch": 60,
-                "minPitch": 0,
-                "maxLatitude": 85.05113,
-                "minLatitude": -85.05113
-            },
-            "reverse_long_lat": False,
-            "fill_color_picker": {
-                "r": 3,
-                "g": 65,
-                "b": 73,
-                "a": 1
-            },
-            "stroke_color_picker": {
-                "r": 0,
-                "g": 122,
-                "b": 135,
-                "a": 1
-            },
-            "filled": True,
-            "stroked": False,
-            "extruded": True,
-            "point_radius_scale": 100,
-            "js_columns": [
-                "population",
-                "area"
-            ],
-            "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
-             d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
-             return d;\n}",
-            "js_tooltip": "",
-            "js_onclick_href": "",
-            "where": "",
-            "having": "",
-            "filters": []
-        }
+        "datasource": "11__table",
+        "viz_type": "deck_polygon",
+        "slice_id": 41,
+        "granularity_sqla": None,
+        "time_grain_sqla": None,
+        "since": None,
+        "until": None,
+        "line_column": "contour",
+        "line_type": "json",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "longitude": -122.43388541747726,
+            "latitude": 37.752020331384834,
+            "zoom": 11.133995608594631,
+            "bearing": 37.89506450385642,
+            "pitch": 60,
+            "width": 667,
+            "height": 906,
+            "altitude": 1.5,
+            "maxZoom": 20,
+            "minZoom": 0,
+            "maxPitch": 60,
+            "minPitch": 0,
+            "maxLatitude": 85.05113,
+            "minLatitude": -85.05113
+        },
+        "reverse_long_lat": False,
+        "fill_color_picker": {
+            "r": 3,
+            "g": 65,
+            "b": 73,
+            "a": 1
+        },
+        "stroke_color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "filled": True,
+        "stroked": False,
+        "extruded": True,
+        "point_radius_scale": 100,
+        "js_columns": [
+            "population",
+            "area"
+        ],
+        "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
+         d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
+         return d;\n}",
+        "js_tooltip": "",
+        "js_onclick_href": "",
+        "where": "",
+        "having": "",
+        "filters": []
+    }
 
     print("Creating Polygon slice")
     slc = Slice(
@@ -1543,52 +1544,52 @@ def load_deck_dash():
     slices.append(slc)
 
     slice_data = {
-            "datasource": "10__table",
-            "viz_type": "deck_arc",
-            "slice_id": 42,
-            "granularity_sqla": "dttm",
-            "time_grain_sqla": "Time Column",
-            "since": None,
-            "until": None,
-            "start_spatial": {
-                "type": "latlong",
-                "latCol": "LATITUDE",
-                "lonCol": "LONGITUDE"
-            },
-            "end_spatial": {
-                "type": "latlong",
-                "latCol": "LATITUDE_DEST",
-                "lonCol": "LONGITUDE_DEST"
-            },
-            "row_limit": 5000,
-            "mapbox_style": "mapbox://styles/mapbox/light-v9",
-            "viewport": {
-                "altitude": 1.5,
-                "bearing": 8.546256357301871,
-                "height": 642,
-                "latitude": 44.596651438714254,
-                "longitude": -91.84340711201104,
-                "maxLatitude": 85.05113,
-                "maxPitch": 60,
-                "maxZoom": 20,
-                "minLatitude": -85.05113,
-                "minPitch": 0,
-                "minZoom": 0,
-                "pitch": 60,
-                "width": 997,
-                "zoom": 2.929837070560775
-            },
-            "color_picker": {
-                "r": 0,
-                "g": 122,
-                "b": 135,
-                "a": 1
-            },
-            "stroke_width": 1,
-            "where": "",
-            "having": "",
-            "filters": []
-        }
+        "datasource": "10__table",
+        "viz_type": "deck_arc",
+        "slice_id": 42,
+        "granularity_sqla": "dttm",
+        "time_grain_sqla": "Time Column",
+        "since": None,
+        "until": None,
+        "start_spatial": {
+            "type": "latlong",
+            "latCol": "LATITUDE",
+            "lonCol": "LONGITUDE"
+        },
+        "end_spatial": {
+            "type": "latlong",
+            "latCol": "LATITUDE_DEST",
+            "lonCol": "LONGITUDE_DEST"
+        },
+        "row_limit": 5000,
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "altitude": 1.5,
+            "bearing": 8.546256357301871,
+            "height": 642,
+            "latitude": 44.596651438714254,
+            "longitude": -91.84340711201104,
+            "maxLatitude": 85.05113,
+            "maxPitch": 60,
+            "maxZoom": 20,
+            "minLatitude": -85.05113,
+            "minPitch": 0,
+            "minZoom": 0,
+            "pitch": 60,
+            "width": 997,
+            "zoom": 2.929837070560775
+        },
+        "color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "stroke_width": 1,
+        "where": "",
+        "having": "",
+        "filters": []
+    }
 
     print("Creating Arc slice")
     slc = Slice(

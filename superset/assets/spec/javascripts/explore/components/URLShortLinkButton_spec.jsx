@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import { OverlayTrigger } from 'react-bootstrap';
-import URLShortLinkButton from '../../../../javascripts/explore/components/URLShortLinkButton';
+import URLShortLinkButton from '../../../../src/explore/components/URLShortLinkButton';
 
 describe('URLShortLinkButton', () => {
   const defaultProps = {

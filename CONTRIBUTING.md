@@ -106,7 +106,7 @@ Finally, to make changes to the rst files and build the docs using Sphinx,
 you'll need to install a handful of dependencies from the repo you cloned:
 
     cd incubator-superset
-    pip install -r docs/requirements-docs.txt
+    pip install -r docs/requirements.txt
 
 To get the feel for how to edit and build the docs, let's edit a file, build
 the docs and see our changes in action. First, you'll want to
@@ -417,8 +417,7 @@ https://github.com/apache/incubator-superset/pull/3013
   Every once in a while we want to compile the documentation and publish it.
   Here's how to do it.
 
-  .. code::
-
+```
     # install doc dependencies
     pip install -r docs/requirements.txt
 
@@ -441,6 +440,7 @@ https://github.com/apache/incubator-superset/pull/3013
     git add .
     git commit -a -m "New doc version"
     git push origin master
+```
 
 ## Publishing a Pypi release
 
@@ -453,8 +453,7 @@ https://github.com/apache/incubator-superset/pull/3013
   Following a set of cherries being picked, a release can be pushed to
   Pypi as follows:
 
-  .. code::
-
+```
     # branching off of master
     git checkout -b 0.25
 
@@ -489,6 +488,7 @@ https://github.com/apache/incubator-superset/pull/3013
     # this will overwrite the CHANGELOG.md with only the version range
     # so you'll want to copy paste that on top of the previous CHANGELOG.md
     # open a PR against `master`
+```
 
   In the future we'll start publishing release candidates for minor releases
   only, but typically not for micro release.

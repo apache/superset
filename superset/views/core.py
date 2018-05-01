@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
-import json
 import logging
 import os
 import re
@@ -23,6 +23,7 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
+import simplejson as json
 from six import text_type
 import sqlalchemy as sqla
 from sqlalchemy import create_engine
@@ -347,15 +348,17 @@ class CsvToDatabaseView(SimpleFormView):
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
+        path = os.path.join(config['UPLOAD_FOLDER'], csv_filename)
         try:
-            csv_file.save(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            utils.ensure_path_exists(config['UPLOAD_FOLDER'])
+            csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
             table.database = form.data.get('con')
             table.database_id = table.database.id
             table.database.db_engine_spec.create_table_from_csv(form, table)
         except Exception as e:
             try:
-                os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+                os.remove(path)
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
@@ -365,7 +368,7 @@ class CsvToDatabaseView(SimpleFormView):
                 'danger')
             return redirect('/csvtodatabaseview/form')
 
-        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+        os.remove(path)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
         message = _('CSV file "{0}" uploaded to table "{1}" in '
@@ -747,8 +750,8 @@ class R(BaseSupersetView):
         db.session.add(obj)
         db.session.commit()
         return Response(
-            'http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-                request=request, directory=directory, obj=obj),
+            '{scheme}://{request.headers[Host]}/{directory}?r={obj.id}'.format(
+                scheme=request.scheme, request=request, directory=directory, obj=obj),
             mimetype='text/plain')
 
     @expose('/msg/')
@@ -2324,7 +2327,8 @@ class Superset(BaseSupersetView):
             payload_json = json.loads(payload)
             payload_json['data'] = payload_json['data'][:display_limit]
         return json_success(
-            json.dumps(payload_json, default=utils.json_iso_dttm_ser))
+            json.dumps(
+                payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True))
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
@@ -2432,7 +2436,7 @@ class Superset(BaseSupersetView):
 
             resp = json_success(json.dumps(
                 {'query': query.to_dict()}, default=utils.json_int_dttm_ser,
-                allow_nan=False), status=202)
+                ignore_nan=True), status=202)
             session.commit()
             return resp
 
@@ -2450,7 +2454,7 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True)
             payload = json.dumps(
-                data, default=utils.pessimistic_json_iso_dttm_ser)
+                data, default=utils.pessimistic_json_iso_dttm_ser, ignore_nan=True)
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))

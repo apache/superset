@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
 This modules stores logic specific to different database engines. Things
@@ -334,6 +335,22 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
         return sorted(tables)
 
 
+class SnowflakeEngineSpec(PostgresBaseEngineSpec):
+    engine = 'snowflake'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'), "DATE_TRUNC('SECOND', {col})", 'PT1S'),
+        Grain('minute', _('minute'), "DATE_TRUNC('MINUTE', {col})", 'PT1M'),
+        Grain('hour', _('hour'), "DATE_TRUNC('HOUR', {col})", 'PT1H'),
+        Grain('day', _('day'), "DATE_TRUNC('DAY', {col})", 'P1D'),
+        Grain('week', _('week'), "DATE_TRUNC('WEEK', {col})", 'P1W'),
+        Grain('month', _('month'), "DATE_TRUNC('MONTH', {col})", 'P1M'),
+        Grain('quarter', _('quarter'), "DATE_TRUNC('QUARTER', {col})", 'P0.25Y'),
+        Grain('year', _('year'), "DATE_TRUNC('YEAR', {col})", 'P1Y'),
+    )
+
+
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
 
@@ -429,6 +446,12 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
               'P1M'),
+        Grain('week_ending_saturday', _('week_ending_saturday'),
+              "DATE({col}, 'weekday 6')",
+              'P1W/1970-01-03T00:00:00Z'),
+        Grain('week_start_sunday', _('week_start_sunday'),
+              "DATE({col}, 'weekday 0', '-7 days')",
+              '1969-12-28T00:00:00Z/P1W'),
     )
 
     @classmethod
@@ -560,11 +583,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
               'CAST({col} AS TIMESTAMP))))',
-              'P1W'),
+              'P1W/1970-01-03T00:00:00Z'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-              'P1W'),
+              '1969-12-28T00:00:00Z/P1W'),
         Grain('year', _('year'),
               "date_trunc('year', CAST({col} AS TIMESTAMP))",
               'P1Y'),
@@ -1152,11 +1175,11 @@ class AthenaEngineSpec(BaseEngineSpec):
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
               'CAST({col} AS TIMESTAMP))))',
-              'P1W'),
+              'P1W/1970-01-03T00:00:00Z'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-              'P1W'),
+              '1969-12-28T00:00:00Z/P1W'),
     )
 
     @classmethod
@@ -1243,7 +1266,7 @@ class BQEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
@@ -1274,7 +1297,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod

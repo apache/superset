@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -312,7 +313,7 @@ def update_datasources_cache():
             database.all_table_names(force=True)
             database.all_view_names(force=True)
         except Exception as e:
-            print('{}'.format(e.message))
+            print('{}'.format(str(e)))
 
 
 @manager.option(

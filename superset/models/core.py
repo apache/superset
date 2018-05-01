@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
 from __future__ import absolute_import
 from __future__ import division
@@ -693,7 +694,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def get_df(self, sql, schema):
         sql = sql.strip().strip(';')
         eng = self.get_sqla_engine(schema=schema)
-        df = pd.read_sql(sql, eng)
+        df = pd.read_sql_query(sql, eng)
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -786,7 +787,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.time_grains
 
     def grains_dict(self):
-        return {grain.duration: grain for grain in self.grains()}
+        """Allowing to lookup grain by either label or duration
+
+        For backward compatibility"""
+        d = {grain.duration: grain for grain in self.grains()}
+        d.update({grain.label: grain for grain in self.grains()})
+        return d
 
     def get_extra(self):
         extra = {}

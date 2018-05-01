@@ -5,8 +5,8 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import FilterControl from '../../../../javascripts/explore/components/controls/FilterControl';
-import Filter from '../../../../javascripts/explore/components/controls/Filter';
+import FilterControl from '../../../../src/explore/components/controls/FilterControl';
+import Filter from '../../../../src/explore/components/controls/Filter';
 
 const $ = window.$ = require('jquery');
 
@@ -225,11 +225,12 @@ describe('FilterControl', () => {
     wrapper.instance().fetchFilterValues(0, 'col1');
     expect(wrapper.state().activeRequest).to.equal(spyReq);
     // Sets active to null after success
-    $.ajax.getCall(0).args[0].success('choices');
+    $.ajax.getCall(0).args[0].success(['opt1', 'opt2', null, '']);
     expect(wrapper.state().filters[0].valuesLoading).to.equal(false);
-    expect(wrapper.state().filters[0].valueChoices).to.equal('choices');
+    expect(wrapper.state().filters[0].valueChoices).to.deep.equal(['opt1', 'opt2', null, '']);
     expect(wrapper.state().activeRequest).to.equal(null);
   });
+
 
   it('cancels active request if another is submitted', () => {
     const spyReq = sinon.spy();
