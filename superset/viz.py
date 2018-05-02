@@ -23,7 +23,7 @@ import traceback
 import uuid
 
 from dateutil import relativedelta as rdelta
-from flask import escape, request
+from flask import request
 from flask_babel import lazy_gettext as _
 import geohash
 from geopy.point import Point
@@ -368,7 +368,7 @@ class BaseViz(object):
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
-                    self.error_message = escape('{}'.format(e))
+                    self.error_message = '{}'.format(e)
                 self.status = utils.QueryStatus.FAILED
                 stacktrace = traceback.format_exc()
 
