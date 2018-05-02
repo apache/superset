@@ -1390,6 +1390,7 @@ export const visTypes = {
       },
       {
         label: t('Bubbles'),
+        expanded: true,
         controlSetRows: [
           ['show_bubbles'],
           ['secondary_metric'],
@@ -1408,6 +1409,7 @@ export const visTypes = {
       },
       secondary_metric: {
         label: t('Bubble size'),
+        validators: [v.nonEmpty],
         description: t('Metric that defines the size of the bubble'),
       },
     },
