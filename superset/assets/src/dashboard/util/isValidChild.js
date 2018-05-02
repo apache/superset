@@ -33,6 +33,7 @@ const depthOne = rootDepth + 1;
 const depthTwo = rootDepth + 2;
 const depthThree = rootDepth + 3;
 const depthFour = rootDepth + 4;
+const depthFive = rootDepth + 5;
 
 // when moving components around the depth of child is irrelevant, note these are parent depths
 const parentMaxDepthLookup = {
@@ -53,7 +54,7 @@ const parentMaxDepthLookup = {
   [ROW_TYPE]: {
     [CHART_TYPE]: depthFour,
     [MARKDOWN_TYPE]: depthFour,
-    [COLUMN_TYPE]: depthTwo,
+    [COLUMN_TYPE]: depthFour,
   },
 
   [TABS_TYPE]: {
@@ -70,9 +71,9 @@ const parentMaxDepthLookup = {
   },
 
   [COLUMN_TYPE]: {
-    [CHART_TYPE]: depthThree,
-    [HEADER_TYPE]: depthThree,
-    [MARKDOWN_TYPE]: depthThree,
+    [CHART_TYPE]: depthFive,
+    [HEADER_TYPE]: depthFive,
+    [MARKDOWN_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
   },
 

@@ -14,7 +14,10 @@ import {
   onChange,
   onSave,
 } from '../actions/dashboardState';
-import { handleComponentDrop } from '../actions/dashboardLayout';
+import {
+  handleComponentDrop,
+  undoLayoutAction,
+} from '../actions/dashboardLayout';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,

@@ -107,13 +107,13 @@ class Header extends React.PureComponent {
             <ButtonGroup>
               {editMode && (
                 <Button bsSize="small" onClick={onUndo} disabled={!canUndo}>
-                  Undo
+                  <div className="undo-action fa fa-reply" />
                 </Button>
               )}
 
               {editMode && (
                 <Button bsSize="small" onClick={onRedo} disabled={!canRedo}>
-                  Redo
+                  <div className="redo-action fa fa-share" />
                 </Button>
               )}
 

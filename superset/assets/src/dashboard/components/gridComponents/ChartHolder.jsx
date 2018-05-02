@@ -122,7 +122,6 @@ class ChartHolder extends React.Component {
               />
               {editMode && (
                 <HoverMenu position="top">
-                  <DragHandle position="top" />
                   <DeleteComponentButton
                     onDelete={this.handleDeleteComponent}
                   />

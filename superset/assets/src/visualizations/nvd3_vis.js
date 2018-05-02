@@ -458,6 +458,8 @@ export default function nvd3Vis(slice, payload) {
       customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
       chart.showLegend(width > BREAKPOINTS.small);
     }
+    // This is needed for correct chart dimensions if a chart is rendered in a hidden container
+    chart.width(width);
     chart.height(height);
     slice.container.css('height', height + 'px');
 

@@ -14,7 +14,8 @@
 }
 
 /* hover indicator */
-.dashboard--editing .grid-row:after {
+.dashboard--editing .grid-row:after,
+.dashboard--editing .dashboard-component-tabs > .hover-menu:hover + div:after {
   border: 1px dashed transparent;
   content: '';
   position: absolute;
@@ -29,7 +30,8 @@
 .dashboard--editing
   .resizable-container.resizable-container--resizing:hover
   > .grid-row:after,
-.dashboard--editing .grid-row:hover:after {
+.dashboard--editing .hover-menu:hover + .grid-row:after,
+.dashboard--editing .dashboard-component-tabs > .hover-menu:hover + div:after {
   border: 1px dashed @gray-light;
   box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
 }

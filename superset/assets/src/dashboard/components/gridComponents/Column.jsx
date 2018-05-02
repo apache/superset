@@ -142,6 +142,18 @@ class Column extends React.PureComponent {
               ]}
               editMode={editMode}
             >
+              {editMode && (
+                <HoverMenu innerRef={dragSourceRef} position="top">
+                  <DragHandle position="top" />
+                  <DeleteComponentButton
+                    onDelete={this.handleDeleteComponent}
+                  />
+                  <IconButton
+                    onClick={this.handleChangeFocus}
+                    className="fa fa-cog"
+                  />
+                </HoverMenu>
+              )}
               <div
                 className={cx(
                   'grid-column',
@@ -149,19 +161,6 @@ class Column extends React.PureComponent {
                   backgroundStyle.className,
                 )}
               >
-                {editMode && (
-                  <HoverMenu innerRef={dragSourceRef} position="top">
-                    <DragHandle position="top" />
-                    <DeleteComponentButton
-                      onDelete={this.handleDeleteComponent}
-                    />
-                    <IconButton
-                      onClick={this.handleChangeFocus}
-                      className="fa fa-cog"
-                    />
-                  </HoverMenu>
-                )}
-
                 {columnItems.map((componentId, itemIndex) => (
                   <DashboardComponent
                     key={componentId}
