@@ -1315,11 +1315,11 @@ class KylinEngineSpec(BaseEngineSpec):
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), 'SECOND({col})', 'PT1S'),
-        Grain('minute', _('minute'), "MINUTE({col})", 'PT1M'),
-        Grain('hour', _('hour'), "HOUR({col})", 'PT1H'),
-        Grain('month', _('month'), "MONTH({col})", 'P1M'),
-        Grain('quarter', _('quarter'), "QUARTER({col})", 'P0.25Y'),
-        Grain('year', _('year'), "YEAR({col})", 'P1Y'),
+        Grain('minute', _('minute'), 'MINUTE({col})', 'PT1M'),
+        Grain('hour', _('hour'), 'HOUR({col})', 'PT1H'),
+        Grain('month', _('month'), 'MONTH({col})', 'P1M'),
+        Grain('quarter', _('quarter'), 'QUARTER({col})', 'P0.25Y'),
+        Grain('year', _('year'), 'YEAR({col})', 'P1Y'),
     )
 
     @classmethod
@@ -1329,8 +1329,7 @@ class KylinEngineSpec(BaseEngineSpec):
             return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
         if tt == 'TIMESTAMP':
             return "CAST('{}' AS TIMESTAMP)".format(
-                dttm.strftime('%Y-%m-%d %H:%M:%S')
-            )
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
