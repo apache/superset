@@ -23,11 +23,6 @@ export function removeFilter(sliceId, col, vals, refresh = true) {
   return { type: REMOVE_FILTER, sliceId, col, vals, refresh };
 }
 
-export const UPDATE_DASHBOARD_TITLE = 'UPDATE_DASHBOARD_TITLE';
-export function updateDashboardTitle(title) {
-  return { type: UPDATE_DASHBOARD_TITLE, title };
-}
-
 export const ADD_SLICE = 'ADD_SLICE';
 export function addSlice(slice) {
   return { type: ADD_SLICE, slice };
@@ -89,7 +84,7 @@ export function onSave() {
 export function saveDashboard() {
   return dispatch => {
     dispatch(onSave());
-    // clear undo history
+    // clear layout undo history
     dispatch(UndoActionCreators.clearHistory());
   };
 }

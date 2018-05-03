@@ -27,6 +27,8 @@ function updateDom(css) {
 }
 
 const propTypes = {
+  addSuccessToast: PropTypes.func.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   layout: PropTypes.object.isRequired,
@@ -109,6 +111,8 @@ class Controls extends React.PureComponent {
             triggerNode={<span>{t('Set auto-refresh interval')}</span>}
           />
           <SaveModal
+            addSuccessToast={this.props.addSuccessToast}
+            addDangerToast={this.props.addDangerToast}
             dashboardId={this.props.dashboardInfo.id}
             dashboardTitle={dashboardTitle}
             layout={layout}

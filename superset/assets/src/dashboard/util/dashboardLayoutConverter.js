@@ -5,14 +5,14 @@ import {
   ROW_TYPE,
   COLUMN_TYPE,
   CHART_TYPE,
-  DASHBOARD_HEADER_TYPE,
   DASHBOARD_ROOT_TYPE,
   DASHBOARD_GRID_TYPE,
 } from './componentTypes';
+
 import {
   DASHBOARD_GRID_ID,
-  DASHBOARD_HEADER_ID,
   DASHBOARD_ROOT_ID,
+  DASHBOARD_VERSION_KEY,
 } from './constants';
 
 const MAX_RECURSIVE_LEVEL = 6;
@@ -55,7 +55,6 @@ function getBoundary(positions) {
 
 function getRowContainer() {
   return {
-    version: 'v2',
     type: ROW_TYPE,
     id: `DASHBOARD_ROW_TYPE-${generateId()}`,
     children: [],
@@ -67,7 +66,6 @@ function getRowContainer() {
 
 function getColContainer() {
   return {
-    version: 'v2',
     type: COLUMN_TYPE,
     id: `DASHBOARD_COLUMN_TYPE-${generateId()}`,
     children: [],
@@ -88,7 +86,6 @@ function getChartHolder(item) {
   };
 
   return {
-    version: 'v2',
     type: CHART_TYPE,
     id: `DASHBOARD_CHART_TYPE-${generateId()}`,
     children: [],
@@ -110,21 +107,6 @@ function getChildrenSum(items, attr, layout) {
     0,
   );
 }
-
-// function getChildrenMax(items, attr, layout) {
-//   return Math.max.apply(null, items.map((childId) => {
-//     const child = layout[childId];
-//     if (child.type === ROW_TYPE && attr === 'width') {
-//       // rows don't have widths themselves
-//       return getChildrenSum(child.children, attr, layout);
-//     } else if (child.type === COLUMN_TYPE && attr === 'height') {
-//       // columns don't have heights themselves
-//       return getChildrenSum(child.children, attr, layout);
-//     }
-//
-//     return child.meta[attr];
-//   }));
-// }
 
 function sortByRowId(item1, item2) {
   return item1.row - item2.row;
@@ -322,6 +304,7 @@ export default function(dashboard) {
   });
 
   const root = {
+    [DASHBOARD_VERSION_KEY]: 'v2',
     [DASHBOARD_ROOT_ID]: {
       type: DASHBOARD_ROOT_TYPE,
       id: DASHBOARD_ROOT_ID,
@@ -332,11 +315,8 @@ export default function(dashboard) {
       id: DASHBOARD_GRID_ID,
       children: [],
     },
-    [DASHBOARD_HEADER_ID]: {
-      type: DASHBOARD_HEADER_TYPE,
-      id: DASHBOARD_HEADER_ID,
-    },
   };
+
   doConvert(positions, 0, root[DASHBOARD_GRID_ID], root);
 
   // remove row's width/height and col's height

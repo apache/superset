@@ -7,7 +7,8 @@ import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
 import layoutConverter from '../util/dashboardLayoutConverter';
-import { DASHBOARD_ROOT_ID } from '../util/constants';
+import { DASHBOARD_VERSION_KEY, DASHBOARD_HEADER_ID } from '../util/constants';
+import { DASHBOARD_HEADER_TYPE } from '../util/componentTypes';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;
@@ -35,19 +36,32 @@ export default function(bootstrapData) {
   }
 
   // dashboard layout
-  const positionJson = dashboard.position_json;
-  let layout;
-  if (!positionJson || !positionJson[DASHBOARD_ROOT_ID]) {
-    layout = layoutConverter(dashboard);
-  } else {
-    layout = positionJson;
+  const { position_json: positionJson } = dashboard;
+
+  if (positionJson && positionJson.DASHBOARD_ROOT_ID) {
+    positionJson[DASHBOARD_VERSION_KEY] = 'v2';
   }
+
+  const layout =
+    !positionJson || positionJson[DASHBOARD_VERSION_KEY] !== 'v2'
+      ? layoutConverter(dashboard)
+      : positionJson;
+
+  // store the header as a layout component so we can undo/redo changes
+  layout[DASHBOARD_HEADER_ID] = {
+    id: DASHBOARD_HEADER_ID,
+    type: DASHBOARD_HEADER_TYPE,
+    meta: {
+      text: dashboard.dashboard_title,
+    },
+  };
 
   const dashboardLayout = {
     past: [],
     present: layout,
     future: [],
   };
+
   delete dashboard.position_json;
   delete dashboard.css;
 
@@ -99,7 +113,6 @@ export default function(bootstrapData) {
       common,
     },
     dashboardState: {
-      title: dashboard.dashboard_title,
       sliceIds,
       refresh: false,
       filters,

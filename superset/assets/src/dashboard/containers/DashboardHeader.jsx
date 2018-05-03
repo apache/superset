@@ -2,6 +2,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import DashboardHeader from '../components/Header';
+
 import {
   setEditMode,
   toggleBuilderPane,
@@ -9,13 +10,21 @@ import {
   saveFaveStar,
   fetchCharts,
   startPeriodicRender,
-  updateDashboardTitle,
   onChange,
   saveDashboard,
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
 } from '../actions/dashboardState';
-import { undoLayoutAction, redoLayoutAction } from '../actions/dashboardLayout';
+
+import {
+  undoLayoutAction,
+  redoLayoutAction,
+  updateDashboardTitle,
+} from '../actions/dashboardLayout';
+
+import { addSuccessToast, addDangerToast } from '../actions/messageToasts';
+
+import { DASHBOARD_HEADER_ID } from '../util/constants';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
@@ -29,7 +38,9 @@ function mapStateToProps({
     redoLength: undoableLayout.future.length,
     layout: undoableLayout.present,
     filters: dashboard.filters,
-    dashboardTitle: dashboard.title,
+    dashboardTitle: (
+      (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
+    ).text,
     expandedSlices: dashboard.expandedSlices,
     charts,
     userId: dashboardInfo.userId,
@@ -44,6 +55,8 @@ function mapStateToProps({
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
+      addSuccessToast,
+      addDangerToast,
       onUndo: undoLayoutAction,
       onRedo: redoLayoutAction,
       setEditMode,

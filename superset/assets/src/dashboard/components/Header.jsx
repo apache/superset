@@ -12,6 +12,8 @@ import { t } from '../../locales';
 import { UNDO_LIMIT } from '../util/constants';
 
 const propTypes = {
+  addSuccessToast: PropTypes.func.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
@@ -113,7 +115,7 @@ class Header extends React.PureComponent {
             title={dashboardTitle}
             canEdit={this.props.dashboardInfo.dash_save_perm && editMode}
             onSaveTitle={this.handleChangeText}
-            showTooltip={editMode}
+            showTooltip={false}
           />
           <span className="favstar m-l-5">
             <FaveStar
@@ -133,8 +135,7 @@ class Header extends React.PureComponent {
                   onClick={onUndo}
                   disabled={undoLength < 1}
                 >
-                  <div title="Undo" className="undo-action fa fa-reply m-r-5" />
-                  {undoLength} of {UNDO_LIMIT}
+                  <div title="Undo" className="undo-action fa fa-reply" />
                 </Button>
               )}
 
@@ -166,6 +167,8 @@ class Header extends React.PureComponent {
                 </Button>
               ) : (
                 <SaveModal
+                  addSuccessToast={this.props.addSuccessToast}
+                  addDangerToast={this.props.addDangerToast}
                   dashboardId={this.props.dashboardInfo.id}
                   dashboardTitle={dashboardTitle}
                   layout={layout}
@@ -185,6 +188,8 @@ class Header extends React.PureComponent {
           )}
 
           <Controls
+            addSuccessToast={this.props.addSuccessToast}
+            addDangerToast={this.props.addDangerToast}
             dashboardInfo={this.props.dashboardInfo}
             dashboardTitle={dashboardTitle}
             layout={layout}

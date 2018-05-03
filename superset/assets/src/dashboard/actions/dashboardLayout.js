@@ -7,6 +7,7 @@ import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
   GRID_MIN_COLUMN_COUNT,
+  DASHBOARD_HEADER_ID,
 } from '../util/constants';
 import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';
@@ -29,6 +30,22 @@ export function updateComponents(nextComponents) {
     if (!getState().dashboardState.hasUnsavedChanges) {
       dispatch(setUnsavedChanges(true));
     }
+  };
+}
+
+export function updateDashboardTitle(text) {
+  return (dispatch, getState) => {
+    const { dashboardLayout } = getState();
+    dispatch(
+      updateComponents({
+        [DASHBOARD_HEADER_ID]: {
+          ...dashboardLayout.present[DASHBOARD_HEADER_ID],
+          meta: {
+            text,
+          },
+        },
+      }),
+    );
   };
 }
 
