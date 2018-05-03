@@ -107,6 +107,7 @@ export default function(bootstrapData) {
       editMode: false,
       showBuilderPane: false,
       hasUnsavedChanges: false,
+      maxUndoHistoryExceeded: false,
     },
     dashboardLayout,
     messageToasts: [],

@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import cx from 'classnames';
 import { DragDropContext } from 'react-dnd';
 import HTML5Backend from 'react-dnd-html5-backend';
@@ -57,6 +58,13 @@ class DashboardBuilder extends React.Component {
 
   handleChangeTab({ tabIndex }) {
     this.setState(() => ({ tabIndex }));
+    setTimeout(() => {
+      if (window)
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        });
+    }, 100);
   }
 
   render() {

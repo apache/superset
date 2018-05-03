@@ -1,5 +1,12 @@
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
+
 import { addInfoToast } from './messageToasts';
-import { setUnsavedChanges } from './dashboardState';
+import {
+  setUnsavedChanges,
+  onChange,
+  removeSliceFromDashboard,
+  addSliceToDashboard,
+} from './dashboardState';
 import { CHART_TYPE, MARKDOWN_TYPE, TABS_TYPE } from '../util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
@@ -21,13 +28,23 @@ export function updateComponents(nextComponents) {
 }
 
 export const DELETE_COMPONENT = 'DELETE_COMPONENT';
-export function deleteComponent(id, parentId) {
+function deleteLayoutComponent(id, parentId) {
   return {
     type: DELETE_COMPONENT,
     payload: {
       id,
       parentId,
     },
+  };
+}
+
+export function deleteComponent(id, parentId) {
+  return (dispatch, getState) => {
+    dispatch(deleteLayoutComponent(id, parentId));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
   };
 }
 
@@ -64,7 +81,7 @@ export function deleteTopLevelTabs() {
 export const RESIZE_COMPONENT = 'RESIZE_COMPONENT';
 export function resizeComponent({ id, width, height }) {
   return (dispatch, getState) => {
-    const { dashboardLayout: undoableLayout } = getState();
+    const { dashboardLayout: undoableLayout, dashboardState } = getState();
     const { present: dashboard } = undoableLayout;
     const component = dashboard[id];
     const widthChanged = width && component.meta.width !== width;
@@ -99,7 +116,9 @@ export function resizeComponent({ id, width, height }) {
       });
 
       dispatch(updateComponents(updatedComponents));
-      dispatch(setUnsavedChanges(true));
+      if (!dashboardState.hasUnsavedChanges) {
+        dispatch(setUnsavedChanges(true));
+      }
     }
   };
 }
@@ -149,9 +168,10 @@ export function handleComponentDrop(dropResult) {
       dispatch(moveComponent(dropResult));
     }
 
+    const { dashboardLayout: undoableLayout, dashboardState } = getState();
+
     // if we moved a Tab and the parent Tabs no longer has children, delete it.
     if (!isNewComponent) {
-      const { dashboardLayout: undoableLayout } = getState();
       const { present: layout } = undoableLayout;
       const sourceComponent = layout[source.id];
 
@@ -167,8 +187,36 @@ export function handleComponentDrop(dropResult) {
       }
     }
 
-    dispatch(setUnsavedChanges(true));
+    if (!dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
 
     return null;
+  };
+}
+
+// Undo redo ------------------------------------------------------------------
+export function undoLayoutAction() {
+  return (dispatch, getState) => {
+    dispatch(UndoActionCreators.undo());
+
+    const { dashboardLayout, dashboardState } = getState();
+
+    if (
+      dashboardLayout.past.length === 0 &&
+      !dashboardState.maxUndoHistoryExceeded
+    ) {
+      dispatch(setUnsavedChanges(false));
+    }
+  };
+}
+
+export function redoLayoutAction() {
+  return (dispatch, getState) => {
+    dispatch(UndoActionCreators.redo());
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
   };
 }

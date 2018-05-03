@@ -1,4 +1,3 @@
-import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
@@ -13,11 +12,10 @@ import {
   updateDashboardTitle,
   onChange,
   onSave,
+  setMaxUndoHistoryExceeded,
+  approachingMaxUndoHistoryToast,
 } from '../actions/dashboardState';
-import {
-  handleComponentDrop,
-  undoLayoutAction,
-} from '../actions/dashboardLayout';
+import { undoLayoutAction, redoLayoutAction } from '../actions/dashboardLayout';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
@@ -27,8 +25,8 @@ function mapStateToProps({
 }) {
   return {
     dashboardInfo,
-    canUndo: undoableLayout.past.length > 0,
-    canRedo: undoableLayout.future.length > 0,
+    undoLength: undoableLayout.past.length,
+    redoLength: undoableLayout.future.length,
     layout: undoableLayout.present,
     filters: dashboard.filters,
     dashboardTitle: dashboard.title,
@@ -37,6 +35,7 @@ function mapStateToProps({
     userId: dashboardInfo.userId,
     isStarred: !!dashboard.isStarred,
     hasUnsavedChanges: !!dashboard.hasUnsavedChanges,
+    maxUndoHistoryExceeded: !!dashboard.maxUndoHistoryExceeded,
     editMode: !!dashboard.editMode,
     showBuilderPane: !!dashboard.showBuilderPane,
   };
@@ -45,9 +44,8 @@ function mapStateToProps({
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
-      handleComponentDrop,
-      onUndo: UndoActionCreators.undo,
-      onRedo: UndoActionCreators.redo,
+      onUndo: undoLayoutAction,
+      onRedo: redoLayoutAction,
       setEditMode,
       toggleBuilderPane,
       fetchFaveStar,
@@ -57,6 +55,8 @@ function mapDispatchToProps(dispatch) {
       updateDashboardTitle,
       onChange,
       onSave,
+      setMaxUndoHistoryExceeded,
+      approachingMaxUndoHistoryToast,
     },
     dispatch,
   );
