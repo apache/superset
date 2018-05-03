@@ -9,8 +9,8 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
-  superset_can_explore: PropTypes.bool,
-  slice_can_edit: PropTypes.bool,
+  supersetCanExplore: PropTypes.bool,
+  sliceCanEdit: PropTypes.bool,
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
   cachedDttm: PropTypes.string,
@@ -130,7 +130,7 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               }
-              {this.props.slice_can_edit &&
+              {this.props.sliceCanEdit &&
                 <a href={slice.edit_url} target="_blank">
                   <TooltipWrapper
                     placement="top"
@@ -150,7 +150,7 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-table" />
                 </TooltipWrapper>
               </a>
-              {this.props.superset_can_explore &&
+              {this.props.supersetCanExplore &&
                 <a className="exploreChart" onClick={this.exploreChart}>
                   <TooltipWrapper
                     placement="top"
@@ -185,8 +185,8 @@ SliceHeader.defaultProps = defaultProps;
 
 function mapStateToProps({ dashboard }) {
   return {
-    superset_can_explore: dashboard.dashboard.superset_can_explore,
-    slice_can_edit: dashboard.dashboard.slice_can_edit,
+    supersetCanExplore: dashboard.dashboard.superset_can_explore,
+    sliceCanEdit: dashboard.dashboard.slice_can_edit,
   };
 }
 
