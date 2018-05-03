@@ -11,9 +11,9 @@ import {
   startPeriodicRender,
   updateDashboardTitle,
   onChange,
-  onSave,
+  saveDashboard,
   setMaxUndoHistoryExceeded,
-  approachingMaxUndoHistoryToast,
+  maxUndoHistoryToast,
 } from '../actions/dashboardState';
 import { undoLayoutAction, redoLayoutAction } from '../actions/dashboardLayout';
 
@@ -54,9 +54,9 @@ function mapDispatchToProps(dispatch) {
       startPeriodicRender,
       updateDashboardTitle,
       onChange,
-      onSave,
+      onSave: saveDashboard,
       setMaxUndoHistoryExceeded,
-      approachingMaxUndoHistoryToast,
+      maxUndoHistoryToast,
     },
     dispatch,
   );

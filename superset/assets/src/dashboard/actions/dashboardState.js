@@ -1,5 +1,6 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
@@ -83,6 +84,14 @@ export function onChange() {
 export const ON_SAVE = 'ON_SAVE';
 export function onSave() {
   return { type: ON_SAVE };
+}
+
+export function saveDashboard() {
+  return dispatch => {
+    dispatch(onSave());
+    // clear undo history
+    dispatch(UndoActionCreators.clearHistory());
+  };
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
@@ -185,7 +194,7 @@ export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {
   };
 }
 
-export function approachingMaxUndoHistoryToast() {
+export function maxUndoHistoryToast() {
   return (dispatch, getState) => {
     const { dashboardLayout } = getState();
     const historyLength = dashboardLayout.past.length;

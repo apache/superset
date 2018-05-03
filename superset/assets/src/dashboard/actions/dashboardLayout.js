@@ -1,12 +1,7 @@
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
 import { addInfoToast } from './messageToasts';
-import {
-  setUnsavedChanges,
-  onChange,
-  removeSliceFromDashboard,
-  addSliceToDashboard,
-} from './dashboardState';
+import { setUnsavedChanges } from './dashboardState';
 import { CHART_TYPE, MARKDOWN_TYPE, TABS_TYPE } from '../util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
@@ -18,12 +13,22 @@ import findParentId from '../util/findParentId';
 
 // Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
-export function updateComponents(nextComponents) {
+function updateLayoutComponents(nextComponents) {
   return {
     type: UPDATE_COMPONENTS,
     payload: {
       nextComponents,
     },
+  };
+}
+
+export function updateComponents(nextComponents) {
+  return (dispatch, getState) => {
+    dispatch(updateLayoutComponents(nextComponents));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
   };
 }
 
@@ -49,12 +54,22 @@ export function deleteComponent(id, parentId) {
 }
 
 export const CREATE_COMPONENT = 'CREATE_COMPONENT';
-export function createComponent(dropResult) {
+function createLayoutComponent(dropResult) {
   return {
     type: CREATE_COMPONENT,
     payload: {
       dropResult,
     },
+  };
+}
+
+export function createComponent(dropResult) {
+  return (dispatch, getState) => {
+    dispatch(createLayoutComponent(dropResult));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
   };
 }
 

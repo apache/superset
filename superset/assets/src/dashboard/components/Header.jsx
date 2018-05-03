@@ -39,14 +39,14 @@ const propTypes = {
   undoLength: PropTypes.number.isRequired,
   redoLength: PropTypes.number.isRequired,
   setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
-  approachingMaxUndoHistoryToast: PropTypes.func.isRequired,
+  maxUndoHistoryToast: PropTypes.func.isRequired,
 };
 
 class Header extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      didNotifyApproachingMaxUndoHistoryToast: false,
+      didNotifyMaxUndoHistoryToast: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -56,16 +56,17 @@ class Header extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (
-      nextProps.undoLength >= UNDO_LIMIT &&
+      UNDO_LIMIT - nextProps.undoLength <= 0 &&
+      !this.state.didNotifyMaxUndoHistoryToast
+    ) {
+      this.setState(() => ({ didNotifyMaxUndoHistoryToast: true }));
+      this.props.maxUndoHistoryToast();
+    }
+    if (
+      nextProps.undoLength > UNDO_LIMIT &&
       !this.props.maxUndoHistoryExceeded
     ) {
       this.props.setMaxUndoHistoryExceeded();
-    } else if (
-      UNDO_LIMIT - nextProps.undoLength <= 1 &&
-      !this.state.didNotifyApproachingMaxUndoHistoryToast
-    ) {
-      this.setState(() => ({ didNotifyApproachingMaxUndoHistoryToast: true }));
-      this.props.approachingMaxUndoHistoryToast();
     }
   }
 
@@ -132,7 +133,8 @@ class Header extends React.PureComponent {
                   onClick={onUndo}
                   disabled={undoLength < 1}
                 >
-                  <div title="Undo" className="undo-action fa fa-reply" />
+                  <div title="Undo" className="undo-action fa fa-reply m-r-5" />
+                  {undoLength} of {UNDO_LIMIT}
                 </Button>
               )}
 

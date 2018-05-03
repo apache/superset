@@ -77,7 +77,11 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, hasUnsavedChanges: true };
     },
     [ON_SAVE]() {
-      return { ...state, hasUnsavedChanges: false };
+      return {
+        ...state,
+        hasUnsavedChanges: false,
+        maxUndoHistoryExceeded: false,
+      };
     },
 
     // filters

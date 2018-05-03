@@ -14,7 +14,9 @@ import {
 import dashboardLayout from './dashboardLayout';
 
 export default undoable(dashboardLayout, {
-  limit: UNDO_LIMIT + 1, // length of history seems max out at limit - 1, so increment by 1
+  // +1 because length of history seems max out at limit - 1
+  // +1 again so we can detect if we've exceeded the limit
+  limit: UNDO_LIMIT + 2,
   filter: includeAction([
     UPDATE_COMPONENTS,
     DELETE_COMPONENT,
