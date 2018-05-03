@@ -602,7 +602,9 @@ export default function nvd3Vis(slice, payload) {
           xMax = chart.xAxis.scale().domain()[1].valueOf();
           xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
         }
-        xScale.clamp(true);
+        if (xScale && xScale.clamp) {
+          xScale.clamp(true);
+        }
 
         if (Array.isArray(formulas) && formulas.length) {
           const xValues = [];
