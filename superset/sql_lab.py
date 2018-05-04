@@ -203,7 +203,7 @@ def execute_sql(
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     elif (query.limit and superset_query.is_select() and
-                  db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+          db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
 
