@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import json
 import logging
@@ -76,17 +73,6 @@ def get_query(query_id, session, retry_count=5):
     return query
 
 
-# def get_session(nullpool):
-#     if nullpool:
-#         engine = sqlalchemy.create_engine(
-#             app.config.get('SQLALCHEMY_DATABASE_URI'), poolclass=NullPool)
-#         session_class = sessionmaker()
-#         session_class.configure(bind=engine)
-#         return session_class()
-#     session = db.session()
-#     session.commit()  # HACK
-#     return session
-
 @contextmanager
 def session_scope(nullpool):
     """Provide a transactional scope around a series of operations."""
@@ -133,8 +119,8 @@ def convert_results_to_df(cursor_description, data):
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
-        ctask, query_id, rendered_query, return_results=True, store_results=False,
-        user_name=None):
+    ctask, query_id, rendered_query, return_results=True, store_results=False,
+    user_name=None):
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
 
@@ -154,8 +140,8 @@ def get_sql_results(
 
 
 def execute_sql(
-        ctask, query_id, rendered_query, return_results=True, store_results=False,
-        user_name=None, session=None,
+    ctask, query_id, rendered_query, return_results=True, store_results=False,
+    user_name=None, session=None,
 ):
     """Executes the sql query returns the results."""
 
