@@ -140,7 +140,8 @@ def get_sql_results(
 
         try:
             return execute_sql(
-                ctask, query_id, rendered_query, return_results, store_results, user_name, session=session)
+                ctask, query_id, rendered_query, return_results, store_results, user_name,
+                session=session)
         except Exception as e:
             logging.exception(e)
             stats_logger.incr('error_sqllab_unhandled')
