@@ -1,7 +1,13 @@
 .dashboard-builder-sidepane {
+  <<<<<<<HEAD
   flex: 0 0 @builder-pane-width;
   z-index: 10;
   position: relative;
+  =======flex: 0 0 374px;
+  z-index: 10;
+  position: relative;
+  overflow-x: hidden;
+  >>>>>>>add slider and sticky
   box-shadow: -4px 0 4px 0 rgba(0, 0, 0, 0.1);
 
   .dashboard-builder-sidepane-header {
@@ -35,7 +41,7 @@
     width: @builder-pane-width * 2;
     height: 100%;
     display: flex;
-    transition: all .5s ease;
+    transition: all 0.5s ease;
 
     &.slide-in {
       left: -@builder-pane-width;
@@ -53,6 +59,12 @@
   .component-layer .new-component.static,
   .slices-layer .dashboard-builder-sidepane-header {
     cursor: pointer;
+  }
+
+  .component-layer {
+    .new-component.static {
+      cursor: pointer;
+    }
   }
 
   .component-layer {

@@ -4,7 +4,10 @@ import { connect } from 'react-redux';
 import { fetchAllSlices } from '../actions/sliceEntities';
 import SliceAdder from '../components/SliceAdder';
 
-function mapStateToProps({ sliceEntities, dashboardInfo, dashboardState }) {
+function mapStateToProps(
+  { sliceEntities, dashboardInfo, dashboardState },
+  ownProps,
+) {
   return {
     userId: dashboardInfo.userId,
     selectedSliceIds: dashboardState.sliceIds,
@@ -13,6 +16,7 @@ function mapStateToProps({ sliceEntities, dashboardInfo, dashboardState }) {
     errorMessage: sliceEntities.errorMessage,
     lastUpdated: sliceEntities.lastUpdated,
     editMode: dashboardState.editMode,
+    height: ownProps.height,
   };
 }
 
