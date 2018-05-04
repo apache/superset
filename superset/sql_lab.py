@@ -154,7 +154,7 @@ def get_sql_results(
 
 def execute_sql(
         ctask, query_id, rendered_query, return_results=True, store_results=False,
-        user_name=None, session=None
+        user_name=None, session=None,
 ):
     """Executes the sql query returns the results."""
 
