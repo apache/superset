@@ -1554,8 +1554,7 @@ class Superset(BaseSupersetView):
                 session.add(new_slice)
                 session.flush()
                 new_slice.dashboards.append(dash)
-                old_to_new_sliceids['{}'.format(slc.id)] =\
-                    '{}'.format(new_slice.id)
+                old_to_new_sliceids[slc.id] = new_slice.id
 
             # update chartId of layout entities
             for value in data['positions'].values():
@@ -1601,8 +1600,10 @@ class Superset(BaseSupersetView):
         slice_ids = []
         slice_id_to_name = {}
         for value in positions.values():
-            if isinstance(value, dict) and value.get('meta') and value.get('meta').get('chartId'):
-                slice_id = int(value.get('meta').get('chartId'))
+            if isinstance(value, dict) and value.get('meta') \
+                and value.get('meta').get('chartId'):
+
+                slice_id = value.get('meta').get('chartId')
                 slice_ids.append(slice_id)
                 slice_id_to_name[slice_id] = value.get('meta').get('chartName')
 
