@@ -38,10 +38,6 @@ export default function(bootstrapData) {
   // dashboard layout
   const { position_json: positionJson } = dashboard;
 
-  if (positionJson && positionJson.DASHBOARD_ROOT_ID) {
-    positionJson[DASHBOARD_VERSION_KEY] = 'v2';
-  }
-
   const layout =
     !positionJson || positionJson[DASHBOARD_VERSION_KEY] !== 'v2'
       ? layoutConverter(dashboard)
