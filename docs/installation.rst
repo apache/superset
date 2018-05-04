@@ -650,3 +650,18 @@ To setup StatsD logging, it's a matter of configuring the logger in your
 
 Note that it's also possible to implement you own logger by deriving
 ``superset.stats_logger.BaseStatsLogger``.
+
+
+Install Superset with helm in Kubernetes
+--------------
+
+You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is 
+located in ``install/helm``.
+
+To install Superset into your Kubernetes:
+
+.. code-block:: bash
+
+    helm upgrade --install superset ./install/helm/superset 
+
+Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.
