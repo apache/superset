@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from contextlib2 import contextmanager
 from datetime import datetime
 import json
 import logging
@@ -15,7 +16,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 import numpy as np
 import pandas as pd
 import sqlalchemy
-from contextlib2 import contextmanager
+
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
