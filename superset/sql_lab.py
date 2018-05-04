@@ -104,8 +104,9 @@ def session_scope(nullpool):
     try:
         yield session
         session.commit()
-    except:
+    except Exception as e:
         session.rollback()
+        logging.exception(e)
         raise
     finally:
         session.close()
