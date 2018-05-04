@@ -70,7 +70,7 @@ class SliceAdder extends React.Component {
       error: (error) => {
         this.errored = true;
         this.setState({
-          errorMsg: t('Sorry, there was an error fetching slices to this dashboard: ') +
+          errorMsg: t('Sorry, there was an error fetching charts to this dashboard: ') +
           this.getAjaxErrorMsg(error),
         });
       },
@@ -90,7 +90,7 @@ class SliceAdder extends React.Component {
       .fail((error) => {
         adder.errored = true;
         adder.setState({
-          errorMsg: t('Sorry, there was an error adding slices to this dashboard: ') +
+          errorMsg: t('Sorry, there was an error adding charts to this dashboard: ') +
           this.getAjaxErrorMsg(error),
         });
       });
@@ -193,7 +193,7 @@ class SliceAdder extends React.Component {
             onClick={this.addSlices}
             disabled={!enableAddSlice}
           >
-            {t('Add Slices')}
+            {t('Add Charts')}
           </button>
         </div>
       </div>
@@ -202,13 +202,13 @@ class SliceAdder extends React.Component {
     return (
       <ModalTrigger
         triggerNode={this.props.triggerNode}
-        tooltip={t('Add a new slice to the dashboard')}
+        tooltip={t('Add a new chart to the dashboard')}
         beforeOpen={this.onEnterModal.bind(this)}
         isMenuItem
         modalBody={modalContent}
         bsSize="large"
         setModalAsTriggerChildren
-        modalTitle={t('Add Slices to Dashboard')}
+        modalTitle={t('Add Charts to Dashboard')}
       />
     );
   }
