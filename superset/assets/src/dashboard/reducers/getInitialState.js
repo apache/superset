@@ -8,7 +8,7 @@ import { applyDefaultFormData } from '../../explore/stores/store';
 import { getColorFromScheme } from '../../modules/colors';
 import layoutConverter from '../util/dashboardLayoutConverter';
 import { DASHBOARD_VERSION_KEY, DASHBOARD_HEADER_ID } from '../util/constants';
-import { DASHBOARD_HEADER_TYPE } from '../util/componentTypes';
+import { DASHBOARD_HEADER_TYPE, CHART_TYPE } from '../util/componentTypes';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common } = bootstrapData;
@@ -65,6 +65,14 @@ export default function(bootstrapData) {
   delete dashboard.position_json;
   delete dashboard.css;
 
+  // creat a lookup to sync layout names with slice names
+  const chartIdToLayoutId = {};
+  Object.values(layout).forEach(layoutComponent => {
+    if (layoutComponent.type === CHART_TYPE) {
+      chartIdToLayoutId[layoutComponent.meta.chartId] = layoutComponent.id;
+    }
+  });
+
   const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
@@ -90,6 +98,14 @@ export default function(bootstrapData) {
     };
 
     sliceIds.add(key);
+
+    // sync layout names with current slice names in case a slice was edited
+    // in explore since the layout was updated. name updates go through layout for undo/redo
+    // functionality and python updates slice names based on layout upon dashboard save
+    const layoutId = chartIdToLayoutId[key];
+    if (layoutId && layout[layoutId]) {
+      layout[layoutId].meta.chartName = slice.slice_name;
+    }
   });
 
   return {

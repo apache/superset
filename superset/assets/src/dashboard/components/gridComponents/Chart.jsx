@@ -13,16 +13,17 @@ const propTypes = {
   id: PropTypes.number.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
+  updateSliceName: PropTypes.func.isRequired,
 
   // from redux
   chart: PropTypes.shape(chartPropType).isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
+  sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
-  saveSliceName: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
   addFilter: PropTypes.func.isRequired,
   removeFilter: PropTypes.func.isRequired,
@@ -150,6 +151,8 @@ class Chart extends React.Component {
       isExpanded,
       editMode,
       formData,
+      updateSliceName,
+      sliceName,
       toggleExpandSlice,
       timeout,
     } = this.props;
@@ -168,13 +171,14 @@ class Chart extends React.Component {
           isExpanded={!!isExpanded}
           isCached={isCached}
           cachedDttm={cachedDttm}
-          updateSliceName={this.updateSliceName}
           toggleExpandSlice={toggleExpandSlice}
           forceRefresh={this.forceRefresh}
           editMode={editMode}
           annotationQuery={chart.annotationQuery}
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
+          updateSliceName={updateSliceName}
+          sliceName={sliceName}
         />
 
         {/*
