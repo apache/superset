@@ -95,7 +95,7 @@ function getChartHolder(item) {
     meta: {
       width: converted.size_x,
       height: Math.round(converted.size_y * 100 / ROW_HEIGHT),
-      chartId: slice_id,
+      chartId: parseInt(slice_id, 10),
     },
   };
 }

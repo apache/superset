@@ -128,13 +128,7 @@ class Controls extends React.PureComponent {
             </MenuItem>
           )}
           {editMode && (
-            <MenuItem
-              onClick={() => {
-                window.location = emailLink;
-              }}
-            >
-              {t('Email dashboard link')}
-            </MenuItem>
+            <MenuItem href={emailLink}>{t('Email dashboard link')}</MenuItem>
           )}
         </DropdownButton>
       </span>

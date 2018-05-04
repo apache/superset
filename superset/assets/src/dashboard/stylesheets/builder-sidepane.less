@@ -1,52 +1,63 @@
 .dashboard-builder-sidepane {
-  background: white;
-  flex: 0 0 376px;
-  border: 1px solid @gray-light;
+  flex: 0 0 @builder-pane-width;
   z-index: 10;
   position: relative;
+  box-shadow: -4px 0 4px 0 rgba(0, 0, 0, 0.1);
 
   .dashboard-builder-sidepane-header {
     font-size: 15px;
     font-weight: 700;
+    border-top: 1px solid @gray-light;
     border-bottom: 1px solid @gray-light;
-    padding: 14px;
+    padding: 16px;
   }
 
   .trigger {
-    height: 25px;
+    height: 18px;
     width: 25px;
-    color: @gray;
-    position: relative;
+    color: @almost-black;
+    float: none;
+    opacity: 1;
+  }
 
-    &.close {
-      top: 3px;
+  .viewport {
+    position: absolute;
+    transform: none !important;
+    background: white;
+    overflow: hidden;
+    width: @builder-pane-width;
+    height: 100%;
+  }
+
+  .slider-container {
+    position: absolute;
+    background: white;
+    width: @builder-pane-width * 2;
+    height: 100%;
+    display: flex;
+    transition: all .5s ease;
+
+    &.slide-in {
+      left: -@builder-pane-width;
     }
 
-    &.open {
-      position: absolute;
-      right: 14px;
+    &.slide-out {
+      left: 0;
     }
+
+    .slide-content {
+      width: @builder-pane-width;
+    }
+  }
+
+  .component-layer .new-component.static,
+  .slices-layer .dashboard-builder-sidepane-header {
+    cursor: pointer;
   }
 
   .component-layer {
     .new-component.static {
       cursor: pointer;
-    }
-  }
-
-  .slices-layer {
-    position: absolute;
-    width: 2px;
-    top: 51px;
-    right: 0;
-    background: white;
-    transition-property: width;
-    transition-duration: 1s;
-    transition-timing-function: ease;
-    overflow: hidden;
-
-    &.show {
-      width: 374px;
     }
   }
 

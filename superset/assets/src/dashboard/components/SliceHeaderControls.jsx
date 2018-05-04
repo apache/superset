@@ -71,11 +71,10 @@ class SliceHeaderControls extends React.PureComponent {
         id={`slice_${slice.slice_id}-controls`}
         className={cx(isCached && 'is-cached')}
         pullRight
-        noCaret
       >
-        <div bsRole="toggle" className="slice-header-controls-trigger">
+        <Dropdown.Toggle className="slice-header-controls-trigger" noCaret>
           <VerticalDotsTrigger />
-        </div>
+        </Dropdown.Toggle>
 
         <Dropdown.Menu>
           <MenuItem onClick={this.props.forceRefresh}>
