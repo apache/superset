@@ -5,18 +5,17 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from contextlib2 import contextmanager
-from datetime import datetime
 import json
 import logging
-from time import sleep
 import uuid
+from datetime import datetime
+from time import sleep
 
-from celery.exceptions import SoftTimeLimitExceeded
 import numpy as np
 import pandas as pd
 import sqlalchemy
-
+from celery.exceptions import SoftTimeLimitExceeded
+from contextlib2 import contextmanager
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -204,7 +203,7 @@ def execute_sql(
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     elif (query.limit and superset_query.is_select() and
-          db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+                  db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
 
