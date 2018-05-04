@@ -2046,6 +2046,8 @@ class Superset(BaseSupersetView):
         dash_edit_perm = check_ownership(dash, raise_if_false=False)
         dash_save_perm = \
             dash_edit_perm and security_manager.can_access('can_save_dash', 'Superset')
+        superset_can_explore = security_manager.can_access('can_explore', 'Superset')
+        slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
         standalone_mode = request.args.get('standalone') == 'true'
 
@@ -2054,6 +2056,8 @@ class Superset(BaseSupersetView):
             'standalone_mode': standalone_mode,
             'dash_save_perm': dash_save_perm,
             'dash_edit_perm': dash_edit_perm,
+            'superset_can_explore': superset_can_explore,
+            'slice_can_edit': slice_can_edit,
         })
 
         bootstrap_data = {
