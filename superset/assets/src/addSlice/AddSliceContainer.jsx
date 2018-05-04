@@ -56,7 +56,7 @@ export default class AddSliceContainer extends React.PureComponent {
   render() {
     return (
       <div className="container">
-        <Panel header={<h3>{t('Create a new slice')}</h3>}>
+        <Panel header={<h3>{t('Create a new chart')}</h3>}>
           <div>
             <p>{t('Choose a datasource')}</p>
             <div style={styleSelectWidth}>

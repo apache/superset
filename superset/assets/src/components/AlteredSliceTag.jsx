@@ -134,7 +134,7 @@ export default class AlteredSliceTag extends React.Component {
       <ModalTrigger
         animation
         triggerNode={this.renderTriggerNode()}
-        modalTitle={t('Slice changes')}
+        modalTitle={t('Chart changes')}
         bsSize="large"
         modalBody={this.renderModalBody()}
       />
