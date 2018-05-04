@@ -2,17 +2,17 @@
 # pylint: disable=C,R,W
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+from datetime import datetime
 import json
 import logging
-import uuid
-from datetime import datetime
 from time import sleep
+import uuid
 
+from celery.exceptions import SoftTimeLimitExceeded
+from contextlib2 import contextmanager
 import numpy as np
 import pandas as pd
 import sqlalchemy
-from celery.exceptions import SoftTimeLimitExceeded
-from contextlib2 import contextmanager
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -120,7 +120,7 @@ def convert_results_to_df(cursor_description, data):
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
     ctask, query_id, rendered_query, return_results=True, store_results=False,
-    user_name=None):
+        user_name=None):
     """Executes the sql query returns the results."""
     with session_scope(not ctask.request.called_directly) as session:
 
@@ -189,7 +189,7 @@ def execute_sql(
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     elif (query.limit and superset_query.is_select() and
-                  db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
 
