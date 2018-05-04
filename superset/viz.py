@@ -280,34 +280,22 @@ class BaseViz(object):
                             'op': adhoc_filter.get('operator'),
                             'val': adhoc_filter.get('comparator'),
                         })
-                    if clause == 'HAVING':
+                    elif clause == 'HAVING':
                         simple_having_filters.append({
                             'col': adhoc_filter.get('subject'),
                             'op': adhoc_filter.get('operator'),
                             'val': adhoc_filter.get('comparator'),
                         })
-                if expression_type == 'SQL':
+                elif expression_type == 'SQL':
                     if clause == 'WHERE':
                         sql_where_filters.append(adhoc_filter.get('sqlExpression'))
-                    if clause == 'HAVING':
+                    elif clause == 'HAVING':
                         sql_having_filters.append(adhoc_filter.get('sqlExpression'))
-            all_where_text = ''
-            all_having_text = ''
-            if len(sql_where_filters) == 1:
-                all_where_text = sql_where_filters[0]
-            elif len(sql_where_filters) > 1:
-                all_where_text = ' AND '.join(list(map(
-                    lambda expression: '({})'.format(expression), sql_where_filters,
-                )))
-            if len(sql_having_filters) == 1:
-                all_having_text = sql_having_filters[0]
-            elif len(sql_having_filters) > 1:
-                all_having_text = ' AND '.join(list(map(
-                    lambda expression: '({})'.format(expression), sql_having_filters,
-                )))
             extras = {
-                'where': all_where_text,
-                'having': all_having_text,
+                'where': ' AND '.join(['({})'.format(sql) for sql in sql_where_filters]),
+                'having': ' AND '.join(
+                    ['({})'.format(sql) for sql in sql_having_filters],
+                ),
                 'having_druid': simple_having_filters,
                 'time_grain_sqla': form_data.get('time_grain_sqla', ''),
                 'druid_time_origin': form_data.get('druid_time_origin', ''),

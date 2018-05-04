@@ -19,7 +19,7 @@ import OnPasteSelect from '../../components/OnPasteSelect';
 import SelectControl from './controls/SelectControl';
 import VirtualizedRendererWrap from '../../components/VirtualizedRendererWrap';
 
-const $ = window.$ = require('jquery');
+const $ = require('jquery');
 
 const propTypes = {
   adhocFilter: PropTypes.instanceOf(AdhocFilter).isRequired,
@@ -35,6 +35,15 @@ const propTypes = {
 const defaultProps = {
   datasource: {},
 };
+
+function translateOperator(operator) {
+  if (operator === OPERATORS['==']) {
+    return 'equals';
+  } else if (operator === OPERATORS['!=']) {
+    return 'not equal to';
+  }
+  return operator;
+}
 
 export default class AdhocFilterEditPopoverSimpleTabContent extends React.Component {
   constructor(props) {
@@ -165,6 +174,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       )),
       valueRenderer: option => <span>{option.value}</span>,
       valueKey: 'filterOptionName',
+      noResultsText: t('No such column found. To filter on a metric, try the Custom SQL tab.'),
     };
 
     if (datasource.type === 'druid') {
@@ -179,7 +189,9 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       // becomes a rather complicated problem)
       subjectSelectProps = {
         ...subjectSelectProps,
-        placeholder: t('%s column(s)', options.length),
+        placeholder: adhocFilter.clause === CLAUSES.WHERE ?
+          t('%s column(s)', options.length) :
+          t('To filter on a metric, use Custom SQL tab.'),
         options: options.filter(option => option.column_name),
       };
     }
@@ -192,11 +204,11 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
       value: adhocFilter.operator,
       onChange: this.onOperatorChange,
       optionRenderer: VirtualizedRendererWrap((
-        operator => operator.operator
+        operator => translateOperator(operator.operator)
       )),
       valueRenderer: operator => (
         <span>
-          {operator.operator}
+          {translateOperator(operator.operator)}
         </span>
       ),
       valueKey: 'operator',
@@ -204,7 +216,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
     return (
       <span>
-        <FormGroup>
+        <FormGroup className="adhoc-filter-simple-column-dropdown">
           <OnPasteSelect {...this.selectProps} {...subjectSelectProps} />
         </FormGroup>
         <FormGroup>
@@ -225,7 +237,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 choices={this.state.suggestions}
                 onChange={this.onComparatorChange}
                 showHeader={false}
-                noResultsText="type a value here"
+                noResultsText={t('type a value here')}
               /> :
               <input
                 ref={this.focusComparator}

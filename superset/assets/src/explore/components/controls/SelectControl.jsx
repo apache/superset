@@ -44,7 +44,7 @@ const defaultProps = {
   optionRenderer: opt => opt.label,
   valueRenderer: opt => opt.label,
   valueKey: 'value',
-  noResultsText: 'No results found',
+  noResultsText: t('No results found'),
 };
 
 export default class SelectControl extends React.PureComponent {

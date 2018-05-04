@@ -23,10 +23,25 @@ export default class AdhocFilterOption extends React.PureComponent {
     super(props);
     this.closeFilterEditOverlay = this.closeFilterEditOverlay.bind(this);
     this.onPopoverResize = this.onPopoverResize.bind(this);
+    this.onOverlayEntered = this.onOverlayEntered.bind(this);
+    this.onOverlayExited = this.onOverlayExited.bind(this);
+    this.state = { overlayShown: !this.props.adhocFilter.fromFormData };
   }
 
   onPopoverResize() {
    this.forceUpdate();
+  }
+
+  onOverlayEntered() {
+    this.setState({ overlayShown: true });
+  }
+
+  onOverlayExited() {
+    this.setState({ overlayShown: false });
+  }
+
+  onMouseDown(e) {
+    e.stopPropagation();
   }
 
   closeFilterEditOverlay() {
@@ -56,11 +71,18 @@ export default class AdhocFilterOption extends React.PureComponent {
         rootClose
         shouldUpdatePosition
         defaultOverlayShown={!adhocFilter.fromFormData}
+        onEntered={this.onOverlayEntered}
+        onExited={this.onOverlayExited}
       >
         <Label className="adhoc-filter-option">
-          <div onMouseDownCapture={(e) => { e.stopPropagation(); }}>
+          <div onMouseDownCapture={this.onMouseDown}>
             <span className="m-r-5 option-label">
               {adhocFilter.getDefaultLabel()}
+              <i
+                className={
+                  `glyphicon glyphicon-triangle-${this.state.overlayShown ? 'left' : 'right'} adhoc-label-arrow`
+                }
+              />
             </span>
           </div>
         </Label>

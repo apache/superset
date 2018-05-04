@@ -22,7 +22,7 @@ const propTypes = {
 };
 
 const startingWidth = 300;
-const startingHeight = 180;
+const startingHeight = 190;
 
 export default class AdhocFilterEditPopover extends React.Component {
   constructor(props) {
@@ -38,11 +38,15 @@ export default class AdhocFilterEditPopover extends React.Component {
       width: startingWidth,
       height: startingHeight,
     };
+  }
+
+  componentDidMount() {
     document.addEventListener('mouseup', this.onMouseUp);
   }
 
   componentWillUnmount() {
     document.removeEventListener('mouseup', this.onMouseUp);
+    document.removeEventListener('mousemove', this.onMouseMove);
   }
 
   onAdhocFilterChange(adhocFilter) {

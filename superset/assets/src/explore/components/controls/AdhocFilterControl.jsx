@@ -40,7 +40,11 @@ const propTypes = {
 };
 
 const defaultProps = {
+  name: '',
   onChange: () => {},
+  columns: [],
+  savedMetrics: [],
+  formData: {},
 };
 
 function isDictionaryForAdhocFilter(value) {
@@ -220,7 +224,11 @@ export default class AdhocFilterControl extends React.Component {
         return { ...option, filterOptionName: '_adhocmetric_' + option.label };
       }
       return null;
-    });
+    }).sort((a, b) => (
+      (a.saved_metric_name || a.column_name || a.label || '').localeCompare((
+        b.saved_metric_name || b.column_name || b.label
+      ))
+    ));
   }
 
   render() {

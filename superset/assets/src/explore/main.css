@@ -152,7 +152,7 @@
 }
 
 .adhoc-filter-edit-tabs > .nav-tabs > li > a {
-  padding: 4px 4px 4px 4px;
+  padding: 4px;
 }
 
 .edit-popover-resize {
@@ -175,7 +175,8 @@
 }
 
 .filter-edit-clause-dropdown {
-  min-width: 90px;
+  width: 120px;
+  margin-right: 5px;
 }
 
 .filter-edit-clause-info {
@@ -188,6 +189,24 @@
 }
 
 .adhoc-filter-option{
-  margin: 3px;
   cursor: pointer;
+}
+
+.adhoc-filter-sql-editor {
+  border: rgb(187, 187, 187) solid thin;
+}
+
+.label-default {
+  background-color: #808e95;
+  font-weight: normal;
+}
+
+.adhoc-filter-simple-column-dropdown {
+  margin-top: 20px;
+}
+
+.adhoc-label-arrow {
+  font-size: 9px;
+  margin-left: 3px;
+  position: static;
 }

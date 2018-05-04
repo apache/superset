@@ -210,8 +210,8 @@ class TableVizTestCase(unittest.TestCase):
             [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
             query_obj['extras']['having_druid'],
         )
-        self.assertEqual('value3 in (\'North America\')', query_obj['extras']['where'])
-        self.assertEqual('SUM(value1) > 5', query_obj['extras']['having'])
+        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
+        self.assertEqual('(SUM(value1) > 5)', query_obj['extras']['having'])
 
     def test_adhoc_filters_overwrite_legacy_filters(self):
         form_data = {
@@ -248,7 +248,7 @@ class TableVizTestCase(unittest.TestCase):
             [],
             query_obj['extras']['having_druid'],
         )
-        self.assertEqual('value3 in (\'North America\')', query_obj['extras']['where'])
+        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
         self.assertEqual('', query_obj['extras']['having'])
 
     def test_legacy_filters_still_appear_without_adhoc_filters(self):

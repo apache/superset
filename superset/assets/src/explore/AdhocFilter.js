@@ -25,7 +25,10 @@ const OPERATORS_TO_SQL = {
 function translateToSql(adhocMetric, { useSimple } = {}) {
   if (adhocMetric.expressionType === EXPRESSION_TYPES.SIMPLE || useSimple) {
     const isMulti = MULTI_OPERATORS.indexOf(adhocMetric.operator) >= 0;
-    return `${adhocMetric.subject} ${OPERATORS_TO_SQL[adhocMetric.operator]} ${isMulti ? '(\'' : ''}${isMulti ? adhocMetric.comparator.join("','") : adhocMetric.comparator}${isMulti ? '\')' : ''}`;
+    const subject = adhocMetric.subject;
+    const operator = OPERATORS_TO_SQL[adhocMetric.operator];
+    const comparator = isMulti ? adhocMetric.comparator.join("','") : adhocMetric.comparator;
+    return `${subject} ${operator} ${isMulti ? '(\'' : ''}${comparator}${isMulti ? '\')' : ''}`;
   } else if (adhocMetric.expressionType === EXPRESSION_TYPES.SQL) {
     return adhocMetric.sqlExpression;
   }
@@ -58,6 +61,13 @@ export default class AdhocFilter {
   duplicateWith(nextFields) {
     return new AdhocFilter({
       ...this,
+      expressionType: this.expressionType,
+      subject: this.subject,
+      operator: this.operator,
+      clause: this.clause,
+      sqlExpression: this.sqlExpression,
+      fromFormData: this.fromFormData,
+      filterOptionName: this.filterOptionName,
       ...nextFields,
     });
   }

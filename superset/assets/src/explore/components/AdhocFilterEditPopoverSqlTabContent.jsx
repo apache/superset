@@ -95,7 +95,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
             className="filter-edit-clause-dropdown"
           />
           <span className="filter-edit-clause-info">
-            <strong>Where</strong> filters by columns.&nbsp;
+            <strong>Where</strong> filters by columns.<br />
             <strong>Having</strong> filters by metrics.
           </span>
         </FormGroup>
@@ -103,13 +103,15 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
           <AceEditor
             mode="sql"
             theme="github"
-            height={(height - 90) + 'px'}
+            height={(height - 100) + 'px'}
             onChange={this.onSqlExpressionChange}
             width="100%"
             showGutter={false}
             value={adhocFilter.sqlExpression || adhocFilter.translateToSql()}
             editorProps={{ $blockScrolling: true }}
             enableLiveAutocompletion
+            className="adhoc-filter-sql-editor"
+            wrapEnabled
           />
         </FormGroup>
       </span>
