@@ -92,7 +92,7 @@ export function createComponent(dropResult) {
 
 // Tabs -----------------------------------------------------------------------
 export const CREATE_TOP_LEVEL_TABS = 'CREATE_TOP_LEVEL_TABS';
-export function createTopLevelTabs(dropResult) {
+function createTopLevelTabsAction(dropResult) {
   return {
     type: CREATE_TOP_LEVEL_TABS,
     payload: {
@@ -101,11 +101,31 @@ export function createTopLevelTabs(dropResult) {
   };
 }
 
+export function createTopLevelTabs(dropResult) {
+  return (dispatch, getState) => {
+    dispatch(createTopLevelTabsAction(dropResult));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
+  };
+}
+
 export const DELETE_TOP_LEVEL_TABS = 'DELETE_TOP_LEVEL_TABS';
-export function deleteTopLevelTabs() {
+function deleteTopLevelTabsAction() {
   return {
     type: DELETE_TOP_LEVEL_TABS,
     payload: {},
+  };
+}
+
+export function deleteTopLevelTabs(dropResult) {
+  return (dispatch, getState) => {
+    dispatch(deleteTopLevelTabsAction(dropResult));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
   };
 }
 

@@ -25,6 +25,8 @@ import {
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
 
+const TABS_HEIGHT = 47;
+
 const propTypes = {
   // redux
   dashboardLayout: PropTypes.object.isRequired,
@@ -109,7 +111,7 @@ class DashboardBuilder extends React.Component {
         )}
 
         {topLevelTabs && (
-          <Sticky topOffset={50}>
+          <Sticky topOffset={60}>
             {({ style }) => (
               <WithPopoverMenu
                 shouldFocus={DashboardBuilder.shouldFocusTabs}
@@ -121,7 +123,7 @@ class DashboardBuilder extends React.Component {
                   />,
                 ]}
                 editMode={editMode}
-                style={{ zIndex: 1000, ...style }}
+                style={editMode ? { zIndex: 100, ...style } : null}
               >
                 <DashboardComponent
                   id={topLevelTabs.id}
@@ -179,7 +181,11 @@ class DashboardBuilder extends React.Component {
           </div>
 
           {this.props.editMode &&
-            this.props.showBuilderPane && <BuilderComponentPane />}
+            this.props.showBuilderPane && (
+              <BuilderComponentPane
+                topOffset={topLevelTabs ? TABS_HEIGHT : 0}
+              />
+            )}
         </div>
         <ToastPresenter />
       </StickyContainer>

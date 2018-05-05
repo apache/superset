@@ -1,4 +1,5 @@
 /* eslint-env browser */
+import PropTypes from 'prop-types';
 import React from 'react';
 import cx from 'classnames';
 import { StickyContainer, Sticky } from 'react-sticky';
@@ -10,6 +11,14 @@ import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import SliceAdder from '../containers/SliceAdder';
 import { t } from '../../locales';
+
+const propTypes = {
+  topOffset: PropTypes.number,
+};
+
+const defaultProps = {
+  topOffset: 0,
+};
 
 class BuilderComponentPane extends React.PureComponent {
   constructor(props) {
@@ -29,11 +38,15 @@ class BuilderComponentPane extends React.PureComponent {
   }
 
   render() {
+    const { topOffset } = this.props;
     return (
       <StickyContainer className="dashboard-builder-sidepane">
-        <Sticky>
-          {({ style, calculatedHeight }) => (
-            <div className="viewport" style={style}>
+        <Sticky topOffset={-topOffset}>
+          {({ style, calculatedHeight, isSticky }) => (
+            <div
+              className="viewport"
+              style={isSticky ? { ...style, top: topOffset } : null}
+            >
               <div
                 className={cx('slider-container', this.state.slideDirection)}
               >
@@ -80,5 +93,8 @@ class BuilderComponentPane extends React.PureComponent {
     );
   }
 }
+
+BuilderComponentPane.propTypes = propTypes;
+BuilderComponentPane.defaultProps = defaultProps;
 
 export default BuilderComponentPane;
