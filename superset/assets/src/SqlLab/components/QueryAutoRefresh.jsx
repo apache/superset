@@ -8,6 +8,7 @@ const $ = require('jquery');
 
 const QUERY_UPDATE_FREQ = 2000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
+const MAX_QUERY_AGE_TO_POLL = 21600000;
 
 class QueryAutoRefresh extends React.PureComponent {
   componentWillMount() {
@@ -19,10 +20,12 @@ class QueryAutoRefresh extends React.PureComponent {
   shouldCheckForQueries() {
     // if there are started or running queries, this method should return true
     const { queries } = this.props;
-    const queryKeys = Object.keys(queries);
-    const queriesAsArray = queryKeys.map(key => queries[key]);
-    return queriesAsArray.some(q =>
-      ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0);
+    const now = new Date().getTime();
+    return Object.values(queries)
+      .some(
+        q => ['running', 'started', 'pending', 'fetching'].indexOf(q.state) >= 0 &&
+        now - q.startDttm < MAX_QUERY_AGE_TO_POLL,
+      );
   }
   startTimer() {
     if (!(this.timer)) {
