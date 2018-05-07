@@ -232,13 +232,7 @@ def execute_sql(
         conn.close()
 
     if query.status == utils.QueryStatus.STOPPED:
-        return json.dumps(
-            {
-                'query_id': query.id,
-                'status': query.status,
-                'query': query.to_dict(),
-            },
-            default=utils.json_iso_dttm_ser)
+        return handle_error('The query has been stopped')
 
     cdf = convert_results_to_df(cursor_description, data)
 
