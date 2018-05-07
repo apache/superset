@@ -126,7 +126,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # To start a development web server on port 8088, use -p to bind to another port
-    # superset runserver -d
+    superset runserver -d
 
 
 After installation, you should be able to point your browser to the right
