@@ -528,6 +528,7 @@ export const controls = {
       'France',
       'Germany',
       'Italy',
+      'Portugal',
       'Morocco',
       'Netherlands',
       'Russia',
