@@ -52,7 +52,7 @@ class BuilderComponentPane extends React.PureComponent {
               >
                 <div className="component-layer slide-content">
                   <div className="dashboard-builder-sidepane-header">
-                    {t('Insert new component')}
+                    {t('Saved components')}
                   </div>
                   <div
                     className="new-component static"
@@ -60,19 +60,25 @@ class BuilderComponentPane extends React.PureComponent {
                     onClick={this.openSlicesPane}
                   >
                     <div className="new-component-placeholder fa fa-area-chart" />
-                    <div className="new-component-label">{t('Chart')}</div>
+                    <div className="new-component-label">
+                      {t('Charts & filters')}
+                    </div>
 
                     <i className="fa fa-arrow-right trigger" />
                   </div>
 
                   <div className="dashboard-builder-sidepane-header">
-                    {t('Other components')}
+                    {t('Containers')}
                   </div>
-                  <NewHeader />
-                  <NewDivider />
                   <NewTabs />
                   <NewRow />
                   <NewColumn />
+
+                  <div className="dashboard-builder-sidepane-header">
+                    {t('More components')}
+                  </div>
+                  <NewHeader />
+                  <NewDivider />
                 </div>
                 <div className="slices-layer slide-content">
                   <div
@@ -81,7 +87,7 @@ class BuilderComponentPane extends React.PureComponent {
                     role="none"
                   >
                     <i className="fa fa-arrow-left trigger" />
-                    {t('Add chart')}
+                    {t('All components')}
                   </div>
                   <SliceAdder height={calculatedHeight} />
                 </div>
