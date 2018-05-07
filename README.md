@@ -176,6 +176,7 @@ the world know they are using Superset. Join our growing community!
  - [Twitter](https://twitter.com/)
  - [Udemy](https://www.udemy.com/)
  - [VIPKID](https://www.vipkid.com.cn/)
+ - [Windsor.ai](https://www.windsor.ai/)
  - [Yahoo!](https://yahoo.com/)
  - [Zaihang](http://www.zaih.com/)
  - [Zalando](https://www.zalando.com)
