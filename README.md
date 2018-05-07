@@ -147,6 +147,7 @@ the world know they are using Superset. Join our growing community!
 
  - [AiHello](https://www.aihello.com)
  - [Airbnb](https://github.com/airbnb)
+ - [Airboxlab](https://foobot.io)
  - [Aktia Bank plc](https://www.aktia.com)
  - [Amino](https://amino.com)
  - [Ascendica Development](http://ascendicadevelopment.com)
