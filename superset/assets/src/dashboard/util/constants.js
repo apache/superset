@@ -2,6 +2,7 @@
 export const DASHBOARD_GRID_ID = 'DASHBOARD_GRID_ID';
 export const DASHBOARD_HEADER_ID = 'DASHBOARD_HEADER_ID';
 export const DASHBOARD_ROOT_ID = 'DASHBOARD_ROOT_ID';
+export const DASHBOARD_VERSION_KEY = 'DASHBOARD_VERSION_KEY';
 
 export const NEW_COMPONENTS_SOURCE_ID = 'NEW_COMPONENTS_SOURCE_ID';
 export const NEW_CHART_ID = 'NEW_CHART_ID';
@@ -37,3 +38,6 @@ export const INFO_TOAST = 'INFO_TOAST';
 export const SUCCESS_TOAST = 'SUCCESS_TOAST';
 export const WARNING_TOAST = 'WARNING_TOAST';
 export const DANGER_TOAST = 'DANGER_TOAST';
+
+// undo-redo
+export const UNDO_LIMIT = 50;

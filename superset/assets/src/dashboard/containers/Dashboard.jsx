@@ -4,7 +4,6 @@ import { connect } from 'react-redux';
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
-  onChange,
 } from '../actions/dashboardState';
 import { runQuery } from '../../chart/chartAction';
 import Dashboard from '../components/Dashboard';
@@ -37,7 +36,6 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(
       {
         addSliceToDashboard,
-        onChange,
         removeSliceFromDashboard,
         runQuery,
       },

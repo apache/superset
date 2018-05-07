@@ -1,3 +1,5 @@
+/* eslint-env browser */
+import PropTypes from 'prop-types';
 import React from 'react';
 import cx from 'classnames';
 import { StickyContainer, Sticky } from 'react-sticky';
@@ -9,6 +11,14 @@ import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
 import SliceAdder from '../containers/SliceAdder';
 import { t } from '../../locales';
+
+const propTypes = {
+  topOffset: PropTypes.number,
+};
+
+const defaultProps = {
+  topOffset: 0,
+};
 
 class BuilderComponentPane extends React.PureComponent {
   constructor(props) {
@@ -28,46 +38,56 @@ class BuilderComponentPane extends React.PureComponent {
   }
 
   render() {
+    const { topOffset } = this.props;
     return (
       <StickyContainer className="dashboard-builder-sidepane">
-        <Sticky>
-          {({ style, calculatedHeight }) => (
-            <div className="viewport" style={style}>
+        <Sticky topOffset={-topOffset}>
+          {({ style, calculatedHeight, isSticky }) => (
+            <div
+              className="viewport"
+              style={isSticky ? { ...style, top: topOffset } : null}
+            >
               <div
                 className={cx('slider-container', this.state.slideDirection)}
               >
                 <div className="component-layer slide-content">
                   <div className="dashboard-builder-sidepane-header">
-                    {t('Add')}
+                    {t('Saved components')}
                   </div>
                   <div
-                    className="dragdroppable dragdroppable-row"
-                    onClick={this.openSlicesPane}
+                    className="new-component static"
                     role="none"
+                    onClick={this.openSlicesPane}
                   >
-                    <div className="new-component static">
-                      <div className="new-component-placeholder fa fa-area-chart" />
-                      {t('Chart')}
+                    <div className="new-component-placeholder fa fa-area-chart" />
+                    <div className="new-component-label">
+                      {t('Charts & filters')}
                     </div>
+
+                    <i className="fa fa-arrow-right trigger" />
                   </div>
 
                   <div className="dashboard-builder-sidepane-header">
-                    {t('Components')}
+                    {t('Containers')}
                   </div>
-                  <NewHeader />
-                  <NewDivider />
                   <NewTabs />
                   <NewRow />
                   <NewColumn />
+
+                  <div className="dashboard-builder-sidepane-header">
+                    {t('More components')}
+                  </div>
+                  <NewHeader />
+                  <NewDivider />
                 </div>
-                <div className={cx('slices-layer slide-content')}>
+                <div className="slices-layer slide-content">
                   <div
                     className="dashboard-builder-sidepane-header"
                     onClick={this.closeSlicesPane}
                     role="none"
                   >
-                    <i className="fa fa-arrow-left close trigger" />
-                    {t('Add chart')}
+                    <i className="fa fa-arrow-left trigger" />
+                    {t('All components')}
                   </div>
                   <SliceAdder height={calculatedHeight} />
                 </div>
@@ -79,5 +99,8 @@ class BuilderComponentPane extends React.PureComponent {
     );
   }
 }
+
+BuilderComponentPane.propTypes = propTypes;
+BuilderComponentPane.defaultProps = defaultProps;
 
 export default BuilderComponentPane;

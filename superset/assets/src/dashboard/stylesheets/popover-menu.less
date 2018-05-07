@@ -3,13 +3,14 @@
   outline: none;
 }
 
-.grid-row.grid-row--empty .with-popover-menu { /* drop indicator doesn't show up without this */
+.grid-row.grid-row--empty .with-popover-menu {
+  /* drop indicator doesn't show up without this */
   width: 100%;
   height: 100%;
 }
 
 .with-popover-menu--focused:after {
-  content: "";
+  content: '';
   position: absolute;
   top: 1;
   left: -1;
@@ -34,15 +35,15 @@
   box-shadow: 0 1px 2px 1px rgba(0, 0, 0, 0.2);
   font-size: 14px;
   cursor: default;
-  z-index: 10;
+  z-index: 1000;
 }
 
 /* the focus menu doesn't account for parent padding */
 .dashboard-component-tabs li .with-popover-menu--focused:after {
   top: -12px;
-  left: -2px;
-  width: ~"calc(100% + 4px)"; /* escape for .less */
-  height: ~"calc(100% + 28px)";
+  left: -8px;
+  width: ~'calc(100% + 16px)'; /* escape for .less */
+  height: ~'calc(100% + 28px)';
 }
 
 .dashboard-component-tabs li .popover-menu {
@@ -57,7 +58,7 @@
 
 /* vertical spacer after each menu item */
 .popover-menu .menu-item:not(:only-child):not(:last-child):after {
-  content: "";
+  content: '';
   width: 1;
   height: 100%;
   background: @gray-light;
@@ -86,11 +87,11 @@
   background: @gray-light;
 }
 
-.popover-dropdown .caret { /* without this the caret doesn't take up full width / is clipped */
+.popover-dropdown .caret {
+  /* without this the caret doesn't take up full width / is clipped */
   width: auto;
   border-top-color: transparent;
 }
-
 
 .hover-dropdown li.dropdown-item.active a,
 .popover-menu li.dropdown-item.active a {
@@ -105,7 +106,7 @@
 }
 
 .background-style-option:before {
-  content: "";
+  content: '';
   width: 1em;
   height: 1em;
   margin-right: 8px;
@@ -124,7 +125,10 @@
 }
 
 .background-style-option.background--transparent:before {
-  background-image: linear-gradient(45deg, @gray 25%, transparent 25%), linear-gradient(-45deg, @gray 25%, transparent 25%), linear-gradient(45deg, transparent 75%, @gray 75%), linear-gradient(-45deg, transparent 75%, @gray 75%);
+  background-image: linear-gradient(45deg, @gray 25%, transparent 25%),
+    linear-gradient(-45deg, @gray 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, @gray 75%),
+    linear-gradient(-45deg, transparent 75%, @gray 75%);
   background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0px
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
 }
