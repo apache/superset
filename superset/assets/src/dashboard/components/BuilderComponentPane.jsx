@@ -52,21 +52,21 @@ class BuilderComponentPane extends React.PureComponent {
               >
                 <div className="component-layer slide-content">
                   <div className="dashboard-builder-sidepane-header">
-                    {t('Add')}
+                    {t('Insert new component')}
                   </div>
                   <div
-                    className="dragdroppable dragdroppable-row"
-                    onClick={this.openSlicesPane}
+                    className="new-component static"
                     role="none"
+                    onClick={this.openSlicesPane}
                   >
-                    <div className="new-component static">
-                      <div className="new-component-placeholder fa fa-area-chart" />
-                      {t('Chart')}
-                    </div>
+                    <div className="new-component-placeholder fa fa-area-chart" />
+                    <div className="new-component-label">{t('Chart')}</div>
+
+                    <i className="fa fa-arrow-right trigger" />
                   </div>
 
                   <div className="dashboard-builder-sidepane-header">
-                    {t('Components')}
+                    {t('Other components')}
                   </div>
                   <NewHeader />
                   <NewDivider />
@@ -74,13 +74,13 @@ class BuilderComponentPane extends React.PureComponent {
                   <NewRow />
                   <NewColumn />
                 </div>
-                <div className={cx('slices-layer slide-content')}>
+                <div className="slices-layer slide-content">
                   <div
                     className="dashboard-builder-sidepane-header"
                     onClick={this.closeSlicesPane}
                     role="none"
                   >
-                    <i className="fa fa-arrow-left close trigger" />
+                    <i className="fa fa-arrow-left trigger" />
                     {t('Add chart')}
                   </div>
                   <SliceAdder height={calculatedHeight} />

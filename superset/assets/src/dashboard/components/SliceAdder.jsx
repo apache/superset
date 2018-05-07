@@ -182,6 +182,7 @@ class SliceAdder extends React.Component {
           </DropdownButton>
 
           <SearchInput
+            className="search-input"
             onChange={this.searchUpdated}
             onKeyPress={this.handleKeyPress}
           />

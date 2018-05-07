@@ -1,13 +1,7 @@
 .dashboard-builder-sidepane {
-  <<<<<<<HEAD
   flex: 0 0 @builder-pane-width;
   z-index: 10;
   position: relative;
-  =======flex: 0 0 374px;
-  z-index: 10;
-  position: relative;
-  overflow-x: hidden;
-  >>>>>>>add slider and sticky
   box-shadow: -4px 0 4px 0 rgba(0, 0, 0, 0.1);
 
   .dashboard-builder-sidepane-header {
@@ -22,7 +16,6 @@
     height: 18px;
     width: 25px;
     color: @almost-black;
-    float: none;
     opacity: 1;
   }
 
@@ -67,10 +60,8 @@
     }
   }
 
-  .component-layer {
-    .new-component.static {
-      cursor: pointer;
-    }
+  .new-component-label {
+    flex-grow: 1;
   }
 
   .chart-card-container {
@@ -112,21 +103,27 @@
       display: flex;
       padding: 16px;
 
+      /* the input is wrapped in a div */
+      .search-input {
+        flex-grow: 1;
+        margin-left: 16px;
+      }
+
       .dropdown.btn-group button,
       input {
         font-size: 14px;
         line-height: 16px;
         padding: 7px 12px;
         height: 32px;
+        border: 1px solid @gray-light;
       }
 
       input {
-        margin-left: 16px;
-        width: 169px;
-        border: 1px solid @gray;
+        width: 100%;
 
         &:focus {
           outline: none;
+          border-color: @gray;
         }
       }
     }
