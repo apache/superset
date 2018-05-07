@@ -111,7 +111,7 @@ class DashboardBuilder extends React.Component {
         )}
 
         {topLevelTabs && (
-          <Sticky topOffset={60}>
+          <Sticky topOffset={50}>
             {({ style }) => (
               <WithPopoverMenu
                 shouldFocus={DashboardBuilder.shouldFocusTabs}
@@ -123,7 +123,7 @@ class DashboardBuilder extends React.Component {
                   />,
                 ]}
                 editMode={editMode}
-                style={editMode ? { zIndex: 100, ...style } : null}
+                style={{ zIndex: 100, ...style }}
               >
                 <DashboardComponent
                   id={topLevelTabs.id}
