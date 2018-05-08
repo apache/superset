@@ -13,7 +13,7 @@ import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
 const RELATIVE_TIME_OPTIONS = ['ago', 'from now'];
-const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'days', 'weeks', 'months', 'years'];
+const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
 
 const propTypes = {
   animation: PropTypes.bool,
