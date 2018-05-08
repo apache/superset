@@ -172,6 +172,7 @@ the world know they are using Superset. Join our growing community!
  - [Shopee](https://shopee.sg)
  - [Shopkick](https://www.shopkick.com)
  - [Tails.com](https://tails.com)
+ - [Ticket Tailor](https://www.tickettailor.com/)
  - [Tobii](http://www.tobii.com/)
  - [Tooploox](https://www.tooploox.com/)
  - [Twitter](https://twitter.com/)
