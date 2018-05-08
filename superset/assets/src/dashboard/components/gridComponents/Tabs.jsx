@@ -164,7 +164,11 @@ class Tabs extends React.PureComponent {
               id={tabsComponent.id}
               activeKey={selectedTabIndex}
               onSelect={this.handleClickTab}
-              animation={false}
+              // these are important for performant loading of tabs. also, there is a
+              // react-bootstrap bug where mountOnEnter has no effect unless animation=true
+              animation
+              mountOnEnter
+              unmountOnExit={false}
             >
               {tabIds.map((tabId, tabIndex) => (
                 // react-bootstrap doesn't render a Tab if we move this to its own Tab.jsx so we
@@ -187,27 +191,21 @@ class Tabs extends React.PureComponent {
                     />
                   }
                 >
-                  {/*
-                    react-bootstrap renders all children with display:none, so we don't
-                    render potentially-expensive charts (this also enables lazy loading
-                    their content)
-                  */}
-                  {tabIndex === selectedTabIndex &&
-                    renderTabContent && (
-                      <DashboardComponent
-                        id={tabId}
-                        parentId={tabsComponent.id}
-                        depth={depth} // see isValidChild.js for why tabs don't increment child depth
-                        index={tabIndex}
-                        renderType={RENDER_TAB_CONTENT}
-                        availableColumnCount={availableColumnCount}
-                        columnWidth={columnWidth}
-                        onResizeStart={onResizeStart}
-                        onResize={onResize}
-                        onResizeStop={onResizeStop}
-                        onDropOnTab={this.handleDropOnTab}
-                      />
-                    )}
+                  {renderTabContent && (
+                    <DashboardComponent
+                      id={tabId}
+                      parentId={tabsComponent.id}
+                      depth={depth} // see isValidChild.js for why tabs don't increment child depth
+                      index={tabIndex}
+                      renderType={RENDER_TAB_CONTENT}
+                      availableColumnCount={availableColumnCount}
+                      columnWidth={columnWidth}
+                      onResizeStart={onResizeStart}
+                      onResize={onResize}
+                      onResizeStop={onResizeStop}
+                      onDropOnTab={this.handleDropOnTab}
+                    />
+                  )}
                 </BootstrapTab>
               ))}
 

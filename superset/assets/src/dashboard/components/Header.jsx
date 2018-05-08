@@ -6,12 +6,14 @@ import Controls from './Controls';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
-// import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import SaveModal from './SaveModal';
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
+import { UNDO_LIMIT } from '../util/constants';
 
 const propTypes = {
+  addSuccessToast: PropTypes.func.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
@@ -31,21 +33,43 @@ const propTypes = {
   showBuilderPane: PropTypes.bool.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
+  maxUndoHistoryExceeded: PropTypes.bool.isRequired,
 
   // redux
   onUndo: PropTypes.func.isRequired,
   onRedo: PropTypes.func.isRequired,
-  canUndo: PropTypes.bool.isRequired,
-  canRedo: PropTypes.bool.isRequired,
+  undoLength: PropTypes.number.isRequired,
+  redoLength: PropTypes.number.isRequired,
+  setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
+  maxUndoHistoryToast: PropTypes.func.isRequired,
 };
 
 class Header extends React.PureComponent {
   constructor(props) {
     super(props);
+    this.state = {
+      didNotifyMaxUndoHistoryToast: false,
+    };
 
     this.handleChangeText = this.handleChangeText.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if (
+      UNDO_LIMIT - nextProps.undoLength <= 0 &&
+      !this.state.didNotifyMaxUndoHistoryToast
+    ) {
+      this.setState(() => ({ didNotifyMaxUndoHistoryToast: true }));
+      this.props.maxUndoHistoryToast();
+    }
+    if (
+      nextProps.undoLength > UNDO_LIMIT &&
+      !this.props.maxUndoHistoryExceeded
+    ) {
+      this.props.setMaxUndoHistoryExceeded();
+    }
   }
 
   forceRefresh() {
@@ -72,8 +96,8 @@ class Header extends React.PureComponent {
       expandedSlices,
       onUndo,
       onRedo,
-      canUndo,
-      canRedo,
+      undoLength,
+      redoLength,
       onChange,
       onSave,
       editMode,
@@ -91,9 +115,9 @@ class Header extends React.PureComponent {
             title={dashboardTitle}
             canEdit={this.props.dashboardInfo.dash_save_perm && editMode}
             onSaveTitle={this.handleChangeText}
-            showTooltip={editMode}
+            showTooltip={false}
           />
-          <span className="favstar m-r-5">
+          <span className="favstar m-l-5">
             <FaveStar
               itemId={this.props.dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
@@ -106,14 +130,22 @@ class Header extends React.PureComponent {
           {userCanEdit && (
             <ButtonGroup>
               {editMode && (
-                <Button bsSize="small" onClick={onUndo} disabled={!canUndo}>
-                  Undo
+                <Button
+                  bsSize="small"
+                  onClick={onUndo}
+                  disabled={undoLength < 1}
+                >
+                  <div title="Undo" className="undo-action fa fa-reply" />
                 </Button>
               )}
 
               {editMode && (
-                <Button bsSize="small" onClick={onRedo} disabled={!canRedo}>
-                  Redo
+                <Button
+                  bsSize="small"
+                  onClick={onRedo}
+                  disabled={redoLength < 1}
+                >
+                  <div title="Redo" className="redo-action fa fa-share" />
                 </Button>
               )}
 
@@ -135,6 +167,8 @@ class Header extends React.PureComponent {
                 </Button>
               ) : (
                 <SaveModal
+                  addSuccessToast={this.props.addSuccessToast}
+                  addDangerToast={this.props.addDangerToast}
                   dashboardId={this.props.dashboardInfo.id}
                   dashboardTitle={dashboardTitle}
                   layout={layout}
@@ -154,6 +188,8 @@ class Header extends React.PureComponent {
           )}
 
           <Controls
+            addSuccessToast={this.props.addSuccessToast}
+            addDangerToast={this.props.addDangerToast}
             dashboardInfo={this.props.dashboardInfo}
             dashboardTitle={dashboardTitle}
             layout={layout}

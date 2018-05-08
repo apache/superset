@@ -2,9 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import moment from 'moment';
-import { DropdownButton } from 'react-bootstrap';
+import { Dropdown, MenuItem } from 'react-bootstrap';
 
-import { ActionMenuItem } from './ActionMenuItem';
 import { t } from '../../locales';
 
 const propTypes = {
@@ -27,6 +26,14 @@ const defaultProps = {
   isCached: false,
   isExpanded: false,
 };
+
+const VerticalDotsTrigger = () => (
+  <div className="vertical-dots-container">
+    <span className="dot" />
+    <span className="dot" />
+    <span className="dot" />
+  </div>
+);
 
 class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
@@ -57,53 +64,44 @@ class SliceHeaderControls extends React.PureComponent {
     const slice = this.props.slice;
     const isCached = this.props.isCached;
     const cachedWhen = moment.utc(this.props.cachedDttm).fromNow();
-    const refreshTooltip = isCached
-      ? t('Served from data cached %s . Click to force refresh.', cachedWhen)
-      : t('Force refresh data');
+    const refreshTooltip = isCached ? t('Cached %s', cachedWhen) : '';
 
     return (
-      <DropdownButton
-        title=""
+      <Dropdown
         id={`slice_${slice.slice_id}-controls`}
-        className={cx('slice-header-controls-trigger', 'fa fa-ellipsis-v', {
-          'is-cached': isCached,
-        })}
+        className={cx(isCached && 'is-cached')}
         pullRight
-        noCaret
       >
-        <ActionMenuItem
-          text={t('Force refresh data')}
-          tooltip={refreshTooltip}
-          onClick={this.props.forceRefresh}
-        />
+        <Dropdown.Toggle className="slice-header-controls-trigger" noCaret>
+          <VerticalDotsTrigger />
+        </Dropdown.Toggle>
 
-        {slice.description && (
-          <ActionMenuItem
-            text={t('Toggle chart description')}
-            tooltip={t('Toggle chart description')}
-            onClick={this.toggleExpandSlice}
-          />
-        )}
+        <Dropdown.Menu>
+          <MenuItem onClick={this.props.forceRefresh}>
+            {isCached && <span className="dot" />}
+            {t('Force refresh')}
+            {isCached && (
+              <div className="refresh-tooltip">{refreshTooltip}</div>
+            )}
+          </MenuItem>
 
-        <ActionMenuItem
-          text={t('Edit chart')}
-          tooltip={t("Edit the chart's properties")}
-          href={slice.edit_url}
-          target="_blank"
-        />
+          <MenuItem divider />
 
-        <ActionMenuItem
-          text={t('Export CSV')}
-          tooltip={t('Export CSV')}
-          onClick={this.exportCSV}
-        />
+          {slice.description && (
+            <MenuItem onClick={this.toggleExpandSlice}>
+              {t('Toggle chart description')}
+            </MenuItem>
+          )}
 
-        <ActionMenuItem
-          text={t('Explore chart')}
-          tooltip={t('Explore chart')}
-          onClick={this.exploreChart}
-        />
-      </DropdownButton>
+          <MenuItem href={slice.edit_url} target="_blank">
+            {t('Edit chart metadata')}
+          </MenuItem>
+
+          <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
+
+          <MenuItem onClick={this.exploreChart}>{t('Explore chart')}</MenuItem>
+        </Dropdown.Menu>
+      </Dropdown>
     );
   }
 }

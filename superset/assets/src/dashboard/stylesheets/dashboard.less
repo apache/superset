@@ -1,51 +1,93 @@
-// @import './less/cosmo/variables.less';
-
 .dashboard .chart-header {
   position: relative;
+  font-size: 16px;
+  font-weight: bold;
 
   .dropdown.btn-group {
     position: absolute;
     right: 0;
   }
 
+  .dropdown-toggle.btn.btn-default {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
   .dropdown-menu.dropdown-menu-right {
-    right: 7px;
-    top: -3px;
+    top: 20px;
+  }
+
+  .divider {
+    margin: 5px 0;
+  }
+
+  .fa-circle {
+    position: absolute;
+    left: 7px;
+    top: 18px;
+    font-size: 4px;
+    color: @pink;
+  }
+
+  .refresh-tooltip {
+    display: block;
+    height: 16px;
+    margin: 3px 0;
+    color: @gray;
+  }
+}
+
+.dashboard .chart-header,
+.dashboard .dashboard-header {
+  .dropdown-menu {
+    padding: 9px 0;
+  }
+
+  .dropdown-menu li a {
+    padding: 3px 16px;
+    color: @almost-black;
+    line-height: 16px;
+    font-size: 14px;
+    letter-spacing: 0.4px;
+
+    &:hover,
+    &:focus {
+      background: @menu-hover;
+      color: @almost-black;
+    }
   }
 }
 
 .slice-header-controls-trigger {
-  border: 0;
-  padding: 0 0 0 20px;
-  background: none;
-  outline: none;
-  box-shadow: none;
-  color: #263238;
+  padding: 0 16px;
+  position: absolute;
+  top: 0;
+  right: -22px;
 
-  &.is-cached {
-    color: red;
-  }
-
-  &:hover,
-  &:focus {
-    background: none;
+  &:hover {
     cursor: pointer;
   }
+}
 
-  .controls-container.dropdown-menu {
-    top: 0;
-    left: unset;
-    right: 10px;
+.dot {
+  height: 4px;
+  width: 4px;
+  background-color: @gray;
+  border-radius: 50%;
+  margin: 2px 0;
+  display: inline-block;
 
-    &.is-open {
-      display: block;
-    }
+  .is-cached & {
+    background-color: @pink;
+    margin-right: 6px;
+  }
 
-    & li {
-      white-space: nowrap;
-    }
+  .vertical-dots-container & {
+    display: block;
   }
 }
+
 
 .modal img.loading {
   width: 50px;

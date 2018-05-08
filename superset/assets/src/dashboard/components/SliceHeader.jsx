@@ -20,6 +20,7 @@ const propTypes = {
   editMode: PropTypes.bool,
   annotationQuery: PropTypes.object,
   annotationError: PropTypes.object,
+  sliceName: PropTypes.string,
 };
 
 const defaultProps = {
@@ -36,21 +37,10 @@ const defaultProps = {
   cachedDttm: null,
   isCached: false,
   isExpanded: false,
+  sliceName: '',
 };
 
 class SliceHeader extends React.PureComponent {
-  constructor(props) {
-    super(props);
-
-    this.onSaveTitle = this.onSaveTitle.bind(this);
-  }
-
-  onSaveTitle(newTitle) {
-    if (this.props.updateSliceName) {
-      this.props.updateSliceName(this.props.slice.slice_id, newTitle);
-    }
-  }
-
   render() {
     const {
       slice,
@@ -62,6 +52,7 @@ class SliceHeader extends React.PureComponent {
       exploreChart,
       exportCSV,
       innerRef,
+      sliceName,
     } = this.props;
 
     const annoationsLoading = t('Annotation layers are still loading.');
@@ -71,13 +62,10 @@ class SliceHeader extends React.PureComponent {
       <div className="chart-header" ref={innerRef}>
         <div className="header">
           <EditableTitle
-            title={slice.slice_name}
-            canEdit={!!this.props.updateSliceName && this.props.editMode}
-            onSaveTitle={this.onSaveTitle}
-            noPermitTooltip={
-              "You don't have the rights to alter this dashboard."
-            }
-            showTooltip={!!this.props.updateSliceName && this.props.editMode}
+            title={sliceName}
+            canEdit={this.props.editMode}
+            onSaveTitle={this.props.updateSliceName}
+            showTooltip={this.props.editMode}
           />
           {!!Object.values(this.props.annotationQuery).length && (
             <TooltipWrapper

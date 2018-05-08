@@ -9,6 +9,16 @@ import {
   CHART_TYPE,
 } from '../../util/componentTypes';
 
+const staticCardStyles = {
+  position: 'fixed',
+  background: 'white',
+  pointerEvents: 'none',
+  top: 0,
+  left: 0,
+  zIndex: 100,
+  width: 376 - 2 * 16,
+};
+
 const propTypes = {
   dragItem: PropTypes.shape({
     index: PropTypes.number.isRequired,
@@ -41,12 +51,7 @@ function AddSliceDragPreview({ dragItem, slices, isDragging, currentOffset }) {
   return !shouldRender ? null : (
     <AddSliceCard
       style={{
-        position: 'fixed',
-        background: 'white',
-        pointerEvents: 'none',
-        top: 0,
-        left: 0,
-        zIndex: 100,
+        ...staticCardStyles,
         transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
       }}
       sliceName={slice.slice_name}

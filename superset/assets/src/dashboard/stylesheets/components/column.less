@@ -23,13 +23,9 @@
 .dashboard--editing
   .resizable-container.resizable-container--resizing:hover
   > .grid-column:after,
-.dashboard--editing .grid-column:hover:after {
+.dashboard--editing .hover-menu:hover + .grid-column:after {
   border: 1px dashed @gray-light;
   box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
-}
-
-.grid-column > .hover-menu--top {
-  top: -20px;
 }
 
 .grid-column--empty {

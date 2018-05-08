@@ -1,3 +1,5 @@
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
+
 import { addInfoToast } from './messageToasts';
 import { setUnsavedChanges } from './dashboardState';
 import { CHART_TYPE, MARKDOWN_TYPE, TABS_TYPE } from '../util/componentTypes';
@@ -5,13 +7,14 @@ import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
   GRID_MIN_COLUMN_COUNT,
+  DASHBOARD_HEADER_ID,
 } from '../util/constants';
 import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';
 
 // Component CRUD -------------------------------------------------------------
 export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
-export function updateComponents(nextComponents) {
+function updateLayoutComponents(nextComponents) {
   return {
     type: UPDATE_COMPONENTS,
     payload: {
@@ -20,8 +23,34 @@ export function updateComponents(nextComponents) {
   };
 }
 
+export function updateComponents(nextComponents) {
+  return (dispatch, getState) => {
+    dispatch(updateLayoutComponents(nextComponents));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
+  };
+}
+
+export function updateDashboardTitle(text) {
+  return (dispatch, getState) => {
+    const { dashboardLayout } = getState();
+    dispatch(
+      updateComponents({
+        [DASHBOARD_HEADER_ID]: {
+          ...dashboardLayout.present[DASHBOARD_HEADER_ID],
+          meta: {
+            text,
+          },
+        },
+      }),
+    );
+  };
+}
+
 export const DELETE_COMPONENT = 'DELETE_COMPONENT';
-export function deleteComponent(id, parentId) {
+function deleteLayoutComponent(id, parentId) {
   return {
     type: DELETE_COMPONENT,
     payload: {
@@ -31,8 +60,18 @@ export function deleteComponent(id, parentId) {
   };
 }
 
+export function deleteComponent(id, parentId) {
+  return (dispatch, getState) => {
+    dispatch(deleteLayoutComponent(id, parentId));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
+  };
+}
+
 export const CREATE_COMPONENT = 'CREATE_COMPONENT';
-export function createComponent(dropResult) {
+function createLayoutComponent(dropResult) {
   return {
     type: CREATE_COMPONENT,
     payload: {
@@ -41,9 +80,19 @@ export function createComponent(dropResult) {
   };
 }
 
+export function createComponent(dropResult) {
+  return (dispatch, getState) => {
+    dispatch(createLayoutComponent(dropResult));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
+  };
+}
+
 // Tabs -----------------------------------------------------------------------
 export const CREATE_TOP_LEVEL_TABS = 'CREATE_TOP_LEVEL_TABS';
-export function createTopLevelTabs(dropResult) {
+function createTopLevelTabsAction(dropResult) {
   return {
     type: CREATE_TOP_LEVEL_TABS,
     payload: {
@@ -52,11 +101,31 @@ export function createTopLevelTabs(dropResult) {
   };
 }
 
+export function createTopLevelTabs(dropResult) {
+  return (dispatch, getState) => {
+    dispatch(createTopLevelTabsAction(dropResult));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
+  };
+}
+
 export const DELETE_TOP_LEVEL_TABS = 'DELETE_TOP_LEVEL_TABS';
-export function deleteTopLevelTabs() {
+function deleteTopLevelTabsAction() {
   return {
     type: DELETE_TOP_LEVEL_TABS,
     payload: {},
+  };
+}
+
+export function deleteTopLevelTabs(dropResult) {
+  return (dispatch, getState) => {
+    dispatch(deleteTopLevelTabsAction(dropResult));
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
   };
 }
 
@@ -64,7 +133,7 @@ export function deleteTopLevelTabs() {
 export const RESIZE_COMPONENT = 'RESIZE_COMPONENT';
 export function resizeComponent({ id, width, height }) {
   return (dispatch, getState) => {
-    const { dashboardLayout: undoableLayout } = getState();
+    const { dashboardLayout: undoableLayout, dashboardState } = getState();
     const { present: dashboard } = undoableLayout;
     const component = dashboard[id];
     const widthChanged = width && component.meta.width !== width;
@@ -99,7 +168,9 @@ export function resizeComponent({ id, width, height }) {
       });
 
       dispatch(updateComponents(updatedComponents));
-      dispatch(setUnsavedChanges(true));
+      if (!dashboardState.hasUnsavedChanges) {
+        dispatch(setUnsavedChanges(true));
+      }
     }
   };
 }
@@ -149,9 +220,10 @@ export function handleComponentDrop(dropResult) {
       dispatch(moveComponent(dropResult));
     }
 
+    const { dashboardLayout: undoableLayout, dashboardState } = getState();
+
     // if we moved a Tab and the parent Tabs no longer has children, delete it.
     if (!isNewComponent) {
-      const { dashboardLayout: undoableLayout } = getState();
       const { present: layout } = undoableLayout;
       const sourceComponent = layout[source.id];
 
@@ -167,8 +239,36 @@ export function handleComponentDrop(dropResult) {
       }
     }
 
-    dispatch(setUnsavedChanges(true));
+    if (!dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
 
     return null;
+  };
+}
+
+// Undo redo ------------------------------------------------------------------
+export function undoLayoutAction() {
+  return (dispatch, getState) => {
+    dispatch(UndoActionCreators.undo());
+
+    const { dashboardLayout, dashboardState } = getState();
+
+    if (
+      dashboardLayout.past.length === 0 &&
+      !dashboardState.maxUndoHistoryExceeded
+    ) {
+      dispatch(setUnsavedChanges(false));
+    }
+  };
+}
+
+export function redoLayoutAction() {
+  return (dispatch, getState) => {
+    dispatch(UndoActionCreators.redo());
+
+    if (!getState().dashboardState.hasUnsavedChanges) {
+      dispatch(setUnsavedChanges(true));
+    }
   };
 }

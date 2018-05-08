@@ -1,8 +1,14 @@
+/* eslint-env browser */
 import cx from 'classnames';
-import React from 'react';
-import PropTypes from 'prop-types';
-import HTML5Backend from 'react-dnd-html5-backend';
 import { DragDropContext } from 'react-dnd';
+import HTML5Backend from 'react-dnd-html5-backend';
+// ParentSize uses resize observer so the dashboard will update size
+// when its container size changes, due to e.g., builder side panel opening
+import ParentSize from '@vx/responsive/build/components/ParentSize';
+import PropTypes from 'prop-types';
+import React from 'react';
+import { Sticky, StickyContainer } from 'react-sticky';
+import { TabContainer, TabContent, TabPane } from 'react-bootstrap';
 
 import BuilderComponentPane from './BuilderComponentPane';
 import DashboardHeader from '../containers/DashboardHeader';
@@ -18,6 +24,8 @@ import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_ROOT_DEPTH,
 } from '../util/constants';
+
+const TABS_HEIGHT = 47;
 
 const propTypes = {
   // redux
@@ -52,31 +60,35 @@ class DashboardBuilder extends React.Component {
 
   handleChangeTab({ tabIndex }) {
     this.setState(() => ({ tabIndex }));
+    setTimeout(() => {
+      if (window)
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth',
+        });
+    }, 100);
   }
 
   render() {
-    const { tabIndex } = this.state;
     const {
       handleComponentDrop,
       dashboardLayout,
       deleteTopLevelTabs,
       editMode,
     } = this.props;
+
+    const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
     const topLevelTabs =
       rootChildId !== DASHBOARD_GRID_ID && dashboardLayout[rootChildId];
 
-    const gridComponentId = topLevelTabs
-      ? topLevelTabs.children[
-          Math.min(topLevelTabs.children.length - 1, tabIndex)
-        ]
-      : DASHBOARD_GRID_ID;
-
-    const gridComponent = dashboardLayout[gridComponentId];
+    const childIds = topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID];
 
     return (
-      <div className={cx('dashboard', editMode && 'dashboard--editing')}>
+      <StickyContainer
+        className={cx('dashboard', editMode && 'dashboard--editing')}
+      >
         {topLevelTabs || !editMode ? ( // you cannot drop on/displace tabs if they already exist
           <DashboardHeader />
         ) : (
@@ -99,38 +111,84 @@ class DashboardBuilder extends React.Component {
         )}
 
         {topLevelTabs && (
-          <WithPopoverMenu
-            shouldFocus={DashboardBuilder.shouldFocusTabs}
-            menuItems={[
-              <IconButton
-                className="fa fa-level-down"
-                label="Collapse tab content"
-                onClick={deleteTopLevelTabs}
-              />,
-            ]}
-            editMode={editMode}
-          >
-            <DashboardComponent
-              id={topLevelTabs.id}
-              parentId={DASHBOARD_ROOT_ID}
-              depth={DASHBOARD_ROOT_DEPTH + 1}
-              index={0}
-              renderTabContent={false}
-              onChangeTab={this.handleChangeTab}
-            />
-          </WithPopoverMenu>
+          <Sticky topOffset={50}>
+            {({ style }) => (
+              <WithPopoverMenu
+                shouldFocus={DashboardBuilder.shouldFocusTabs}
+                menuItems={[
+                  <IconButton
+                    className="fa fa-level-down"
+                    label="Collapse tab content"
+                    onClick={deleteTopLevelTabs}
+                  />,
+                ]}
+                editMode={editMode}
+                style={{ zIndex: 100, ...style }}
+              >
+                <DashboardComponent
+                  id={topLevelTabs.id}
+                  parentId={DASHBOARD_ROOT_ID}
+                  depth={DASHBOARD_ROOT_DEPTH + 1}
+                  index={0}
+                  renderTabContent={false}
+                  onChangeTab={this.handleChangeTab}
+                />
+              </WithPopoverMenu>
+            )}
+          </Sticky>
         )}
 
         <div className="dashboard-content">
-          <DashboardGrid
-            gridComponent={gridComponent}
-            depth={DASHBOARD_ROOT_DEPTH + 1}
-          />
+          <div className="grid-container">
+            <ParentSize>
+              {({ width }) => (
+                /*
+                  We use a TabContainer irrespective of whether top-level tabs exist to maintain
+                  a consistent React component tree. This avoids expensive mounts/unmounts of
+                  the entire dashboard upon adding/removing top-level tabs, which would otherwise
+                  happen because of React's diffing algorithm
+                */
+                <TabContainer
+                  id={DASHBOARD_GRID_ID}
+                  activeKey={tabIndex}
+                  onSelect={this.handleChangeTab}
+                  // these are important for performant loading of tabs. also, there is a
+                  // react-bootstrap bug where mountOnEnter has no effect unless animation=true
+                  animation
+                  mountOnEnter
+                  unmountOnExit={false}
+                >
+                  <TabContent>
+                    {childIds.map((id, index) => (
+                      // Matching the key of the first TabPane irrespective of topLevelTabs
+                      // lets us keep the same React component tree when !!topLevelTabs changes.
+                      // This avoids expensive mounts/unmounts of the entire dashboard.
+                      <TabPane
+                        key={index === 0 ? DASHBOARD_GRID_ID : id}
+                        eventKey={index}
+                      >
+                        <DashboardGrid
+                          gridComponent={dashboardLayout[id]}
+                          depth={DASHBOARD_ROOT_DEPTH + 1}
+                          width={width}
+                        />
+                      </TabPane>
+                    ))}
+                  </TabContent>
+                </TabContainer>
+              )}
+            </ParentSize>
+          </div>
+
           {this.props.editMode &&
-            this.props.showBuilderPane && <BuilderComponentPane />}
+            this.props.showBuilderPane && (
+              <BuilderComponentPane
+                topOffset={topLevelTabs ? TABS_HEIGHT : 0}
+              />
+            )}
         </div>
         <ToastPresenter />
-      </div>
+      </StickyContainer>
     );
   }
 }

@@ -10,6 +10,7 @@ const propTypes = {
   isFocused: PropTypes.bool,
   shouldFocus: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
+  style: PropTypes.object,
 };
 
 const defaultProps = {
@@ -20,6 +21,7 @@ const defaultProps = {
   menuItems: [],
   isFocused: false,
   shouldFocus: (event, container) => container.contains(event.target),
+  style: null,
 };
 
 class WithPopoverMenu extends React.PureComponent {
@@ -84,7 +86,7 @@ class WithPopoverMenu extends React.PureComponent {
   }
 
   render() {
-    const { children, menuItems, editMode } = this.props;
+    const { children, menuItems, editMode, style } = this.props;
     const { isFocused } = this.state;
 
     return (
@@ -96,6 +98,7 @@ class WithPopoverMenu extends React.PureComponent {
           'with-popover-menu',
           editMode && isFocused && 'with-popover-menu--focused',
         )}
+        style={style}
       >
         {children}
         {editMode &&

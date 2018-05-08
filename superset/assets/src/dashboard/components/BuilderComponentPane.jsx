@@ -1,70 +1,106 @@
+/* eslint-env browser */
+import PropTypes from 'prop-types';
 import React from 'react';
 import cx from 'classnames';
+import { StickyContainer, Sticky } from 'react-sticky';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
 import NewHeader from './gridComponents/new/NewHeader';
 import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
-import SliceAdderContainer from '../containers/SliceAdder';
+import SliceAdder from '../containers/SliceAdder';
+import { t } from '../../locales';
+
+const propTypes = {
+  topOffset: PropTypes.number,
+};
+
+const defaultProps = {
+  topOffset: 0,
+};
 
 class BuilderComponentPane extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      showSlices: false,
+      slideDirection: 'slide-out',
     };
 
-    this.openSlicesPane = this.showSlices.bind(this, true);
-    this.closeSlicesPane = this.showSlices.bind(this, false);
+    this.openSlicesPane = this.slide.bind(this, 'slide-in');
+    this.closeSlicesPane = this.slide.bind(this, 'slide-out');
   }
 
-  showSlices(show) {
+  slide(direction) {
     this.setState({
-      showSlices: show,
+      slideDirection: direction,
     });
   }
 
   render() {
+    const { topOffset } = this.props;
     return (
-      <div className="dashboard-builder-sidepane">
-        <div className="dashboard-builder-sidepane-header">
-          Insert components
-          {this.state.showSlices && (
-            <i
-              className="fa fa-times close trigger"
-              onClick={this.closeSlicesPane}
-              role="none"
-            />
-          )}
-        </div>
+      <StickyContainer className="dashboard-builder-sidepane">
+        <Sticky topOffset={-topOffset}>
+          {({ style, calculatedHeight, isSticky }) => (
+            <div
+              className="viewport"
+              style={isSticky ? { ...style, top: topOffset } : null}
+            >
+              <div
+                className={cx('slider-container', this.state.slideDirection)}
+              >
+                <div className="component-layer slide-content">
+                  <div className="dashboard-builder-sidepane-header">
+                    {t('Saved components')}
+                  </div>
+                  <div
+                    className="new-component static"
+                    role="none"
+                    onClick={this.openSlicesPane}
+                  >
+                    <div className="new-component-placeholder fa fa-area-chart" />
+                    <div className="new-component-label">
+                      {t('Charts & filters')}
+                    </div>
 
-        <div className="component-layer">
-          <div
-            className="dragdroppable dragdroppable-row"
-            onClick={this.openSlicesPane}
-            role="none"
-          >
-            <div className="new-component static">
-              <div className="new-component-placeholder fa fa-area-chart" />
-              Chart
-              <i className="fa fa-arrow-right open trigger" />
+                    <i className="fa fa-arrow-right trigger" />
+                  </div>
+
+                  <div className="dashboard-builder-sidepane-header">
+                    {t('Containers')}
+                  </div>
+                  <NewTabs />
+                  <NewRow />
+                  <NewColumn />
+
+                  <div className="dashboard-builder-sidepane-header">
+                    {t('More components')}
+                  </div>
+                  <NewHeader />
+                  <NewDivider />
+                </div>
+                <div className="slices-layer slide-content">
+                  <div
+                    className="dashboard-builder-sidepane-header"
+                    onClick={this.closeSlicesPane}
+                    role="none"
+                  >
+                    <i className="fa fa-arrow-left trigger" />
+                    {t('All components')}
+                  </div>
+                  <SliceAdder height={calculatedHeight} />
+                </div>
+              </div>
             </div>
-          </div>
-
-          <NewHeader />
-          <NewDivider />
-          <NewTabs />
-          <NewRow />
-          <NewColumn />
-        </div>
-
-        <div className={cx('slices-layer', this.state.showSlices && 'show')}>
-          <SliceAdderContainer />
-        </div>
-      </div>
+          )}
+        </Sticky>
+      </StickyContainer>
     );
   }
 }
+
+BuilderComponentPane.propTypes = propTypes;
+BuilderComponentPane.defaultProps = defaultProps;
 
 export default BuilderComponentPane;
