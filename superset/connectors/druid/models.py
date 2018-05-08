@@ -530,7 +530,7 @@ class DruidDatasource(Model, BaseDatasource):
         return {
             'time_columns': [
                 'all', '5 seconds', '30 seconds', '1 minute',
-                '5 minutes', '1 hour', '6 hour', '1 day', '7 days',
+                '5 minutes', '15 minutes', '30 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month',
             ],
@@ -762,6 +762,8 @@ class DruidDatasource(Model, BaseDatasource):
             '30 seconds': 'PT30S',
             '1 minute': 'PT1M',
             '5 minutes': 'PT5M',
+            '15 minutes': 'PT15M',
+            '30 minutes': 'PT30M',
             '1 hour': 'PT1H',
             '6 hour': 'PT6H',
             'one day': 'P1D',
