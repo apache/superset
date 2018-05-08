@@ -233,7 +233,7 @@ export function handleComponentDrop(dropResult) {
       ) {
         const parentId = findParentId({
           childId: source.id,
-          components: layout,
+          layout,
         });
         dispatch(deleteComponent(source.id, parentId));
       }

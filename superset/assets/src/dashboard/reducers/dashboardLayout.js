@@ -82,7 +82,7 @@ const actionHandlers = {
       payload: { dropResult },
     } = action;
     const { destination, dragging } = dropResult;
-    const newEntities = newEntitiesFromDrop({ dropResult, components: state });
+    const newEntities = newEntitiesFromDrop({ dropResult, layout: state });
 
     // if column is a parent, set any resizable children to have a minimum width so that
     // the chances that they are validly movable to future containers is maximized
@@ -201,7 +201,7 @@ const actionHandlers = {
     }
 
     // create new component
-    const newEntities = newEntitiesFromDrop({ dropResult, components: state });
+    const newEntities = newEntitiesFromDrop({ dropResult, layout: state });
     const newEntitiesArray = Object.values(newEntities);
     const tabComponent = newEntitiesArray.find(
       component => component.type === TAB_TYPE,
