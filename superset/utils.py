@@ -29,7 +29,7 @@ import celery
 from dateutil.parser import parse
 from flask import flash, Markup, render_template
 from flask_babel import gettext as __
-from flask_cache import Cache
+from flask_caching import Cache
 import markdown as md
 import numpy
 import pandas as pd
