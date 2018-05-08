@@ -36,10 +36,10 @@ export default class StyleMappingControl extends React.Component {
     this.state.styles.forEach((style, index) => this.fetchStyleMappingValues(index));
   }
 
-  fetchStyleMappingValues(index, column) {
+  fetchStyleMappingValues(index, value) {
     const datasource = this.props.datasource;
-    const col = column || this.props.value[index].col;
-    if (col && this.props.datasource && this.props.datasource.style_select) {
+    const val = value || this.props.value[index].val;
+    if (val && this.props.datasource && this.props.datasource.style_select) {
       this.setState((prevState) => {
         const newStateStyles = Object.assign([], prevState.styles);
         newStateStyles[index].valuesLoading = true;
@@ -52,7 +52,7 @@ export default class StyleMappingControl extends React.Component {
       this.setState({
         activeRequest: $.ajax({
           type: 'GET',
-          url: `/superset/stylemapping/${datasource.type}/${datasource.id}/${col}/`,
+          url: `/superset/stylemapping/${datasource.type}/${datasource.id}/${val}/`,
           success: (data) => {
             this.setState((prevState) => {
               const newStateStyles = Object.assign([], prevState.styles);
@@ -67,13 +67,12 @@ export default class StyleMappingControl extends React.Component {
 
   addStyleMapping() {
     const newStyles = Object.assign([], this.props.value);
-    const col = this.props.datasource && this.props.datasource.filterable_cols.length > 0 ?
-      this.props.datasource.filterable_cols[0][0] :
+    const val = this.props.datasource && this.props.datasource.values.length > 0 ?
+      this.props.datasource.values[0][0] :
       null;
     newStyles.push({
-      col,
-      op: 'in',
-      val: this.props.datasource.style_select ? [] : '',
+      val,
+      style: this.props.datasource.style_select ? [] : '',
     });
     this.props.onChange(newStyles);
     const nextIndex = this.state.styles.length;
@@ -82,7 +81,7 @@ export default class StyleMappingControl extends React.Component {
       newStateStyles.push({ valuesLoading: false, valueChoices: [] });
       return { styles: newStateStyles };
     });
-    this.fetchStyleMappingValues(nextIndex, col);
+    this.fetchStyleMappingValues(nextIndex, val);
   }
 
   changeStyleMapping(index, control, value) {
@@ -95,8 +94,8 @@ export default class StyleMappingControl extends React.Component {
         modifiedStyle[c] = value[i];
       });
     }
-    // Clear selected values and refresh upon column change
-    if (control === 'col') {
+    // Clear selected values and refresh upon val change
+    if (control === 'val') {
       if (modifiedStyle.val.constructor === Array) {
         modifiedStyle.val = [];
       } else if (typeof modifiedStyle.val === 'string') {
@@ -132,6 +131,11 @@ export default class StyleMappingControl extends React.Component {
     ));
     return (
       <div>
+        <Row className="space-1">
+          <Col md={7}>Column Value</Col>
+          <Col md={3}>Style</Col>
+          <Col md={2}></Col>
+        </Row>
         {styles}
         <Row className="space-2">
           <Col md={2}>
