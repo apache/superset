@@ -569,7 +569,7 @@ export const visTypes = {
   },
 
   deck_geojson: {
-    label: t('Deck.gl - geoJson'),
+    label: t('Deck.gl - GeoJson'),
     requiresTime: true,
     controlPanelSections: [
       {
