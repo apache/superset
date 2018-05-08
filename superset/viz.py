@@ -43,10 +43,10 @@ from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 config = app.config
 stats_logger = config.get('STATS_LOGGER')
 
-METRIC_KEYS = {
+METRIC_KEYS = [
     'metric', 'metrics', 'percent_metrics', 'metric_2', 'secondary_metric',
     'x', 'y', 'size',
-}
+]
 
 
 class BaseViz(object):
@@ -96,7 +96,6 @@ class BaseViz(object):
         for mkey in METRIC_KEYS:
             val = fd.get(mkey)
             if val:
-                print(mkey, val)
                 if not isinstance(val, list):
                     val = [val]
                 for o in val:
