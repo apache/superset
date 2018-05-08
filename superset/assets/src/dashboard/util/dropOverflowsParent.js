@@ -1,9 +1,5 @@
 import { COLUMN_TYPE } from '../util/componentTypes';
-import {
-  GRID_COLUMN_COUNT,
-  NEW_COMPONENTS_SOURCE_ID,
-  GRID_MIN_COLUMN_COUNT,
-} from './constants';
+import { GRID_COLUMN_COUNT, NEW_COMPONENTS_SOURCE_ID } from './constants';
 import findParentId from './findParentId';
 import getChildWidth from './getChildWidth';
 import newComponentFactory from './newComponentFactory';
@@ -19,7 +15,7 @@ export default function doesChildOverflowParent(dropResult, layout) {
   const isNewComponent = source.id === NEW_COMPONENTS_SOURCE_ID;
   const grandparentId = findParentId({
     childId: destination.id,
-    components: layout,
+    layout,
   });
 
   const child = isNewComponent
