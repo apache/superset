@@ -722,14 +722,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             indent=indent, latest_partition=latest_partition, cols=cols)
 
     def wrap_sql_limit(self, sql, limit=1000):
-        qry = (
-            select('*')
-            .select_from(
-                TextAsFrom(text(sql), ['*'])
-                .alias('inner_qry'),
-            ).limit(limit)
-        )
-        return self.compile_sqla_query(qry)
+        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self)
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
