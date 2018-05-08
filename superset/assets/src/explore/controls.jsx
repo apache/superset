@@ -772,6 +772,7 @@ export const controls = {
       ['PT30S', '30 seconds'],
       ['PT1M', '1 minute'],
       ['PT5M', '5 minutes'],
+      ['PT30M', '30 minutes'],
       ['PT1H', '1 hour'],
       ['PT6H', '6 hour'],
       ['P1D', '1 day'],
