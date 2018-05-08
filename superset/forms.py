@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Contains the logic to create cohesive forms on the explore view"""
 from __future__ import absolute_import
 from __future__ import division

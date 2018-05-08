@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
 from __future__ import absolute_import
 from __future__ import division

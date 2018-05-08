@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Compatibility layer for different database engines
 
 This modules stores logic specific to different database engines. Things
@@ -445,6 +446,12 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
               'P1M'),
+        Grain('week_ending_saturday', _('week_ending_saturday'),
+              "DATE({col}, 'weekday 6')",
+              'P1W/1970-01-03T00:00:00Z'),
+        Grain('week_start_sunday', _('week_start_sunday'),
+              "DATE({col}, 'weekday 0', '-7 days')",
+              '1969-12-28T00:00:00Z/P1W'),
     )
 
     @classmethod
@@ -576,11 +583,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
               'CAST({col} AS TIMESTAMP))))',
-              'P1W'),
+              'P1W/1970-01-03T00:00:00Z'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-              'P1W'),
+              '1969-12-28T00:00:00Z/P1W'),
         Grain('year', _('year'),
               "date_trunc('year', CAST({col} AS TIMESTAMP))",
               'P1Y'),
@@ -668,7 +675,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             stats = polled.get('stats', {})
 
             query = session.query(type(query)).filter_by(id=query.id).one()
-            if query.status == QueryStatus.STOPPED:
+            if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
 
@@ -1168,11 +1175,11 @@ class AthenaEngineSpec(BaseEngineSpec):
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
               'CAST({col} AS TIMESTAMP))))',
-              'P1W'),
+              'P1W/1970-01-03T00:00:00Z'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-              'P1W'),
+              '1969-12-28T00:00:00Z/P1W'),
     )
 
     @classmethod
@@ -1259,7 +1266,7 @@ class BQEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
@@ -1290,7 +1297,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
@@ -1305,6 +1312,32 @@ class DruidEngineSpec(BaseEngineSpec):
     engine = 'druid'
     limit_method = LimitMethod.FETCH_MANY
     inner_joins = False
+
+
+class KylinEngineSpec(BaseEngineSpec):
+    """Dialect for Apache Kylin"""
+
+    engine = 'kylin'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'), 'SECOND({col})', 'PT1S'),
+        Grain('minute', _('minute'), 'MINUTE({col})', 'PT1M'),
+        Grain('hour', _('hour'), 'HOUR({col})', 'PT1H'),
+        Grain('month', _('month'), 'MONTH({col})', 'P1M'),
+        Grain('quarter', _('quarter'), 'QUARTER({col})', 'P0.25Y'),
+        Grain('year', _('year'), 'YEAR({col})', 'P1Y'),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+        if tt == 'TIMESTAMP':
+            return "CAST('{}' AS TIMESTAMP)".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 engines = {

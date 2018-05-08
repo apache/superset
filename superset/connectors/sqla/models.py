@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -581,12 +582,12 @@ class SqlaTable(Model, BaseDatasource):
             col = flt['col']
             op = flt['op']
             col_obj = cols.get(col)
-            is_list_target = op in ('in', 'not in')
-            eq = self.filter_values_handler(
-                flt.get('val'),
-                target_column_is_numeric=col_obj.is_num,
-                is_list_target=is_list_target)
             if col_obj:
+                is_list_target = op in ('in', 'not in')
+                eq = self.filter_values_handler(
+                    flt.get('val'),
+                    target_column_is_numeric=col_obj.is_num,
+                    is_list_target=is_list_target)
                 if op in ('in', 'not in'):
                     cond = col_obj.sqla_col.in_(eq)
                     if '<NULL>' in eq:

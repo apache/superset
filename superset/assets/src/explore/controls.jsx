@@ -387,8 +387,10 @@ export const controls = {
   xscale_interval: {
     type: 'SelectControl',
     label: t('XScale Interval'),
+    renderTrigger: true,
     choices: formatSelectOptionsForRange(1, 50),
     default: '1',
+    clearable: false,
     description: t('Number of steps to take between ticks when ' +
     'displaying the X scale'),
   },
@@ -397,7 +399,9 @@ export const controls = {
     type: 'SelectControl',
     label: t('YScale Interval'),
     choices: formatSelectOptionsForRange(1, 50),
-    default: null,
+    default: '1',
+    clearable: false,
+    renderTrigger: true,
     description: t('Number of steps to take between ticks when ' +
     'displaying the Y scale'),
   },
@@ -524,6 +528,7 @@ export const controls = {
       'France',
       'Germany',
       'Italy',
+      'Portugal',
       'Morocco',
       'Netherlands',
       'Russia',
@@ -726,6 +731,7 @@ export const controls = {
 
   bottom_margin: {
     type: 'SelectControl',
+    clearable: false,
     freeForm: true,
     label: t('Bottom Margin'),
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
@@ -747,6 +753,7 @@ export const controls = {
   left_margin: {
     type: 'SelectControl',
     freeForm: true,
+    clearable: false,
     label: t('Left Margin'),
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
@@ -770,8 +777,8 @@ export const controls = {
       ['P1D', '1 day'],
       ['P7D', '7 days'],
       ['P1W', 'week'],
-      ['P1W', 'week_starting_sunday'],
-      ['P1W', 'week_ending_saturday'],
+      ['week_starting_sunday', 'week starting Sunday'],
+      ['week_ending_saturday', 'week ending Saturday'],
       ['P1M', 'month'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +

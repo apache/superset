@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import moment from 'moment';
+import { connect } from 'react-redux';
 
 import { t } from '../../locales';
 import EditableTitle from '../../components/EditableTitle';
@@ -8,6 +9,8 @@ import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
+  supersetCanExplore: PropTypes.bool,
+  sliceCanEdit: PropTypes.bool,
   isExpanded: PropTypes.bool,
   isCached: PropTypes.bool,
   cachedDttm: PropTypes.string,
@@ -72,6 +75,7 @@ class SliceHeader extends React.PureComponent {
               title={slice.slice_name}
               canEdit={!!this.props.updateSliceName && this.props.editMode}
               onSaveTitle={this.onSaveTitle}
+              showTooltip={this.props.editMode}
               noPermitTooltip={'You don\'t have the rights to alter this dashboard.'}
             />
             {!!Object.values(this.props.annotationQuery || {}).length &&
@@ -126,15 +130,17 @@ class SliceHeader extends React.PureComponent {
                 </TooltipWrapper>
               </a>
               }
-              <a href={slice.edit_url} target="_blank">
-                <TooltipWrapper
-                  placement="top"
-                  label="edit"
-                  tooltip={t('Edit chart')}
-                >
-                  <i className="fa fa-pencil" />
-                </TooltipWrapper>
-              </a>
+              {this.props.sliceCanEdit &&
+                <a href={slice.edit_url} target="_blank">
+                  <TooltipWrapper
+                    placement="top"
+                    label="edit"
+                    tooltip={t('Edit chart')}
+                  >
+                    <i className="fa fa-pencil" />
+                  </TooltipWrapper>
+                </a>
+              }
               <a className="exportCSV" onClick={this.exportCSV}>
                 <TooltipWrapper
                   placement="top"
@@ -144,15 +150,17 @@ class SliceHeader extends React.PureComponent {
                   <i className="fa fa-table" />
                 </TooltipWrapper>
               </a>
-              <a className="exploreChart" onClick={this.exploreChart}>
-                <TooltipWrapper
-                  placement="top"
-                  label="exploreChart"
-                  tooltip={t('Explore chart')}
-                >
-                  <i className="fa fa-share" />
-                </TooltipWrapper>
-              </a>
+              {this.props.supersetCanExplore &&
+                <a className="exploreChart" onClick={this.exploreChart}>
+                  <TooltipWrapper
+                    placement="top"
+                    label="exploreChart"
+                    tooltip={t('Explore chart')}
+                  >
+                    <i className="fa fa-share" />
+                  </TooltipWrapper>
+                </a>
+              }
               {this.props.editMode &&
                 <a className="remove-chart" onClick={this.removeSlice}>
                   <TooltipWrapper
@@ -175,4 +183,12 @@ class SliceHeader extends React.PureComponent {
 SliceHeader.propTypes = propTypes;
 SliceHeader.defaultProps = defaultProps;
 
-export default SliceHeader;
+function mapStateToProps({ dashboard }) {
+  return {
+    supersetCanExplore: dashboard.dashboard.superset_can_explore,
+    sliceCanEdit: dashboard.dashboard.slice_can_edit,
+  };
+}
+
+export { SliceHeader };
+export default connect(mapStateToProps, () => ({}))(SliceHeader);
