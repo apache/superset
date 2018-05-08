@@ -2,6 +2,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import DashboardBuilder from '../components/DashboardBuilder';
 
+import { toggleBuilderPane } from '../actions/dashboardState';
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
@@ -20,6 +21,7 @@ function mapDispatchToProps(dispatch) {
     {
       deleteTopLevelTabs,
       handleComponentDrop,
+      toggleBuilderPane,
     },
     dispatch,
   );
