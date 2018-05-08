@@ -44,6 +44,7 @@ const parentMaxDepthLookup = {
 
   [DASHBOARD_GRID_TYPE]: {
     [CHART_TYPE]: depthOne,
+    [MARKDOWN_TYPE]: depthOne,
     [COLUMN_TYPE]: depthOne,
     [DIVIDER_TYPE]: depthOne,
     [HEADER_TYPE]: depthOne,
@@ -63,6 +64,7 @@ const parentMaxDepthLookup = {
 
   [TAB_TYPE]: {
     [CHART_TYPE]: depthTwo,
+    [MARKDOWN_TYPE]: depthTwo,
     [COLUMN_TYPE]: depthTwo,
     [DIVIDER_TYPE]: depthTwo,
     [HEADER_TYPE]: depthTwo,
@@ -75,6 +77,7 @@ const parentMaxDepthLookup = {
     [HEADER_TYPE]: depthFive,
     [MARKDOWN_TYPE]: depthFive,
     [ROW_TYPE]: depthThree,
+    [DIVIDER_TYPE]: depthThree,
   },
 
   // these have no valid children
