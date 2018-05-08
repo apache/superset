@@ -16,13 +16,10 @@ import sqlalchemy as sa
 
 def upgrade():
     op.add_column('dbs', sa.Column('allow_run_async', sa.Boolean(), nullable=True))
-    op.add_column('dbs', sa.Column('allow_run_sync', sa.Boolean(), nullable=True))
 
 
 def downgrade():
     try:
-        op.drop_column('dbs', 'allow_run_sync')
         op.drop_column('dbs', 'allow_run_async')
     except Exception:
         pass
-
