@@ -1,4 +1,4 @@
-/* global notify, window */
+/* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
@@ -10,6 +10,8 @@ import { t } from '../../locales';
 import Checkbox from '../../components/Checkbox';
 
 const propTypes = {
+  addSuccessToast: PropTypes.func.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
   dashboardId: PropTypes.number.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   expandedSlices: PropTypes.object.isRequired,
@@ -61,31 +63,31 @@ class SaveModal extends React.PureComponent {
     });
   }
 
+  // @TODO this should all be moved to actions
   saveDashboardRequest(data, url, saveType) {
-    const saveModal = this.modal;
-    const onSaveDashboard = this.props.onSave;
     $.ajax({
       type: 'POST',
       url,
       data: {
         data: JSON.stringify(data),
       },
-      success(resp) {
-        saveModal.close();
-        onSaveDashboard();
+      success: resp => {
+        this.modal.close();
+        this.props.onSave();
         if (saveType === 'newDashboard') {
           window.location = `/superset/dashboard/${resp.id}/`;
         } else {
-          notify.success(t('This dashboard was saved successfully.'));
+          this.props.addSuccessToast(
+            t('This dashboard was saved successfully.'),
+          );
         }
       },
-      error(error) {
-        saveModal.close();
+      error: error => {
+        this.modal.close();
         const errorMsg = getAjaxErrorMsg(error);
-        notify.error(
-          `${t(
-            'Sorry, there was an error saving this dashboard: ',
-          )} ${errorMsg}`,
+        this.props.addDangerToast(
+          `${t('Sorry, there was an error saving this dashboard: ')}
+          ${errorMsg}`,
         );
       },
     });
@@ -115,7 +117,9 @@ class SaveModal extends React.PureComponent {
       this.saveDashboardRequest(data, url, saveType);
     } else if (saveType === 'newDashboard') {
       if (!newDashName) {
-        notify.error('You must pick a name for the new dashboard');
+        this.props.addDangerToast(
+          t('You must pick a name for the new dashboard'),
+        );
       } else {
         data.dashboard_title = newDashName;
         url = `/superset/copy_dash/${dashboardId}/`;

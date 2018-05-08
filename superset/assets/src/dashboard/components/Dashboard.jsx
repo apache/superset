@@ -27,7 +27,6 @@ import '../stylesheets/index.less';
 const propTypes = {
   actions: PropTypes.shape({
     addSliceToDashboard: PropTypes.func.isRequired,
-    onChange: PropTypes.func.isRequired,
     removeSliceFromDashboard: PropTypes.func.isRequired,
     runQuery: PropTypes.func.isRequired,
   }).isRequired,
@@ -98,16 +97,12 @@ class Dashboard extends React.PureComponent {
         key => currentChartIds.indexOf(key) === -1,
       );
       this.props.actions.addSliceToDashboard(newChartId);
-      this.props.actions.onChange();
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
       const removedChartId = currentChartIds.find(
         key => nextChartIds.indexOf(key) === -1,
       );
-      this.props.actions.removeSliceFromDashboard(
-        this.props.charts[removedChartId],
-      );
-      this.props.actions.onChange();
+      this.props.actions.removeSliceFromDashboard(removedChartId);
     }
   }
 

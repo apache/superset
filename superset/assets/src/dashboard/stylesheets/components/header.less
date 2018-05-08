@@ -1,6 +1,6 @@
 .dashboard-component-header {
   width: 100%;
-  line-height: 1em;
+  line-height: 1.1;
   font-weight: 700;
   padding: 16px 0;
   color: @almost-black;
@@ -15,7 +15,13 @@
   margin-right: 8px;
 }
 
-.dragdroppable-row .dashboard-component-header {
+.dashboard-header .undo-action,
+.dashboard-header .redo-action {
+  line-height: 18px;
+  font-size: 12px;
+}
+
+.dashboard--editing .dragdroppable-row .dashboard-component-header {
   cursor: move;
 }
 

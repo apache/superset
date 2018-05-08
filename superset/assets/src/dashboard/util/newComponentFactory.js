@@ -34,7 +34,6 @@ function uuid(type) {
 
 export default function entityFactory(type, meta) {
   return {
-    version: 'v0',
     type,
     id: uuid(type),
     children: [],

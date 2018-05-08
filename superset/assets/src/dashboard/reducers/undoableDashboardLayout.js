@@ -1,4 +1,5 @@
 import undoable, { includeAction } from 'redux-undo';
+import { UNDO_LIMIT } from '../util/constants';
 import {
   UPDATE_COMPONENTS,
   DELETE_COMPONENT,
@@ -13,7 +14,9 @@ import {
 import dashboardLayout from './dashboardLayout';
 
 export default undoable(dashboardLayout, {
-  limit: 15,
+  // +1 because length of history seems max out at limit - 1
+  // +1 again so we can detect if we've exceeded the limit
+  limit: UNDO_LIMIT + 2,
   filter: includeAction([
     UPDATE_COMPONENTS,
     DELETE_COMPONENT,

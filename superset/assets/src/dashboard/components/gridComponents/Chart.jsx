@@ -13,16 +13,17 @@ const propTypes = {
   id: PropTypes.number.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
+  updateSliceName: PropTypes.func.isRequired,
 
   // from redux
   chart: PropTypes.shape(chartPropType).isRequired,
   formData: PropTypes.object.isRequired,
   datasource: PropTypes.object.isRequired,
   slice: slicePropShape.isRequired,
+  sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
-  saveSliceName: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
   addFilter: PropTypes.func.isRequired,
   removeFilter: PropTypes.func.isRequired,
@@ -150,6 +151,8 @@ class Chart extends React.Component {
       isExpanded,
       editMode,
       formData,
+      updateSliceName,
+      sliceName,
       toggleExpandSlice,
       timeout,
     } = this.props;
@@ -161,25 +164,21 @@ class Chart extends React.Component {
     const isOverflowable = OVERFLOWABLE_VIZ_TYPES.has(slice && slice.viz_type);
 
     return (
-      <div
-        className={cx(
-          'dashboard-chart',
-          isOverflowable && 'dashboard-chart--overflowable',
-        )}
-      >
+      <div>
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
           isExpanded={!!isExpanded}
           isCached={isCached}
           cachedDttm={cachedDttm}
-          updateSliceName={this.updateSliceName}
           toggleExpandSlice={toggleExpandSlice}
           forceRefresh={this.forceRefresh}
           editMode={editMode}
           annotationQuery={chart.annotationQuery}
           exploreChart={this.exploreChart}
           exportCSV={this.exportCSV}
+          updateSliceName={updateSliceName}
+          sliceName={sliceName}
         />
 
         {/*
@@ -199,30 +198,37 @@ class Chart extends React.Component {
             />
           )}
 
-        <ChartContainer
-          containerId={`slice-container-${id}`}
-          chartId={id}
-          datasource={datasource}
-          formData={formData}
-          headerHeight={this.getHeaderHeight()}
-          height={this.getChartHeight()}
-          width={width}
-          timeout={timeout}
-          vizType={slice.viz_type}
-          addFilter={this.addFilter}
-          getFilters={this.getFilters}
-          removeFilter={this.removeFilter}
-          annotationData={chart.annotationData}
-          chartAlert={chart.chartAlert}
-          chartStatus={chart.chartStatus}
-          chartUpdateEndTime={chart.chartUpdateEndTime}
-          chartUpdateStartTime={chart.chartUpdateStartTime}
-          latestQueryFormData={chart.latestQueryFormData}
-          lastRendered={chart.lastRendered}
-          queryResponse={chart.queryResponse}
-          queryRequest={chart.queryRequest}
-          triggerQuery={chart.triggerQuery}
-        />
+        <div
+          className={cx(
+            'dashboard-chart',
+            isOverflowable && 'dashboard-chart--overflowable',
+          )}
+        >
+          <ChartContainer
+            containerId={`slice-container-${id}`}
+            chartId={id}
+            datasource={datasource}
+            formData={formData}
+            headerHeight={this.getHeaderHeight()}
+            height={this.getChartHeight()}
+            width={width}
+            timeout={timeout}
+            vizType={slice.viz_type}
+            addFilter={this.addFilter}
+            getFilters={this.getFilters}
+            removeFilter={this.removeFilter}
+            annotationData={chart.annotationData}
+            chartAlert={chart.chartAlert}
+            chartStatus={chart.chartStatus}
+            chartUpdateEndTime={chart.chartUpdateEndTime}
+            chartUpdateStartTime={chart.chartUpdateStartTime}
+            latestQueryFormData={chart.latestQueryFormData}
+            lastRendered={chart.lastRendered}
+            queryResponse={chart.queryResponse}
+            queryRequest={chart.queryRequest}
+            triggerQuery={chart.triggerQuery}
+          />
+        </div>
       </div>
     );
   }

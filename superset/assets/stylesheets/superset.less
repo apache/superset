@@ -114,7 +114,6 @@ span.title-block {
 }
 
 .nvtooltip {
-    //position: relative !important;
     z-index: 888;
     transition: opacity 0ms linear;
     -moz-transition: opacity 0ms linear;
@@ -238,13 +237,14 @@ table.table-no-hover tr:hover {
   line-height: inherit;
   white-space: normal;
   text-align: left;
+  cursor: initial;
 }
 
-.editable-title.editable-title--editable {
+.editable-title.editable-title--editable input[type="button"] {
   cursor: pointer;
 }
 
-.editable-title.editable-title--editing {
+.editable-title.editable-title--editing input[type="button"] {
   cursor: text;
 }
 

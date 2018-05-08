@@ -1,8 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-// ParentSize uses resize observer so the dashboard will update size
-// when its container size changes, due to e.g., builder side panel opening
-import ParentSize from '@vx/responsive/build/components/ParentSize';
 
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
@@ -16,6 +13,7 @@ const propTypes = {
   gridComponent: componentShape.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   resizeComponent: PropTypes.func.isRequired,
+  width: PropTypes.number.isRequired,
 };
 
 const defaultProps = {};
@@ -28,6 +26,7 @@ class DashboardGrid extends React.PureComponent {
       rowGuideTop: null,
     };
 
+    this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
@@ -77,100 +76,117 @@ class DashboardGrid extends React.PureComponent {
     }));
   }
 
+  handleTopDropTargetDrop(dropResult) {
+    if (dropResult) {
+      this.props.handleComponentDrop({
+        ...dropResult,
+        destination: {
+          ...dropResult.destination,
+          // force appending as the first child if top drop target
+          index: 0,
+        },
+      });
+    }
+  }
+
   render() {
-    const { gridComponent, handleComponentDrop, depth, editMode } = this.props;
+    const {
+      gridComponent,
+      handleComponentDrop,
+      depth,
+      editMode,
+      width,
+    } = this.props;
+
+    const columnPlusGutterWidth =
+      (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
+
+    const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
     const { isResizing, rowGuideTop } = this.state;
 
-    return (
-      <div className="grid-container" ref={this.setGridRef}>
-        <ParentSize>
-          {({ width }) => {
-            const columnPlusGutterWidth =
-              (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
-            const columnWidth = columnPlusGutterWidth - GRID_GUTTER_SIZE;
-            return width < 50 ? null : (
-              <div className="grid-content">
-                {editMode && (
-                  <DragDroppable
-                    component={gridComponent}
-                    depth={depth}
-                    parentComponent={null}
-                    index={0}
-                    orientation="column"
-                    onDrop={handleComponentDrop}
-                    editMode
-                  >
-                    {({ dropIndicatorProps }) =>
-                      dropIndicatorProps && (
-                        <div className="drop-indicator drop-indicator--bottom" />
-                      )
-                    }
-                  </DragDroppable>
-                )}
+    return width < 100 ? null : (
+      <div className="dashboard-grid" ref={this.setGridRef}>
+        <div className="grid-content">
+          {/* empty drop target makes top droppable */}
+          {editMode && (
+            <DragDroppable
+              component={gridComponent}
+              depth={depth}
+              parentComponent={null}
+              index={0}
+              orientation="column"
+              onDrop={this.handleTopDropTargetDrop}
+              className="empty-grid-droptarget--top"
+              editMode
+            >
+              {({ dropIndicatorProps }) =>
+                dropIndicatorProps && (
+                  <div className="drop-indicator drop-indicator--bottom" />
+                )
+              }
+            </DragDroppable>
+          )}
 
-                {gridComponent.children.map((id, index) => (
-                  <DashboardComponent
-                    key={id}
-                    id={id}
-                    parentId={gridComponent.id}
-                    depth={depth + 1}
-                    index={index}
-                    availableColumnCount={GRID_COLUMN_COUNT}
-                    columnWidth={columnWidth}
-                    onResizeStart={this.handleResizeStart}
-                    onResize={this.handleResize}
-                    onResizeStop={this.handleResizeStop}
-                  />
-                ))}
+          {gridComponent.children.map((id, index) => (
+            <DashboardComponent
+              key={id}
+              id={id}
+              parentId={gridComponent.id}
+              depth={depth + 1}
+              index={index}
+              availableColumnCount={GRID_COLUMN_COUNT}
+              columnWidth={columnWidth}
+              onResizeStart={this.handleResizeStart}
+              onResize={this.handleResize}
+              onResizeStop={this.handleResizeStop}
+            />
+          ))}
 
-                {/* render an empty drop target */}
-                {editMode && (
-                  <DragDroppable
-                    component={gridComponent}
-                    depth={depth}
-                    parentComponent={null}
-                    index={gridComponent.children.length}
-                    orientation="column"
-                    onDrop={handleComponentDrop}
-                    className="empty-grid-droptarget"
-                    editMode
-                  >
-                    {({ dropIndicatorProps }) =>
-                      dropIndicatorProps && (
-                        <div className="drop-indicator drop-indicator--top" />
-                      )
-                    }
-                  </DragDroppable>
-                )}
+          {/* empty drop target makes bottom droppable */}
+          {editMode && (
+            <DragDroppable
+              component={gridComponent}
+              depth={depth}
+              parentComponent={null}
+              index={gridComponent.children.length}
+              orientation="column"
+              onDrop={handleComponentDrop}
+              className="empty-grid-droptarget--bottom"
+              editMode
+            >
+              {({ dropIndicatorProps }) =>
+                dropIndicatorProps && (
+                  <div className="drop-indicator drop-indicator--top" />
+                )
+              }
+            </DragDroppable>
+          )}
 
-                {isResizing &&
-                  Array(GRID_COLUMN_COUNT)
-                    .fill(null)
-                    .map((_, i) => (
-                      <div
-                        key={`grid-column-${i}`}
-                        className="grid-column-guide"
-                        style={{
-                          left: i * GRID_GUTTER_SIZE + i * columnWidth,
-                          width: columnWidth,
-                        }}
-                      />
-                    ))}
+          {isResizing &&
+            Array(GRID_COLUMN_COUNT)
+              .fill(null)
+              .map((_, i) => (
+                <div
+                  key={`grid-column-${i}`}
+                  className="grid-column-guide"
+                  style={{
+                    left: i * GRID_GUTTER_SIZE + i * columnWidth,
+                    width: columnWidth,
+                  }}
+                />
+              ))}
 
-                {isResizing &&
-                  rowGuideTop && (
-                    <div
-                      className="grid-row-guide"
-                      style={{
-                        top: rowGuideTop,
-                        width,
-                      }}
-                    />
-                  )}
-              </div>
-            );
-          }}
-        </ParentSize>
+          {isResizing &&
+            rowGuideTop && (
+              <div
+                className="grid-row-guide"
+                style={{
+                  top: rowGuideTop,
+                  width,
+                }}
+              />
+            )}
+        </div>
       </div>
     );
   }
