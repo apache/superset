@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
@@ -20,12 +21,14 @@ const propTypes = {
   userId: PropTypes.string.isRequired,
   selectedSliceIds: PropTypes.object,
   editMode: PropTypes.bool,
+  height: PropTypes.number,
 };
 
 const defaultProps = {
   selectedSliceIds: new Set(),
   editMode: false,
   errorMessage: '',
+  height: window.innerHeight,
 };
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
@@ -179,6 +182,7 @@ class SliceAdder extends React.Component {
           </DropdownButton>
 
           <SearchInput
+            className="search-input"
             onChange={this.searchUpdated}
             onKeyPress={this.handleKeyPress}
           />
@@ -198,7 +202,7 @@ class SliceAdder extends React.Component {
           this.state.filteredSlices.length > 0 && (
             <List
               width={376}
-              height={500}
+              height={this.props.height}
               rowCount={this.state.filteredSlices.length}
               rowHeight={136}
               rowRenderer={this.rowRenderer}

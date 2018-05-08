@@ -2,11 +2,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import $ from 'jquery';
-import { DropdownButton } from 'react-bootstrap';
+import { DropdownButton, MenuItem } from 'react-bootstrap';
 
 import RefreshIntervalModal from './RefreshIntervalModal';
 import SaveModal from './SaveModal';
-import { ActionMenuItem, MenuItemContent } from './ActionMenuItem';
 import { t } from '../../locales';
 
 function updateDom(css) {
@@ -28,6 +27,8 @@ function updateDom(css) {
 }
 
 const propTypes = {
+  addSuccessToast: PropTypes.func.isRequired,
+  addDangerToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
   layout: PropTypes.object.isRequired,
@@ -100,23 +101,18 @@ class Controls extends React.PureComponent {
           id="bg-nested-dropdown"
           pullRight
         >
-          <ActionMenuItem
-            text={t('Force Refresh')}
-            tooltip={t('Force refresh the whole dashboard')}
-            onClick={forceRefreshAllCharts}
-          />
+          <MenuItem onClick={forceRefreshAllCharts}>
+            {t('Force refresh dashboard')}
+          </MenuItem>
           <RefreshIntervalModal
             onChange={refreshInterval =>
               startPeriodicRender(refreshInterval * 1000)
             }
-            triggerNode={
-              <MenuItemContent
-                text={t('Set autorefresh')}
-                tooltip={t('Set the auto-refresh interval for this session')}
-              />
-            }
+            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
           />
           <SaveModal
+            addSuccessToast={this.props.addSuccessToast}
+            addDangerToast={this.props.addDangerToast}
             dashboardId={this.props.dashboardInfo.id}
             dashboardTitle={dashboardTitle}
             layout={layout}
@@ -124,33 +120,19 @@ class Controls extends React.PureComponent {
             expandedSlices={expandedSlices}
             onSave={onSave}
             css={this.state.css}
-            triggerNode={
-              <MenuItemContent
-                text={editMode ? t('Save') : t('Save as')}
-                tooltip={t('Save the dashboard')}
-              />
-            }
+            triggerNode={<span>{editMode ? t('Save') : t('Save as')}</span>}
             isMenuItem
           />
           {editMode && (
-            <ActionMenuItem
-              text={t('Edit properties')}
-              tooltip={t("Edit the dashboards's properties")}
-              onClick={() => {
-                window.location = `/dashboardmodelview/edit/${
-                  this.props.dashboardInfo.id
-                }`;
-              }}
-            />
+            <MenuItem
+              target="_blank"
+              href={`/dashboardmodelview/edit/${this.props.dashboardInfo.id}`}
+            >
+              {t('Edit dashboard metadata')}
+            </MenuItem>
           )}
           {editMode && (
-            <ActionMenuItem
-              text={t('Email')}
-              tooltip={t('Email a link to this dashboard')}
-              onClick={() => {
-                window.location = emailLink;
-              }}
-            />
+            <MenuItem href={emailLink}>{t('Email dashboard link')}</MenuItem>
           )}
         </DropdownButton>
       </span>

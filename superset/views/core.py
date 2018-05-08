@@ -1559,10 +1559,16 @@ class Superset(BaseSupersetView):
                 session.add(new_slice)
                 session.flush()
                 new_slice.dashboards.append(dash)
-                old_to_new_sliceids['{}'.format(slc.id)] =\
-                    '{}'.format(new_slice.id)
-            for d in data['positions']:
-                d['slice_id'] = old_to_new_sliceids[d['slice_id']]
+                old_to_new_sliceids[slc.id] = new_slice.id
+
+            # update chartId of layout entities
+            for value in data['positions'].values():
+                if isinstance(value, dict) and value.get('meta') \
+                    and value.get('meta').get('chartId'):
+
+                    old_id = value.get('meta').get('chartId')
+                    new_id = old_to_new_sliceids[old_id]
+                    value['meta']['chartId'] = new_id
         else:
             dash.slices = original_dash.slices
         dash.params = original_dash.params
@@ -1585,6 +1591,7 @@ class Superset(BaseSupersetView):
                 .filter_by(id=dashboard_id).first())
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get('data'))
+        original_slice_names = {(slc.id): slc.slice_name for slc in dash.slices}
         self._set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
@@ -1596,15 +1603,30 @@ class Superset(BaseSupersetView):
         positions = data['positions']
         # find slices in the position data
         slice_ids = []
+        slice_id_to_name = {}
         for value in positions.values():
-            if value.get('meta') and value.get('meta').get('chartId'):
-                slice_ids.append(int(value.get('meta').get('chartId')))
+            if isinstance(value, dict) and value.get('meta') \
+                and value.get('meta').get('chartId'):
+
+                slice_id = value.get('meta').get('chartId')
+                slice_ids.append(slice_id)
+                slice_id_to_name[slice_id] = value.get('meta').get('chartName')
+
         session = db.session()
         Slice = models.Slice  # noqa
         current_slices = session.query(Slice).filter(
             Slice.id.in_(slice_ids)).all()
 
         dashboard.slices = current_slices
+
+        # update slice names. this assumes user has permissions to update the slice
+        for slc in dashboard.slices:
+            new_name = slice_id_to_name[slc.id]
+            if slc.slice_name != new_name:
+                slc.slice_name = new_name
+                session.merge(slc)
+                session.flush()
+
         dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data.get('css')

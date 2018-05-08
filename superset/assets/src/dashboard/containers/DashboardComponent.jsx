@@ -26,13 +26,7 @@ const propTypes = {
 };
 
 function mapStateToProps(
-  {
-    dashboardLayout: undoableLayout,
-    dashboardState,
-    sliceEntities,
-    charts,
-    datasources,
-  },
+  { dashboardLayout: undoableLayout, dashboardState },
   ownProps,
 ) {
   const dashboardLayout = undoableLayout.present;

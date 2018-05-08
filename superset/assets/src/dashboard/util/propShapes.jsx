@@ -66,7 +66,6 @@ export const slicePropShape = PropTypes.shape({
 });
 
 export const dashboardStatePropShape = PropTypes.shape({
-  title: PropTypes.string.isRequired,
   sliceIds: PropTypes.object.isRequired,
   refresh: PropTypes.bool.isRequired,
   filters: PropTypes.object,

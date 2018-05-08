@@ -8,7 +8,7 @@ import {
 } from '../actions/dashboardState';
 import { refreshChart } from '../../chart/chartAction';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
-import { saveSliceName } from '../actions/sliceEntities';
+import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
 
 function mapStateToProps(
@@ -46,7 +46,7 @@ function mapStateToProps(
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
     {
-      saveSliceName,
+      updateComponents,
       toggleExpandSlice,
       addFilter,
       refreshChart,

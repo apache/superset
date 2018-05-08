@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import Chart from '../../containers/Chart';
 import DeleteComponentButton from '../DeleteComponentButton';
 import DragDroppable from '../dnd/DragDroppable';
-import DragHandle from '../dnd/DragHandle';
 import HoverMenu from '../menu/HoverMenu';
 import ResizableContainer from '../resizable/ResizableContainer';
 import { componentShape } from '../../util/propShapes';
@@ -35,6 +34,7 @@ const propTypes = {
 
   // dnd
   deleteComponent: PropTypes.func.isRequired,
+  updateComponents: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
 };
 
@@ -49,6 +49,7 @@ class ChartHolder extends React.Component {
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
+    this.handleUpdateSliceName = this.handleUpdateSliceName.bind(this);
   }
 
   handleChangeFocus(nextFocus) {
@@ -58,6 +59,19 @@ class ChartHolder extends React.Component {
   handleDeleteComponent() {
     const { deleteComponent, id, parentId } = this.props;
     deleteComponent(id, parentId);
+  }
+
+  handleUpdateSliceName(nextName) {
+    const { component, updateComponents } = this.props;
+    updateComponents({
+      [component.id]: {
+        ...component,
+        meta: {
+          ...component.meta,
+          chartName: nextName,
+        },
+      },
+    });
   }
 
   render() {
@@ -119,10 +133,11 @@ class ChartHolder extends React.Component {
                 id={component.meta.chartId}
                 width={widthMultiple * columnWidth}
                 height={component.meta.height * GRID_BASE_UNIT - CHART_MARGIN}
+                sliceName={component.meta.chartName}
+                updateSliceName={this.handleUpdateSliceName}
               />
               {editMode && (
                 <HoverMenu position="top">
-                  <DragHandle position="top" />
                   <DeleteComponentButton
                     onDelete={this.handleDeleteComponent}
                   />

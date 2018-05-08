@@ -107,6 +107,7 @@
     "react-select-fast-filter-options": "^0.2.1",
     "react-sortable-hoc": "^0.8.3",
     "react-split-pane": "^0.1.66",
+    "react-sticky": "^6.0.2",
     "react-syntax-highlighter": "^7.0.4",
     "react-virtualized": "9.19.1",
     "react-virtualized-select": "^2.4.0",

@@ -9,6 +9,7 @@ import {
   REMOVE_SLICE,
   REMOVE_FILTER,
   SET_EDIT_MODE,
+  SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
   TOGGLE_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
@@ -55,6 +56,10 @@ export default function dashboardStateReducer(state = {}, action) {
     [SET_EDIT_MODE]() {
       return { ...state, editMode: action.editMode };
     },
+    [SET_MAX_UNDO_HISTORY_EXCEEDED]() {
+      const { maxUndoHistoryExceeded = true } = action.payload;
+      return { ...state, maxUndoHistoryExceeded };
+    },
     [TOGGLE_BUILDER_PANE]() {
       return { ...state, showBuilderPane: !state.showBuilderPane };
     },
@@ -72,7 +77,11 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, hasUnsavedChanges: true };
     },
     [ON_SAVE]() {
-      return { ...state, hasUnsavedChanges: false };
+      return {
+        ...state,
+        hasUnsavedChanges: false,
+        maxUndoHistoryExceeded: false,
+      };
     },
 
     // filters

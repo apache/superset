@@ -128,6 +128,16 @@ class Row extends React.PureComponent {
             ]}
             editMode={editMode}
           >
+            {editMode && (
+              <HoverMenu innerRef={dragSourceRef} position="left">
+                <DragHandle position="left" />
+                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
+                <IconButton
+                  onClick={this.handleChangeFocus}
+                  className="fa fa-cog"
+                />
+              </HoverMenu>
+            )}
             <div
               className={cx(
                 'grid-row',
@@ -135,19 +145,6 @@ class Row extends React.PureComponent {
                 backgroundStyle.className,
               )}
             >
-              {editMode && (
-                <HoverMenu innerRef={dragSourceRef} position="left">
-                  <DragHandle position="left" />
-                  <DeleteComponentButton
-                    onDelete={this.handleDeleteComponent}
-                  />
-                  <IconButton
-                    onClick={this.handleChangeFocus}
-                    className="fa fa-cog"
-                  />
-                </HoverMenu>
-              )}
-
               {rowItems.map((componentId, itemIndex) => (
                 <DashboardComponent
                   key={componentId}

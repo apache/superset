@@ -1,10 +1,12 @@
 /* eslint camelcase: 0 */
 import $ from 'jquery';
+import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/stores/store';
+import { addWarningToast } from './messageToasts';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -19,11 +21,6 @@ export function addFilter(chart, col, vals, merge = true, refresh = true) {
 export const REMOVE_FILTER = 'REMOVE_FILTER';
 export function removeFilter(sliceId, col, vals, refresh = true) {
   return { type: REMOVE_FILTER, sliceId, col, vals, refresh };
-}
-
-export const UPDATE_DASHBOARD_TITLE = 'UPDATE_DASHBOARD_TITLE';
-export function updateDashboardTitle(title) {
-  return { type: UPDATE_DASHBOARD_TITLE, title };
 }
 
 export const ADD_SLICE = 'ADD_SLICE';
@@ -82,6 +79,14 @@ export function onChange() {
 export const ON_SAVE = 'ON_SAVE';
 export function onSave() {
   return { type: ON_SAVE };
+}
+
+export function saveDashboard() {
+  return dispatch => {
+    dispatch(onSave());
+    // clear layout undo history
+    dispatch(UndoActionCreators.clearHistory());
+  };
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
@@ -168,9 +173,31 @@ export function addSliceToDashboard(id) {
   };
 }
 
-export function removeSliceFromDashboard(chart) {
+export function removeSliceFromDashboard(id) {
   return dispatch => {
-    dispatch(removeSlice(chart.id));
-    dispatch(removeChart(chart.id));
+    dispatch(removeSlice(id));
+    dispatch(removeChart(id));
+  };
+}
+
+// Undo history ---------------------------------------------------------------
+export const SET_MAX_UNDO_HISTORY_EXCEEDED = 'SET_MAX_UNDO_HISTORY_EXCEEDED';
+export function setMaxUndoHistoryExceeded(maxUndoHistoryExceeded = true) {
+  return {
+    type: SET_MAX_UNDO_HISTORY_EXCEEDED,
+    payload: { maxUndoHistoryExceeded },
+  };
+}
+
+export function maxUndoHistoryToast() {
+  return (dispatch, getState) => {
+    const { dashboardLayout } = getState();
+    const historyLength = dashboardLayout.past.length;
+
+    return dispatch(
+      addWarningToast(
+        `You have used all ${historyLength} undo slots and will not be able to fully undo subsequent actions. You may save your current state to reset the history.`,
+      ),
+    );
   };
 }
