@@ -57,7 +57,7 @@ setup(
         'cryptography',
         'flask',
         'flask-appbuilder',
-        'flask-cache',
+        'flask-caching',
         'flask-compress',
         'flask-migrate',
         'flask-script',
