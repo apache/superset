@@ -10,14 +10,10 @@ import getDropPosition, {
 
 import {
   CHART_TYPE,
-  COLUMN_TYPE,
   DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
-  DIVIDER_TYPE,
   HEADER_TYPE,
-  MARKDOWN_TYPE,
   ROW_TYPE,
-  TABS_TYPE,
   TAB_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
