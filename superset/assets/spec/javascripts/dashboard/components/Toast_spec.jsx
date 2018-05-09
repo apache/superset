@@ -4,12 +4,12 @@ import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import { INFO_TOAST } from '../../../../src/dashboard/util/constants';
+import mockMessageToasts from '../fixtures/mockMessageToasts';
 import Toast from '../../../../src/dashboard/components/Toast';
 
 describe('Toast', () => {
   const props = {
-    toast: { id: 'id', toastType: INFO_TOAST, text: 'imma toast!' },
+    toast: mockMessageToasts[0],
     onCloseToast() {},
   };
 
@@ -27,7 +27,7 @@ describe('Toast', () => {
     const wrapper = setup();
     const alert = wrapper.find(Alert).dive();
 
-    expect(alert.childAt(1).text()).to.equal('imma toast!');
+    expect(alert.childAt(1).text()).to.equal(props.toast.text);
   });
 
   it('should call onCloseToast upon alert dismissal', done => {

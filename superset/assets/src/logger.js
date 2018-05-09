@@ -18,8 +18,10 @@ export const Logger = {
   },
 
   append(eventName, eventBody) {
-    return handlers[eventName].length &&
-      handlers[eventName].forEach(handler => (handler(eventName, eventBody)));
+    return (
+      (handlers[eventName] || {}).length &&
+      handlers[eventName].forEach(handler => handler(eventName, eventBody))
+    );
   },
 
   end(log) {
@@ -28,8 +30,7 @@ export const Logger = {
 
     log.eventNames.forEach((eventName) => {
       if (handlers[eventName].length) {
-        const index = handlers[eventName]
-          .findIndex(handler => (handler === log.addEvent));
+        const index = handlers[eventName].findIndex(handler => handler === log.addEvent);
         handlers[eventName].splice(index, 1);
       }
     });
@@ -51,7 +52,7 @@ export const Logger = {
     }
     let url = '/superset/log/';
     if (requestPrams.length) {
-      url += '?' + requestPrams.map(([k, v]) => (k + '=' + v)).join('&');
+      url += '?' + requestPrams.map(([k, v]) => k + '=' + v).join('&');
     }
     const eventData = {};
     for (const eventName in events) {

@@ -22,7 +22,7 @@ function mapStateToProps(
   ownProps,
 ) {
   const { id } = ownProps;
-  const chart = chartQueries[id];
+  const chart = chartQueries[id] || {};
   const { filters } = dashboardState;
 
   return {
