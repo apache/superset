@@ -2,12 +2,9 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import {
   Button,
-  ButtonGroup,
   DropdownButton,
-  Form,
   FormControl,
   FormGroup,
-  Glyphicon,
   InputGroup,
   Label,
   MenuItem,
@@ -17,8 +14,6 @@ import {
   Tab,
   Tabs,
 } from 'react-bootstrap';
-import Select from 'react-select';
-import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
 import DateTimeField from 'react-bootstrap-datetimepicker';
 import 'react-bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css';
@@ -26,9 +21,14 @@ import moment from 'moment';
 import $ from 'jquery';
 
 import ControlHeader from '../ControlHeader';
-import PopoverSection from '../../../components/PopoverSection';
+import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
+import { t } from '../../../locales';
 
+const TYPES = ['range', 'startend'];
 const COMMON_TIME_FRAMES = ['Yesterday', 'Last week', 'Last month', 'Last year'];
+const RELATIVE_TIME_OPTIONS = ['Last', 'Next'];
+const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
+
 const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
 const DEFAULT_SINCE = moment().startOf('day').subtract(7, 'days').format(MOMENT_FORMAT);
 const DEFAULT_UNTIL = moment().startOf('day').format(MOMENT_FORMAT);
@@ -37,10 +37,11 @@ const INPUT_IDS = {
   until: 'input_until',
 };
 const INVALID_DATE_MESSAGE = 'Invalid date';
-const RELATIVE_TIME_OPTIONS = ['Last', 'Next'];
 const SEPARATOR = ' : ';
-const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
-const TYPES = ['relative', 'fixed'];
+const FREEFORM_TOOLTIP = t(
+  'Superset supports smart date parsing. Strings like `last sunday` or ' +
+  '`last october` can be used.',
+);
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -58,8 +59,7 @@ const defaultProps = {
   value: 'Today',
 };
 
-// migrate/backwards compat
-// backend
+// backend (including migrating)
 
 
 export default class DateFilterControl extends React.Component {
@@ -69,43 +69,37 @@ export default class DateFilterControl extends React.Component {
     this.state = {
       type: TYPES[0],
 
-      // for relative
+      // for range
       num: '7',
       grain: TIME_GRAIN_OPTIONS[3],
       rel: RELATIVE_TIME_OPTIONS[0],
       common: COMMON_TIME_FRAMES[0],
 
-      // for fixed (includes freeform)
+      // for start:end(includes freeform)
       since: DEFAULT_SINCE,
       until: DEFAULT_UNTIL,
       isFreeform: false,
     };
     if (value.indexOf(SEPARATOR) >= 0) {
-      this.state.type = 'fixed';
+      this.state.type = 'startend';
       [this.state.since, this.state.until] = value.split(SEPARATOR, 2);
     } else {
-      this.state.type = 'relative';
+      this.state.type = 'range';
       if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
         this.state.common = value;
       } else {
         this.state.common = null;
-        [this.state.num, this.state.grain, this.state.rel] = value.split(' ', 3);
+        [this.state.rel, this.state.num, this.state.grain] = value.split(' ', 3);
       }
     }
   }
-  onNumberChange(event) {
-    this.setState({ num: event.target.value });
-  }
-  setFixed(key, value) {
-    const nextState = { type: 'fixed' };
+  setStartEnd(key, value) {
+    const nextState = { type: 'startend' };
     if (value === INVALID_DATE_MESSAGE) {
-      let freeformValue = $('#' + INPUT_IDS[key]).val();
-      if (freeformValue.trim() === '') {
-        freeformValue = key === 'since' ? DEFAULT_SINCE : DEFAULT_UNTIL;
-        nextState.isFreeform = false;
-      } else {
-        nextState.isFreeform = true;
-      }
+      // the DateTimeField component will return `Invalid date` for freeform
+      // text, so we need to cheat and steal the value old-school style
+      const freeformValue = $('#' + INPUT_IDS[key]).val();
+      nextState.isFreeform = true;
       nextState[key] = freeformValue;
     } else {
       nextState.isFreeform = false;
@@ -113,9 +107,9 @@ export default class DateFilterControl extends React.Component {
     }
     this.setState(nextState);
   }
-  setCommonRelative(timeFrame) {
+  setCommonRange(timeFrame) {
     const nextState = {
-      type: 'relative',
+      type: 'range',
       common: timeFrame,
       until: moment().startOf('day').format(MOMENT_FORMAT),
     };
@@ -128,8 +122,8 @@ export default class DateFilterControl extends React.Component {
     nextState.since = moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT);
     this.setState(nextState);
   }
-  setCustomRelative(key, value) {
-    const nextState = { ...this.state, type: 'relative', common: null };
+  setCustomRange(key, value) {
+    const nextState = { ...this.state, type: 'range', common: null };
     if (key !== undefined && value !== undefined) {
       nextState[key] = value;
     }
@@ -150,11 +144,11 @@ export default class DateFilterControl extends React.Component {
   }
   close() {
     let val;
-    if (this.state.type === 'relative') {
+    if (this.state.type === 'range') {
       val = this.state.common
         ? this.state.common
-        : `${this.state.num} ${this.state.grain} ${this.state.rel}`;
-    } else if (this.state.type === 'fixed') {
+        : `${this.state.rel} ${this.state.num} ${this.state.grain}`;
+    } else if (this.state.type === 'startend') {
       val = [this.state.since, this.state.until].join(SEPARATOR);
     }
     this.props.onChange(val);
@@ -163,7 +157,7 @@ export default class DateFilterControl extends React.Component {
   renderPopover() {
     const grainOptions = TIME_GRAIN_OPTIONS.map((grain, index) => (
       <MenuItem
-        onSelect={this.setCustomRelative.bind(this, 'grain')}
+        onSelect={this.setCustomRange.bind(this, 'grain')}
         key={index}
         eventKey={grain}
         active={grain === this.state.grain}
@@ -174,7 +168,7 @@ export default class DateFilterControl extends React.Component {
       <Radio
         key={index + 1}
         checked={this.state.common === timeFrame}
-        onChange={this.setCommonRelative.bind(this, timeFrame)}
+        onChange={this.setCommonRange.bind(this, timeFrame)}
       >{timeFrame}
       </Radio>
       ));
@@ -187,12 +181,12 @@ export default class DateFilterControl extends React.Component {
             bsStyle="pills"
             onSelect={type => this.setState({ type: TYPES[type - 1] })}
           >
-            <Tab eventKey={1} title="Relative">
+            <Tab eventKey={1} title="Range">
               <FormGroup>
                 {timeFrames}
                 <Radio
-                  checked={this.state.common == null && this.state.type === 'relative'}
-                  onChange={this.setCustomRelative.bind(this)}
+                  checked={this.state.common == null && this.state.type === 'range'}
+                  onChange={this.setCustomRange.bind(this)}
                 >
                   <div className="clearfix centered">
                     <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
@@ -201,17 +195,17 @@ export default class DateFilterControl extends React.Component {
                         componentClass={InputGroup.Button}
                         id="input-dropdown-rel"
                         title={this.state.rel}
-                        onFocus={this.setCustomRelative.bind(this)}
+                        onFocus={this.setCustomRange.bind(this)}
                       >
                         <MenuItem
-                          onSelect={this.setCustomRelative.bind(this, 'rel')}
+                          onSelect={this.setCustomRange.bind(this, 'rel')}
                           key="Last"
                           eventKey="Last"
                           active={this.state.rel === 'Last'}
                         >Last
                         </MenuItem>
                         <MenuItem
-                          onSelect={this.setCustomRelative.bind(this, 'rel')}
+                          onSelect={this.setCustomRange.bind(this, 'rel')}
                           key="Next"
                           eventKey="Next"
                           active={this.state.rel === 'Next'}
@@ -224,9 +218,9 @@ export default class DateFilterControl extends React.Component {
                         bsSize="small"
                         type="text"
                         onChange={event => (
-                          this.setCustomRelative.call(this, 'num', event.target.value)
+                          this.setCustomRange.call(this, 'num', event.target.value)
                         )}
-                        onFocus={this.setCustomRelative.bind(this)}
+                        onFocus={this.setCustomRange.bind(this)}
                         value={this.state.num}
                         style={{ height: '30px' }}
                       />
@@ -237,7 +231,7 @@ export default class DateFilterControl extends React.Component {
                         componentClass={InputGroup.Button}
                         id="input-dropdown-grain"
                         title={this.state.grain}
-                        onFocus={this.setCustomRelative.bind(this)}
+                        onFocus={this.setCustomRange.bind(this)}
                       >
                         {grainOptions}
                       </DropdownButton>
@@ -246,15 +240,19 @@ export default class DateFilterControl extends React.Component {
                 </Radio>
               </FormGroup>
             </Tab>
-            <Tab eventKey={2} title="Fixed">
+            <Tab eventKey={2} title="Start/End">
               <FormGroup>
                 <InputGroup>
                   <div style={{ margin: '5px 0' }}>
-                    <strong>Since</strong>
+                    <strong>Start</strong> &nbsp;
+                    <InfoTooltipWithTrigger
+                      tooltip={FREEFORM_TOOLTIP}
+                      label="date-free-tooltip"
+                    />
                     <DateTimeField
                       dateTime={this.state.isFreeform ? DEFAULT_SINCE : this.state.since}
                       defaultText={this.state.since}
-                      onChange={this.setFixed.bind(this, 'since')}
+                      onChange={this.setStartEnd.bind(this, 'since')}
                       maxDate={moment(this.state.until, MOMENT_FORMAT)}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
@@ -262,12 +260,16 @@ export default class DateFilterControl extends React.Component {
                     />
                   </div>
                   <div style={{ margin: '5px 0' }}>
-                    <strong>Until</strong>
+                    <strong>End</strong> &nbsp;
+                    <InfoTooltipWithTrigger
+                      tooltip={FREEFORM_TOOLTIP}
+                      label="date-free-tooltip"
+                    />
                     <DateTimeField
                       bsSize="small"
                       dateTime={this.state.isFreeform ? DEFAULT_UNTIL : this.state.until}
                       defaultText={this.state.until}
-                      onChange={this.setFixed.bind(this, 'until')}
+                      onChange={this.setStartEnd.bind(this, 'until')}
                       minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
@@ -293,7 +295,8 @@ export default class DateFilterControl extends React.Component {
     );
   }
   render() {
-    const value = this.props.value || defaultProps.value;
+    let value = this.props.value || defaultProps.value;
+    value = value.split(SEPARATOR).map(v => v.replace('T00:00:00', '') || '∞').join(SEPARATOR);
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -306,9 +309,7 @@ export default class DateFilterControl extends React.Component {
           placement="right"
           overlay={this.renderPopover()}
         >
-          <Label style={{ cursor: 'pointer' }}>
-            {value.replace(/T00:00:00/g, '') || '∞'}
-          </Label>
+          <Label style={{ cursor: 'pointer' }}>{value}</Label>
         </OverlayTrigger>
       </div>
     );
