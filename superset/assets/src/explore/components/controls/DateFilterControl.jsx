@@ -37,7 +37,7 @@ const INPUT_IDS = {
   until: 'input_until',
 };
 const INVALID_DATE_MESSAGE = 'Invalid date';
-const RELATIVE_TIME_OPTIONS = ['ago', 'from now'];
+const RELATIVE_TIME_OPTIONS = ['Last', 'Next'];
 const SEPARATOR = ' : ';
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
 const TYPES = ['relative', 'fixed'];
@@ -57,6 +57,9 @@ const defaultProps = {
   onChange: () => {},
   value: 'Today',
 };
+
+// migrate/backwards compat
+// backend
 
 
 export default class DateFilterControl extends React.Component {
@@ -110,6 +113,41 @@ export default class DateFilterControl extends React.Component {
     }
     this.setState(nextState);
   }
+  setCommonRelative(timeFrame) {
+    const nextState = {
+      type: 'relative',
+      common: timeFrame,
+      until: moment().startOf('day').format(MOMENT_FORMAT),
+    };
+    let units;
+    if (timeFrame === 'Yesterday') {
+      units = 'days';
+    } else {
+      units = timeFrame.split(' ')[1] + 's';
+    }
+    nextState.since = moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT);
+    this.setState(nextState);
+  }
+  setCustomRelative(key, value) {
+    const nextState = { ...this.state, type: 'relative', common: null };
+    if (key !== undefined && value !== undefined) {
+      nextState[key] = value;
+    }
+    if (nextState.rel === 'Last') {
+      nextState.until = moment().startOf('day').format(MOMENT_FORMAT);
+      nextState.since = moment()
+        .startOf('day')
+        .subtract(nextState.num, nextState.grain)
+        .format(MOMENT_FORMAT);
+    } else {
+      nextState.until = moment()
+        .startOf('day')
+        .add(nextState.num, nextState.grain)
+        .format(MOMENT_FORMAT);
+      nextState.since = moment().startOf('day').format(MOMENT_FORMAT);
+    }
+    this.setState(nextState);
+  }
   close() {
     let val;
     if (this.state.type === 'relative') {
@@ -117,18 +155,15 @@ export default class DateFilterControl extends React.Component {
         ? this.state.common
         : `${this.state.num} ${this.state.grain} ${this.state.rel}`;
     } else if (this.state.type === 'fixed') {
-      const since = this.state.since;
-      val = [this.state.since, this.state.until].map(ts => (
-        ts.replace('T00:00:00', '')
-      )).join(SEPARATOR);
+      val = [this.state.since, this.state.until].join(SEPARATOR);
     }
     this.props.onChange(val);
     this.refs.trigger.hide();
   }
   renderPopover() {
-    const menuItems = TIME_GRAIN_OPTIONS.map((grain, index) => (
+    const grainOptions = TIME_GRAIN_OPTIONS.map((grain, index) => (
       <MenuItem
-        onSelect={grain => this.setState({ grain, type: 'relative' })}
+        onSelect={this.setCustomRelative.bind(this, 'grain')}
         key={index}
         eventKey={grain}
         active={grain === this.state.grain}
@@ -139,7 +174,7 @@ export default class DateFilterControl extends React.Component {
       <Radio
         key={index + 1}
         checked={this.state.common === timeFrame}
-        onChange={() => this.setState({ common: timeFrame, type: 'relative' })}
+        onChange={this.setCommonRelative.bind(this, timeFrame)}
       >{timeFrame}
       </Radio>
       ));
@@ -157,52 +192,54 @@ export default class DateFilterControl extends React.Component {
                 {timeFrames}
                 <Radio
                   checked={this.state.common == null && this.state.type === 'relative'}
-                  onChange={() => this.setState({ common: null, type: 'relative' })}
+                  onChange={this.setCustomRelative.bind(this)}
                 >
                   <div className="clearfix centered">
                     <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
-                      <FormControl
-                        bsSize="small"
-                        type="text"
-                        onChange={this.onNumberChange.bind(this)}
-                        onFocus={() => this.setState({ common: null, type: 'relative' })}
-                        value={this.state.num}
-                        style={{ height: '30px' }}
-                      />
-                    </div>
-                    <div style={{ width: '84px', marginTop: '-4px' }} className="input-inline">
-                      <DropdownButton
-                        bsSize="small"
-                        componentClass={InputGroup.Button}
-                        id="input-dropdown-addon"
-                        title={this.state.grain}
-                        onFocus={() => this.setState({ common: null, type: 'relative' })}
-                      >
-                        {menuItems}
-                      </DropdownButton>
-                    </div>
-                    <div style={{ width: '80px', marginTop: '-4px' }} className="input-inline">
                       <DropdownButton
                         bsSize="small"
                         componentClass={InputGroup.Button}
                         id="input-dropdown-rel"
                         title={this.state.rel}
-                        onFocus={() => this.setState({ common: null, type: 'relative' })}
+                        onFocus={this.setCustomRelative.bind(this)}
                       >
                         <MenuItem
-                          onSelect={rel => this.setState({ rel, common: null, type: 'relative' })}
-                          key="ago"
-                          eventKey="ago"
-                          active={this.state.rel === 'ago'}
-                        >ago
+                          onSelect={this.setCustomRelative.bind(this, 'rel')}
+                          key="Last"
+                          eventKey="Last"
+                          active={this.state.rel === 'Last'}
+                        >Last
                         </MenuItem>
                         <MenuItem
-                          onSelect={rel => this.setState({ rel, common: null, type: 'relative' })}
-                          key="from now"
-                          eventKey="from now"
-                          active={this.state.rel === 'from now'}
-                        >from now
+                          onSelect={this.setCustomRelative.bind(this, 'rel')}
+                          key="Next"
+                          eventKey="Next"
+                          active={this.state.rel === 'Next'}
+                        >Next
                         </MenuItem>
+                      </DropdownButton>
+                    </div>
+                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
+                      <FormControl
+                        bsSize="small"
+                        type="text"
+                        onChange={event => (
+                          this.setCustomRelative.call(this, 'num', event.target.value)
+                        )}
+                        onFocus={this.setCustomRelative.bind(this)}
+                        value={this.state.num}
+                        style={{ height: '30px' }}
+                      />
+                    </div>
+                    <div style={{ width: '90px', marginTop: '-4px' }} className="input-inline">
+                      <DropdownButton
+                        bsSize="small"
+                        componentClass={InputGroup.Button}
+                        id="input-dropdown-grain"
+                        title={this.state.grain}
+                        onFocus={this.setCustomRelative.bind(this)}
+                      >
+                        {grainOptions}
                       </DropdownButton>
                     </div>
                   </div>
@@ -212,23 +249,28 @@ export default class DateFilterControl extends React.Component {
             <Tab eventKey={2} title="Fixed">
               <FormGroup>
                 <InputGroup>
-                  <div style={{ margin: '10px 0' }}>
+                  <div style={{ margin: '5px 0' }}>
+                    <strong>Since</strong>
                     <DateTimeField
                       dateTime={this.state.isFreeform ? DEFAULT_SINCE : this.state.since}
                       defaultText={this.state.since}
                       onChange={this.setFixed.bind(this, 'since')}
                       maxDate={moment(this.state.until, MOMENT_FORMAT)}
                       format={MOMENT_FORMAT}
+                      inputFormat={MOMENT_FORMAT}
                       inputProps={{ id: INPUT_IDS.since }}
                     />
                   </div>
-                  <div style={{ margin: '10px 0' }}>
+                  <div style={{ margin: '5px 0' }}>
+                    <strong>Until</strong>
                     <DateTimeField
+                      bsSize="small"
                       dateTime={this.state.isFreeform ? DEFAULT_UNTIL : this.state.until}
                       defaultText={this.state.until}
                       onChange={this.setFixed.bind(this, 'until')}
                       minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
                       format={MOMENT_FORMAT}
+                      inputFormat={MOMENT_FORMAT}
                       inputProps={{ id: INPUT_IDS.until }}
                     />
                   </div>
@@ -265,7 +307,7 @@ export default class DateFilterControl extends React.Component {
           overlay={this.renderPopover()}
         >
           <Label style={{ cursor: 'pointer' }}>
-            {value.replace('T00:00:00', '') || '∞'}
+            {value.replace(/T00:00:00/g, '') || '∞'}
           </Label>
         </OverlayTrigger>
       </div>
