@@ -1,6 +1,6 @@
 import {
   DASHBOARD_GRID_TYPE,
-  DASHBOARD_HEADER_TYPE,
+  HEADER_TYPE,
   DASHBOARD_ROOT_TYPE,
 } from '../util/componentTypes';
 
@@ -25,7 +25,7 @@ export default {
   },
 
   [DASHBOARD_HEADER_ID]: {
-    type: DASHBOARD_HEADER_TYPE,
+    type: HEADER_TYPE,
     id: DASHBOARD_HEADER_ID,
     meta: {
       text: 'New dashboard',

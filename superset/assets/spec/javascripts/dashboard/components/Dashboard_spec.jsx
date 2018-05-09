@@ -1,3 +1,4 @@
+/* global beforeEach, afterEach */
 /* eslint camelcase: 0 */
 import React from 'react';
 import { shallow } from 'enzyme';
@@ -5,12 +6,19 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import sinon from 'sinon';
 
-import * as sliceActions from '../../../src/dashboard/actions/sliceEntities';
-import * as dashboardActions from '../../../src/dashboard/actions/dashboardState';
-import * as chartActions from '../../../src/chart/chartAction';
-import Dashboard from '../../../src/dashboard/components/Dashboard';
-import { defaultFilters, dashboardState, dashboardInfo, dashboardLayout,
-  charts, datasources, sliceEntities } from './fixtures';
+import * as sliceActions from '../../../../src/dashboard/actions/sliceEntities';
+import * as dashboardActions from '../../../../src/dashboard/actions/dashboardState';
+import * as chartActions from '../../../../src/chart/chartAction';
+import Dashboard from '../../../../src/dashboard/components/Dashboard';
+import {
+  defaultFilters,
+  dashboardState,
+  dashboardInfo,
+  dashboardLayout,
+  charts,
+  datasources,
+  sliceEntities,
+} from '../fixtures';
 
 describe('Dashboard', () => {
   const mockedProps = {
@@ -34,7 +42,9 @@ describe('Dashboard', () => {
 
   it('should handle metadata default_filters', () => {
     const wrapper = shallow(<Dashboard {...mockedProps} />);
-    expect(wrapper.instance().props.dashboardState.filters).deep.equal(defaultFilters);
+    expect(wrapper.instance().props.dashboardState.filters).deep.equal(
+      defaultFilters,
+    );
   });
 
   describe('getFormDataExtra', () => {
@@ -46,9 +56,18 @@ describe('Dashboard', () => {
     });
 
     it('should carry default_filters', () => {
-      const extraFilters = wrapper.instance().getFormDataExtra(selectedChart).extra_filters;
-      expect(extraFilters[0]).to.deep.equal({ col: 'region', op: 'in', val: [] });
-      expect(extraFilters[1]).to.deep.equal({ col: 'country_name', op: 'in', val: ['United States'] });
+      const extraFilters = wrapper.instance().getFormDataExtra(selectedChart)
+        .extra_filters;
+      expect(extraFilters[0]).to.deep.equal({
+        col: 'region',
+        op: 'in',
+        val: [],
+      });
+      expect(extraFilters[1]).to.deep.equal({
+        col: 'country_name',
+        op: 'in',
+        val: ['United States'],
+      });
     });
 
     it('should carry updated filter', () => {
@@ -62,8 +81,13 @@ describe('Dashboard', () => {
       wrapper.setProps({
         dashboardState: newState,
       });
-      const extraFilters = wrapper.instance().getFormDataExtra(selectedChart).extra_filters;
-      expect(extraFilters[1]).to.deep.equal({ col: 'country_name', op: 'in', val: ['France'] });
+      const extraFilters = wrapper.instance().getFormDataExtra(selectedChart)
+        .extra_filters;
+      expect(extraFilters[1]).to.deep.equal({
+        col: 'country_name',
+        op: 'in',
+        val: ['France'],
+      });
     });
   });
 

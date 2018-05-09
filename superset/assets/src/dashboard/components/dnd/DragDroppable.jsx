@@ -47,7 +47,8 @@ const defaultProps = {
   useEmptyDragPreview: false,
 };
 
-class DragDroppable extends React.Component {
+// export unwrapped component for testing
+export class UnwrappedDragDroppable extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -92,6 +93,25 @@ class DragDroppable extends React.Component {
     } = this.props;
 
     const { dropIndicator } = this.state;
+    const dropIndicatorProps =
+      isDraggingOver && dropIndicator
+        ? {
+            className: cx(
+              'drop-indicator',
+              dropIndicator === DROP_TOP && 'drop-indicator--top',
+              dropIndicator === DROP_BOTTOM && 'drop-indicator--bottom',
+              dropIndicator === DROP_LEFT && 'drop-indicator--left',
+              dropIndicator === DROP_RIGHT && 'drop-indicator--right',
+            ),
+          }
+        : null;
+
+    const childProps = editMode
+      ? {
+          dragSourceRef,
+          dropIndicatorProps,
+        }
+      : {};
 
     return (
       <div
@@ -105,33 +125,17 @@ class DragDroppable extends React.Component {
           className,
         )}
       >
-        {children(
-          !editMode
-            ? {}
-            : {
-                dragSourceRef,
-                dropIndicatorProps: isDraggingOver &&
-                  dropIndicator && {
-                    className: cx(
-                      'drop-indicator',
-                      dropIndicator === DROP_TOP && 'drop-indicator--top',
-                      dropIndicator === DROP_BOTTOM && 'drop-indicator--bottom',
-                      dropIndicator === DROP_LEFT && 'drop-indicator--left',
-                      dropIndicator === DROP_RIGHT && 'drop-indicator--right',
-                    ),
-                  },
-              },
-        )}
+        {children(childProps)}
       </div>
     );
   }
 }
 
-DragDroppable.propTypes = propTypes;
-DragDroppable.defaultProps = defaultProps;
+UnwrappedDragDroppable.propTypes = propTypes;
+UnwrappedDragDroppable.defaultProps = defaultProps;
 
 // note that the composition order here determines using
 // component.method() vs decoratedComponentInstance.method() in the drag/drop config
 export default DropTarget(...dropConfig)(
-  DragSource(...dragConfig)(DragDroppable),
+  DragSource(...dragConfig)(UnwrappedDragDroppable),
 );
