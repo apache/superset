@@ -59,8 +59,6 @@ const defaultProps = {
   value: 'Today',
 };
 
-// backend (including migrating)
-
 
 export default class DateFilterControl extends React.Component {
   constructor(props) {
