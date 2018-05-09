@@ -20,14 +20,27 @@ import {
 import Select from 'react-select';
 import Datetime from 'react-datetime';
 import 'react-datetime/css/react-datetime.css';
+import DateTimeField from 'react-bootstrap-datetimepicker';
+import 'react-bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css';
 import moment from 'moment';
+import $ from 'jquery';
 
 import ControlHeader from '../ControlHeader';
 import PopoverSection from '../../../components/PopoverSection';
 
+const COMMON_TIME_FRAMES = ['Yesterday', 'Last week', 'Last month', 'Last year'];
+const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
+const DEFAULT_SINCE = moment().startOf('day').subtract(7, 'days').format(MOMENT_FORMAT);
+const DEFAULT_UNTIL = moment().startOf('day').format(MOMENT_FORMAT);
+const INPUT_IDS = {
+  since: 'input_since',
+  until: 'input_until',
+};
+const INVALID_DATE_MESSAGE = 'Invalid date';
 const RELATIVE_TIME_OPTIONS = ['ago', 'from now'];
+const SEPARATOR = ' : ';
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
-const TIME_FRAMES = ['Yesterday', 'Last week', 'Last month', 'Last year'];
+const TYPES = ['relative', 'fixed'];
 
 const propTypes = {
   animation: PropTypes.bool,
@@ -42,84 +55,72 @@ const propTypes = {
 const defaultProps = {
   animation: true,
   onChange: () => {},
-  value: '',
+  value: 'Today',
 };
-
-
-const MyDTPicker = React.createClass({
-    render() {
-        return <Datetime renderInput={this.renderInput} />;
-    },
-    renderInput(props, openCalendar, closeCalendar) {
-        function clear() {
-            props.onChange({ target: { value: '' } });
-        }
-        return (
-          <div>
-            <input {...props} />
-            <button onClick={openCalendar}>open calendar</button>
-            <button onClick={closeCalendar}>close calendar</button>
-            <button onClick={clear}>clear</button>
-          </div>
-        );
-    },
-});
 
 
 export default class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
-    const value = props.value || '';
+    const value = props.value || defaultProps.value;
     this.state = {
+      type: TYPES[0],
+
+      // for relative
       num: '7',
       grain: TIME_GRAIN_OPTIONS[3],
-      rel: 'ago',
-      dttm: '',
-      type: 'free',
-      free: '',
-      relative: TIME_FRAMES[0],
-      relativeTo: 'now',
+      rel: RELATIVE_TIME_OPTIONS[0],
+      common: COMMON_TIME_FRAMES[0],
+
+      // for fixed (includes freeform)
+      since: DEFAULT_SINCE,
+      until: DEFAULT_UNTIL,
+      isFreeform: false,
     };
-    const words = value.split(' ');
-    if (words.length >= 3 && RELATIVE_TIME_OPTIONS.indexOf(words[2]) >= 0) {
-      this.state.num = words[0];
-      this.state.grain = words[1];
-      this.state.rel = words[2];
-      this.state.type = 'rel';
-    } else if (moment(value).isValid()) {
-      this.state.dttm = value;
-      this.state.type = 'fix';
+    if (value.indexOf(SEPARATOR) >= 0) {
+      this.state.type = 'fixed';
+      [this.state.since, this.state.until] = value.split(SEPARATOR, 2);
     } else {
-      this.state.free = value;
-      this.state.type = 'free';
+      this.state.type = 'relative';
+      if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
+        this.state.common = value;
+      } else {
+        this.state.common = null;
+        [this.state.num, this.state.grain, this.state.rel] = value.split(' ', 3);
+      }
     }
-  }
-  onControlChange(target, opt) {
-    this.setState({ [target]: opt.value });
   }
   onNumberChange(event) {
     this.setState({ num: event.target.value });
   }
-  onFreeChange(event) {
-    this.setState({ free: event.target.value });
-  }
-  setType(type) {
-    this.setState({ type });
-  }
-  setValueAndClose(val) {
-    this.setState({ type: 'free', free: val }, this.close);
-  }
-  setDatetime(dttm) {
-    this.setState({ dttm: dttm.format().substring(0, 19) });
+  setFixed(key, value) {
+    const nextState = { type: 'fixed' };
+    if (value === INVALID_DATE_MESSAGE) {
+      let freeformValue = $('#' + INPUT_IDS[key]).val();
+      if (freeformValue.trim() === '') {
+        freeformValue = key === 'since' ? DEFAULT_SINCE : DEFAULT_UNTIL;
+        nextState.isFreeform = false;
+      } else {
+        nextState.isFreeform = true;
+      }
+      nextState[key] = freeformValue;
+    } else {
+      nextState.isFreeform = false;
+      nextState[key] = value;
+    }
+    this.setState(nextState);
   }
   close() {
     let val;
-    if (this.state.type === 'rel') {
-      val = `${this.state.num} ${this.state.grain} ${this.state.rel}`;
-    } else if (this.state.type === 'fix') {
-      val = this.state.dttm;
-    } else if (this.state.type === 'free') {
-      val = this.state.free;
+    if (this.state.type === 'relative') {
+      val = this.state.common
+        ? this.state.common
+        : `${this.state.num} ${this.state.grain} ${this.state.rel}`;
+    } else if (this.state.type === 'fixed') {
+      const since = this.state.since;
+      val = [this.state.since, this.state.until].map(ts => (
+        ts.replace('T00:00:00', '')
+      )).join(SEPARATOR);
     }
     this.props.onChange(val);
     this.refs.trigger.hide();
@@ -127,152 +128,112 @@ export default class DateFilterControl extends React.Component {
   renderPopover() {
     const menuItems = TIME_GRAIN_OPTIONS.map((grain, index) => (
       <MenuItem
-        onSelect={grain => this.setState({ grain })}
+        onSelect={grain => this.setState({ grain, type: 'relative' })}
         key={index}
         eventKey={grain}
         active={grain === this.state.grain}
       >{grain}
       </MenuItem>
       ));
-    const timeFrames = TIME_FRAMES.map((timeFrame, index) => (
+    const timeFrames = COMMON_TIME_FRAMES.map((timeFrame, index) => (
       <Radio
-        checked={this.state.relative === timeFrame}
-        onChange={() => this.setState({ relative: timeFrame })}
+        key={index + 1}
+        checked={this.state.common === timeFrame}
+        onChange={() => this.setState({ common: timeFrame, type: 'relative' })}
       >{timeFrame}
       </Radio>
       ));
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
         <div style={{ width: '250px' }}>
-          <Tabs defaultActiveKey={1} id="relative" bsStyle="pills">
+          <Tabs
+            defaultActiveKey={TYPES.indexOf(this.state.type) + 1}
+            id="type"
+            bsStyle="pills"
+            onSelect={type => this.setState({ type: TYPES[type - 1] })}
+          >
             <Tab eventKey={1} title="Relative">
               <FormGroup>
                 {timeFrames}
                 <Radio
-                  checked={this.state.relative === 'user-defined'}
-                  onChange={() => this.setState({ relative: 'user-defined' })}
+                  checked={this.state.common == null && this.state.type === 'relative'}
+                  onChange={() => this.setState({ common: null, type: 'relative' })}
                 >
                   <div className="clearfix centered">
-                    <div style={{ marginRight: '5px' }} className="input-inline">
-                      Last
-                    </div>
-                    <div style={{ width: '50px', marginTop: '-4px' }} className="input-inline">
+                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
                       <FormControl
                         bsSize="small"
                         type="text"
                         onChange={this.onNumberChange.bind(this)}
-                        onFocus={() => this.setState({ relative: 'user-defined' })}
+                        onFocus={() => this.setState({ common: null, type: 'relative' })}
                         value={this.state.num}
+                        style={{ height: '30px' }}
                       />
                     </div>
-                    <div style={{ width: '95px', marginTop: '-4px' }} className="input-inline">
+                    <div style={{ width: '84px', marginTop: '-4px' }} className="input-inline">
                       <DropdownButton
                         bsSize="small"
                         componentClass={InputGroup.Button}
                         id="input-dropdown-addon"
                         title={this.state.grain}
-                        onFocus={() => this.setState({ relative: 'user-defined' })}
+                        onFocus={() => this.setState({ common: null, type: 'relative' })}
                       >
                         {menuItems}
                       </DropdownButton>
                     </div>
+                    <div style={{ width: '80px', marginTop: '-4px' }} className="input-inline">
+                      <DropdownButton
+                        bsSize="small"
+                        componentClass={InputGroup.Button}
+                        id="input-dropdown-rel"
+                        title={this.state.rel}
+                        onFocus={() => this.setState({ common: null, type: 'relative' })}
+                      >
+                        <MenuItem
+                          onSelect={rel => this.setState({ rel, common: null, type: 'relative' })}
+                          key="ago"
+                          eventKey="ago"
+                          active={this.state.rel === 'ago'}
+                        >ago
+                        </MenuItem>
+                        <MenuItem
+                          onSelect={rel => this.setState({ rel, common: null, type: 'relative' })}
+                          key="from now"
+                          eventKey="from now"
+                          active={this.state.rel === 'from now'}
+                        >from now
+                        </MenuItem>
+                      </DropdownButton>
+                    </div>
                   </div>
                 </Radio>
-                <div className="clearfix centered" style={{ marginTop: '20px' }}>
-                  <div style={{ marginRight: '5px' }} className="input-inline">
-                     Relative to
-                    </div>
-                  <div style={{ marginTop: '-4px' }} className="input-inline">
-                    <FormControl
-                      bsSize="small"
-                      type="text"
-                      onChange={event => this.setState({ relativeTo: event.target.value })}
-                      value={this.state.relativeTo}
-                    />
-                  </div>
-                </div>
               </FormGroup>
             </Tab>
             <Tab eventKey={2} title="Fixed">
               <FormGroup>
-                <InputGroup bsSize="small">
-                  <InputGroup.Addon onClick={() => console.log('clicked indeed')}>
-                    <Glyphicon glyph="calendar" />
-                  </InputGroup.Addon>
-                  <MyDTPicker />
+                <InputGroup>
+                  <div style={{ margin: '10px 0' }}>
+                    <DateTimeField
+                      dateTime={this.state.isFreeform ? DEFAULT_SINCE : this.state.since}
+                      defaultText={this.state.since}
+                      onChange={this.setFixed.bind(this, 'since')}
+                      maxDate={moment(this.state.until, MOMENT_FORMAT)}
+                      format={MOMENT_FORMAT}
+                      inputProps={{ id: INPUT_IDS.since }}
+                    />
+                  </div>
+                  <div style={{ margin: '10px 0' }}>
+                    <DateTimeField
+                      dateTime={this.state.isFreeform ? DEFAULT_UNTIL : this.state.until}
+                      defaultText={this.state.until}
+                      onChange={this.setFixed.bind(this, 'until')}
+                      minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
+                      format={MOMENT_FORMAT}
+                      inputProps={{ id: INPUT_IDS.until }}
+                    />
+                  </div>
                 </InputGroup>
               </FormGroup>
-            </Tab>
-            <Tab eventKey={3} title="Old">
-              <PopoverSection
-                title="Fixed"
-                isSelected={this.state.type === 'fix'}
-                onSelect={this.setType.bind(this, 'fix')}
-              >
-                <InputGroup bsSize="small">
-                  <InputGroup.Addon>
-                    <Glyphicon glyph="calendar" />
-                  </InputGroup.Addon>
-                  <Datetime
-                    inputProps={{ className: 'form-control input-sm' }}
-                    dateFormat="YYYY-MM-DD"
-                    defaultValue={this.state.dttm}
-                    onFocus={this.setType.bind(this, 'fix')}
-                    onChange={this.setDatetime.bind(this)}
-                    timeFormat="h:mm:ss"
-                  />
-                </InputGroup>
-              </PopoverSection>
-              <PopoverSection
-                title="Relative"
-                isSelected={this.state.type === 'rel'}
-                onSelect={this.setType.bind(this, 'rel')}
-              >
-                <div className="clearfix">
-                  <div style={{ width: '50px' }} className="input-inline">
-                    <FormControl
-                      onFocus={this.setType.bind(this, 'rel')}
-                      value={this.state.num}
-                      onChange={this.onNumberChange.bind(this)}
-                      bsSize="small"
-                    />
-                  </div>
-                  <div style={{ width: '95px' }} className="input-inline">
-                    <Select
-                      onFocus={this.setType.bind(this, 'rel')}
-                      value={this.state.grain}
-                      clearable={false}
-                      options={TIME_GRAIN_OPTIONS.map(s => ({ label: s, value: s }))}
-                      onChange={this.onControlChange.bind(this, 'grain')}
-                    />
-                  </div>
-                  <div style={{ width: '95px' }} className="input-inline">
-                    <Select
-                      value={this.state.rel}
-                      onFocus={this.setType.bind(this, 'rel')}
-                      clearable={false}
-                      options={RELATIVE_TIME_OPTIONS.map(s => ({ label: s, value: s }))}
-                      onChange={this.onControlChange.bind(this, 'rel')}
-                    />
-                  </div>
-                </div>
-              </PopoverSection>
-              <PopoverSection
-                title="Free form"
-                isSelected={this.state.type === 'free'}
-                onSelect={this.setType.bind(this, 'free')}
-                info={
-              'Superset supports smart date parsing. Strings like `last sunday` or ' +
-              '`last october` can be used.'
-                }
-              >
-                <FormControl
-                  onFocus={this.setType.bind(this, 'free')}
-                  value={this.state.free}
-                  onChange={this.onFreeChange.bind(this)}
-                  bsSize="small"
-                />
-              </PopoverSection>
             </Tab>
           </Tabs>
           <div className="clearfix">
@@ -290,7 +251,7 @@ export default class DateFilterControl extends React.Component {
     );
   }
   render() {
-    const value = this.props.value || '';
+    const value = this.props.value || defaultProps.value;
     return (
       <div>
         <ControlHeader {...this.props} />
