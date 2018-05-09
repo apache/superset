@@ -1318,7 +1318,7 @@ class DruidDatasource(Model, BaseDatasource):
         str instead of an object.
         """
         for col in groupby_cols:
-            df[col] = df[col].fillna('<NULL>').astype(str)
+            df[col] = df[col].fillna('<NULL>').astype('unicode')
         return df
 
     def query(self, query_obj):
