@@ -3,13 +3,13 @@ import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import { INFO_TOAST } from '../../../../src/dashboard/util/constants';
+import mockMessageToasts from '../fixtures/mockMessageToasts';
 import Toast from '../../../../src/dashboard/components/Toast';
 import ToastPresenter from '../../../../src/dashboard/components/ToastPresenter';
 
 describe('ToastPresenter', () => {
   const props = {
-    toasts: [{ id: 'id', toastType: INFO_TOAST, text: 'imma toast!' }],
+    toasts: mockMessageToasts,
     removeToast() {},
   };
 
@@ -25,7 +25,7 @@ describe('ToastPresenter', () => {
 
   it('should render a Toast for each toast object', () => {
     const wrapper = setup();
-    expect(wrapper.find(Toast)).to.have.length(1);
+    expect(wrapper.find(Toast)).to.have.length(props.toasts.length);
   });
 
   it('should pass removeToast to the Toast component', () => {
