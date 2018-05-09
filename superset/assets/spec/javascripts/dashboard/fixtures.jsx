@@ -12,11 +12,13 @@ export const regionFilter = {
   form_data: {
     datasource: '2__table',
     date_filter: false,
-    filters: [{
-      col: 'country_name',
-      op: 'in',
-      val: ['United States', 'France', 'Japan'],
-    }],
+    filters: [
+      {
+        col: 'country_name',
+        op: 'in',
+        val: ['United States', 'France', 'Japan'],
+      },
+    ],
     granularity_sqla: null,
     groupby: ['region', 'country_name'],
     having: '',
@@ -35,7 +37,8 @@ export const regionFilter = {
   },
   slice_id: 256,
   slice_name: 'Region Filters',
-  slice_url: '/superset/explore/table/2/?form_data=%7B%22slice_id%22%3A%20256%7D',
+  slice_url:
+    '/superset/explore/table/2/?form_data=%7B%22slice_id%22%3A%20256%7D',
 };
 export const countryFilter = {
   datasource: null,
@@ -64,7 +67,8 @@ export const countryFilter = {
   },
   slice_id: 257,
   slice_name: 'Country Filters',
-  slice_url: '/superset/explore/table/2/?form_data=%7B%22slice_id%22%3A%20257%7D',
+  slice_url:
+    '/superset/explore/table/2/?form_data=%7B%22slice_id%22%3A%20257%7D',
 };
 export const slice = {
   datasource: null,
@@ -115,7 +119,8 @@ export const slice = {
   },
   slice_id: 248,
   slice_name: 'Filtered Population',
-  slice_url: '/superset/explore/table/2/?form_data=%7B%22slice_id%22%3A%20248%7D',
+  slice_url:
+    '/superset/explore/table/2/?form_data=%7B%22slice_id%22%3A%20248%7D',
 };
 
 const mockDashboardData = {
@@ -152,12 +157,15 @@ const mockDashboardData = {
   standalone_mode: false,
 };
 export const {
-  dashboardState, dashboardInfo,
-  charts, datasources, sliceEntities,
-  dashboardLayout } = getInitialState({
+  dashboardState,
+  dashboardInfo,
+  charts,
+  datasources,
+  sliceEntities,
+  dashboardLayout,
+} = getInitialState({
   common: {},
   dashboard_data: mockDashboardData,
   datasources: {},
   user_id: '1',
 });
-
