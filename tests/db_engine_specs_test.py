@@ -4,7 +4,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from superset.db_engine_specs import MssqlEngineSpec, HiveEngineSpec, MySQLEngineSpec
+from superset.db_engine_specs import (
+    HiveEngineSpec, MssqlEngineSpec, MySQLEngineSpec)
 from superset.models.core import Database
 from .base_tests import SupersetTestCase
 
@@ -82,43 +83,43 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         self.assertEquals(60, HiveEngineSpec.progress(log))
 
     def test_wrapped_query(self):
-        sql = "SELECT * FROM a"
-        db = Database(sqlalchemy_uri="mysql://localhost")
+        sql = 'SELECT * FROM a'
+        db = Database(sqlalchemy_uri='mysql://localhost')
         limited = MssqlEngineSpec.apply_limit_to_sql(sql, 1000, db)
-        expected = """SELECT * \nFROM (SELECT * FROM a) AS inner_qry \n LIMIT 1000"""
+        expected = 'SELECT * \nFROM (SELECT * FROM a) AS inner_qry \n LIMIT 1000'
         self.assertEquals(expected, limited)
 
     def test_simple_limit_query(self):
-        sql = "SELECT * FROM a"
-        db = Database(sqlalchemy_uri="mysql://localhost")
+        sql = 'SELECT * FROM a'
+        db = Database(sqlalchemy_uri='mysql://localhost')
         limited = MySQLEngineSpec.apply_limit_to_sql(sql, 1000, db)
-        expected = """SELECT * FROM a LIMIT 1000"""
+        expected = 'SELECT * FROM a LIMIT 1000'
         self.assertEquals(expected, limited)
 
     def test_modify_limit_query(self):
-        sql = "SELECT * FROM a LIMIT 9999"
-        db = Database(sqlalchemy_uri="mysql://localhost")
+        sql = 'SELECT * FROM a LIMIT 9999'
+        db = Database(sqlalchemy_uri='mysql://localhost')
         limited = MySQLEngineSpec.apply_limit_to_sql(sql, 1000, db)
-        expected = """SELECT * FROM a LIMIT 1000"""
+        expected = 'SELECT * FROM a LIMIT 1000'
         self.assertEquals(expected, limited)
 
     def test_modify_newline_query(self):
-        sql = "SELECT * FROM a\nLIMIT 9999"
-        db = Database(sqlalchemy_uri="mysql://localhost")
+        sql = 'SELECT * FROM a\nLIMIT 9999'
+        db = Database(sqlalchemy_uri='mysql://localhost')
         limited = MySQLEngineSpec.apply_limit_to_sql(sql, 1000, db)
-        expected = """SELECT * FROM a LIMIT 1000"""
+        expected = 'SELECT * FROM a LIMIT 1000'
         self.assertEquals(expected, limited)
 
     def test_modify_lcase_limit_query(self):
-        sql = "SELECT * FROM a\tlimit 9999"
-        db = Database(sqlalchemy_uri="mysql://localhost")
+        sql = 'SELECT * FROM a\tlimit 9999'
+        db = Database(sqlalchemy_uri='mysql://localhost')
         limited = MySQLEngineSpec.apply_limit_to_sql(sql, 1000, db)
-        expected = """SELECT * FROM a LIMIT 1000"""
+        expected = 'SELECT * FROM a LIMIT 1000'
         self.assertEquals(expected, limited)
 
     def test_limit_query_with_limit_subquery(self):
-        sql = "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999"
-        db = Database(sqlalchemy_uri="mysql://localhost")
+        sql = 'SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999'
+        db = Database(sqlalchemy_uri='mysql://localhost')
         limited = MySQLEngineSpec.apply_limit_to_sql(sql, 1000, db)
-        expected = "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 1000"
+        expected = 'SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 1000'
         self.assertEquals(expected, limited)

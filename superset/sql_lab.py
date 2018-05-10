@@ -17,7 +17,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from superset import app, dataframe, db, results_backend, security_manager, utils
-from superset.db_engine_specs import LimitMethod
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import get_celery_app, QueryStatus
