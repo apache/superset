@@ -58,6 +58,9 @@ class BaseViz(object):
     def __init__(self, datasource, form_data, force=False):
         if not datasource:
             raise Exception(_('Viz is missing a datasource'))
+
+        utils.since_until_to_time_range(form_data)
+
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get('viz_type')

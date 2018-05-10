@@ -709,6 +709,7 @@ def get_celery_app(config):
     return _celery_app
 
 
+# XXX TODO test me
 def merge_extra_filters(form_data):
     # extra_filters are temporary/contextual filters that are external
     # to the slice definition. We use those for dynamic interactive
@@ -899,3 +900,11 @@ def get_since_until(form_data):
 
     return since, until
 
+
+def since_until_to_time_range(form_data):
+    if 'time_range' in form_data:
+        return
+
+    since = form_data.get('since', '')
+    until = form_data.get('until', 'now')
+    form_data['time_range'] = ' : '.join((since, until))

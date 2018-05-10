@@ -42,7 +42,7 @@ from superset.connectors.sqla.models import AnnotationDatasource, SqlaTable
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.forms import CsvToDatabaseForm
 from superset.jinja_context import get_template_processor
-from superset.legacy import cast_form_data
+from superset.legacy import cast_form_data, update_time_range
 import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
@@ -991,6 +991,10 @@ class Superset(BaseSupersetView):
         if request.args.get('viz_type'):
             # Converting old URLs
             form_data = cast_form_data(form_data)
+
+        # update to new time filter
+        if 'since' in form_data and 'until' in form_data:
+            form_data = update_time_range(form_data)
 
         form_data = {
             k: v
