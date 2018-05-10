@@ -1867,6 +1867,19 @@ export const controls = {
     tabOverride: 'data',
   },
 
+  adhoc_filters: {
+    type: 'AdhocFilterControl',
+    label: t('Filters'),
+    default: null,
+    description: '',
+    mapStateToProps: state => ({
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasource: state.datasource,
+    }),
+    provideFormDataToProps: true,
+  },
+
   having_filters: {
     type: 'FilterControl',
     label: '',
