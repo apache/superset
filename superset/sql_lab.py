@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 from datetime import datetime
 import json
@@ -12,6 +9,7 @@ from time import sleep
 import uuid
 
 from celery.exceptions import SoftTimeLimitExceeded
+from contextlib2 import contextmanager
 import numpy as np
 import pandas as pd
 import sqlalchemy
@@ -75,16 +73,28 @@ def get_query(query_id, session, retry_count=5):
     return query
 
 
-def get_session(nullpool):
+@contextmanager
+def session_scope(nullpool):
+    """Provide a transactional scope around a series of operations."""
     if nullpool:
         engine = sqlalchemy.create_engine(
             app.config.get('SQLALCHEMY_DATABASE_URI'), poolclass=NullPool)
         session_class = sessionmaker()
         session_class.configure(bind=engine)
-        return session_class()
-    session = db.session()
-    session.commit()  # HACK
-    return session
+        session = session_class()
+    else:
+        session = db.session()
+        session.commit()  # HACK
+
+    try:
+        yield session
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        logging.exception(e)
+        raise
+    finally:
+        session.close()
 
 
 def convert_results_to_df(cursor_description, data):
@@ -109,30 +119,31 @@ def convert_results_to_df(cursor_description, data):
 
 @celery_app.task(bind=True, soft_time_limit=SQLLAB_TIMEOUT)
 def get_sql_results(
-        ctask, query_id, rendered_query, return_results=True, store_results=False,
+    ctask, query_id, rendered_query, return_results=True, store_results=False,
         user_name=None):
     """Executes the sql query returns the results."""
-    try:
-        return execute_sql(
-            ctask, query_id, rendered_query, return_results, store_results, user_name)
-    except Exception as e:
-        logging.exception(e)
-        stats_logger.incr('error_sqllab_unhandled')
-        sesh = get_session(not ctask.request.called_directly)
-        query = get_query(query_id, sesh)
-        query.error_message = str(e)
-        query.status = QueryStatus.FAILED
-        query.tmp_table_name = None
-        sesh.commit()
-        raise
+    with session_scope(not ctask.request.called_directly) as session:
+
+        try:
+            return execute_sql(
+                ctask, query_id, rendered_query, return_results, store_results, user_name,
+                session=session)
+        except Exception as e:
+            logging.exception(e)
+            stats_logger.incr('error_sqllab_unhandled')
+            query = get_query(query_id, session)
+            query.error_message = str(e)
+            query.status = QueryStatus.FAILED
+            query.tmp_table_name = None
+            session.commit()
+            raise
 
 
 def execute_sql(
     ctask, query_id, rendered_query, return_results=True, store_results=False,
-    user_name=None,
+    user_name=None, session=None,
 ):
     """Executes the sql query returns the results."""
-    session = get_session(not ctask.request.called_directly)
 
     query = get_query(query_id, session)
     payload = dict(query_id=query_id)
