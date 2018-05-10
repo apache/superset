@@ -51,7 +51,7 @@ const propTypes = {
 const defaultProps = {
   animation: true,
   onChange: () => {},
-  value: 'Today',
+  value: 'Last week',
 };
 
 

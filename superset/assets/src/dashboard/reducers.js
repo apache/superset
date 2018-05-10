@@ -150,7 +150,7 @@ export const dashboard = function (state = {}, action) {
 
       let filters = state.filters;
       const { sliceId, col, vals, merge, refresh } = action;
-      const filterKeys = ['__from', '__to', '__time_col',
+      const filterKeys = ['__time_range', '__time_col',
         '__time_grain', '__time_origin', '__granularity'];
       if (filterKeys.indexOf(col) >= 0 ||
         selectedSlice.formData.groupby.indexOf(col) !== -1) {

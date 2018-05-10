@@ -709,8 +709,6 @@ def get_celery_app(config):
     return _celery_app
 
 
-# XXX TODO test me
-# test filter
 def merge_extra_filters(form_data):
     # extra_filters are temporary/contextual filters that are external
     # to the slice definition. We use those for dynamic interactive
@@ -723,8 +721,7 @@ def merge_extra_filters(form_data):
         if 'filters' not in form_data:
             form_data['filters'] = []
         date_options = {
-            '__from': 'since',
-            '__to': 'until',
+            '__time_range': 'time_range',
             '__time_col': 'granularity_sqla',
             '__time_grain': 'time_grain_sqla',
             '__time_origin': 'druid_time_origin',
