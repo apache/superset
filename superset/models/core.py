@@ -308,6 +308,13 @@ dashboard_user = Table(
     Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
 )
 
+dashboard_role = Table(
+    'dashboard_role', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('role_id', Integer, ForeignKey('ab_role.id')),
+    Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
+)
+
 
 class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
@@ -324,12 +331,18 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
+    roles = relationship(security_manager.role_model, secondary=dashboard_role, backref='dashboards')
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
 
     def __repr__(self):
         return self.dashboard_title
+
+    @property
+    def perm(self):
+        return (
+            '[{obj.dashboard_title}](dash_id:{obj.id})').format(obj=self)
 
     @property
     def table_names(self):

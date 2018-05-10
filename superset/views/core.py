@@ -96,6 +96,11 @@ def get_datasource_access_error_msg(datasource_name):
               '`all_datasource_access` permission', name=datasource_name)
 
 
+def get_dashboard_access_error_msg(dashboard_title):
+    return __("Sorry, you don't have permission to access the '%(name)s' dashboard",
+        name=dashboard_title)
+
+
 def json_success(json_msg, status=200):
     return Response(json_msg, status=status, mimetype='application/json')
 
@@ -161,10 +166,29 @@ class DashboardFilter(SupersetFilter):
     """List dashboards for which users have access to at least one slice"""
 
     def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
+        if self.has_all_datasource_access() and self.has_all_dashboard_access():
             return query
+
+        Dash = models.Dashboard  #noqa
+
+        # get ids for dashboards this user has access to
+        dashboard_perms = \
+            { d: True for d in self.get_view_menus('dashboard_access') }
+
+        dashboard_ids = []
+        for dash in db.session.query(Dash):
+            if dash.perm in dashboard_perms or\
+                self.has_all_dashboard_access() or\
+                g.user in dash.owners:
+                dashboard_ids.append(dash.id)
+
+        if self.has_all_datasource_access():
+            query = query.filter(
+                Dash.id.in_(dashboard_ids),
+            )
+            return query
+
         Slice = models.Slice  # noqa
-        Dash = models.Dashboard  # noqa
         # TODO(bogdan): add `schema_access` support here
         datasource_perms = self.get_view_menus('datasource_access')
         slice_ids_qry = (
@@ -177,7 +201,8 @@ class DashboardFilter(SupersetFilter):
                 db.session.query(Dash.id)
                 .distinct()
                 .join(Dash.slices)
-                .filter(Slice.id.in_(slice_ids_qry)),
+                .filter(Slice.id.in_(slice_ids_qry))
+                .filter(Dash.id.in_(dashboard_ids)),
             ),
         )
         return query
@@ -537,7 +562,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     list_columns = ['dashboard_link', 'creator', 'modified']
     order_columns = ['modified']
     edit_columns = [
-        'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
+        'dashboard_title', 'slug', 'slices', 'owners', 'roles', 'position_json', 'css',
         'json_metadata']
     show_columns = edit_columns + ['table_names']
     search_columns = ('dashboard_title', 'slug', 'owners')
@@ -560,7 +585,12 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             'is exposed here for reference and for power users who may '
             'want to alter specific parameters.'),
         'owners': _('Owners is a list of users who can alter the dashboard.'),
+        'roles': _('A list of roles that have access to this dashboard.'),
     }
+    default_dash_role = config.get("DEFAULT_DASHBOARD_ROLE")
+    if default_dash_role:
+        description_columns['roles'] += _(" For default access, add '{}'.".format(default_dash_role))
+
     base_filters = [['slice', DashboardFilter, lambda: []]]
     add_form_query_rel_fields = {
         'slices': [['slices', SliceFilter, None]],
@@ -572,6 +602,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'slug': _('Slug'),
         'slices': _('Charts'),
         'owners': _('Owners'),
+        'roles': _('Roles'),
         'creator': _('Creator'),
         'modified': _('Modified'),
         'position_json': _('Position JSON'),
@@ -599,6 +630,60 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def pre_delete(self, obj):
         check_ownership(obj)
+
+        perm_view = security_manager.find_permission_view_menu(
+                        'dashboard_access', obj.perm)
+        for role in perm_view.role:
+            security_manager.del_permission_role(role, perm_view)
+
+        security_manager.del_permission_view_menu(perm_view.permission.name, obj.perm)
+        security_manager.del_view_menu(obj.perm)
+
+    def post_add(self, obj):
+        security_manager.merge_perm('dashboard_access', obj.perm)
+        self.update_permview_roles(obj)
+
+    def post_update(self, obj):
+        DashboardModelView.update_perm(obj)
+        self.update_permview_roles(obj)
+
+    def update_permview_roles(self, dash):
+        perm_view = security_manager.find_permission_view_menu(
+                        'dashboard_access', dash.perm)
+        # add missing roles
+        for role in dash.roles:
+            if not perm_view in role.permissions:
+                security_manager.add_permission_role(role, perm_view)
+
+        # remove deleted roles
+        for role in perm_view.role:
+            if not role in dash.roles:
+                security_manager.del_permission_role(role, perm_view)
+
+    @staticmethod
+    def update_perm(obj, commit=True):
+        """ Update name of permission view if exists or create if new """
+
+        # get current view_menu for this dashboard
+        id_pattern = '%(dash_id:{obj.id})'.format(obj=obj)
+        view_menu = security_manager.get_session.query(security_manager.viewmenu_model)\
+            .filter(security_manager.viewmenu_model.name.like(id_pattern)).first()
+
+        # if no view_menu for this dashboard, add it
+        if view_menu is None:
+            security_manager.merge_perm('dashboard_access', obj.perm)
+        else:
+            # otherwise, update view_menu if dashboard_title has changed
+            new_name = obj.perm
+            if new_name != view_menu.name:
+                try:
+                    query = security_manager.get_session.query(security_manager.viewmenu_model)\
+                        .filter(security_manager.viewmenu_model.id == view_menu.id)\
+                        .update({'name': new_name})
+                except Exception, e:
+                    logging.exception(e)
+                if commit:
+                    security_manager.get_session.commit()
 
     @action('mulexport', __('Export'), __('Export dashboards?'), 'fa-database')
     def mulexport(self, items):
@@ -1414,9 +1499,16 @@ class Superset(BaseSupersetView):
                     _('You don\'t have the rights to ') + _('create a ') + _('dashboard'),
                     status=400)
 
+            dash_roles = []
+            default_dash_role = config.get("DEFAULT_DASHBOARD_ROLE")
+            if default_dash_role:
+                d_role = security_manager.find_role(default_dash_role)
+                if d_role:
+                    dash_roles.append(d_role)
             dash = models.Dashboard(
                 dashboard_title=request.args.get('new_dashboard_name'),
-                owners=[g.user] if g.user else [])
+                owners=[g.user] if g.user else [],
+                roles=dash_roles)
             flash(
                 'Dashboard [{}] just got created and slice [{}] was added '
                 'to it'.format(
@@ -1427,6 +1519,13 @@ class Superset(BaseSupersetView):
         if dash and slc not in dash.slices:
             dash.slices.append(slc)
             db.session.commit()
+
+        if request.args.get('add_to_dash') == 'new':
+            security_manager.merge_perm('dashboard_access', dash.perm)
+            if d_role:
+                perm_view = security_manager.find_permission_view_menu(
+                    'dashboard_access', dash.perm)
+                security_manager.add_permission_role(d_role, perm_view)
 
         response = {
             'can_add': slice_add_perm,
@@ -1561,8 +1660,10 @@ class Superset(BaseSupersetView):
         else:
             dash.slices = original_dash.slices
         dash.params = original_dash.params
+        dash.roles = original_dash.roles
 
         self._set_dash_metadata(dash, data)
+        DashboardModelView.update_perm(dash, commit=False)
         session.add(dash)
         session.commit()
         dash_json = json.dumps(dash.data)
@@ -1581,6 +1682,7 @@ class Superset(BaseSupersetView):
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get('data'))
         self._set_dash_metadata(dash, data)
+        DashboardModelView.update_perm(dash, commit=False)
         session.merge(dash)
         session.commit()
         session.close()
@@ -1715,16 +1817,23 @@ class Superset(BaseSupersetView):
             .order_by(M.Log.dttm.desc())
             .limit(limit)
         )
+        superset_can_explore = security_manager.can_access('can_explore', 'Superset')
         payload = []
         for log in qry.all():
             item_url = None
             item_title = None
-            if log.Dashboard:
+            # skipping this action as it adds duplicate rows
+            if log.Log.action == 'log':
+                continue
+            elif log.Dashboard and security_manager.dashboard_access(log.Dashboard):
                 item_url = log.Dashboard.url
                 item_title = log.Dashboard.dashboard_title
-            elif log.Slice:
+            # only show slices if user has explore access
+            elif superset_can_explore and log.Slice:
                 item_url = log.Slice.slice_url
                 item_title = log.Slice.slice_name
+            else:
+                continue
 
             payload.append({
                 'action': log.Log.action,
@@ -2036,6 +2145,13 @@ class Superset(BaseSupersetView):
                     return redirect(
                         'superset/request_access/?'
                         'dashboard_id={dash.id}&'.format(**locals()))
+
+        if not security_manager.dashboard_access(dash):
+            flash(
+                __(get_dashboard_access_error_msg(dash.dashboard_title)),
+                'danger')
+            return redirect(
+                'dashboardmodelview/list/')
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this

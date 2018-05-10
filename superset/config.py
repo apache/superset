@@ -149,6 +149,8 @@ AUTH_TYPE = AUTH_DB
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
 PUBLIC_ROLE_LIKE_GAMMA = False
+# This role will automatically get access to new dashboards created from a Slice
+DEFAULT_DASHBOARD_ROLE = None
 
 # ---------------------------------------------------
 # Babel config for translations

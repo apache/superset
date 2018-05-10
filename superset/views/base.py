@@ -249,6 +249,11 @@ class SupersetFilter(BaseFilter):
             self.has_role(['Admin', 'Alpha']) or
             self.has_perm('all_datasource_access', 'all_datasource_access'))
 
+    def has_all_dashboard_access(self):
+        return (
+            self.has_role(['Admin', 'Alpha']) or
+            self.has_perm('all_dashboard_access', 'all_dashboard_access'))
+
 
 class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa

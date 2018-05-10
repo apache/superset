@@ -15,6 +15,7 @@ from sqlalchemy import or_
 
 from superset import sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.superset_rmv import SupersetRoleModelView
 
 READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
@@ -69,6 +70,7 @@ READ_ONLY_PERMISSION = {
 ALPHA_ONLY_PERMISSIONS = set([
     'muldelete',
     'all_datasource_access',
+    'all_dashboard_access'
 ])
 
 OBJECT_SPEC_PERMISSIONS = set([
@@ -76,10 +78,13 @@ OBJECT_SPEC_PERMISSIONS = set([
     'schema_access',
     'datasource_access',
     'metric_access',
+    'dashboard_access'
 ])
 
 
 class SupersetSecurityManager(SecurityManager):
+
+    rolemodelview = SupersetRoleModelView
 
     def get_schema_perm(self, database, schema):
         if schema:
@@ -96,6 +101,10 @@ class SupersetSecurityManager(SecurityManager):
     def all_datasource_access(self, user=None):
         return self.can_access(
             'all_datasource_access', 'all_datasource_access', user=user)
+
+    def all_dashboard_access(self, user=None):
+        return self.can_access(
+            'all_dashboard_access', 'all_dashboard_access', user=user)
 
     def database_access(self, database, user=None):
         return (
@@ -162,6 +171,13 @@ class SupersetSecurityManager(SecurityManager):
                         'datasource_access' == perm.permission.name):
                     datasource_perms.add(perm.view_menu.name)
         return datasource_perms
+
+    def dashboard_access(self, dashboard, user=None):
+        return (
+            self.all_dashboard_access(user=user) or
+            g.user in dashboard.owners or
+            self.can_access('dashboard_access', dashboard.perm)
+        )
 
     def schemas_accessible_by_user(self, database, schemas):
         from superset import db
@@ -232,6 +248,7 @@ class SupersetSecurityManager(SecurityManager):
         # Global perms
         self.merge_perm('all_datasource_access', 'all_datasource_access')
         self.merge_perm('all_database_access', 'all_database_access')
+        self.merge_perm('all_dashboard_access', 'all_dashboard_access')
 
     def create_missing_perms(self):
         """Creates missing perms for datasources, schemas and metrics"""
@@ -260,6 +277,11 @@ class SupersetSecurityManager(SecurityManager):
         databases = db.session.query(models.Database).all()
         for database in databases:
             merge_pv('database_access', database.perm)
+
+        logging.info('Creating missing dashboard permissions.')
+        dashboards = db.session.query(models.Dashboard).all()
+        for dashboard in dashboards:
+            merge_pv('dashboard_access', dashboard.perm)
 
         logging.info('Creating missing metrics permissions')
         metrics = []
@@ -302,6 +324,15 @@ class SupersetSecurityManager(SecurityManager):
 
         if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
             self.set_role('Public', self.is_gamma_pvm)
+
+        default_dash_role = conf.get("DEFAULT_DASHBOARD_ROLE")
+        if default_dash_role:
+            role = self.find_role(default_dash_role)
+            if not role:
+                sesh = self.get_session()
+                role = self.add_role(default_dash_role)
+                sesh.merge(role)
+                sesh.commit()
 
         self.create_missing_perms()
 
