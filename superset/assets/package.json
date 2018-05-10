@@ -82,7 +82,6 @@
     "parse-iso-duration": "^1.0.0",
     "po2json": "^0.4.5",
     "prop-types": "^15.6.0",
-    "rc-calendar": "^9.6.0",
     "react": "^15.6.2",
     "react-ace": "^5.0.1",
     "react-addons-css-transition-group": "^15.6.0",

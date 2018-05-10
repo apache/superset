@@ -18,7 +18,6 @@ import 'react-datetime/css/react-datetime.css';
 import DateTimeField from 'react-bootstrap-datetimepicker';
 import 'react-bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css';
 import moment from 'moment';
-import $ from 'jquery';
 
 import ControlHeader from '../ControlHeader';
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
@@ -32,10 +31,6 @@ const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'mon
 const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
 const DEFAULT_SINCE = moment().startOf('day').subtract(7, 'days').format(MOMENT_FORMAT);
 const DEFAULT_UNTIL = moment().startOf('day').format(MOMENT_FORMAT);
-const INPUT_IDS = {
-  since: 'input_since',
-  until: 'input_until',
-};
 const INVALID_DATE_MESSAGE = 'Invalid date';
 const SEPARATOR = ' : ';
 const FREEFORM_TOOLTIP = t(
@@ -90,6 +85,9 @@ export default class DateFilterControl extends React.Component {
         [this.state.rel, this.state.num, this.state.grain] = value.split(' ', 3);
       }
     }
+
+    // We need direct access to the state of the `DateTimeField` component
+    this.dateTimeFieldRefs = {};
   }
   onEnter(event) {
     if (event.key === 'Enter') {
@@ -103,8 +101,8 @@ export default class DateFilterControl extends React.Component {
     };
     if (value === INVALID_DATE_MESSAGE) {
       // the DateTimeField component will return `Invalid date` for freeform
-      // text, so we need to cheat and steal the value old-school style
-      const freeformValue = $('#' + INPUT_IDS[key]).val();
+      // text, so we need to cheat and steal the value from the state
+      const freeformValue = this.dateTimeFieldRefs[key].state.inputValue;
       nextState.isFreeform[key] = true;
       nextState[key] = freeformValue;
     } else {
@@ -149,8 +147,8 @@ export default class DateFilterControl extends React.Component {
     this.setState(nextState, this.updateRefs);
   }
   updateRefs() {
-    this.sinceDateTimeField.setState({ inputValue: this.state.since });
-    this.untilDateTimeField.setState({ inputValue: this.state.until });
+    this.dateTimeFieldRefs.since.setState({ inputValue: this.state.since });
+    this.dateTimeFieldRefs.until.setState({ inputValue: this.state.until });
   }
   close() {
     let val;
@@ -262,14 +260,14 @@ export default class DateFilterControl extends React.Component {
                       label="date-free-tooltip"
                     />
                     <DateTimeField
-                      ref={(ref) => { this.sinceDateTimeField = ref; }}
+                      ref={(ref) => { this.dateTimeFieldRefs.since = ref; }}
                       dateTime={this.state.isFreeform.since ? DEFAULT_SINCE : this.state.since}
                       defaultText={this.state.since}
                       onChange={this.setStartEnd.bind(this, 'since')}
                       maxDate={moment(this.state.until, MOMENT_FORMAT)}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
-                      inputProps={{ id: INPUT_IDS.since, onKeyPress: this.onEnter.bind(this) }}
+                      inputProps={{ onKeyPress: this.onEnter.bind(this) }}
                     />
                   </div>
                   <div style={{ margin: '5px 0' }}>
@@ -279,14 +277,14 @@ export default class DateFilterControl extends React.Component {
                       label="date-free-tooltip"
                     />
                     <DateTimeField
-                      ref={(ref) => { this.untilDateTimeField = ref; }}
+                      ref={(ref) => { this.dateTimeFieldRefs.until = ref; }}
                       dateTime={this.state.isFreeform.until ? DEFAULT_UNTIL : this.state.until}
                       defaultText={this.state.until}
                       onChange={this.setStartEnd.bind(this, 'until')}
                       minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
-                      inputProps={{ id: INPUT_IDS.until, onKeyPress: this.onEnter.bind(this) }}
+                      inputProps={{ onKeyPress: this.onEnter.bind(this) }}
                     />
                   </div>
                 </InputGroup>
