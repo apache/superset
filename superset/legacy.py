@@ -88,6 +88,4 @@ def update_time_range(form_data):
     """Move since and until to time_range."""
     form_data['time_range'] = '{} : {}'.format(
             form_data.pop('since'), form_data.pop('until'))
-    import pprint
-    pprint.pprint(form_data)
     return form_data
