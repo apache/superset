@@ -50,14 +50,19 @@ export default class AdhocMetric {
   }
 
   getDefaultLabel() {
+    const label = this.translateToSql();
+    return label.length < 43 ?
+      label :
+      label.substring(0, 40) + '...';
+  }
+
+  translateToSql() {
     if (this.expressionType === EXPRESSION_TYPES.SIMPLE) {
       return `${this.aggregate || ''}(${(this.column && this.column.column_name) || ''})`;
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
-      return this.sqlExpression.length < 43 ?
-        this.sqlExpression :
-        this.sqlExpression.substring(0, 40) + '...';
+      return this.sqlExpression;
     }
-    return 'malformatted metric';
+    return '';
   }
 
   duplicateWith(nextFields) {

@@ -164,6 +164,120 @@ class TableVizTestCase(unittest.TestCase):
         ]
         self.assertEqual(expected, data['records'])
 
+    def test_parse_adhoc_filters(self):
+        form_data = {
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }],
+            'adhoc_filters': [
+                {
+                    'expressionType': 'SIMPLE',
+                    'clause': 'WHERE',
+                    'subject': 'value2',
+                    'operator': '>',
+                    'comparator': '100',
+                },
+                {
+                    'expressionType': 'SIMPLE',
+                    'clause': 'HAVING',
+                    'subject': 'SUM(value1)',
+                    'operator': '<',
+                    'comparator': '10',
+                },
+                {
+                    'expressionType': 'SQL',
+                    'clause': 'HAVING',
+                    'sqlExpression': 'SUM(value1) > 5',
+                },
+                {
+                    'expressionType': 'SQL',
+                    'clause': 'WHERE',
+                    'sqlExpression': 'value3 in (\'North America\')',
+                },
+            ],
+        }
+        datasource = Mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        query_obj = test_viz.query_obj()
+        self.assertEqual(
+            [{'col': 'value2', 'val': '100', 'op': '>'}],
+            query_obj['filter'],
+        )
+        self.assertEqual(
+            [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
+            query_obj['extras']['having_druid'],
+        )
+        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
+        self.assertEqual('(SUM(value1) > 5)', query_obj['extras']['having'])
+
+    def test_adhoc_filters_overwrite_legacy_filters(self):
+        form_data = {
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }],
+            'adhoc_filters': [
+                {
+                    'expressionType': 'SIMPLE',
+                    'clause': 'WHERE',
+                    'subject': 'value2',
+                    'operator': '>',
+                    'comparator': '100',
+                },
+                {
+                    'expressionType': 'SQL',
+                    'clause': 'WHERE',
+                    'sqlExpression': 'value3 in (\'North America\')',
+                },
+            ],
+            'having': 'SUM(value1) > 5',
+        }
+        datasource = Mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        query_obj = test_viz.query_obj()
+        self.assertEqual(
+            [{'col': 'value2', 'val': '100', 'op': '>'}],
+            query_obj['filter'],
+        )
+        self.assertEqual(
+            [],
+            query_obj['extras']['having_druid'],
+        )
+        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
+        self.assertEqual('', query_obj['extras']['having'])
+
+    def test_legacy_filters_still_appear_without_adhoc_filters(self):
+        form_data = {
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }],
+            'having': 'SUM(value1) > 5',
+            'where': 'value3 in (\'North America\')',
+            'filters': [{'col': 'value2', 'val': '100', 'op': '>'}],
+            'having_filters': [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
+        }
+        datasource = Mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        query_obj = test_viz.query_obj()
+        self.assertEqual(
+            [{'col': 'value2', 'val': '100', 'op': '>'}],
+            query_obj['filter'],
+        )
+        self.assertEqual(
+            [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
+            query_obj['extras']['having_druid'],
+        )
+        self.assertEqual('value3 in (\'North America\')', query_obj['extras']['where'])
+        self.assertEqual('SUM(value1) > 5', query_obj['extras']['having'])
+
     @patch('superset.viz.BaseViz.query_obj')
     def test_query_obj_merges_percent_metrics(self, super_query_obj):
         datasource = Mock()

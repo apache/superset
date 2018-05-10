@@ -78,6 +78,7 @@ class ControlPanelsContainer extends React.Component {
                   value={this.props.form_data[controlName]}
                   validationErrors={ctrls[controlName].validationErrors}
                   actions={this.props.actions}
+                  formData={ctrls[controlName].provideFormDataToProps ? this.props.form_data : null}
                   {...this.getControlData(controlName)}
                 />
             ))}
