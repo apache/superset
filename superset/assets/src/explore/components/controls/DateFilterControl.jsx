@@ -76,7 +76,7 @@ export default class DateFilterControl extends React.Component {
       // for start:end(includes freeform)
       since: DEFAULT_SINCE,
       until: DEFAULT_UNTIL,
-      isFreeform: false,
+      isFreeform: { since: false, until: false },
     };
     if (value.indexOf(SEPARATOR) >= 0) {
       this.state.type = 'startend';
@@ -91,19 +91,27 @@ export default class DateFilterControl extends React.Component {
       }
     }
   }
+  onEnter(event) {
+    if (event.key === 'Enter') {
+      this.close();
+    }
+  }
   setStartEnd(key, value) {
-    const nextState = { type: 'startend' };
+    const nextState = {
+      type: 'startend',
+      isFreeform: { ...this.state.isFreeform },
+    };
     if (value === INVALID_DATE_MESSAGE) {
       // the DateTimeField component will return `Invalid date` for freeform
       // text, so we need to cheat and steal the value old-school style
       const freeformValue = $('#' + INPUT_IDS[key]).val();
-      nextState.isFreeform = true;
+      nextState.isFreeform[key] = true;
       nextState[key] = freeformValue;
     } else {
-      nextState.isFreeform = false;
+      nextState.isFreeform[key] = false;
       nextState[key] = value;
     }
-    this.setState(nextState);
+    this.setState(nextState, this.updateRefs);
   }
   setCommonRange(timeFrame) {
     const nextState = {
@@ -118,7 +126,7 @@ export default class DateFilterControl extends React.Component {
       units = timeFrame.split(' ')[1] + 's';
     }
     nextState.since = moment().startOf('day').subtract(1, units).format(MOMENT_FORMAT);
-    this.setState(nextState);
+    this.setState(nextState, this.updateRefs);
   }
   setCustomRange(key, value) {
     const nextState = { ...this.state, type: 'range', common: null };
@@ -138,7 +146,11 @@ export default class DateFilterControl extends React.Component {
         .format(MOMENT_FORMAT);
       nextState.since = moment().startOf('day').format(MOMENT_FORMAT);
     }
-    this.setState(nextState);
+    this.setState(nextState, this.updateRefs);
+  }
+  updateRefs() {
+    this.sinceDateTimeField.setState({ inputValue: this.state.since });
+    this.untilDateTimeField.setState({ inputValue: this.state.until });
   }
   close() {
     let val;
@@ -156,7 +168,7 @@ export default class DateFilterControl extends React.Component {
     const grainOptions = TIME_GRAIN_OPTIONS.map((grain, index) => (
       <MenuItem
         onSelect={this.setCustomRange.bind(this, 'grain')}
-        key={index}
+        key={'grain-' + index}
         eventKey={grain}
         active={grain === this.state.grain}
       >{grain}
@@ -164,7 +176,7 @@ export default class DateFilterControl extends React.Component {
       ));
     const timeFrames = COMMON_TIME_FRAMES.map((timeFrame, index) => (
       <Radio
-        key={index + 1}
+        key={'timeFrame-' + (index + 1)}
         checked={this.state.common === timeFrame}
         onChange={this.setCommonRange.bind(this, timeFrame)}
       >{timeFrame}
@@ -183,6 +195,7 @@ export default class DateFilterControl extends React.Component {
               <FormGroup>
                 {timeFrames}
                 <Radio
+                  key={'timeFrame-0'}
                   checked={this.state.common == null && this.state.type === 'range'}
                   onChange={this.setCustomRange.bind(this)}
                 >
@@ -219,6 +232,7 @@ export default class DateFilterControl extends React.Component {
                           this.setCustomRange.call(this, 'num', event.target.value)
                         )}
                         onFocus={this.setCustomRange.bind(this)}
+                        onKeyPress={this.onEnter.bind(this)}
                         value={this.state.num}
                         style={{ height: '30px' }}
                       />
@@ -248,13 +262,14 @@ export default class DateFilterControl extends React.Component {
                       label="date-free-tooltip"
                     />
                     <DateTimeField
-                      dateTime={this.state.isFreeform ? DEFAULT_SINCE : this.state.since}
+                      ref={(ref) => { this.sinceDateTimeField = ref; }}
+                      dateTime={this.state.isFreeform.since ? DEFAULT_SINCE : this.state.since}
                       defaultText={this.state.since}
                       onChange={this.setStartEnd.bind(this, 'since')}
                       maxDate={moment(this.state.until, MOMENT_FORMAT)}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
-                      inputProps={{ id: INPUT_IDS.since }}
+                      inputProps={{ id: INPUT_IDS.since, onKeyPress: this.onEnter.bind(this) }}
                     />
                   </div>
                   <div style={{ margin: '5px 0' }}>
@@ -264,14 +279,14 @@ export default class DateFilterControl extends React.Component {
                       label="date-free-tooltip"
                     />
                     <DateTimeField
-                      bsSize="small"
-                      dateTime={this.state.isFreeform ? DEFAULT_UNTIL : this.state.until}
+                      ref={(ref) => { this.untilDateTimeField = ref; }}
+                      dateTime={this.state.isFreeform.until ? DEFAULT_UNTIL : this.state.until}
                       defaultText={this.state.until}
                       onChange={this.setStartEnd.bind(this, 'until')}
                       minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
-                      inputProps={{ id: INPUT_IDS.until }}
+                      inputProps={{ id: INPUT_IDS.until, onKeyPress: this.onEnter.bind(this) }}
                     />
                   </div>
                 </InputGroup>

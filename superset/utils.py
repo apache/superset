@@ -710,6 +710,9 @@ def get_celery_app(config):
 
 
 # XXX TODO test me
+# also remove js dependnecy
+# test filter
+# type freemform -> shows date
 def merge_extra_filters(form_data):
     # extra_filters are temporary/contextual filters that are external
     # to the slice definition. We use those for dynamic interactive
