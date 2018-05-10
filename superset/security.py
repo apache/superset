@@ -70,7 +70,7 @@ READ_ONLY_PERMISSION = {
 ALPHA_ONLY_PERMISSIONS = set([
     'muldelete',
     'all_datasource_access',
-    'all_dashboard_access'
+    'all_dashboard_access',
 ])
 
 OBJECT_SPEC_PERMISSIONS = set([
@@ -78,7 +78,7 @@ OBJECT_SPEC_PERMISSIONS = set([
     'schema_access',
     'datasource_access',
     'metric_access',
-    'dashboard_access'
+    'dashboard_access',
 ])
 
 
@@ -325,7 +325,7 @@ class SupersetSecurityManager(SecurityManager):
         if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
             self.set_role('Public', self.is_gamma_pvm)
 
-        default_dash_role = conf.get("DEFAULT_DASHBOARD_ROLE")
+        default_dash_role = conf.get('DEFAULT_DASHBOARD_ROLE')
         if default_dash_role:
             role = self.find_role(default_dash_role)
             if not role:

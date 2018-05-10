@@ -97,8 +97,10 @@ def get_datasource_access_error_msg(datasource_name):
 
 
 def get_dashboard_access_error_msg(dashboard_title):
-    return __("Sorry, you don't have permission to access the '%(name)s' dashboard",
-        name=dashboard_title)
+    return __(
+        "Sorry, you don't have permission to access the '%(name)s' dashboard",
+        name=dashboard_title,
+    )
 
 
 def json_success(json_msg, status=200):
@@ -169,18 +171,18 @@ class DashboardFilter(SupersetFilter):
         if self.has_all_datasource_access() and self.has_all_dashboard_access():
             return query
 
-        Dash = models.Dashboard  #noqa
+        Dash = models.Dashboard  # noqa
 
         # get ids for dashboards this user has access to
         dashboard_perms = \
-            { d: True for d in self.get_view_menus('dashboard_access') }
+            {d: True for d in self.get_view_menus('dashboard_access')}
 
         dashboard_ids = []
         for dash in db.session.query(Dash):
             if dash.perm in dashboard_perms or\
                 self.has_all_dashboard_access() or\
-                g.user in dash.owners:
-                dashboard_ids.append(dash.id)
+                    g.user in dash.owners:
+                    dashboard_ids.append(dash.id)
 
         if self.has_all_datasource_access():
             query = query.filter(
@@ -587,9 +589,10 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'owners': _('Owners is a list of users who can alter the dashboard.'),
         'roles': _('A list of roles that have access to this dashboard.'),
     }
-    default_dash_role = config.get("DEFAULT_DASHBOARD_ROLE")
+    default_dash_role = config.get('DEFAULT_DASHBOARD_ROLE')
     if default_dash_role:
-        description_columns['roles'] += _(" For default access, add '{}'.".format(default_dash_role))
+        description_columns['roles'] += \
+            _(" For default access, add '{}'.".format(default_dash_role))
 
     base_filters = [['slice', DashboardFilter, lambda: []]]
     add_form_query_rel_fields = {
@@ -632,7 +635,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         check_ownership(obj)
 
         perm_view = security_manager.find_permission_view_menu(
-                        'dashboard_access', obj.perm)
+            'dashboard_access', obj.perm)
         for role in perm_view.role:
             security_manager.del_permission_role(role, perm_view)
 
@@ -649,15 +652,15 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def update_permview_roles(self, dash):
         perm_view = security_manager.find_permission_view_menu(
-                        'dashboard_access', dash.perm)
+            'dashboard_access', dash.perm)
         # add missing roles
         for role in dash.roles:
-            if not perm_view in role.permissions:
+            if perm_view not in role.permissions:
                 security_manager.add_permission_role(role, perm_view)
 
         # remove deleted roles
         for role in perm_view.role:
-            if not role in dash.roles:
+            if role not in dash.roles:
                 security_manager.del_permission_role(role, perm_view)
 
     @staticmethod
@@ -677,7 +680,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             new_name = obj.perm
             if new_name != view_menu.name:
                 try:
-                    query = security_manager.get_session.query(security_manager.viewmenu_model)\
+                    security_manager.get_session.query(security_manager.viewmenu_model)\
                         .filter(security_manager.viewmenu_model.id == view_menu.id)\
                         .update({'name': new_name})
                 except Exception, e:
@@ -1500,7 +1503,7 @@ class Superset(BaseSupersetView):
                     status=400)
 
             dash_roles = []
-            default_dash_role = config.get("DEFAULT_DASHBOARD_ROLE")
+            default_dash_role = config.get('DEFAULT_DASHBOARD_ROLE')
             if default_dash_role:
                 d_role = security_manager.find_role(default_dash_role)
                 if d_role:
