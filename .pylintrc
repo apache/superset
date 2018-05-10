@@ -292,7 +292,7 @@ generated-members=
 # List of decorators that produce context managers, such as
 # contextlib.contextmanager. Add to this list to register other decorators that
 # produce valid context managers.
-contextmanager-decorators=contextlib.contextmanager
+contextmanager-decorators=contextlib.contextmanager,contextlib2.contextmanager
 
 
 [VARIABLES]
