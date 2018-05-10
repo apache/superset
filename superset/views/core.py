@@ -2144,6 +2144,7 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
+        template_params = data.get('templateParams')
         table = (
             db.session.query(SqlaTable)
             .filter_by(table_name=table_name)
@@ -2153,6 +2154,7 @@ class Superset(BaseSupersetView):
             table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
         table.schema = data.get('schema')
+        table.template_params = data.get('templateParams')
         table.is_sqllab_view = True
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()

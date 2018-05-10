@@ -272,13 +272,14 @@ class SqlaTable(Model, BaseDatasource):
     schema = Column(String(255))
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
+    template_params = Column(Text)
 
     baselink = 'tablemodelview'
 
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
-        'sql', 'params')
+        'sql', 'params', 'template_params')
     export_parent = 'database'
     export_children = ['metrics', 'columns']
 
@@ -491,8 +492,8 @@ class SqlaTable(Model, BaseDatasource):
             'to_dttm': to_dttm,
             'filter': filter,
             'columns': {col.column_name: col for col in self.columns},
-
         }
+        template_kwargs.update(self.template_params_dict)
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
