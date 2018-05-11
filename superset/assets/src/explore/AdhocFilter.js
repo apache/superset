@@ -45,7 +45,8 @@ export default class AdhocFilter {
       this.clause = adhocFilter.clause;
       this.sqlExpression = null;
     } else if (this.expressionType === EXPRESSION_TYPES.SQL) {
-      this.sqlExpression = adhocFilter.sqlExpression ||
+      this.sqlExpression = typeof adhocFilter.sqlExpression === 'string' ?
+        adhocFilter.sqlExpression :
         translateToSql(adhocFilter, { useSimple: true });
       this.clause = adhocFilter.clause;
       this.subject = null;
