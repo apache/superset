@@ -349,25 +349,19 @@ class UtilsTestCase(unittest.TestCase):
     # see https://github.com/spulec/freezegun/issues/151
     @freeze_time("2016-11-07", ignore=['py.test'])
     def test_get_since_until(self):
-        now = datetime.now()
-        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
-
         form_data = {}
         result = get_since_until(form_data)
-        expected = None, now
+        expected = None, datetime.now()
         self.assertEqual(result, expected)
 
         form_data = {'time_range': ' : now'}
         result = get_since_until(form_data)
-        expected = None, now
+        expected = None, datetime.now()
         self.assertEqual(result, expected)
 
         form_data = {'time_range': 'yesterday : tomorrow'}
         result = get_since_until(form_data)
-        expected = (
-            today - timedelta(days=1),
-            today + timedelta(days=1),
-        )
+        expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
 
         form_data = {'time_range': '2018-01-01T00:00:00 : 2018-12-31T23:59:59'}
