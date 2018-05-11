@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# flake8: noqa
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -9,6 +10,9 @@ from decimal import Decimal
 import os
 import unittest
 import uuid
+
+# needed for freezegun
+os.environ['TZ'] = 'GMT'
 
 from freezegun import freeze_time
 from mock import patch
@@ -30,9 +34,6 @@ from superset.utils import (
     zlib_compress,
     zlib_decompress_to_string,
 )
-
-# needed for freezegun
-os.environ['TZ'] = 'GMT'
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -346,9 +347,10 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(instance.watcher, 4)
         self.assertEqual(result1, result8)
 
-    # see https://github.com/spulec/freezegun/issues/151
-    @freeze_time('2016-11-07', ignore=['py.test'])
     def test_get_since_until(self):
+        freezer = freeze_time('2016-11-07')
+        freezer.start()
+
         form_data = {}
         result = get_since_until(form_data)
         expected = None, datetime.now()
@@ -393,3 +395,5 @@ class UtilsTestCase(unittest.TestCase):
         result = get_since_until(form_data)
         expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
+
+        freezer.stop()
