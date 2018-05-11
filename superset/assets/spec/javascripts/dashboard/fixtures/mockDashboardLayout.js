@@ -6,6 +6,7 @@ import {
   TAB_TYPE,
   CHART_TYPE,
   ROW_TYPE,
+  COLUMN_TYPE,
 } from '../../../../src/dashboard/util/componentTypes';
 
 import {
@@ -47,8 +48,13 @@ export const dashboardLayout = {
     ROW_ID: {
       ...newComponentFactory(ROW_TYPE),
       id: 'ROW_ID',
+      children: ['COLUMN_ID'],
+    },
+
+    COLUMN_ID: {
+      ...newComponentFactory(COLUMN_TYPE),
+      id: 'COLUMN_ID',
       children: ['CHART_ID'],
-      meta: {},
     },
 
     CHART_ID: {
@@ -85,7 +91,7 @@ export const dashboardLayoutWithTabs = {
       type: TAB_TYPE,
       children: ['ROW_ID'],
       meta: {
-        text: 'tab',
+        text: 'tab1',
       },
     },
 
@@ -94,7 +100,7 @@ export const dashboardLayoutWithTabs = {
       type: TAB_TYPE,
       children: [],
       meta: {
-        text: 'tab',
+        text: 'tab2',
       },
     },
 
@@ -113,7 +119,6 @@ export const dashboardLayoutWithTabs = {
       ...newComponentFactory(ROW_TYPE),
       id: 'ROW_ID',
       children: ['CHART_ID'],
-      meta: {},
     },
 
     [DASHBOARD_GRID_ID]: {

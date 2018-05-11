@@ -18,7 +18,7 @@ import DragDroppable from '../../../../src/dashboard/components/dnd/DragDroppabl
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
-} from '../fixtures/mockState';
+} from '../fixtures/mockDashboardLayout';
 
 import { mockStore, mockStoreWithTabs } from '../fixtures/mockStore';
 
@@ -38,7 +38,7 @@ describe('DashboardBuilder', () => {
     const builder = <DashboardBuilder {...props} {...overrideProps} />;
     return useProvider
       ? mount(<Provider store={store}>{builder}</Provider>)
-      : shallow(builder).dive(); // DragDropContextContainer
+      : shallow(builder);
   }
 
   it('should render a StickyContainer with class "dashboard"', () => {
@@ -96,6 +96,18 @@ describe('DashboardBuilder', () => {
     const parentSize = wrapper.find(ParentSize).dive();
     expect(parentSize.find(TabContainer)).to.have.length(1);
     expect(parentSize.find(TabContent)).to.have.length(1);
+  });
+
+  it('should set animation=true, mountOnEnter=true, and unmounOnExit=false on TabContainer for perf', () => {
+    const wrapper = setup({ dashboardLayout: layoutWithTabs });
+    const tabProps = wrapper
+      .find(ParentSize)
+      .dive()
+      .find(TabContainer)
+      .props();
+    expect(tabProps.animation).to.equal(true);
+    expect(tabProps.mountOnEnter).to.equal(true);
+    expect(tabProps.unmountOnExit).to.equal(false);
   });
 
   it('should render a TabPane and DashboardGrid for each Tab', () => {

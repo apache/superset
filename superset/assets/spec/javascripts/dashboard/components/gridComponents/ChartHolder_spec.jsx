@@ -59,6 +59,29 @@ describe('ChartHolder', () => {
     expect(wrapper.find(ResizableContainer)).to.have.length(1);
   });
 
+  it('should only have an adjustableWidth if its parent is a Row', () => {
+    let wrapper = setup();
+    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).to.equal(
+      true,
+    );
+
+    wrapper = setup({ ...props, parentComponent: mockLayout.present.CHART_ID });
+    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).to.equal(
+      false,
+    );
+  });
+
+  it('should pass correct props to ResizableContainer', () => {
+    const wrapper = setup();
+    const resizableProps = wrapper.find(ResizableContainer).props();
+    expect(resizableProps.widthStep).to.equal(props.columnWidth);
+    expect(resizableProps.widthMultiple).to.equal(props.component.meta.width);
+    expect(resizableProps.heightMultiple).to.equal(props.component.meta.height);
+    expect(resizableProps.maxWidthMultiple).to.equal(
+      props.component.meta.width + props.availableColumnCount,
+    );
+  });
+
   it('should render a div with class "dashboard-component-chart-holder"', () => {
     const wrapper = setup();
     expect(wrapper.find('.dashboard-component-chart-holder')).to.have.length(1);
