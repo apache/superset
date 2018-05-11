@@ -143,20 +143,22 @@ class Controls extends React.PureComponent {
               />
             }
           />
-          <SaveModal
-            dashboard={dashboard}
-            filters={filters}
-            serialize={serialize}
-            onSave={onSave}
-            css={this.state.css}
-            triggerNode={
-              <MenuItemContent
-                text={saveText}
-                tooltip={t('Save the dashboard')}
-                faIcon="save"
-              />
-            }
-          />
+          {dashboard.dash_save_perm &&
+            <SaveModal
+              dashboard={dashboard}
+              filters={filters}
+              serialize={serialize}
+              onSave={onSave}
+              css={this.state.css}
+              triggerNode={
+                <MenuItemContent
+                  text={saveText}
+                  tooltip={t('Save the dashboard')}
+                  faIcon="save"
+                />
+              }
+            />
+          }
           {editMode &&
             <ActionMenuItem
               text={t('Edit properties')}

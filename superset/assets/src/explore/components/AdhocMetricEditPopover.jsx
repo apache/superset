@@ -218,13 +218,15 @@ export default class AdhocMetricEditPopover extends React.Component {
                 <AceEditor
                   mode="sql"
                   theme="github"
-                  height={(this.state.height - 40) + 'px'}
+                  height={(this.state.height - 43) + 'px'}
                   onChange={this.onSqlExpressionChange}
                   width="100%"
                   showGutter={false}
-                  value={adhocMetric.sqlExpression || adhocMetric.getDefaultLabel()}
+                  value={adhocMetric.sqlExpression || adhocMetric.translateToSql()}
                   editorProps={{ $blockScrolling: true }}
                   enableLiveAutocompletion
+                  className="adhoc-filter-sql-editor"
+                  wrapEnabled
                 />
               </FormGroup>
             </Tab>

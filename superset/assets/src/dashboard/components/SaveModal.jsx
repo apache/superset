@@ -69,7 +69,7 @@ class SaveModal extends React.PureComponent {
       error(error) {
         saveModal.close();
         const errorMsg = getAjaxErrorMsg(error);
-        notify.error(t('Sorry, there was an error saving this dashboard: ') + '</ br>' + errorMsg);
+        notify.error(t('Sorry, there was an error saving this dashboard: ') + errorMsg);
       },
     });
   }
@@ -138,7 +138,7 @@ class SaveModal extends React.PureComponent {
                 checked={this.state.duplicateSlices}
                 onChange={this.toggleDuplicateSlices.bind(this)}
               />
-              <span className="m-l-5">also copy (duplicate) slices</span>
+              <span className="m-l-5">also copy (duplicate) charts</span>
             </div>
           </FormGroup>
         }

@@ -675,7 +675,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             stats = polled.get('stats', {})
 
             query = session.query(type(query)).filter_by(id=query.id).one()
-            if query.status == QueryStatus.STOPPED:
+            if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
 
@@ -1312,6 +1312,32 @@ class DruidEngineSpec(BaseEngineSpec):
     engine = 'druid'
     limit_method = LimitMethod.FETCH_MANY
     inner_joins = False
+
+
+class KylinEngineSpec(BaseEngineSpec):
+    """Dialect for Apache Kylin"""
+
+    engine = 'kylin'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'), 'SECOND({col})', 'PT1S'),
+        Grain('minute', _('minute'), 'MINUTE({col})', 'PT1M'),
+        Grain('hour', _('hour'), 'HOUR({col})', 'PT1H'),
+        Grain('month', _('month'), 'MONTH({col})', 'P1M'),
+        Grain('quarter', _('quarter'), 'QUARTER({col})', 'P0.25Y'),
+        Grain('year', _('year'), 'YEAR({col})', 'P1Y'),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+        if tt == 'TIMESTAMP':
+            return "CAST('{}' AS TIMESTAMP)".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 engines = {

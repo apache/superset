@@ -528,6 +528,7 @@ export const controls = {
       'France',
       'Germany',
       'Italy',
+      'Portugal',
       'Morocco',
       'Netherlands',
       'Russia',
@@ -771,6 +772,7 @@ export const controls = {
       ['PT30S', '30 seconds'],
       ['PT1M', '1 minute'],
       ['PT5M', '5 minutes'],
+      ['PT30M', '30 minutes'],
       ['PT1H', '1 hour'],
       ['PT6H', '6 hour'],
       ['P1D', '1 day'],
@@ -1856,6 +1858,19 @@ export const controls = {
     description: 'Annotation Layers',
     renderTrigger: true,
     tabOverride: 'data',
+  },
+
+  adhoc_filters: {
+    type: 'AdhocFilterControl',
+    label: t('Filters'),
+    default: null,
+    description: '',
+    mapStateToProps: state => ({
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasource: state.datasource,
+    }),
+    provideFormDataToProps: true,
   },
 
   having_filters: {
