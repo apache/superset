@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# flake8: noqa
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -7,14 +6,9 @@ from __future__ import unicode_literals
 
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-import os
 import unittest
 import uuid
 
-# needed for freezegun
-os.environ['TZ'] = 'GMT'
-
-from freezegun import freeze_time
 from mock import patch
 import numpy
 
@@ -34,6 +28,27 @@ from superset.utils import (
     zlib_compress,
     zlib_decompress_to_string,
 )
+
+
+def mock_parse_human_datetime(s):
+    if s in ['now', 'today']:
+        return datetime(2016, 11, 7)
+    elif s == 'yesterday':
+        return datetime(2016, 11, 6)
+    elif s == 'tomorrow':
+        return datetime(2016, 11, 8)
+    elif s == 'Last year':
+        return datetime(2015, 11, 7)
+    elif s == 'Last 5 months':
+        return datetime(2016, 6, 7)
+    elif s == 'Next 5 months':
+        return datetime(2017, 4, 7)
+    elif s in ['5 days', '5 days ago']:
+        return datetime(2016, 11, 2)
+    elif s == '2018-01-01T00:00:00':
+        return datetime(2018, 1, 1)
+    elif s == '2018-12-31T23:59:59':
+        return datetime(2018, 12, 31, 23, 59, 59)
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -347,18 +362,16 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(instance.watcher, 4)
         self.assertEqual(result1, result8)
 
+    @patch('superset.utils.parse_human_datetime', mock_parse_human_datetime)
     def test_get_since_until(self):
-        freezer = freeze_time('2016-11-07')
-        freezer.start()
-
         form_data = {}
         result = get_since_until(form_data)
-        expected = None, datetime.now()
+        expected = None, datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
         form_data = {'time_range': ' : now'}
         result = get_since_until(form_data)
-        expected = None, datetime.now()
+        expected = None, datetime(2016, 11, 7)
         self.assertEqual(result, expected)
 
         form_data = {'time_range': 'yesterday : tomorrow'}
@@ -395,5 +408,3 @@ class UtilsTestCase(unittest.TestCase):
         result = get_since_until(form_data)
         expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
         self.assertEqual(result, expected)
-
-        freezer.stop()
