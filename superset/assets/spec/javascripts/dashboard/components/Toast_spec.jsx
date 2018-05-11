@@ -32,7 +32,7 @@ describe('Toast', () => {
 
   it('should call onCloseToast upon alert dismissal', done => {
     const onCloseToast = id => {
-      expect(id).to.equal('id');
+      expect(id).to.equal(props.toast.id);
       done();
     };
     const wrapper = setup({ onCloseToast });

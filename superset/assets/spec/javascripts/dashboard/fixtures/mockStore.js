@@ -3,7 +3,8 @@ import thunk from 'redux-thunk';
 
 import rootReducer from '../../../../src/dashboard/reducers/index';
 
-import mockState, { dashboardLayoutWithTabs } from './mockState';
+import mockState from './mockState';
+import { dashboardLayoutWithTabs } from './mockDashboardLayout';
 
 export const mockStore = createStore(
   rootReducer,
