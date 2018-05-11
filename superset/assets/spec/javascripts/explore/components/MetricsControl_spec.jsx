@@ -257,6 +257,15 @@ describe('MetricsControl', () => {
         },
         'sum',
       )).to.be.false;
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'sum__value',
+          optionName: 'sum__value',
+          expression: 'SUM("table"."value")',
+        },
+        'sum',
+      )).to.be.false;
     });
 
     it('filters out metrics if the input begins with an aggregate', () => {
