@@ -6,12 +6,9 @@ from __future__ import unicode_literals
 
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
+import os
 import unittest
 import uuid
-
-# needed for freezegun
-import os
-os.environ["TZ"] = "GMT"
 
 from freezegun import freeze_time
 from mock import patch
@@ -19,12 +16,12 @@ import numpy
 
 from superset.exceptions import SupersetException
 from superset.utils import (
-    JSONEncodedDict,
     base_json_conv,
     datetime_f,
     get_since_until,
     json_int_dttm_ser,
     json_iso_dttm_ser,
+    JSONEncodedDict,
     memoized,
     merge_extra_filters,
     merge_request_params,
@@ -33,6 +30,9 @@ from superset.utils import (
     zlib_compress,
     zlib_decompress_to_string,
 )
+
+# needed for freezegun
+os.environ['TZ'] = 'GMT'
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -347,7 +347,7 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(result1, result8)
 
     # see https://github.com/spulec/freezegun/issues/151
-    @freeze_time("2016-11-07", ignore=['py.test'])
+    @freeze_time('2016-11-07', ignore=['py.test'])
     def test_get_since_until(self):
         form_data = {}
         result = get_since_until(form_data)
