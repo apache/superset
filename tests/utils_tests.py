@@ -346,7 +346,8 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(instance.watcher, 4)
         self.assertEqual(result1, result8)
 
-    @freeze_time("2016-11-07")
+    # see https://github.com/spulec/freezegun/issues/151
+    @freeze_time("2016-11-07", ignore=['py.test'])
     def test_get_since_until(self):
         now = datetime.now()
         today = now.replace(hour=0, minute=0, second=0, microsecond=0)
