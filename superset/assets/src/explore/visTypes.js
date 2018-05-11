@@ -1150,20 +1150,7 @@ export const visTypes = {
                   ['metric'],
               ],
           },
-          {
-              label: t('Chart Options'),
-              expanded: true,
-              controlSetRows: [
-                  ['compare_lag', 'compare_suffix'],
-                  ['y_axis_format', null],
-              ],
-          },
-      ],
-      controlOverrides: {
-          y_axis_format: {
-              label: t('Number format'),
-          },
-      },
+        ],
   },
   big_number_total: {
     label: t('Big Number'),
