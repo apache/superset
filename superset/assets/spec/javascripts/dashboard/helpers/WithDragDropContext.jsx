@@ -1,9 +1,16 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { DragDropContext } from 'react-dnd';
-import HTML5Backend from 'react-dnd-html5-backend';
 
+import getDragDropManager from '../../../../src/dashboard/util/getDragDropManager';
+
+// A helper component that provides a DragDropContext for components that require it
 class WithDragDropContext extends React.Component {
+  getChildContext() {
+    return {
+      dragDropManager: this.context.dragDropManager || getDragDropManager(),
+    };
+  }
+
   render() {
     return this.props.children;
   }
@@ -13,4 +20,8 @@ WithDragDropContext.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
-export default DragDropContext(HTML5Backend)(WithDragDropContext);
+WithDragDropContext.childContextTypes = {
+  dragDropManager: PropTypes.object.isRequired,
+};
+
+export default WithDragDropContext;

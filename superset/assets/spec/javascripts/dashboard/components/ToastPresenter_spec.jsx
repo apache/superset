@@ -31,6 +31,11 @@ describe('ToastPresenter', () => {
   it('should pass removeToast to the Toast component', () => {
     const removeToast = () => {};
     const wrapper = setup({ removeToast });
-    expect(wrapper.find(Toast).prop('onCloseToast')).to.equal(removeToast);
+    expect(
+      wrapper
+        .find(Toast)
+        .first()
+        .prop('onCloseToast'),
+    ).to.equal(removeToast);
   });
 });

@@ -99,15 +99,16 @@ describe('isValidChild', () => {
   });
 
   describe('invalid calls', () => {
-    // Because some of the hierarchies in the following test cases are valid
-    // we indicate which parent > [child] relationships should be tested using
-    // a nested array
+    // In order to assert that a parent > child hierarchy at a given depth is invalid
+    // we also define some valid hierarchies in doing so. we indicate which
+    // parent > [child] relationships should be asserted as invalid using a nested array
     const invalidExamples = [
       [ROOT, [DIVIDER]],
       [ROOT, [CHART]],
       [ROOT, [MARKDOWN]],
       [ROOT, GRID, [TAB]],
       [ROOT, GRID, TABS, [ROW]],
+      [ROOT, GRID, TABS, TAB, [TABS]],
       [ROOT, GRID, ROW, [TABS]],
       [ROOT, GRID, ROW, [TAB]],
       [ROOT, GRID, ROW, [DIVIDER]],
