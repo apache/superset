@@ -71,7 +71,7 @@ export default class DateFilterControl extends React.Component {
       // for start:end(includes freeform)
       since: DEFAULT_SINCE,
       until: DEFAULT_UNTIL,
-      isFreeform: { since: false, until: false },
+      isFreeform: {},
     };
     if (value.indexOf(SEPARATOR) >= 0) {
       this.state.type = 'startend';
@@ -85,6 +85,8 @@ export default class DateFilterControl extends React.Component {
         [this.state.rel, this.state.num, this.state.grain] = value.split(' ', 3);
       }
     }
+    this.state.isFreeform.since = !moment(this.state.since, MOMENT_FORMAT).isValid();
+    this.state.isFreeform.until = !moment(this.state.until, MOMENT_FORMAT).isValid();
 
     // We need direct access to the state of the `DateTimeField` component
     this.dateTimeFieldRefs = {};
