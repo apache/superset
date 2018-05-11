@@ -845,7 +845,7 @@ def get_since_until(form_data):
     This functiom supports both reading the keys separately (from `since` and
     `until`), as well as the new `time_range` key. Valid formats are:
 
-        - ISO 8601 
+        - ISO 8601
         - X days/years/hours/day/year/weeks
         - X days/years/hours/day/year/weeks ago
         - X days/years/hours/day/year/weeks from now
@@ -892,7 +892,7 @@ def get_since_until(form_data):
             since_words = since.split(' ')
             grains = ['days', 'years', 'hours', 'day', 'year', 'weeks']
             if len(since_words) == 2 and since_words[1] in grains:
-                since += 'ago'
+                since += ' ago'
         since = parse_human_datetime(since)
         until = parse_human_datetime(form_data.get('until', 'now'))
 
