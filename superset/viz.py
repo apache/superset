@@ -1005,6 +1005,28 @@ class BigNumberViz(BaseViz):
         }
 
 
+class PercentageExceedenceViz(BaseViz):
+
+    """percentage exceedence viz"""
+
+    viz_type = 'percentage_exceedence'
+    verbose_name = _('Percentage Exceedence')
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+
+    def query_obj(self):
+        d = super(PercentageExceedenceViz, self).query_obj()
+        metric = self.form_data.get('metric')
+        if not metric:
+            raise Exception(_('Pick a metric!'))
+        d['metrics'] = [self.form_data.get('metric')]
+        self.form_data['metric'] = metric
+        return d
+
+    def get_data(self, df):
+        data = [{'date': row[0], 'close': row[1]} for row in df.values]
+        return {'data': data}
+
+
 class BigNumberTotalViz(BaseViz):
 
     """Put emphasis on a single metric with this big number viz"""

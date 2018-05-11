@@ -12,7 +12,7 @@ function bigNumberVis(slice, payload) {
   div.html(''); // reset
   const fd = slice.formData;
   const json = payload.data;
-
+  
   const f = d3FormatPreset(fd.y_axis_format);
   const fp = d3.format('+.1%');
   const formatDate = d3TimeFormatPreset('smart_date');

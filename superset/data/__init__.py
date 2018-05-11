@@ -1864,3 +1864,51 @@ def load_bart_lines():
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
+
+
+def load_stocks_data():
+    tbl_name = 'stocks'
+    with gzip.open(os.path.join(DATA_FOLDER, 'stocks.tsv.gz')) as f:
+        df = pd.read_csv(f, sep='\t', encoding='latin-1')
+    df.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'color': String(255),
+            'name': String(255),
+            'polyline': Text,
+            'path_json': Text,
+        },
+        index=False)
+    print("Creating table {} reference".format(tbl_name))
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Stock Proces"
+    tbl.database = utils.get_or_create_main_db()
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()
+    defaults = {
+        "entity": "close",
+        "groupby": ["date"],
+        "metric": "sum__close",
+        "viz_type": "percentage_exceedence"
+    }
+    print('Creating Slice')
+    slc = Slice(
+        slice_name="Percentage Exceedence",
+        viz_type='percentage_exceedence',
+        datasource_type='table',
+        datasource_id=db.session.query(TBL).filter_by(table_name='stocks').first().id,
+        params=get_slice_json(defaults)
+    )
+    merge_slice(slc)
+    slug = "world_health"
+    dash = db.session.query(Dash).filter_by(slug=slug).first()
+    dash.slices.append(slc)
+    db.session.merge(dash)
+    db.session.commit()
+
