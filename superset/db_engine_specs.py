@@ -448,10 +448,6 @@ class Db2EngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d-%H.%M.%S'))
 
-    @classmethod
-    def normalize_column_name(cls, column_name):
-        return column_name.lower()
-
 
 class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
