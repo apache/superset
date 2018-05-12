@@ -202,6 +202,10 @@ export function getAjaxErrorMsg(error) {
           error.responseText;
 }
 
+export function getDatasourceParameter(datasourceId, datasourceType) {
+  return `${datasourceId}__${datasourceType}`;
+}
+
 export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
   chart.useInteractiveGuideline(true);
   chart.interactiveLayer.tooltip.contentGenerator(function (d) {
