@@ -74,26 +74,28 @@ export default function(bootstrapData) {
   const sliceIds = new Set();
   dashboard.slices.forEach(slice => {
     const key = slice.slice_id;
-    chartQueries[key] = {
-      ...chart,
-      id: key,
-      form_data: slice.form_data,
-      formData: applyDefaultFormData(slice.form_data),
-    };
+    if (['separator', 'markup'].indexOf(slice.form_data.viz_type) === -1) {
+      chartQueries[key] = {
+        ...chart,
+        id: key,
+        form_data: slice.form_data,
+        formData: applyDefaultFormData(slice.form_data),
+      };
 
-    slices[key] = {
-      slice_id: key,
-      slice_url: slice.slice_url,
-      slice_name: slice.slice_name,
-      form_data: slice.form_data,
-      edit_url: slice.edit_url,
-      viz_type: slice.form_data.viz_type,
-      datasource: slice.form_data.datasource,
-      description: slice.description,
-      description_markeddown: slice.description_markeddown,
-    };
+      slices[key] = {
+        slice_id: key,
+        slice_url: slice.slice_url,
+        slice_name: slice.slice_name,
+        form_data: slice.form_data,
+        edit_url: slice.edit_url,
+        viz_type: slice.form_data.viz_type,
+        datasource: slice.form_data.datasource,
+        description: slice.description,
+        description_markeddown: slice.description_markeddown,
+      };
 
-    sliceIds.add(key);
+      sliceIds.add(key);
+    }
 
     // sync layout names with current slice names in case a slice was edited
     // in explore since the layout was updated. name updates go through layout for undo/redo

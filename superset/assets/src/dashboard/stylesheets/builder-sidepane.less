@@ -10,13 +10,21 @@
     border-top: 1px solid @gray-light;
     border-bottom: 1px solid @gray-light;
     padding: 16px;
+    display: flex;
+    align-items: center;
   }
 
   .trigger {
-    height: 18px;
-    width: 25px;
+    font-size: 16px;
     color: @almost-black;
     opacity: 1;
+    margin-left: auto;
+    cursor: pointer;
+  }
+
+  .slices-layer .trigger {
+    margin-left: 0;
+    margin-right: 20px;
   }
 
   .viewport {
