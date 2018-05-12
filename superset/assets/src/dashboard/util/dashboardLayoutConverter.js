@@ -5,6 +5,7 @@ import {
   ROW_TYPE,
   COLUMN_TYPE,
   CHART_TYPE,
+  MARKDOWN_TYPE,
   DASHBOARD_ROOT_TYPE,
   DASHBOARD_GRID_TYPE,
 } from './componentTypes';
@@ -76,11 +77,22 @@ function getColContainer() {
 }
 
 function getChartHolder(item) {
-  const { size_x, size_y, slice_id } = item;
+  const { size_x, size_y, slice_id, code } = item;
 
   const width = Math.max(1, Math.floor(size_x / GRID_RATIO));
   const height = Math.max(1, Math.round(size_y / GRID_RATIO));
-
+  if (code !== undefined) {
+    return {
+      type: MARKDOWN_TYPE,
+      id: `DASHBOARD_MARKDOWN_TYPE-${generateId()}`,
+      children: [],
+      meta: {
+        width,
+        height: Math.round(height * 100 / ROW_HEIGHT),
+        code,
+      },
+    };
+  }
   return {
     type: CHART_TYPE,
     id: `DASHBOARD_CHART_TYPE-${generateId()}`,
@@ -135,7 +147,7 @@ function doConvert(positions, level, parent, root) {
 
   if (positions.length === 1 || level >= MAX_RECURSIVE_LEVEL) {
     // special treatment for single chart dash, always wrap chart inside a row
-    if (parent.type === 'DASHBOARD_GRID_TYPE') {
+    if (parent.type === DASHBOARD_GRID_TYPE) {
       const rowContainer = getRowContainer();
       root[rowContainer.id] = rowContainer;
       parent.children.push(rowContainer.id);
@@ -181,7 +193,7 @@ function doConvert(positions, level, parent, root) {
       return;
     }
 
-    if (layer.length === 1) {
+    if (layer.length === 1 && parent.type === COLUMN_TYPE) {
       const chartHolder = getChartHolder(layer[0]);
       root[chartHolder.id] = chartHolder;
       parent.children.push(chartHolder.id);
@@ -262,42 +274,7 @@ function doConvert(positions, level, parent, root) {
   });
 }
 
-export default function(dashboard) {
-  const positions = [];
-
-  // position data clean up. some dashboard didn't have position_json
-  let { position_json } = dashboard;
-  const positionDict = {};
-  if (Array.isArray(position_json)) {
-    position_json.forEach(position => {
-      positionDict[position.slice_id] = position;
-    });
-  } else {
-    position_json = [];
-  }
-
-  const lastRowId = Math.max(
-    0,
-    Math.max.apply(null, position_json.map(pos => pos.row + pos.size_y)),
-  );
-  let newSliceCounter = 0;
-  dashboard.slices.forEach(({ slice_id }) => {
-    let position = positionDict[slice_id];
-    if (!position) {
-      // append new slices to dashboard bottom, 3 slices per row
-      position = {
-        col: (newSliceCounter % 3) * 16 + 1,
-        row: lastRowId + Math.floor(newSliceCounter / 3) * 16,
-        size_x: 16,
-        size_y: 16,
-        slice_id,
-      };
-      newSliceCounter += 1;
-    }
-
-    positions.push(position);
-  });
-
+export function convertToLayout(positions) {
   const root = {
     [DASHBOARD_VERSION_KEY]: 'v2',
     [DASHBOARD_ROOT_ID]: {
@@ -322,5 +299,50 @@ export default function(dashboard) {
     }
   });
 
+  // console.log(JSON.stringify(root));
   return root;
+}
+
+export default function(dashboard) {
+  const positions = [];
+
+  // position data clean up. some dashboard didn't have position_json
+  let { position_json } = dashboard;
+  const positionDict = {};
+  if (Array.isArray(position_json)) {
+    position_json.forEach(position => {
+      positionDict[position.slice_id] = position;
+    });
+  } else {
+    position_json = [];
+  }
+
+  const lastRowId = Math.max(
+    0,
+    Math.max.apply(null, position_json.map(pos => pos.row + pos.size_y)),
+  );
+  let newSliceCounter = 0;
+  dashboard.slices.forEach(({ slice_id, form_data }) => {
+    let position = positionDict[slice_id];
+    if (!position) {
+      // append new slices to dashboard bottom, 3 slices per row
+      position = {
+        col: (newSliceCounter % 3) * 16 + 1,
+        row: lastRowId + Math.floor(newSliceCounter / 3) * 16,
+        size_x: 16,
+        size_y: 16,
+        slice_id,
+      };
+      newSliceCounter += 1;
+    }
+    if (form_data && ['markup', 'separator'].indexOf(form_data.viz_type) > -1) {
+      position = {
+        ...position,
+        code: form_data.code,
+      };
+    }
+    positions.push(position);
+  });
+
+  return convertToLayout(positions);
 }

@@ -34,6 +34,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   showBuilderPane: PropTypes.bool,
   handleComponentDrop: PropTypes.func.isRequired,
+  toggleBuilderPane: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -184,6 +185,7 @@ class DashboardBuilder extends React.Component {
             this.props.showBuilderPane && (
               <BuilderComponentPane
                 topOffset={topLevelTabs ? TABS_HEIGHT : 0}
+                toggleBuilderPane={this.props.toggleBuilderPane}
               />
             )}
         </div>

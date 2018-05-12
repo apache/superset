@@ -9,11 +9,13 @@ import NewDivider from './gridComponents/new/NewDivider';
 import NewHeader from './gridComponents/new/NewHeader';
 import NewRow from './gridComponents/new/NewRow';
 import NewTabs from './gridComponents/new/NewTabs';
+import NewMarkdown from './gridComponents/new/NewMarkdown';
 import SliceAdder from '../containers/SliceAdder';
 import { t } from '../../locales';
 
 const propTypes = {
   topOffset: PropTypes.number,
+  toggleBuilderPane: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -52,7 +54,12 @@ class BuilderComponentPane extends React.PureComponent {
               >
                 <div className="component-layer slide-content">
                   <div className="dashboard-builder-sidepane-header">
-                    {t('Saved components')}
+                    <span>{t('Insert')}</span>
+                    <i
+                      className="fa fa-times trigger"
+                      onClick={this.props.toggleBuilderPane}
+                      role="none"
+                    />
                   </div>
                   <div
                     className="new-component static"
@@ -67,17 +74,12 @@ class BuilderComponentPane extends React.PureComponent {
                     <i className="fa fa-arrow-right trigger" />
                   </div>
 
-                  <div className="dashboard-builder-sidepane-header">
-                    {t('Containers')}
-                  </div>
                   <NewTabs />
                   <NewRow />
                   <NewColumn />
 
-                  <div className="dashboard-builder-sidepane-header">
-                    {t('More components')}
-                  </div>
                   <NewHeader />
+                  <NewMarkdown />
                   <NewDivider />
                 </div>
                 <div className="slices-layer slide-content">
@@ -87,7 +89,7 @@ class BuilderComponentPane extends React.PureComponent {
                     role="none"
                   >
                     <i className="fa fa-arrow-left trigger" />
-                    {t('All components')}
+                    <span>{t('All components')}</span>
                   </div>
                   <SliceAdder height={calculatedHeight} />
                 </div>
