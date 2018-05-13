@@ -94,6 +94,7 @@ class BaseEngineSpec(object):
     def apply_limit_to_sql(cls, sql, limit, database):
         """Alters the SQL statement to apply a LIMIT clause"""
         if cls.limit_method == LimitMethod.WRAP_SQL:
+            sql = sql.strip('\t\n ;')
             qry = (
                 select('*')
                 .select_from(
@@ -104,6 +105,13 @@ class BaseEngineSpec(object):
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
             no_limit = re.sub(r'(?i)\s+LIMIT\s+\d+;?(\s|;)*$', '', sql)
+            no_limit = re.sub(r"""
+                (?ix)        # case insensitive, verbose
+                \s+          # whitespace
+                LIMIT\s+\d+  # LIMIT $ROWS
+                ;?           # optional semi-colon
+                (\s|;)*$     # remove trailing spaces tabs or semicolons
+                """, '', sql)
             return '{no_limit} LIMIT {limit}'.format(**locals())
         return sql
 

@@ -719,7 +719,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             self, table_name, schema=schema, limit=limit, show_cols=show_cols,
             indent=indent, latest_partition=latest_partition, cols=cols)
 
-    def wrap_sql_limit(self, sql, limit=1000):
+    def apply_limit_to_sql(self, sql, limit=1000):
         return self.db_engine_spec.apply_limit_to_sql(sql, limit, self)
 
     def safe_sqlalchemy_uri(self):
