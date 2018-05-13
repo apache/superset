@@ -55,7 +55,7 @@ setup(
         'celery',
         'colorama',
         'cryptography',
-        'flask',
+        'flask<=1.0.0',
         'flask-appbuilder',
         'flask-caching',
         'flask-compress',
