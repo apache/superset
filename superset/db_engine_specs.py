@@ -35,6 +35,7 @@ from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import text
+from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 import unicodecsv
 from werkzeug.utils import secure_filename
@@ -55,6 +56,7 @@ class LimitMethod(object):
     """Enum the ways that limits can be applied"""
     FETCH_MANY = 'fetch_many'
     WRAP_SQL = 'wrap_sql'
+    FORCE_LIMIT = 'force_limit'
 
 
 class BaseEngineSpec(object):
@@ -65,7 +67,7 @@ class BaseEngineSpec(object):
     cursor_execute_kwargs = {}
     time_grains = tuple()
     time_groupby_inline = False
-    limit_method = LimitMethod.FETCH_MANY
+    limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
     inner_joins = True
 
@@ -87,6 +89,30 @@ class BaseEngineSpec(object):
     def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
+
+    @classmethod
+    def apply_limit_to_sql(cls, sql, limit, database):
+        """Alters the SQL statement to apply a LIMIT clause"""
+        if cls.limit_method == LimitMethod.WRAP_SQL:
+            sql = sql.strip('\t\n ;')
+            qry = (
+                select('*')
+                .select_from(
+                    TextAsFrom(text(sql), ['*']).alias('inner_qry'),
+                )
+                .limit(limit)
+            )
+            return database.compile_sqla_query(qry)
+        elif LimitMethod.FORCE_LIMIT:
+            no_limit = re.sub(r"""
+                (?ix)        # case insensitive, verbose
+                \s+          # whitespace
+                LIMIT\s+\d+  # LIMIT $ROWS
+                ;?           # optional semi-colon
+                (\s|;)*$     # remove trailing spaces tabs or semicolons
+                """, '', sql)
+            return '{no_limit} LIMIT {limit}'.format(**locals())
+        return sql
 
     @staticmethod
     def csv_to_df(**kwargs):
@@ -346,7 +372,6 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
-
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), "DATE_TRUNC('SECOND', {col})", 'PT1S'),
@@ -374,6 +399,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
+    limit_method = LimitMethod.WRAP_SQL
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -399,6 +425,7 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
+    limit_method = LimitMethod.WRAP_SQL
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'),
@@ -1123,6 +1150,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
+    limit_method = LimitMethod.WRAP_SQL
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -1327,7 +1355,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
 class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
-    limit_method = LimitMethod.FETCH_MANY
     inner_joins = False
 
 
