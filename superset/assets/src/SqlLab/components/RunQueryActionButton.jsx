@@ -30,7 +30,7 @@ export default function RunQueryActionButton(props) {
   };
 
   if (shouldShowStopBtn) {
-    return(
+    return (
       <Button
         {...commonBtnProps}
         onClick={props.stopQuery}
@@ -49,7 +49,6 @@ export default function RunQueryActionButton(props) {
       >
         <i className="fa fa-table" /> {runBtnText}
       </Button>);
-    button = asyncBtn;
   }
   return (
     <Button
