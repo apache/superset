@@ -100,8 +100,10 @@ class BaseViz(object):
                     val = [val]
                 for o in val:
                     self.metric_dict[self.get_metric_label(o)] = o
-        self.all_metrics = self.metric_dict.values()
-        self.metric_labels = self.metric_dict.keys()
+
+        # Cast to list needed to return serializable object in py3
+        self.all_metrics = list(self.metric_dict.values())
+        self.metric_labels = list(self.metric_dict.keys())
 
     def get_metric_label(self, metric):
         if isinstance(metric, string_types):
