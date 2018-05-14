@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """The main config file for Superset
 
 All configuration in this file can be overridden by providing a superset_config
@@ -42,12 +43,12 @@ ROW_LIMIT = 50000
 VIZ_ROW_LIMIT = 10000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
-SUPERSET_WORKERS = 2
-SUPERSET_CELERY_WORKERS = 32
+SUPERSET_WORKERS = 2  # deprecated
+SUPERSET_CELERY_WORKERS = 32  # deprecated
 
 SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
 SUPERSET_WEBSERVER_PORT = 8088
-SUPERSET_WEBSERVER_TIMEOUT = 60
+SUPERSET_WEBSERVER_TIMEOUT = 60  # deprecated
 EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -164,6 +165,8 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
+    'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
+    'ru': {'flag': 'ru', 'name': 'Russian'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -244,7 +247,7 @@ INTERVAL = 1
 BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
-MAPBOX_API_KEY = ''
+MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000000
@@ -355,6 +358,9 @@ SILENCE_FAB = True
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ''
 
+# CSRF token timeout, set to None for a token that never expires
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 7
+
 # This link should lead to a page with instructions on how to gain access to a
 # Datasource. It will be placed at the bottom of permissions errors.
 PERMISSION_INSTRUCTIONS_LINK = ''
@@ -376,6 +382,36 @@ HIVE_POLL_INTERVAL = 5
 # geospatial ones) by inputing javascript in controls. This exposes
 # an XSS security vulnerability
 ENABLE_JAVASCRIPT_CONTROLS = False
+
+# A callable that allows altering the database conneciton URL and params
+# on the fly, at runtime. This allows for things like impersonation or
+# arbitrary logic. For instance you can wire different users to
+# use different connection parameters, or pass their email address as the
+# username. The function receives the connection uri object, connection
+# params, the username, and returns the mutated uri and params objects.
+# Example:
+#   def DB_CONNECTION_MUTATOR(uri, params, username, security_manager):
+#       user = security_manager.find_user(username=username)
+#       if user and user.email:
+#           uri.username = user.email
+#       return uri, params
+#
+# Note that the returned uri and params are passed directly to sqlalchemy's
+# as such `create_engine(url, **params)`
+DB_CONNECTION_MUTATOR = None
+
+# A function that intercepts the SQL to be executed and can alter it.
+# The use case is can be around adding some sort of comment header
+# with information such as the username and worker node information
+#
+#    def SQL_QUERY_MUTATOR(sql, username, security_manager):
+#        dttm = datetime.now().isoformat()
+#        return "-- [SQL LAB] {username} {dttm}\n sql"(**locals())
+SQL_QUERY_MUTATOR = None
+
+# When not using gunicorn, (nginx for instance), you may want to disable
+# using flask-compress
+ENABLE_FLASK_COMPRESS = True
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """a collection of Annotation-related models"""
 from __future__ import absolute_import
 from __future__ import division

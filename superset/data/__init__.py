@@ -1,4 +1,5 @@
 """Loads datasets, dashboards and slices in a new superset instance"""
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -16,10 +17,9 @@ from sqlalchemy import BigInteger, Date, DateTime, Float, String, Text
 import geohash
 import polyline
 
-from superset import app, db, utils
+from superset import app, db, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.models import core as models
-from superset.security import get_or_create_main_db
 
 # Shortcuts
 DB = models.Database
@@ -71,7 +71,7 @@ def load_energy():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -179,7 +179,7 @@ def load_world_bank_health_n_pop():
         tbl = TBL(table_name=tbl_name)
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     tbl.filter_select_enabled = True
     db.session.merge(tbl)
     db.session.commit()
@@ -189,7 +189,7 @@ def load_world_bank_health_n_pop():
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "year",
+        "granularity_sqla": "year",
         "groupby": [],
         "metric": 'sum__SP_POP_TOTL',
         "metrics": ["sum__SP_POP_TOTL"],
@@ -583,7 +583,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     obj.filter_select_enabled = True
     db.session.merge(obj)
     db.session.commit()
@@ -594,7 +594,7 @@ def load_birth_names():
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "ds",
+        "granularity_sqla": "ds",
         "groupby": [],
         "metric": 'sum__num',
         "metrics": ["sum__num"],
@@ -643,7 +643,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="big_number", granularity="ds",
+                viz_type="big_number", granularity_sqla="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
         Slice(
             slice_name="Genders",
@@ -676,7 +676,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="line", groupby=['name'],
-                granularity='ds', rich_tooltip=True, show_legend=True)),
+                granularity_sqla='ds', rich_tooltip=True, show_legend=True)),
         Slice(
             slice_name="Average and Sum Trends",
             viz_type='dual_line',
@@ -685,7 +685,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="dual_line", metric='avg__num', metric_2='sum__num',
-                granularity='ds')),
+                granularity_sqla='ds')),
         Slice(
             slice_name="Title",
             viz_type='markup',
@@ -730,7 +730,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                viz_type="big_number_total", granularity="ds",
+                viz_type="big_number_total", granularity_sqla="ds",
                 filters=[{
                     'col': 'gender',
                     'op': 'in',
@@ -847,7 +847,7 @@ def load_unicode_test_data():
     df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'),
                      encoding="utf-8")
     # generate date/numeric data
-    df['date'] = datetime.datetime.now().date()
+    df['dttm'] = datetime.datetime.now().date()
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
     df.to_sql(  # pylint: disable=no-member
         'unicode_test',
@@ -858,7 +858,7 @@ def load_unicode_test_data():
             'phrase': String(500),
             'short_phrase': String(10),
             'with_missing': String(100),
-            'date': Date(),
+            'dttm': Date(),
             'value': Float(),
         },
         index=False)
@@ -869,15 +869,15 @@ def load_unicode_test_data():
     obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
     if not obj:
         obj = TBL(table_name='unicode_test')
-    obj.main_dttm_col = 'date'
-    obj.database = get_or_create_main_db()
+    obj.main_dttm_col = 'dttm'
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
     slice_data = {
-        "granularity": "date",
+        "granularity_sqla": "dttm",
         "groupby": [],
         "metric": 'sum__value',
         "row_limit": config.get("ROW_LIMIT"),
@@ -948,14 +948,14 @@ def load_random_time_series_data():
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
     slice_data = {
-        "granularity": "day",
+        "granularity_sqla": "day",
         "row_limit": config.get("ROW_LIMIT"),
         "since": "1 year ago",
         "until": "now",
@@ -981,7 +981,7 @@ def load_country_map_data():
     """Loading data for map with country map"""
     csv_path = os.path.join(DATA_FOLDER, 'birth_france_data_for_country_map.csv')
     data = pd.read_csv(csv_path, encoding="utf-8")
-    data['date'] = datetime.datetime.now().date()
+    data['dttm'] = datetime.datetime.now().date()
     data.to_sql(  # pylint: disable=no-member
         'birth_france_by_region',
         db.engine,
@@ -1001,7 +1001,7 @@ def load_country_map_data():
             '2012': BigInteger,
             '2013': BigInteger,
             '2014': BigInteger,
-            'date': Date(),
+            'dttm': Date(),
         },
         index=False)
     print("Done loading table!")
@@ -1010,15 +1010,15 @@ def load_country_map_data():
     obj = db.session.query(TBL).filter_by(table_name='birth_france_by_region').first()
     if not obj:
         obj = TBL(table_name='birth_france_by_region')
-    obj.main_dttm_col = 'date'
-    obj.database = get_or_create_main_db()
+    obj.main_dttm_col = 'dttm'
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
     slice_data = {
-        "granularity": "",
+        "granularity_sqla": "",
         "since": "",
         "until": "",
         "where": "",
@@ -1086,14 +1086,14 @@ def load_long_lat_data():
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'datetime'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
     slice_data = {
-        "granularity": "day",
+        "granularity_sqla": "day",
         "since": "2014-01-01",
         "until": "now",
         "where": "",
@@ -1147,7 +1147,7 @@ def load_multiformat_time_series_data():
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_main_db()
+    obj.database = utils.get_or_create_main_db()
     dttm_and_expr_dict = {
         'ds': [None, None],
         'ds2': [None, None],
@@ -1173,7 +1173,7 @@ def load_multiformat_time_series_data():
         slice_data = {
             "metric": 'count',
             "granularity_sqla": col.column_name,
-            "granularity": "day",
+            "granularity_sqla": "day",
             "row_limit": config.get("ROW_LIMIT"),
             "since": "1 year ago",
             "until": "now",
@@ -1292,7 +1292,7 @@ def load_deck_dash():
         },
         "datasource": "5__table",
         "filters": [],
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "groupby": [],
         "having": "",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
@@ -1302,7 +1302,7 @@ def load_deck_dash():
         "row_limit": 5000,
         "since": None,
         "size": "count",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "until": None,
         "viewport": {
             "bearing": -4.952916738791771,
@@ -1336,7 +1336,7 @@ def load_deck_dash():
             "latCol": "LAT",
         },
         "mapbox_style": "mapbox://styles/mapbox/dark-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_screengrid",
         "since": None,
@@ -1360,7 +1360,7 @@ def load_deck_dash():
         },
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Screen Grid slice")
@@ -1383,7 +1383,7 @@ def load_deck_dash():
         "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/streets-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_hex",
         "since": None,
@@ -1409,7 +1409,7 @@ def load_deck_dash():
         "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Hex slice")
@@ -1432,7 +1432,7 @@ def load_deck_dash():
         "filters": [],
         "row_limit": 5000,
         "mapbox_style": "mapbox://styles/mapbox/satellite-streets-v9",
-        "granularity_sqla": "date",
+        "granularity_sqla": "dttm",
         "size": "count",
         "viz_type": "deck_grid",
         "since": None,
@@ -1458,7 +1458,7 @@ def load_deck_dash():
         "where": "",
         "point_radius_fixed": {"type": "fix", "value": 2000},
         "datasource": "5__table",
-        "time_grain_sqla": "Time Column",
+        "time_grain_sqla": None,
         "groupby": [],
     }
     print("Creating Grid slice")
@@ -1475,62 +1475,62 @@ def load_deck_dash():
     polygon_tbl = db.session.query(TBL) \
                     .filter_by(table_name='sf_population_polygons').first()
     slice_data = {
-            "datasource": "11__table",
-            "viz_type": "deck_polygon",
-            "slice_id": 41,
-            "granularity_sqla": None,
-            "time_grain_sqla": None,
-            "since": None,
-            "until": None,
-            "line_column": "contour",
-            "line_type": "json",
-            "mapbox_style": "mapbox://styles/mapbox/light-v9",
-            "viewport": {
-                "longitude": -122.43388541747726,
-                "latitude": 37.752020331384834,
-                "zoom": 11.133995608594631,
-                "bearing": 37.89506450385642,
-                "pitch": 60,
-                "width": 667,
-                "height": 906,
-                "altitude": 1.5,
-                "maxZoom": 20,
-                "minZoom": 0,
-                "maxPitch": 60,
-                "minPitch": 0,
-                "maxLatitude": 85.05113,
-                "minLatitude": -85.05113
-            },
-            "reverse_long_lat": False,
-            "fill_color_picker": {
-                "r": 3,
-                "g": 65,
-                "b": 73,
-                "a": 1
-            },
-            "stroke_color_picker": {
-                "r": 0,
-                "g": 122,
-                "b": 135,
-                "a": 1
-            },
-            "filled": True,
-            "stroked": False,
-            "extruded": True,
-            "point_radius_scale": 100,
-            "js_columns": [
-                "population",
-                "area"
-            ],
-            "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
-             d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
-             return d;\n}",
-            "js_tooltip": "",
-            "js_onclick_href": "",
-            "where": "",
-            "having": "",
-            "filters": []
-        }
+        "datasource": "11__table",
+        "viz_type": "deck_polygon",
+        "slice_id": 41,
+        "granularity_sqla": None,
+        "time_grain_sqla": None,
+        "since": None,
+        "until": None,
+        "line_column": "contour",
+        "line_type": "json",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "longitude": -122.43388541747726,
+            "latitude": 37.752020331384834,
+            "zoom": 11.133995608594631,
+            "bearing": 37.89506450385642,
+            "pitch": 60,
+            "width": 667,
+            "height": 906,
+            "altitude": 1.5,
+            "maxZoom": 20,
+            "minZoom": 0,
+            "maxPitch": 60,
+            "minPitch": 0,
+            "maxLatitude": 85.05113,
+            "minLatitude": -85.05113
+        },
+        "reverse_long_lat": False,
+        "fill_color_picker": {
+            "r": 3,
+            "g": 65,
+            "b": 73,
+            "a": 1
+        },
+        "stroke_color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "filled": True,
+        "stroked": False,
+        "extruded": True,
+        "point_radius_scale": 100,
+        "js_columns": [
+            "population",
+            "area"
+        ],
+        "js_datapoint_mutator": "(d) => {\n    d.elevation = d.extraProps.population/d.extraProps.area/10\n \
+         d.fillColor = [d.extraProps.population/d.extraProps.area/60,140,0]\n \
+         return d;\n}",
+        "js_tooltip": "",
+        "js_onclick_href": "",
+        "where": "",
+        "having": "",
+        "filters": []
+    }
 
     print("Creating Polygon slice")
     slc = Slice(
@@ -1544,52 +1544,52 @@ def load_deck_dash():
     slices.append(slc)
 
     slice_data = {
-            "datasource": "10__table",
-            "viz_type": "deck_arc",
-            "slice_id": 42,
-            "granularity_sqla": "date",
-            "time_grain_sqla": "Time Column",
-            "since": None,
-            "until": None,
-            "start_spatial": {
-                "type": "latlong",
-                "latCol": "LATITUDE",
-                "lonCol": "LONGITUDE"
-            },
-            "end_spatial": {
-                "type": "latlong",
-                "latCol": "LATITUDE_DEST",
-                "lonCol": "LONGITUDE_DEST"
-            },
-            "row_limit": 5000,
-            "mapbox_style": "mapbox://styles/mapbox/light-v9",
-            "viewport": {
-                "altitude": 1.5,
-                "bearing": 8.546256357301871,
-                "height": 642,
-                "latitude": 44.596651438714254,
-                "longitude": -91.84340711201104,
-                "maxLatitude": 85.05113,
-                "maxPitch": 60,
-                "maxZoom": 20,
-                "minLatitude": -85.05113,
-                "minPitch": 0,
-                "minZoom": 0,
-                "pitch": 60,
-                "width": 997,
-                "zoom": 2.929837070560775
-            },
-            "color_picker": {
-                "r": 0,
-                "g": 122,
-                "b": 135,
-                "a": 1
-            },
-            "stroke_width": 1,
-            "where": "",
-            "having": "",
-            "filters": []
-        }
+        "datasource": "10__table",
+        "viz_type": "deck_arc",
+        "slice_id": 42,
+        "granularity_sqla": "dttm",
+        "time_grain_sqla": "Time Column",
+        "since": None,
+        "until": None,
+        "start_spatial": {
+            "type": "latlong",
+            "latCol": "LATITUDE",
+            "lonCol": "LONGITUDE"
+        },
+        "end_spatial": {
+            "type": "latlong",
+            "latCol": "LATITUDE_DEST",
+            "lonCol": "LONGITUDE_DEST"
+        },
+        "row_limit": 5000,
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "viewport": {
+            "altitude": 1.5,
+            "bearing": 8.546256357301871,
+            "height": 642,
+            "latitude": 44.596651438714254,
+            "longitude": -91.84340711201104,
+            "maxLatitude": 85.05113,
+            "maxPitch": 60,
+            "maxZoom": 20,
+            "minLatitude": -85.05113,
+            "minPitch": 0,
+            "minZoom": 0,
+            "pitch": 60,
+            "width": 997,
+            "zoom": 2.929837070560775
+        },
+        "color_picker": {
+            "r": 0,
+            "g": 122,
+            "b": 135,
+            "a": 1
+        },
+        "stroke_width": 1,
+        "where": "",
+        "having": "",
+        "filters": []
+    }
 
     print("Creating Arc slice")
     slc = Slice(
@@ -1769,7 +1769,7 @@ def load_flights():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Random set of flights in the US"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -1800,7 +1800,7 @@ def load_paris_iris_geojson():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Map of Paris"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -1830,7 +1830,7 @@ def load_sf_population_polygons():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Population density of San Francisco"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -1860,7 +1860,7 @@ def load_bart_lines():
     if not tbl:
         tbl = TBL(table_name=tbl_name)
     tbl.description = "BART lines"
-    tbl.database = get_or_create_main_db()
+    tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()

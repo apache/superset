@@ -1,4 +1,4 @@
-import { getInitialState } from '../../../javascripts/dashboard/reducers';
+import { getInitialState } from '../../../src/dashboard/reducers';
 
 export const defaultFilters = {
   256: { region: [] },

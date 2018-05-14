@@ -3,8 +3,9 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import MetricOption from '../../../javascripts/components/MetricOption';
-import InfoTooltipWithTrigger from '../../../javascripts/components/InfoTooltipWithTrigger';
+import MetricOption from '../../../src/components/MetricOption';
+import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
+import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
 
 describe('MetricOption', () => {
   const defaultProps = {
@@ -15,6 +16,7 @@ describe('MetricOption', () => {
       description: 'Foo is the greatest metric of all',
       warning_text: 'Be careful when using foo',
     },
+    showType: false,
   };
 
   let wrapper;
@@ -58,5 +60,10 @@ describe('MetricOption', () => {
     props.openInNewWindow = true;
     wrapper = shallow(factory(props));
     expect(wrapper.find('a').prop('target')).to.equal('_blank');
+  });
+  it('shows a metric type label when showType is true', () => {
+    props.showType = true;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
   });
 });

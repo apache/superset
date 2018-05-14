@@ -10,8 +10,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 import { table, initialState } from './fixtures';
-import TabbedSqlEditors from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
-import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
+import TabbedSqlEditors from '../../../src/SqlLab/components/TabbedSqlEditors';
+import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
 
 describe('TabbedSqlEditors', () => {
   const middlewares = [thunk];
@@ -51,6 +51,7 @@ describe('TabbedSqlEditors', () => {
     tabHistory: initialState.tabHistory,
     editorHeight: '',
     getHeight: () => ('100px'),
+    database: {},
   };
   const getWrapper = () => (
     shallow(<TabbedSqlEditors {...mockedProps} />, {

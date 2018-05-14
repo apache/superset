@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """a collection of model-related helper classes and functions"""
 from __future__ import absolute_import
 from __future__ import division
@@ -20,8 +21,17 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm.exc import MultipleResultsFound
 import yaml
 
-from superset import sm
+from superset import security_manager
 from superset.utils import QueryStatus
+
+
+def json_to_dict(json_str):
+    if json_str:
+        val = re.sub(',[ \t\r\n]+}', '}', json_str)
+        val = re.sub(',[ \t\r\n]+\]', ']', val)
+        return json.loads(val)
+    else:
+        return {}
 
 
 class ImportMixin(object):
@@ -215,12 +225,11 @@ class ImportMixin(object):
 
     @property
     def params_dict(self):
-        if self.params:
-            params = re.sub(',[ \t\r\n]+}', '}', self.params)
-            params = re.sub(',[ \t\r\n]+\]', ']', params)
-            return json.loads(params)
-        else:
-            return {}
+        return json_to_dict(self.params)
+
+    @property
+    def template_params_dict(self):
+        return json_to_dict(self.template_params)
 
 
 class AuditMixinNullable(AuditMixin):
@@ -353,4 +362,4 @@ def set_perm(mapper, connection, target):  # noqa
         )
 
     # add to view menu if not already exists
-    merge_perm(sm, 'datasource_access', target.get_perm(), connection)
+    merge_perm(security_manager, 'datasource_access', target.get_perm(), connection)

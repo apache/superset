@@ -1,31 +1,46 @@
 language: python
+python:
+  - 2.7
+  - 3.6
 services:
-    - redis-server
-addons:
-  code_climate:
-    repo_token: 5f3a06c425eef7be4b43627d7d07a3e46c45bdc07155217825ff7c49cb6a470c
+  - mysql
+  - postgres
+  - redis-server
 cache:
-  directories:
-    - $HOME/.wheelhouse/
-env:
-  global:
-    - TRAVIS_CACHE=$HOME/.travis_cache/
-  matrix:
-    - TOX_ENV=flake8
-    - TOX_ENV=javascript
-    - TOX_ENV=pylint
-    - TOX_ENV=py34-postgres
-    - TOX_ENV=py34-sqlite
-    - TOX_ENV=py27-mysql
-    - TOX_ENV=py27-sqlite
+  - pip
+matrix:
+  include:
+    - python: 2.7
+      env: TOXENV=flake8
+    - python: 2.7
+      env: TOXENV=py27-mysql
+    - python: 2.7
+      env: TOXENV=py27-sqlite
+    - python: 2.7
+      env: TOXENV=pylint
+    - python: 3.6
+      env: TOXENV=flake8
+    - python: 3.6
+      env: TOXENV=javascript
+    - python: 3.6
+      env: TOXENV=py36-postgres
+    - python: 3.6
+      env: TOXENV=py36-sqlite
+    - python: 3.6
+      env: TOXENV=pylint
+  exclude:
+    - python: 2.7
+    - python: 3.6
 before_script:
   - mysql -u root -e "DROP DATABASE IF EXISTS superset; CREATE DATABASE superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci"
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
   - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
   - psql -U postgres -c "CREATE DATABASE superset;"
   - psql -U postgres -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';"
-  - export PATH=${PATH}:/tmp/hive/bin
 install:
   - pip install --upgrade pip
-  - pip install tox tox-travis
-script: tox -e $TOX_ENV
+  - pip install codecov tox
+script:
+  - tox
+after_success:
+  - codecov

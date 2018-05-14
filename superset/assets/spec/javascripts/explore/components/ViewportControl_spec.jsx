@@ -6,10 +6,10 @@ import { shallow } from 'enzyme';
 import { OverlayTrigger, Label } from 'react-bootstrap';
 
 import ViewportControl from
-  '../../../../javascripts/explore/components/controls/ViewportControl';
+  '../../../../src/explore/components/controls/ViewportControl';
 import TextControl from
-  '../../../../javascripts/explore/components/controls/TextControl';
-import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+  '../../../../src/explore/components/controls/TextControl';
+import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
   value: {

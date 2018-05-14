@@ -4,8 +4,8 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 import { initialState, queries, table } from './fixtures';
-import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
-import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
+import SqlEditor from '../../../src/SqlLab/components/SqlEditor';
+import SqlEditorLeftBar from '../../../src/SqlLab/components/SqlEditorLeftBar';
 
 describe('SqlEditor', () => {
   const mockedProps = {

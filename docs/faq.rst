@@ -48,8 +48,10 @@ https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed
 Can I upload and visualize csv data?
 ------------------------------------
 
-Yes, using the ``Upload a CSV`` button under the ``Sources``
-menu item. This brings up a form that allows you specify required information. After creating the table from CSV, it can then be loaded like any other on the ``Sources -> Tables``page.
+Yes, using the ``Upload a CSV`` button under the ``Sources`` menu item.
+This brings up a form that allows you specify required information.
+After creating the table from CSV, it can then be loaded like any
+other on the ``Sources -> Tables`` page.
 
 
 Why are my queries timing out?
@@ -106,7 +108,7 @@ edit the ``JSON Metadata`` field, more specifically the
 never be affected by any dashboard level filtering.
 
 
-..code:: json
+.. code-block:: json
 
     {
         "filter_immune_slices": [324, 65, 92],
@@ -141,7 +143,7 @@ to be refreshed - especially if some data is slow moving, or run heavy queries. 
 slices from the timed refresh process, add the ``timed_refresh_immune_slices`` key to the dashboard
 ``JSON Metadata`` field:
 
-..code:: json
+.. code-block:: json
 
     {
        "filter_immune_slices": [],
@@ -157,7 +159,7 @@ Slice refresh will also be staggered over the specified period. You can turn off
 by setting the ``stagger_refresh`` to ``false`` and modify the stagger period by setting
 ``stagger_time`` to a value in milliseconds in the ``JSON Metadata`` field:
 
-..code:: json
+.. code-block:: json
 
     {
         "stagger_refresh": false,
@@ -168,7 +170,7 @@ Here, the entire dashboard will refresh at once if periodic refresh is on. The s
 2.5 seconds is ignored.
 
 Why does fabmanager or superset freezed/hung/not responding when started (my home directory is NFS mounted)?
------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------
 By default, superset creates and uses an sqlite database at ``~/.superset/superset.db``. Sqlite is known to `don't work well if used on NFS`__ due to broken file locking implementation on NFS.
 
 __ https://www.sqlite.org/lockingv3.html
@@ -236,7 +238,7 @@ It is possible on a per-dashboard basis by providing a mapping of
 labels to colors in the ``JSON Metadata`` attribute using the
 ``label_colors`` key.
 
-..code:: json
+.. code-block:: json
 
     {
         "label_colors": {

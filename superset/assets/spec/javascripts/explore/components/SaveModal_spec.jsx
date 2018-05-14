@@ -8,9 +8,9 @@ import { shallow, mount } from 'enzyme';
 import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 
-import * as exploreUtils from '../../../../javascripts/explore/exploreUtils';
-import * as saveModalActions from '../../../../javascripts/explore/actions/saveModalActions';
-import SaveModal from '../../../../javascripts/explore/components/SaveModal';
+import * as exploreUtils from '../../../../src/explore/exploreUtils';
+import * as saveModalActions from '../../../../src/explore/actions/saveModalActions';
+import SaveModal from '../../../../src/explore/components/SaveModal';
 
 const $ = window.$ = require('jquery');
 

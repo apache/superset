@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import sinon from 'sinon';
 import { expect } from 'chai';
 
-import EditableTable from '../../../javascripts/components/EditableTitle';
+import EditableTable from '../../../src/components/EditableTitle';
 
 describe('EditableTitle', () => {
   const callback = sinon.spy();

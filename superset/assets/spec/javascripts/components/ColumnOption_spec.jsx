@@ -3,8 +3,9 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import ColumnOption from '../../../javascripts/components/ColumnOption';
-import InfoTooltipWithTrigger from '../../../javascripts/components/InfoTooltipWithTrigger';
+import ColumnOption from '../../../src/components/ColumnOption';
+import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
+import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
 
 describe('ColumnOption', () => {
   const defaultProps = {
@@ -14,6 +15,7 @@ describe('ColumnOption', () => {
       expression: 'SUM(foo)',
       description: 'Foo is the greatest column of all',
     },
+    showType: false,
   };
 
   let wrapper;
@@ -43,5 +45,40 @@ describe('ColumnOption', () => {
     props.column.verbose_name = null;
     wrapper = shallow(factory(props));
     expect(wrapper.find('.option-label').first().text()).to.equal('foo');
+  });
+  it('shows a column type label when showType is true', () => {
+    wrapper = shallow(factory({
+      ...props,
+      showType: true,
+      column: {
+        expression: null,
+        type: 'str',
+      },
+    }));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+  });
+  it('column with expression has correct column label if showType is true', () => {
+    props.showType = true;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+    expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('expression');
+  });
+  it('shows no column type label when type is null', () => {
+    wrapper = shallow(factory({
+      ...props,
+      showType: true,
+      column: {
+        expression: null,
+        type: null,
+      },
+    }));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(0);
+  });
+  it('dttm column has correct column label if showType is true', () => {
+    props.showType = true;
+    props.column.is_dttm = true;
+    wrapper = shallow(factory(props));
+    expect(wrapper.find(ColumnTypeLabel)).to.have.length(1);
+    expect(wrapper.find(ColumnTypeLabel).props().type).to.equal('time');
   });
 });
