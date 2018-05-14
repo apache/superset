@@ -15,13 +15,13 @@ RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 
 
-# TODO: some sql_lab logic here.
 class SupersetQuery(object):
     def __init__(self, sql_statement):
         self.sql = sql_statement
         self._table_names = set()
         self._alias_names = set()
         # TODO: multistatement support
+
         logging.info('Parsing with sqlparse statement {}'.format(self.sql))
         self._parsed = sqlparse.parse(self.sql)
         for statement in self._parsed:
@@ -36,11 +36,7 @@ class SupersetQuery(object):
         return self._parsed[0].get_type() == 'SELECT'
 
     def stripped(self):
-        sql = self.sql
-        if sql:
-            while sql[-1] in (' ', ';', '\n', '\t'):
-                sql = sql[:-1]
-            return sql
+        return self.sql.strip(' \t\n;')
 
     @staticmethod
     def __precedes_table_name(token_value):
@@ -65,13 +61,12 @@ class SupersetQuery(object):
 
     @staticmethod
     def __is_identifier(token):
-        return (
-            isinstance(token, IdentifierList) or isinstance(token, Identifier))
+        return isinstance(token, (IdentifierList, Identifier))
 
     def __process_identifier(self, identifier):
         # exclude subselects
         if '(' not in '{}'.format(identifier):
-            self._table_names.add(SupersetQuery.__get_full_name(identifier))
+            self._table_names.add(self.__get_full_name(identifier))
             return
 
         # store aliases
@@ -94,11 +89,6 @@ class SupersetQuery(object):
         :param overwrite, boolean, table table_name will be dropped if true
         :return: string, create table as query
         """
-        # TODO(bkyryliuk): enforce that all the columns have names.
-        # Presto requires it for the CTA operation.
-        # TODO(bkyryliuk): drop table if allowed, check the namespace and
-        #                  the permissions.
-        # TODO raise if multi-statement
         exec_sql = ''
         sql = self.stripped()
         if overwrite:
@@ -117,7 +107,7 @@ class SupersetQuery(object):
                 self.__extract_from_token(item)
 
             if item.ttype in Keyword:
-                if SupersetQuery.__precedes_table_name(item.value.upper()):
+                if self.__precedes_table_name(item.value.upper()):
                     table_name_preceding_token = True
                     continue
 
@@ -125,7 +115,7 @@ class SupersetQuery(object):
                 continue
 
             if item.ttype in Keyword:
-                if SupersetQuery.__is_result_operation(item.value):
+                if self.__is_result_operation(item.value):
                     table_name_preceding_token = False
                     continue
                 # FROM clause is over
@@ -136,5 +126,5 @@ class SupersetQuery(object):
 
             if isinstance(item, IdentifierList):
                 for token in item.tokens:
-                    if SupersetQuery.__is_identifier(token):
+                    if self.__is_identifier(token):
                         self.__process_identifier(token)

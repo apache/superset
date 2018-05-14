@@ -17,7 +17,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import NullPool
 
 from superset import app, dataframe, db, results_backend, security_manager, utils
-from superset.db_engine_specs import LimitMethod
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import get_celery_app, QueryStatus
@@ -186,9 +185,8 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    elif (query.limit and superset_query.is_select() and
-            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
-        executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
+    elif (query.limit and superset_query.is_select()):
+        executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
         query.limit_used = True
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL

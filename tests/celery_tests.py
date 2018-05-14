@@ -139,38 +139,6 @@ class CeleryTestCase(SupersetTestCase):
         self.logout()
         return json.loads(resp.data.decode('utf-8'))
 
-    def test_add_limit_to_the_query(self):
-        main_db = self.get_main_database(db.session)
-
-        select_query = 'SELECT * FROM outer_space;'
-        updated_select_query = main_db.wrap_sql_limit(select_query, 100)
-        # Different DB engines have their own spacing while compiling
-        # the queries, that's why ' '.join(query.split()) is used.
-        # In addition some of the engines do not include OFFSET 0.
-        self.assertTrue(
-            'SELECT * FROM (SELECT * FROM outer_space;) AS inner_qry '
-            'LIMIT 100' in ' '.join(updated_select_query.split()),
-        )
-
-        select_query_no_semicolon = 'SELECT * FROM outer_space'
-        updated_select_query_no_semicolon = main_db.wrap_sql_limit(
-            select_query_no_semicolon, 100)
-        self.assertTrue(
-            'SELECT * FROM (SELECT * FROM outer_space) AS inner_qry '
-            'LIMIT 100' in
-            ' '.join(updated_select_query_no_semicolon.split()),
-        )
-
-        multi_line_query = (
-            "SELECT * FROM planets WHERE\n Luke_Father = 'Darth Vader';"
-        )
-        updated_multi_line_query = main_db.wrap_sql_limit(multi_line_query, 100)
-        self.assertTrue(
-            'SELECT * FROM (SELECT * FROM planets WHERE '
-            "Luke_Father = 'Darth Vader';) AS inner_qry LIMIT 100" in
-            ' '.join(updated_multi_line_query.split()),
-        )
-
     def test_run_sync_query_dont_exist(self):
         main_db = self.get_main_database(db.session)
         db_id = main_db.id
