@@ -37,12 +37,12 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description',
         'type', 'groupby', 'filterable',
-        'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
+        'table', 'expression',
         'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max', 'is_dttm']
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable',
+        'is_dttm']
     page_size = 500
     description_columns = {
         'is_dttm': _(
@@ -86,10 +86,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
         'table': _('Table'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
         'expression': _('Expression'),
         'is_dttm': _('Is temporal'),
         'python_date_format': _('Datetime Format'),
