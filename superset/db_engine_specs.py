@@ -1338,12 +1338,32 @@ class KylinEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
-        Grain('second', _('second'), 'SECOND({col})', 'PT1S'),
-        Grain('minute', _('minute'), 'MINUTE({col})', 'PT1M'),
-        Grain('hour', _('hour'), 'HOUR({col})', 'PT1H'),
-        Grain('month', _('month'), 'MONTH({col})', 'P1M'),
-        Grain('quarter', _('quarter'), 'QUARTER({col})', 'P0.25Y'),
-        Grain('year', _('year'), 'YEAR({col})', 'P1Y'),
+        Grain('second', _('second'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO SECOND) AS TIMESTAMP)',
+              'PT1S'),
+        Grain('minute', _('minute'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)',
+              'PT1M'),
+        Grain('hour', _('hour'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)',
+              'PT1H'),
+        Grain('day', _('day'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)',
+              'P1D'),
+        Grain('week', _('week'),
+              'CAST(TIMESTAMPADD(WEEK, WEEK(CAST({col} AS DATE)) - 1, \
+              FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+              'P1W'),
+        Grain('month', _('month'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)',
+              'P1M'),
+        Grain('quarter', _('quarter'),
+              'CAST(TIMESTAMPADD(QUARTER, QUARTER(CAST({col} AS DATE)) - 1, \
+              FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+              'P0.25Y'),
+        Grain('year', _('year'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)',
+              'P1Y'),
     )
 
     @classmethod
