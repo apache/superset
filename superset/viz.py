@@ -365,7 +365,7 @@ class BaseViz(object):
         and replace them with the use-provided inputs to bounds, which
         may we time-relative (as in "5 days ago" or "now").
         """
-        cache_dict = copy.deepcopy(query_obj)
+        cache_dict = copy.copy(query_obj)
 
         for k in ['from_dttm', 'to_dttm']:
             del cache_dict[k]
