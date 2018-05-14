@@ -97,10 +97,8 @@ def session_scope(nullpool):
         session.close()
 
 
-def convert_results_to_df(cursor_description, data):
+def convert_results_to_df(column_names, data):
     """Convert raw query results to a DataFrame."""
-    column_names = (
-        [col[0] for col in cursor_description] if cursor_description else [])
     column_names = dedup(column_names)
 
     # check whether the result set has any nested dict columns
@@ -236,7 +234,7 @@ def execute_sql(
         return handle_error(db_engine_spec.extract_error_message(e))
 
     logging.info('Fetching cursor description')
-    cursor_description = cursor.description
+    column_names = db_engine_spec.get_normalized_column_names(cursor.description)
 
     if conn is not None:
         conn.commit()
@@ -245,7 +243,7 @@ def execute_sql(
     if query.status == utils.QueryStatus.STOPPED:
         return handle_error('The query has been stopped')
 
-    cdf = convert_results_to_df(cursor_description, data)
+    cdf = convert_results_to_df(column_names, data)
 
     query.rows = cdf.size
     query.progress = 100
