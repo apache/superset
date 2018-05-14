@@ -104,7 +104,6 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            no_limit = re.sub(r'(?i)\s+LIMIT\s+\d+;?(\s|;)*$', '', sql)
             no_limit = re.sub(r"""
                 (?ix)        # case insensitive, verbose
                 \s+          # whitespace

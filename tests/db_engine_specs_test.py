@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import textwrap
 
-from superset import db
 from superset.db_engine_specs import (
     HiveEngineSpec, MssqlEngineSpec, MySQLEngineSpec)
 from superset.models.core import Database
@@ -85,11 +84,14 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         """.split('\n')  # noqa ignore: E501
         self.assertEquals(60, HiveEngineSpec.progress(log))
 
+    def get_generic_database(self):
+        return Database(sqlalchemy_uri='mysql://localhost')
+
     def sql_limit_regex(
             self, sql, expected_sql,
             engine_spec_class=MySQLEngineSpec,
             limit=1000):
-        main = self.get_main_database(db.session)
+        main = self.get_generic_database()
         limited = engine_spec_class.apply_limit_to_sql(sql, limit, main)
         self.assertEquals(expected_sql, limited)
 
@@ -146,15 +148,14 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_limit_with_expr(self):
         self.sql_limit_regex(
-            textwrap.dedent(
-            """\
-            SELECT
-                'LIMIT 777' AS a
-                , b
-            FROM
-            table
-            LIMIT
-            99990"""),
+            textwrap.dedent("""\
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT
+                99990"""),
             textwrap.dedent("""\
             SELECT
                 'LIMIT 777' AS a
@@ -165,18 +166,17 @@ class DbEngineSpecsTestCase(SupersetTestCase):
 
     def test_limit_expr_and_semicolon(self):
         self.sql_limit_regex(
-            textwrap.dedent(
-            """\
-            SELECT
-                'LIMIT 777' AS a
-                , b
-            FROM
-            table
-            LIMIT         99990            ;"""),
             textwrap.dedent("""\
-            SELECT
-                'LIMIT 777' AS a
-                , b
-            FROM
-            table LIMIT 1000"""),
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table
+                LIMIT         99990            ;"""),
+            textwrap.dedent("""\
+                SELECT
+                    'LIMIT 777' AS a
+                    , b
+                FROM
+                table LIMIT 1000"""),
         )
