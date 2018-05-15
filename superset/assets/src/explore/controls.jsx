@@ -47,7 +47,6 @@ import {
 import * as v from './validators';
 import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
-import MetricOption from '../components/MetricOption';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
@@ -116,6 +115,32 @@ const groupByControl = {
   },
 };
 
+const metrics = {
+  type: 'MetricsControl',
+  multi: true,
+  label: t('Metrics'),
+  validators: [v.nonEmpty],
+  default: (c) => {
+    const metric = mainMetric(c.savedMetrics);
+    return metric ? [metric] : null;
+  },
+  mapStateToProps: (state) => {
+    const datasource = state.datasource;
+    return {
+      columns: datasource ? datasource.columns : [],
+      savedMetrics: datasource ? datasource.metrics : [],
+      datasourceType: datasource && datasource.type,
+    };
+  },
+  description: t('One or many metrics to display'),
+};
+const metric = {
+  ...metrics,
+  multi: false,
+  label: t('Metric'),
+  default: props => mainMetric(props.savedMetrics),
+};
+
 const sandboxUrl = (
   'https://github.com/apache/incubator-superset/' +
   'blob/master/superset/assets/src/modules/sandbox.js');
@@ -152,6 +177,11 @@ function jsFunctionControl(label, description, extraDescr = null, height = 100, 
 }
 
 export const controls = {
+
+  metrics,
+
+  metric,
+
   datasource: {
     type: 'DatasourceControl',
     label: t('Datasource'),
@@ -169,36 +199,11 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  metrics: {
-    type: 'MetricsControl',
-    multi: true,
-    label: t('Metrics'),
-    validators: [v.nonEmpty],
-    default: (c) => {
-      const metric = mainMetric(c.savedMetrics);
-      return metric ? [metric] : null;
-    },
-    mapStateToProps: (state) => {
-      const datasource = state.datasource;
-      return {
-        columns: datasource ? datasource.columns : [],
-        savedMetrics: datasource ? datasource.metrics : [],
-        datasourceType: datasource && datasource.type,
-      };
-    },
-    description: t('One or many metrics to display'),
-  },
-
   percent_metrics: {
-    type: 'SelectControl',
+    ...metrics,
     multi: true,
     label: t('Percentage Metrics'),
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
+    validators: [],
     description: t('Metrics for which percentage of total are to be displayed'),
   },
 
@@ -262,33 +267,11 @@ export const controls = {
     renderTrigger: true,
   },
 
-  metric: {
-    type: 'MetricsControl',
-    multi: false,
-    label: t('Metric'),
-    clearable: false,
-    validators: [v.nonEmpty],
-    default: props => mainMetric(props.savedMetrics),
-    mapStateToProps: state => ({
-      columns: state.datasource ? state.datasource.columns : [],
-      savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasourceType: state.datasource && state.datasource.type,
-    }),
-  },
-
   metric_2: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Right Axis Metric'),
-    default: null,
-    validators: [v.nonEmpty],
     clearable: true,
     description: t('Choose a metric for right axis'),
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   stacked_style: {
@@ -508,13 +491,10 @@ export const controls = {
   },
 
   secondary_metric: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Color Metric'),
     default: null,
     description: t('A metric to use for color'),
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
-    }),
   },
   select_country: {
     type: 'SelectControl',
@@ -1105,44 +1085,23 @@ export const controls = {
   },
 
   x: {
-    type: 'SelectControl',
+    ...metric,
     label: t('X Axis'),
     description: t('Metric assigned to the [X] axis'),
     default: null,
-    validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   y: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Y Axis'),
     default: null,
-    validators: [v.nonEmpty],
     description: t('Metric assigned to the [Y] axis'),
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   size: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Bubble Size'),
     default: null,
-    validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   url: {
