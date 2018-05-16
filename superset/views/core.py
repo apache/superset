@@ -1229,7 +1229,10 @@ class Superset(BaseSupersetView):
         datasource = form_data.get('datasource', '')
         if '__' in datasource:
             datasource_id, datasource_type = datasource.split('__')
-        datasource_id = int(datasource_id)
+            # The case where the datasource has been deleted
+            datasource_id = None if datasource_id == 'None' else datasource_id
+
+        datasource_id = int(datasource_id) if datasource_id else None
         return datasource_id, datasource_type
 
     @log_this
