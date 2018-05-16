@@ -116,7 +116,12 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def get_base_url(host, port):
         if not re.match('http(s)?://', host):
             host = 'http://' + host
-        return '{0}:{1}'.format(host, port)
+
+        if port:
+            url = '{0}:{1}'.format(host, port)
+        else:
+            url = host
+        return url
 
     def get_base_coordinator_url(self):
         base_url = self.get_base_url(
