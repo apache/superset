@@ -32,6 +32,7 @@ export default class AdhocFilterEditPopover extends React.Component {
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onAdhocFilterChange = this.onAdhocFilterChange.bind(this);
+    this.adjustHeight = this.adjustHeight.bind(this);
 
     this.state = {
       adhocFilter: this.props.adhocFilter,
@@ -78,6 +79,10 @@ export default class AdhocFilterEditPopover extends React.Component {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
+  adjustHeight(heightDifference) {
+    this.setState(state => ({ height: state.height + heightDifference }));
+  }
+
   render() {
     const {
       adhocFilter: propsAdhocFilter,
@@ -115,6 +120,7 @@ export default class AdhocFilterEditPopover extends React.Component {
               onChange={this.onAdhocFilterChange}
               options={this.props.options}
               datasource={this.props.datasource}
+              onHeightChange={this.adjustHeight}
             />
           </Tab>
           {
