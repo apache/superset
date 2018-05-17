@@ -171,6 +171,7 @@ def execute_sql(
     # Limit enforced only for retrieving the data, not for the CTA queries.
     superset_query = SupersetQuery(rendered_query)
     executed_sql = superset_query.stripped()
+    SQL_MAX_ROWS = int(app.config.get('SQL_MAX_ROW', None))
     if not superset_query.is_select() and not database.allow_dml:
         return handle_error(
             'Only `SELECT` statements are allowed against this database')
@@ -185,7 +186,8 @@ def execute_sql(
                 query.user_id, start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
-    elif (query.limit and superset_query.is_select()):
+    elif (not query.limit and superset_query.is_select() and SQL_MAX_ROWS):
+        query.limit = SQL_MAX_ROWS
         executed_sql = database.apply_limit_to_sql(executed_sql, query.limit)
         query.limit_used = True
 
