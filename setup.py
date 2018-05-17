@@ -54,6 +54,7 @@ setup(
         'boto3>=1.4.6',
         'celery',
         'colorama',
+        'contextlib2',
         'cryptography',
         'flask<1.0.0',
         'flask-appbuilder',
