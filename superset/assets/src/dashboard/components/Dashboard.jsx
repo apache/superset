@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 import AlertsWrapper from '../../components/AlertsWrapper';
-import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
+import { getChartIdsFromLayout, findInitialPageLoadCharts } from '../util/layoutHelper';
 import DashboardBuilder from '../containers/DashboardBuilder';
 import {
   chartPropShape,
@@ -67,6 +67,7 @@ class Dashboard extends React.PureComponent {
     super(props);
 
     this.firstLoad = true;
+    this.initialPageLoadChartIds = findInitialPageLoadCharts(props.layout);
     this.loadingLog = new ActionLog({
       impressionId: props.impressionId,
       actionType: LOG_ACTIONS_PAGE_LOAD,
@@ -80,7 +81,9 @@ class Dashboard extends React.PureComponent {
   componentWillReceiveProps(nextProps) {
     if (
       this.firstLoad &&
-      Object.values(nextProps.charts).every(
+      Object.values(nextProps.charts)
+        .filter(chart => this.initialPageLoadChartIds.indexOf(chart.id) > -1)
+        .every(
         chart =>
           ['rendered', 'failed', 'stopped'].indexOf(chart.chartStatus) > -1,
       )
