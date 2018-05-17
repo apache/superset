@@ -882,3 +882,17 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
         del fd['adhoc_filters']
+
+
+def get_limit_from_sql(sql):
+    sql = sql.lower()
+    limit = None
+    tokens = sql.split()
+    try:
+        if 'limit' in tokens:
+            limit_pos = tokens.index('limit') + 1
+            limit = int(tokens[limit_pos])
+    except Exception as e:
+        # fail quietly so we can get the more intelligible error from the database.
+        logging.error('Non-numeric limit added.\n{}'.format(e))
+    return limit
