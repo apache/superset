@@ -196,13 +196,11 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual([{'name': 'Admin'}], df.to_dict(orient='records'))
         self.assertEqual(QueryStatus.SUCCESS, query.status)
         self.assertTrue('FROM tmp_async_1' in query.select_sql)
-        self.assertTrue('LIMIT 666' in query.select_sql)
         self.assertEqual(
             'CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role '
             "WHERE name='Admin'", query.executed_sql)
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
-        self.assertEqual(666, query.limit)
         self.assertEqual(False, query.limit_used)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
