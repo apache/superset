@@ -573,9 +573,9 @@ class TableViz(BaseViz):
 
         # Sum up and compute percentages for all percent metrics
         percent_metrics = fd.get('percent_metrics') or []
-        percent_metrics = map(
+        percent_metrics = list(map(
             lambda m: m.get('label') if isinstance(m, dict) else m,
-            percent_metrics)
+            percent_metrics))
 
         if len(percent_metrics):
             percent_metrics = list(filter(lambda m: m in df, percent_metrics))
