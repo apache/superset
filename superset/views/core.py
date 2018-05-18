@@ -1234,7 +1234,7 @@ class Superset(BaseSupersetView):
 
         if not datasource_id:
             raise Exception(
-                'The data source associated with this chart no longer exists')
+                'The datasource associated with this chart no longer exists')
         datasource_id = int(datasource_id)
         return datasource_id, datasource_type
 
