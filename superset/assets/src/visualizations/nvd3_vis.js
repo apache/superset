@@ -105,6 +105,9 @@ export function formatLabel(input, verboseMap = {}) {
 }
 
 export default function nvd3Vis(slice, payload) {
+  let sliceSelector = slice.selector;
+  const sliceContainer = $(sliceSelector);
+
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
@@ -118,10 +121,11 @@ export default function nvd3Vis(slice, payload) {
     data = [];
   }
 
-  slice.container.html('');
+  // slice.container.html('');
+  sliceContainer.html('');
   slice.clearError();
 
-  let width = slice.width();
+  let width = sliceContainer.width();
   const fd = slice.formData;
 
   const barchartWidth = function () {
@@ -144,9 +148,9 @@ export default function nvd3Vis(slice, payload) {
   let row;
 
   const drawGraph = function () {
-    let svg = d3.select(slice.selector).select('svg');
+    let svg = d3.select(sliceSelector).select('svg');
     if (svg.empty()) {
-      svg = d3.select(slice.selector).append('svg');
+      svg = d3.select(sliceSelector).append('svg');
     }
     let height = slice.height();
     const isTimeSeries = [
@@ -470,7 +474,7 @@ export default function nvd3Vis(slice, payload) {
       chart.showLegend(width > BREAKPOINTS.small);
     }
     chart.height(height);
-    slice.container.css('height', height + 'px');
+    sliceContainer.css('height', height + 'px');
 
     svg
     .datum(data)
@@ -487,13 +491,13 @@ export default function nvd3Vis(slice, payload) {
 
     if (chart.yAxis !== undefined || chart.yAxis2 !== undefined) {
       // Hack to adjust y axis left margin to accommodate long numbers
-      const containerWidth = slice.container.width();
+      const containerWidth = sliceContainer.width();
       const marginPad = Math.ceil(
         Math.min(isExplore ? containerWidth * 0.01 : containerWidth * 0.03, maxMarginPad),
       );
-      const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(slice.container, 'nv-y1')
-                                              : getMaxLabelSize(slice.container, 'nv-y');
-      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x');
+      const maxYAxisLabelWidth = chart.yAxis2 ? getMaxLabelSize(sliceContainer, 'nv-y1')
+                                              : getMaxLabelSize(sliceContainer, 'nv-y');
+      const maxXAxisLabelHeight = getMaxLabelSize(sliceContainer, 'nv-x');
       chart.margin({ left: maxYAxisLabelWidth + marginPad });
       if (fd.y_axis_label && fd.y_axis_label !== '') {
         chart.margin({ left: maxYAxisLabelWidth + marginPad + 25 });
@@ -517,7 +521,7 @@ export default function nvd3Vis(slice, payload) {
       }
 
       if (vizType === 'dual_line') {
-        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
+        const maxYAxis2LabelWidth = getMaxLabelSize(sliceContainer, 'nv-y2');
         // use y axis width if it's wider than axis width/height
         if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
           margins.right = maxYAxis2LabelWidth + marginPad;
@@ -670,7 +674,7 @@ export default function nvd3Vis(slice, payload) {
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add event annotation layer
-            const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
+            const annotations = d3.select(sliceSelector).select('.nv-wrap').append('g')
               .attr('class', `nv-event-annotation-layer-${index}`);
             const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
 
@@ -727,7 +731,7 @@ export default function nvd3Vis(slice, payload) {
           )).forEach((config, index) => {
             const e = applyNativeColumns(config);
             // Add interval annotation layer
-            const annotations = d3.select(slice.selector).select('.nv-wrap').append('g')
+            const annotations = d3.select(sliceSelector).select('.nv-wrap').append('g')
               .attr('class', `nv-interval-annotation-layer-${index}`);
 
             const aColor = e.color || getColorFromScheme(e.name, fd.color_scheme);
