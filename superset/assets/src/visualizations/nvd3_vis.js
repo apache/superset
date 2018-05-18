@@ -105,7 +105,7 @@ export function formatLabel(input, verboseMap = {}) {
 }
 
 export default function nvd3Vis(slice, payload) {
-  let sliceSelector = slice.selector;
+  const sliceSelector = slice.selector;
   const sliceContainer = $(sliceSelector);
 
   let chart;
