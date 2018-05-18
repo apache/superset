@@ -1232,7 +1232,10 @@ class Superset(BaseSupersetView):
             # The case where the datasource has been deleted
             datasource_id = None if datasource_id == 'None' else datasource_id
 
-        datasource_id = int(datasource_id) if datasource_id else None
+        if not datasource_id:
+            raise Exception(
+                'The data source associated with this chart no longer exists')
+        datasource_id = int(datasource_id)
         return datasource_id, datasource_type
 
     @log_this
