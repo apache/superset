@@ -1229,6 +1229,12 @@ class Superset(BaseSupersetView):
         datasource = form_data.get('datasource', '')
         if '__' in datasource:
             datasource_id, datasource_type = datasource.split('__')
+            # The case where the datasource has been deleted
+            datasource_id = None if datasource_id == 'None' else datasource_id
+
+        if not datasource_id:
+            raise Exception(
+                'The datasource associated with this chart no longer exists')
         datasource_id = int(datasource_id)
         return datasource_id, datasource_type
 
