@@ -120,12 +120,22 @@ class BaseVizTestCase(unittest.TestCase):
 class TableVizTestCase(unittest.TestCase):
     def test_get_data_applies_percentage(self):
         form_data = {
-            'percent_metrics': ['sum__A', 'avg__B'],
-            'metrics': ['sum__A', 'count', 'avg__C'],
+            'percent_metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }, 'avg__B'],
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }, 'count', 'avg__C'],
         }
         datasource = Mock()
         raw = {}
-        raw['sum__A'] = [15, 20, 25, 40]
+        raw['SUM(value1)'] = [15, 20, 25, 40]
         raw['avg__B'] = [10, 20, 5, 15]
         raw['avg__C'] = [11, 22, 33, 44]
         raw['count'] = [6, 7, 8, 9]
@@ -137,29 +147,29 @@ class TableVizTestCase(unittest.TestCase):
         # Check method correctly transforms data and computes percents
         self.assertEqual(set([
             'groupA', 'groupB', 'count',
-            'sum__A', 'avg__C',
-            '%sum__A', '%avg__B',
+            'SUM(value1)', 'avg__C',
+            '%SUM(value1)', '%avg__B',
         ]), set(data['columns']))
         expected = [
             {
                 'groupA': 'A', 'groupB': 'x',
-                'count': 6, 'sum__A': 15, 'avg__C': 11,
-                '%sum__A': 0.15, '%avg__B': 0.2,
+                'count': 6, 'SUM(value1)': 15, 'avg__C': 11,
+                '%SUM(value1)': 0.15, '%avg__B': 0.2,
             },
             {
                 'groupA': 'B', 'groupB': 'x',
-                'count': 7, 'sum__A': 20, 'avg__C': 22,
-                '%sum__A': 0.2, '%avg__B': 0.4,
+                'count': 7, 'SUM(value1)': 20, 'avg__C': 22,
+                '%SUM(value1)': 0.2, '%avg__B': 0.4,
             },
             {
                 'groupA': 'C', 'groupB': 'y',
-                'count': 8, 'sum__A': 25, 'avg__C': 33,
-                '%sum__A': 0.25, '%avg__B': 0.1,
+                'count': 8, 'SUM(value1)': 25, 'avg__C': 33,
+                '%SUM(value1)': 0.25, '%avg__B': 0.1,
             },
             {
                 'groupA': 'C', 'groupB': 'z',
-                'count': 9, 'sum__A': 40, 'avg__C': 44,
-                '%sum__A': 0.40, '%avg__B': 0.3,
+                'count': 9, 'SUM(value1)': 40, 'avg__C': 44,
+                '%SUM(value1)': 0.40, '%avg__B': 0.3,
             },
         ]
         self.assertEqual(expected, data['records'])
