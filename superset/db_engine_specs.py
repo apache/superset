@@ -104,14 +104,8 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            no_limit = re.sub(r"""
-                (?ix)        # case insensitive, verbose
-                \s+          # whitespace
-                LIMIT\s+\d+  # LIMIT $ROWS
-                ;?           # optional semi-colon
-                (\s|;)*$     # remove trailing spaces tabs or semicolons
-                """, '', sql)
-            return '{no_limit} LIMIT {limit}'.format(**locals())
+            sql_without_limit = utils.get_query_without_limit(sql)
+            return '{sql_without_limit} LIMIT {limit}'.format(**locals())
         return sql
 
     @staticmethod
