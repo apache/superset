@@ -18,6 +18,7 @@ import functools
 import json
 import logging
 import os
+import re
 import signal
 import smtplib
 import sys
@@ -884,15 +885,27 @@ def split_adhoc_filters_into_base_filters(fd):
         del fd['adhoc_filters']
 
 
+def get_query_without_limit(sql):
+    return re.sub(r"""
+                (?ix)        # case insensitive, verbose
+                \s+          # whitespace
+                LIMIT\s+\d+  # LIMIT $ROWS
+                ;?           # optional semi-colon
+                (\s|;)*$     # remove trailing spaces tabs or semicolons
+                """, '', sql)
+
+
 def get_limit_from_sql(sql):
-    sql = sql.lower()
-    limit = None
-    tokens = sql.split()
-    try:
-        if 'limit' in tokens:
-            limit_pos = tokens.index('limit') + 1
-            limit = int(tokens[limit_pos])
-    except Exception as e:
-        # fail quietly so we can get the more intelligible error from the database.
-        logging.error('Non-numeric limit added.\n{}'.format(e))
-    return limit
+    # returns the limit of the quest or None if it has no limit.
+
+    limit_pattern = re.compile(r"""
+                (?ix)          # case insensitive, verbose
+                \s+            # whitespace
+                LIMIT\s+(\d+)  # LIMIT $ROWS
+                ;?             # optional semi-colon
+                (\s|;)*$       # remove trailing spaces tabs or semicolons
+                """)
+    matches = limit_pattern.findall(sql)
+
+    if matches:
+        return int(matches[0])
