@@ -14,11 +14,9 @@ export default function getFormDataWithExtraFilters({
 }) {
   // if dashboard metadata + filters have not changed, use cache if possible
   if (
-    cachedDashboardMetadataByChart[sliceId] &&
-    cachedDashboardMetadataByChart[sliceId] === dashboardMetadata &&
-    cachedFiltersByChart[sliceId] &&
-    cachedFiltersByChart[sliceId] === filters &&
-    cachedFormdataByChart[sliceId]
+    (cachedDashboardMetadataByChart[sliceId] || {}) === dashboardMetadata &&
+    (cachedFiltersByChart[sliceId] || {}) === filters &&
+    !!cachedFormdataByChart[sliceId]
   ) {
     return cachedFormdataByChart[sliceId];
   }

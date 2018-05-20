@@ -91,6 +91,7 @@ class Dashboard extends React.PureComponent {
 
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
+
     if (currentChartIds.length < nextChartIds.length) {
       // adding new chart
       const newChartId = nextChartIds.find(
@@ -109,23 +110,26 @@ class Dashboard extends React.PureComponent {
   componentDidUpdate(prevProps) {
     const { refresh, filters, hasUnsavedChanges } = this.props.dashboardState;
     if (refresh) {
-      let changedFilterKey;
-      const prevFiltersKeySet = new Set(
-        Object.keys(prevProps.dashboardState.filters),
-      );
-      Object.keys(filters).some(key => {
-        prevFiltersKeySet.delete(key);
+      // refresh charts if a filter was removed, added, or changed
+      let changedFilterKey = null;
+      const currFilterKeys = Object.keys(filters);
+      const prevFilterKeys = Object.keys(prevProps.dashboardState.filters);
+
+      currFilterKeys.forEach(key => {
+        const prevFilter = prevProps.dashboardState.filters[key];
         if (
-          prevProps.dashboardState.filters[key] === undefined ||
-          !areObjectsEqual(prevProps.dashboardState.filters[key], filters[key])
+          // filter was added or changed
+          typeof prevFilter === 'undefined' ||
+          !areObjectsEqual(prevFilter, filters[key])
         ) {
           changedFilterKey = key;
-          return true;
         }
-        return false;
       });
-      // has changed filter or removed a filter?
-      if (!!changedFilterKey || prevFiltersKeySet.size) {
+
+      if (
+        !!changedFilterKey ||
+        currFilterKeys.length !== prevFilterKeys.length
+      ) {
         this.refreshExcept(changedFilterKey);
       }
     }
@@ -144,27 +148,24 @@ class Dashboard extends React.PureComponent {
 
   refreshExcept(filterKey) {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
-    let charts = this.getAllCharts();
-    if (filterKey) {
-      charts = charts.filter(
-        chart =>
-          String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1,
-      );
-    }
-    charts.forEach(chart => {
-      const updatedFormData = getFormDataWithExtraFilters({
-        chart,
-        dashboardMetadata: this.props.dashboardInfo.metadata,
-        filters: this.props.dashboardState.filters,
-        sliceId: chart.id,
-      });
 
-      this.props.actions.runQuery(
-        updatedFormData,
-        false,
-        this.props.timeout,
-        chart.id,
-      );
+    this.getAllCharts().forEach(chart => {
+      // filterKey is a string, immune array contains numbers
+      if (String(chart.id) !== filterKey && immune.indexOf(chart.id) === -1) {
+        const updatedFormData = getFormDataWithExtraFilters({
+          chart,
+          dashboardMetadata: this.props.dashboardInfo.metadata,
+          filters: this.props.dashboardState.filters,
+          sliceId: chart.id,
+        });
+
+        this.props.actions.runQuery(
+          updatedFormData,
+          false,
+          this.props.timeout,
+          chart.id,
+        );
+      }
     });
   }
 
