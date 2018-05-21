@@ -19,6 +19,7 @@ const propTypes = {
   validationErrors: PropTypes.array,
   renderTrigger: PropTypes.bool,
   rightNode: PropTypes.node,
+  formData: PropTypes.object,
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,

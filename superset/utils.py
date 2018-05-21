@@ -29,7 +29,7 @@ import celery
 from dateutil.parser import parse
 from flask import flash, Markup, render_template
 from flask_babel import gettext as __
-from flask_cache import Cache
+from flask_caching import Cache
 import markdown as md
 import numpy
 import pandas as pd
@@ -827,8 +827,12 @@ def is_adhoc_metric(metric):
     )
 
 
+def get_metric_name(metric):
+    return metric['label'] if is_adhoc_metric(metric) else metric
+
+
 def get_metric_names(metrics):
-    return [metric['label'] if is_adhoc_metric(metric) else metric for metric in metrics]
+    return [get_metric_name(metric) for metric in metrics]
 
 
 def ensure_path_exists(path):

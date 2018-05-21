@@ -272,6 +272,7 @@ describe('VisualizeModal', () => {
       schema: 'test_schema',
       sql: wrapper.instance().props.query.sql,
       dbId: wrapper.instance().props.query.dbId,
+      templateParams: wrapper.instance().props.templateParams,
     });
   });
 

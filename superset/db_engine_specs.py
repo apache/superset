@@ -35,6 +35,7 @@ from sqlalchemy import select
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import text
+from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 import unicodecsv
 from werkzeug.utils import secure_filename
@@ -55,6 +56,7 @@ class LimitMethod(object):
     """Enum the ways that limits can be applied"""
     FETCH_MANY = 'fetch_many'
     WRAP_SQL = 'wrap_sql'
+    FORCE_LIMIT = 'force_limit'
 
 
 class BaseEngineSpec(object):
@@ -65,7 +67,7 @@ class BaseEngineSpec(object):
     cursor_execute_kwargs = {}
     time_grains = tuple()
     time_groupby_inline = False
-    limit_method = LimitMethod.FETCH_MANY
+    limit_method = LimitMethod.FORCE_LIMIT
     time_secondary_columns = False
     inner_joins = True
 
@@ -87,6 +89,30 @@ class BaseEngineSpec(object):
     def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
+
+    @classmethod
+    def apply_limit_to_sql(cls, sql, limit, database):
+        """Alters the SQL statement to apply a LIMIT clause"""
+        if cls.limit_method == LimitMethod.WRAP_SQL:
+            sql = sql.strip('\t\n ;')
+            qry = (
+                select('*')
+                .select_from(
+                    TextAsFrom(text(sql), ['*']).alias('inner_qry'),
+                )
+                .limit(limit)
+            )
+            return database.compile_sqla_query(qry)
+        elif LimitMethod.FORCE_LIMIT:
+            no_limit = re.sub(r"""
+                (?ix)        # case insensitive, verbose
+                \s+          # whitespace
+                LIMIT\s+\d+  # LIMIT $ROWS
+                ;?           # optional semi-colon
+                (\s|;)*$     # remove trailing spaces tabs or semicolons
+                """, '', sql)
+            return '{no_limit} LIMIT {limit}'.format(**locals())
+        return sql
 
     @staticmethod
     def csv_to_df(**kwargs):
@@ -281,6 +307,15 @@ class BaseEngineSpec(object):
         """
         return {}
 
+    @classmethod
+    def get_normalized_column_names(cls, cursor_description):
+        columns = cursor_description if cursor_description else []
+        return [cls.normalize_column_name(col[0]) for col in columns]
+
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name
+
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """ Abstract class for Postgres 'like' databases """
@@ -337,7 +372,6 @@ class PostgresEngineSpec(PostgresBaseEngineSpec):
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = 'snowflake'
-
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'), "DATE_TRUNC('SECOND', {col})", 'PT1S'),
@@ -350,6 +384,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         Grain('year', _('year'), "DATE_TRUNC('YEAR', {col})", 'P1Y'),
     )
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class VerticaEngineSpec(PostgresBaseEngineSpec):
     engine = 'vertica'
@@ -361,6 +399,7 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec):
 
 class OracleEngineSpec(PostgresBaseEngineSpec):
     engine = 'oracle'
+    limit_method = LimitMethod.WRAP_SQL
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -379,9 +418,14 @@ class OracleEngineSpec(PostgresBaseEngineSpec):
             """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         ).format(dttm.isoformat())
 
+    @staticmethod
+    def normalize_column_name(column_name):
+        return column_name.lower()
+
 
 class Db2EngineSpec(BaseEngineSpec):
     engine = 'ibm_db_sa'
+    limit_method = LimitMethod.WRAP_SQL
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
         Grain('second', _('second'),
@@ -446,6 +490,12 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
               'P1M'),
+        Grain('week_ending_saturday', _('week_ending_saturday'),
+              "DATE({col}, 'weekday 6')",
+              'P1W/1970-01-03T00:00:00Z'),
+        Grain('week_start_sunday', _('week_start_sunday'),
+              "DATE({col}, 'weekday 0', '-7 days')",
+              '1969-12-28T00:00:00Z/P1W'),
     )
 
     @classmethod
@@ -577,11 +627,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
               'CAST({col} AS TIMESTAMP))))',
-              'P1W'),
+              'P1W/1970-01-03T00:00:00Z'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-              'P1W'),
+              '1969-12-28T00:00:00Z/P1W'),
         Grain('year', _('year'),
               "date_trunc('year', CAST({col} AS TIMESTAMP))",
               'P1Y'),
@@ -669,7 +719,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             stats = polled.get('stats', {})
 
             query = session.query(type(query)).filter_by(id=query.id).one()
-            if query.status == QueryStatus.STOPPED:
+            if query.status in [QueryStatus.STOPPED, QueryStatus.TIMED_OUT]:
                 cursor.cancel()
                 break
 
@@ -1100,6 +1150,7 @@ class HiveEngineSpec(PrestoEngineSpec):
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
+    limit_method = LimitMethod.WRAP_SQL
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
@@ -1169,11 +1220,11 @@ class AthenaEngineSpec(BaseEngineSpec):
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "date_add('day', 5, date_trunc('week', date_add('day', 1, "
               'CAST({col} AS TIMESTAMP))))',
-              'P1W'),
+              'P1W/1970-01-03T00:00:00Z'),
         Grain('week_start_sunday', _('week_start_sunday'),
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-              'P1W'),
+              '1969-12-28T00:00:00Z/P1W'),
     )
 
     @classmethod
@@ -1260,7 +1311,7 @@ class BQEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
@@ -1291,7 +1342,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':
-            return "{}'".format(dttm.strftime('%Y-%m-%d'))
+            return "'{}'".format(dttm.strftime('%Y-%m-%d'))
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
@@ -1304,8 +1355,53 @@ class ImpalaEngineSpec(BaseEngineSpec):
 class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
-    limit_method = LimitMethod.FETCH_MANY
     inner_joins = False
+
+
+class KylinEngineSpec(BaseEngineSpec):
+    """Dialect for Apache Kylin"""
+
+    engine = 'kylin'
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO SECOND) AS TIMESTAMP)',
+              'PT1S'),
+        Grain('minute', _('minute'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MINUTE) AS TIMESTAMP)',
+              'PT1M'),
+        Grain('hour', _('hour'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO HOUR) AS TIMESTAMP)',
+              'PT1H'),
+        Grain('day', _('day'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO DAY) AS DATE)',
+              'P1D'),
+        Grain('week', _('week'),
+              'CAST(TIMESTAMPADD(WEEK, WEEK(CAST({col} AS DATE)) - 1, \
+              FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+              'P1W'),
+        Grain('month', _('month'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO MONTH) AS DATE)',
+              'P1M'),
+        Grain('quarter', _('quarter'),
+              'CAST(TIMESTAMPADD(QUARTER, QUARTER(CAST({col} AS DATE)) - 1, \
+              FLOOR(CAST({col} AS TIMESTAMP) TO YEAR)) AS DATE)',
+              'P0.25Y'),
+        Grain('year', _('year'),
+              'CAST(FLOOR(CAST({col} AS TIMESTAMP) TO YEAR) AS DATE)',
+              'P1Y'),
+    )
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "CAST('{}' AS DATE)".format(dttm.isoformat()[:10])
+        if tt == 'TIMESTAMP':
+            return "CAST('{}' AS TIMESTAMP)".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
 
 engines = {

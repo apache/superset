@@ -1168,10 +1168,10 @@ def load_multiformat_time_series_data():
     obj.fetch_metadata()
     tbl = obj
 
-    print("Creating some slices")
+    print("Creating Heatmap charts")
     for i, col in enumerate(tbl.columns):
         slice_data = {
-            "metric": 'count',
+            "metrics": ['count'],
             "granularity_sqla": col.column_name,
             "granularity_sqla": "day",
             "row_limit": config.get("ROW_LIMIT"),

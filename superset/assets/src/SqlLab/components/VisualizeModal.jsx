@@ -133,6 +133,7 @@ class VisualizeModal extends React.PureComponent {
       columns: this.state.columns,
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
+      templateParams: this.props.query.templateParams,
     };
   }
   buildVisualizeAdvise() {
