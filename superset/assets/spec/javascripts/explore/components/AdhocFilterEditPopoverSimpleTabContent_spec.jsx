@@ -43,15 +43,17 @@ const options = [
 
 function setup(overrides) {
   const onChange = sinon.spy();
+  const onHeightChange = sinon.spy();
   const props = {
     adhocFilter: simpleAdhocFilter,
     onChange,
+    onHeightChange,
     options,
     datasource: {},
     ...overrides,
   };
   const wrapper = shallow(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
-  return { wrapper, onChange };
+  return { wrapper, onChange, onHeightChange };
 }
 
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
@@ -118,5 +120,16 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
     const { wrapper } = setup({ datasource: { type: 'druid' } });
     expect(wrapper.instance().isOperatorRelevant('regex')).to.be.true;
     expect(wrapper.instance().isOperatorRelevant('like')).to.be.false;
+  });
+
+  it('expands when its multi comparator input field expands', () => {
+    const { wrapper, onHeightChange } = setup();
+
+    wrapper.instance().multiComparatorComponent =
+      { _selectRef: { select: { control: { clientHeight: 57 } } } };
+    wrapper.instance().handleMultiComparatorInputHeightChange();
+
+    expect(onHeightChange.calledOnce).to.be.true;
+    expect(onHeightChange.lastCall.args[0]).to.equal(27);
   });
 });
