@@ -76,6 +76,8 @@ GB_RESULT_SET = [
     },
 ]
 
+DruidCluster.get_druid_version = lambda _: '0.9.1'
+
 
 class DruidTests(SupersetTestCase):
 
@@ -114,7 +116,6 @@ class DruidTests(SupersetTestCase):
 
         db.session.add(cluster)
         cluster.get_datasources = PickableMock(return_value=['test_datasource'])
-        cluster.get_druid_version = PickableMock(return_value='0.9.1')
 
         return cluster
 
@@ -324,7 +325,6 @@ class DruidTests(SupersetTestCase):
         cluster.get_datasources = PickableMock(
             return_value=['test_datasource'],
         )
-        cluster.get_druid_version = PickableMock(return_value='0.9.1')
 
         cluster.refresh_datasources()
         cluster.datasources[0].merge_flag = True
