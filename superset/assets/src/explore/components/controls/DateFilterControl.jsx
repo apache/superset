@@ -23,9 +23,15 @@ import ControlHeader from '../ControlHeader';
 import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import { t } from '../../../locales';
 
-const TYPES = ['range', 'startend'];
+const TYPES = Object.freeze({
+  RANGE: 'range',
+  START_END: 'start_end',
+});
+const RELATIVE_TIME_OPTIONS = Object.freeze({
+  LAST: 'Last',
+  NEXT: 'Next',
+});
 const COMMON_TIME_FRAMES = ['Yesterday', 'Last week', 'Last month', 'Last year'];
-const RELATIVE_TIME_OPTIONS = ['Last', 'Next'];
 const TIME_GRAIN_OPTIONS = ['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years'];
 
 const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
@@ -54,30 +60,29 @@ const defaultProps = {
   value: 'Last week',
 };
 
-
 export default class DateFilterControl extends React.Component {
   constructor(props) {
     super(props);
     const value = props.value || defaultProps.value;
     this.state = {
-      type: TYPES[0],
+      type: TYPES.RANGE,
 
       // for range
       num: '7',
       grain: TIME_GRAIN_OPTIONS[3],
-      rel: RELATIVE_TIME_OPTIONS[0],
+      rel: RELATIVE_TIME_OPTIONS.LAST,
       common: COMMON_TIME_FRAMES[0],
 
-      // for start:end(includes freeform)
+      // for start:end (includes freeform)
       since: DEFAULT_SINCE,
       until: DEFAULT_UNTIL,
       isFreeform: {},
     };
     if (value.indexOf(SEPARATOR) >= 0) {
-      this.state.type = 'startend';
+      this.state.type = TYPES.START_END;
       [this.state.since, this.state.until] = value.split(SEPARATOR, 2);
     } else {
-      this.state.type = 'range';
+      this.state.type = TYPES.RANGE;
       if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
         this.state.common = value;
       } else {
@@ -98,7 +103,7 @@ export default class DateFilterControl extends React.Component {
   }
   setStartEnd(key, value) {
     const nextState = {
-      type: 'startend',
+      type: TYPES.START_END,
       isFreeform: { ...this.state.isFreeform },
     };
     if (value === INVALID_DATE_MESSAGE) {
@@ -115,7 +120,7 @@ export default class DateFilterControl extends React.Component {
   }
   setCommonRange(timeFrame) {
     const nextState = {
-      type: 'range',
+      type: TYPES.RANGE,
       common: timeFrame,
       until: moment().startOf('day').format(MOMENT_FORMAT),
     };
@@ -129,11 +134,11 @@ export default class DateFilterControl extends React.Component {
     this.setState(nextState, this.updateRefs);
   }
   setCustomRange(key, value) {
-    const nextState = { ...this.state, type: 'range', common: null };
+    const nextState = { ...this.state, type: TYPES.RANGE, common: null };
     if (key !== undefined && value !== undefined) {
       nextState[key] = value;
     }
-    if (nextState.rel === 'Last') {
+    if (nextState.rel === RELATIVE_TIME_OPTIONS.LAST) {
       nextState.until = moment().startOf('day').format(MOMENT_FORMAT);
       nextState.since = moment()
         .startOf('day')
@@ -154,49 +159,52 @@ export default class DateFilterControl extends React.Component {
   }
   close() {
     let val;
-    if (this.state.type === 'range') {
+    if (this.state.type === TYPES.RANGE) {
       val = this.state.common
         ? this.state.common
         : `${this.state.rel} ${this.state.num} ${this.state.grain}`;
-    } else if (this.state.type === 'startend') {
+    } else if (this.state.type === TYPES.START_END) {
       val = [this.state.since, this.state.until].join(SEPARATOR);
     }
     this.props.onChange(val);
     this.refs.trigger.hide();
   }
   renderPopover() {
-    const grainOptions = TIME_GRAIN_OPTIONS.map((grain, index) => (
+    const grainOptions = TIME_GRAIN_OPTIONS.map(grain => (
       <MenuItem
         onSelect={this.setCustomRange.bind(this, 'grain')}
-        key={'grain-' + index}
+        key={grain}
         eventKey={grain}
         active={grain === this.state.grain}
-      >{grain}
+      >
+        {grain}
       </MenuItem>
       ));
-    const timeFrames = COMMON_TIME_FRAMES.map((timeFrame, index) => (
+    const timeFrames = COMMON_TIME_FRAMES.map(timeFrame => (
       <Radio
-        key={'timeFrame-' + (index + 1)}
+        key={timeFrame.replace(' ', '').toLowerCase()}
         checked={this.state.common === timeFrame}
         onChange={this.setCommonRange.bind(this, timeFrame)}
-      >{timeFrame}
+      >
+        {timeFrame}
       </Radio>
       ));
+    const tabs = [TYPES.RANGE, TYPES.START_END];
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
         <div style={{ width: '250px' }}>
           <Tabs
-            defaultActiveKey={TYPES.indexOf(this.state.type) + 1}
+            defaultActiveKey={tabs.indexOf(this.state.type) + 1}
             id="type"
             bsStyle="pills"
-            onSelect={type => this.setState({ type: TYPES[type - 1] })}
+            onSelect={type => this.setState({ type: tabs[type - 1] })}
           >
             <Tab eventKey={1} title="Range">
               <FormGroup>
                 {timeFrames}
                 <Radio
-                  key={'timeFrame-0'}
-                  checked={this.state.common == null && this.state.type === 'range'}
+                  key={'user-defined'}
+                  checked={this.state.common == null && this.state.type === TYPES.RANGE}
                   onChange={this.setCustomRange.bind(this)}
                 >
                   <div className="clearfix centered">
@@ -210,16 +218,16 @@ export default class DateFilterControl extends React.Component {
                       >
                         <MenuItem
                           onSelect={this.setCustomRange.bind(this, 'rel')}
-                          key="Last"
-                          eventKey="Last"
-                          active={this.state.rel === 'Last'}
+                          key={RELATIVE_TIME_OPTIONS.LAST}
+                          eventKey={RELATIVE_TIME_OPTIONS.LAST}
+                          active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
                         >Last
                         </MenuItem>
                         <MenuItem
                           onSelect={this.setCustomRange.bind(this, 'rel')}
-                          key="Next"
-                          eventKey="Next"
-                          active={this.state.rel === 'Next'}
+                          key={RELATIVE_TIME_OPTIONS.NEXT}
+                          eventKey={RELATIVE_TIME_OPTIONS.NEXT}
+                          active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
                         >Next
                         </MenuItem>
                       </DropdownButton>
