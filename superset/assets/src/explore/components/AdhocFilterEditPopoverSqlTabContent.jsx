@@ -33,6 +33,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     super(props);
     this.onSqlExpressionChange = this.onSqlExpressionChange.bind(this);
     this.onSqlExpressionClauseChange = this.onSqlExpressionClauseChange.bind(this);
+    this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
 
     this.selectProps = {
       multi: false,
@@ -59,6 +60,10 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
     }
   }
 
+  componentDidUpdate() {
+    this.aceEditorRef.editor.resize();
+  }
+
   onSqlExpressionClauseChange(clause) {
     this.props.onChange(this.props.adhocFilter.duplicateWith({
       clause: clause && clause.clause,
@@ -71,6 +76,12 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
       sqlExpression,
       expressionType: EXPRESSION_TYPES.SQL,
     }));
+  }
+
+  handleAceEditorRef(ref) {
+    if (ref) {
+      this.aceEditorRef = ref;
+    }
   }
 
   render() {
@@ -101,6 +112,7 @@ export default class AdhocFilterEditPopoverSqlTabContent extends React.Component
         </FormGroup>
         <FormGroup>
           <AceEditor
+            ref={this.handleAceEditorRef}
             mode="sql"
             theme="github"
             height={(height - 100) + 'px'}

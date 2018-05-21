@@ -46,6 +46,8 @@ export default class AdhocMetricEditPopover extends React.Component {
     this.onDragDown = this.onDragDown.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
+    this.handleAceEditorRef = this.handleAceEditorRef.bind(this);
+    this.refreshAceEditor = this.refreshAceEditor.bind(this);
     this.state = {
       adhocMetric: this.props.adhocMetric,
       width: startingWidth,
@@ -137,6 +139,16 @@ export default class AdhocMetricEditPopover extends React.Component {
     document.removeEventListener('mousemove', this.onMouseMove);
   }
 
+  handleAceEditorRef(ref) {
+    if (ref) {
+      this.aceEditorRef = ref;
+    }
+  }
+
+  refreshAceEditor() {
+    setTimeout(() => this.aceEditorRef.editor.resize(), 0);
+  }
+
   render() {
     const {
       adhocMetric: propsAdhocMetric,
@@ -200,6 +212,8 @@ export default class AdhocMetricEditPopover extends React.Component {
           defaultActiveKey={adhocMetric.expressionType}
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
+          onSelect={this.refreshAceEditor}
+          animation={false}
         >
           <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SIMPLE} title="Simple">
             <FormGroup>
@@ -216,6 +230,7 @@ export default class AdhocMetricEditPopover extends React.Component {
             <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">
               <FormGroup>
                 <AceEditor
+                  ref={this.handleAceEditorRef}
                   mode="sql"
                   theme="github"
                   height={(this.state.height - 43) + 'px'}
