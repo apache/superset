@@ -1206,6 +1206,7 @@ export const visTypes = {
         label: t('No of Bins'),
         description: t('Select number of bins for the histogram'),
         default: 5,
+        renderTrigger: true,
       },
       global_opacity: {
         description: t('Opacity of the bars. Between 0 and 1'),
