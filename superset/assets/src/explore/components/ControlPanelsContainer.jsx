@@ -96,8 +96,8 @@ class ControlPanelsContainer extends React.Component {
         control => (
           controls[control] &&
           (
-            !controls[control].renderTrigger ||
-            controls[control].tabOverride === 'data'
+            !this.getControlData(control).renderTrigger ||
+            this.getControlData(control).tabOverride === 'data'
           )
         )))) {
         querySectionsToRender.push(section);
