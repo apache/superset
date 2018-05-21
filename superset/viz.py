@@ -1023,7 +1023,12 @@ class PercentageExceedenceViz(BaseViz):
         return d
 
     def get_data(self, df):
-        data = [{'date': row[0], 'close': row[1]} for row in df.values]
+        data = {"L1": [],
+                "L2": [],
+                "L3": []
+                }
+        [data[row[1]].append({'close': row[2]}) for row in df.values]
+        # data = [{'date': row[0], 'name': row[1], 'close': row[2]} ]
         return {'data': data}
 
 

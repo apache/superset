@@ -1866,9 +1866,9 @@ def load_bart_lines():
     tbl.fetch_metadata()
 
 
-def load_stocks_data():
-    tbl_name = 'stocks'
-    with gzip.open(os.path.join(DATA_FOLDER, 'stocks.tsv.gz')) as f:
+def load_loads_data():
+    tbl_name = 'loads'
+    with gzip.open(os.path.join(DATA_FOLDER, 'loads.csv.gz')) as f:
         df = pd.read_csv(f, sep='\t', encoding='latin-1')
     df.to_sql(
         tbl_name,
@@ -1886,14 +1886,14 @@ def load_stocks_data():
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
-    tbl.description = "Stock Proces"
+    tbl.description = "Load values"
     tbl.database = utils.get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
     defaults = {
         "entity": "close",
-        "groupby": ["date"],
+        "groupby": ["date", "name"],
         "metric": "sum__close",
         "viz_type": "percentage_exceedence"
     }
@@ -1902,7 +1902,7 @@ def load_stocks_data():
         slice_name="Percentage Exceedence",
         viz_type='percentage_exceedence',
         datasource_type='table',
-        datasource_id=db.session.query(TBL).filter_by(table_name='stocks').first().id,
+        datasource_id=db.session.query(TBL).filter_by(table_name='loads').first().id,
         params=get_slice_json(defaults)
     )
     merge_slice(slc)

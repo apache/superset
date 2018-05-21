@@ -193,8 +193,8 @@ def load_examples(load_test_data):
     print('Loading DECK.gl demo')
     data.load_deck_dash()
 
-    print('Loading stocks data')
-    data.load_stocks_data()
+    print('Loading Loads data')
+    data.load_loads_data()
 
 
 @manager.option(
