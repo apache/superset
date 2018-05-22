@@ -1853,9 +1853,9 @@ export const controls = {
 
   slice_id: {
     type: 'HiddenControl',
-    label: t('Slice ID'),
+    label: t('Chart ID'),
     hidden: true,
-    description: t('The id of the active slice'),
+    description: t('The id of the active chart'),
   },
 
   cache_timeout: {
