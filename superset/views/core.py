@@ -1563,9 +1563,10 @@ class Superset(BaseSupersetView):
 
             # update chartId of layout entities
             for value in data['positions'].values():
-                if isinstance(value, dict) and value.get('meta') \
-                    and value.get('meta').get('chartId'):
-
+                if (
+                    isinstance(value, dict) and value.get('meta') and
+                    value.get('meta').get('chartId')
+                ):
                     old_id = value.get('meta').get('chartId')
                     new_id = old_to_new_sliceids[old_id]
                     value['meta']['chartId'] = new_id
@@ -1591,7 +1592,6 @@ class Superset(BaseSupersetView):
                 .filter_by(id=dashboard_id).first())
         check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get('data'))
-        original_slice_names = {(slc.id): slc.slice_name for slc in dash.slices}
         self._set_dash_metadata(dash, data)
         session.merge(dash)
         session.commit()
@@ -1605,9 +1605,10 @@ class Superset(BaseSupersetView):
         slice_ids = []
         slice_id_to_name = {}
         for value in positions.values():
-            if isinstance(value, dict) and value.get('meta') \
-                and value.get('meta').get('chartId'):
-
+            if (
+                isinstance(value, dict) and value.get('meta') and
+                value.get('meta').get('chartId')
+            ):
                 slice_id = value.get('meta').get('chartId')
                 slice_ids.append(slice_id)
                 slice_id_to_name[slice_id] = value.get('meta').get('chartName')
@@ -1639,7 +1640,7 @@ class Superset(BaseSupersetView):
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
-        default_filters_data = json.loads(data.get('default_filters', ''))
+        default_filters_data = json.loads(data.get('default_filters', '{}'))
         for key in default_filters_data.keys():
             if int(key) not in slice_ids:
                 del default_filters_data[key]
