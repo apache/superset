@@ -1,7 +1,5 @@
 import d3 from 'd3';
 import nv from 'nvd3';
-import 'nvd3/build/nv.d3.min.css';
-import '../../stylesheets/d3tip.css';
 
 
 function percentageExceedenceVis(slice, payload) {

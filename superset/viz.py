@@ -1025,7 +1025,6 @@ class PercentageExceedenceViz(BaseViz):
     def get_data(self, df):
         vis_data = []
         data = {"L1": [], "L2": [], "L3": []}
-        # [data[row[1]].append({'close': row[2]}) for row in df.values]
         [data[row[1]].append([row[2]]) for row in df.values]
 
         # Add percentage Exceedence
