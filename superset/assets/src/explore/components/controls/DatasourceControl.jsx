@@ -18,7 +18,7 @@ const propTypes = {
   name: PropTypes.string.isRequired,
   onChange: PropTypes.func,
   value: PropTypes.string.isRequired,
-  datasource: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
 };
 
 const defaultProps = {
