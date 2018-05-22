@@ -198,7 +198,7 @@ export function slugify(string) {
 
 export function getAjaxErrorMsg(error) {
   const respJSON = error.responseJSON;
-  return (respJSON && respJSON.message) ? respJSON.message :
+  return (respJSON && respJSON.error) ? respJSON.error :
           error.responseText;
 }
 

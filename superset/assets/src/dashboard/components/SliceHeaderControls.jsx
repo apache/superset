@@ -11,6 +11,8 @@ const propTypes = {
   isCached: PropTypes.bool,
   isExpanded: PropTypes.bool,
   cachedDttm: PropTypes.string,
+  supersetCanExplore: PropTypes.bool,
+  sliceCanEdit: PropTypes.bool,
   toggleExpandSlice: PropTypes.func,
   forceRefresh: PropTypes.func,
   exploreChart: PropTypes.func,
@@ -25,6 +27,8 @@ const defaultProps = {
   cachedDttm: null,
   isCached: false,
   isExpanded: false,
+  supersetCanExplore: false,
+  sliceCanEdit: false,
 };
 
 const VerticalDotsTrigger = () => (
@@ -93,13 +97,19 @@ class SliceHeaderControls extends React.PureComponent {
             </MenuItem>
           )}
 
-          <MenuItem href={slice.edit_url} target="_blank">
-            {t('Edit chart metadata')}
-          </MenuItem>
+          {this.props.sliceCanEdit && (
+            <MenuItem href={slice.edit_url} target="_blank">
+              {t('Edit chart metadata')}
+            </MenuItem>
+          )}
 
           <MenuItem onClick={this.exportCSV}>{t('Export CSV')}</MenuItem>
 
-          <MenuItem onClick={this.exploreChart}>{t('Explore chart')}</MenuItem>
+          {this.props.supersetCanExplore && (
+            <MenuItem onClick={this.exploreChart}>
+              {t('Explore chart')}
+            </MenuItem>
+          )}
         </Dropdown.Menu>
       </Dropdown>
     );

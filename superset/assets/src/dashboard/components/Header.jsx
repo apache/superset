@@ -146,7 +146,8 @@ class Header extends React.PureComponent {
       hasUnsavedChanges,
     } = this.props;
 
-    const userCanEdit = dashboardInfo.dash_save_perm;
+    const userCanEdit = dashboardInfo.dash_edit_perm;
+    const userCanSaveAs = dashboardInfo.dash_save_perm;
 
     return (
       <div className="dashboard-header">
@@ -167,7 +168,7 @@ class Header extends React.PureComponent {
           </span>
         </div>
         <ButtonToolbar>
-          {userCanEdit && (
+          {userCanSaveAs && (
             <ButtonGroup>
               {editMode && (
                 <Button
@@ -202,6 +203,7 @@ class Header extends React.PureComponent {
                   bsSize="small"
                   onClick={this.toggleEditMode}
                   bsStyle={hasUnsavedChanges ? 'primary' : undefined}
+                  disabled={!userCanEdit}
                 >
                   {editMode ? t('Switch to view mode') : t('Edit dashboard')}
                 </Button>
@@ -234,6 +236,7 @@ class Header extends React.PureComponent {
                   onSave={onSave}
                   isMenuItem
                   triggerNode={<span>{t('Save as')}</span>}
+                  canOverwrite={userCanEdit}
                 />
                 {hasUnsavedChanges && (
                   <MenuItem eventKey="discard" onSelect={Header.discardChanges}>

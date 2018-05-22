@@ -21,6 +21,7 @@ const propTypes = {
   css: PropTypes.string.isRequired,
   onSave: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
+  canOverwrite: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -113,6 +114,7 @@ class SaveModal extends React.PureComponent {
               value={SAVE_TYPE_OVERWRITE}
               onChange={this.handleSaveTypeChange}
               checked={this.state.saveType === SAVE_TYPE_OVERWRITE}
+              disabled={!this.props.canOverwrite}
             >
               {t('Overwrite Dashboard [%s]', this.props.dashboardTitle)}
             </Radio>

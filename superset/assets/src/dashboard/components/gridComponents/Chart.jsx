@@ -29,6 +29,8 @@ const propTypes = {
   removeFilter: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
+  supersetCanExplore: PropTypes.bool.isRequired,
+  sliceCanEdit: PropTypes.bool.isRequired,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -155,6 +157,8 @@ class Chart extends React.Component {
       sliceName,
       toggleExpandSlice,
       timeout,
+      supersetCanExplore,
+      sliceCanEdit,
     } = this.props;
 
     const { width } = this.state;
@@ -179,6 +183,8 @@ class Chart extends React.Component {
           exportCSV={this.exportCSV}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
+          supersetCanExplore={supersetCanExplore}
+          sliceCanEdit={sliceCanEdit}
         />
 
         {/*
