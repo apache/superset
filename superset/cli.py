@@ -186,6 +186,9 @@ def load_examples(load_test_data):
     print('Loading [BART lines]')
     data.load_bart_lines()
 
+    print('Loading [Multi Line]')
+    data.load_multi_line()
+
     if load_test_data:
         print('Loading [Unicode test data]')
         data.load_unicode_test_data()
