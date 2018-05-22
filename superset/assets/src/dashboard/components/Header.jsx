@@ -30,6 +30,7 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
+  css: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
@@ -42,6 +43,7 @@ const propTypes = {
   setEditMode: PropTypes.func.isRequired,
   showBuilderPane: PropTypes.bool.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
+  updateCss: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   maxUndoHistoryExceeded: PropTypes.bool.isRequired,
 
@@ -108,6 +110,7 @@ class Header extends React.PureComponent {
       dashboardTitle,
       layout: positions,
       expandedSlices,
+      css,
       filters,
       dashboardInfo,
     } = this.props;
@@ -115,6 +118,7 @@ class Header extends React.PureComponent {
     const data = {
       positions,
       expanded_slices: expandedSlices,
+      css,
       dashboard_title: dashboardTitle,
       default_filters: JSON.stringify(filters),
     };
@@ -128,12 +132,14 @@ class Header extends React.PureComponent {
       layout,
       filters,
       expandedSlices,
+      css,
       onUndo,
       onRedo,
       undoLength,
       redoLength,
       onChange,
       onSave,
+      updateCss,
       editMode,
       showBuilderPane,
       dashboardInfo,
@@ -224,11 +230,10 @@ class Header extends React.PureComponent {
                   layout={layout}
                   filters={filters}
                   expandedSlices={expandedSlices}
+                  css={css}
                   onSave={onSave}
                   isMenuItem
                   triggerNode={<span>{t('Save as')}</span>}
-                  // @TODO need to figure out css
-                  css=""
                 />
                 {hasUnsavedChanges && (
                   <MenuItem eventKey="discard" onSelect={Header.discardChanges}>
@@ -247,10 +252,12 @@ class Header extends React.PureComponent {
             layout={layout}
             filters={filters}
             expandedSlices={expandedSlices}
+            css={css}
             onSave={onSave}
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
             startPeriodicRender={this.props.startPeriodicRender}
+            updateCss={updateCss}
             editMode={editMode}
           />
         </ButtonToolbar>

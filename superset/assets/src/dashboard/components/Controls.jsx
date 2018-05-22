@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import $ from 'jquery';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 
+import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
 import { t } from '../../locales';
 
@@ -30,8 +31,10 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
+  css: PropTypes.string.isRequired,
   slices: PropTypes.array,
   onChange: PropTypes.func.isRequired,
+  updateCss: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
   editMode: PropTypes.bool,
@@ -46,9 +49,11 @@ class Controls extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      css: '',
+      css: props.css,
       cssTemplates: [],
     };
+
+    this.changeCss = this.changeCss.bind(this);
   }
 
   componentWillMount() {
@@ -69,6 +74,7 @@ class Controls extends React.PureComponent {
       updateDom(css);
     });
     this.props.onChange();
+    this.props.updateCss(css);
   }
 
   render() {
@@ -111,6 +117,14 @@ class Controls extends React.PureComponent {
           )}
           {editMode && (
             <MenuItem href={emailLink}>{t('Email dashboard link')}</MenuItem>
+          )}
+          {editMode && (
+            <CssEditor
+              triggerNode={<span>{t('Edit CSS')}</span>}
+              initialCss={this.state.css}
+              templates={this.state.cssTemplates}
+              onChange={this.changeCss}
+            />
           )}
         </DropdownButton>
       </span>

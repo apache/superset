@@ -10,6 +10,7 @@ import {
   saveFaveStar,
   fetchCharts,
   startPeriodicRender,
+  updateCss,
   onChange,
   saveDashboardRequest,
   setMaxUndoHistoryExceeded,
@@ -42,6 +43,7 @@ function mapStateToProps({
       (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
     ).text,
     expandedSlices: dashboard.expandedSlices,
+    css: dashboard.css,
     charts,
     userId: dashboardInfo.userId,
     isStarred: !!dashboard.isStarred,
@@ -66,6 +68,7 @@ function mapDispatchToProps(dispatch) {
       fetchCharts,
       startPeriodicRender,
       updateDashboardTitle,
+      updateCss,
       onChange,
       onSave: saveDashboardRequest,
       setMaxUndoHistoryExceeded,

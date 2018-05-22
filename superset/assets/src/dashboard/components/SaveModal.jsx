@@ -18,6 +18,7 @@ const propTypes = {
   saveType: PropTypes.oneOf([SAVE_TYPE_OVERWRITE, SAVE_TYPE_NEWDASHBOARD]),
   triggerNode: PropTypes.node.isRequired,
   filters: PropTypes.object.isRequired,
+  css: PropTypes.string.isRequired,
   onSave: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
 };
@@ -70,6 +71,7 @@ class SaveModal extends React.PureComponent {
     const {
       dashboardTitle,
       layout: positions,
+      css,
       expandedSlices,
       filters,
       dashboardId,
@@ -77,6 +79,7 @@ class SaveModal extends React.PureComponent {
 
     const data = {
       positions,
+      css,
       expanded_slices: expandedSlices,
       dashboard_title: dashboardTitle,
       default_filters: JSON.stringify(filters),
