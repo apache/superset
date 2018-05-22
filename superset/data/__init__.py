@@ -1875,12 +1875,6 @@ def load_loads_data():
         db.engine,
         if_exists='replace',
         chunksize=500,
-        dtype={
-            'color': String(255),
-            'name': String(255),
-            'polyline': Text,
-            'path_json': Text,
-        },
         index=False)
     print("Creating table {} reference".format(tbl_name))
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
@@ -1897,7 +1891,7 @@ def load_loads_data():
         "metric": "sum__close",
         "viz_type": "percentage_exceedence"
     }
-    print('Creating Slice')
+    print('Creating Loads Slice')
     slc = Slice(
         slice_name="Percentage Exceedence",
         viz_type='percentage_exceedence',

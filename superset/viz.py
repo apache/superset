@@ -1023,13 +1023,20 @@ class PercentageExceedenceViz(BaseViz):
         return d
 
     def get_data(self, df):
-        data = {"L1": [],
-                "L2": [],
-                "L3": []
-                }
-        [data[row[1]].append({'close': row[2]}) for row in df.values]
-        # data = [{'date': row[0], 'name': row[1], 'close': row[2]} ]
-        return {'data': data}
+        vis_data = []
+        data = {"L1": [], "L2": [], "L3": []}
+        # [data[row[1]].append({'close': row[2]}) for row in df.values]
+        [data[row[1]].append([row[2]]) for row in df.values]
+
+        # Add percentage Exceedence
+        for key, value in data.items():
+            values = data[key]
+            exceedenceParam = 100 / len(values)
+            for index, d in enumerate(values):
+                percentExceedence = exceedenceParam * index
+                d.insert(0, percentExceedence)
+        [vis_data.append({"key": key, "values": values}) for key, values in data.items()]
+        return vis_data
 
 
 class BigNumberTotalViz(BaseViz):
