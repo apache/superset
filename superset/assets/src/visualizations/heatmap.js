@@ -177,11 +177,12 @@ function heatmapVis(slice, payload) {
       const k = d3.mouse(this);
       const m = Math.floor(scale[0].invert(k[0]));
       const n = Math.floor(scale[1].invert(k[1]));
+      const metric = typeof fd.metric === 'object' ? fd.metric.label : fd.metric;
       if (m in matrix && n in matrix[m]) {
         const obj = matrix[m][n];
         s += '<div><b>' + fd.all_columns_x + ': </b>' + obj.x + '<div>';
         s += '<div><b>' + fd.all_columns_y + ': </b>' + obj.y + '<div>';
-        s += '<div><b>' + fd.metric + ': </b>' + valueFormatter(obj.v) + '<div>';
+        s += '<div><b>' + metric + ': </b>' + valueFormatter(obj.v) + '<div>';
         if (fd.show_perc) {
           s += '<div><b>%: </b>' + fp(fd.normalized ? obj.rank : obj.perc) + '<div>';
         }
