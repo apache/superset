@@ -23,7 +23,7 @@ class MetricPermException(SupersetException):
 
 
 class NoDataException(SupersetException):
-    status = 400
+    status = 204
 
 
 class SupersetTemplateException(SupersetException):
