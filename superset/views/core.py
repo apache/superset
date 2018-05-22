@@ -2049,9 +2049,9 @@ class Superset(BaseSupersetView):
             pass
         dashboard(dashboard_id=dash.id)
 
-        dash_edit_perm = check_ownership(dash, raise_if_false=False)
-        dash_save_perm = \
-            dash_edit_perm and security_manager.can_access('can_save_dash', 'Superset')
+        dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
+            security_manager.can_access('can_save_dash', 'Superset')
+        dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
         superset_can_explore = security_manager.can_access('can_explore', 'Superset')
         slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
