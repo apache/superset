@@ -19,6 +19,7 @@ import polyline
 
 from superset import app, db, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import TableColumn
 from superset.models import core as models
 
 # Shortcuts
@@ -585,6 +586,10 @@ def load_birth_names():
     obj.main_dttm_col = 'ds'
     obj.database = utils.get_or_create_main_db()
     obj.filter_select_enabled = True
+    obj.columns.append(TableColumn(
+        column_name='num_california',
+        expression="CASE WHEN state = 'CA' THEN num ELSE 0 END"
+    ))
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
@@ -737,6 +742,24 @@ def load_birth_names():
                     'val': ['girl'],
                 }],
                 subheader='total female participants')),
+        Slice(
+            slice_name="Number of California Births",
+            viz_type='big_number_total',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                metric={
+                    "expressionType": "SIMPLE",
+                    "column": {
+                        "column_name": "num_california",
+                        "expression": "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    "aggregate": "SUM",
+                    "label": "SUM(num_california)",
+                },
+                viz_type="big_number_total",
+                granularity_sqla="ds")),
     ]
     for slc in slices:
         merge_slice(slc)
