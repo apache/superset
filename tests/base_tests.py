@@ -125,7 +125,7 @@ class SupersetTestCase(unittest.TestCase):
         resp = self.get_resp(
             '/login/',
             data=dict(username=username, password=password))
-        self.assertIn('Welcome', resp)
+        self.assertNotIn('User confirmation needed', resp)
 
     def get_slice(self, slice_name, session):
         slc = (

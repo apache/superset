@@ -450,7 +450,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             'want to alter specific parameters.',
         ),
         'cache_timeout': _(
-            'Duration (in seconds) of the caching timeout for this slice.'),
+            'Duration (in seconds) of the caching timeout for this chart.'),
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
@@ -1959,7 +1959,7 @@ class Superset(BaseSupersetView):
             slices = session.query(models.Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(__(
-                    'Slice %(id)s not found', id=slice_id), status=404)
+                    'Chart %(id)s not found', id=slice_id), status=404)
         elif table_name and db_name:
             SqlaTable = ConnectorRegistry.sources['table']
             table = (
