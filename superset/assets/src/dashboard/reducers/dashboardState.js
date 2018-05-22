@@ -1,6 +1,4 @@
 /* eslint-disable camelcase */
-import { merge as mergeArray } from 'd3';
-
 import {
   ADD_SLICE,
   ADD_FILTER,
@@ -27,7 +25,7 @@ export default function dashboardStateReducer(state = {}, action) {
       updatedSliceIds.add(action.slice.slice_id);
       return {
         ...state,
-        sliceIds: updatedSliceIds,
+        sliceIds: Array.from(updatedSliceIds),
       };
     },
     [REMOVE_SLICE]() {
@@ -45,7 +43,7 @@ export default function dashboardStateReducer(state = {}, action) {
       }
       return {
         ...state,
-        sliceIds: updatedSliceIds,
+        sliceIds: Array.from(updatedSliceIds),
         filters: newFilter,
         refresh,
       };
@@ -86,7 +84,7 @@ export default function dashboardStateReducer(state = {}, action) {
 
     // filters
     [ADD_FILTER]() {
-      const hasSelectedFilter = state.sliceIds.has(action.chart.id);
+      const hasSelectedFilter = state.sliceIds.includes(action.chart.id);
       if (!hasSelectedFilter) {
         return state;
       }
@@ -115,9 +113,9 @@ export default function dashboardStateReducer(state = {}, action) {
           // d3.merge pass in array of arrays while some value form filter components
           // from and to filter box require string to be process and return
         } else if (filters[sliceId][col] instanceof Array) {
-          newFilter[col] = mergeArray([filters[sliceId][col], vals]);
+          newFilter[col] = [...filters[sliceId][col], ...vals];
         } else {
-          newFilter[col] = mergeArray([[filters[sliceId][col]], vals])[0] || '';
+          newFilter[col] = [filters[sliceId][col], ...vals];
         }
         filters = { ...filters, [sliceId]: newFilter };
       }
@@ -126,14 +124,15 @@ export default function dashboardStateReducer(state = {}, action) {
     [REMOVE_FILTER]() {
       const { sliceId, col, vals, refresh } = action;
       const excluded = new Set(vals);
-      const valFilter = val => !excluded.has(val);
 
       let filters = state.filters;
       // Have to be careful not to modify the dashboard state so that
       // the render actually triggers
       if (sliceId in state.filters && col in state.filters[sliceId]) {
-        const newFilter = filters[sliceId][col].filter(valFilter);
-        filters = { ...filters, [sliceId]: newFilter };
+        const newFilter = filters[sliceId][col].filter(
+          val => !excluded.has(val),
+        );
+        filters = { ...filters, [sliceId]: { [col]: newFilter } };
       }
       return { ...state, filters, refresh };
     },

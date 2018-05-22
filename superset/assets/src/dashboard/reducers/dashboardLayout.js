@@ -139,18 +139,18 @@ const actionHandlers = {
       nextEntities[newRow.id] = newRow;
     }
 
-    // inherit the width of a column parent
+    // if column is a parent, set any resizable children to have a minimum width so that
+    // the chances that they are validly movable to future containers is maximized
     if (
       destination.type === COLUMN_TYPE &&
       [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)
     ) {
       const component = nextEntities[dragging.id];
-      const parentColumn = nextEntities[destination.id];
       nextEntities[dragging.id] = {
         ...component,
         meta: {
           ...component.meta,
-          width: parentColumn.meta.width,
+          width: GRID_MIN_COLUMN_COUNT,
         },
       };
     }
