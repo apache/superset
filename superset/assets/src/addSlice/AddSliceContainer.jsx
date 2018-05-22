@@ -98,7 +98,7 @@ export default class AddSliceContainer extends React.PureComponent {
             disabled={this.isBtnDisabled()}
             onClick={this.gotoSlice.bind(this)}
           >
-            {t('Create new slice')}
+            {t('Create new chart')}
           </Button>
           <br /><br />
         </Panel>
