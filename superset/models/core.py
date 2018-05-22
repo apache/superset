@@ -342,6 +342,15 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def url(self):
+        if self.json_metadata:
+            # add default_filters to the preselect_filters of dashboard
+            json_metadata = json.loads(self.json_metadata)
+            default_filters = json_metadata.get('default_filters')
+            # make sure default_filters is not empty
+            if json.loads(default_filters):
+                filters = parse.quote(default_filters.encode('utf8'))
+                return '/superset/dashboard/{}/?preselect_filters={}'.format(
+                    self.slug or self.id, filters)
         return '/superset/dashboard/{}/'.format(self.slug or self.id)
 
     @property
