@@ -1030,10 +1030,10 @@ class PercentageExceedenceViz(BaseViz):
         # Add percentage Exceedence
         for key, value in data.items():
             values = data[key]
-            exceedenceParam = 100 / len(values)
+            exceedence_param = 100 / len(values)
             for index, d in enumerate(values):
-                percentExceedence = exceedenceParam * index
-                d.insert(0, percentExceedence)
+                percent_exceedence = exceedence_param * index
+                d.insert(0, percent_exceedence)
         [vis_data.append({"key": key, "values": values}) for key, values in data.items()]
         return vis_data
 
