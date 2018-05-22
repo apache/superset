@@ -11,7 +11,7 @@ import {
   fetchCharts,
   startPeriodicRender,
   onChange,
-  saveDashboard,
+  saveDashboardRequest,
   setMaxUndoHistoryExceeded,
   maxUndoHistoryToast,
 } from '../actions/dashboardState';
@@ -67,7 +67,7 @@ function mapDispatchToProps(dispatch) {
       startPeriodicRender,
       updateDashboardTitle,
       onChange,
-      onSave: saveDashboard,
+      onSave: saveDashboardRequest,
       setMaxUndoHistoryExceeded,
       maxUndoHistoryToast,
     },

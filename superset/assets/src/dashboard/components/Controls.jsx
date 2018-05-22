@@ -5,7 +5,6 @@ import $ from 'jquery';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
 
 import RefreshIntervalModal from './RefreshIntervalModal';
-import SaveModal from './SaveModal';
 import { t } from '../../locales';
 
 function updateDom(css) {
@@ -31,11 +30,7 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   dashboardInfo: PropTypes.object.isRequired,
   dashboardTitle: PropTypes.string.isRequired,
-  layout: PropTypes.object.isRequired,
-  filters: PropTypes.object.isRequired,
-  expandedSlices: PropTypes.object.isRequired,
   slices: PropTypes.array,
-  onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
   forceRefreshAllCharts: PropTypes.func.isRequired,
   startPeriodicRender: PropTypes.func.isRequired,
@@ -79,12 +74,8 @@ class Controls extends React.PureComponent {
   render() {
     const {
       dashboardTitle,
-      layout,
-      filters,
-      expandedSlices,
       startPeriodicRender,
       forceRefreshAllCharts,
-      onSave,
       editMode,
     } = this.props;
 
@@ -109,19 +100,6 @@ class Controls extends React.PureComponent {
               startPeriodicRender(refreshInterval * 1000)
             }
             triggerNode={<span>{t('Set auto-refresh interval')}</span>}
-          />
-          <SaveModal
-            addSuccessToast={this.props.addSuccessToast}
-            addDangerToast={this.props.addDangerToast}
-            dashboardId={this.props.dashboardInfo.id}
-            dashboardTitle={dashboardTitle}
-            layout={layout}
-            filters={filters}
-            expandedSlices={expandedSlices}
-            onSave={onSave}
-            css={this.state.css}
-            triggerNode={<span>{editMode ? t('Save') : t('Save as')}</span>}
-            isMenuItem
           />
           {editMode && (
             <MenuItem

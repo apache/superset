@@ -6,7 +6,15 @@ import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/stores/store';
-import { addWarningToast } from './messageToasts';
+import { getAjaxErrorMsg } from '../../modules/utils';
+import { SAVE_TYPE_OVERWRITE } from '../util/constants';
+import { t } from '../../locales';
+
+import {
+  addSuccessToast,
+  addWarningToast,
+  addDangerToast,
+} from './messageToasts';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -81,12 +89,38 @@ export function onSave() {
   return { type: ON_SAVE };
 }
 
-export function saveDashboard() {
+export function saveDashboardRequestSuccess() {
   return dispatch => {
     dispatch(onSave());
     // clear layout undo history
     dispatch(UndoActionCreators.clearHistory());
   };
+}
+
+export function saveDashboardRequest(data, id, saveType) {
+  const path = saveType === SAVE_TYPE_OVERWRITE ? 'save_dash' : 'copy_dash';
+  const url = `/superset/${path}/${id}/`;
+  return dispatch =>
+    $.ajax({
+      type: 'POST',
+      url,
+      data: {
+        data: JSON.stringify(data),
+      },
+      success: () => {
+        dispatch(saveDashboardRequestSuccess());
+        dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+      },
+      error: error => {
+        const errorMsg = getAjaxErrorMsg(error);
+        dispatch(
+          addDangerToast(
+            `${t('Sorry, there was an error saving this dashboard: ')}
+          ${errorMsg}`,
+          ),
+        );
+      },
+    });
 }
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
