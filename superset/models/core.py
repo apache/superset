@@ -693,7 +693,6 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def get_df(self, sql, schema):
         sqls = [x.strip() for x in sql.strip().strip(';').split(';')]
         eng = self.get_sqla_engine(schema=schema)
-
         for i in range(len(sqls) - 1):
             eng.execute(sqls[i])
 
