@@ -52,7 +52,11 @@ export default function dashboardStateReducer(state = {}, action) {
       return { ...state, isStarred: action.isStarred };
     },
     [SET_EDIT_MODE]() {
-      return { ...state, editMode: action.editMode };
+      return {
+        ...state,
+        editMode: action.editMode,
+        showBuilderPane: !!action.editMode,
+      };
     },
     [SET_MAX_UNDO_HISTORY_EXCEEDED]() {
       const { maxUndoHistoryExceeded = true } = action.payload;
