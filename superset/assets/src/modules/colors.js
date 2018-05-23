@@ -181,7 +181,7 @@ export const getColorFromScheme = (function () {
     const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
     let stringifyS = String(s).toLowerCase();
     // next line is for superset series that should have the same color
-    stringifyS = stringifyS.replace('---', '');
+    stringifyS = stringifyS.replace(' ---', '');
 
     if (forcedColor && !forcedColors[stringifyS]) {
       forcedColors[stringifyS] = forcedColor;
