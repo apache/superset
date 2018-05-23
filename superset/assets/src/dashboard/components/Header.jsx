@@ -1,6 +1,12 @@
+/* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, ButtonToolbar } from 'react-bootstrap';
+import {
+  DropdownButton,
+  MenuItem,
+  ButtonGroup,
+  ButtonToolbar,
+} from 'react-bootstrap';
 
 import Controls from './Controls';
 import EditableTitle from '../../components/EditableTitle';
@@ -9,7 +15,11 @@ import FaveStar from '../../components/FaveStar';
 import SaveModal from './SaveModal';
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
-import { UNDO_LIMIT } from '../util/constants';
+import {
+  UNDO_LIMIT,
+  SAVE_TYPE_NEWDASHBOARD,
+  SAVE_TYPE_OVERWRITE,
+} from '../util/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -20,6 +30,7 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   filters: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
+  css: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   onSave: PropTypes.func.isRequired,
   onChange: PropTypes.func.isRequired,
@@ -32,6 +43,7 @@ const propTypes = {
   setEditMode: PropTypes.func.isRequired,
   showBuilderPane: PropTypes.bool.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
+  updateCss: PropTypes.func.isRequired,
   hasUnsavedChanges: PropTypes.bool.isRequired,
   maxUndoHistoryExceeded: PropTypes.bool.isRequired,
 
@@ -45,6 +57,10 @@ const propTypes = {
 };
 
 class Header extends React.PureComponent {
+  static discardChanges() {
+    window.location.reload();
+  }
+
   constructor(props) {
     super(props);
     this.state = {
@@ -54,6 +70,7 @@ class Header extends React.PureComponent {
     this.handleChangeText = this.handleChangeText.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
+    this.overwriteDashboard = this.overwriteDashboard.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -88,38 +105,62 @@ class Header extends React.PureComponent {
     this.props.setEditMode(!this.props.editMode);
   }
 
+  overwriteDashboard() {
+    const {
+      dashboardTitle,
+      layout: positions,
+      expandedSlices,
+      css,
+      filters,
+      dashboardInfo,
+    } = this.props;
+
+    const data = {
+      positions,
+      expanded_slices: expandedSlices,
+      css,
+      dashboard_title: dashboardTitle,
+      default_filters: JSON.stringify(filters),
+    };
+
+    this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+  }
+
   render() {
     const {
       dashboardTitle,
       layout,
       filters,
       expandedSlices,
+      css,
       onUndo,
       onRedo,
       undoLength,
       redoLength,
       onChange,
       onSave,
+      updateCss,
       editMode,
       showBuilderPane,
       dashboardInfo,
       hasUnsavedChanges,
     } = this.props;
 
-    const userCanEdit = dashboardInfo.dash_save_perm;
+    const userCanEdit = dashboardInfo.dash_edit_perm;
+    const userCanSaveAs = dashboardInfo.dash_save_perm;
 
     return (
       <div className="dashboard-header">
         <div className="dashboard-component-header header-large">
           <EditableTitle
             title={dashboardTitle}
-            canEdit={this.props.dashboardInfo.dash_save_perm && editMode}
+            canEdit={userCanEdit && editMode}
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
           <span className="favstar m-l-5">
             <FaveStar
-              itemId={this.props.dashboardInfo.id}
+              itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
               saveFaveStar={this.props.saveFaveStar}
               isStarred={this.props.isStarred}
@@ -127,7 +168,7 @@ class Header extends React.PureComponent {
           </span>
         </div>
         <ButtonToolbar>
-          {userCanEdit && (
+          {userCanSaveAs && (
             <ButtonGroup>
               {editMode && (
                 <Button
@@ -161,44 +202,65 @@ class Header extends React.PureComponent {
                 <Button
                   bsSize="small"
                   onClick={this.toggleEditMode}
-                  bsStyle={editMode ? undefined : 'primary'}
+                  bsStyle={hasUnsavedChanges ? 'primary' : undefined}
+                  disabled={!userCanEdit}
                 >
-                  {editMode ? t('Switch to View Mode') : t('Edit Dashboard')}
+                  {editMode ? t('Switch to view mode') : t('Edit dashboard')}
                 </Button>
               ) : (
+                <Button
+                  bsSize="small"
+                  bsStyle={hasUnsavedChanges ? 'primary' : undefined}
+                  onClick={this.overwriteDashboard}
+                >
+                  {t('Save changes')}
+                </Button>
+              )}
+              <DropdownButton
+                title=""
+                id="save-dash-split-button"
+                bsStyle={hasUnsavedChanges ? 'primary' : undefined}
+                bsSize="small"
+                pullRight
+              >
                 <SaveModal
                   addSuccessToast={this.props.addSuccessToast}
                   addDangerToast={this.props.addDangerToast}
-                  dashboardId={this.props.dashboardInfo.id}
+                  dashboardId={dashboardInfo.id}
                   dashboardTitle={dashboardTitle}
+                  saveType={SAVE_TYPE_NEWDASHBOARD}
                   layout={layout}
                   filters={filters}
                   expandedSlices={expandedSlices}
+                  css={css}
                   onSave={onSave}
-                  // @TODO need to figure out css
-                  css=""
-                  triggerNode={
-                    <Button bsStyle="primary" bsSize="small">
-                      {t('Save changes')}
-                    </Button>
-                  }
+                  isMenuItem
+                  triggerNode={<span>{t('Save as')}</span>}
+                  canOverwrite={userCanEdit}
                 />
-              )}
+                {hasUnsavedChanges && (
+                  <MenuItem eventKey="discard" onSelect={Header.discardChanges}>
+                    {t('Discard changes')}
+                  </MenuItem>
+                )}
+              </DropdownButton>
             </ButtonGroup>
           )}
 
           <Controls
             addSuccessToast={this.props.addSuccessToast}
             addDangerToast={this.props.addDangerToast}
-            dashboardInfo={this.props.dashboardInfo}
+            dashboardInfo={dashboardInfo}
             dashboardTitle={dashboardTitle}
             layout={layout}
             filters={filters}
             expandedSlices={expandedSlices}
+            css={css}
             onSave={onSave}
             onChange={onChange}
             forceRefreshAllCharts={this.forceRefresh}
             startPeriodicRender={this.props.startPeriodicRender}
+            updateCss={updateCss}
             editMode={editMode}
           />
         </ButtonToolbar>

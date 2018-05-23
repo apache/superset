@@ -41,3 +41,7 @@ export const DANGER_TOAST = 'DANGER_TOAST';
 
 // undo-redo
 export const UNDO_LIMIT = 50;
+
+// save dash options
+export const SAVE_TYPE_OVERWRITE = 'overwrite';
+export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';

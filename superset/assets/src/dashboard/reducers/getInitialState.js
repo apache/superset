@@ -58,10 +58,7 @@ export default function(bootstrapData) {
     future: [],
   };
 
-  delete dashboard.position_json;
-  delete dashboard.css;
-
-  // creat a lookup to sync layout names with slice names
+  // create a lookup to sync layout names with slice names
   const chartIdToLayoutId = {};
   Object.values(layout).forEach(layoutComponent => {
     if (layoutComponent.type === CHART_TYPE) {
@@ -124,6 +121,8 @@ export default function(bootstrapData) {
       userId: user_id,
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
+      superset_can_explore: dashboard.superset_can_explore,
+      slice_can_edit: dashboard.slice_can_edit,
       common,
     },
     dashboardState: {
@@ -131,6 +130,7 @@ export default function(bootstrapData) {
       refresh: false,
       filters,
       expandedSlices: dashboard.metadata.expanded_slices || {},
+      css: dashboard.css || '',
       editMode: false,
       showBuilderPane: false,
       hasUnsavedChanges: false,

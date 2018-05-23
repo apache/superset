@@ -14,13 +14,13 @@ import {
   TOGGLE_BUILDER_PANE,
   TOGGLE_EXPAND_SLICE,
   TOGGLE_FAVE_STAR,
-  UPDATE_DASHBOARD_TITLE,
+  UPDATE_CSS,
 } from '../actions/dashboardState';
 
 export default function dashboardStateReducer(state = {}, action) {
   const actionHandlers = {
-    [UPDATE_DASHBOARD_TITLE]() {
-      return { ...state, title: action.title };
+    [UPDATE_CSS]() {
+      return { ...state, css: action.css };
     },
     [ADD_SLICE]() {
       const updatedSliceIds = new Set(state.sliceIds);
