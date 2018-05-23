@@ -39,6 +39,10 @@ const KEYS_TO_SORT = [
   { key: 'changed_on', label: 'Recent' },
 ];
 
+const MARGIN_BOTTOM = 16;
+const SIDEPANE_HEADER_HEIGHT = 55;
+const SLICE_ADDER_CONTROL_HEIGHT = 64;
+
 class SliceAdder extends React.Component {
   static sortByComparator(attr) {
     const desc = attr === 'changed_on' ? -1 : 1;
@@ -166,6 +170,11 @@ class SliceAdder extends React.Component {
   }
 
   render() {
+    const slicesListHeight =
+      this.props.height -
+      SIDEPANE_HEADER_HEIGHT -
+      SLICE_ADDER_CONTROL_HEIGHT -
+      MARGIN_BOTTOM;
     return (
       <div className="slice-adder-container">
         <div className="controls">
@@ -202,7 +211,7 @@ class SliceAdder extends React.Component {
           this.state.filteredSlices.length > 0 && (
             <List
               width={376}
-              height={this.props.height}
+              height={slicesListHeight}
               rowCount={this.state.filteredSlices.length}
               rowHeight={136}
               rowRenderer={this.rowRenderer}

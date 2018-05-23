@@ -38,6 +38,29 @@
   }
 }
 
+.dashboard .dashboard-header {
+  #save-dash-split-button {
+    border-radius: 0;
+    margin-left: -8px;
+    height: 30px;
+    width: 30px;
+
+    &.btn.btn-primary {
+      border-left-color: white;
+    }
+
+    .caret {
+      position: absolute;
+      top: 24px;
+      left: 3px;
+    }
+
+    & + .dropdown-menu.dropdown-menu-right {
+      min-width: unset;
+    }
+  }
+}
+
 .dashboard .chart-header,
 .dashboard .dashboard-header {
   .dropdown-menu {
@@ -63,7 +86,7 @@
   padding: 0 16px;
   position: absolute;
   top: 0;
-  right: -22px;
+  right: -16px; //increase the click-able area for the button
 
   &:hover {
     cursor: pointer;
@@ -80,11 +103,16 @@
 
   .is-cached & {
     background-color: @pink;
-    margin-right: 6px;
   }
 
   .vertical-dots-container & {
     display: block;
+  }
+
+  a[role="menuitem"] & {
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
   }
 }
 
