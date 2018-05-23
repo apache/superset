@@ -11,6 +11,8 @@ import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilt
 import { updateComponents } from '../actions/dashboardLayout';
 import Chart from '../components/gridComponents/Chart';
 
+const EMPTY_FILTERS = {};
+
 function mapStateToProps(
   {
     charts: chartQueries,
@@ -30,7 +32,7 @@ function mapStateToProps(
     datasource: datasources[chart.form_data.datasource] || {},
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
-    filters,
+    filters: filters[id] || EMPTY_FILTERS,
     // note: this method caches filters if possible to prevent render cascades
     formData: getFormDataWithExtraFilters({
       chart,
