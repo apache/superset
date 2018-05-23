@@ -68,7 +68,7 @@ class ChartHolder extends React.Component {
         ...component,
         meta: {
           ...component.meta,
-          chartName: nextName,
+          sliceName: nextName,
         },
       },
     });
@@ -133,7 +133,7 @@ class ChartHolder extends React.Component {
                 id={component.meta.chartId}
                 width={widthMultiple * columnWidth}
                 height={component.meta.height * GRID_BASE_UNIT - CHART_MARGIN}
-                sliceName={component.meta.chartName}
+                sliceName={component.meta.sliceName || ''}
                 updateSliceName={this.handleUpdateSliceName}
               />
               {editMode && (

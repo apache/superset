@@ -65,7 +65,7 @@ describe('dashboardState reducer', () => {
         { editMode: false },
         { type: SET_EDIT_MODE, editMode: true },
       ),
-    ).to.deep.equal({ editMode: true });
+    ).to.deep.equal({ editMode: true, showBuilderPane: true });
   });
 
   it('should toggle builder pane', () => {

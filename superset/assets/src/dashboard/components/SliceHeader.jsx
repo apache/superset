@@ -65,7 +65,7 @@ class SliceHeader extends React.PureComponent {
             title={sliceName}
             canEdit={this.props.editMode}
             onSaveTitle={this.props.updateSliceName}
-            showTooltip={this.props.editMode}
+            showTooltip={false}
           />
           {!!Object.values(this.props.annotationQuery).length && (
             <TooltipWrapper

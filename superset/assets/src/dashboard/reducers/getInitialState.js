@@ -99,8 +99,9 @@ export default function(bootstrapData) {
     // functionality and python updates slice names based on layout upon dashboard save
     const layoutId = chartIdToLayoutId[key];
     if (layoutId && layout[layoutId]) {
-      layout[layoutId].meta.chartName = slice.slice_name;
+      layout[layoutId].meta.sliceName = slice.slice_name;
     }
+    if (!layout[layoutId].meta.sliceName) debugger
   });
 
   return {
@@ -126,7 +127,7 @@ export default function(bootstrapData) {
       common,
     },
     dashboardState: {
-      sliceIds,
+      sliceIds: Array.from(sliceIds),
       refresh: false,
       filters,
       expandedSlices: dashboard.metadata.expanded_slices || {},
