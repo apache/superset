@@ -83,4 +83,10 @@ describe('Chart', () => {
     wrapper.instance().removeFilter();
     expect(removeFilter.callCount).to.equal(1);
   });
+
+  it('should return props.filters when its getFilters method is called', () => {
+    const filters = { column: ['value'] };
+    const wrapper = setup({ filters });
+    expect(wrapper.instance().getFilters()).to.equal(filters);
+  });
 });
