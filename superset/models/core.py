@@ -690,9 +690,13 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sql = sql.strip().strip(';')
+        sqls = [x.strip() for x in sql.strip().strip(';').split(';')]
         eng = self.get_sqla_engine(schema=schema)
-        df = pd.read_sql_query(sql, eng)
+
+        for i in range(len(sqls) - 1):
+            eng.execute(sqls[i])
+
+        df = pd.read_sql_query(sqls[-1], eng)
 
         def needs_conversion(df_series):
             if df_series.empty:
