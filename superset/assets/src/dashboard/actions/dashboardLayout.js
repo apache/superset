@@ -12,26 +12,35 @@ import {
 import dropOverflowsParent from '../util/dropOverflowsParent';
 import findParentId from '../util/findParentId';
 
-// Component CRUD -------------------------------------------------------------
-export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
-function updateLayoutComponents(nextComponents) {
-  return {
-    type: UPDATE_COMPONENTS,
-    payload: {
-      nextComponents,
-    },
-  };
-}
-
-export function updateComponents(nextComponents) {
-  return (dispatch, getState) => {
-    dispatch(updateLayoutComponents(nextComponents));
+// this is a helper that takes an action as input and dispatches
+// an additional setUnsavedChanges(true) action after the dispatch in the case
+// that dashboardState.hasUnsavedChanges is false.
+function setUnsavedChangesAfterAction(action) {
+  return (...args) => (dispatch, getState) => {
+    const result = action(...args);
+    if (typeof result === 'function') {
+      dispatch(result(dispatch, getState));
+    } else {
+      dispatch(result);
+    }
 
     if (!getState().dashboardState.hasUnsavedChanges) {
       dispatch(setUnsavedChanges(true));
     }
   };
 }
+
+// Component CRUD -------------------------------------------------------------
+export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
+
+export const updateComponents = setUnsavedChangesAfterAction(
+  nextComponents => ({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents,
+    },
+  }),
+);
 
 export function updateDashboardTitle(text) {
   return (dispatch, getState) => {
@@ -50,90 +59,42 @@ export function updateDashboardTitle(text) {
 }
 
 export const DELETE_COMPONENT = 'DELETE_COMPONENT';
-function deleteLayoutComponent(id, parentId) {
-  return {
-    type: DELETE_COMPONENT,
-    payload: {
-      id,
-      parentId,
-    },
-  };
-}
-
-export function deleteComponent(id, parentId) {
-  return (dispatch, getState) => {
-    dispatch(deleteLayoutComponent(id, parentId));
-
-    if (!getState().dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
-    }
-  };
-}
+export const deleteComponent = setUnsavedChangesAfterAction((id, parentId) => ({
+  type: DELETE_COMPONENT,
+  payload: {
+    id,
+    parentId,
+  },
+}));
 
 export const CREATE_COMPONENT = 'CREATE_COMPONENT';
-function createLayoutComponent(dropResult) {
-  return {
-    type: CREATE_COMPONENT,
-    payload: {
-      dropResult,
-    },
-  };
-}
-
-export function createComponent(dropResult) {
-  return (dispatch, getState) => {
-    dispatch(createLayoutComponent(dropResult));
-
-    if (!getState().dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
-    }
-  };
-}
+export const createComponent = setUnsavedChangesAfterAction(dropResult => ({
+  type: CREATE_COMPONENT,
+  payload: {
+    dropResult,
+  },
+}));
 
 // Tabs -----------------------------------------------------------------------
 export const CREATE_TOP_LEVEL_TABS = 'CREATE_TOP_LEVEL_TABS';
-function createTopLevelTabsAction(dropResult) {
-  return {
-    type: CREATE_TOP_LEVEL_TABS,
-    payload: {
-      dropResult,
-    },
-  };
-}
-
-export function createTopLevelTabs(dropResult) {
-  return (dispatch, getState) => {
-    dispatch(createTopLevelTabsAction(dropResult));
-
-    if (!getState().dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
-    }
-  };
-}
+export const createTopLevelTabs = setUnsavedChangesAfterAction(dropResult => ({
+  type: CREATE_TOP_LEVEL_TABS,
+  payload: {
+    dropResult,
+  },
+}));
 
 export const DELETE_TOP_LEVEL_TABS = 'DELETE_TOP_LEVEL_TABS';
-function deleteTopLevelTabsAction() {
-  return {
-    type: DELETE_TOP_LEVEL_TABS,
-    payload: {},
-  };
-}
-
-export function deleteTopLevelTabs(dropResult) {
-  return (dispatch, getState) => {
-    dispatch(deleteTopLevelTabsAction(dropResult));
-
-    if (!getState().dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
-    }
-  };
-}
+export const deleteTopLevelTabs = setUnsavedChangesAfterAction(() => ({
+  type: DELETE_TOP_LEVEL_TABS,
+  payload: {},
+}));
 
 // Resize ---------------------------------------------------------------------
 export const RESIZE_COMPONENT = 'RESIZE_COMPONENT';
 export function resizeComponent({ id, width, height }) {
   return (dispatch, getState) => {
-    const { dashboardLayout: undoableLayout, dashboardState } = getState();
+    const { dashboardLayout: undoableLayout } = getState();
     const { present: dashboard } = undoableLayout;
     const component = dashboard[id];
     const widthChanged = width && component.meta.width !== width;
@@ -168,16 +129,13 @@ export function resizeComponent({ id, width, height }) {
       });
 
       dispatch(updateComponents(updatedComponents));
-      if (!dashboardState.hasUnsavedChanges) {
-        dispatch(setUnsavedChanges(true));
-      }
     }
   };
 }
 
 // Drag and drop --------------------------------------------------------------
 export const MOVE_COMPONENT = 'MOVE_COMPONENT';
-export function moveComponent(dropResult) {
+function moveComponent(dropResult) {
   return {
     type: MOVE_COMPONENT,
     payload: {
@@ -220,13 +178,12 @@ export function handleComponentDrop(dropResult) {
       dispatch(moveComponent(dropResult));
     }
 
-    const { dashboardLayout: undoableLayout, dashboardState } = getState();
+    const { dashboardLayout: undoableLayout } = getState();
 
     // if we moved a Tab and the parent Tabs no longer has children, delete it.
     if (!isNewComponent) {
       const { present: layout } = undoableLayout;
       const sourceComponent = layout[source.id];
-
       if (
         sourceComponent.type === TABS_TYPE &&
         sourceComponent.children.length === 0
@@ -237,10 +194,6 @@ export function handleComponentDrop(dropResult) {
         });
         dispatch(deleteComponent(source.id, parentId));
       }
-    }
-
-    if (!dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
     }
 
     return null;
@@ -263,12 +216,6 @@ export function undoLayoutAction() {
   };
 }
 
-export function redoLayoutAction() {
-  return (dispatch, getState) => {
-    dispatch(UndoActionCreators.redo());
-
-    if (!getState().dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
-    }
-  };
-}
+export const redoLayoutAction = setUnsavedChangesAfterAction(
+  UndoActionCreators.redo,
+);
