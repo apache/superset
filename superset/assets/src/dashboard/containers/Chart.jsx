@@ -40,6 +40,8 @@ function mapStateToProps(
     }),
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
+    supersetCanExplore: !!dashboardInfo.superset_can_explore,
+    sliceCanEdit: !!dashboardInfo.slice_can_edit,
   };
 }
 
