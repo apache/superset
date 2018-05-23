@@ -101,7 +101,6 @@ export default function(bootstrapData) {
     if (layoutId && layout[layoutId]) {
       layout[layoutId].meta.sliceName = slice.slice_name;
     }
-    if (!layout[layoutId].meta.sliceName) debugger
   });
 
   return {
