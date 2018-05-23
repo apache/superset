@@ -4,14 +4,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import unittest
-
 from sqlalchemy.engine.url import make_url
 
+from superset import db
 from superset.models.core import Database
+from .base_tests import SupersetTestCase
 
 
-class DatabaseModelTestCase(unittest.TestCase):
+class DatabaseModelTestCase(SupersetTestCase):
 
     def test_database_schema_presto(self):
         sqlalchemy_uri = 'presto://presto.airbnb.io:8080/hive/default'
@@ -73,3 +73,17 @@ class DatabaseModelTestCase(unittest.TestCase):
         model.impersonate_user = False
         user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
         self.assertNotEquals(example_user, user_name)
+
+    def test_single_statement(self):
+        main_db = self.get_main_database(db.session)
+
+        if main_db.backend == 'mysql':
+            df = main_db.get_df('SELECT 1', None)
+            self.assertEquals(df.iat[0, 0], 1)
+
+    def test_multi_statement(self):
+        main_db = self.get_main_database(db.session)
+
+        if main_db.backend == 'mysql':
+            df = main_db.get_df('USE superset; SELECT 1', None)
+            self.assertEquals(df.iat[0, 0], 1)
