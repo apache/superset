@@ -210,3 +210,12 @@
   margin-left: 3px;
   position: static;
 }
+
+.time-filter-tabs > .nav-tabs {
+  margin-bottom: 8px;
+}
+
+.time-filter-tabs > .nav-tabs > li > a {
+  padding: 4px;
+}
+

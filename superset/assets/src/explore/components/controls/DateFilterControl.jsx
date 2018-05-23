@@ -196,7 +196,7 @@ export default class DateFilterControl extends React.Component {
           <Tabs
             defaultActiveKey={tabs.indexOf(this.state.type) + 1}
             id="type"
-            bsStyle="pills"
+            className="time-filter-tabs"
             onSelect={type => this.setState({ type: tabs[type - 1] })}
           >
             <Tab eventKey={1} title="Range">
