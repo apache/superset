@@ -68,7 +68,7 @@ class SliceHeader extends React.PureComponent {
             title={
               sliceName ||
               (this.props.editMode
-                ? '       ' // this makes an empty title clickable
+                ? '---' // this makes an empty title clickable
                 : '')
             }
             canEdit={this.props.editMode}
