@@ -4,14 +4,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import unittest
-
 from sqlalchemy.engine.url import make_url
 
+from superset import db
 from superset.models.core import Database
+from .base_tests import SupersetTestCase
 
 
-class DatabaseModelTestCase(unittest.TestCase):
+class DatabaseModelTestCase(SupersetTestCase):
 
     def test_database_schema_presto(self):
         sqlalchemy_uri = 'presto://presto.airbnb.io:8080/hive/default'
