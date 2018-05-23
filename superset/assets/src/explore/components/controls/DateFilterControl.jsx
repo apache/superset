@@ -24,8 +24,9 @@ import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 import { t } from '../../../locales';
 
 const TYPES = Object.freeze({
-  RANGE: 'range',
-  START_END: 'start_end',
+  DEFAULTS: 'defaults',
+  CUSTOM_START_END: 'custom_start_end',
+  CUSTOM_RANGE: 'custom_range',
 });
 const RELATIVE_TIME_OPTIONS = Object.freeze({
   LAST: 'Last',
@@ -65,24 +66,26 @@ export default class DateFilterControl extends React.Component {
     super(props);
     const value = props.value || defaultProps.value;
     this.state = {
-      type: TYPES.RANGE,
+      type: TYPES.DEFAULTS,
 
-      // for range
-      num: '7',
-      grain: TIME_GRAIN_OPTIONS[3],
-      rel: RELATIVE_TIME_OPTIONS.LAST,
+      // default time frames, for convenience
       common: COMMON_TIME_FRAMES[0],
 
-      // for start:end (includes freeform)
+      // "last 7 days", "next 4 weeks", etc.
+      rel: RELATIVE_TIME_OPTIONS.LAST,
+      num: '7',
+      grain: TIME_GRAIN_OPTIONS[3],
+
+      // distinct start/end values, either ISO or freeform
       since: DEFAULT_SINCE,
       until: DEFAULT_UNTIL,
-      isFreeform: {},
+      freeformInputs: {},
     };
     if (value.indexOf(SEPARATOR) >= 0) {
-      this.state.type = TYPES.START_END;
+      this.state.type = TYPES.CUSTOM_START_END;
       [this.state.since, this.state.until] = value.split(SEPARATOR, 2);
     } else {
-      this.state.type = TYPES.RANGE;
+      this.state.type = TYPES.DEFAULTS;
       if (COMMON_TIME_FRAMES.indexOf(value) >= 0) {
         this.state.common = value;
       } else {
@@ -90,8 +93,8 @@ export default class DateFilterControl extends React.Component {
         [this.state.rel, this.state.num, this.state.grain] = value.split(' ', 3);
       }
     }
-    this.state.isFreeform.since = !moment(this.state.since, MOMENT_FORMAT).isValid();
-    this.state.isFreeform.until = !moment(this.state.until, MOMENT_FORMAT).isValid();
+    this.state.freeformInputs.since = !moment(this.state.since, MOMENT_FORMAT).isValid();
+    this.state.freeformInputs.until = !moment(this.state.until, MOMENT_FORMAT).isValid();
 
     // We need direct access to the state of the `DateTimeField` component
     this.dateTimeFieldRefs = {};
@@ -101,26 +104,9 @@ export default class DateFilterControl extends React.Component {
       this.close();
     }
   }
-  setStartEnd(key, value) {
+  setDefaults(timeFrame) {
     const nextState = {
-      type: TYPES.START_END,
-      isFreeform: { ...this.state.isFreeform },
-    };
-    if (value === INVALID_DATE_MESSAGE) {
-      // the DateTimeField component will return `Invalid date` for freeform
-      // text, so we need to cheat and steal the value from the state
-      const freeformValue = this.dateTimeFieldRefs[key].state.inputValue;
-      nextState.isFreeform[key] = true;
-      nextState[key] = freeformValue;
-    } else {
-      nextState.isFreeform[key] = false;
-      nextState[key] = value;
-    }
-    this.setState(nextState, this.updateRefs);
-  }
-  setCommonRange(timeFrame) {
-    const nextState = {
-      type: TYPES.RANGE,
+      type: TYPES.DEFAULTS,
       common: timeFrame,
       until: moment().startOf('day').format(MOMENT_FORMAT),
     };
@@ -134,7 +120,7 @@ export default class DateFilterControl extends React.Component {
     this.setState(nextState, this.updateRefs);
   }
   setCustomRange(key, value) {
-    const nextState = { ...this.state, type: TYPES.RANGE, common: null };
+    const nextState = { ...this.state, type: TYPES.CUSTOM_RANGE };
     if (key !== undefined && value !== undefined) {
       nextState[key] = value;
     }
@@ -153,17 +139,37 @@ export default class DateFilterControl extends React.Component {
     }
     this.setState(nextState, this.updateRefs);
   }
+  setCustomStartEnd(key, value) {
+    const nextState = {
+      type: TYPES.CUSTOM_START_END,
+      freeformInputs: { ...this.state.freeformInputs },
+    };
+    if (value === INVALID_DATE_MESSAGE) {
+      // the DateTimeField component will return `Invalid date` for freeform
+      // text, so we need to cheat and steal the value from the state
+      const freeformValue = this.dateTimeFieldRefs[key].state.inputValue;
+      nextState.freeformInputs[key] = true;
+      nextState[key] = freeformValue;
+    } else {
+      nextState.freeformInputs[key] = false;
+      nextState[key] = value;
+    }
+    this.setState(nextState, this.updateRefs);
+  }
   updateRefs() {
+    /* This is required because the <DateTimeField> component does not accept
+     * freeform dates as props, since they can't be parsed by `moment`.
+     */
     this.dateTimeFieldRefs.since.setState({ inputValue: this.state.since });
     this.dateTimeFieldRefs.until.setState({ inputValue: this.state.until });
   }
   close() {
     let val;
-    if (this.state.type === TYPES.RANGE) {
-      val = this.state.common
-        ? this.state.common
-        : `${this.state.rel} ${this.state.num} ${this.state.grain}`;
-    } else if (this.state.type === TYPES.START_END) {
+    if (this.state.type === TYPES.DEFAULTS) {
+      val = this.state.common;
+    } else if (this.state.type === TYPES.CUSTOM_RANGE) {
+      val = `${this.state.rel} ${this.state.num} ${this.state.grain}`;
+    } else {
       val = [this.state.since, this.state.until].join(SEPARATOR);
     }
     this.props.onChange(val);
@@ -184,84 +190,74 @@ export default class DateFilterControl extends React.Component {
       <Radio
         key={timeFrame.replace(' ', '').toLowerCase()}
         checked={this.state.common === timeFrame}
-        onChange={this.setCommonRange.bind(this, timeFrame)}
+        onChange={this.setDefaults.bind(this, timeFrame)}
       >
         {timeFrame}
       </Radio>
       ));
-    const tabs = [TYPES.RANGE, TYPES.START_END];
     return (
       <Popover id="filter-popover" placement="top" positionTop={0}>
         <div style={{ width: '250px' }}>
           <Tabs
-            defaultActiveKey={tabs.indexOf(this.state.type) + 1}
+            defaultActiveKey={this.state.type === TYPES.DEFAULTS ? 1 : 2}
             id="type"
             className="time-filter-tabs"
-            onSelect={type => this.setState({ type: tabs[type - 1] })}
           >
-            <Tab eventKey={1} title="Range">
+            <Tab eventKey={1} title="Defaults">
+              <FormGroup>{timeFrames}</FormGroup>
+            </Tab>
+            <Tab eventKey={2} title="Custom">
               <FormGroup>
-                {timeFrames}
-                <Radio
-                  key={'user-defined'}
-                  checked={this.state.common == null && this.state.type === TYPES.RANGE}
-                  onChange={this.setCustomRange.bind(this)}
-                >
-                  <div className="clearfix centered">
-                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
-                      <DropdownButton
-                        bsSize="small"
-                        componentClass={InputGroup.Button}
-                        id="input-dropdown-rel"
-                        title={this.state.rel}
-                        onFocus={this.setCustomRange.bind(this)}
-                      >
-                        <MenuItem
-                          onSelect={this.setCustomRange.bind(this, 'rel')}
-                          key={RELATIVE_TIME_OPTIONS.LAST}
-                          eventKey={RELATIVE_TIME_OPTIONS.LAST}
-                          active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
-                        >Last
-                        </MenuItem>
-                        <MenuItem
-                          onSelect={this.setCustomRange.bind(this, 'rel')}
-                          key={RELATIVE_TIME_OPTIONS.NEXT}
-                          eventKey={RELATIVE_TIME_OPTIONS.NEXT}
-                          active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
-                        >Next
-                        </MenuItem>
-                      </DropdownButton>
-                    </div>
-                    <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
-                      <FormControl
-                        bsSize="small"
-                        type="text"
-                        onChange={event => (
+                <div className="clearfix centered">
+                  <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
+                    <DropdownButton
+                      bsSize="small"
+                      componentClass={InputGroup.Button}
+                      id="input-dropdown-rel"
+                      title={this.state.rel}
+                      onFocus={this.setCustomRange.bind(this)}
+                    >
+                      <MenuItem
+                        onSelect={this.setCustomRange.bind(this, 'rel')}
+                        key={RELATIVE_TIME_OPTIONS.LAST}
+                        eventKey={RELATIVE_TIME_OPTIONS.LAST}
+                        active={this.state.rel === RELATIVE_TIME_OPTIONS.LAST}
+                      >Last
+                      </MenuItem>
+                      <MenuItem
+                        onSelect={this.setCustomRange.bind(this, 'rel')}
+                        key={RELATIVE_TIME_OPTIONS.NEXT}
+                        eventKey={RELATIVE_TIME_OPTIONS.NEXT}
+                        active={this.state.rel === RELATIVE_TIME_OPTIONS.NEXT}
+                      >Next
+                      </MenuItem>
+                    </DropdownButton>
+                  </div>
+                  <div style={{ width: '60px', marginTop: '-4px' }} className="input-inline">
+                    <FormControl
+                      bsSize="small"
+                      type="text"
+                      onChange={event => (
                           this.setCustomRange.call(this, 'num', event.target.value)
                         )}
-                        onFocus={this.setCustomRange.bind(this)}
-                        onKeyPress={this.onEnter.bind(this)}
-                        value={this.state.num}
-                        style={{ height: '30px' }}
-                      />
-                    </div>
-                    <div style={{ width: '90px', marginTop: '-4px' }} className="input-inline">
-                      <DropdownButton
-                        bsSize="small"
-                        componentClass={InputGroup.Button}
-                        id="input-dropdown-grain"
-                        title={this.state.grain}
-                        onFocus={this.setCustomRange.bind(this)}
-                      >
-                        {grainOptions}
-                      </DropdownButton>
-                    </div>
+                      onFocus={this.setCustomRange.bind(this)}
+                      onKeyPress={this.onEnter.bind(this)}
+                      value={this.state.num}
+                      style={{ height: '30px' }}
+                    />
                   </div>
-                </Radio>
-              </FormGroup>
-            </Tab>
-            <Tab eventKey={2} title="Start/End">
-              <FormGroup>
+                  <div style={{ width: '90px', marginTop: '-4px' }} className="input-inline">
+                    <DropdownButton
+                      bsSize="small"
+                      componentClass={InputGroup.Button}
+                      id="input-dropdown-grain"
+                      title={this.state.grain}
+                      onFocus={this.setCustomRange.bind(this)}
+                    >
+                      {grainOptions}
+                    </DropdownButton>
+                  </div>
+                </div>
                 <InputGroup>
                   <div style={{ margin: '5px 0' }}>
                     <strong>Start</strong> &nbsp;
@@ -271,9 +267,13 @@ export default class DateFilterControl extends React.Component {
                     />
                     <DateTimeField
                       ref={(ref) => { this.dateTimeFieldRefs.since = ref; }}
-                      dateTime={this.state.isFreeform.since ? DEFAULT_SINCE : this.state.since}
+                      dateTime={
+                          this.state.freeformInputs.since ?
+                            DEFAULT_SINCE :
+                            this.state.since
+                        }
                       defaultText={this.state.since}
-                      onChange={this.setStartEnd.bind(this, 'since')}
+                      onChange={this.setCustomStartEnd.bind(this, 'since')}
                       maxDate={moment(this.state.until, MOMENT_FORMAT)}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
@@ -288,9 +288,13 @@ export default class DateFilterControl extends React.Component {
                     />
                     <DateTimeField
                       ref={(ref) => { this.dateTimeFieldRefs.until = ref; }}
-                      dateTime={this.state.isFreeform.until ? DEFAULT_UNTIL : this.state.until}
+                      dateTime={
+                          this.state.freeformInputs.until ?
+                            DEFAULT_UNTIL :
+                            this.state.until
+                        }
                       defaultText={this.state.until}
-                      onChange={this.setStartEnd.bind(this, 'until')}
+                      onChange={this.setCustomStartEnd.bind(this, 'until')}
                       minDate={moment(this.state.since, MOMENT_FORMAT).add(1, 'days')}
                       format={MOMENT_FORMAT}
                       inputFormat={MOMENT_FORMAT}
