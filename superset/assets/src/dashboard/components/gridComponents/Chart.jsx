@@ -140,7 +140,7 @@ class Chart extends React.Component {
     return this.props.refreshChart(this.props.chart, true, this.props.timeout);
   }
 
-  removeFilter(args) {
+  removeFilter(...args) {
     this.props.removeFilter(this.props.id, ...args);
   }
 

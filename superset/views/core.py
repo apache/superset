@@ -1606,7 +1606,7 @@ class Superset(BaseSupersetView):
             ):
                 slice_id = value.get('meta').get('chartId')
                 slice_ids.append(slice_id)
-                slice_id_to_name[slice_id] = value.get('meta').get('chartName')
+                slice_id_to_name[slice_id] = value.get('meta').get('sliceName')
 
         session = db.session()
         Slice = models.Slice  # noqa

@@ -5,14 +5,13 @@ export default function getEffectiveExtraFilters({
 }) {
   const immuneSlices = dashboardMetadata.filter_immune_slices || [];
 
-  const effectiveFilters = [];
-
   if (sliceId && immuneSlices.includes(sliceId)) {
     // The slice is immune to dashboard filters
-    return effectiveFilters;
+    return [];
   }
 
   // Build a list of fields the slice is immune to filters on
+  const effectiveFilters = [];
   let immuneToFields = [];
   if (
     sliceId &&
@@ -27,12 +26,13 @@ export default function getEffectiveExtraFilters({
       // Filters applied by the slice don't apply to itself
       return;
     }
-    Object.keys(filters[filteringSliceId]).forEach(field => {
+    const filtersFromSlice = filters[filteringSliceId];
+    Object.keys(filtersFromSlice).forEach(field => {
       if (!immuneToFields.includes(field)) {
         effectiveFilters.push({
           col: field,
           op: 'in',
-          val: filters[filteringSliceId][field],
+          val: filtersFromSlice[field],
         });
       }
     });

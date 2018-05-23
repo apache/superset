@@ -62,10 +62,15 @@ class SliceHeader extends React.PureComponent {
       <div className="chart-header" ref={innerRef}>
         <div className="header">
           <EditableTitle
-            title={sliceName}
+            title={
+              sliceName ||
+              (this.props.editMode
+                ? '---' // this makes an empty title clickable
+                : '')
+            }
             canEdit={this.props.editMode}
             onSaveTitle={this.props.updateSliceName}
-            showTooltip={this.props.editMode}
+            showTooltip={false}
           />
           {!!Object.values(this.props.annotationQuery).length && (
             <TooltipWrapper

@@ -3,14 +3,13 @@ import newComponentFactory from './newComponentFactory';
 
 import { ROW_TYPE, TABS_TYPE, TAB_TYPE } from './componentTypes';
 
-export default function newEntitiesFromDrop({ dropResult, components }) {
+export default function newEntitiesFromDrop({ dropResult, layout }) {
   const { dragging, destination } = dropResult;
 
   const dragType = dragging.type;
-  const dragMeta = dragging.meta;
-  const dropEntity = components[destination.id];
+  const dropEntity = layout[destination.id];
   const dropType = dropEntity.type;
-  let newDropChild = newComponentFactory(dragType, dragMeta);
+  let newDropChild = newComponentFactory(dragType, dragging.meta);
   const wrapChildInRow = shouldWrapChildInRow({
     parentType: dropType,
     childType: dragType,

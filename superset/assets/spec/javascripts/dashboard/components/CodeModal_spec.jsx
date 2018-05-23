@@ -3,19 +3,17 @@ import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
-import CssEditor from '../../../src/dashboard/components/CssEditor';
+import CodeModal from '../../../../src/dashboard/components/CodeModal';
 
-describe('CssEditor', () => {
+describe('CodeModal', () => {
   const mockedProps = {
     triggerNode: <i className="fa fa-edit" />,
   };
   it('is valid', () => {
-    expect(
-      React.isValidElement(<CssEditor {...mockedProps} />),
-    ).to.equal(true);
+    expect(React.isValidElement(<CodeModal {...mockedProps} />)).to.equal(true);
   });
   it('renders the trigger node', () => {
-    const wrapper = mount(<CssEditor {...mockedProps} />);
+    const wrapper = mount(<CodeModal {...mockedProps} />);
     expect(wrapper.find('.fa-edit')).to.have.length(1);
   });
 });
