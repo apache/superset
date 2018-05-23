@@ -235,7 +235,11 @@ class BaseViz(object):
             groupby.remove(DTTM_ALIAS)
             is_timeseries = True
 
-        # Add extra filters into the query form data
+        # extras are used to query elements specific to a datasource type
+        # for instance the extra where clause that applies only to Tables
+
+        utils.split_adhoc_filters_into_base_filters(form_data)
+
         merge_extra_filters(form_data)
 
         granularity = (
@@ -272,57 +276,15 @@ class BaseViz(object):
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
 
-        # extras are used to query elements specific to a datasource type
-        # for instance the extra where clause that applies only to Tables
+        filters = form_data.get('filters', [])
 
-        extras = {}
-        filters = []
-        adhoc_filters = form_data.get('adhoc_filters', None)
-        if adhoc_filters is None:
-            extras = {
-                'where': form_data.get('where', ''),
-                'having': form_data.get('having', ''),
-                'having_druid': form_data.get('having_filters', []),
-                'time_grain_sqla': form_data.get('time_grain_sqla', ''),
-                'druid_time_origin': form_data.get('druid_time_origin', ''),
-            }
-            filters = form_data.get('filters', [])
-        elif isinstance(adhoc_filters, list):
-            simple_where_filters = []
-            simple_having_filters = []
-            sql_where_filters = []
-            sql_having_filters = []
-            for adhoc_filter in adhoc_filters:
-                expression_type = adhoc_filter.get('expressionType')
-                clause = adhoc_filter.get('clause')
-                if expression_type == 'SIMPLE':
-                    if clause == 'WHERE':
-                        simple_where_filters.append({
-                            'col': adhoc_filter.get('subject'),
-                            'op': adhoc_filter.get('operator'),
-                            'val': adhoc_filter.get('comparator'),
-                        })
-                    elif clause == 'HAVING':
-                        simple_having_filters.append({
-                            'col': adhoc_filter.get('subject'),
-                            'op': adhoc_filter.get('operator'),
-                            'val': adhoc_filter.get('comparator'),
-                        })
-                elif expression_type == 'SQL':
-                    if clause == 'WHERE':
-                        sql_where_filters.append(adhoc_filter.get('sqlExpression'))
-                    elif clause == 'HAVING':
-                        sql_having_filters.append(adhoc_filter.get('sqlExpression'))
-            extras = {
-                'where': ' AND '.join(['({})'.format(sql) for sql in sql_where_filters]),
-                'having': ' AND '.join(
-                    ['({})'.format(sql) for sql in sql_having_filters],
-                ),
-                'having_druid': simple_having_filters,
-                'time_grain_sqla': form_data.get('time_grain_sqla', ''),
-                'druid_time_origin': form_data.get('druid_time_origin', ''),
-            }
-            filters = simple_where_filters
+        extras = {
+            'where': form_data.get('where', ''),
+            'having': form_data.get('having', ''),
+            'having_druid': form_data.get('having_filters', []),
+            'time_grain_sqla': form_data.get('time_grain_sqla', ''),
+            'druid_time_origin': form_data.get('druid_time_origin', ''),
+        }
 
         d = {
             'granularity': granularity,
