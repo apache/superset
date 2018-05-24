@@ -7,7 +7,7 @@ import SliceHeader from '../SliceHeader';
 import ChartContainer from '../../../chart/ChartContainer';
 import { chartPropType } from '../../../chart/chartReducer';
 import { slicePropShape } from '../../util/propShapes';
-import { VIZ_TYPES } from '../../../visualizations/main';
+import { VIZ_TYPES } from '../../../visualizations';
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -160,6 +160,8 @@ class Chart extends React.Component {
       supersetCanExplore,
       sliceCanEdit,
     } = this.props;
+
+    if (!chart || !slice) return null;
 
     const { width } = this.state;
     const { queryResponse } = chart;

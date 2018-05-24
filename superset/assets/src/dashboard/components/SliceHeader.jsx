@@ -21,6 +21,7 @@ const propTypes = {
   annotationQuery: PropTypes.object,
   annotationError: PropTypes.object,
   sliceName: PropTypes.string,
+  supersetCanExplore: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -38,6 +39,7 @@ const defaultProps = {
   isCached: false,
   isExpanded: false,
   sliceName: '',
+  supersetCanExplore: false,
 };
 
 class SliceHeader extends React.PureComponent {
@@ -53,6 +55,7 @@ class SliceHeader extends React.PureComponent {
       exportCSV,
       innerRef,
       sliceName,
+      supersetCanExplore,
     } = this.props;
 
     const annoationsLoading = t('Annotation layers are still loading.');
@@ -95,6 +98,7 @@ class SliceHeader extends React.PureComponent {
               forceRefresh={forceRefresh}
               exploreChart={exploreChart}
               exportCSV={exportCSV}
+              supersetCanExplore={supersetCanExplore}
             />
           )}
         </div>
