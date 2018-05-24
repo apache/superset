@@ -56,6 +56,9 @@ export function getControlsState(state, form_data) {
       delete control.mapStateToProps;
     }
 
+    formData[k] = (control.multi && formData[k] && !Array.isArray(formData[k])) ? [formData[k]]
+      : formData[k];
+
     // If the value is not valid anymore based on choices, clear it
     if (control.type === 'SelectControl' && control.choices && k !== 'datasource' && formData[k]) {
       const choiceValues = control.choices.map(c => c[0]);
