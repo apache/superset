@@ -1,3 +1,5 @@
+import shortid from 'shortid';
+
 import {
   INFO_TOAST,
   SUCCESS_TOAST,
@@ -6,11 +8,7 @@ import {
 } from '../util/constants';
 
 function getToastUuid(type) {
-  return `${Math.random()
-    .toString(16)
-    .slice(2)}-${type}-${Math.random()
-    .toString(16)
-    .slice(2)}`;
+  return `${type}-${shortid.generate()}`;
 }
 
 export const ADD_TOAST = 'ADD_TOAST';

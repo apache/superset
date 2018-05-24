@@ -1,7 +1,5 @@
 /* eslint-env browser */
 import cx from 'classnames';
-import { DragDropContext } from 'react-dnd';
-import HTML5Backend from 'react-dnd-html5-backend';
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
 import ParentSize from '@vx/responsive/build/components/ParentSize';
@@ -18,6 +16,8 @@ import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
 import ToastPresenter from '../containers/ToastPresenter';
 import WithPopoverMenu from './menu/WithPopoverMenu';
+
+import getDragDropManager from '../util/getDragDropManager';
 
 import {
   DASHBOARD_GRID_ID,
@@ -57,6 +57,12 @@ class DashboardBuilder extends React.Component {
       tabIndex: 0, // top-level tabs
     };
     this.handleChangeTab = this.handleChangeTab.bind(this);
+  }
+
+  getChildContext() {
+    return {
+      dragDropManager: this.context.dragDropManager || getDragDropManager(),
+    };
   }
 
   handleChangeTab({ tabIndex }) {
@@ -170,7 +176,8 @@ class DashboardBuilder extends React.Component {
                       >
                         <DashboardGrid
                           gridComponent={dashboardLayout[id]}
-                          depth={DASHBOARD_ROOT_DEPTH + 1}
+                          // see isValidChild for why tabs do not increment the depth of their children
+                          depth={DASHBOARD_ROOT_DEPTH + (topLevelTabs ? 0 : 1)}
                           width={width}
                         />
                       </TabPane>
@@ -197,5 +204,8 @@ class DashboardBuilder extends React.Component {
 
 DashboardBuilder.propTypes = propTypes;
 DashboardBuilder.defaultProps = defaultProps;
+DashboardBuilder.childContextTypes = {
+  dragDropManager: PropTypes.object.isRequired,
+};
 
-export default DragDropContext(HTML5Backend)(DashboardBuilder);
+export default DashboardBuilder;
