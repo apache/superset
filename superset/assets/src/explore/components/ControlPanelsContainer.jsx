@@ -89,17 +89,23 @@ class ControlPanelsContainer extends React.Component {
   }
   render() {
     const allSectionsToRender = this.sectionsToRender();
+    const controlOverrides = visTypes[this.props.controls.viz_type.value].controlOverrides || {};
     const querySectionsToRender = [];
     const displaySectionsToRender = [];
     allSectionsToRender.forEach((section) => {
       if (section.controlSetRows.some(rows => rows.some(
-        control => (
-          controls[control] &&
-          (
-            !controls[control].renderTrigger ||
-            controls[control].tabOverride === 'data'
-          )
-        )))) {
+        (control) => {
+          let controlByOverride = {};
+          if (controls[control] && controlOverrides[control]) {
+            controlByOverride = Object.assign({}, controls[control], controlOverrides[control]);
+          } else {
+            controlByOverride = controls[control] || {};
+          }
+          return (
+            !controlByOverride.renderTrigger ||
+            controlByOverride.tabOverride === 'data'
+          );
+        }))) {
         querySectionsToRender.push(section);
       } else {
         displaySectionsToRender.push(section);
