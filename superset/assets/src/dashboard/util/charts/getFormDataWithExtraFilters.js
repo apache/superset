@@ -7,7 +7,7 @@ const cachedFiltersByChart = {};
 const cachedFormdataByChart = {};
 
 export default function getFormDataWithExtraFilters({
-  chart,
+  chart = {},
   dashboardMetadata,
   filters,
   sliceId,
@@ -23,15 +23,13 @@ export default function getFormDataWithExtraFilters({
     return cachedFormdataByChart[sliceId];
   }
 
-  const extraFilters = getEffectiveExtraFilters({
-    dashboardMetadata,
-    filters,
-    sliceId,
-  });
-
   const formData = {
     ...chart.formData,
-    extra_filters: [...chart.formData.filters, ...extraFilters],
+    extra_filters: getEffectiveExtraFilters({
+      dashboardMetadata,
+      filters,
+      sliceId,
+    }),
   };
 
   cachedDashboardMetadataByChart[sliceId] = dashboardMetadata;

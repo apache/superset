@@ -27,7 +27,7 @@ function mapStateToProps(
 
   return {
     chart,
-    datasource: datasources[chart.form_data.datasource],
+    datasource: chart && datasources[chart.form_data.datasource],
     slice: sliceEntities.slices[id],
     timeout: dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT,
     filters,

@@ -4,7 +4,7 @@ import shortid from 'shortid';
 import { chart } from '../../chart/chartReducer';
 import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
-import { applyDefaultFormData } from '../../explore/stores/store';
+import { applyDefaultFormData } from '../../explore/store';
 import { getColorFromScheme } from '../../modules/colors';
 import layoutConverter from '../util/dashboardLayoutConverter';
 import { DASHBOARD_VERSION_KEY, DASHBOARD_HEADER_ID } from '../util/constants';

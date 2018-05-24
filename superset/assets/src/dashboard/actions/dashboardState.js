@@ -5,7 +5,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import { addChart, removeChart, refreshChart } from '../../chart/chartAction';
 import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
-import { applyDefaultFormData } from '../../explore/stores/store';
+import { applyDefaultFormData } from '../../explore/store';
 import { getAjaxErrorMsg } from '../../modules/utils';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import { t } from '../../locales';
