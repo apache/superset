@@ -106,20 +106,6 @@ class DatabaseModelTestCase(SupersetTestCase):
         self.assertEquals(d.get('P1D').function, 'DATE({col})')
         self.assertEquals(d.get('Time Column').function, '{col}')
 
-    def test_single_statement(self):
-        main_db = self.get_main_database(db.session)
-
-        if main_db.backend == 'mysql':
-            df = main_db.get_df('SELECT 1', None)
-            self.assertEquals(df.iat[0, 0], 1)
-
-    def test_multi_statement(self):
-        main_db = self.get_main_database(db.session)
-
-        if main_db.backend == 'mysql':
-            df = main_db.get_df('USE superset; SELECT 1', None)
-            self.assertEquals(df.iat[0, 0], 1)
-
 
 class SqlaTableModelTestCase(SupersetTestCase):
 
