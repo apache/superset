@@ -122,7 +122,7 @@ class Row extends React.PureComponent {
             menuItems={[
               <BackgroundStyleDropdown
                 id={`${rowComponent.id}-background`}
-                value={rowComponent.meta.background}
+                value={backgroundStyle.value}
                 onChange={this.handleChangeBackground}
               />,
             ]}

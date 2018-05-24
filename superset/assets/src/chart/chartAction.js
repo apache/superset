@@ -201,4 +201,3 @@ export function refreshChart(chart, force, timeout) {
     dispatch(runQuery(chart.latestQueryFormData, force, timeout, chart.id))
   );
 }
-

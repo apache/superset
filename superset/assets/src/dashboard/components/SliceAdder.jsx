@@ -19,13 +19,13 @@ const propTypes = {
   lastUpdated: PropTypes.number.isRequired,
   errorMessage: PropTypes.string,
   userId: PropTypes.string.isRequired,
-  selectedSliceIds: PropTypes.object,
+  selectedSliceIds: PropTypes.arrayOf(PropTypes.number).isRequired,
   editMode: PropTypes.bool,
   height: PropTypes.number,
 };
 
 const defaultProps = {
-  selectedSliceIds: new Set(),
+  selectedSliceIds: [],
   editMode: false,
   errorMessage: '',
   height: window.innerHeight,
@@ -63,6 +63,7 @@ class SliceAdder extends React.Component {
       filteredSlices: [],
       searchTerm: '',
       sortBy: KEYS_TO_SORT.findIndex(item => item.key === 'changed_on'),
+      selectedSliceIdsSet: new Set(props.selectedSliceIds),
     };
 
     this.rowRenderer = this.rowRenderer.bind(this);
@@ -76,14 +77,19 @@ class SliceAdder extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    const nextState = {};
     if (nextProps.lastUpdated !== this.props.lastUpdated) {
-      this.setState({
-        filteredSlices: Object.values(nextProps.slices)
-          .filter(createFilter(this.state.searchTerm, KEYS_TO_FILTERS))
-          .sort(
-            SliceAdder.sortByComparator(KEYS_TO_SORT[this.state.sortBy].key),
-          ),
-      });
+      nextState.filteredSlices = Object.values(nextProps.slices)
+        .filter(createFilter(this.state.searchTerm, KEYS_TO_FILTERS))
+        .sort(SliceAdder.sortByComparator(KEYS_TO_SORT[this.state.sortBy].key));
+    }
+
+    if (nextProps.selectedSliceIds !== this.props.selectedSliceIds) {
+      nextState.selectedSliceIdsSet = new Set(nextProps.selectedSliceIds);
+    }
+
+    if (Object.keys(nextState).length) {
+      this.setState(nextState);
     }
   }
 
@@ -128,12 +134,15 @@ class SliceAdder extends React.Component {
   }
 
   rowRenderer({ key, index, style }) {
-    const cellData = this.state.filteredSlices[index];
-    const isSelected = this.props.selectedSliceIds.has(cellData.slice_id);
+    const { filteredSlices, selectedSliceIdsSet } = this.state;
+    const cellData = filteredSlices[index];
+    const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
     const type = CHART_TYPE;
     const id = NEW_CHART_ID;
+
     const meta = {
       chartId: cellData.slice_id,
+      sliceName: cellData.slice_name,
     };
 
     return (
