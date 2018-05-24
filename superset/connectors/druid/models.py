@@ -1146,6 +1146,11 @@ class DruidDatasource(Model, BaseDatasource):
                     metric['column']['type'].upper() == 'FLOAT'
                 ):
                     metric['column']['type'] = 'DOUBLE'
+            if (
+                utils.is_adhoc_metric(timeseries_limit_metric) and
+                timeseries_limit_metric['column']['type'].upper() == 'FLOAT'
+            ):
+                timeseries_limit_metric['column']['type'] = 'DOUBLE'
 
         aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
@@ -1201,7 +1206,7 @@ class DruidDatasource(Model, BaseDatasource):
             logging.info('Running two-phase topn query for dimension [{}]'.format(dim))
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
-                order_by = timeseries_limit_metric
+                order_by = utils.get_metric_name(timeseries_limit_metric)
                 aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
@@ -1270,7 +1275,7 @@ class DruidDatasource(Model, BaseDatasource):
                     order_by = pre_qry_dims[0]
 
                 if timeseries_limit_metric:
-                    order_by = timeseries_limit_metric
+                    order_by = utils.get_metric_name(timeseries_limit_metric)
                     aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                         [timeseries_limit_metric],
                         metrics_dict)
