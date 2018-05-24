@@ -21,6 +21,7 @@ const options = [
   [30, t('30 seconds')],
   [60, t('1 minute')],
   [300, t('5 minutes')],
+  [86400, t('24 hours')],
 ].map(o => ({ value: o[0], label: o[1] }));
 
 class RefreshIntervalModal extends React.PureComponent {
