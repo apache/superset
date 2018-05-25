@@ -147,6 +147,14 @@
   padding: 4px 4px 4px 4px;
 }
 
+.adhoc-filter-edit-tabs > .nav-tabs {
+  margin-bottom: 8px;
+}
+
+.adhoc-filter-edit-tabs > .nav-tabs > li > a {
+  padding: 4px;
+}
+
 .edit-popover-resize {
   transform: scaleX(-1);
   -moz-transform: scaleX(-1);
@@ -160,4 +168,45 @@
 
 #metrics-edit-popover {
   max-width: none;
+}
+
+#filter-edit-popover {
+  max-width: none;
+}
+
+.filter-edit-clause-dropdown {
+  width: 120px;
+  margin-right: 5px;
+}
+
+.filter-edit-clause-info {
+  font-size: 10px;
+  padding-left: 5px;
+}
+
+.filter-edit-clause-section {
+  display: inline-flex;
+}
+
+.adhoc-filter-option{
+  cursor: pointer;
+}
+
+.adhoc-filter-sql-editor {
+  border: rgb(187, 187, 187) solid thin;
+}
+
+.label-default {
+  background-color: #808e95;
+  font-weight: normal;
+}
+
+.adhoc-filter-simple-column-dropdown {
+  margin-top: 20px;
+}
+
+.adhoc-label-arrow {
+  font-size: 9px;
+  margin-left: 3px;
+  position: static;
 }

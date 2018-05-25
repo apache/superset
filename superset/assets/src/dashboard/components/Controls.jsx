@@ -182,8 +182,8 @@ class Controls extends React.PureComponent {
               userId={userId}
               triggerNode={
                 <MenuItemContent
-                  text={t('Add Slices')}
-                  tooltip={t('Add some slices to this dashboard')}
+                  text={t('Add Charts')}
+                  tooltip={t('Add some charts to this dashboard')}
                   faIcon="plus"
                 />
               }

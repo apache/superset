@@ -450,7 +450,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             'want to alter specific parameters.',
         ),
         'cache_timeout': _(
-            'Duration (in seconds) of the caching timeout for this slice.'),
+            'Duration (in seconds) of the caching timeout for this chart.'),
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
@@ -1229,6 +1229,12 @@ class Superset(BaseSupersetView):
         datasource = form_data.get('datasource', '')
         if '__' in datasource:
             datasource_id, datasource_type = datasource.split('__')
+            # The case where the datasource has been deleted
+            datasource_id = None if datasource_id == 'None' else datasource_id
+
+        if not datasource_id:
+            raise Exception(
+                'The datasource associated with this chart no longer exists')
         datasource_id = int(datasource_id)
         return datasource_id, datasource_type
 
@@ -1273,6 +1279,7 @@ class Superset(BaseSupersetView):
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
 
         # On explore, merge extra filters into the form data
+        utils.split_adhoc_filters_into_base_filters(form_data)
         merge_extra_filters(form_data)
 
         # merge request url params
@@ -1953,7 +1960,7 @@ class Superset(BaseSupersetView):
             slices = session.query(models.Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(__(
-                    'Slice %(id)s not found', id=slice_id), status=404)
+                    'Chart %(id)s not found', id=slice_id), status=404)
         elif table_name and db_name:
             SqlaTable = ConnectorRegistry.sources['table']
             table = (
@@ -2043,9 +2050,9 @@ class Superset(BaseSupersetView):
             pass
         dashboard(dashboard_id=dash.id)
 
-        dash_edit_perm = check_ownership(dash, raise_if_false=False)
-        dash_save_perm = \
-            dash_edit_perm and security_manager.can_access('can_save_dash', 'Superset')
+        dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
+            security_manager.can_access('can_save_dash', 'Superset')
+        dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
         superset_can_explore = security_manager.can_access('can_explore', 'Superset')
         slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
@@ -2144,6 +2151,7 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
+        template_params = data.get('templateParams')
         table = (
             db.session.query(SqlaTable)
             .filter_by(table_name=table_name)
@@ -2153,6 +2161,7 @@ class Superset(BaseSupersetView):
             table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
         table.schema = data.get('schema')
+        table.template_params = data.get('templateParams')
         table.is_sqllab_view = True
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
