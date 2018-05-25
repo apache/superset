@@ -993,7 +993,7 @@ class BulletViz(NVD3Viz):
 
     def get_data(self, df):
         df = df.fillna(0)
-        df['metric'] = df[[self.metric]]
+        df['metric'] = df[[self.get_metric_label(self.metric)]]
         values = df['metric'].values
         return {
             'measures': values.tolist(),
@@ -1324,8 +1324,8 @@ class NVD3DualLineViz(NVD3Viz):
         if self.form_data.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
 
-        metric = fd.get('metric')
-        metric_2 = fd.get('metric_2')
+        metric = self.get_metric_label(fd.get('metric'))
+        metric_2 = self.get_metric_label(fd.get('metric_2'))
         df = df.pivot_table(
             index=DTTM_ALIAS,
             values=[metric, metric_2])
@@ -1376,7 +1376,7 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         df = df.pivot_table(
             index=DTTM_ALIAS,
             columns='series',
-            values=fd.get('metric'))
+            values=self.get_metric_label(fd.get('metric')))
         chart_data = self.to_series(df)
         for serie in chart_data:
             serie['rank'] = rank_lookup[serie['key']]
@@ -1544,8 +1544,8 @@ class SunburstViz(BaseViz):
     def get_data(self, df):
         fd = self.form_data
         cols = fd.get('groupby')
-        metric = fd.get('metric')
-        secondary_metric = fd.get('secondary_metric')
+        metric = self.get_metric_label(fd.get('metric'))
+        secondary_metric = self.get_metric_label(fd.get('secondary_metric'))
         if metric == secondary_metric or secondary_metric is None:
             df.columns = cols + ['m1']
             df['m2'] = df['m1']
@@ -1644,7 +1644,7 @@ class ChordViz(BaseViz):
         qry = super(ChordViz, self).query_obj()
         fd = self.form_data
         qry['groupby'] = [fd.get('groupby'), fd.get('columns')]
-        qry['metrics'] = [fd.get('metric')]
+        qry['metrics'] = [self.get_metric_label(fd.get('metric'))]
         return qry
 
     def get_data(self, df):
@@ -1712,8 +1712,8 @@ class WorldMapViz(BaseViz):
         from superset.data import countries
         fd = self.form_data
         cols = [fd.get('entity')]
-        metric = fd.get('metric')
-        secondary_metric = fd.get('secondary_metric')
+        metric = self.get_metric_label(fd.get('metric'))
+        secondary_metric = self.get_metric_label(fd.get('secondary_metric'))
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
