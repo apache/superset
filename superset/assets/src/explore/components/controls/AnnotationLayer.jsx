@@ -269,8 +269,8 @@ export default class AnnotationLayer extends React.PureComponent {
       } else {
         label = 'Slice';
         description = `Use a pre defined Superset Slice as a source for annotations and overlays. 
-        'your Slice must be one of these visualization types:
-        '[${getSupportedSourceTypes(sourceType)
+        'your chart must be one of these visualization types:
+        '[${getSupportedSourceTypes(annotationType)
             .map(x => vizTypes[x].label).join(', ')}]'`;
       }
     } else if (annotationType === AnnotationTypes.FORMULA) {
@@ -400,7 +400,7 @@ export default class AnnotationLayer extends React.PureComponent {
                 name="annotation-override-since"
                 label="Override 'Since'"
                 description={`This controls whether the "Since" field from the current
-                  view should be passed down to the slice containing the annotation data.`}
+                  view should be passed down to the chart containing the annotation data.`}
                 value={!!Object.keys(overrides).find(x => x === 'since')}
                 onChange={(v) => {
                   delete overrides.since;
@@ -416,12 +416,35 @@ export default class AnnotationLayer extends React.PureComponent {
                 name="annotation-override-until"
                 label="Override 'Until'"
                 description={`This controls whether the "Until" field from the current
-                  view should be passed down to the slice containing the annotation data.`}
+                  view should be passed down to the chart containing the annotation data.`}
                 value={!!Object.keys(overrides).find(x => x === 'until')}
                 onChange={(v) => {
                   delete overrides.until;
                   if (v) {
                     this.setState({ overrides: { ...overrides, until: null } });
+                  } else {
+                    this.setState({ overrides: { ...overrides } });
+                  }
+                }}
+              />
+              <CheckboxControl
+                hovered
+                name="annotation-override-timegrain"
+                label="Override time grain"
+                description={`This controls whether the time grain field from the current
+                  view should be passed down to the chart containing the annotation data.`}
+                value={!!Object.keys(overrides).find(x => x === 'time_grain_sqla')}
+                onChange={(v) => {
+                  delete overrides.time_grain_sqla;
+                  delete overrides.granularity;
+                  if (v) {
+                    this.setState({
+                      overrides: {
+                        ...overrides,
+                        time_grain_sqla: null,
+                        granularity: null,
+                      },
+                    });
                   } else {
                     this.setState({ overrides: { ...overrides } });
                   }
