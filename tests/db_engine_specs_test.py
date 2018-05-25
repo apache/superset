@@ -95,6 +95,19 @@ class DbEngineSpecsTestCase(SupersetTestCase):
         limited = engine_spec_class.apply_limit_to_sql(sql, limit, main)
         self.assertEquals(expected_sql, limited)
 
+    def test_extract_limit_from_query(self, engine_spec_class=MySQLEngineSpec):
+        q0 = 'select * from table'
+        q1 = 'select * from mytable limit 10'
+        q2 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20'
+        q3 = 'select * from (select * from my_subquery limit 10);'
+        q4 = 'select * from (select * from my_subquery limit 10) where col=1 limit 20;'
+
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q0), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q1), 10)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q2), 20)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q3), None)
+        self.assertEqual(engine_spec_class.get_limit_from_sql(q4), 20)
+
     def test_wrapped_query(self):
         self.sql_limit_regex(
             'SELECT * FROM a',
