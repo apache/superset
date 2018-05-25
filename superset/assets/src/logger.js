@@ -1,6 +1,5 @@
 import $ from 'jquery';
 
-// export const LOG_ACTIONS_PAGE_LOAD = 'page_load_perf';
 export const LOG_ACTIONS_MOUNT_DASHBOARD = 'mount_dashboard';
 export const LOG_ACTIONS_LOAD_DASHBOARD_PANE = 'load_dashboard_pane';
 export const LOG_ACTIONS_LOAD_CHART = 'load_chart_data';
@@ -51,10 +50,9 @@ export const Logger = {
   },
 
   end(log) {
-    // log.setAttribute('duration', new Date().getTime() - log.startAt);
     this.send(log);
-    log.setAttribute('events', {}); // flush logs for this instance
 
+    // remove handlers
     log.eventNames.forEach((eventName) => {
       if (addEventHandlers[eventName] && addEventHandlers[eventName] === log.addEvent) {
         delete addEventHandlers[eventName];
@@ -63,8 +61,7 @@ export const Logger = {
   },
 
   send(log) {
-    log.setAttribute('duration', new Date().getTime() - log.startAt);
-    const { impressionId, source, sourceId, events, startAt, duration } = log;
+    const { impressionId, source, sourceId, events, startAt } = log;
     const requestPrams = [];
 
     switch (source) {
@@ -97,22 +94,12 @@ export const Logger = {
         source,
         impression_id: impressionId,
         started_time: startAt,
-        duration,
         events: JSON.stringify(eventData),
       },
     });
 
-    console.log('send events', {
-      source,
-      impression_id: impressionId,
-      started_time: startAt,
-      duration,
-      events: eventData,
-    });
-
     // flush events for this logger
-    // note that if you call log.setAttribute() it would incorrectly
-    log.events = {};
+    log.events = {}; // eslint-disable-line no-param-reassign
   },
 
   getTimestamp() {
@@ -125,11 +112,9 @@ export class ActionLog {
     this.impressionId = impressionId;
     this.source = source;
     this.sourceId = sourceId;
-    // this.actionType = actionType;
     this.eventNames = eventNames;
     this.sendNow = sendNow || false;
     this.startAt = 0;
-    this.duration = 0;
     this.events = {};
 
     this.addEvent = this.addEvent.bind(this);
@@ -148,14 +133,13 @@ export class ActionLog {
       this.events[eventName].push(eventBody);
 
       if (this.sendNow) {
-        this.setAttribute('duration', new Date().getTime() - this.startAt);
         Logger.send(this);
       }
     }
   }
 
   sendOneEvent(eventName, eventBody) {
-    this.setAttribute('duration', new Date().getTime() - this.startAt);
+    // overwrite events so that Logger.send doesn't clear this.events
     Logger.send({ ...this, events: { [eventName]: [eventBody] } });
   }
 }
