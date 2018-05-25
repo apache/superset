@@ -84,3 +84,14 @@ export const dashboardInfoPropShape = PropTypes.shape({
   common: PropTypes.object,
   userId: PropTypes.string.isRequired,
 });
+
+export const loadStatsPropShape = PropTypes.objectOf(
+  PropTypes.shape({
+    didLoad: PropTypes.bool.isRequired,
+    id: PropTypes.string.isRequired,
+    parentId: PropTypes.string,
+    index: PropTypes.number.isRequired,
+    chartCount: PropTypes.number.isRequired,
+    minQueryStartTime: PropTypes.number.isRequired,
+  }),
+);

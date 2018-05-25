@@ -159,8 +159,6 @@ class DashboardBuilder extends React.Component {
                   id={DASHBOARD_GRID_ID}
                   activeKey={tabIndex}
                   onSelect={this.handleChangeTab}
-                  // these are important for performant loading of tabs. also, there is a
-                  // react-bootstrap bug where mountOnEnter has no effect unless animation=true
                   animation
                   mountOnEnter
                   unmountOnExit={false}

@@ -10,16 +10,18 @@ import {
   slicePropShape,
   dashboardInfoPropShape,
   dashboardStatePropShape,
+  loadStatsPropShape,
 } from '../util/propShapes';
 import { areObjectsEqual } from '../../reduxUtils';
 import getFormDataWithExtraFilters from '../util/charts/getFormDataWithExtraFilters';
 import {
   Logger,
   ActionLog,
-  LOG_ACTIONS_PAGE_LOAD,
-  LOG_ACTIONS_LOAD_EVENT,
-  LOG_ACTIONS_RENDER_EVENT,
+  DASHBOARD_EVENT_NAMES,
+  LOG_ACTIONS_MOUNT_DASHBOARD,
+  LOG_ACTIONS_LOAD_DASHBOARD_PANE,
 } from '../../logger';
+
 import { t } from '../../locales';
 
 import '../stylesheets/index.less';
@@ -35,6 +37,7 @@ const propTypes = {
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   datasources: PropTypes.object.isRequired,
+  loadStats: loadStatsPropShape.isRequired,
   layout: PropTypes.object.isRequired,
   impressionId: PropTypes.string.isRequired,
   initMessages: PropTypes.array,
@@ -66,27 +69,37 @@ class Dashboard extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    this.firstLoad = true;
-    this.loadingLog = new ActionLog({
+    this.actionLog = new ActionLog({
       impressionId: props.impressionId,
-      actionType: LOG_ACTIONS_PAGE_LOAD,
       source: 'dashboard',
       sourceId: props.dashboardInfo.id,
-      eventNames: [LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT],
+      eventNames: DASHBOARD_EVENT_NAMES,
     });
-    Logger.start(this.loadingLog);
+    Logger.start(this.actionLog);
+  }
+
+  componentDidMount() {
+    Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD, {
+      start_offset: Logger.getTimestamp(),
+    });
   }
 
   componentWillReceiveProps(nextProps) {
-    if (
-      this.firstLoad &&
-      Object.values(nextProps.charts).every(
-        chart =>
-          ['rendered', 'failed', 'stopped'].indexOf(chart.chartStatus) > -1,
-      )
-    ) {
-      Logger.end(this.loadingLog);
-      this.firstLoad = false;
+    if (!nextProps.dashboardState.editMode) {
+      // log pane load times if a pane loaded
+      Object.entries(nextProps.loadStats).forEach(([paneId, stats]) => {
+        const { didLoad, minQueryStartTime, ...restStats } = stats;
+
+        if (didLoad && !this.props.loadStats[paneId].didLoad) {
+          const duration = new Date().getTime() - minQueryStartTime;
+          Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
+            ...restStats,
+            start_offset: Logger.getTimestamp() - duration,
+            duration,
+          });
+          Logger.send(this.actionLog);
+        }
+      });
     }
 
     const currentChartIds = getChartIdsFromLayout(this.props.layout);

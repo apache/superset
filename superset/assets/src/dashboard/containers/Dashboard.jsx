@@ -1,12 +1,14 @@
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
+import Dashboard from '../components/Dashboard';
+
 import {
   addSliceToDashboard,
   removeSliceFromDashboard,
 } from '../actions/dashboardState';
 import { runQuery } from '../../chart/chartAction';
-import Dashboard from '../components/Dashboard';
+import getLoadStatsPerTopLevelComponent from '../util/logging/getLoadStatsPerTopLevelComponent';
 
 function mapStateToProps({
   datasources,
@@ -28,6 +30,10 @@ function mapStateToProps({
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
+    loadStats: getLoadStatsPerTopLevelComponent({
+      layout: dashboardLayout.present,
+      chartQueries: charts,
+    }),
   };
 }
 
