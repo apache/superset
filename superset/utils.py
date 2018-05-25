@@ -18,7 +18,6 @@ import functools
 import json
 import logging
 import os
-import re
 import signal
 import smtplib
 import sys
@@ -883,29 +882,3 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
         del fd['adhoc_filters']
-
-
-def get_query_without_limit(sql):
-    return re.sub(r"""
-                (?ix)        # case insensitive, verbose
-                \s+          # whitespace
-                LIMIT\s+\d+  # LIMIT $ROWS
-                ;?           # optional semi-colon
-                (\s|;)*$     # remove trailing spaces tabs or semicolons
-                """, '', sql)
-
-
-def get_limit_from_sql(sql):
-    # returns the limit of the quest or None if it has no limit.
-
-    limit_pattern = re.compile(r"""
-                (?ix)          # case insensitive, verbose
-                \s+            # whitespace
-                LIMIT\s+(\d+)  # LIMIT $ROWS
-                ;?             # optional semi-colon
-                (\s|;)*$       # remove trailing spaces tabs or semicolons
-                """)
-    matches = limit_pattern.findall(sql)
-
-    if matches:
-        return int(matches[0])
