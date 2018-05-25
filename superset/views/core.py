@@ -2394,7 +2394,7 @@ class Superset(BaseSupersetView):
 
         query = Query(
             database_id=int(database_id),
-            limit=utils.get_limit_from_sql(sql),
+            limit=mydb.db_engine_spec.get_limit_from_sql(sql),
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
