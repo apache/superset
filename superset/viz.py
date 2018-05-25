@@ -1010,8 +1010,7 @@ class PercentageExceedenceViz(BaseViz):
     """percentage exceedence viz"""
 
     viz_type = 'percentage_exceedence'
-    verbose_name = _('Percentage Exceedence')
-    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    verbose_name = _('Flow Duration Curve')
 
     def query_obj(self):
         d = super(PercentageExceedenceViz, self).query_obj()
@@ -1026,10 +1025,8 @@ class PercentageExceedenceViz(BaseViz):
         vis_data = []
         data = {"L1": [], "L2": [], "L3": []}
         [data[row[1]].append([row[2]]) for row in df.values]
-
         # Add percentage Exceedence
-        for key, value in data.items():
-            values = data[key]
+        for key, values in data.items():
             exceedence_param = 100 / len(values)
             for index, d in enumerate(values):
                 percent_exceedence = exceedence_param * index

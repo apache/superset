@@ -1141,12 +1141,13 @@ export const visTypes = {
     },
   },
     percentage_exceedence: {
-      label: t('Percentage Exceedence'),
+      label: t('Flow Duration Curve'),
       controlPanelSections: [
           {
               label: t('Query'),
               expanded: true,
               controlSetRows: [
+                  ['groupby'],
                   ['metric'],
               ],
           },
