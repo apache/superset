@@ -490,6 +490,9 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
               'P1M'),
+        Grain('year', _('year'),
+              "DATETIME(STRFTIME('%Y-01-01T00:00:00', {col}))",
+              'P1Y'),
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "DATE({col}, 'weekday 6')",
               'P1W/1970-01-03T00:00:00Z'),
@@ -1356,6 +1359,27 @@ class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
     inner_joins = False
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain(
+            'millisecond',
+            _('millisecond'),
+            "TIME_FLOOR({col}, 'PT0.001S')",
+            'PT0.001S',
+        ),
+        Grain('second', _('second'), "TIME_FLOOR({col}, 'PT1S')", 'PT1S'),
+        Grain('minute', _('minute'), "TIME_FLOOR({col}, 'PT1M')", 'PT1M'),
+        Grain('hour', _('hour'), "TIME_FLOOR({col}, 'PT1H')", 'PT1H'),
+        Grain('day', _('day'), "TIME_FLOOR({col}, 'P1D')", 'P1D'),
+        Grain('week', _('week'), "TIME_FLOOR({col}, 'P1W')", 'P1W'),
+        Grain('month', _('month'), "TIME_FLOOR({col}, 'P1M')", 'P1M'),
+        Grain('quarter', _('quarter'), "TIME_FLOOR({col}, 'P3M')", 'P3M'),
+        Grain('year', _('year'), "TIME_FLOOR({col}, 'P1Y')", 'P1Y'),
+        Grain('decade', _('decade'), "TIME_FLOOR({col}, 'P10Y')", 'P10Y'),
+        Grain('century', _('century'), "TIME_FLOOR({col}, 'P100Y')", 'P100Y'),
+        Grain('millenium', _('millenium'), "TIME_FLOOR({col}, 'P1000Y')", 'P1000Y'),
+    )
 
 
 class KylinEngineSpec(BaseEngineSpec):
