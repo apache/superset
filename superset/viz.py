@@ -993,7 +993,7 @@ class BulletViz(NVD3Viz):
 
     def get_data(self, df):
         df = df.fillna(0)
-        df['metric'] = df[[self.metric]]
+        df['metric'] = df[[self.get_metric_label(self.metric)]]
         values = df['metric'].values
         return {
             'measures': values.tolist(),
