@@ -1053,7 +1053,7 @@ class PercentageExceedenceViz(BaseViz):
 
     def get_data(self, df):
         vis_data = []
-        data = {"L1": [], "L2": [], "L3": []}
+        data = {'L1': [], 'L2': [], 'L3': []}
         [data[row[1]].append([row[2]]) for row in df.values]
         # Add percentage Exceedence
         for key, values in data.items():
@@ -1061,7 +1061,7 @@ class PercentageExceedenceViz(BaseViz):
             for index, d in enumerate(values):
                 percent_exceedence = exceedence_param * index
                 d.insert(0, percent_exceedence)
-        [vis_data.append({"key": key, "values": values}) for key, values in data.items()]
+        [vis_data.append({'key': key, 'values': values}) for key, values in data.items()]
         return vis_data
 
 
