@@ -97,7 +97,7 @@ class ControlPanelsContainer extends React.Component {
         (control) => {
           let controlByOverride = null;
           if (controls[control] && controlOverrides[control]) {
-            controlByOverride = {...controls[control], ...controlOverrides[control]};
+            controlByOverride = { ...controls[control], ...controlOverrides[control] };
           } else {
             controlByOverride = controls[control];
           }
