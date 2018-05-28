@@ -1955,4 +1955,3 @@ def load_loads_data():
     dash.slices.append(slc)
     db.session.merge(dash)
     db.session.commit()
-
