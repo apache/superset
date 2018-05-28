@@ -144,6 +144,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
         Logger.append(LOG_ACTIONS_LOAD_CHART, {
           label: 'slice_' + key,
           is_cached: queryResponse.is_cached,
+          force_refresh: force,
           row_count: queryResponse.rowcount,
           datasource: formData.datasource,
           start_offset: logStart,

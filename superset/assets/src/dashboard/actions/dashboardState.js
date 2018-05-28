@@ -7,7 +7,11 @@ import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/store';
 import { getAjaxErrorMsg } from '../../modules/utils';
-import { Logger, LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from '../../logger';
+import {
+  Logger,
+  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
+  LOG_ACTIONS_REFRESH_DASHBOARD,
+} from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import { t } from '../../locales';
 
@@ -134,6 +138,12 @@ export function saveDashboardRequest(data, id, saveType) {
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
   return (dispatch, getState) => {
+    Logger.append(LOG_ACTIONS_REFRESH_DASHBOARD, {
+      force,
+      interval,
+      chartCount: chartList.length,
+      start_offset: Logger.getTimestamp(),
+    });
     const timeout = getState().dashboardInfo.common.conf
       .SUPERSET_WEBSERVER_TIMEOUT;
     if (!interval) {

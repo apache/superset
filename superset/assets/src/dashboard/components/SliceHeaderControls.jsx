@@ -7,6 +7,7 @@ import {
   Logger,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_REFRESH_CHART,
 } from '../../logger';
 
 import { t } from '../../locales';
@@ -50,6 +51,7 @@ class SliceHeaderControls extends React.PureComponent {
     this.exportCSV = this.exportCSV.bind(this);
     this.exploreChart = this.exploreChart.bind(this);
     this.toggleControls = this.toggleControls.bind(this);
+    this.refreshChart = this.refreshChart.bind(this);
     this.toggleExpandSlice = this.props.toggleExpandSlice.bind(
       this,
       this.props.slice.slice_id,
@@ -67,6 +69,7 @@ class SliceHeaderControls extends React.PureComponent {
       {
         slice_id: this.props.slice.slice_id,
         is_cached: this.props.isCached,
+        start_offset: Logger.getTimestamp(),
       },
       true,
     );
@@ -79,9 +82,19 @@ class SliceHeaderControls extends React.PureComponent {
       {
         slice_id: this.props.slice.slice_id,
         is_cached: this.props.isCached,
+        start_offset: Logger.getTimestamp(),
       },
       true,
     );
+  }
+
+  refreshChart() {
+    this.props.forceRefresh(this.props.slice.slice_id);
+    Logger.append(LOG_ACTIONS_REFRESH_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+      start_offset: Logger.getTimestamp(),
+    });
   }
 
   toggleControls() {
@@ -110,7 +123,7 @@ class SliceHeaderControls extends React.PureComponent {
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
-          <MenuItem onClick={this.props.forceRefresh}>
+          <MenuItem onClick={this.refreshChart}>
             {isCached && <span className="dot" />}
             {t('Force refresh')}
             {isCached && (
