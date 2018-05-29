@@ -1,6 +1,6 @@
 bleach==2.1.2
 boto3==1.4.7
-celery==4.1.0
+celery==4.1.1
 colorama==0.3.9
 cryptography==1.9
 flask==0.12.2

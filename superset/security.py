@@ -328,7 +328,7 @@ class SupersetSecurityManager(SecurityManager):
         if default_dash_role:
             role = self.find_role(default_dash_role)
             if not role:
-                sesh = self.get_session()
+                sesh = self.get_session
                 role = self.add_role(default_dash_role)
                 sesh.merge(role)
                 sesh.commit()
