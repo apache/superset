@@ -931,6 +931,14 @@ class HiveEngineSpec(PrestoEngineSpec):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
 
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        from TCLIService import ttypes
+        state = cursor.poll()
+        if state.operationState == ttypes.TOperationState.ERROR_STATE:
+            raise Exception('Query error', state.errorMessage)
+        return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
+
     @staticmethod
     def create_table_from_csv(form, table):
         """Uploads a csv file and creates a superset datasource in Hive."""
