@@ -847,7 +847,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         state = cursor.poll()
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
             raise Exception('Query error', state.errorMessage)
-        return super(HiveEngineSpec, cls).fetch_data(cls, cursor, limit)
+        return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
 
     @staticmethod
     def create_table_from_csv(form, table):
