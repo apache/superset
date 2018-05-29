@@ -1089,11 +1089,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df[name].dtype.kind not in 'biufc':
                 continue
             if isinstance(name, list):
-                series_title = [str(title) for title in name]
+                series_title = [text_type(title) for title in name]
             elif isinstance(name, tuple):
-                series_title = tuple(str(title) for title in name)
+                series_title = tuple(text_type(title) for title in name)
             else:
-                series_title = str(name)
+                series_title = text_type(name)
             if (
                     isinstance(series_title, (list, tuple)) and
                     len(series_title) > 1 and
