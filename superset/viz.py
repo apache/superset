@@ -1199,7 +1199,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def run_extra_queries(self):
         fd = self.form_data
+
         time_compare = fd.get('time_compare') or []
+        # backwards compatibility
+        if not isinstance(time_compare, list):
+            time_compare = [time_compare]
+
         for option in time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(option)
