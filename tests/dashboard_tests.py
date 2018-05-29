@@ -302,7 +302,8 @@ class DashboardTests(SupersetTestCase):
 
         # check that Gamma user cannot access dashboards
         self.assertIn(
-            'Sorry, you don&#39;t have permission to access the &#39;Births&#39; dashboard',
+            'Sorry, you don&#39;t have permission to access ' +
+            'the &#39;Births&#39; dashboard',
             self.get_resp('/superset/dashboard/births/'),
         )
 
@@ -322,7 +323,8 @@ class DashboardTests(SupersetTestCase):
 
         # check that Gamma user can access births dashboard
         self.assertNotIn(
-            'Sorry, you don&#39;t have permission to access the &#39;Births&#39; dashboard',
+            'Sorry, you don&#39;t have permission to access ' +
+            'the &#39;Births&#39; dashboard',
             self.get_resp('/superset/dashboard/births/'),
         )
         resp = self.get_resp('/dashboardmodelview/list/')
@@ -358,7 +360,8 @@ class DashboardTests(SupersetTestCase):
 
         # check that Gamma user can still access births dashboard
         self.assertNotIn(
-            'Sorry, you don&#39;t have permission to access the &#39;Births&#39; dashboard',
+            'Sorry, you don&#39;t have permission to access ' +
+            'the &#39;Births&#39; dashboard',
             self.get_resp('/superset/dashboard/births/'),
         )
         resp = self.get_resp('/dashboardmodelview/list/')
