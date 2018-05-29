@@ -846,7 +846,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         from TCLIService import ttypes
         state = cursor.poll()
         if state.operationState == ttypes.TOperationState.ERROR_STATE:
-            raise Exception("Query error", state.errorMessage.replace("\\n", "\n"))
+            raise Exception('Query error', state.errorMessage)
         return super(HiveEngineSpec, cls).fetch_data(cls, cursor, limit)
 
     @staticmethod
