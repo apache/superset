@@ -668,7 +668,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         """ Update name of permission view if exists or create if new """
 
         # get current view_menu for this dashboard
-        id_pattern = '%(dash_id:{obj.id})'.format(obj=obj)
+        id_pattern = '%(dash_id:{})'.format(obj=obj.id)
         view_menu = security_manager.get_session.query(security_manager.viewmenu_model)\
             .filter(security_manager.viewmenu_model.name.like(id_pattern)).first()
 
@@ -683,7 +683,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
                     security_manager.get_session.query(security_manager.viewmenu_model)\
                         .filter(security_manager.viewmenu_model.id == view_menu.id)\
                         .update({'name': new_name})
-                except Exception, e:
+                except Exception as e:
                     logging.exception(e)
                 if commit:
                     security_manager.get_session.commit()

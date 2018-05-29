@@ -23,7 +23,7 @@ class SupersetRoleModelView(RoleModelView):
                 role.dashboards.append(dash)
                 db.session.merge(role)
                 db.session.commit()
-            except Exception, e:
+            except Exception as e:
                 logging.error(e)
 
     def remove_dashboard_role(self, role, dash):
@@ -33,7 +33,7 @@ class SupersetRoleModelView(RoleModelView):
             role.dashboards.remove(dash)
             db.session.merge(role)
             db.session.commit()
-        except Exception, e:
+        except Exception as e:
             logging.error(e)
 
     def post_update(self, role):
@@ -49,7 +49,7 @@ class SupersetRoleModelView(RoleModelView):
                     role_dash_perms.append(int(dash_id))
                     try:
                         dash = db.session.query(Dashboard).filter_by(id=dash_id).first()
-                    except Exception, e:
+                    except Exception as e:
                         logging.error(e)
 
                     self.add_dashboard_role(role, dash)
