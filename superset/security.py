@@ -70,7 +70,6 @@ READ_ONLY_PERMISSION = {
 ALPHA_ONLY_PERMISSIONS = set([
     'muldelete',
     'all_datasource_access',
-    'all_dashboard_access',
 ])
 
 OBJECT_SPEC_PERMISSIONS = set([

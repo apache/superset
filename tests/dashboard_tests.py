@@ -150,6 +150,7 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
+        original_title = dash.dashboard_title
         positions = []
         for i, slc in enumerate(dash.slices):
             d = {
@@ -182,6 +183,13 @@ class DashboardTests(SupersetTestCase):
         self.assertEqual(resp['position_json'], orig_json_data['position_json'])
         self.assertEqual(resp['metadata'], orig_json_data['metadata'])
         self.assertEqual(resp['slices'], orig_json_data['slices'])
+
+        # Put back dashboard's original title
+        data['dashboard_title'] = original_title
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug='births').first()
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        self.get_resp(url, data=dict(data=json.dumps(data)))
 
     def test_add_slices(self, username='admin'):
         self.login(username=username)
@@ -265,6 +273,154 @@ class DashboardTests(SupersetTestCase):
         db.session.commit()
 
         assert 'Births' in self.get_resp('/superset/dashboard/births/')
+
+    def test_dashboard_level_access_controls(self):
+        # add all_datasource_access to Gamma role
+        gamma_role = security_manager.find_role('Gamma')
+        perm_view = security_manager.find_permission_view_menu(
+            'all_datasource_access',
+            'all_datasource_access',
+        )
+        security_manager.add_permission_role(gamma_role, perm_view)
+
+        # Gamma role has all_dashboard_access by default
+        # check that Gamma user can access all dashboards
+        self.login(username='gamma')
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertIn('/superset/dashboard/births/', resp)
+
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertIn('/superset/dashboard/world_health/', resp)
+
+        # remove all_dashboard_access from Gamma role
+        gamma_role = security_manager.find_role('Gamma')
+        perm_view = security_manager.find_permission_view_menu(
+            'all_dashboard_access',
+            'all_dashboard_access',
+        )
+        security_manager.del_permission_role(gamma_role, perm_view)
+
+        # check that Gamma user cannot access dashboards
+        self.assertIn(
+            'Sorry, you don&#39;t have permission to access the &#39;Births&#39; dashboard',
+            self.get_resp('/superset/dashboard/births/'),
+        )
+
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertNotIn('/superset/dashboard/births/', resp)
+
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertNotIn('/superset/dashboard/world_health/', resp)
+
+        # add Births dashboard access to Gamma role
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug='births').first()
+        gamma_role = security_manager.find_role('Gamma')
+        perm_view = security_manager.find_permission_view_menu(
+            'dashboard_access', dash.perm)
+        security_manager.add_permission_role(gamma_role, perm_view)
+
+        # check that Gamma user can access births dashboard
+        self.assertNotIn(
+            'Sorry, you don&#39;t have permission to access the &#39;Births&#39; dashboard',
+            self.get_resp('/superset/dashboard/births/'),
+        )
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertIn('/superset/dashboard/births/', resp)
+
+        # check that Gamma user still cannot access other dashboards
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertNotIn('/superset/dashboard/world_health/', resp)
+
+        # change title of Births dashboard
+        self.logout()
+        self.login(username='admin')
+        old_title = dash.dashboard_title
+        new_title = 'my new title'
+        (url, data) = self._change_dashboard_title(new_title)
+
+        # check that permission name was updated with new title
+        self.logout()
+        self.login(username='gamma')
+        gamma_role = security_manager.find_role('Gamma')
+        new_perm = '[{}](dash_id:{})'.format(new_title, dash.id)
+        old_perm = '[{}](dash_id:{})'.format(old_title, dash.id)
+        found_new_perm = False
+        found_old_perm = False
+        for p in gamma_role.permissions:
+            if p.view_menu.name == new_perm:
+                found_new_perm = True
+            elif p.view_menu.name == old_perm:
+                found_old_perm = True
+
+        assert not found_old_perm
+        assert found_new_perm
+
+        # check that Gamma user can still access births dashboard
+        self.assertNotIn(
+            'Sorry, you don&#39;t have permission to access the &#39;Births&#39; dashboard',
+            self.get_resp('/superset/dashboard/births/'),
+        )
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertIn('/superset/dashboard/births/', resp)
+
+        # Cleaning up
+
+        # put back dashboard's original title
+        self.logout()
+        self.login(username='admin')
+        self.get_resp(url, data=dict(data=json.dumps(data)))
+
+        # remove all_datasource_access from Gamma role
+        gamma_role = security_manager.find_role('Gamma')
+        perm_view = security_manager.find_permission_view_menu(
+            'all_datasource_access',
+            'all_datasource_access',
+        )
+        security_manager.del_permission_role(gamma_role, perm_view)
+
+        # add all_dashboard_access back to Gamma role
+        gamma_role = security_manager.find_role('Gamma')
+        perm_view = security_manager.find_permission_view_menu(
+            'all_dashboard_access',
+            'all_dashboard_access',
+        )
+        security_manager.add_permission_role(gamma_role, perm_view)
+
+    def _change_dashboard_title(self, title):
+        self.login(username='admin')
+        dash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug='births')
+            .first()
+        )
+        origin_title = dash.dashboard_title
+        positions = []
+        for i, slc in enumerate(dash.slices):
+            d = {
+                'col': 0,
+                'row': i * 4,
+                'size_x': 4,
+                'size_y': 4,
+                'slice_id': '{}'.format(slc.id)}
+            positions.append(d)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': title,
+        }
+        url = '/superset/save_dash/{}/'.format(dash.id)
+        self.get_resp(url, data=dict(data=json.dumps(data)))
+        updatedDash = (
+            db.session.query(models.Dashboard)
+            .filter_by(slug='births')
+            .first()
+        )
+        self.assertEqual(updatedDash.dashboard_title, title)
+        # return url and data with dashboard's original title
+        data['dashboard_title'] = origin_title
+        return (url, data)
 
     def test_only_owners_can_save(self):
         dash = (
