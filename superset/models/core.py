@@ -31,6 +31,7 @@ from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import EncryptedType
+import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -690,7 +691,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [x.strip() for x in sql.strip().strip(';').split(';')]
+        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
         eng = self.get_sqla_engine(schema=schema)
 
         for i in range(len(sqls) - 1):
