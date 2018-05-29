@@ -30,7 +30,7 @@ export default class URLShortLinkButton extends React.Component {
   }
 
   renderPopover() {
-    const emailBody = t('%s%s', this.emailContent, this.state.shortUrl);
+    const emailBody = t('%s%s', this.props.emailContent, this.state.shortUrl);
     return (
       <Popover id="shorturl-popover">
         <CopyToClipboard
@@ -38,7 +38,7 @@ export default class URLShortLinkButton extends React.Component {
           copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
         />
         &nbsp;&nbsp;
-        <a href={`mailto:?Subject=${this.emailSubject}%20&Body=${emailBody}`}>
+        <a href={`mailto:?Subject=${this.props.emailSubject}%20&Body=${emailBody}`}>
           <i className="fa fa-envelope" />
         </a>
       </Popover>

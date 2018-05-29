@@ -748,15 +748,10 @@ class R(BaseSupersetView):
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-<<<<<<< HEAD
         return Response(
-            '{scheme}://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-                scheme=request.scheme, request=request, directory=directory, obj=obj),
+            '{scheme}://{request.headers[Host]}/r/{obj.id}'.format(
+                scheme=request.scheme, request=request, obj=obj),
             mimetype='text/plain')
-=======
-        return('http://{request.headers[Host]}/r/{obj.id}'.format(
-            request=request, obj=obj))
->>>>>>> Generate a shorter link without the directory, and delegate default linked to the contents of window.location
 
     @expose('/msg/')
     def msg(self):
