@@ -155,6 +155,7 @@ the world know they are using Superset. Join our growing community!
  - [Brilliant.org](https://brilliant.org/)
  - [Capital Service S.A.](http://capitalservice.pl)
  - [Clark.de](http://clark.de/)
+ - [CnOvit](http://www.cnovit.com/)
  - [Digit Game Studios](https://www.digitgaming.com/)
  - [Douban](https://www.douban.com/)
  - [Endress+Hauser](http://www.endress.com/)
