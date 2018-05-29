@@ -2687,11 +2687,13 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose('/sqllab')
-    def sqllab(self):
+    @expose('/sqllab/<table_id>')
+    def sqllab(self, table_id=None):
         """SQL Editor"""
         d = {
             'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
             'common': self.common_bootsrap_payload(),
+            'tableId': table_id,
         }
         return self.render_template(
             'superset/basic.html',

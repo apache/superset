@@ -5,11 +5,17 @@ import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addT
   from '../reduxUtils';
 import { t } from '../locales';
 
-export function getInitialState(defaultDbId) {
+export function getInitialState(defaultDbId, tableId) {
+  let sql;
+  if (tableId !== null) {
+    sql = 'SELECT * FROM tableId';
+  } else {
+    sql = 'SELECTFUCK ';
+  }
   const defaultQueryEditor = {
+    sql,
     id: shortid.generate(),
     title: t('Untitled Query'),
-    sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
     latestQueryId: null,
     autorun: false,
