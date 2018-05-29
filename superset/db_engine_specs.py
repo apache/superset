@@ -1362,14 +1362,14 @@ class DruidEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
-        Grain('second', _('second'), "FLOOR({col} TO SECOND)", 'PT1S'),
-        Grain('minute', _('minute'), "FLOOR({col} TO MINUTE)", 'PT1M'),
-        Grain('hour', _('hour'), "FLOOR({col} TO HOUR)", 'PT1H'),
-        Grain('day', _('day'), "FLOOR({col} TO DAY)", 'P1D'),
-        Grain('week', _('week'), "FLOOR({col} TO WEEK)", 'P1W'),
-        Grain('month', _('month'), "FLOOR({col} TO MONTH)", 'P1M'),
-        Grain('quarter', _('quarter'), "FLOOR({col} TO QUARTER)", 'P3M'),
-        Grain('year', _('year'), "FLOOR({col} TO YEAR)", 'P1Y'),
+        Grain('second', _('second'), 'FLOOR({col} TO SECOND)', 'PT1S'),
+        Grain('minute', _('minute'), 'FLOOR({col} TO MINUTE)', 'PT1M'),
+        Grain('hour', _('hour'), 'FLOOR({col} TO HOUR)', 'PT1H'),
+        Grain('day', _('day'), 'FLOOR({col} TO DAY)', 'P1D'),
+        Grain('week', _('week'), 'FLOOR({col} TO WEEK)', 'P1W'),
+        Grain('month', _('month'), 'FLOOR({col} TO MONTH)', 'P1M'),
+        Grain('quarter', _('quarter'), 'FLOOR({col} TO QUARTER)', 'P3M'),
+        Grain('year', _('year'), 'FLOOR({col} TO YEAR)', 'P1Y'),
     )
 
 
