@@ -1362,23 +1362,14 @@ class DruidEngineSpec(BaseEngineSpec):
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}', None),
-        Grain(
-            'millisecond',
-            _('millisecond'),
-            "TIME_FLOOR({col}, 'PT0.001S')",
-            'PT0.001S',
-        ),
-        Grain('second', _('second'), "TIME_FLOOR({col}, 'PT1S')", 'PT1S'),
-        Grain('minute', _('minute'), "TIME_FLOOR({col}, 'PT1M')", 'PT1M'),
-        Grain('hour', _('hour'), "TIME_FLOOR({col}, 'PT1H')", 'PT1H'),
-        Grain('day', _('day'), "TIME_FLOOR({col}, 'P1D')", 'P1D'),
-        Grain('week', _('week'), "TIME_FLOOR({col}, 'P1W')", 'P1W'),
-        Grain('month', _('month'), "TIME_FLOOR({col}, 'P1M')", 'P1M'),
-        Grain('quarter', _('quarter'), "TIME_FLOOR({col}, 'P3M')", 'P3M'),
-        Grain('year', _('year'), "TIME_FLOOR({col}, 'P1Y')", 'P1Y'),
-        Grain('decade', _('decade'), "TIME_FLOOR({col}, 'P10Y')", 'P10Y'),
-        Grain('century', _('century'), "TIME_FLOOR({col}, 'P100Y')", 'P100Y'),
-        Grain('millenium', _('millenium'), "TIME_FLOOR({col}, 'P1000Y')", 'P1000Y'),
+        Grain('second', _('second'), "FLOOR({col} TO SECOND)", 'PT1S'),
+        Grain('minute', _('minute'), "FLOOR({col} TO MINUTE)", 'PT1M'),
+        Grain('hour', _('hour'), "FLOOR({col} TO HOUR)", 'PT1H'),
+        Grain('day', _('day'), "FLOOR({col} TO DAY)", 'P1D'),
+        Grain('week', _('week'), "FLOOR({col} TO WEEK)", 'P1W'),
+        Grain('month', _('month'), "FLOOR({col} TO MONTH)", 'P1M'),
+        Grain('quarter', _('quarter'), "FLOOR({col} TO QUARTER)", 'P3M'),
+        Grain('year', _('year'), "FLOOR({col} TO YEAR)", 'P1Y'),
     )
 
 
