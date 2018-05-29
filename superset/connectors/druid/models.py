@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
+from distutils.version import LooseVersion
 import json
 import logging
 from multiprocessing.pool import ThreadPool
@@ -116,7 +117,9 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def get_base_url(host, port):
         if not re.match('http(s)?://', host):
             host = 'http://' + host
-        return '{0}:{1}'.format(host, port)
+
+        url = '{0}:{1}'.format(host, port) if port else host
+        return url
 
     def get_base_coordinator_url(self):
         base_url = self.get_base_url(
@@ -897,8 +900,8 @@ class DruidDatasource(Model, BaseDatasource):
                     missing_postagg, post_aggs, agg_names, visited_postaggs, metrics_dict)
         post_aggs[postagg.metric_name] = DruidDatasource.get_post_agg(postagg.json_obj)
 
-    @classmethod
-    def metrics_and_post_aggs(cls, metrics, metrics_dict):
+    @staticmethod
+    def metrics_and_post_aggs(metrics, metrics_dict, druid_version=None):
         # Separate metrics into those that are aggregations
         # and those that are post aggregations
         saved_agg_names = set()
@@ -918,9 +921,13 @@ class DruidDatasource(Model, BaseDatasource):
         for postagg_name in postagg_names:
             postagg = metrics_dict[postagg_name]
             visited_postaggs.add(postagg_name)
-            cls.resolve_postagg(
+            DruidDatasource.resolve_postagg(
                 postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict)
-        aggs = cls.get_aggregations(metrics_dict, saved_agg_names, adhoc_agg_configs)
+        aggs = DruidDatasource.get_aggregations(
+            metrics_dict,
+            saved_agg_names,
+            adhoc_agg_configs,
+        )
         return aggs, post_aggs
 
     def values_for_column(self,
@@ -995,11 +1002,12 @@ class DruidDatasource(Model, BaseDatasource):
 
     @staticmethod
     def druid_type_from_adhoc_metric(adhoc_metric):
-        column_type = adhoc_metric.get('column').get('type').lower()
-        aggregate = adhoc_metric.get('aggregate').lower()
-        if (aggregate == 'count'):
+        column_type = adhoc_metric['column']['type'].lower()
+        aggregate = adhoc_metric['aggregate'].lower()
+
+        if aggregate == 'count':
             return 'count'
-        if (aggregate == 'count_distinct'):
+        if aggregate == 'count_distinct':
             return 'cardinality'
         else:
             return column_type + aggregate.capitalize()
@@ -1130,6 +1138,17 @@ class DruidDatasource(Model, BaseDatasource):
         metrics_dict = {m.metric_name: m for m in self.metrics}
         columns_dict = {c.column_name: c for c in self.columns}
 
+        if (
+            self.cluster and
+            LooseVersion(self.cluster.get_druid_version()) < LooseVersion('0.11.0')
+        ):
+            for metric in metrics:
+                if (
+                    utils.is_adhoc_metric(metric) and
+                    metric['column']['type'].upper() == 'FLOAT'
+                ):
+                    metric['column']['type'] = 'DOUBLE'
+
         aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
             metrics_dict)
@@ -1185,7 +1204,7 @@ class DruidDatasource(Model, BaseDatasource):
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
-                aggs_dict, post_aggs_dict = self.metrics_and_post_aggs(
+                aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
                 if phase == 1:
@@ -1246,11 +1265,15 @@ class DruidDatasource(Model, BaseDatasource):
                 dict_dims = [x for x in pre_qry_dims if isinstance(x, dict)]
                 pre_qry['dimensions'] = non_dict_dims + dict_dims
 
-                order_by = metrics[0] if metrics else pre_qry_dims[0]
+                order_by = None
+                if metrics:
+                    order_by = utils.get_metric_name(metrics[0])
+                else:
+                    order_by = pre_qry_dims[0]
 
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
-                    aggs_dict, post_aggs_dict = self.metrics_and_post_aggs(
+                    aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                         [timeseries_limit_metric],
                         metrics_dict)
                     if phase == 1:
@@ -1296,7 +1319,10 @@ class DruidDatasource(Model, BaseDatasource):
                     'limit': row_limit,
                     'columns': [{
                         'dimension': (
-                            metrics[0] if metrics else dimension_values[0]),
+                            utils.get_metric_name(
+                                metrics[0],
+                            ) if metrics else dimension_values[0]
+                        ),
                         'direction': order_direction,
                     }],
                 }

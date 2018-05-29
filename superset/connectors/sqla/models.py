@@ -272,13 +272,14 @@ class SqlaTable(Model, BaseDatasource):
     schema = Column(String(255))
     sql = Column(Text)
     is_sqllab_view = Column(Boolean, default=False)
+    template_params = Column(Text)
 
     baselink = 'tablemodelview'
 
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
-        'sql', 'params')
+        'sql', 'params', 'template_params')
     export_parent = 'database'
     export_children = ['metrics', 'columns']
 
@@ -449,10 +450,24 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
-    def adhoc_metric_to_sa(self, metric):
+    def adhoc_metric_to_sa(self, metric, cols):
+        """
+        Turn an adhoc metric into a sqlalchemy column.
+
+        :param dict metric: Adhoc metric definition
+        :param dict cols: Columns for the current table
+        :returns: The metric defined as a sqlalchemy column
+        :rtype: sqlalchemy.sql.column
+        """
         expressionType = metric.get('expressionType')
         if expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
-            sa_column = column(metric.get('column').get('column_name'))
+            column_name = metric.get('column').get('column_name')
+            sa_column = column(column_name)
+            table_column = cols.get(column_name)
+
+            if table_column:
+                sa_column = table_column.sqla_col
+
             sa_metric = self.sqla_aggregations[metric.get('aggregate')](sa_column)
             sa_metric = sa_metric.label(metric.get('label'))
             return sa_metric
@@ -491,8 +506,8 @@ class SqlaTable(Model, BaseDatasource):
             'to_dttm': to_dttm,
             'filter': filter,
             'columns': {col.column_name: col for col in self.columns},
-
         }
+        template_kwargs.update(self.template_params_dict)
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
@@ -517,7 +532,7 @@ class SqlaTable(Model, BaseDatasource):
         metrics_exprs = []
         for m in metrics:
             if utils.is_adhoc_metric(m):
-                metrics_exprs.append(self.adhoc_metric_to_sa(m))
+                metrics_exprs.append(self.adhoc_metric_to_sa(m, cols))
             elif m in metrics_dict:
                 metrics_exprs.append(metrics_dict.get(m).sqla_col)
             else:
