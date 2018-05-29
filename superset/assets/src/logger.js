@@ -64,7 +64,7 @@ export const Logger = {
 
     // remove handlers
     log.eventNames.forEach((eventName) => {
-      if (addEventHandlers[eventName] && addEventHandlers[eventName] === log.addEvent) {
+      if (addEventHandlers[eventName]) {
         delete addEventHandlers[eventName];
       }
     });
@@ -105,13 +105,6 @@ export const Logger = {
       },
     });
 
-    console.log('send events', {
-      source,
-      impression_id: impressionId,
-      started_time: startAt,
-      events: eventData,
-    });
-
     // flush events for this logger
     log.events = {}; // eslint-disable-line no-param-reassign
   },
@@ -145,7 +138,10 @@ export class ActionLog {
       this.sendOneEvent(eventName, eventBody);
     } else {
       this.events[eventName] = this.events[eventName] || [];
-      this.events[eventName].push(eventBody);
+      this.events[eventName].push({
+        start_offset: new Date().getTime() - Logger.getTimestamp(),
+        ...eventBody,
+      });
 
       if (this.sendNow) {
         Logger.send(this);

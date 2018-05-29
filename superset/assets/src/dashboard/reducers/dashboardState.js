@@ -122,18 +122,16 @@ export default function dashboardStateReducer(state = {}, action) {
 
         // remove any empty filters so they don't pollute the logs
         Object.keys(filters).forEach(chartId => {
-          const columns = Object.keys(filters[chartId]);
-          if (columns.length === 0) {
+          Object.keys(filters[chartId]).forEach(column => {
+            if (
+              !filters[chartId][column] ||
+              filters[chartId][column].length === 0
+            ) {
+              delete filters[chartId][column];
+            }
+          });
+          if (Object.keys(filters[chartId]).length === 0) {
             delete filters[chartId];
-          } else {
-            columns.forEach(column => {
-              if (
-                !filters[chartId][column] ||
-                filters[chartId][column].length === 0
-              ) {
-                delete filters[chartId][column];
-              }
-            });
           }
         });
       }
