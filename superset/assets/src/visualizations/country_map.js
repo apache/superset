@@ -132,7 +132,7 @@ function countryMapChart(slice, payload) {
     .attr('x', 20)
     .attr('y', 60);
 
-  const url = `/static/assets/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;
+  const url = `/static/assets/src/visualizations/countries/${fd.select_country.toLowerCase()}.geojson`;
   d3.json(url, function (error, mapData) {
     const features = mapData.features;
     const center = d3.geo.centroid(mapData);

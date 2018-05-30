@@ -10,7 +10,7 @@ import Loading from '../components/Loading';
 import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
 import StackTraceMessage from '../components/StackTraceMessage';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
-import visMap from '../visualizations/main';
+import visMap from '../visualizations';
 import sandboxedEval from '../modules/sandbox';
 import './chart.css';
 

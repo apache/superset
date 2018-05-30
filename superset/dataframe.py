@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """ Superset wrapper around pandas.DataFrame.
 
 TODO(bkyryliuk): add support for the conventions like: *_dim or dim_*

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -240,6 +241,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     @staticmethod
     def default_query(qry):
         return qry
+
+    def get_column(self, column_name):
+        for col in self.columns:
+            if col.column_name == column_name:
+                return col
 
 
 class BaseColumn(AuditMixinNullable, ImportMixin):

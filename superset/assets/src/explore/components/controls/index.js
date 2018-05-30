@@ -18,6 +18,7 @@ import TimeSeriesColumnControl from './TimeSeriesColumnControl';
 import ViewportControl from './ViewportControl';
 import VizTypeControl from './VizTypeControl';
 import MetricsControl from './MetricsControl';
+import AdhocFilterControl from './AdhocFilterControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -40,5 +41,6 @@ const controlMap = {
   ViewportControl,
   VizTypeControl,
   MetricsControl,
+  AdhocFilterControl,
 };
 export default controlMap;

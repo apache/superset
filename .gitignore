@@ -11,6 +11,7 @@ _images
 _modules
 superset/bin/supersetc
 env_py3
+envpy3
 .eggs
 build
 *.db

@@ -3,8 +3,8 @@
  * and associated with each and every visualization type.
  */
 import { D3_TIME_FORMAT_OPTIONS } from './controls';
-import * as v from '../validators';
-import { t } from '../../locales';
+import * as v from './validators';
+import { t } from '../locales';
 
 export const sections = {
   druidTimeSeries: {
@@ -61,6 +61,7 @@ export const sections = {
       expanded: true,
       controlSetRows: [
         ['metrics'],
+        ['adhoc_filters'],
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
         ['order_desc', 'contribution'],
@@ -95,6 +96,15 @@ export const sections = {
   ],
 };
 
+const timeGrainSqlaAnimationOverrides = {
+  default: null,
+  mapStateToProps: state => ({
+    choices: (state.datasource) ?
+      state.datasource.time_grain_sqla.filter(o => o[0] !== null) :
+      null,
+  }),
+};
+
 export const visTypes = {
   dist_bar: {
     label: t('Distribution - Bar Chart'),
@@ -105,6 +115,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metrics'],
+          ['adhoc_filters'],
           ['groupby'],
           ['columns'],
           ['row_limit'],
@@ -151,6 +162,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metrics'],
+          ['adhoc_filters'],
           ['groupby'],
           ['limit'],
         ],
@@ -209,6 +221,82 @@ export const visTypes = {
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
+      },
+    },
+  },
+
+  line_multi: {
+    label: t('Time Series - Multiple Line Charts'),
+    showOnExplore: true,
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['color_scheme'],
+          ['prefix_metric_with_slice_name', null],
+          ['show_legend', 'show_markers'],
+          ['line_interpolation', null],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout', 'x_axis_format'],
+          ['x_axis_showminmax', null],
+        ],
+      },
+      {
+        label: t('Y Axis 1'),
+        expanded: true,
+        controlSetRows: [
+          ['line_charts', 'y_axis_format'],
+        ],
+      },
+      {
+        label: t('Y Axis 2'),
+        expanded: false,
+        controlSetRows: [
+          ['line_charts_2', 'y_axis_2_format'],
+        ],
+      },
+      sections.annotations,
+    ],
+    controlOverrides: {
+      line_charts: {
+        label: t('Left Axis chart(s)'),
+        description: t('Choose one or more charts for left axis'),
+      },
+      y_axis_format: {
+        label: t('Left Axis Format'),
+      },
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+    },
+    sectionOverrides: {
+      sqlClause: [],
+      filters: [[]],
+      datasourceAndVizType: {
+        label: t('Chart Type'),
+        controlSetRows: [
+          ['viz_type'],
+          ['slice_id', 'cache_timeout'],
+        ],
+      },
+      sqlaTimeSeries: {
+        controlSetRows: [
+          ['since', 'until'],
+        ],
+      },
+      druidTimeSeries: {
+        controlSetRows: [
+          ['since', 'until'],
+        ],
       },
     },
   },
@@ -555,11 +643,12 @@ export const visTypes = {
         description: t("Metric used as a weight for the grid's coloring"),
         validators: [v.nonEmpty],
       },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 
   deck_geojson: {
-    label: t('Deck.gl - geoJson'),
+    label: t('Deck.gl - GeoJson'),
     requiresTime: true,
     controlPanelSections: [
       {
@@ -738,6 +827,7 @@ export const visTypes = {
       size: {
         validators: [],
       },
+      time_grain_sqla: timeGrainSqlaAnimationOverrides,
     },
   },
 
@@ -881,6 +971,7 @@ export const visTypes = {
         controlSetRows: [
           ['groupby', 'columns'],
           ['metrics'],
+          ['row_limit', null],
         ],
       },
       {
@@ -1111,6 +1202,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metric'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -1137,6 +1229,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['metric'],
+          ['adhoc_filters'],
         ],
       },
       {
@@ -1476,6 +1569,7 @@ export const visTypes = {
       },
       {
         label: t('Heatmap Options'),
+        expanded: true,
         controlSetRows: [
           ['linear_color_scheme'],
           ['xscale_interval', 'yscale_interval'],
@@ -1483,7 +1577,7 @@ export const visTypes = {
           ['left_margin', 'bottom_margin'],
           ['y_axis_bounds', 'y_axis_format'],
           ['show_legend', 'show_perc'],
-          ['show_values'],
+          ['show_values', 'normalized'],
           ['sort_x_axis', 'sort_y_axis'],
         ],
       },
@@ -1495,14 +1589,13 @@ export const visTypes = {
       all_columns_y: {
         validators: [v.nonEmpty],
       },
+      normalized: t('Whether to apply a normal distribution based on rank on the color scale'),
       y_axis_bounds: {
         label: t('Value bounds'),
-        renderTrigger: false,
-        description: (
+        renderTrigger: true,
+        description: t(
           'Hard value bounds applied for color coding. Is only relevant ' +
-          'and applied when the normalization is applied against the whole ' +
-          'heatmap.'
-        ),
+          'and applied when the normalization is applied against the whole heatmap.'),
       },
       y_axis_format: {
         label: t('Value Format'),
@@ -1706,13 +1799,34 @@ export const visTypes = {
 
 export default visTypes;
 
+function adhocFilterEnabled(viz) {
+  return viz.controlPanelSections.find((
+    section => section.controlSetRows.find(row => row.find(control => control === 'adhoc_filters'))
+  ));
+}
+
 export function sectionsToRender(vizType, datasourceType) {
   const viz = visTypes[vizType];
+
+  const sectionsCopy = { ...sections };
+  if (viz.sectionOverrides) {
+    Object.entries(viz.sectionOverrides).forEach(([section, overrides]) => {
+      if (typeof overrides === 'object' && overrides.constructor === Object) {
+        sectionsCopy[section] = {
+          ...sectionsCopy[section],
+          ...overrides,
+        };
+      } else {
+        sectionsCopy[section] = overrides;
+      }
+    });
+  }
+
   return [].concat(
-    sections.datasourceAndVizType,
-    datasourceType === 'table' ? sections.sqlaTimeSeries : sections.druidTimeSeries,
+    sectionsCopy.datasourceAndVizType,
+    datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     viz.controlPanelSections,
-    datasourceType === 'table' ? sections.sqlClause : [],
-    datasourceType === 'table' ? sections.filters[0] : sections.filters,
-  );
+    !adhocFilterEnabled(viz) && (datasourceType === 'table' ? sectionsCopy.sqlClause : []),
+    !adhocFilterEnabled(viz) && (datasourceType === 'table' ? sectionsCopy.filters[0] : sectionsCopy.filters),
+  ).filter(section => section);
 }

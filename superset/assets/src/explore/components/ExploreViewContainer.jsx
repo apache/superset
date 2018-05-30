@@ -10,7 +10,7 @@ import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
-import { getFormDataFromControls } from '../stores/store';
+import { getFormDataFromControls } from '../store';
 import { chartPropType } from '../../chart/chartReducer';
 import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
@@ -74,7 +74,12 @@ class ExploreViewContainer extends React.Component {
       this.props.actions.resetControls();
       this.props.actions.triggerQuery(true, this.props.chart.chartKey);
     }
-    if (np.controls.datasource.value !== this.props.controls.datasource.value) {
+    if (
+      np.controls.datasource && (
+        this.props.controls.datasource == null ||
+        np.controls.datasource.value !== this.props.controls.datasource.value
+      )
+    ) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
     }
 

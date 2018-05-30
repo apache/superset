@@ -26,6 +26,8 @@ const propTypes = {
   valueKey: PropTypes.string,
   options: PropTypes.array,
   placeholder: PropTypes.string,
+  noResultsText: PropTypes.string,
+  refFunc: PropTypes.func,
 };
 
 const defaultProps = {
@@ -43,6 +45,7 @@ const defaultProps = {
   optionRenderer: opt => opt.label,
   valueRenderer: opt => opt.label,
   valueKey: 'value',
+  noResultsText: t('No results found'),
 };
 
 export default class SelectControl extends React.PureComponent {
@@ -124,8 +127,10 @@ export default class SelectControl extends React.PureComponent {
       onFocus: this.props.onFocus,
       optionRenderer: VirtualizedRendererWrap(this.props.optionRenderer),
       valueRenderer: this.props.valueRenderer,
+      noResultsText: this.props.noResultsText,
       selectComponent: this.props.freeForm ? Creatable : Select,
       disabled: this.props.disabled,
+      refFunc: this.props.refFunc,
     };
     return (
       <div>

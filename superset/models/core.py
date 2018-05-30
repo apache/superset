@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
 from __future__ import absolute_import
 from __future__ import division
@@ -21,7 +22,7 @@ import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy import (
     Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
-    MetaData, select, String, Table, Text,
+    MetaData, String, Table, Text,
 )
 from sqlalchemy.engine import url
 from sqlalchemy.engine.url import make_url
@@ -29,9 +30,8 @@ from sqlalchemy.orm import relationship, subqueryload
 from sqlalchemy.orm.session import make_transient
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
-from sqlalchemy.sql import text
-from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
+import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -691,9 +691,13 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sql = sql.strip().strip(';')
+        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
         eng = self.get_sqla_engine(schema=schema)
-        df = pd.read_sql(sql, eng)
+
+        for i in range(len(sqls) - 1):
+            eng.execute(sqls[i])
+
+        df = pd.read_sql_query(sqls[-1], eng)
 
         def needs_conversion(df_series):
             if df_series.empty:
@@ -720,15 +724,8 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             self, table_name, schema=schema, limit=limit, show_cols=show_cols,
             indent=indent, latest_partition=latest_partition, cols=cols)
 
-    def wrap_sql_limit(self, sql, limit=1000):
-        qry = (
-            select('*')
-            .select_from(
-                TextAsFrom(text(sql), ['*'])
-                .alias('inner_qry'),
-            ).limit(limit)
-        )
-        return self.compile_sqla_query(qry)
+    def apply_limit_to_sql(self, sql, limit=1000):
+        return self.db_engine_spec.apply_limit_to_sql(sql, limit, self)
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
@@ -786,7 +783,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.time_grains
 
     def grains_dict(self):
-        return {grain.duration: grain for grain in self.grains()}
+        """Allowing to lookup grain by either label or duration
+
+        For backward compatibility"""
+        d = {grain.duration: grain for grain in self.grains()}
+        d.update({grain.label: grain for grain in self.grains()})
+        return d
 
     def get_extra(self):
         extra = {}

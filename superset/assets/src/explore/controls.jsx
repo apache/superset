@@ -43,27 +43,26 @@ import {
   formatSelectOptionsForRange,
   formatSelectOptions,
   mainMetric,
-} from '../../modules/utils';
-import * as v from '../validators';
-import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../../modules/colors';
-import { defaultViewport } from '../../modules/geo';
-import MetricOption from '../../components/MetricOption';
-import ColumnOption from '../../components/ColumnOption';
-import OptionDescription from '../../components/OptionDescription';
-import { t } from '../../locales';
+} from '../modules/utils';
+import * as v from './validators';
+import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
+import { defaultViewport } from '../modules/geo';
+import ColumnOption from '../components/ColumnOption';
+import OptionDescription from '../components/OptionDescription';
+import { t } from '../locales';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
 const D3_FORMAT_OPTIONS = [
-  ['.1s', '.1s | 12k'],
-  ['.3s', '.3s | 12.3k'],
-  ['.1%', '.1% | 12.3%'],
-  ['.3%', '.3% | 1234543.210%'],
-  ['.4r', '.4r | 12350'],
-  ['.3f', '.3f | 12345.432'],
-  ['+,', '+, | +12,345.4321'],
-  ['$,.2f', '$,.2f | $12,345.43'],
+  ['.1s', '.1s (12345.432 => 10k)'],
+  ['.3s', '.3s (12345.432 => 12.3k)'],
+  [',.1%', ',.1% (12345.432 => 1,234,543.2%)'],
+  ['.3%', '.3% (12345.432 => 1234543.200%)'],
+  ['.4r', '.4r (12345.432 => 12350)'],
+  [',.3f', ',.3f (12345.432 => 12,345.432)'],
+  ['+,', '+, (12345.432 => +12,345.432)'],
+  ['$,.2f', '$,.2f (12345.432 => $12,345.43)'],
 ];
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
@@ -116,6 +115,32 @@ const groupByControl = {
   },
 };
 
+const metrics = {
+  type: 'MetricsControl',
+  multi: true,
+  label: t('Metrics'),
+  validators: [v.nonEmpty],
+  default: (c) => {
+    const metric = mainMetric(c.savedMetrics);
+    return metric ? [metric] : null;
+  },
+  mapStateToProps: (state) => {
+    const datasource = state.datasource;
+    return {
+      columns: datasource ? datasource.columns : [],
+      savedMetrics: datasource ? datasource.metrics : [],
+      datasourceType: datasource && datasource.type,
+    };
+  },
+  description: t('One or many metrics to display'),
+};
+const metric = {
+  ...metrics,
+  multi: false,
+  label: t('Metric'),
+  default: props => mainMetric(props.savedMetrics),
+};
+
 const sandboxUrl = (
   'https://github.com/apache/incubator-superset/' +
   'blob/master/superset/assets/src/modules/sandbox.js');
@@ -152,6 +177,11 @@ function jsFunctionControl(label, description, extraDescr = null, height = 100, 
 }
 
 export const controls = {
+
+  metrics,
+
+  metric,
+
   datasource: {
     type: 'DatasourceControl',
     label: t('Datasource'),
@@ -169,36 +199,11 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  metrics: {
-    type: 'MetricsControl',
-    multi: true,
-    label: t('Metrics'),
-    validators: [v.nonEmpty],
-    default: (c) => {
-      const metric = mainMetric(c.savedMetrics);
-      return metric ? [metric] : null;
-    },
-    mapStateToProps: (state) => {
-      const datasource = state.datasource;
-      return {
-        columns: datasource ? datasource.columns : [],
-        savedMetrics: datasource ? datasource.metrics : [],
-        datasourceType: datasource && datasource.type,
-      };
-    },
-    description: t('One or many metrics to display'),
-  },
-
   percent_metrics: {
-    type: 'SelectControl',
+    ...metrics,
     multi: true,
     label: t('Percentage Metrics'),
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
+    validators: [],
     description: t('Metrics for which percentage of total are to be displayed'),
   },
 
@@ -262,33 +267,11 @@ export const controls = {
     renderTrigger: true,
   },
 
-  metric: {
-    type: 'MetricsControl',
-    multi: false,
-    label: t('Metric'),
-    clearable: false,
-    validators: [v.nonEmpty],
-    default: props => mainMetric(props.savedMetrics),
-    mapStateToProps: state => ({
-      columns: state.datasource ? state.datasource.columns : [],
-      savedMetrics: state.datasource ? state.datasource.metrics : [],
-      datasourceType: state.datasource && state.datasource.type,
-    }),
-  },
-
   metric_2: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Right Axis Metric'),
-    default: null,
-    validators: [v.nonEmpty],
     clearable: true,
     description: t('Choose a metric for right axis'),
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   stacked_style: {
@@ -387,8 +370,10 @@ export const controls = {
   xscale_interval: {
     type: 'SelectControl',
     label: t('XScale Interval'),
+    renderTrigger: true,
     choices: formatSelectOptionsForRange(1, 50),
     default: '1',
+    clearable: false,
     description: t('Number of steps to take between ticks when ' +
     'displaying the X scale'),
   },
@@ -397,7 +382,9 @@ export const controls = {
     type: 'SelectControl',
     label: t('YScale Interval'),
     choices: formatSelectOptionsForRange(1, 50),
-    default: null,
+    default: '1',
+    clearable: false,
+    renderTrigger: true,
     description: t('Number of steps to take between ticks when ' +
     'displaying the Y scale'),
   },
@@ -504,13 +491,10 @@ export const controls = {
   },
 
   secondary_metric: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Color Metric'),
     default: null,
     description: t('A metric to use for color'),
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
-    }),
   },
   select_country: {
     type: 'SelectControl',
@@ -524,6 +508,7 @@ export const controls = {
       'France',
       'Germany',
       'Italy',
+      'Portugal',
       'Morocco',
       'Netherlands',
       'Russia',
@@ -726,6 +711,7 @@ export const controls = {
 
   bottom_margin: {
     type: 'SelectControl',
+    clearable: false,
     freeForm: true,
     label: t('Bottom Margin'),
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
@@ -747,6 +733,7 @@ export const controls = {
   left_margin: {
     type: 'SelectControl',
     freeForm: true,
+    clearable: false,
     label: t('Left Margin'),
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
@@ -765,13 +752,14 @@ export const controls = {
       ['PT30S', '30 seconds'],
       ['PT1M', '1 minute'],
       ['PT5M', '5 minutes'],
+      ['PT30M', '30 minutes'],
       ['PT1H', '1 hour'],
       ['PT6H', '6 hour'],
       ['P1D', '1 day'],
       ['P7D', '7 days'],
       ['P1W', 'week'],
-      ['P1W', 'week_starting_sunday'],
-      ['P1W', 'week_ending_saturday'],
+      ['week_starting_sunday', 'week starting Sunday'],
+      ['week_ending_saturday', 'week ending Saturday'],
       ['P1M', 'month'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +
@@ -1097,44 +1085,23 @@ export const controls = {
   },
 
   x: {
-    type: 'SelectControl',
+    ...metric,
     label: t('X Axis'),
     description: t('Metric assigned to the [X] axis'),
     default: null,
-    validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   y: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Y Axis'),
     default: null,
-    validators: [v.nonEmpty],
     description: t('Metric assigned to the [Y] axis'),
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   size: {
-    type: 'SelectControl',
+    ...metric,
     label: t('Bubble Size'),
     default: null,
-    validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} showType />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    valueKey: 'metric_name',
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
   },
 
   url: {
@@ -1537,7 +1504,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Rich Tooltip'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('The rich tooltip shows a list of all series for that ' +
     'point in time'),
   },
@@ -1859,6 +1826,19 @@ export const controls = {
     tabOverride: 'data',
   },
 
+  adhoc_filters: {
+    type: 'AdhocFilterControl',
+    label: t('Filters'),
+    default: null,
+    description: '',
+    mapStateToProps: state => ({
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasource: state.datasource,
+    }),
+    provideFormDataToProps: true,
+  },
+
   having_filters: {
     type: 'FilterControl',
     label: '',
@@ -1873,9 +1853,9 @@ export const controls = {
 
   slice_id: {
     type: 'HiddenControl',
-    label: t('Slice ID'),
+    label: t('Chart ID'),
     hidden: true,
-    description: t('The id of the active slice'),
+    description: t('The id of the active chart'),
   },
 
   cache_timeout: {
@@ -2086,6 +2066,49 @@ export const controls = {
     isInt: true,
     default: 10,
     description: t('The width of the lines'),
+  },
+
+  line_charts: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('Line charts'),
+    validators: [v.nonEmpty],
+    default: [],
+    description: t('Pick a set of line charts to layer on top of one another'),
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+    placeholder: t('Select charts'),
+    onAsyncErrorMessage: t('Error while fetching charts'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
+    },
+  },
+
+  line_charts_2: {
+    type: 'SelectAsyncControl',
+    multi: true,
+    label: t('Right Axis chart(s)'),
+    validators: [],
+    default: [],
+    description: t('Choose one or more charts for right axis'),
+    dataEndpoint: '/sliceasync/api/read?_flt_0_viz_type=line&_flt_7_viz_type=line_multi',
+    placeholder: t('Select charts'),
+    onAsyncErrorMessage: t('Error while fetching charts'),
+    mutator: (data) => {
+      if (!data || !data.result) {
+        return [];
+      }
+      return data.result.map(o => ({ value: o.id, label: o.slice_name }));
+    },
+  },
+
+  prefix_metric_with_slice_name: {
+    type: 'CheckboxControl',
+    label: t('Prefix metric name with slice name'),
+    default: false,
+    renderTrigger: true,
   },
 
   reverse_long_lat: {

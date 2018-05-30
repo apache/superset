@@ -30,7 +30,7 @@ export default class URLShortLinkButton extends React.Component {
   }
 
   renderPopover() {
-    const emailBody = t('Check out this slice: %s', this.state.shortUrl);
+    const emailBody = t('Check out this chart: %s', this.state.shortUrl);
     return (
       <Popover id="shorturl-popover">
         <CopyToClipboard

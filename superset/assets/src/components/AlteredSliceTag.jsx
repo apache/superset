@@ -4,7 +4,7 @@ import { Table, Tr, Td, Thead, Th } from 'reactable';
 import { isEqual, isEmpty } from 'underscore';
 
 import TooltipWrapper from './TooltipWrapper';
-import { controls } from '../explore/stores/controls';
+import { controls } from '../explore/controls';
 import ModalTrigger from './ModalTrigger';
 import { t } from '../locales';
 
@@ -134,7 +134,7 @@ export default class AlteredSliceTag extends React.Component {
       <ModalTrigger
         animation
         triggerNode={this.renderTriggerNode()}
-        modalTitle={t('Slice changes')}
+        modalTitle={t('Chart changes')}
         bsSize="large"
         modalBody={this.renderModalBody()}
       />

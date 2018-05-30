@@ -7,18 +7,20 @@ import 'nvd3/build/nv.d3.min.css';
 import mathjs from 'mathjs';
 import moment from 'moment';
 import d3tip from 'd3-tip';
+import dompurify from 'dompurify';
 
 import { getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
   applyNativeColumns,
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
+import { formatDateVerbose } from '../modules/dates';
 import { isTruthy } from '../utils/common';
 import { t } from '../locales';
 
 // CSS
 import './nvd3_vis.css';
-import { VIZ_TYPES } from './main';
+import { VIZ_TYPES } from './';
 
 const minBarWidth = 15;
 // Limit on how large axes margins can grow as the chart window is resized
@@ -29,6 +31,16 @@ const minHeightForBrush = 480;
 const BREAKPOINTS = {
   small: 340,
 };
+
+const TIMESERIES_VIZ_TYPES = [
+  'line',
+  'dual_line',
+  'line_multi',
+  'area',
+  'compare',
+  'bar',
+  'time_pivot',
+];
 
 const addTotalBarValues = function (svg, chart, data, stacked, axisFormat) {
   const format = d3.format(axisFormat || '.3s');
@@ -136,7 +148,7 @@ export default function nvd3Vis(slice, payload) {
   };
 
   const vizType = fd.viz_type;
-  const f = d3.format('.3s');
+  const formatter = d3.format('.3s');
   const reduceXTicks = fd.reduce_x_ticks || false;
   let stacked = false;
   let row;
@@ -147,8 +159,7 @@ export default function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     let height = slice.height();
-    const isTimeSeries = [
-      'line', 'dual_line', 'area', 'compare', 'bar', 'time_pivot'].indexOf(vizType) >= 0;
+    const isTimeSeries = TIMESERIES_VIZ_TYPES.indexOf(vizType) >= 0;
 
     // Handling xAxis ticks settings
     let xLabelRotation = 0;
@@ -156,8 +167,6 @@ export default function nvd3Vis(slice, payload) {
     if (fd.x_ticks_layout === 'auto') {
       if (['column', 'dist_bar'].indexOf(vizType) >= 0) {
         xLabelRotation = 45;
-      } else if (isTimeSeries) {
-        staggerLabels = true;
       }
     } else if (fd.x_ticks_layout === 'staggered') {
       staggerLabels = true;
@@ -187,8 +196,6 @@ export default function nvd3Vis(slice, payload) {
         } else {
           chart = nv.models.lineChart();
         }
-        // To alter the tooltip header
-        // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(fd.line_interpolation);
         break;
@@ -202,6 +209,11 @@ export default function nvd3Vis(slice, payload) {
       case 'dual_line':
         chart = nv.models.multiChart();
         chart.interpolate('linear');
+        break;
+
+      case 'line_multi':
+        chart = nv.models.multiChart();
+        chart.interpolate(fd.line_interpolation);
         break;
 
       case 'bar':
@@ -255,7 +267,7 @@ export default function nvd3Vis(slice, payload) {
       case 'pie':
         chart = nv.models.pieChart();
         colorKey = 'x';
-        chart.valueFormat(f);
+        chart.valueFormat(formatter);
         if (fd.donut) {
           chart.donut(true);
         }
@@ -303,9 +315,9 @@ export default function nvd3Vis(slice, payload) {
             `<tr><td style="color: ${p.color};">` +
               `<strong>${p[fd.entity]}</strong> (${p.group})` +
             '</td></tr>');
-          s += row(fd.x, f(p.x));
-          s += row(fd.y, f(p.y));
-          s += row(fd.size, f(p.size));
+          s += row(fd.x, formatter(p.x));
+          s += row(fd.y, formatter(p.y));
+          s += row(fd.size, formatter(p.size));
           s += '</table>';
           return s;
         });
@@ -375,6 +387,8 @@ export default function nvd3Vis(slice, payload) {
     let xAxisFormatter = d3FormatPreset(fd.x_axis_format);
     if (isTimeSeries) {
       xAxisFormatter = d3TimeFormatPreset(fd.x_axis_format);
+      // In tooltips, always use the verbose time format
+      chart.interactiveLayer.tooltip.headerFormatter(formatDateVerbose);
     }
     if (chart.x2Axis && chart.x2Axis.tickFormat) {
       chart.x2Axis.tickFormat(xAxisFormatter);
@@ -386,15 +400,23 @@ export default function nvd3Vis(slice, payload) {
 
     const yAxisFormatter = d3FormatPreset(fd.y_axis_format);
     if (chart.yAxis && chart.yAxis.tickFormat) {
-      if (fd.num_period_compare) {
-        // When computing a "Period Ratio", we force a percentage format
-        chart.yAxis.tickFormat(d3.format('.1%'));
+      if (fd.num_period_compare || fd.contribution) {
+        // When computing a "Period Ratio" or "Contribution" selected, we force a percentage format
+        const percentageFormat = d3.format('.1%');
+        chart.yAxis.tickFormat(percentageFormat);
       } else {
         chart.yAxis.tickFormat(yAxisFormatter);
       }
     }
     if (chart.y2Axis && chart.y2Axis.tickFormat) {
       chart.y2Axis.tickFormat(yAxisFormatter);
+    }
+
+    if (chart.yAxis) {
+      chart.yAxis.ticks(5);
+    }
+    if (chart.y2Axis) {
+      chart.y2Axis.ticks(5);
     }
 
 
@@ -404,10 +426,12 @@ export default function nvd3Vis(slice, payload) {
         axis.showMaxMin(showminmax);
       }
     }
-    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax);
-    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax);
-    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax);
-    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax);
+
+    // If these are undefined, they register as truthy
+    setAxisShowMaxMin(chart.xAxis, fd.x_axis_showminmax || false);
+    setAxisShowMaxMin(chart.x2Axis, fd.x_axis_showminmax || false);
+    setAxisShowMaxMin(chart.yAxis, fd.y_axis_showminmax || false);
+    setAxisShowMaxMin(chart.y2Axis, fd.y_axis_showminmax || false);
 
     if (vizType === 'time_pivot') {
       chart.color((d) => {
@@ -425,10 +449,11 @@ export default function nvd3Vis(slice, payload) {
       chart.useInteractiveGuideline(true);
       if (vizType === 'line') {
         // Custom sorted tooltip
+        // use a verbose formatter for times
         chart.interactiveLayer.tooltip.contentGenerator((d) => {
           let tooltip = '';
           tooltip += "<table><thead><tr><td colspan='3'>"
-            + `<strong class='x-value'>${xAxisFormatter(d.value)}</strong>`
+            + `<strong class='x-value'>${formatDateVerbose(d.value)}</strong>`
             + '</td></tr></thead><tbody>';
           d.series.sort((a, b) => a.value >= b.value ? -1 : 1);
           d.series.forEach((series) => {
@@ -439,7 +464,7 @@ export default function nvd3Vis(slice, payload) {
                     `style="border: 2px solid ${series.highlight ? 'black' : 'transparent'}; background-color: ${series.color};"` +
                   '></div>' +
                 '</td>' +
-                `<td>${series.key}</td>` +
+                `<td>${dompurify.sanitize(series.key)}</td>` +
                 `<td>${yAxisFormatter(series.value)}</td>` +
               '</tr>'
             );
@@ -450,13 +475,19 @@ export default function nvd3Vis(slice, payload) {
       }
     }
 
-    if (vizType === 'dual_line') {
+    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
       chart.yAxis2.tickFormat(yAxisFormatter2);
-      customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
-      chart.showLegend(width > BREAKPOINTS.small);
+      const yAxisFormatters = data.map(datum => (
+        datum.yAxis === 1 ? yAxisFormatter1 : yAxisFormatter2));
+      customizeToolTip(chart, xAxisFormatter, yAxisFormatters);
+      if (vizType === 'dual_line') {
+        chart.showLegend(width > BREAKPOINTS.small);
+      } else {
+        chart.showLegend(fd.show_legend);
+      }
     }
     chart.height(height);
     slice.container.css('height', height + 'px');
@@ -467,6 +498,31 @@ export default function nvd3Vis(slice, payload) {
     .attr('height', height)
     .attr('width', width)
     .call(chart);
+
+    // align yAxis1 and yAxis2 ticks
+    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+      const count = chart.yAxis1.ticks();
+      const ticks1 = chart.yAxis1.scale().domain(chart.yAxis1.domain()).nice(count).ticks(count);
+      const ticks2 = chart.yAxis2.scale().domain(chart.yAxis2.domain()).nice(count).ticks(count);
+
+      // match number of ticks in both axes
+      const difference = ticks1.length - ticks2.length;
+      if (ticks1.length && ticks2.length && difference !== 0) {
+        const smallest = difference < 0 ? ticks1 : ticks2;
+        const delta = smallest[1] - smallest[0];
+        for (let i = 0; i < Math.abs(difference); i++) {
+          if (i % 2 === 0) {
+            smallest.unshift(smallest[0] - delta);
+          } else {
+            smallest.push(smallest[smallest.length - 1] + delta);
+          }
+        }
+        chart.yDomain1([ticks1[0], ticks1[ticks1.length - 1]]);
+        chart.yDomain2([ticks2[0], ticks2[ticks2.length - 1]]);
+        chart.yAxis1.tickValues(ticks1);
+        chart.yAxis2.tickValues(ticks2);
+      }
+    }
 
     if (fd.show_markers) {
       svg.selectAll('.nv-point')
@@ -505,12 +561,9 @@ export default function nvd3Vis(slice, payload) {
         margins.bottom = 40;
       }
 
-      if (vizType === 'dual_line') {
+      if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
-        // use y axis width if it's wider than axis width/height
-        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
-          margins.right = maxYAxis2LabelWidth + marginPad;
-        }
+        margins.right = maxYAxis2LabelWidth + marginPad;
       }
       if (fd.bottom_margin && fd.bottom_margin !== 'auto') {
         margins.bottom = parseInt(fd.bottom_margin, 10);
@@ -589,9 +642,17 @@ export default function nvd3Vis(slice, payload) {
         } else {
           xMin = chart.xAxis.scale().domain()[0].valueOf();
           xMax = chart.xAxis.scale().domain()[1].valueOf();
-          xScale = chart.xScale ? chart.xScale() : d3.scale.linear();
+          if (chart.xScale) {
+            xScale = chart.xScale();
+          } else if (chart.xAxis.scale) {
+            xScale = chart.xAxis.scale();
+          } else {
+            xScale = d3.scale.linear();
+          }
         }
-        xScale.clamp(true);
+        if (xScale && xScale.clamp) {
+          xScale.clamp(true);
+        }
 
         if (Array.isArray(formulas) && formulas.length) {
           const xValues = [];

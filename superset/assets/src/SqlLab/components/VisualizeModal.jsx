@@ -12,7 +12,7 @@ import shortid from 'shortid';
 import { exportChart } from '../../explore/exploreUtils';
 import * as actions from '../actions';
 import { VISUALIZE_VALIDATION_ERRORS } from '../constants';
-import visTypes from '../../explore/stores/visTypes';
+import visTypes from '../../explore/visTypes';
 import { t } from '../../locales';
 
 const CHART_TYPES = Object.keys(visTypes)
@@ -133,6 +133,7 @@ class VisualizeModal extends React.PureComponent {
       columns: this.state.columns,
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
+      templateParams: this.props.query.templateParams,
     };
   }
   buildVisualizeAdvise() {
