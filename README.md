@@ -163,6 +163,7 @@ the world know they are using Superset. Join our growing community!
  - [Faasos](http://faasos.com/)
  - [GfK Data Lab](http://datalab.gfk.com)
  - [Konfío](http://konfio.mx)
+ - [Lime](https://www.limebike.com/)
  - [Lyft](https://www.lyft.com/)
  - [Maieutical Labs](https://cloudschooling.it)
  - [PeopleDoc](https://www.people-doc.com)
