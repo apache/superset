@@ -211,7 +211,7 @@ export default class DatasourceControl extends React.PureComponent {
             />
           </a>
         </OverlayTrigger>
-        <OverlayTrigger
+        {this.props.datasource.type === 'table' && <OverlayTrigger
           placement="right"
           overlay={
             <Tooltip id={'datasource-sqllab'}>
@@ -222,7 +222,7 @@ export default class DatasourceControl extends React.PureComponent {
           <a href={'/superset/sqllab?datasourceKey=' + this.props.value}>
             <i className="fa fa-flask m-r-5" />
           </a>
-        </OverlayTrigger>
+        </OverlayTrigger>}
         <Collapse in={this.state.showDatasource}>
           {this.renderDatasource()}
         </Collapse>

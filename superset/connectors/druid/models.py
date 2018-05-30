@@ -109,6 +109,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     @property
     def data(self):
         return {
+            'id': self.id,
             'name': self.cluster_name,
             'backend': 'druid',
         }
@@ -1592,6 +1593,10 @@ class DruidDatasource(Model, BaseDatasource):
             .filter_by(datasource_name=datasource_name)
             .all()
         )
+
+    @property
+    def select_star(self):
+        pass
 
 
 sa.event.listen(DruidDatasource, 'after_insert', set_perm)
