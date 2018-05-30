@@ -132,7 +132,6 @@ class TabbedSqlEditors extends React.PureComponent {
       autorun: false,
       sql: 'SELECT ...',
     };
-    console.log(this.props);
     this.props.actions.addQueryEditor(qe);
   }
   handleSelect(key) {

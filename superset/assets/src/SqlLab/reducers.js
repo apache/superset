@@ -5,7 +5,7 @@ import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addT
   from '../reduxUtils';
 import { t } from '../locales';
 
-export function getInitialState(defaultDbId, tableId) {
+export function getInitialState(defaultDbId) {
   const defaultQueryEditor = {
     id: shortid.generate(),
     title: t('Untitled Query'),
