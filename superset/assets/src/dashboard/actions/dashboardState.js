@@ -29,7 +29,6 @@ export function setUnsavedChanges(hasUnsavedChanges) {
 export const CHANGE_FILTER = 'CHANGE_FILTER';
 export function changeFilter(chart, col, vals, merge = true, refresh = true) {
   Logger.append(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
-    start_offset: Logger.getTimestamp(),
     id: chart.id,
     column: col,
     value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
@@ -142,7 +141,6 @@ export function fetchCharts(chartList = [], force = false, interval = 0) {
       force,
       interval,
       chartCount: chartList.length,
-      start_offset: Logger.getTimestamp(),
     });
     const timeout = getState().dashboardInfo.common.conf
       .SUPERSET_WEBSERVER_TIMEOUT;

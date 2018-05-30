@@ -69,7 +69,6 @@ class SliceHeaderControls extends React.PureComponent {
       {
         slice_id: this.props.slice.slice_id,
         is_cached: this.props.isCached,
-        start_offset: Logger.getTimestamp(),
       },
       true,
     );
@@ -82,7 +81,6 @@ class SliceHeaderControls extends React.PureComponent {
       {
         slice_id: this.props.slice.slice_id,
         is_cached: this.props.isCached,
-        start_offset: Logger.getTimestamp(),
       },
       true,
     );
@@ -93,7 +91,6 @@ class SliceHeaderControls extends React.PureComponent {
     Logger.append(LOG_ACTIONS_REFRESH_CHART, {
       slice_id: this.props.slice.slice_id,
       is_cached: this.props.isCached,
-      start_offset: Logger.getTimestamp(),
     });
   }
 

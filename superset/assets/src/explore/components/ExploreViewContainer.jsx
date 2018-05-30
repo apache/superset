@@ -59,9 +59,7 @@ class ExploreViewContainer extends React.Component {
     window.addEventListener('resize', this.handleResize);
     window.addEventListener('popstate', this.handlePopstate);
     this.addHistory({ isReplace: true });
-    Logger.append(LOG_ACTIONS_MOUNT_EXPLORER, {
-      start_offset: Logger.getTimestamp(),
-    });
+    Logger.append(LOG_ACTIONS_MOUNT_EXPLORER);
   }
 
   componentWillReceiveProps(nextProps) {

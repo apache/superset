@@ -880,7 +880,6 @@ class Log(Model):
         """Decorator to log user actions"""
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            start_dttm = datetime.now()
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
@@ -901,43 +900,27 @@ class Log(Model):
                 slice_id = 0
 
             stats_logger.incr(f.__name__)
+            start_dttm = datetime.now()
             value = f(*args, **kwargs)
-            sesh = db.session()
-
-            logs = []
             duration_ms = (datetime.now() - start_dttm).total_seconds() * 1000
-            referrer = request.referrer[:1000] if request.referrer else None
-
-            params = ''
-            try:
-                params = json.dumps(d)
-            except Exception:
-                pass
 
             # bulk insert
-            explode_by = d.get('explode', None)
-            events = None
             try:
-                events = json.loads(d.get(explode_by))
+                explode_by = d.get('explode')
+                records = json.loads(d.get(explode_by))
             except Exception:
-                pass
+                records = [d]
 
-            if isinstance(events, list):
-                for event in events:
-                    log = cls(
-                        action=f.__name__,
-                        json=json.dumps(event),
-                        dashboard_id=dashboard_id,
-                        slice_id=slice_id,
-                        duration_ms=duration_ms,
-                        referrer=referrer,
-                        user_id=user_id)
-                    logs.append(log)
-
-            else:
+            referrer = request.referrer[:1000] if request.referrer else None
+            logs = []
+            for record in records:
+                try:
+                    json_string = json.dumps(record)
+                except Exception:
+                    json_string = None
                 log = cls(
                     action=f.__name__,
-                    json=params,
+                    json=json_string,
                     dashboard_id=dashboard_id,
                     slice_id=slice_id,
                     duration_ms=duration_ms,
@@ -945,9 +928,11 @@ class Log(Model):
                     user_id=user_id)
                 logs.append(log)
 
+            sesh = db.session()
             sesh.bulk_save_objects(logs)
             sesh.commit()
             return value
+
         return wrapper
 
 

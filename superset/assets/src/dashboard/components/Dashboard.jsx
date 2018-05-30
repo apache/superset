@@ -79,9 +79,7 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD, {
-      start_offset: Logger.getTimestamp(),
-    });
+    Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -94,7 +92,6 @@ class Dashboard extends React.PureComponent {
           const duration = new Date().getTime() - minQueryStartTime;
           Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
             ...restStats,
-            start_offset: Logger.getTimestamp() - duration,
             duration,
           });
           Logger.send(this.actionLog);

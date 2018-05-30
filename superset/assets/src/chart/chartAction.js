@@ -150,7 +150,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
           start_offset: logStart,
           duration: Logger.getTimestamp() - logStart,
           has_extra_filters: formData.extra_filters && formData.extra_filters.length > 0,
-          vis_type: formData.viz_type,
+          viz_type: formData.viz_type,
         });
         return dispatch(chartUpdateSucceeded(queryResponse, key));
       })

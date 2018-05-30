@@ -1,38 +1,5 @@
 import $ from 'jquery';
 
-// TODO move these to a separate file
-export const LOG_ACTIONS_MOUNT_DASHBOARD = 'mount_dashboard';
-export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
-
-export const LOG_ACTIONS_LOAD_DASHBOARD_PANE = 'load_dashboard_pane';
-export const LOG_ACTIONS_LOAD_CHART = 'load_chart_data';
-export const LOG_ACTIONS_RENDER_CHART = 'render_chart';
-export const LOG_ACTIONS_REFRESH_CHART = 'force_refresh_chart';
-
-export const LOG_ACTIONS_REFRESH_DASHBOARD = 'force_refresh_dashboard';
-export const LOG_ACTIONS_EXPLORE_DASHBOARD_CHART = 'explore_dashboard_chart';
-export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART = 'export_csv_dashboard_chart';
-export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
-
-export const DASHBOARD_EVENT_NAMES = [
-  LOG_ACTIONS_MOUNT_DASHBOARD,
-  LOG_ACTIONS_LOAD_DASHBOARD_PANE,
-  LOG_ACTIONS_LOAD_CHART,
-  LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
-  LOG_ACTIONS_REFRESH_CHART,
-  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
-  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
-  LOG_ACTIONS_REFRESH_DASHBOARD,
-];
-
-export const EXPLORE_EVENT_NAMES = [
-  LOG_ACTIONS_MOUNT_EXPLORER,
-  LOG_ACTIONS_LOAD_CHART,
-  LOG_ACTIONS_RENDER_CHART,
-  LOG_ACTIONS_REFRESH_CHART,
-];
-
 // This creates an association between an eventName and the ActionLog instance so that
 // Logger.append calls do not have to know about the appropriate ActionLog instance
 const addEventHandlers = {};
@@ -129,7 +96,6 @@ export class ActionLog {
   }
 
   addEvent(eventName, eventBody, sendNow) {
-    const ts = new Date().getTime();
     if (sendNow) {
       Logger.send({
         ...this,
@@ -137,8 +103,8 @@ export class ActionLog {
         events: {
           [eventName]: [
             {
-              ts,
-              start_offset: ts - Logger.getTimestamp(),
+              ts: new Date().getTime(),
+              start_offset: Logger.getTimestamp(),
               ...eventBody,
             },
           ],
@@ -148,8 +114,8 @@ export class ActionLog {
       this.events[eventName] = this.events[eventName] || [];
 
       this.events[eventName].push({
-        ts,
-        start_offset: ts - Logger.getTimestamp(),
+        ts: new Date().getTime(),
+        start_offset: Logger.getTimestamp(),
         ...eventBody,
       });
 
@@ -159,3 +125,36 @@ export class ActionLog {
     }
   }
 }
+
+// Log event types ------------------------------------------------------------
+export const LOG_ACTIONS_MOUNT_DASHBOARD = 'mount_dashboard';
+export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
+
+export const LOG_ACTIONS_LOAD_DASHBOARD_PANE = 'load_dashboard_pane';
+export const LOG_ACTIONS_LOAD_CHART = 'load_chart_data';
+export const LOG_ACTIONS_RENDER_CHART = 'render_chart';
+export const LOG_ACTIONS_REFRESH_CHART = 'force_refresh_chart';
+
+export const LOG_ACTIONS_REFRESH_DASHBOARD = 'force_refresh_dashboard';
+export const LOG_ACTIONS_EXPLORE_DASHBOARD_CHART = 'explore_dashboard_chart';
+export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART = 'export_csv_dashboard_chart';
+export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
+
+export const DASHBOARD_EVENT_NAMES = [
+  LOG_ACTIONS_MOUNT_DASHBOARD,
+  LOG_ACTIONS_LOAD_DASHBOARD_PANE,
+  LOG_ACTIONS_LOAD_CHART,
+  LOG_ACTIONS_RENDER_CHART,
+  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+  LOG_ACTIONS_REFRESH_CHART,
+  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
+  LOG_ACTIONS_REFRESH_DASHBOARD,
+];
+
+export const EXPLORE_EVENT_NAMES = [
+  LOG_ACTIONS_MOUNT_EXPLORER,
+  LOG_ACTIONS_LOAD_CHART,
+  LOG_ACTIONS_RENDER_CHART,
+  LOG_ACTIONS_REFRESH_CHART,
+];
