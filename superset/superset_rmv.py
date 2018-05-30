@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import logging
 import re
 
-from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.views import RoleModelView
 from flask_babel import lazy_gettext as _
 
@@ -63,5 +62,3 @@ class SupersetRoleModelView(RoleModelView):
                 self.remove_dashboard_role(role, dash)
 
 
-class SupersetSecurityManager(SecurityManager):
-    rolemodelview = SupersetRoleModelView
