@@ -885,11 +885,14 @@ class Log(Model):
             if g.user:
                 user_id = g.user.get_id()
             d = request.form.to_dict() or {}
+
             # request parameters can overwrite post body
             request_params = request.args.to_dict()
             d.update(request_params)
             d.update(kwargs)
+
             slice_id = d.get('slice_id')
+            dashboard_id = d.get('dashboard_id')
 
             try:
                 slice_id = int(
@@ -897,24 +900,52 @@ class Log(Model):
             except (ValueError, TypeError):
                 slice_id = 0
 
+            stats_logger.incr(f.__name__)
+            value = f(*args, **kwargs)
+            sesh = db.session()
+
+            logs = []
+            duration_ms = (datetime.now() - start_dttm).total_seconds() * 1000
+            referrer = request.referrer[:1000] if request.referrer else None
+
             params = ''
             try:
                 params = json.dumps(d)
             except Exception:
                 pass
-            stats_logger.incr(f.__name__)
-            value = f(*args, **kwargs)
-            sesh = db.session()
-            log = cls(
-                action=f.__name__,
-                json=params,
-                dashboard_id=d.get('dashboard_id'),
-                slice_id=slice_id,
-                duration_ms=(
-                    datetime.now() - start_dttm).total_seconds() * 1000,
-                referrer=request.referrer[:1000] if request.referrer else None,
-                user_id=user_id)
-            sesh.add(log)
+
+            # bulk insert
+            explode_by = d.get('explode', None)
+            events = None
+            try:
+                events = json.loads(d.get(explode_by))
+            except Exception:
+                pass
+
+            if isinstance(events, list):
+                for event in events:
+                    log = cls(
+                        action=f.__name__,
+                        json=json.dumps(event),
+                        dashboard_id=dashboard_id,
+                        slice_id=slice_id,
+                        duration_ms=duration_ms,
+                        referrer=referrer,
+                        user_id=user_id)
+                    logs.append(log)
+
+            else:
+                log = cls(
+                    action=f.__name__,
+                    json=params,
+                    dashboard_id=dashboard_id,
+                    slice_id=slice_id,
+                    duration_ms=duration_ms,
+                    referrer=referrer,
+                    user_id=user_id)
+                logs.append(log)
+
+            sesh.bulk_save_objects(logs)
             sesh.commit()
             return value
         return wrapper

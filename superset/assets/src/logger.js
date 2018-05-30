@@ -39,8 +39,6 @@ const addEventHandlers = {};
 
 export const Logger = {
   start(log) {
-    log.setAttribute('startAt', new Date().getTime() - this.getTimestamp());
-
     // create a handler to handle adding each event type
     log.eventNames.forEach((eventName) => {
       if (!addEventHandlers[eventName]) {
@@ -71,24 +69,26 @@ export const Logger = {
   },
 
   send(log) {
-    const { impressionId, source, sourceId, events, startAt } = log;
-    const requestPrams = [];
-
-    if (source === 'dashboard') {
-      requestPrams.push(`dashboard_id=${sourceId}`);
-    } else if (source === 'slice') {
-      requestPrams.push(`slice_id=${sourceId}`);
-    }
-
+    const { impressionId, source, sourceId, events } = log;
     let url = '/superset/log/';
-    if (requestPrams.length) {
-      url += `?${requestPrams.join('&')}`;
+
+    // backend logs treat these request params as first-class citizens
+    if (source === 'dashboard') {
+      url += `?dashboard_id=${sourceId}`;
+    } else if (source === 'slice') {
+      url += `?slice_id=${sourceId}`;
     }
 
     const eventData = [];
     for (const eventName in events) {
       events[eventName].forEach((event) => {
-        eventData.push({ event_name: eventName, impression_id: impressionId, ...event });
+        eventData.push({
+          source,
+          source_id: sourceId,
+          event_name: eventName,
+          impression_id: impressionId,
+          ...event,
+        });
       });
     }
 
@@ -97,10 +97,7 @@ export const Logger = {
       method: 'POST',
       dataType: 'json',
       data: {
-        source,
-        source_id: sourceId,
-        impression_id: impressionId,
-        started_time: startAt,
+        explode: 'events',
         events: JSON.stringify(eventData),
       },
     });
@@ -122,11 +119,9 @@ export class ActionLog {
     this.sourceId = sourceId;
     this.eventNames = eventNames;
     this.sendNow = sendNow || false;
-    this.startAt = 0;
     this.events = {};
 
     this.addEvent = this.addEvent.bind(this);
-    this.sendOneEvent = this.sendOneEvent.bind(this);
   }
 
   setAttribute(name, value) {
@@ -134,12 +129,27 @@ export class ActionLog {
   }
 
   addEvent(eventName, eventBody, sendNow) {
+    const ts = new Date().getTime();
     if (sendNow) {
-      this.sendOneEvent(eventName, eventBody);
+      Logger.send({
+        ...this,
+        // overwrite events so that Logger.send doesn't clear this.events
+        events: {
+          [eventName]: [
+            {
+              ts,
+              start_offset: ts - Logger.getTimestamp(),
+              ...eventBody,
+            },
+          ],
+        },
+      });
     } else {
       this.events[eventName] = this.events[eventName] || [];
+
       this.events[eventName].push({
-        start_offset: new Date().getTime() - Logger.getTimestamp(),
+        ts,
+        start_offset: ts - Logger.getTimestamp(),
         ...eventBody,
       });
 
@@ -147,10 +157,5 @@ export class ActionLog {
         Logger.send(this);
       }
     }
-  }
-
-  sendOneEvent(eventName, eventBody) {
-    // overwrite events so that Logger.send doesn't clear this.events
-    Logger.send({ ...this, events: { [eventName]: [eventBody] } });
   }
 }

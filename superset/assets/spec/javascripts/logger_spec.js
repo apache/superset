@@ -46,14 +46,6 @@ describe('ActionLog', () => {
 });
 
 describe('Logger', () => {
-  it('should set a startAt on the passed ActionLog when start is called', () => {
-    const log = new ActionLog({ eventNames: [] });
-    sinon.spy(log, 'setAttribute');
-    Logger.start(log);
-    expect(log.setAttribute.calledOnce).to.equal(true);
-    Logger.end(log);
-  });
-
   it('should add events when .append(eventName, eventBody) is called', () => {
     const eventName = 'testEvent';
     const eventBody = { test: 'event' };
@@ -92,19 +84,6 @@ describe('Logger', () => {
       expect(args.method).to.equal('POST');
     });
 
-    it('should include the logger source, sourceId, impressionId, and events in the POST', () => {
-      const params = { source: 'source', impressionId: 'impression', sourceId: 'sourceId' };
-      const log = setup(params);
-      Logger.start(log);
-      Logger.append(eventNames[0], { test: 'event' });
-      Logger.end(log);
-      const args = $.ajax.getCall(0).args[0];
-      expect(args.data.source).to.equal(params.source);
-      expect(args.data.source_id).to.equal(params.sourceId);
-      expect(args.data.impression_id).to.equal(params.impressionId);
-      expect(typeof args.data.events).to.equal('string');
-    });
-
     it("should flush the log's events", () => {
       const log = setup();
       Logger.start(log);
@@ -115,25 +94,42 @@ describe('Logger', () => {
       expect(log.events).to.deep.equal({});
     });
 
-    it('should include event_name and impression_id in every event', () => {
-      const log = setup({ eventNames: ['test1', 'test2'], impressionId: 'id' });
+    it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
+      const config = {
+        eventNames: ['event1', 'event2'],
+        impressionId: 'impress_me',
+        source: 'superset',
+        sourceId: 'lolz',
+      };
+      const log = setup(config);
+
       Logger.start(log);
-      Logger.append('test1', { test1: 'event' });
-      Logger.append('test2', { test2: 'event' });
+      Logger.append('event1', { key: 'value' });
+      Logger.append('event2', { foo: 'bar' });
       Logger.end(log);
+
       const args = $.ajax.getCall(0).args[0];
       const events = JSON.parse(args.data.events);
+
       expect(events).to.have.length(2);
       expect(events[0]).to.deep.include({
-        test1: 'event',
-        event_name: 'test1',
-        impression_id: 'id',
+        key: 'value',
+        event_name: 'event1',
+        impression_id: config.impressionId,
+        source: config.source,
+        source_id: config.sourceId,
       });
       expect(events[1]).to.deep.include({
-        test2: 'event',
-        event_name: 'test2',
-        impression_id: 'id',
+        foo: 'bar',
+        event_name: 'event2',
+        impression_id: config.impressionId,
+        source: config.source,
+        source_id: config.sourceId,
       });
+      expect(typeof events[0].ts).to.equal('number');
+      expect(typeof events[1].ts).to.equal('number');
+      expect(typeof events[0].start_offset).to.equal('number');
+      expect(typeof events[1].start_offset).to.equal('number');
     });
 
     it('should send() a log immediately if .append() is called with sendNow=true', () => {
