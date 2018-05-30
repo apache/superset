@@ -33,6 +33,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import text
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
+import sqlparse
 
 from superset import app, db, db_engine_specs, security_manager, utils
 from superset.connectors.connector_registry import ConnectorRegistry
@@ -692,9 +693,13 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sql = sql.strip().strip(';')
+        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
         eng = self.get_sqla_engine(schema=schema)
-        df = pd.read_sql_query(sql, eng)
+
+        for i in range(len(sqls) - 1):
+            eng.execute(sqls[i])
+
+        df = pd.read_sql_query(sqls[-1], eng)
 
         def needs_conversion(df_series):
             if df_series.empty:
