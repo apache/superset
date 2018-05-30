@@ -1,7 +1,7 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 
-import sandboxedEval from '../../../javascripts/modules/sandbox';
+import sandboxedEval from '../../../src/modules/sandbox';
 
 describe('sandboxedEval', () => {
   it('works like a basic eval', () => {

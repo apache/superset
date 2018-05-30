@@ -55,13 +55,12 @@ setup(
         'celery',
         'colorama',
         'cryptography',
-        'flask',
+        'flask<1.0.0',
         'flask-appbuilder',
-        'flask-cache',
+        'flask-caching',
         'flask-compress',
         'flask-migrate',
         'flask-script',
-        'flask-sqlalchemy',
         'flask-testing',
         'flask-wtf',
         'flower',  # deprecated
@@ -93,6 +92,7 @@ setup(
     ],
     extras_require={
         'cors': ['flask-cors>=2.0.0'],
+        'console_log': ['console_log==0.2.10'],
     },
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',

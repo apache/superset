@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -98,8 +99,13 @@ class BaseSupersetView(BaseView):
         }
 
 
+class SupersetListWidget(ListWidget):
+    template = 'superset/fab_overrides/list.html'
+
+
 class SupersetModelView(ModelView):
     page_size = 100
+    list_widget = SupersetListWidget
 
 
 class ListWidgetWithCheckboxes(ListWidget):

@@ -5,3 +5,4 @@ psycopg2==2.7.4
 redis==2.10.6
 statsd==3.2.2
 tox==2.9.1
+console_log==0.2.10

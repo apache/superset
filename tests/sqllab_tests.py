@@ -226,6 +226,37 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(len(data), cdf.size)
         self.assertEquals(len(cols), len(cdf.columns))
 
+    def test_sqllab_viz(self):
+        payload = {
+            'chartType': 'dist_bar',
+            'datasourceName': 'test_viz_flow_table',
+            'schema': 'superset',
+            'columns': {
+                'viz_type': {
+                    'is_date': False,
+                    'type': 'STRING',
+                    'nam:qe': 'viz_type',
+                    'is_dim': True,
+                },
+                'ccount': {
+                    'is_date': False,
+                    'type': 'OBJECT',
+                    'name': 'ccount',
+                    'is_dim': True,
+                    'agg': 'sum',
+                },
+            },
+            'sql': """\
+                SELECT viz_type, count(1) as ccount
+                FROM slices
+                WHERE viz_type LIKE '%%a%%'
+                GROUP BY viz_type""",
+            'dbId': 1,
+        }
+        data = {'data': json.dumps(payload)}
+        resp = self.get_json_resp('/superset/sqllab_viz/', data=data)
+        self.assertIn('table_id', resp)
+
 
 if __name__ == '__main__':
     unittest.main()

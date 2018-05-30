@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for Superset"""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,7 +7,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from copy import copy, deepcopy
-from datetime import date, datetime
+from datetime import datetime
 import functools
 import json
 import logging
@@ -20,7 +21,7 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 from sqlalchemy import (
-    Boolean, Column, create_engine, Date, DateTime, ForeignKey, Integer,
+    Boolean, Column, create_engine, DateTime, ForeignKey, Integer,
     MetaData, select, String, Table, Text,
 )
 from sqlalchemy.engine import url
@@ -707,7 +708,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
                 return True
             return False
 
-        for k, v in df.dtypes.iteritems():
+        for k, v in df.dtypes.items():
             if v.type == numpy.object_ and needs_conversion(df[k]):
                 df[k] = df[k].apply(utils.json_dumps_w_dates)
         return df
@@ -719,11 +720,11 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
     def select_star(
             self, table_name, schema=None, limit=100, show_cols=False,
-            indent=True, latest_partition=True):
+            indent=True, latest_partition=True, cols=None):
         """Generates a ``select *`` statement in the proper dialect"""
         return self.db_engine_spec.select_star(
             self, table_name, schema=schema, limit=limit, show_cols=show_cols,
-            indent=indent, latest_partition=latest_partition)
+            indent=indent, latest_partition=latest_partition, cols=cols)
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (
@@ -791,7 +792,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.time_grains
 
     def grains_dict(self):
-        return {grain.name: grain for grain in self.grains()}
+        """Allowing to lookup grain by either label or duration
+
+        For backward compatibility"""
+        d = {grain.duration: grain for grain in self.grains()}
+        d.update({grain.label: grain for grain in self.grains()})
+        return d
 
     def get_extra(self):
         extra = {}
@@ -870,7 +876,6 @@ class Log(Model):
     user = relationship(
         security_manager.user_model, backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
-    dt = Column(Date, default=date.today())
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
 

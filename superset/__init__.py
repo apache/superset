@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """Package's main module!"""
 from __future__ import absolute_import
 from __future__ import division
@@ -78,7 +79,9 @@ for bp in conf.get('BLUEPRINTS'):
 if conf.get('SILENCE_FAB'):
     logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
-if not app.debug:
+if app.debug:
+    app.logger.setLevel(logging.DEBUG)
+else:
     # In production mode, add log handler to sys.stderr.
     app.logger.addHandler(logging.StreamHandler())
     app.logger.setLevel(logging.INFO)
@@ -176,7 +179,8 @@ module_datasource_map.update(app.config.get('ADDITIONAL_MODULE_DS_MAP'))
 ConnectorRegistry.register_sources(module_datasource_map)
 
 # Flask-Compress
-Compress(app)
+if conf.get('ENABLE_FLASK_COMPRESS'):
+    Compress(app)
 
 # Hook that provides administrators a handle on the Flask APP
 # after initialization

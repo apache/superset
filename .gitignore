@@ -11,6 +11,7 @@ _images
 _modules
 superset/bin/supersetc
 env_py3
+envpy3
 .eggs
 build
 *.db
@@ -27,6 +28,7 @@ app.db
 .vscode
 .python-version
 .tox
+dump.rdb
 
 # Node.js, webpack artifacts
 *.entry.js
@@ -38,3 +40,4 @@ superset/assets/version_info.json
 # IntelliJ
 *.iml
 venv
+@eaDir/

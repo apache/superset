@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import { Table } from 'reactable';
 
 import { queries } from './fixtures';
-import QueryTable from '../../../javascripts/SqlLab/components/QueryTable';
+import QueryTable from '../../../src/SqlLab/components/QueryTable';
 
 describe('QueryTable', () => {
   const mockedProps = {

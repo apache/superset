@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 """A collection of ORM sqlalchemy models for SQL Lab"""
 from __future__ import absolute_import
 from __future__ import division
@@ -19,7 +20,7 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
-from superset.utils import QueryStatus
+from superset.utils import QueryStatus, user_label
 
 install_aliases()
 
@@ -109,7 +110,7 @@ class Query(Model):
             'tab': self.tab_name,
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
-            'user': self.user.username,
+            'user': user_label(self.user),
             'limit_reached': self.limit_reached,
             'resultsKey': self.results_key,
             'trackingUrl': self.tracking_url,

@@ -17,7 +17,6 @@ from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 
-os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
 BASE_DIR = app.config.get('BASE_DIR')
 
@@ -253,7 +252,6 @@ class SupersetTestCase(unittest.TestCase):
 
         self.assertIn(('can_add_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_copy_dash', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_activity_per_day', 'Superset'), gamma_perm_set)
         self.assertIn(('can_created_dashboards', 'Superset'), gamma_perm_set)
         self.assertIn(('can_created_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_csv', 'Superset'), gamma_perm_set)

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
 from __future__ import absolute_import
 from __future__ import division
@@ -8,6 +9,7 @@ from __future__ import unicode_literals
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime, timedelta
+from distutils.version import LooseVersion
 import json
 import logging
 from multiprocessing.pool import ThreadPool
@@ -20,7 +22,8 @@ from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
-from pydruid.utils.filters import Bound, Dimension, Filter
+from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
+from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.having import Aggregation
 from pydruid.utils.postaggregator import (
     Const, Field, HyperUniqueCardinality, Postaggregator, Quantile, Quantiles,
@@ -35,14 +38,16 @@ from sqlalchemy.orm import backref, relationship
 
 from superset import conf, db, import_util, security_manager, utils
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
+from superset.exceptions import MetricPermException, SupersetException
 from superset.models.helpers import (
     AuditMixinNullable, ImportMixin, QueryResult, set_perm,
 )
 from superset.utils import (
-    DimSelector, DTTM_ALIAS, flasher, MetricPermException,
+    DimSelector, DTTM_ALIAS, flasher,
 )
 
 DRUID_TZ = conf.get('DRUID_TZ')
+POST_AGG_TYPE = 'postagg'
 
 
 # Function wrapper because bound methods cannot
@@ -456,6 +461,7 @@ class DruidDatasource(Model, BaseDatasource):
     # Columns
     datasource_name = Column(String(255))
     is_hidden = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=True)  # override default
     fetch_values_from = Column(String(100))
     cluster_name = Column(
         String(250), ForeignKey('clusters.cluster_name'))
@@ -525,8 +531,8 @@ class DruidDatasource(Model, BaseDatasource):
     def time_column_grains(self):
         return {
             'time_columns': [
-                'all', '5 seconds', '30 seconds', '1 minute',
-                '5 minutes', '1 hour', '6 hour', '1 day', '7 days',
+                'all', '5 seconds', '30 seconds', '1 minute', '5 minutes'
+                '30 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month',
             ],
@@ -758,6 +764,7 @@ class DruidDatasource(Model, BaseDatasource):
             '30 seconds': 'PT30S',
             '1 minute': 'PT1M',
             '5 minutes': 'PT5M',
+            '30 minutes': 'PT30M',
             '1 hour': 'PT1H',
             '6 hour': 'PT6H',
             'one day': 'P1D',
@@ -841,7 +848,7 @@ class DruidDatasource(Model, BaseDatasource):
         """Return a list of metrics that are post aggregations"""
         postagg_metrics = [
             metrics_dict[name] for name in postagg_names
-            if metrics_dict[name].metric_type == 'postagg'
+            if metrics_dict[name].metric_type == POST_AGG_TYPE
         ]
         # Remove post aggregations that were found
         for postagg in postagg_metrics:
@@ -892,16 +899,19 @@ class DruidDatasource(Model, BaseDatasource):
         post_aggs[postagg.metric_name] = DruidDatasource.get_post_agg(postagg.json_obj)
 
     @staticmethod
-    def metrics_and_post_aggs(metrics, metrics_dict):
+    def metrics_and_post_aggs(metrics, metrics_dict, druid_version=None):
         # Separate metrics into those that are aggregations
         # and those that are post aggregations
-        agg_names = set()
+        saved_agg_names = set()
+        adhoc_agg_configs = []
         postagg_names = []
-        for metric_name in metrics:
-            if metrics_dict[metric_name].metric_type != 'postagg':
-                agg_names.add(metric_name)
+        for metric in metrics:
+            if utils.is_adhoc_metric(metric):
+                adhoc_agg_configs.append(metric)
+            elif metrics_dict[metric].metric_type != POST_AGG_TYPE:
+                saved_agg_names.add(metric)
             else:
-                postagg_names.append(metric_name)
+                postagg_names.append(metric)
         # Create the post aggregations, maintain order since postaggs
         # may depend on previous ones
         post_aggs = OrderedDict()
@@ -910,8 +920,13 @@ class DruidDatasource(Model, BaseDatasource):
             postagg = metrics_dict[postagg_name]
             visited_postaggs.add(postagg_name)
             DruidDatasource.resolve_postagg(
-                postagg, post_aggs, agg_names, visited_postaggs, metrics_dict)
-        return list(agg_names), post_aggs
+                postagg, post_aggs, saved_agg_names, visited_postaggs, metrics_dict)
+        aggs = DruidDatasource.get_aggregations(
+            metrics_dict,
+            saved_agg_names,
+            adhoc_agg_configs,
+        )
+        return aggs, post_aggs
 
     def values_for_column(self,
                           column_name,
@@ -951,8 +966,25 @@ class DruidDatasource(Model, BaseDatasource):
             for unused, row in df.iterrows():
                 fields = []
                 for dim in dimensions:
-                    f = Dimension(dim) == row[dim]
-                    fields.append(f)
+                    f = None
+                    # Check if this dimension uses an extraction function
+                    # If so, create the appropriate pydruid extraction object
+                    if isinstance(dim, dict) and 'extractionFn' in dim:
+                        (col, extraction_fn) = DruidDatasource._create_extraction_fn(dim)
+                        dim_val = dim['outputName']
+                        f = Filter(
+                            dimension=col,
+                            value=row[dim_val],
+                            extraction_function=extraction_fn,
+                        )
+                    elif isinstance(dim, dict):
+                        dim_val = dim['outputName']
+                        if dim_val:
+                            f = Dimension(dim_val) == row[dim_val]
+                    else:
+                        f = Dimension(dim) == row[dim]
+                    if f:
+                        fields.append(f)
                 if len(fields) > 1:
                     term = Filter(type='and', fields=fields)
                     new_filters.append(term)
@@ -966,11 +998,49 @@ class DruidDatasource(Model, BaseDatasource):
                     ret = Filter(type='and', fields=[ff, dim_filter])
         return ret
 
-    def get_aggregations(self, all_metrics):
+    @staticmethod
+    def druid_type_from_adhoc_metric(adhoc_metric):
+        column_type = adhoc_metric['column']['type'].lower()
+        aggregate = adhoc_metric['aggregate'].lower()
+
+        if aggregate == 'count':
+            return 'count'
+        if aggregate == 'count_distinct':
+            return 'cardinality'
+        else:
+            return column_type + aggregate.capitalize()
+
+    @staticmethod
+    def get_aggregations(metrics_dict, saved_metrics, adhoc_metrics=[]):
+        """
+            Returns a dictionary of aggregation metric names to aggregation json objects
+
+            :param metrics_dict: dictionary of all the metrics
+            :param saved_metrics: list of saved metric names
+            :param adhoc_metrics: list of adhoc metric names
+            :raise SupersetException: if one or more metric names are not aggregations
+        """
         aggregations = OrderedDict()
-        for m in self.metrics:
-            if m.metric_name in all_metrics:
-                aggregations[m.metric_name] = m.json_obj
+        invalid_metric_names = []
+        for metric_name in saved_metrics:
+            if metric_name in metrics_dict:
+                metric = metrics_dict[metric_name]
+                if metric.metric_type == POST_AGG_TYPE:
+                    invalid_metric_names.append(metric_name)
+                else:
+                    aggregations[metric_name] = metric.json_obj
+            else:
+                invalid_metric_names.append(metric_name)
+        if len(invalid_metric_names) > 0:
+            raise SupersetException(
+                _('Metric(s) {} must be aggregations.').format(invalid_metric_names))
+        for adhoc_metric in adhoc_metrics:
+            aggregations[adhoc_metric['label']] = {
+                'fieldName': adhoc_metric['column']['column_name'],
+                'fieldNames': [adhoc_metric['column']['column_name']],
+                'type': DruidDatasource.druid_type_from_adhoc_metric(adhoc_metric),
+                'name': adhoc_metric['label'],
+            }
         return aggregations
 
     def check_restricted_metrics(self, aggregations):
@@ -1019,7 +1089,9 @@ class DruidDatasource(Model, BaseDatasource):
         values = []
         for dimension in dimensions:
             if isinstance(dimension, dict):
-                if 'dimension' in dimension:
+                if 'extractionFn' in dimension:
+                    values.append(dimension)
+                elif 'dimension' in dimension:
                     values.append(dimension['dimension'])
             else:
                 values.append(dimension)
@@ -1058,17 +1130,27 @@ class DruidDatasource(Model, BaseDatasource):
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
 
-        timezone = from_dttm.tzname() if from_dttm else None
+        timezone = from_dttm.replace(tzinfo=DRUID_TZ).tzname() if from_dttm else None
 
         query_str = ''
         metrics_dict = {m.metric_name: m for m in self.metrics}
         columns_dict = {c.column_name: c for c in self.columns}
 
-        all_metrics, post_aggs = DruidDatasource.metrics_and_post_aggs(
+        if (
+            self.cluster and
+            LooseVersion(self.cluster.get_druid_version()) < LooseVersion('0.11.0')
+        ):
+            for metric in metrics:
+                if (
+                    utils.is_adhoc_metric(metric) and
+                    metric['column']['type'].upper() == 'FLOAT'
+                ):
+                    metric['column']['type'] = 'DOUBLE'
+
+        aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
             metrics_dict)
 
-        aggregations = self.get_aggregations(all_metrics)
         self.check_restricted_metrics(aggregations)
 
         # the dimensions list with dimensionSpecs expanded
@@ -1087,7 +1169,7 @@ class DruidDatasource(Model, BaseDatasource):
             intervals=self.intervals_from_dttms(from_dttm, to_dttm),
         )
 
-        filters = DruidDatasource.get_filters(filter, self.num_cols)
+        filters = DruidDatasource.get_filters(filter, self.num_cols, columns_dict)
         if filters:
             qry['filter'] = filters
 
@@ -1120,7 +1202,15 @@ class DruidDatasource(Model, BaseDatasource):
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
                 order_by = timeseries_limit_metric
-                pre_qry['aggregations'] = self.get_aggregations([timeseries_limit_metric])
+                aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
+                    [timeseries_limit_metric],
+                    metrics_dict)
+                if phase == 1:
+                    pre_qry['aggregations'].update(aggs_dict)
+                    pre_qry['post_aggregations'].update(post_aggs_dict)
+                else:
+                    pre_qry['aggregations'] = aggs_dict
+                    pre_qry['post_aggregations'] = post_aggs_dict
             else:
                 order_by = list(qry['aggregations'].keys())[0]
             # Limit on the number of timeseries, doing a two-phases query
@@ -1164,12 +1254,32 @@ class DruidDatasource(Model, BaseDatasource):
 
                 pre_qry = deepcopy(qry)
                 pre_qry_dims = self._dimensions_to_values(qry['dimensions'])
-                pre_qry['dimensions'] = list(set(pre_qry_dims))
 
-                order_by = metrics[0] if metrics else pre_qry_dims[0]
+                # Can't use set on an array with dicts
+                # Use set with non-dict items only
+                non_dict_dims = list(
+                    set([x for x in pre_qry_dims if not isinstance(x, dict)]),
+                )
+                dict_dims = [x for x in pre_qry_dims if isinstance(x, dict)]
+                pre_qry['dimensions'] = non_dict_dims + dict_dims
+
+                order_by = None
+                if metrics:
+                    order_by = utils.get_metric_name(metrics[0])
+                else:
+                    order_by = pre_qry_dims[0]
 
                 if timeseries_limit_metric:
                     order_by = timeseries_limit_metric
+                    aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
+                        [timeseries_limit_metric],
+                        metrics_dict)
+                    if phase == 1:
+                        pre_qry['aggregations'].update(aggs_dict)
+                        pre_qry['post_aggregations'].update(post_aggs_dict)
+                    else:
+                        pre_qry['aggregations'] = aggs_dict
+                        pre_qry['post_aggregations'] = post_aggs_dict
 
                 # Limit on the number of timeseries, doing a two-phases query
                 pre_qry['granularity'] = 'all'
@@ -1207,7 +1317,10 @@ class DruidDatasource(Model, BaseDatasource):
                     'limit': row_limit,
                     'columns': [{
                         'dimension': (
-                            metrics[0] if metrics else dimension_values[0]),
+                            utils.get_metric_name(
+                                metrics[0],
+                            ) if metrics else dimension_values[0]
+                        ),
                         'direction': order_direction,
                     }],
                 }
@@ -1217,12 +1330,29 @@ class DruidDatasource(Model, BaseDatasource):
             client.query_builder.last_query.query_dict, indent=2)
         return query_str
 
+    @staticmethod
+    def homogenize_types(df, groupby_cols):
+        """Converting all GROUPBY columns to strings
+
+        When grouping by a numeric (say FLOAT) column, pydruid returns
+        strings in the dataframe. This creates issues downstream related
+        to having mixed types in the dataframe
+
+        Here we replace None with <NULL> and make the whole series a
+        str instead of an object.
+        """
+        for col in groupby_cols:
+            df[col] = df[col].fillna('<NULL>').astype('unicode')
+        return df
+
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         client = self.cluster.get_pydruid_client()
         query_str = self.get_query_str(
             client=client, query_obj=query_obj, phase=2)
         df = client.export_pandas()
+
+        df = self.homogenize_types(df, query_obj.get('groupby', []))
 
         if df is None or df.size == 0:
             raise Exception(_('No data was returned.'))
@@ -1244,6 +1374,7 @@ class DruidDatasource(Model, BaseDatasource):
         cols += query_obj.get('columns') or []
         cols += query_obj.get('metrics') or []
 
+        cols = utils.get_metric_names(cols)
         cols = [col for col in cols if col in df.columns]
         df = df[cols]
 
@@ -1262,68 +1393,143 @@ class DruidDatasource(Model, BaseDatasource):
             duration=datetime.now() - qry_start_dttm)
 
     @staticmethod
-    def get_filters(raw_filters, num_cols):  # noqa
+    def _create_extraction_fn(dim_spec):
+        extraction_fn = None
+        if dim_spec and 'extractionFn' in dim_spec:
+            col = dim_spec['dimension']
+            fn = dim_spec['extractionFn']
+            ext_type = fn.get('type')
+            if ext_type == 'lookup' and fn['lookup'].get('type') == 'map':
+                replace_missing_values = fn.get('replaceMissingValueWith')
+                retain_missing_values = fn.get('retainMissingValue', False)
+                injective = fn.get('isOneToOne', False)
+                extraction_fn = MapLookupExtraction(
+                    fn['lookup']['map'],
+                    replace_missing_values=replace_missing_values,
+                    retain_missing_values=retain_missing_values,
+                    injective=injective,
+                )
+            elif ext_type == 'regex':
+                extraction_fn = RegexExtraction(fn['expr'])
+            else:
+                raise Exception(_('Unsupported extraction function: ' + ext_type))
+        return (col, extraction_fn)
+
+    @classmethod
+    def get_filters(cls, raw_filters, num_cols, columns_dict):  # noqa
+        """Given Superset filter data structure, returns pydruid Filter(s)"""
         filters = None
         for flt in raw_filters:
-            if not all(f in flt for f in ['col', 'op', 'val']):
+            col = flt.get('col')
+            op = flt.get('op')
+            eq = flt.get('val')
+            if (
+                    not col or
+                    not op or
+                    (eq is None and op not in ('IS NULL', 'IS NOT NULL'))):
                 continue
 
-            col = flt['col']
-            op = flt['op']
-            eq = flt['val']
+            # Check if this dimension uses an extraction function
+            # If so, create the appropriate pydruid extraction object
+            column_def = columns_dict.get(col)
+            dim_spec = column_def.dimension_spec if column_def else None
+            extraction_fn = None
+            if dim_spec and 'extractionFn' in dim_spec:
+                (col, extraction_fn) = DruidDatasource._create_extraction_fn(dim_spec)
+
             cond = None
-            if op in ('in', 'not in'):
-                eq = [
-                    types.replace('"', '').strip()
-                    if isinstance(types, string_types)
-                    else types
-                    for types in eq]
-            elif not isinstance(flt['val'], string_types):
-                eq = eq[0] if eq and len(eq) > 0 else ''
-
             is_numeric_col = col in num_cols
-            if is_numeric_col:
-                if op in ('in', 'not in'):
-                    eq = [utils.string_to_num(v) for v in eq]
-                else:
-                    eq = utils.string_to_num(eq)
+            is_list_target = op in ('in', 'not in')
+            eq = cls.filter_values_handler(
+                eq, is_list_target=is_list_target,
+                target_column_is_numeric=is_numeric_col)
 
+            # For these two ops, could have used Dimension,
+            # but it doesn't support extraction functions
             if op == '==':
-                cond = Dimension(col) == eq
+                cond = Filter(dimension=col, value=eq, extraction_function=extraction_fn)
             elif op == '!=':
-                cond = Dimension(col) != eq
+                cond = ~Filter(dimension=col, value=eq, extraction_function=extraction_fn)
             elif op in ('in', 'not in'):
                 fields = []
-
                 # ignore the filter if it has no value
                 if not len(eq):
                     continue
+                # if it uses an extraction fn, use the "in" operator
+                # as Dimension isn't supported
+                elif extraction_fn is not None:
+                    cond = Filter(
+                        dimension=col,
+                        values=eq,
+                        type='in',
+                        extraction_function=extraction_fn,
+                    )
                 elif len(eq) == 1:
                     cond = Dimension(col) == eq[0]
                 else:
                     for s in eq:
                         fields.append(Dimension(col) == s)
                     cond = Filter(type='or', fields=fields)
-
                 if op == 'not in':
                     cond = ~cond
-
             elif op == 'regex':
-                cond = Filter(type='regex', pattern=eq, dimension=col)
+                cond = Filter(
+                    extraction_function=extraction_fn,
+                    type='regex',
+                    pattern=eq,
+                    dimension=col,
+                )
+
+            # For the ops below, could have used pydruid's Bound,
+            # but it doesn't support extraction functions
             elif op == '>=':
-                cond = Bound(col, eq, None, alphaNumeric=is_numeric_col)
+                cond = Filter(
+                    type='bound',
+                    extraction_function=extraction_fn,
+                    dimension=col,
+                    lowerStrict=False,
+                    upperStrict=False,
+                    lower=eq,
+                    upper=None,
+                    alphaNumeric=is_numeric_col,
+                )
             elif op == '<=':
-                cond = Bound(col, None, eq, alphaNumeric=is_numeric_col)
+                cond = Filter(
+                    type='bound',
+                    extraction_function=extraction_fn,
+                    dimension=col,
+                    lowerStrict=False,
+                    upperStrict=False,
+                    lower=None,
+                    upper=eq,
+                    alphaNumeric=is_numeric_col,
+                )
             elif op == '>':
-                cond = Bound(
-                    col, eq, None,
-                    lowerStrict=True, alphaNumeric=is_numeric_col,
+                cond = Filter(
+                    type='bound',
+                    extraction_function=extraction_fn,
+                    lowerStrict=True,
+                    upperStrict=False,
+                    dimension=col,
+                    lower=eq,
+                    upper=None,
+                    alphaNumeric=is_numeric_col,
                 )
             elif op == '<':
-                cond = Bound(
-                    col, None, eq,
-                    upperStrict=True, alphaNumeric=is_numeric_col,
+                cond = Filter(
+                    type='bound',
+                    extraction_function=extraction_fn,
+                    upperStrict=True,
+                    lowerStrict=False,
+                    dimension=col,
+                    lower=None,
+                    upper=eq,
+                    alphaNumeric=is_numeric_col,
                 )
+            elif op == 'IS NULL':
+                cond = Dimension(col) == None  # NOQA
+            elif op == 'IS NOT NULL':
+                cond = Dimension(col) != None  # NOQA
 
             if filters:
                 filters = Filter(type='and', fields=[
