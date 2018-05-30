@@ -70,6 +70,10 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
       return Promise.resolve();
     }
 
+    const granularity = fd.time_grain_sqla || fd.granularity;
+    fd.time_grain_sqla = granularity;
+    fd.granularity = granularity;
+
     const sliceFormData = Object.keys(annotation.overrides)
       .reduce((d, k) => ({
         ...d,
