@@ -15,9 +15,8 @@ from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, relationship
 
 from superset import db, utils
-from superset.models.core import Slice
+from superset.models.core import Database, Slice
 from superset.models.helpers import AuditMixinNullable, ImportMixin
-import superset.models.core as models
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):
@@ -155,8 +154,8 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def select_star(self):
-        mydb = db.session.query(
-            models.Database).filter_by(id=self.database.data['id']).first()
+        mydb = db.session.query(Database).filter_by(
+            id=self.database.data['id']).first()    # pylint: disable=no-member
         return mydb.select_star(self.name, show_cols=True)
 
     @property
