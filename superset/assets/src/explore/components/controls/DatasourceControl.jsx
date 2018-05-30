@@ -219,7 +219,7 @@ export default class DatasourceControl extends React.PureComponent {
             </Tooltip>
           }
         >
-          <a href={'/superset/sqllab/' + this.props.value}>
+          <a href={'/superset/sqllab?datasourceKey=' + this.props.value}>
             <i className="fa fa-flask m-r-5" />
           </a>
         </OverlayTrigger>

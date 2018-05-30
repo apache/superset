@@ -14,9 +14,10 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import foreign, relationship
 
-from superset import utils
+from superset import db, utils
 from superset.models.core import Slice
 from superset.models.helpers import AuditMixinNullable, ImportMixin
+import superset.models.core as models
 
 
 class BaseDatasource(AuditMixinNullable, ImportMixin):
@@ -153,6 +154,12 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
         }
 
     @property
+    def select_star(self):
+        mydb = db.session.query(
+            models.Database).filter_by(id=self.database.data['id']).first()
+        return mydb.select_star(self.name, show_cols=True)
+
+    @property
     def data(self):
         """Data representation of the datasource sent to the frontend"""
         order_by_choices = []
@@ -185,6 +192,8 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'metrics': [o.data for o in self.metrics],
             'columns': [o.data for o in self.columns],
             'verbose_map': verbose_map,
+            'schema': self.schema,
+            'select_star': self.select_star,
         }
 
     @staticmethod

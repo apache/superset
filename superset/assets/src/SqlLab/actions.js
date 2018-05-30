@@ -405,6 +405,25 @@ export function popSavedQuery(saveQueryId) {
     });
   };
 }
+export function popDatasourceQuery(datasourceKey) {
+  return function (dispatch) {
+    $.ajax({
+      type: 'GET',
+      url: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+      success: (metadata) => {
+        const queryEditorProps = {
+          title: 'Query ' + metadata.name,
+          dbId: metadata.database.id,
+          schema: metadata.schema,
+          autorun: false,
+          sql: metadata.select_star,
+        };
+        dispatch(addQueryEditor(queryEditorProps));
+      },
+      error: () => notify.error(t('The datasource couldn\'t be loaded')),
+    });
+  };
+}
 
 export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
