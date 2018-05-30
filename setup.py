@@ -75,7 +75,7 @@ setup(
         'parsedatetime',
         'pathlib2',
         'polyline',
-        'pydruid',
+        'pydruid>=0.4.3',
         'pyhive>=0.4.0',
         'python-dateutil',
         'python-geohash',
