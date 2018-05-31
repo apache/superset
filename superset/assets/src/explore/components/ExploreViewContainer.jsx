@@ -7,7 +7,7 @@ import { connect } from 'react-redux';
 import ExploreChartPanel from './ExploreChartPanel';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
-import ExploreFormButtons from './ExploreFormButtons';
+import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrlAndPayload, getExploreLongUrl } from '../exploreUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 import { getFormDataFromControls } from '../store';
@@ -116,10 +116,6 @@ class ExploreViewContainer extends React.Component {
 
     this.setState({ chartIsStale: false, refreshOverlayVisible: false });
     this.addHistory({});
-  }
-
-  onSQLLab() {
-    this.props.actions.redirectSQLLab(this.props.form_data);
   }
 
   onDismissRefreshOverlay() {
@@ -247,7 +243,6 @@ class ExploreViewContainer extends React.Component {
         refreshOverlayVisible={this.state.refreshOverlayVisible}
         addHistory={this.addHistory}
         onQuery={this.onQuery.bind(this)}
-        onSQLLab={this.onSQLLab.bind(this)}
         onDismissRefreshOverlay={this.onDismissRefreshOverlay.bind(this)}
       />);
   }
@@ -274,10 +269,9 @@ class ExploreViewContainer extends React.Component {
       }
         <div className="row">
           <div className="col-sm-4">
-            <ExploreFormButtons
+            <QueryAndSaveBtns
               canAdd="True"
               onQuery={this.onQuery.bind(this)}
-              onSQLLab={this.onSQLLab.bind(this)}
               onSave={this.toggleModal.bind(this)}
               onStop={this.onStop.bind(this)}
               loading={this.props.chart.chartStatus === 'loading'}

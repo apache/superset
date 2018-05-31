@@ -22,6 +22,7 @@ registerLanguage('json', json);
 const $ = window.$ = require('jquery');
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   animation: PropTypes.bool,
   queryResponse: PropTypes.object,
   chartStatus: PropTypes.string,
@@ -89,6 +90,9 @@ export default class DisplayQueryButton extends React.PureComponent {
       this.setStateFromQueryResponse();
     }
   }
+  redirectSQLLab() {
+    this.props.actions.redirectSQLLab(this.props.latestQueryFormData);
+  }
   renderModalBody() {
     if (this.state.isLoading) {
       return (<img
@@ -132,7 +136,12 @@ export default class DisplayQueryButton extends React.PureComponent {
           eventKey="1"
         />
         <MenuItem eventKey="2">View results</MenuItem>
-        <MenuItem eventKey="3">Run in SQL Lab</MenuItem>
+        <MenuItem
+          eventKey="3"
+          onClick={this.redirectSQLLab.bind(this)}
+        >
+          Run in SQL Lab
+        </MenuItem>
       </DropdownButton>
     );
   }
