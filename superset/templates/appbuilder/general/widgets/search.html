@@ -28,6 +28,8 @@
 
 <script>
 (function($) {
+    hasFilterPrev = 0
+
     function checkSearchButton() {
         var hasFilter = $('.filters tr').length;
         if (hasFilter) {
@@ -35,8 +37,12 @@
             $('.filters a.remove-filter').on('click', checkSearchButton);
             $('.filter-action').toggle(true);
         } else {
+            if (hasFilterPrev == 1){
+                $('#search-action').click()
+            }
             $('.filter-action').toggle(false);
         }
+        hasFilterPrev = hasFilter
     }
 
     $('.list-search-container').on('hidden.bs.dropdown', checkSearchButton);
