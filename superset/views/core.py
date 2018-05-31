@@ -2114,9 +2114,23 @@ class Superset(BaseSupersetView):
         if request.args.get('json') == 'true':
             return json_success(json.dumps(bootstrap_data))
 
+
+        dashboard_layout = dashboard_data.get('position_json', {})
+        is_v2_dashboard =  (
+            isinstance(dashboard_layout, dict) and
+            dashboard_layout.get('DASHBOARD_VERSION_KEY') == 'v2'
+        )
+
+        if is_v2_dashboard:
+            entry = 'dashboard'
+            template = 'superset/dashboard.html'
+        else:
+            entry = 'dashboard_deprecated'
+            template = 'superset/dashboard_v1_deprecated.html'
+
         return self.render_template(
-            'superset/dashboard.html',
-            entry='dashboard',
+            template,
+            entry=entry,
             standalone_mode=standalone_mode,
             title=dash.dashboard_title,
             bootstrap_data=json.dumps(bootstrap_data),
