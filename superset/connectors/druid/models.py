@@ -1359,7 +1359,9 @@ class DruidDatasource(Model, BaseDatasource):
         if df is None or df.size == 0:
             raise Exception(_('No data was returned.'))
         df.columns = [
-            DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
+            DTTM_ALIAS if c in ('timestamp', '__time') else c
+            for c in df.columns
+        ]
 
         is_timeseries = query_obj['is_timeseries'] \
             if 'is_timeseries' in query_obj else True
