@@ -16,11 +16,11 @@ export const OPERATORS = {
   '<=': '<=',
   in: 'in',
   'not in': 'not in',
-  like: 'like',
+  LIKE: 'LIKE',
   regex: 'regex',
 };
 
-export const TABLE_ONLY_OPERATORS = [OPERATORS.like];
+export const TABLE_ONLY_OPERATORS = [OPERATORS.LIKE];
 export const DRUID_ONLY_OPERATORS = [OPERATORS.regex];
 export const HAVING_OPERATORS = [
   OPERATORS['=='],
