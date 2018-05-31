@@ -17,7 +17,7 @@ const defaultProps = {
 };
 
 export default function MetricOption({ metric, openInNewWindow, showFormula, showType, url }) {
-  const verbose = metric.verbose_name || metric.metric_name;
+  const verbose = metric.verbose_name || metric.metric_name || metric.label;
   const link = url ? <a href={url} target={openInNewWindow ? '_blank' : null}>{verbose}</a> : verbose;
   return (
     <div>
