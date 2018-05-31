@@ -1039,6 +1039,18 @@ class Superset(BaseSupersetView):
             return viz_obj
 
     @has_access
+    @expose('/sql')
+    def sql_from_form_data(self):
+        form_data = json.loads(request.args.get('form_data'))
+        datasource_id, datasource_type = form_data['datasource'].split('__')
+        viz_obj = self.get_viz(
+            form_data=form_data,
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+        )
+        return self.get_query_string_response(viz_obj)
+
+    @has_access
     @expose('/slice/<slice_id>/')
     def slice(self, slice_id):
         form_data, slc = self.get_form_data(slice_id)

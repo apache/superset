@@ -186,3 +186,18 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     ]);
   };
 }
+
+export function redirectSQLLab(formData) {
+  return function () {
+    $.ajax({
+      type: 'GET',
+      url: `/superset/sql?form_data=${JSON.stringify(formData)}`,
+      success: (response) => {
+        const url = 'http://0.0.0.0:8080/superset/sqllab?datasourceKey=' + formData.datasource + '&sql=' + response.query;
+        console.log(url);
+        window.open(encodeURI(url), '_blank');
+      },
+      error: () => notify.error(t('The SQL couldn\'t be loaded')),
+    });
+  };
+}

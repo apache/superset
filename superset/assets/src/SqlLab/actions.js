@@ -405,7 +405,7 @@ export function popSavedQuery(saveQueryId) {
     });
   };
 }
-export function popDatasourceQuery(datasourceKey) {
+export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
     $.ajax({
       type: 'GET',
@@ -415,8 +415,8 @@ export function popDatasourceQuery(datasourceKey) {
           title: 'Query ' + metadata.name,
           dbId: metadata.database.id,
           schema: metadata.schema,
-          autorun: false,
-          sql: metadata.select_star,
+          autorun: sql !== undefined,
+          sql: sql || metadata.select_star,
         };
         dispatch(addQueryEditor(queryEditorProps));
       },

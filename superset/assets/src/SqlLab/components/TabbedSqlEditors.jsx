@@ -46,6 +46,8 @@ class TabbedSqlEditors extends React.PureComponent {
         this.props.actions.popStoredQuery(query.id);
       } else if (query.savedQueryId) {
         this.props.actions.popSavedQuery(query.savedQueryId);
+      } else if (query.datasourceKey) {
+        this.props.actions.popDatasourceQuery(query.datasourceKey, query.sql);
       } else if (query.sql) {
         let dbId = query.dbid;
         if (dbId) {
@@ -69,8 +71,6 @@ class TabbedSqlEditors extends React.PureComponent {
           sql: query.sql,
         };
         this.props.actions.addQueryEditor(newQueryEditor);
-      } else if (query.datasourceKey) {
-        this.props.actions.popDatasourceQuery(query.datasourceKey);
       }
       this.popNewTab();
     }

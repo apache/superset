@@ -13,6 +13,7 @@ const propTypes = {
   loading: PropTypes.bool,
   chartIsStale: PropTypes.bool,
   errorMessage: PropTypes.node,
+  datasourceType: PropTypes.string.isRequired,
 };
 
 const defaultProps = {
@@ -21,8 +22,16 @@ const defaultProps = {
   disabled: false,
 };
 
-export default function QueryAndSaveBtns(
-  { canAdd, onQuery, onSave, onStop, loading, chartIsStale, errorMessage }) {
+export default function ExploreFormButtons({
+  canAdd,
+  onQuery,
+  onSave,
+  onStop,
+  loading,
+  chartIsStale,
+  errorMessage,
+  datasourceType,
+  }) {
   const saveClasses = classnames({
     'disabled disabledButton': canAdd !== 'True',
   });
@@ -85,5 +94,5 @@ export default function QueryAndSaveBtns(
   );
 }
 
-QueryAndSaveBtns.propTypes = propTypes;
-QueryAndSaveBtns.defaultProps = defaultProps;
+ExploreFormButtons.propTypes = propTypes;
+ExploreFormButtons.defaultProps = defaultProps;

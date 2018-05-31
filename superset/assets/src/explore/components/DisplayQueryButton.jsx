@@ -6,6 +6,7 @@ import markdown from 'react-syntax-highlighter/dist/languages/markdown';
 import sql from 'react-syntax-highlighter/dist/languages/sql';
 import json from 'react-syntax-highlighter/dist/languages/json';
 import github from 'react-syntax-highlighter/dist/styles/github';
+import { DropdownButton, MenuItem } from 'react-bootstrap';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
@@ -119,15 +120,20 @@ export default class DisplayQueryButton extends React.PureComponent {
   }
   render() {
     return (
-      <ModalTrigger
-        animation={this.props.animation}
-        isButton
-        triggerNode={<span>View Query</span>}
-        modalTitle={t('Query')}
-        bsSize="large"
-        beforeOpen={this.beforeOpen}
-        modalBody={this.renderModalBody()}
-      />
+      <DropdownButton title={t('Query')} bsSize="sm" pullRight id="query">
+        <ModalTrigger
+          isMenuItem
+          animation={this.props.animation}
+          triggerNode={<span>View query</span>}
+          modalTitle={t('View query')}
+          bsSize="large"
+          beforeOpen={this.beforeOpen}
+          modalBody={this.renderModalBody()}
+          eventKey="1"
+        />
+        <MenuItem eventKey="2">View results</MenuItem>
+        <MenuItem eventKey="3">Run in SQL Lab</MenuItem>
+      </DropdownButton>
     );
   }
 }
