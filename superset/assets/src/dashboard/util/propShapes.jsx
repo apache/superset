@@ -88,10 +88,12 @@ export const dashboardInfoPropShape = PropTypes.shape({
 export const loadStatsPropShape = PropTypes.objectOf(
   PropTypes.shape({
     didLoad: PropTypes.bool.isRequired,
-    id: PropTypes.string.isRequired,
-    parentId: PropTypes.string,
-    index: PropTypes.number.isRequired,
-    chartCount: PropTypes.number.isRequired,
     minQueryStartTime: PropTypes.number.isRequired,
+    id: PropTypes.string.isRequired,
+    type: PropTypes.string.isRequired,
+    parent_id: PropTypes.string,
+    parent_type: PropTypes.string,
+    index: PropTypes.number.isRequired,
+    slice_ids: PropTypes.arrayOf(PropTypes.number).isRequired,
   }),
 );

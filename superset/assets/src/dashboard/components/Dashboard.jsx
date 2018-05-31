@@ -69,7 +69,7 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.firstLoad = true;
+    this.isFirstLoad = true;
     this.actionLog = new ActionLog({
       impressionId: props.impressionId,
       source: 'dashboard',
@@ -86,32 +86,41 @@ class Dashboard extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (!nextProps.dashboardState.editMode) {
-      // log pane load times if a pane loaded
+      // log pane loads
       const loadedPaneIds = [];
-      const allLoaded = Object.entries(nextProps.loadStats).every(
+      const allPanesDidLoad = Object.entries(nextProps.loadStats).every(
         ([paneId, stats]) => {
           const { didLoad, minQueryStartTime, ...restStats } = stats;
 
-          if (didLoad && !this.props.loadStats[paneId].didLoad) {
+          if (
+            didLoad &&
+            this.props.loadStats[paneId] &&
+            !this.props.loadStats[paneId].didLoad
+          ) {
             const duration = new Date().getTime() - minQueryStartTime;
             Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
               ...restStats,
               duration,
             });
-            if (!this.firstLoad) Logger.send(this.actionLog);
+
+            if (!this.isFirstLoad) {
+              Logger.send(this.actionLog);
+            }
           }
-          if (didLoad) loadedPaneIds.push(paneId);
+          if (this.isFirstLoad && didLoad && stats.slice_ids.length > 0) {
+            loadedPaneIds.push(paneId);
+          }
           return didLoad || stats.index !== 0;
         },
       );
 
-      if (allLoaded && this.firstLoad) {
+      if (allPanesDidLoad && this.isFirstLoad) {
         Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
           pane_ids: loadedPaneIds,
           duration: new Date().getTime() - this.ts_mount,
         });
         Logger.send(this.actionLog);
-        this.firstLoad = false;
+        this.isFirstLoad = false;
       }
     }
 

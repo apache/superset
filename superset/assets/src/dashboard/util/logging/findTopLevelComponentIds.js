@@ -20,19 +20,19 @@ function findTopLevelComponentIds(layout) {
     let nextParentId = parentId;
     let nextDepth = depth;
     if (node.type === TAB_TYPE || node.type === DASHBOARD_GRID_TYPE) {
-      const chartCount = findNonTabChildChartIds({
+      const chartIds = findNonTabChildChartIds({
         layout,
         id: node.id,
-      }).length;
+      });
 
       topLevelNodes.push({
         id: node.id,
         type: node.type,
-        parentType,
-        parentId,
+        parent_type: parentType,
+        parent_id: parentId,
         index,
         depth,
-        chartCount,
+        slice_ids: chartIds,
       });
 
       nextParentId = node.id;
