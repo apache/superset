@@ -130,6 +130,7 @@ export class ActionLog {
 export const LOG_ACTIONS_MOUNT_DASHBOARD = 'mount_dashboard';
 export const LOG_ACTIONS_MOUNT_EXPLORER = 'mount_explorer';
 
+export const LOG_ACTIONS_FIRST_DASHBOARD_LOAD = 'first_dashboard_load';
 export const LOG_ACTIONS_LOAD_DASHBOARD_PANE = 'load_dashboard_pane';
 export const LOG_ACTIONS_LOAD_CHART = 'load_chart_data';
 export const LOG_ACTIONS_RENDER_CHART = 'render_chart';
@@ -142,6 +143,7 @@ export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
 
 export const DASHBOARD_EVENT_NAMES = [
   LOG_ACTIONS_MOUNT_DASHBOARD,
+  LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_RENDER_CHART,

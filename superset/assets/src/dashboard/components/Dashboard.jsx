@@ -20,6 +20,7 @@ import {
   DASHBOARD_EVENT_NAMES,
   LOG_ACTIONS_MOUNT_DASHBOARD,
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
+  LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
 } from '../../logger';
 
 import { t } from '../../locales';
@@ -68,7 +69,7 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-
+    this.firstLoad = true;
     this.actionLog = new ActionLog({
       impressionId: props.impressionId,
       source: 'dashboard',
@@ -79,24 +80,39 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
+    this.ts_mount = new Date().getTime();
     Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
   componentWillReceiveProps(nextProps) {
     if (!nextProps.dashboardState.editMode) {
       // log pane load times if a pane loaded
-      Object.entries(nextProps.loadStats).forEach(([paneId, stats]) => {
-        const { didLoad, minQueryStartTime, ...restStats } = stats;
+      const loadedPaneIds = [];
+      const allLoaded = Object.entries(nextProps.loadStats).every(
+        ([paneId, stats]) => {
+          const { didLoad, minQueryStartTime, ...restStats } = stats;
 
-        if (didLoad && !this.props.loadStats[paneId].didLoad) {
-          const duration = new Date().getTime() - minQueryStartTime;
-          Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
-            ...restStats,
-            duration,
-          });
-          Logger.send(this.actionLog);
-        }
-      });
+          if (didLoad && !this.props.loadStats[paneId].didLoad) {
+            const duration = new Date().getTime() - minQueryStartTime;
+            Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
+              ...restStats,
+              duration,
+            });
+            if (!this.firstLoad) Logger.send(this.actionLog);
+          }
+          if (didLoad) loadedPaneIds.push(paneId);
+          return didLoad || stats.index !== 0;
+        },
+      );
+
+      if (allLoaded && this.firstLoad) {
+        Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
+          pane_ids: loadedPaneIds,
+          duration: new Date().getTime() - this.ts_mount,
+        });
+        Logger.send(this.actionLog);
+        this.firstLoad = false;
+      }
     }
 
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
