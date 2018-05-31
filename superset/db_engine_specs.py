@@ -104,15 +104,32 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            no_limit = re.sub(r"""
+            sql_without_limit = cls.get_query_without_limit(sql)
+            return '{sql_without_limit} LIMIT {limit}'.format(**locals())
+        return sql
+
+    @classmethod
+    def get_limit_from_sql(cls, sql):
+        limit_pattern = re.compile(r"""
+                (?ix)          # case insensitive, verbose
+                \s+            # whitespace
+                LIMIT\s+(\d+)  # LIMIT $ROWS
+                ;?             # optional semi-colon
+                (\s|;)*$       # remove trailing spaces tabs or semicolons
+                """)
+        matches = limit_pattern.findall(sql)
+        if matches:
+            return int(matches[0][0])
+
+    @classmethod
+    def get_query_without_limit(cls, sql):
+        return re.sub(r"""
                 (?ix)        # case insensitive, verbose
                 \s+          # whitespace
                 LIMIT\s+\d+  # LIMIT $ROWS
                 ;?           # optional semi-colon
                 (\s|;)*$     # remove trailing spaces tabs or semicolons
                 """, '', sql)
-            return '{no_limit} LIMIT {limit}'.format(**locals())
-        return sql
 
     @staticmethod
     def csv_to_df(**kwargs):
