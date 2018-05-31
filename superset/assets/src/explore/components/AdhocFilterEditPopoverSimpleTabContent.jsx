@@ -42,6 +42,8 @@ function translateOperator(operator) {
     return 'equals';
   } else if (operator === OPERATORS['!=']) {
     return 'not equal to';
+  } else if (operator === OPERATORS.LIKE) {
+    return 'like';
   }
   return operator;
 }
