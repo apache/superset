@@ -77,11 +77,18 @@ function getColContainer() {
 }
 
 function getChartHolder(item) {
-  const { size_x, size_y, slice_id, code } = item;
+  const { size_x, size_y, slice_id, code, slice_name } = item;
 
   const width = Math.max(1, Math.floor(size_x / GRID_RATIO));
   const height = Math.max(1, Math.round(size_y / GRID_RATIO));
   if (code !== undefined) {
+    let markdownContent = '';
+    if (slice_name) {
+      markdownContent = `##### **${slice_name}**\n`;
+    }
+    if (code) {
+      markdownContent += code;
+    }
     return {
       type: MARKDOWN_TYPE,
       id: `DASHBOARD_MARKDOWN_TYPE-${generateId()}`,
@@ -89,7 +96,7 @@ function getChartHolder(item) {
       meta: {
         width,
         height: Math.round(height * 100 / ROW_HEIGHT),
-        code,
+        code: markdownContent,
       },
     };
   }
@@ -322,7 +329,7 @@ export default function(dashboard) {
     Math.max.apply(null, position_json.map(pos => pos.row + pos.size_y)),
   );
   let newSliceCounter = 0;
-  dashboard.slices.forEach(({ slice_id, form_data }) => {
+  dashboard.slices.forEach(({ slice_id, form_data, slice_name }) => {
     let position = positionDict[slice_id];
     if (!position) {
       // append new slices to dashboard bottom, 3 slices per row
@@ -339,6 +346,7 @@ export default function(dashboard) {
       position = {
         ...position,
         code: form_data.code,
+        slice_name: slice_name,
       };
     }
     positions.push(position);
