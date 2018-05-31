@@ -155,9 +155,8 @@ class VisualizeModal extends React.PureComponent {
   }
   visualize() {
     this.props.actions.createDatasource(this.buildVizOptions(), this)
-      .done((resp) => {
+      .done((data) => {
         const columns = Object.keys(this.state.columns).map(k => this.state.columns[k]);
-        const data = JSON.parse(resp);
         const mainGroupBy = columns.filter(d => d.is_dim)[0];
         const formData = {
           datasource: `${data.table_id}__table`,

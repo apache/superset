@@ -834,9 +834,10 @@ class SqlaTable(Model, BaseDatasource):
     @classmethod
     def query_datasources_by_name(
             cls, session, database, datasource_name, schema=None):
+
         query = (
             session.query(cls)
-            .filter_by(database_id=database.id)
+            .filter_by(database=database)
             .filter_by(table_name=datasource_name)
         )
         if schema:

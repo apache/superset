@@ -2143,6 +2143,7 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
         return Response(status=201)
 
+
     @has_access
     @expose('/sqllab_viz/', methods=['POST'])
     @log_this
@@ -2151,17 +2152,25 @@ class Superset(BaseSupersetView):
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
         template_params = data.get('templateParams')
+        schema = data.get('schema')
+        database = (
+            db.session.query(models.Database)
+            .filter_by(id=data.get('dbId'))
+            .one()
+        )
         table = (
             db.session.query(SqlaTable)
-            .filter_by(table_name=table_name)
+            .filter_by(table_name=table_name, database=database, schema=schema)
             .first()
         )
         if not table:
             table = SqlaTable(table_name=table_name)
-        table.database_id = data.get('dbId')
-        table.schema = data.get('schema')
+        table.database = database
+        table.schema = schema
         table.template_params = data.get('templateParams')
         table.is_sqllab_view = True
+        table.owner = g.user if g.user else None
+
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
@@ -2169,7 +2178,7 @@ class Superset(BaseSupersetView):
         dims = []
         metrics = []
         for column_name, config in data.get('columns').items():
-            is_dim = config.get('is_dim', False)
+            is_dim = True
             SqlaTable = ConnectorRegistry.sources['table']
             TableColumn = SqlaTable.column_class
             SqlMetric = SqlaTable.metric_class
@@ -2204,9 +2213,12 @@ class Superset(BaseSupersetView):
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
-        return self.json_response(json.dumps({
+        security_manager
+
+        return self.json_response({
             'table_id': table.id,
-        }))
+        })
+
 
     @has_access
     @expose('/table/<database_id>/<table_name>/<schema>/')

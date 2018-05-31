@@ -19,6 +19,7 @@ from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
+import sqlalchemy as sqla
 import yaml
 
 from superset import conf, security_manager, utils
@@ -256,7 +257,11 @@ class DatasourceFilter(SupersetFilter):
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        or_conditions = [self.model.perm.in_(perms)]
+        if g.user:
+            or_conditions.append(self.model.owner == g.user)
+        qry = query.filter(sqla.or_(*or_conditions))
+        return qry
 
 
 class CsvResponse(Response):

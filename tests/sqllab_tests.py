@@ -12,6 +12,7 @@ import unittest
 from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import db, security_manager, utils
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.sql_lab import Query
 from superset.sql_lab import convert_results_to_df
 from .base_tests import SupersetTestCase
@@ -227,6 +228,7 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(len(cols), len(cdf.columns))
 
     def test_sqllab_viz(self):
+        self.login('admin')
         payload = {
             'chartType': 'dist_bar',
             'datasourceName': 'test_viz_flow_table',
@@ -256,6 +258,12 @@ class SqlLabTests(SupersetTestCase):
         data = {'data': json.dumps(payload)}
         resp = self.get_json_resp('/superset/sqllab_viz/', data=data)
         self.assertIn('table_id', resp)
+
+        tbl = (
+            db.session.query(SqlaTable)
+            .filter_by(id=resp.get('table_id'))
+            .one()
+        )
 
 
 if __name__ == '__main__':

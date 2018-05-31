@@ -410,8 +410,8 @@ export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
 }
 export function createDatasourceSuccess(response) {
-  const data = JSON.parse(response);
-  const datasource = `${data.table_id}__table`;
+  console.log(response);
+  const datasource = `${response.table_id}__table`;
   return { type: CREATE_DATASOURCE_SUCCESS, datasource };
 }
 export function createDatasourceFailed(err) {

@@ -113,6 +113,7 @@ class SupersetSecurityManager(SecurityManager):
 
     def datasource_access(self, datasource, user=None):
         return (
+            (g.user and datasource.owner == g.user) or
             self.schema_access(datasource, user=user) or
             self.can_access('datasource_access', datasource.perm, user=user)
         )
@@ -130,8 +131,13 @@ class SupersetSecurityManager(SecurityManager):
 
         datasources = ConnectorRegistry.query_datasources_by_name(
             db.session, database, datasource_name, schema=schema)
+        print(datasources)
         for datasource in datasources:
-            if self.can_access('datasource_access', datasource.perm):
+            print(datasource, datasource.owner, g.user)
+            if (
+                    self.can_access('datasource_access', datasource.perm) or
+                    g.user == datasource.owner
+            ):
                 return True
         return False
 
@@ -149,6 +155,7 @@ class SupersetSecurityManager(SecurityManager):
 
     def rejected_datasources(self, sql, database, schema):
         superset_query = sql_parse.SupersetQuery(sql)
+        print('rejected_datasources', database, schema)
         return [
             t for t in superset_query.tables if not
             self.datasource_access_by_fullname(database, t, schema)]

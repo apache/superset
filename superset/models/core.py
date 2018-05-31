@@ -47,13 +47,14 @@ metadata = Model.metadata  # pylint: disable=no-member
 
 PASSWORD_MASK = 'X' * 10
 
+
 def set_related_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
     id_ = target.datasource_id
     if id_:
-        ds = db.session.query(src_class).filter_by(id=int(id_)).first()
-        if ds:
-            target.perm = ds.perm
+        datasource = db.session.query(src_class).filter_by(id=int(id_)).first()
+        if datasource:
+            target.perm = datasource.perm
 
 
 class Url(Model, AuditMixinNullable):
