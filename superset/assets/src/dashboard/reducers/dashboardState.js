@@ -82,6 +82,7 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         hasUnsavedChanges: false,
         maxUndoHistoryExceeded: false,
+        isV2Preview: false, // @TODO remove upon v1 deprecation
       };
     },
 

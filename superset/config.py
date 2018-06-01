@@ -413,6 +413,14 @@ SQL_QUERY_MUTATOR = None
 # using flask-compress
 ENABLE_FLASK_COMPRESS = True
 
+# Dashboard v1 deprecation configuration
+DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS = False
+CAN_FALLBACK_TO_DASH_V1_EDIT_MODE = False
+
+# these are incorporated into messages displayed to users
+PLANNED_V2_AUTO_CONVERT_DATE = '2018-06-15'
+V2_FEEDBACK_URL = 'https://goo.gl/forms/ib2pini7kzVNeeqV2'
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful

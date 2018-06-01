@@ -5,6 +5,7 @@ import PropTypes from 'prop-types';
 import AlertsWrapper from '../../components/AlertsWrapper';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import DashboardBuilder from '../containers/DashboardBuilder';
+import V2PreviewModal from '../deprecated/V2PreviewModal';
 import {
   chartPropShape,
   slicePropShape,
@@ -67,8 +68,19 @@ class Dashboard extends React.PureComponent {
     return message; // Gecko + Webkit, Safari, Chrome etc.
   }
 
+  static handleFallbackToV1() {
+    const url = new URL(window.location); // eslint-disable-line
+    url.searchParams.set('version', 'v1');
+    url.searchParams.delete('edit'); // remove JIC they were editing and v1 editing is not allowed
+    window.location = url;
+  }
+
   constructor(props) {
     super(props);
+    this.handleCloseV2PreviewModal = this.handleCloseV2PreviewModal.bind(this);
+    this.state = {
+      hideV2PreviewModal: false,
+    };
     this.isFirstLoad = true;
     this.actionLog = new ActionLog({
       impressionId: props.impressionId,
@@ -189,6 +201,10 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
+  handleCloseV2PreviewModal() {
+    this.setState({ hideV2PreviewModal: true });
+  }
+
   refreshExcept(filterKey) {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
 
@@ -213,9 +229,21 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
+    const { hideV2PreviewModal } = this.state;
+    const { dashboardState, dashboardInfo } = this.props;
+    const { isV2Preview } = dashboardState;
     return (
       <div>
         <AlertsWrapper initMessages={this.props.initMessages} />
+        {isV2Preview &&
+          !hideV2PreviewModal && (
+            <V2PreviewModal
+              onClose={this.handleCloseV2PreviewModal}
+              handleFallbackToV1={Dashboard.handleFallbackToV1}
+              v2AutoConvertDate={dashboardInfo.v2AutoConvertDate}
+              v2FeedbackUrl={dashboardInfo.v2FeedbackUrl}
+            />
+          )}
         <DashboardBuilder />
       </div>
     );

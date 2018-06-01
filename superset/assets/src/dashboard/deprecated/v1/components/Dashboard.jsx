@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import AlertsWrapper from '../../../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
 import Header from './Header';
+import PromptV2ConversionModal from '../../PromptV2ConversionModal';
 import { exportChart } from '../../../../explore/exploreUtils';
 import { areObjectsEqual } from '../../../../reduxUtils';
 import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
@@ -41,6 +42,13 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
+  static handleConvertToV2(editMode) {
+    const url = new URL(window.location); // eslint-disable-line
+    url.searchParams.set('version', 'v2');
+    if (editMode === true) url.searchParams.set('edit', true);
+    window.location = url; // eslint-disable-line
+  }
+
   constructor(props) {
     super(props);
     this.refreshTimer = null;
@@ -55,7 +63,12 @@ class Dashboard extends React.PureComponent {
     Logger.start(this.loadingLog);
 
     // alert for unsaved changes
-    this.state = { unsavedChanges: false };
+    this.state = {
+      unsavedChanges: false,
+      hideV2ConversionPromptModal: false,
+    };
+    this.handleCloseV2Prompt = this.handleCloseV2Prompt.bind(this);
+    this.handleSetEditMode = this.handleSetEditMode.bind(this);
 
     this.rerenderCharts = this.rerenderCharts.bind(this);
     this.updateDashboardTitle = this.updateDashboardTitle.bind(this);
@@ -150,6 +163,10 @@ class Dashboard extends React.PureComponent {
 
   getFilters(sliceId) {
     return this.props.filters[sliceId];
+  }
+
+  handleCloseV2Prompt() {
+    this.setState({ hideV2ConversionPromptModal: true });
   }
 
   unload() {
@@ -286,6 +303,14 @@ class Dashboard extends React.PureComponent {
     exportChart(formData, 'csv');
   }
 
+  handleSetEditMode(nextEditMode) {
+    if (this.props.dashboard.forceV2Edit) {
+      Dashboard.handleConvertToV2(true);
+    } else {
+      this.props.actions.setEditMode(nextEditMode);
+    }
+  }
+
   // re-render chart without fetch
   rerenderCharts() {
     this.getAllSlices().forEach((slice) => {
@@ -296,8 +321,21 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
+    const { dashboard, editMode } = this.props;
+    const { hideV2ConversionPromptModal } = this.state;
     return (
       <div id="dashboard-container">
+        {dashboard.promptV2Conversion &&
+          !hideV2ConversionPromptModal &&
+          !editMode && (
+            <PromptV2ConversionModal
+              onClose={this.handleCloseV2Prompt}
+              handleConvertToV2={Dashboard.handleConvertToV2}
+              forceV2Edit={dashboard.forceV2Edit}
+              v2AutoConvertDate={dashboard.v2AutoConvertDate}
+              v2FeedbackUrl={dashboard.v2FeedbackUrl}
+            />
+          )}
         <div id="dashboard-header">
           <AlertsWrapper initMessages={this.props.initMessages} />
           <Header
@@ -316,7 +354,7 @@ class Dashboard extends React.PureComponent {
             startPeriodicRender={this.startPeriodicRender}
             addSlicesToDashboard={this.addSlicesToDashboard}
             editMode={this.props.editMode}
-            setEditMode={this.props.actions.setEditMode}
+            setEditMode={this.handleSetEditMode}
           />
         </div>
         <div id="grid-container" className="slice-grid gridster">

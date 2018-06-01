@@ -1,3 +1,8 @@
+/* header has mysterious extra margin */
+header.top {
+  margin-bottom: -20px;
+}
+
 .dashboard a i {
   cursor: pointer;
 }
