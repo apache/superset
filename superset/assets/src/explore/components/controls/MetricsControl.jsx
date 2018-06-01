@@ -1,3 +1,4 @@
+/* global notify */
 import React from 'react';
 import PropTypes from 'prop-types';
 import VirtualizedSelect from 'react-virtualized-select';
