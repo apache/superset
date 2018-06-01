@@ -418,7 +418,7 @@ DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS = False
 CAN_FALLBACK_TO_DASH_V1_EDIT_MODE = False
 
 # these are incorporated into messages displayed to users
-PLANNED_V2_AUTO_CONVERT_DATE = '2018-06-15'
+PLANNED_V2_AUTO_CONVERT_DATE = '2018-06-16'
 V2_FEEDBACK_URL = 'https://goo.gl/forms/ib2pini7kzVNeeqV2'
 
 try:

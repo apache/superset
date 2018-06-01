@@ -16,6 +16,7 @@ export default function(bootstrapData) {
     datasources,
     common,
     editMode,
+    force_v2_edit: forceV2Edit,
     v2_auto_convert_date: v2AutoConvertDate,
     v2_feedback_url: v2FeedbackUrl,
   } = bootstrapData;
@@ -132,6 +133,7 @@ export default function(bootstrapData) {
       common,
       v2AutoConvertDate,
       v2FeedbackUrl,
+      forceV2Edit,
     },
     dashboardState: {
       sliceIds: Array.from(sliceIds),

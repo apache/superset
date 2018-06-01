@@ -190,8 +190,8 @@ class Chart extends React.PureComponent {
         this.props.actions.chartRenderingSucceeded(chartId);
       }
       Logger.append(LOG_ACTIONS_RENDER_CHART, {
-        label: 'slice_' + chartId,
-        vis_type: vizType,
+        slice_id: 'slice_' + chartId,
+        viz_type: vizType,
         start_offset: renderStart,
         duration: Logger.getTimestamp() - renderStart,
       });

@@ -7,7 +7,7 @@ import { Tooltip } from 'react-bootstrap';
 import { d3format } from '../../../modules/utils';
 import ChartBody from './ChartBody';
 import Loading from '../../../components/Loading';
-import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../../../logger';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../../../logger';
 import StackTraceMessage from '../../../components/StackTraceMessage';
 import RefreshChartOverlay from '../../../components/RefreshChartOverlay';
 import visMap from '../../../visualizations';
@@ -197,9 +197,9 @@ class Chart extends React.PureComponent {
       }
       // [re]rendering the visualization
       viz(this, qr, this.props.setControlValue);
-      Logger.append(LOG_ACTIONS_RENDER_EVENT, {
-        label: this.props.chartKey,
-        vis_type: this.props.vizType,
+      Logger.append(LOG_ACTIONS_RENDER_CHART, {
+        slice_id: this.props.chartKey,
+        viz_type: this.props.vizType,
         start_offset: renderStart,
         duration: Logger.getTimestamp() - renderStart,
       });

@@ -2,6 +2,7 @@ import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Button } from 'react-bootstrap';
+import { Logger, LOG_ACTIONS_READ_ABOUT_V2_CHANGES } from '../../logger';
 
 import { t } from '../../locales';
 
@@ -17,6 +18,14 @@ const defaultProps = {
   v2AutoConvertDate: null,
   handleFallbackToV1: null,
 };
+
+function logReadAboutV2Changes() {
+  Logger.append(
+    LOG_ACTIONS_READ_ABOUT_V2_CHANGES,
+    { version: 'v2-preview' },
+    true,
+  );
+}
 
 function V2PreviewModal({
   v2FeedbackUrl,
@@ -57,10 +66,17 @@ function V2PreviewModal({
         <br />
         <br />
         {t('Read more about these changes ')}
-        <a href="">here (TODO)</a>
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          href="https://gist.github.com/williaster/bad4ac9c6a71b234cf9fc8ee629844e5#file-superset-dashboard-v2-md"
+          onClick={logReadAboutV2Changes}
+        >
+          here
+        </a>
         {v2FeedbackUrl ? t(' or ') : ''}
         {v2FeedbackUrl ? (
-          <a target="_blank" href={v2FeedbackUrl}>
+          <a target="_blank" rel="noopener noreferrer" href={v2FeedbackUrl}>
             {t('provide feedback')}
           </a>
         ) : (

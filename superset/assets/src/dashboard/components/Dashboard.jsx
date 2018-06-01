@@ -22,6 +22,7 @@ import {
   LOG_ACTIONS_MOUNT_DASHBOARD,
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
+  LOG_ACTIONS_FALLBACK_TO_V1,
 } from '../../logger';
 
 import { t } from '../../locales';
@@ -68,16 +69,10 @@ class Dashboard extends React.PureComponent {
     return message; // Gecko + Webkit, Safari, Chrome etc.
   }
 
-  static handleFallbackToV1() {
-    const url = new URL(window.location); // eslint-disable-line
-    url.searchParams.set('version', 'v1');
-    url.searchParams.delete('edit'); // remove JIC they were editing and v1 editing is not allowed
-    window.location = url;
-  }
-
   constructor(props) {
     super(props);
     this.handleCloseV2PreviewModal = this.handleCloseV2PreviewModal.bind(this);
+    this.handleFallbackToV1 = this.handleFallbackToV1.bind(this);
     this.state = {
       hideV2PreviewModal: false,
     };
@@ -98,6 +93,7 @@ class Dashboard extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (!nextProps.dashboardState.editMode) {
+      const version = nextProps.dashboardState.isV2Preview ? 'v2-preview' : 'v2';
       // log pane loads
       const loadedPaneIds = [];
       const allPanesDidLoad = Object.entries(nextProps.loadStats).every(
@@ -113,6 +109,7 @@ class Dashboard extends React.PureComponent {
             Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
               ...restStats,
               duration,
+              version,
             });
 
             if (!this.isFirstLoad) {
@@ -130,6 +127,7 @@ class Dashboard extends React.PureComponent {
         Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
           pane_ids: loadedPaneIds,
           duration: new Date().getTime() - this.ts_mount,
+          version,
         });
         Logger.send(this.actionLog);
         this.isFirstLoad = false;
@@ -205,6 +203,20 @@ class Dashboard extends React.PureComponent {
     this.setState({ hideV2PreviewModal: true });
   }
 
+  handleFallbackToV1() {
+    Logger.append(
+      LOG_ACTIONS_FALLBACK_TO_V1,
+      {
+        force_v2_edit: this.props.dashboardInfo.forceV2Edit,
+      },
+      true,
+    );
+    const url = new URL(window.location); // eslint-disable-line
+    url.searchParams.set('version', 'v1');
+    url.searchParams.delete('edit'); // remove JIC they were editing and v1 editing is not allowed
+    window.location = url;
+  }
+
   refreshExcept(filterKey) {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
 
@@ -239,7 +251,7 @@ class Dashboard extends React.PureComponent {
           !hideV2PreviewModal && (
             <V2PreviewModal
               onClose={this.handleCloseV2PreviewModal}
-              handleFallbackToV1={Dashboard.handleFallbackToV1}
+              handleFallbackToV1={this.handleFallbackToV1}
               v2AutoConvertDate={dashboardInfo.v2AutoConvertDate}
               v2FeedbackUrl={dashboardInfo.v2FeedbackUrl}
             />

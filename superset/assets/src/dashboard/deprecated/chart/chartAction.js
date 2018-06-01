@@ -1,6 +1,6 @@
 import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../../../explore/exploreUtils';
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../../../modules/AnnotationTypes';
-import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../../../logger';
+import { Logger, LOG_ACTIONS_LOAD_CHART } from '../../../logger';
 import { COMMON_ERR_MESSAGES } from '../../../common';
 import { t } from '../../../locales';
 
@@ -138,19 +138,22 @@ export function runQuery(formData, force = false, timeout = 60, key) {
     const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, payload, key)))
       .then(() => queryRequest)
       .then((queryResponse) => {
-        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
-          label: key,
+        Logger.append(LOG_ACTIONS_LOAD_CHART, {
+          slice_id: 'slice_' + key,
           is_cached: queryResponse.is_cached,
+          force_refresh: force,
           row_count: queryResponse.rowcount,
           datasource: formData.datasource,
           start_offset: logStart,
           duration: Logger.getTimestamp() - logStart,
+          has_extra_filters: formData.extra_filters && formData.extra_filters.length > 0,
+          viz_type: formData.viz_type,
         });
         return dispatch(chartUpdateSucceeded(queryResponse, key));
       })
       .catch((err) => {
-        Logger.append(LOG_ACTIONS_LOAD_EVENT, {
-          label: key,
+        Logger.append(LOG_ACTIONS_LOAD_CHART, {
+          slice_id: 'slice_' + key,
           has_err: true,
           datasource: formData.datasource,
           start_offset: logStart,

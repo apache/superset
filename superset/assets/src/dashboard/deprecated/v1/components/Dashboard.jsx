@@ -7,8 +7,19 @@ import Header from './Header';
 import PromptV2ConversionModal from '../../PromptV2ConversionModal';
 import { exportChart } from '../../../../explore/exploreUtils';
 import { areObjectsEqual } from '../../../../reduxUtils';
-import { Logger, ActionLog, LOG_ACTIONS_PAGE_LOAD,
-  LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT } from '../../../../logger';
+import {
+  Logger,
+  ActionLog,
+  DASHBOARD_EVENT_NAMES,
+  LOG_ACTIONS_MOUNT_DASHBOARD,
+  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
+  LOG_ACTIONS_REFRESH_CHART,
+  LOG_ACTIONS_REFRESH_DASHBOARD,
+  LOG_ACTIONS_PREVIEW_V2,
+} from '../../../../logger';
+
 import { t } from '../../../../locales';
 
 import '../../../../../stylesheets/dashboard_deprecated.css';
@@ -42,23 +53,15 @@ const defaultProps = {
 };
 
 class Dashboard extends React.PureComponent {
-  static handleConvertToV2(editMode) {
-    const url = new URL(window.location); // eslint-disable-line
-    url.searchParams.set('version', 'v2');
-    if (editMode === true) url.searchParams.set('edit', true);
-    window.location = url; // eslint-disable-line
-  }
-
   constructor(props) {
     super(props);
     this.refreshTimer = null;
     this.firstLoad = true;
     this.loadingLog = new ActionLog({
       impressionId: props.impressionId,
-      actionType: LOG_ACTIONS_PAGE_LOAD,
       source: 'dashboard',
       sourceId: props.dashboard.id,
-      eventNames: [LOG_ACTIONS_LOAD_EVENT, LOG_ACTIONS_RENDER_EVENT],
+      eventNames: DASHBOARD_EVENT_NAMES,
     });
     Logger.start(this.loadingLog);
 
@@ -69,6 +72,7 @@ class Dashboard extends React.PureComponent {
     };
     this.handleCloseV2Prompt = this.handleCloseV2Prompt.bind(this);
     this.handleSetEditMode = this.handleSetEditMode.bind(this);
+    this.handleConvertToV2 = this.handleConvertToV2.bind(this);
 
     this.rerenderCharts = this.rerenderCharts.bind(this);
     this.updateDashboardTitle = this.updateDashboardTitle.bind(this);
@@ -96,6 +100,8 @@ class Dashboard extends React.PureComponent {
 
   componentDidMount() {
     window.addEventListener('resize', this.rerenderCharts);
+    this.ts_mount = new Date().getTime();
+    Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD, { version: 'v1' });
   }
 
   componentWillReceiveProps(nextProps) {
@@ -103,7 +109,11 @@ class Dashboard extends React.PureComponent {
       Object.values(nextProps.slices)
         .every(slice => (['rendered', 'failed', 'stopped'].indexOf(slice.chartStatus) > -1))
     ) {
-      Logger.end(this.loadingLog);
+      Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
+        duration: new Date().getTime() - this.ts_mount,
+        version: 'v1',
+      });
+      Logger.send(this.loadingLog);
       this.firstLoad = false;
     }
   }
@@ -267,7 +277,19 @@ class Dashboard extends React.PureComponent {
     return this.props.actions.addSlicesToDashboard(this.props.dashboard.id, sliceIds);
   }
 
-  fetchSlice(slice, force = false) {
+  fetchSlice(slice, force = false, fetchingAllSlices = false) {
+    if (force && !fetchingAllSlices) {
+      const chartQuery = (this.props.slices[slice.chartKey] || {}).queryResponse;
+      Logger.append(
+        LOG_ACTIONS_REFRESH_CHART,
+        {
+          slice_id: slice.slice_id,
+          is_cached: chartQuery.is_cached,
+          version: 'v1',
+        },
+        true,
+      );
+    }
     return this.props.actions.runQuery(
       this.getFormDataExtra(slice), force, this.props.timeout, slice.chartKey,
     );
@@ -276,8 +298,18 @@ class Dashboard extends React.PureComponent {
   // fetch and render an list of slices
   fetchSlices(slc, force = false, interval = 0) {
     const slices = slc || this.getAllSlices();
+    Logger.append(
+      LOG_ACTIONS_REFRESH_DASHBOARD,
+      {
+        force,
+        interval,
+        chartCount: slices.length,
+        version: 'v1',
+      },
+      true,
+    );
     if (!interval) {
-      slices.forEach((slice) => { this.fetchSlice(slice, force); });
+      slices.forEach((slice) => { this.fetchSlice(slice, force, true); });
       return;
     }
 
@@ -289,26 +321,61 @@ class Dashboard extends React.PureComponent {
     }
     const delay = meta.stagger_refresh ? refreshTime / (slices.length - 1) : 0;
     slices.forEach((slice, i) => {
-      setTimeout(() => { this.fetchSlice(slice, force); }, delay * i);
+      setTimeout(() => { this.fetchSlice(slice, force, true); }, delay * i);
     });
   }
 
   exploreChart(slice) {
+    const chartQuery = (this.props.slices[slice.chartKey] || {}).queryResponse;
+    Logger.append(
+      LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+      {
+        slice_id: slice.slice_id,
+        is_cached: chartQuery && chartQuery.is_cached,
+        version: 'v1',
+      },
+      true,
+    );
     const formData = this.getFormDataExtra(slice);
     exportChart(formData);
   }
 
   exportCSV(slice) {
+    const chartQuery = (this.props.slices[slice.chartKey] || {}).queryResponse;
+    Logger.append(
+      LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+      {
+        slice_id: slice.slice_id,
+        is_cached: chartQuery && chartQuery.is_cached,
+        version: 'v1',
+      },
+      true,
+    );
     const formData = this.getFormDataExtra(slice);
     exportChart(formData, 'csv');
   }
 
   handleSetEditMode(nextEditMode) {
     if (this.props.dashboard.forceV2Edit) {
-      Dashboard.handleConvertToV2(true);
+      this.handleConvertToV2(true);
     } else {
       this.props.actions.setEditMode(nextEditMode);
     }
+  }
+
+  handleConvertToV2(editMode) {
+    Logger.append(
+      LOG_ACTIONS_PREVIEW_V2,
+      {
+        force_v2_edit: this.props.dashboard.forceV2Edit,
+        edit_mode: editMode === true,
+      },
+      true,
+    );
+    const url = new URL(window.location); // eslint-disable-line
+    url.searchParams.set('version', 'v2');
+    if (editMode === true) url.searchParams.set('edit', true);
+    window.location = url; // eslint-disable-line
   }
 
   // re-render chart without fetch
@@ -330,7 +397,7 @@ class Dashboard extends React.PureComponent {
           !editMode && (
             <PromptV2ConversionModal
               onClose={this.handleCloseV2Prompt}
-              handleConvertToV2={Dashboard.handleConvertToV2}
+              handleConvertToV2={this.handleConvertToV2}
               forceV2Edit={dashboard.forceV2Edit}
               v2AutoConvertDate={dashboard.v2AutoConvertDate}
               v2FeedbackUrl={dashboard.v2FeedbackUrl}

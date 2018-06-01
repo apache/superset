@@ -2,7 +2,7 @@ import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Modal, Button } from 'react-bootstrap';
-
+import { Logger, LOG_ACTIONS_READ_ABOUT_V2_CHANGES } from '../../logger';
 import { t } from '../../locales';
 
 const propTypes = {
@@ -10,13 +10,17 @@ const propTypes = {
   v2AutoConvertDate: PropTypes.string,
   onClose: PropTypes.func.isRequired,
   handleConvertToV2: PropTypes.func.isRequired,
-  forceV2Edit: PropTypes.func.isRequired,
+  forceV2Edit: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
   v2FeedbackUrl: null,
   v2AutoConvertDate: null,
 };
+
+function logReadAboutV2Changes() {
+  Logger.append(LOG_ACTIONS_READ_ABOUT_V2_CHANGES, { version: 'v1' }, true);
+}
 
 function PromptV2ConversionModal({
   v2FeedbackUrl,
@@ -46,13 +50,22 @@ function PromptV2ConversionModal({
           {t(' to convert this v1 dashboard to the new v2 format')}
         </strong>
         {t(' before it is done automatically. ')}
+        {forceV2Edit && <br />}
+        {forceV2Edit && <br />}
         {forceV2Edit && (
           <em>{t('You may only edit dashboards using the v2 experience.')}</em>
         )}
         <br />
         <br />
         {t('Read more about these changes ')}
-        <a href="">here (TODO)</a>
+        <a
+          target="_blank"
+          rel="noopener noreferrer"
+          href="https://gist.github.com/williaster/bad4ac9c6a71b234cf9fc8ee629844e5#file-superset-dashboard-v2-md"
+          onClick={logReadAboutV2Changes}
+        >
+          here
+        </a>
         {v2FeedbackUrl ? ' or ' : ''}
         {v2FeedbackUrl ? (
           <a target="_blank" href={v2FeedbackUrl}>
