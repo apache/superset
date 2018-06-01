@@ -35,6 +35,7 @@ describe('Dashboard', () => {
     timeout: 60,
     userId: dashboardInfo.userId,
     impressionId: 'id',
+    loadStats: {},
   };
 
   function setup(overrideProps) {

@@ -7,6 +7,11 @@ import { chart as initChart } from '../../chart/chartReducer';
 import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { applyDefaultFormData } from '../../explore/store';
 import { getAjaxErrorMsg } from '../../modules/utils';
+import {
+  Logger,
+  LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
+  LOG_ACTIONS_REFRESH_DASHBOARD,
+} from '../../logger';
 import { SAVE_TYPE_OVERWRITE } from '../util/constants';
 import { t } from '../../locales';
 
@@ -21,14 +26,16 @@ export function setUnsavedChanges(hasUnsavedChanges) {
   return { type: SET_UNSAVED_CHANGES, payload: { hasUnsavedChanges } };
 }
 
-export const ADD_FILTER = 'ADD_FILTER';
-export function addFilter(chart, col, vals, merge = true, refresh = true) {
-  return { type: ADD_FILTER, chart, col, vals, merge, refresh };
-}
-
-export const REMOVE_FILTER = 'REMOVE_FILTER';
-export function removeFilter(sliceId, col, vals, refresh = true) {
-  return { type: REMOVE_FILTER, sliceId, col, vals, refresh };
+export const CHANGE_FILTER = 'CHANGE_FILTER';
+export function changeFilter(chart, col, vals, merge = true, refresh = true) {
+  Logger.append(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
+    id: chart.id,
+    column: col,
+    value_count: Array.isArray(vals) ? vals.length : (vals && 1) || 0,
+    merge,
+    refresh,
+  });
+  return { type: CHANGE_FILTER, chart, col, vals, merge, refresh };
 }
 
 export const ADD_SLICE = 'ADD_SLICE';
@@ -130,6 +137,11 @@ export function saveDashboardRequest(data, id, saveType) {
 
 export function fetchCharts(chartList = [], force = false, interval = 0) {
   return (dispatch, getState) => {
+    Logger.append(LOG_ACTIONS_REFRESH_DASHBOARD, {
+      force,
+      interval,
+      chartCount: chartList.length,
+    });
     const timeout = getState().dashboardInfo.common.conf
       .SUPERSET_WEBSERVER_TIMEOUT;
     if (!interval) {

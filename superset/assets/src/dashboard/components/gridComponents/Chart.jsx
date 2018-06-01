@@ -26,7 +26,6 @@ const propTypes = {
   refreshChart: PropTypes.func.isRequired,
   toggleExpandSlice: PropTypes.func.isRequired,
   addFilter: PropTypes.func.isRequired,
-  removeFilter: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
   supersetCanExplore: PropTypes.bool.isRequired,
@@ -54,7 +53,6 @@ class Chart extends React.Component {
     this.exportCSV = this.exportCSV.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.getFilters = this.getFilters.bind(this);
-    this.removeFilter = this.removeFilter.bind(this);
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
@@ -140,10 +138,6 @@ class Chart extends React.Component {
     return this.props.refreshChart(this.props.chart, true, this.props.timeout);
   }
 
-  removeFilter(...args) {
-    this.props.removeFilter(this.props.id, ...args);
-  }
-
   render() {
     const {
       id,
@@ -161,6 +155,8 @@ class Chart extends React.Component {
       sliceCanEdit,
     } = this.props;
 
+    // this should never happen but prevents throwing in the case that a gridComponent
+    // references a chart that is not associated with the dashboard
     if (!chart || !slice) return null;
 
     const { width } = this.state;
@@ -224,7 +220,6 @@ class Chart extends React.Component {
             vizType={slice.viz_type}
             addFilter={this.addFilter}
             getFilters={this.getFilters}
-            removeFilter={this.removeFilter}
             annotationData={chart.annotationData}
             chartAlert={chart.chartAlert}
             chartStatus={chart.chartStatus}

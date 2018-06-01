@@ -3,6 +3,12 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import moment from 'moment';
 import { Dropdown, MenuItem } from 'react-bootstrap';
+import {
+  Logger,
+  LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_REFRESH_CHART,
+} from '../../logger';
 
 import { t } from '../../locales';
 
@@ -42,20 +48,50 @@ const VerticalDotsTrigger = () => (
 class SliceHeaderControls extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.exportCSV = this.props.exportCSV.bind(this, this.props.slice.slice_id);
-    this.exploreChart = this.props.exploreChart.bind(
-      this,
-      this.props.slice.slice_id,
-    );
+    this.exportCSV = this.exportCSV.bind(this);
+    this.exploreChart = this.exploreChart.bind(this);
+    this.toggleControls = this.toggleControls.bind(this);
+    this.refreshChart = this.refreshChart.bind(this);
     this.toggleExpandSlice = this.props.toggleExpandSlice.bind(
       this,
       this.props.slice.slice_id,
     );
-    this.toggleControls = this.toggleControls.bind(this);
 
     this.state = {
       showControls: false,
     };
+  }
+
+  exportCSV() {
+    this.props.exportCSV(this.props.slice.slice_id);
+    Logger.append(
+      LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+      {
+        slice_id: this.props.slice.slice_id,
+        is_cached: this.props.isCached,
+      },
+      true,
+    );
+  }
+
+  exploreChart() {
+    this.props.exploreChart(this.props.slice.slice_id);
+    Logger.append(
+      LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
+      {
+        slice_id: this.props.slice.slice_id,
+        is_cached: this.props.isCached,
+      },
+      true,
+    );
+  }
+
+  refreshChart() {
+    this.props.forceRefresh(this.props.slice.slice_id);
+    Logger.append(LOG_ACTIONS_REFRESH_CHART, {
+      slice_id: this.props.slice.slice_id,
+      is_cached: this.props.isCached,
+    });
   }
 
   toggleControls() {
@@ -84,7 +120,7 @@ class SliceHeaderControls extends React.PureComponent {
         </Dropdown.Toggle>
 
         <Dropdown.Menu>
-          <MenuItem onClick={this.props.forceRefresh}>
+          <MenuItem onClick={this.refreshChart}>
             {isCached && <span className="dot" />}
             {t('Force refresh')}
             {isCached && (
