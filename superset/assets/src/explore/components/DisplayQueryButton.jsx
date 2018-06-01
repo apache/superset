@@ -47,18 +47,8 @@ export default class DisplayQueryButton extends React.PureComponent {
       sql: props.latestQueryFormData.datasource.split('__')[1] === 'table',
     };
     this.beforeOpen = this.beforeOpen.bind(this);
-    this.fetchQuery = this.fetchQuery.bind(this);
   }
-  setStateFromQueryResponse() {
-    const qr = this.props.queryResponse;
-    this.setState({
-      language: qr.language,
-      query: qr.query,
-      data: qr.data,
-      isLoading: false,
-    });
-  }
-  fetchQuery() {
+  beforeOpen() {
     this.setState({ isLoading: true });
     const { url, payload } = getExploreUrlAndPayload({
       formData: this.props.latestQueryFormData,
@@ -86,17 +76,6 @@ export default class DisplayQueryButton extends React.PureComponent {
         });
       },
     });
-  }
-  beforeOpen() {
-    if (
-      ['loading', null].indexOf(this.props.chartStatus) >= 0
-      || !this.props.queryResponse || !this.props.queryResponse.query
-    ) {
-      this.fetchQuery();
-    } else {
-      this.fetchQuery();
-      // this.setStateFromQueryResponse();
-    }
   }
   redirectSQLLab() {
     this.props.actions.redirectSQLLab(this.props.latestQueryFormData);
@@ -147,7 +126,13 @@ export default class DisplayQueryButton extends React.PureComponent {
         <TableHeaderColumn key={k} dataField={k} isKey={i === 0} dataSort>{k}</TableHeaderColumn>
       ));
       return (
-        <BootstrapTable data={this.state.data} striped hover>
+        <BootstrapTable
+          height="auto"
+          data={this.state.data}
+          striped
+          hover
+          condensed
+        >
           {headers}
         </BootstrapTable>
       );
