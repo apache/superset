@@ -35,9 +35,10 @@ describe('Chart', () => {
     refreshChart() {},
     toggleExpandSlice() {},
     addFilter() {},
-    removeFilter() {},
     editMode: false,
     isExpanded: false,
+    supersetCanExplore: false,
+    sliceCanEdit: false,
   };
 
   function setup(overrideProps) {
@@ -75,13 +76,6 @@ describe('Chart', () => {
     const wrapper = setup({ addFilter });
     wrapper.instance().addFilter();
     expect(addFilter.callCount).to.equal(1);
-  });
-
-  it('should call removeFilter when ChartContainer calls removeFilter', () => {
-    const removeFilter = sinon.spy();
-    const wrapper = setup({ removeFilter });
-    wrapper.instance().removeFilter();
-    expect(removeFilter.callCount).to.equal(1);
   });
 
   it('should return props.filters when its getFilters method is called', () => {

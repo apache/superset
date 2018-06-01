@@ -7,7 +7,7 @@ import { Tooltip } from 'react-bootstrap';
 import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
 import Loading from '../components/Loading';
-import { Logger, LOG_ACTIONS_RENDER_EVENT } from '../logger';
+import { Logger, LOG_ACTIONS_RENDER_CHART } from '../logger';
 import StackTraceMessage from '../components/StackTraceMessage';
 import RefreshChartOverlay from '../components/RefreshChartOverlay';
 import visMap from '../visualizations';
@@ -42,7 +42,6 @@ const propTypes = {
   // dashboard callbacks
   addFilter: PropTypes.func,
   getFilters: PropTypes.func,
-  removeFilter: PropTypes.func,
   onQuery: PropTypes.func,
   onDismissRefreshOverlay: PropTypes.func,
 };
@@ -50,7 +49,6 @@ const propTypes = {
 const defaultProps = {
   addFilter: () => ({}),
   getFilters: () => ({}),
-  removeFilter: () => ({}),
 };
 
 class Chart extends React.PureComponent {
@@ -65,7 +63,6 @@ class Chart extends React.PureComponent {
     this.datasource = props.datasource;
     this.addFilter = this.addFilter.bind(this);
     this.getFilters = this.getFilters.bind(this);
-    this.removeFilter = this.removeFilter.bind(this);
     this.headerHeight = this.headerHeight.bind(this);
     this.height = this.height.bind(this);
     this.width = this.width.bind(this);
@@ -74,12 +71,7 @@ class Chart extends React.PureComponent {
   componentDidMount() {
     if (this.props.triggerQuery) {
       const { formData } = this.props;
-      this.props.actions.runQuery(
-        formData,
-        false,
-        this.props.timeout,
-        this.props.chartId,
-      );
+      this.props.actions.runQuery(formData, false, this.props.timeout, this.props.chartId);
     } else {
       // when drag/dropping in a dashboard, a chart may be unmounted/remounted but still have data
       this.renderViz();
@@ -98,13 +90,12 @@ class Chart extends React.PureComponent {
     if (
       this.props.queryResponse &&
       ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
-      !this.props.queryResponse.error && (
-        prevProps.annotationData !== this.props.annotationData ||
+      !this.props.queryResponse.error &&
+      (prevProps.annotationData !== this.props.annotationData ||
         prevProps.queryResponse !== this.props.queryResponse ||
         prevProps.height !== this.props.height ||
         prevProps.width !== this.props.width ||
-        prevProps.lastRendered !== this.props.lastRendered
-      )
+        prevProps.lastRendered !== this.props.lastRendered)
     ) {
       this.renderViz();
     }
@@ -122,17 +113,14 @@ class Chart extends React.PureComponent {
     this.props.addFilter(col, vals, merge, refresh);
   }
 
-  removeFilter(col, vals, refresh = true) {
-    this.props.removeFilter(col, vals, refresh);
-  }
-
   clearError() {
     this.setState({ errorMsg: null });
   }
 
   width() {
-    return this.props.width ||
-      (this.container && this.container.el && this.container.el.offsetWidth);
+    return (
+      this.props.width || (this.container && this.container.el && this.container.el.offsetWidth)
+    );
   }
 
   headerHeight() {
@@ -140,8 +128,9 @@ class Chart extends React.PureComponent {
   }
 
   height() {
-    return this.props.height
-      || (this.container && this.container.el && this.container.el.offsetHeight);
+    return (
+      this.props.height || (this.container && this.container.el && this.container.el.offsetHeight)
+    );
   }
 
   d3format(col, number) {
@@ -200,7 +189,7 @@ class Chart extends React.PureComponent {
       if (chartStatus !== 'rendered') {
         this.props.actions.chartRenderingSucceeded(chartId);
       }
-      Logger.append(LOG_ACTIONS_RENDER_EVENT, {
+      Logger.append(LOG_ACTIONS_RENDER_CHART, {
         label: 'slice_' + chartId,
         vis_type: vizType,
         start_offset: renderStart,
@@ -222,36 +211,39 @@ class Chart extends React.PureComponent {
       <div className={`chart-container ${isLoading ? 'is-loading' : ''}`} style={containerStyles}>
         {this.renderTooltip()}
         {isLoading && <Loading size={75} />}
-        {this.props.chartAlert &&
+        {this.props.chartAlert && (
           <StackTraceMessage
             message={this.props.chartAlert}
             queryResponse={this.props.queryResponse}
-          />}
+          />
+        )}
 
         {!isLoading &&
           !this.props.chartAlert &&
           this.props.refreshOverlayVisible &&
           !this.props.errorMessage &&
-          this.container &&
-          <RefreshChartOverlay
-            height={this.height()}
-            width={this.width()}
-            onQuery={this.props.onQuery}
-            onDismiss={this.props.onDismissRefreshOverlay}
-          />}
+          this.container && (
+            <RefreshChartOverlay
+              height={this.height()}
+              width={this.width()}
+              onQuery={this.props.onQuery}
+              onDismiss={this.props.onDismissRefreshOverlay}
+            />
+          )}
 
-        {!isLoading && !this.props.chartAlert &&
-          <ChartBody
-            containerId={this.containerId}
-            vizType={this.props.vizType}
-            height={this.height}
-            width={this.width}
-            faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
-            ref={(inner) => {
-              this.container = inner;
-            }}
-          />
-        }
+        {!isLoading &&
+          !this.props.chartAlert && (
+            <ChartBody
+              containerId={this.containerId}
+              vizType={this.props.vizType}
+              height={this.height}
+              width={this.width}
+              faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
+              ref={(inner) => {
+                this.container = inner;
+              }}
+            />
+          )}
       </div>
     );
   }

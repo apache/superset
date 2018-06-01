@@ -2,8 +2,7 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 
 import {
-  addFilter,
-  removeFilter,
+  changeFilter as addFilter,
   toggleExpandSlice,
 } from '../actions/dashboardState';
 import { refreshChart } from '../../chart/chartAction';
@@ -54,7 +53,6 @@ function mapDispatchToProps(dispatch) {
       toggleExpandSlice,
       addFilter,
       refreshChart,
-      removeFilter,
     },
     dispatch,
   );

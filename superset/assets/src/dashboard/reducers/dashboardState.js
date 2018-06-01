@@ -1,11 +1,10 @@
 /* eslint-disable camelcase */
 import {
   ADD_SLICE,
-  ADD_FILTER,
+  CHANGE_FILTER,
   ON_CHANGE,
   ON_SAVE,
   REMOVE_SLICE,
-  REMOVE_FILTER,
   SET_EDIT_MODE,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
@@ -86,15 +85,14 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
 
-    // filters
-    [ADD_FILTER]() {
+    [CHANGE_FILTER]() {
       const hasSelectedFilter = state.sliceIds.includes(action.chart.id);
       if (!hasSelectedFilter) {
         return state;
       }
 
       let filters = state.filters;
-      const { chart, col, vals, merge, refresh } = action;
+      const { chart, col, vals: nextVals, merge, refresh } = action;
       const sliceId = chart.id;
       const filterKeys = [
         '__from',
@@ -110,33 +108,32 @@ export default function dashboardStateReducer(state = {}, action) {
       ) {
         let newFilter = {};
         if (!(sliceId in filters)) {
-          // Straight up set the filters if none existed for the slice
-          newFilter = { [col]: vals };
+          // if no filters existed for the slice, set them
+          newFilter = { [col]: nextVals };
         } else if ((filters[sliceId] && !(col in filters[sliceId])) || !merge) {
-          newFilter = { ...filters[sliceId], [col]: vals };
-          // d3.merge pass in array of arrays while some value form filter components
-          // from and to filter box require string to be process and return
+          // If no filters exist for this column, or we are overwriting them
+          newFilter = { ...filters[sliceId], [col]: nextVals };
         } else if (filters[sliceId][col] instanceof Array) {
-          newFilter[col] = [...filters[sliceId][col], ...vals];
+          newFilter[col] = [...filters[sliceId][col], ...nextVals];
         } else {
-          newFilter[col] = [filters[sliceId][col], ...vals];
+          newFilter[col] = [filters[sliceId][col], ...nextVals];
         }
         filters = { ...filters, [sliceId]: newFilter };
-      }
-      return { ...state, filters, refresh };
-    },
-    [REMOVE_FILTER]() {
-      const { sliceId, col, vals, refresh } = action;
-      const excluded = new Set(vals);
 
-      let filters = state.filters;
-      // Have to be careful not to modify the dashboard state so that
-      // the render actually triggers
-      if (sliceId in state.filters && col in state.filters[sliceId]) {
-        const newFilter = filters[sliceId][col].filter(
-          val => !excluded.has(val),
-        );
-        filters = { ...filters, [sliceId]: { [col]: newFilter } };
+        // remove any empty filters so they don't pollute the logs
+        Object.keys(filters).forEach(chartId => {
+          Object.keys(filters[chartId]).forEach(column => {
+            if (
+              !filters[chartId][column] ||
+              filters[chartId][column].length === 0
+            ) {
+              delete filters[chartId][column];
+            }
+          });
+          if (Object.keys(filters[chartId]).length === 0) {
+            delete filters[chartId];
+          }
+        });
       }
       return { ...state, filters, refresh };
     },

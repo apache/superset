@@ -3,11 +3,10 @@ import { expect } from 'chai';
 
 import {
   ADD_SLICE,
-  ADD_FILTER,
+  CHANGE_FILTER,
   ON_CHANGE,
   ON_SAVE,
   REMOVE_SLICE,
-  REMOVE_FILTER,
   SET_EDIT_MODE,
   SET_MAX_UNDO_HISTORY_EXCEEDED,
   SET_UNSAVED_CHANGES,
@@ -138,7 +137,7 @@ describe('dashboardState reducer', () => {
     });
   });
 
-  describe('add filter', () => {
+  describe('change filter', () => {
     it('should add a new filter if it does not exist', () => {
       expect(
         dashboardStateReducer(
@@ -147,7 +146,7 @@ describe('dashboardState reducer', () => {
             sliceIds: [1],
           },
           {
-            type: ADD_FILTER,
+            type: CHANGE_FILTER,
             chart: { id: 1, formData: { groupby: 'column' } },
             col: 'column',
             vals: ['b', 'a'],
@@ -172,7 +171,7 @@ describe('dashboardState reducer', () => {
             sliceIds: [1],
           },
           {
-            type: ADD_FILTER,
+            type: CHANGE_FILTER,
             chart: { id: 1, formData: { groupby: 'column' } },
             col: 'column',
             vals: ['b', 'a'],
@@ -197,7 +196,7 @@ describe('dashboardState reducer', () => {
             sliceIds: [1],
           },
           {
-            type: ADD_FILTER,
+            type: CHANGE_FILTER,
             chart: { id: 1, formData: { groupby: 'column' } },
             col: 'column',
             vals: ['b', 'a'],
@@ -211,29 +210,30 @@ describe('dashboardState reducer', () => {
         sliceIds: [1],
       });
     });
-  });
 
-  it('should remove a filter', () => {
-    expect(
-      dashboardStateReducer(
-        {
-          filters: {
-            1: {
-              column: ['a', 'b', 'c'],
+    it('should remove the filter if values are empty', () => {
+      expect(
+        dashboardStateReducer(
+          {
+            filters: {
+              1: { column: ['z'] },
             },
+            sliceIds: [1],
           },
-        },
-        {
-          type: REMOVE_FILTER,
-          sliceId: 1,
-          col: 'column',
-          vals: ['b', 'a'], // these are removed
-          refresh: true,
-        },
-      ),
-    ).to.deep.equal({
-      filters: { 1: { column: ['c'] } },
-      refresh: true,
+          {
+            type: CHANGE_FILTER,
+            chart: { id: 1, formData: { groupby: 'column' } },
+            col: 'column',
+            vals: [],
+            refresh: true,
+            merge: false,
+          },
+        ),
+      ).to.deep.equal({
+        filters: {},
+        refresh: true,
+        sliceIds: [1],
+      });
     });
   });
 });
