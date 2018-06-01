@@ -33,13 +33,19 @@ def upgrade():
         with op.batch_alter_table("columns",
                 naming_convention=naming_convention) as batch_op:
             batch_op.drop_constraint(constraint, type_="foreignkey")
+    except:
+        logging.warning(
+            "Could not drop constraint on `columns`")
+    try:
+        with op.batch_alter_table("columns",
+                naming_convention=naming_convention) as batch_op:
             batch_op.create_foreign_key(
                 'fk_columns_datasource_name_datasources',
                 'datasources',
                 ['datasource_name'], ['datasource_name'])
     except:
         logging.warning(
-            "Could not find or drop constraint on `columns`")
+            "Could not create constraint on `columns`")
 
 def downgrade():
     constraint = find_constraint_name(False) or 'fk_columns_datasource_name_datasources'
