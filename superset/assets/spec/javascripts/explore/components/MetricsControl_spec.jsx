@@ -211,8 +211,8 @@ describe('MetricsControl', () => {
 
       expect(!!wrapper.instance().selectFilterOption(
         {
-          metric_name: 'a_metric',
-          optionName: 'a_metric',
+          metric_name: 'avg__metric',
+          optionName: 'avg__metric',
           expression: 'AVG(metric)',
         },
         'a',
@@ -238,12 +238,25 @@ describe('MetricsControl', () => {
 
       expect(!!wrapper.instance().selectFilterOption(
         {
-          metric_name: 'a_metric',
-          optionName: 'a_metric',
+          metric_name: 'avg__metric',
+          optionName: 'avg__metric',
           expression: 'AVG(metric)',
         },
         'a',
       )).to.be.false;
+    });
+
+    it('includes custom made simple saved metrics', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'my_fancy_sum_metric',
+          optionName: 'my_fancy_sum_metric',
+          expression: 'SUM(value)',
+        },
+        'sum',
+      )).to.be.true;
     });
 
     it('excludes auto generated metrics', () => {
