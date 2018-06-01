@@ -760,6 +760,35 @@ def load_birth_names():
                 },
                 viz_type="big_number_total",
                 granularity_sqla="ds")),
+        Slice(
+            slice_name='Top 10 California Names Timeseries',
+            viz_type='line',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                metrics=[{
+                    'expressionType': 'SIMPLE',
+                    'column': {
+                        'column_name': 'num_california',
+                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    'aggregate': 'SUM',
+                    'label': 'SUM(num_california)',
+                }],
+                viz_type='line',
+                granularity_sqla='ds',
+                groupby=['name'],
+                timeseries_limit_metric={
+                    'expressionType': 'SIMPLE',
+                    'column': {
+                        'column_name': 'num_california',
+                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    'aggregate': 'SUM',
+                    'label': 'SUM(num_california)',
+                },
+                limit='10')),
     ]
     for slc in slices:
         merge_slice(slc)
