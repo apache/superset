@@ -121,12 +121,11 @@ export default function nvd3Vis(slice, payload) {
 
   let data;
   if (payload.data) {
-    if(Array.isArray(payload.data)) {
+    if (Array.isArray(payload.data)) {
         data = payload.data.map(x => ({
             ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
         }));
-    }
-    else {
+    } else {
       data = payload.data;
     }
   } else {
