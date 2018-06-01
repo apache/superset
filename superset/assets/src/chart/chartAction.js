@@ -193,9 +193,14 @@ export function redirectSQLLab(formData) {
       type: 'GET',
       url: `/superset/sql?form_data=${JSON.stringify(formData)}`,
       success: (response) => {
-        const url = 'http://0.0.0.0:8080/superset/sqllab?datasourceKey=' + formData.datasource + '&sql=' + response.query;
-        console.log(url);
-        window.open(encodeURI(url), '_blank');
+        const url = new URL(window.location);
+        url.pathname = '/superset/sqllab';
+        for (let k of url.searchParams.keys()) {
+          url.searchParams.delete(k);
+        }
+        url.searchParams.set('datasourceKey', formData.datasource);
+        url.searchParams.set('sql', response.query);
+        window.open(url.href, '_blank');
       },
       error: () => notify.error(t('The SQL couldn\'t be loaded')),
     });
