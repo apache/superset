@@ -86,7 +86,7 @@ class BaseViz(object):
         self._some_from_cache = False
         self._any_cache_key = None
         self._any_cached_dttm = None
-        self._extra_chart_data = None
+        self._extra_chart_data = []
 
         self.process_metrics()
 
@@ -1202,10 +1202,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def run_extra_queries(self):
         fd = self.form_data
-        time_compare = fd.get('time_compare')
-        if time_compare:
+
+        time_compare = fd.get('time_compare') or []
+        # backwards compatibility
+        if not isinstance(time_compare, list):
+            time_compare = [time_compare]
+
+        for option in time_compare:
             query_object = self.query_obj()
-            delta = utils.parse_human_timedelta(time_compare)
+            delta = utils.parse_human_timedelta(option)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
 
@@ -1218,10 +1223,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object).get('df')
             if df2 is not None:
+                label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self._extra_chart_data = self.to_series(
-                    df2, classed='superset', title_suffix='---')
+                self._extra_chart_data.extend(self.to_series(
+                    df2, classed='superset', title_suffix=label))
 
     def get_data(self, df):
         df = self.process_data(df)
