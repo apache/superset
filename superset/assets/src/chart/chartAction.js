@@ -195,7 +195,7 @@ export function redirectSQLLab(formData) {
       success: (response) => {
         const url = new URL(window.location);
         url.pathname = '/superset/sqllab';
-        for (let k of url.searchParams.keys()) {
+        for (const k of url.searchParams.keys()) {
           url.searchParams.delete(k);
         }
         url.searchParams.set('datasourceKey', formData.datasource);

@@ -44,7 +44,7 @@ export default class DisplayQueryButton extends React.PureComponent {
       data: null,
       isLoading: false,
       error: null,
-      sql: props.latestQueryFormData.datasource.split('__')[1] === 'table',
+      sqlSupported: props.latestQueryFormData.datasource.split('__')[1] === 'table',
     };
     this.beforeOpen = this.beforeOpen.bind(this);
   }
@@ -162,7 +162,7 @@ export default class DisplayQueryButton extends React.PureComponent {
           modalBody={this.renderResultsModalBody()}
           eventKey="2"
         />
-        {this.state.sql && <MenuItem
+        {this.state.sqlSupported && <MenuItem
           eventKey="3"
           onClick={this.redirectSQLLab.bind(this)}
         >
