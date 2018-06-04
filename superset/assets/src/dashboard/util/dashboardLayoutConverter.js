@@ -410,13 +410,78 @@ export function convertToLayout(positions) {
   return root;
 }
 
+function mergePosition(position, bottomLine, maxColumn) {
+  const { col, size_x, size_y } = position;
+  const endColumn = col + size_x > maxColumn ? bottomLine.length : col + size_x;
+  const nextSectionStart =
+    bottomLine.slice(col).findIndex(value => value > bottomLine[col]) + 1;
+
+  const currentBottom =
+    nextSectionStart > 0 && nextSectionStart < size_x
+      ? Math.max.apply(null, bottomLine.slice(col, col + size_x + 1))
+      : bottomLine[col];
+  bottomLine.fill(currentBottom + size_y, col, endColumn);
+}
+
+function scanDashboardPositionsData(positions) {
+  const bottomLine = new Array(49).fill(0);
+  bottomLine[0] = Number.MAX_VALUE;
+  const maxColumn = Math.max.apply(
+    null,
+    positions.slice().map(position => position.col),
+  );
+
+  const positionsByRowId = {};
+  positions
+    .slice()
+    .sort(sortByRowId)
+    .forEach(position => {
+      const { row } = position;
+      if (positionsByRowId[row] === undefined) {
+        positionsByRowId[row] = [];
+      }
+      positionsByRowId[row].push(position);
+    });
+  const rawPositions = Object.values(positionsByRowId);
+  const updatedPositions = [];
+
+  while (rawPositions.length) {
+    const nextRow = rawPositions.shift();
+    let nextCol = 1;
+    while (nextRow.length) {
+      // special treatment for duplicated positions: display wider one first
+      const availableIndexByColumn = nextRow
+        .filter(position => position.col === nextCol)
+        .map((position, index) => index);
+      if (availableIndexByColumn.length) {
+        const idx =
+          availableIndexByColumn.length > 1
+            ? availableIndexByColumn.sort(
+                (idx1, idx2) => nextRow[idx2].size_x - nextRow[idx1].size_x,
+              )[0]
+            : availableIndexByColumn[0];
+
+        const nextPosition = nextRow.splice(idx, 1)[0];
+        mergePosition(nextPosition, bottomLine, maxColumn + 1);
+        nextPosition.row = bottomLine[nextPosition.col] - nextPosition.size_y;
+        updatedPositions.push(nextPosition);
+        nextCol += nextPosition.size_x;
+      } else {
+        nextCol = nextRow[0].col;
+      }
+    }
+  }
+
+  return updatedPositions;
+}
+
 export default function(dashboard) {
   const positions = [];
-
-  // position data clean up. some dashboard didn't have position_json
   let { position_json } = dashboard;
   const positionDict = {};
   if (Array.isArray(position_json)) {
+    // scan and fix positions data: extra spaces, dup rows, .etc
+    position_json = scanDashboardPositionsData(position_json);
     position_json.forEach(position => {
       positionDict[position.slice_id] = position;
     });
@@ -424,6 +489,7 @@ export default function(dashboard) {
     position_json = [];
   }
 
+  // position data clean up. some dashboard didn't have position_json
   const lastRowId = Math.max(
     0,
     Math.max.apply(null, position_json.map(pos => pos.row + pos.size_y)),
