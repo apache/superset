@@ -16,6 +16,7 @@ import {
   DASHBOARD_VERSION_KEY,
   GRID_MIN_COLUMN_COUNT,
   GRID_MIN_ROW_UNITS,
+  GRID_COLUMN_COUNT,
 } from './constants';
 
 const MAX_RECURSIVE_LEVEL = 6;
@@ -153,6 +154,50 @@ function hasOverlap(positions, xAxis = true) {
       }
       return item.row + item.size_y > arr[index + 1].row;
     });
+}
+
+function isWideLeafComponent(component) {
+  return (
+    [CHART_TYPE, MARKDOWN_TYPE].indexOf(component.type) > -1 &&
+    component.meta.width > GRID_MIN_COLUMN_COUNT
+  );
+}
+
+function canReduceColumnWidth(columnComponent, root) {
+  return (
+    columnComponent.type === COLUMN_TYPE &&
+    columnComponent.meta.width > GRID_MIN_COLUMN_COUNT &&
+    columnComponent.children.every(
+      childId =>
+        isWideLeafComponent(root[childId]) ||
+        (root[childId].type === ROW_TYPE &&
+          root[childId].children.every(id => isWideLeafComponent(root[id]))),
+    )
+  );
+}
+
+function reduceRowWidth(rowComponent, root) {
+  // find widest free chart and reduce width
+  const widestChartId = rowComponent.children
+    .filter(childId => isWideLeafComponent(root[childId]))
+    .reduce((prev, current) => {
+      if (root[prev].meta.width >= root[current].meta.width) {
+        return prev;
+      }
+      return current;
+    });
+
+  if (widestChartId) {
+    root[widestChartId].meta.width -= 1;
+  }
+  return getChildrenSum(rowComponent.children, 'width', root);
+}
+
+function reduceComponentWidth(component) {
+  if (isWideLeafComponent(component)) {
+    component.meta.width -= 1;
+  }
+  return component.meta.width;
 }
 
 function doConvert(positions, level, parent, root) {
@@ -313,6 +358,50 @@ export function convertToLayout(positions) {
   Object.values(root).forEach(item => {
     if (ROW_TYPE === item.type) {
       const meta = item.meta;
+      if (meta.width > GRID_COLUMN_COUNT) {
+        let currentWidth = meta.width;
+        while (
+          currentWidth > GRID_COLUMN_COUNT &&
+          item.children.filter(id => isWideLeafComponent(root[id])).length
+        ) {
+          currentWidth = reduceRowWidth(item, root);
+        }
+
+        // reduce column width
+        if (currentWidth > GRID_COLUMN_COUNT) {
+          // find column that: width > 2 and each row has at least 1 chart can reduce
+          // 2 loops: same column may reduce multiple times
+          let colIds;
+          do {
+            colIds = item.children.filter(colId =>
+              canReduceColumnWidth(root[colId], root),
+            );
+            let idx = 0;
+            while (idx < colIds.length && currentWidth > GRID_COLUMN_COUNT) {
+              const currentColumn = colIds[idx];
+              root[currentColumn].children.forEach(childId => {
+                if (root[childId].type === ROW_TYPE) {
+                  root[childId].meta.width = reduceRowWidth(
+                    root[childId],
+                    root,
+                  );
+                } else {
+                  root[childId].meta.width = reduceComponentWidth(
+                    root[childId],
+                  );
+                }
+              });
+              root[currentColumn].meta.width = getChildrenMax(
+                root[currentColumn].children,
+                'width',
+                root,
+              );
+              currentWidth = getChildrenSum(item.children, 'width', root);
+              idx += 1;
+            }
+          } while (colIds.length && currentWidth > GRID_COLUMN_COUNT);
+        }
+      }
       delete meta.width;
     }
   });
