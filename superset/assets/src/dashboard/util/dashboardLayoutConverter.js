@@ -14,6 +14,8 @@ import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_ID,
   DASHBOARD_VERSION_KEY,
+  GRID_MIN_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
 } from './constants';
 
 const MAX_RECURSIVE_LEVEL = 6;
@@ -79,8 +81,14 @@ function getColContainer() {
 function getChartHolder(item) {
   const { size_x, size_y, slice_id, code, slice_name } = item;
 
-  const width = Math.max(1, Math.floor(size_x / GRID_RATIO));
-  const height = Math.max(1, Math.round(size_y / GRID_RATIO));
+  const width = Math.max(
+    GRID_MIN_COLUMN_COUNT,
+    Math.round(size_x / GRID_RATIO),
+  );
+  const height = Math.max(
+    GRID_MIN_ROW_UNITS,
+    Math.round(size_y / GRID_RATIO * 100 / ROW_HEIGHT),
+  );
   if (code !== undefined) {
     let markdownContent = '';
     if (slice_name) {
@@ -95,7 +103,7 @@ function getChartHolder(item) {
       children: [],
       meta: {
         width,
-        height: Math.round(height * 100 / ROW_HEIGHT),
+        height,
         code: markdownContent,
       },
     };
@@ -106,7 +114,7 @@ function getChartHolder(item) {
     children: [],
     meta: {
       width,
-      height: Math.round(height * 100 / ROW_HEIGHT),
+      height,
       chartId: parseInt(slice_id, 10),
     },
   };
@@ -247,7 +255,6 @@ function doConvert(positions, level, parent, root) {
             // create a new column
             const colContainer = getColContainer();
             root[colContainer.id] = colContainer;
-            rowContainer.children.push(colContainer.id);
 
             if (!hasOverlap(lower, false)) {
               lower.sort(sortByRowId).forEach(item => {
@@ -260,11 +267,15 @@ function doConvert(positions, level, parent, root) {
             }
 
             // add col meta
-            colContainer.meta.width = getChildrenMax(
-              colContainer.children,
-              'width',
-              root,
-            );
+            if (colContainer.children.length) {
+              rowContainer.children.push(colContainer.id);
+              // add col meta
+              colContainer.meta.width = getChildrenMax(
+                colContainer.children,
+                'width',
+                root,
+              );
+            }
           }
 
           currentItems = upper.slice();
@@ -346,7 +357,7 @@ export default function(dashboard) {
       position = {
         ...position,
         code: form_data.code,
-        slice_name: slice_name,
+        slice_name,
       };
     }
     positions.push(position);
