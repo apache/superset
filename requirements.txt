@@ -90,3 +90,7 @@ webencodings==0.5.1       # via bleach
 werkzeug==0.14.1          # via flask
 wtforms==2.2.1            # via flask-wtf
 xlrd==1.1.0               # via tabulator
+contextlib2==0.5.5
+croniter==0.3.25
+selenium==3.14.0
+retry==0.9.2
