@@ -112,8 +112,6 @@ export function formatLabel(input, verboseMap = {}) {
 }
 
 export default function nvd3Vis(slice, payload) {
-  const fd = slice.formData;
-
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
@@ -132,6 +130,7 @@ export default function nvd3Vis(slice, payload) {
   slice.container.html('');
   slice.clearError();
 
+  const fd = slice.formData;
   let width = slice.width();
 
   const barchartWidth = function () {
