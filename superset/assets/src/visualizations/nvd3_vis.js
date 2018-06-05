@@ -35,6 +35,7 @@ const BREAKPOINTS = {
 const TIMESERIES_VIZ_TYPES = [
   'line',
   'dual_line',
+  'line_bar',
   'line_multi',
   'area',
   'compare',
@@ -210,6 +211,11 @@ export default function nvd3Vis(slice, payload) {
         chart = nv.models.multiChart();
         chart.interpolate('linear');
         break;
+
+      case 'line_bar':
+        chart = nv.models.multiChart();
+        chart.interpolate('linear');
+        break;  
 
       case 'line_multi':
         chart = nv.models.multiChart();
@@ -475,7 +481,7 @@ export default function nvd3Vis(slice, payload) {
       }
     }
 
-    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+    if (['dual_line', 'line_multi','line_bar'].indexOf(vizType) >= 0) {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
@@ -483,7 +489,7 @@ export default function nvd3Vis(slice, payload) {
       const yAxisFormatters = data.map(datum => (
         datum.yAxis === 1 ? yAxisFormatter1 : yAxisFormatter2));
       customizeToolTip(chart, xAxisFormatter, yAxisFormatters);
-      if (vizType === 'dual_line') {
+      if (vizType === 'dual_line' || vizType === 'line_bar') {
         chart.showLegend(width > BREAKPOINTS.small);
       } else {
         chart.showLegend(fd.show_legend);
@@ -500,7 +506,7 @@ export default function nvd3Vis(slice, payload) {
     .call(chart);
 
     // align yAxis1 and yAxis2 ticks
-    if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+    if (['dual_line', 'line_multi','line_bar'].indexOf(vizType) >= 0) {
       const count = chart.yAxis1.ticks();
       const ticks1 = chart.yAxis1.scale().domain(chart.yAxis1.domain()).nice(count).ticks(count);
       const ticks2 = chart.yAxis2.scale().domain(chart.yAxis2.domain()).nice(count).ticks(count);
@@ -561,7 +567,7 @@ export default function nvd3Vis(slice, payload) {
         margins.bottom = 40;
       }
 
-      if (['dual_line', 'line_multi'].indexOf(vizType) >= 0) {
+      if (['dual_line', 'line_multi','line_bar'].indexOf(vizType) >= 0) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
         margins.right = maxYAxis2LabelWidth + marginPad;
       }
