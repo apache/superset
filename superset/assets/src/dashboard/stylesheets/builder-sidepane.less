@@ -73,23 +73,23 @@
   }
 
   .chart-card-container {
-    padding: 16px;
-
     .chart-card {
       border: 1px solid @gray-light;
+      font-weight: 200;
       height: 120px;
       padding: 16px;
+      margin: 16px;
+      position: relative;
       cursor: move;
-    }
 
-    .chart-card.is-selected {
-      opacity: 0.45;
-      cursor: not-allowed;
+      &:hover {
+        background: @gray-bg;
+      }
     }
 
     .card-title {
       margin-bottom: 8px;
-      font-weight: bold;
+      font-weight: 800;
     }
 
     .card-body {
@@ -98,11 +98,30 @@
 
       .item {
         height: 18px;
-      }
 
-      label {
-        margin-right: 5px;
+        span:first-child {
+          font-weight: 400;
+        }
       }
+    }
+
+    .chart-card.is-selected {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .is-added-label {
+      background: @almost-black;
+      color: white;
+      font-size: 12px;
+      line-height: 1em;
+      text-transform: uppercase;
+      position: absolute;
+      padding: 4px 8px;
+      position: absolute;
+      top: 32px;
+      right: 32px;
+      pointer-events: none;
     }
   }
 

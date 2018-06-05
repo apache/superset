@@ -1,25 +1,17 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-import {
-  DropdownButton,
-  MenuItem,
-  ButtonGroup,
-  ButtonToolbar,
-} from 'react-bootstrap';
+import { ButtonGroup, ButtonToolbar } from 'react-bootstrap';
 
-import Controls from './Controls';
+import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
-import SaveModal from './SaveModal';
+import V2PreviewModal from '../deprecated/V2PreviewModal';
+
 import { chartPropShape } from '../util/propShapes';
 import { t } from '../../locales';
-import {
-  UNDO_LIMIT,
-  SAVE_TYPE_NEWDASHBOARD,
-  SAVE_TYPE_OVERWRITE,
-} from '../util/constants';
+import { UNDO_LIMIT, SAVE_TYPE_OVERWRITE } from '../util/constants';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -40,6 +32,7 @@ const propTypes = {
   startPeriodicRender: PropTypes.func.isRequired,
   updateDashboardTitle: PropTypes.func.isRequired,
   editMode: PropTypes.bool.isRequired,
+  isV2Preview: PropTypes.bool.isRequired,
   setEditMode: PropTypes.func.isRequired,
   showBuilderPane: PropTypes.bool.isRequired,
   toggleBuilderPane: PropTypes.func.isRequired,
@@ -65,12 +58,14 @@ class Header extends React.PureComponent {
     super(props);
     this.state = {
       didNotifyMaxUndoHistoryToast: false,
+      showV2PreviewModal: props.isV2Preview,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
+    this.toggleShowV2PreviewModal = this.toggleShowV2PreviewModal.bind(this);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -105,6 +100,10 @@ class Header extends React.PureComponent {
     this.props.setEditMode(!this.props.editMode);
   }
 
+  toggleShowV2PreviewModal() {
+    this.setState({ showV2PreviewModal: !this.state.showV2PreviewModal });
+  }
+
   overwriteDashboard() {
     const {
       dashboardTitle,
@@ -133,6 +132,7 @@ class Header extends React.PureComponent {
       filters,
       expandedSlices,
       css,
+      isV2Preview,
       onUndo,
       onRedo,
       undoLength,
@@ -158,7 +158,7 @@ class Header extends React.PureComponent {
             onSaveTitle={this.handleChangeText}
             showTooltip={false}
           />
-          <span className="favstar m-l-5">
+          <span className="favstar">
             <FaveStar
               itemId={dashboardInfo.id}
               fetchFaveStar={this.props.fetchFaveStar}
@@ -166,7 +166,21 @@ class Header extends React.PureComponent {
               isStarred={this.props.isStarred}
             />
           </span>
+          {isV2Preview && (
+            <div
+              role="none"
+              className="v2-preview-badge"
+              onClick={this.toggleShowV2PreviewModal}
+            >
+              {t('v2 Preview')}
+            </div>
+          )}
+          {isV2Preview &&
+            this.state.showV2PreviewModal && (
+              <V2PreviewModal onClose={this.toggleShowV2PreviewModal} />
+            )}
         </div>
+
         <ButtonToolbar>
           {userCanSaveAs && (
             <ButtonGroup>
@@ -193,76 +207,60 @@ class Header extends React.PureComponent {
               {editMode && (
                 <Button bsSize="small" onClick={this.props.toggleBuilderPane}>
                   {showBuilderPane
-                    ? t('Hide builder pane')
+                    ? t('Hide components')
                     : t('Insert components')}
                 </Button>
               )}
 
-              {!hasUnsavedChanges ? (
+              {hasUnsavedChanges && editMode ? (
                 <Button
                   bsSize="small"
-                  onClick={this.toggleEditMode}
-                  bsStyle={hasUnsavedChanges ? 'primary' : undefined}
-                  disabled={!userCanEdit}
+                  bsStyle={
+                    hasUnsavedChanges || isV2Preview ? 'primary' : undefined
+                  }
+                  onClick={this.overwriteDashboard}
                 >
-                  {editMode ? t('Switch to view mode') : t('Edit dashboard')}
+                  {isV2Preview
+                    ? t('Persist as v2 Dashboard')
+                    : t('Save changes')}
                 </Button>
               ) : (
                 <Button
                   bsSize="small"
-                  bsStyle={hasUnsavedChanges ? 'primary' : undefined}
-                  onClick={this.overwriteDashboard}
+                  onClick={this.toggleEditMode}
+                  bsStyle={
+                    hasUnsavedChanges || isV2Preview ? 'primary' : undefined
+                  }
+                  disabled={!userCanEdit}
                 >
-                  {t('Save changes')}
+                  {editMode
+                    ? t('Switch to view mode')
+                    : (isV2Preview && t('Edit to persist v2 dashboard')) ||
+                      t('Edit dashboard')}
                 </Button>
               )}
-              <DropdownButton
-                title=""
-                id="save-dash-split-button"
-                bsStyle={hasUnsavedChanges ? 'primary' : undefined}
-                bsSize="small"
-                pullRight
-              >
-                <SaveModal
-                  addSuccessToast={this.props.addSuccessToast}
-                  addDangerToast={this.props.addDangerToast}
-                  dashboardId={dashboardInfo.id}
-                  dashboardTitle={dashboardTitle}
-                  saveType={SAVE_TYPE_NEWDASHBOARD}
-                  layout={layout}
-                  filters={filters}
-                  expandedSlices={expandedSlices}
-                  css={css}
-                  onSave={onSave}
-                  isMenuItem
-                  triggerNode={<span>{t('Save as')}</span>}
-                  canOverwrite={userCanEdit}
-                />
-                {hasUnsavedChanges && (
-                  <MenuItem eventKey="discard" onSelect={Header.discardChanges}>
-                    {t('Discard changes')}
-                  </MenuItem>
-                )}
-              </DropdownButton>
+
+              <HeaderActionsDropdown
+                addSuccessToast={this.props.addSuccessToast}
+                addDangerToast={this.props.addDangerToast}
+                dashboardId={dashboardInfo.id}
+                dashboardTitle={dashboardTitle}
+                layout={layout}
+                filters={filters}
+                expandedSlices={expandedSlices}
+                css={css}
+                onSave={onSave}
+                onChange={onChange}
+                forceRefreshAllCharts={this.forceRefresh}
+                startPeriodicRender={this.props.startPeriodicRender}
+                updateCss={updateCss}
+                editMode={editMode}
+                hasUnsavedChanges={hasUnsavedChanges}
+                userCanEdit={userCanEdit}
+                isV2Preview={isV2Preview}
+              />
             </ButtonGroup>
           )}
-
-          <Controls
-            addSuccessToast={this.props.addSuccessToast}
-            addDangerToast={this.props.addDangerToast}
-            dashboardInfo={dashboardInfo}
-            dashboardTitle={dashboardTitle}
-            layout={layout}
-            filters={filters}
-            expandedSlices={expandedSlices}
-            css={css}
-            onSave={onSave}
-            onChange={onChange}
-            forceRefreshAllCharts={this.forceRefresh}
-            startPeriodicRender={this.props.startPeriodicRender}
-            updateCss={updateCss}
-            editMode={editMode}
-          />
         </ButtonToolbar>
       </div>
     );

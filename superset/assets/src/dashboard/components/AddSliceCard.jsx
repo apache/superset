@@ -1,6 +1,7 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t } from '../../locales';
 
 const propTypes = {
   datasourceLink: PropTypes.string,
@@ -49,6 +50,7 @@ function AddSliceCard({
           </div>
         </div>
       </div>
+      {isSelected && <div className="is-added-label">{t('Added')}</div>}
     </div>
   );
 }

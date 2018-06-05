@@ -5,7 +5,6 @@ import PropTypes from 'prop-types';
 import AlertsWrapper from '../../components/AlertsWrapper';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import DashboardBuilder from '../containers/DashboardBuilder';
-import V2PreviewModal from '../deprecated/V2PreviewModal';
 import {
   chartPropShape,
   slicePropShape,
@@ -22,7 +21,6 @@ import {
   LOG_ACTIONS_MOUNT_DASHBOARD,
   LOG_ACTIONS_LOAD_DASHBOARD_PANE,
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
-  LOG_ACTIONS_FALLBACK_TO_V1,
 } from '../../logger';
 
 import { t } from '../../locales';
@@ -71,11 +69,6 @@ class Dashboard extends React.PureComponent {
 
   constructor(props) {
     super(props);
-    this.handleCloseV2PreviewModal = this.handleCloseV2PreviewModal.bind(this);
-    this.handleFallbackToV1 = this.handleFallbackToV1.bind(this);
-    this.state = {
-      hideV2PreviewModal: false,
-    };
     this.isFirstLoad = true;
     this.actionLog = new ActionLog({
       impressionId: props.impressionId,
@@ -93,7 +86,9 @@ class Dashboard extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (!nextProps.dashboardState.editMode) {
-      const version = nextProps.dashboardState.isV2Preview ? 'v2-preview' : 'v2';
+      const version = nextProps.dashboardState.isV2Preview
+        ? 'v2-preview'
+        : 'v2';
       // log pane loads
       const loadedPaneIds = [];
       const allPanesDidLoad = Object.entries(nextProps.loadStats).every(
@@ -138,25 +133,20 @@ class Dashboard extends React.PureComponent {
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
     if (currentChartIds.length < nextChartIds.length) {
-      // adding new chart
       const newChartIds = nextChartIds.filter(
         key => currentChartIds.indexOf(key) === -1,
       );
-      if (newChartIds.length) {
-        newChartIds.forEach(newChartId =>
-          this.props.actions.addSliceToDashboard(newChartId),
-        );
-      }
+      newChartIds.forEach(newChartId =>
+        this.props.actions.addSliceToDashboard(newChartId),
+      );
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
       const removedChartIds = currentChartIds.filter(
         key => nextChartIds.indexOf(key) === -1,
       );
-      if (removedChartIds.length) {
-        removedChartIds.forEach(removedChartId =>
-          this.props.actions.removeSliceFromDashboard(removedChartId),
-        );
-      }
+      removedChartIds.forEach(removedChartId =>
+        this.props.actions.removeSliceFromDashboard(removedChartId),
+      );
     }
   }
 
@@ -199,24 +189,6 @@ class Dashboard extends React.PureComponent {
     return Object.values(this.props.charts);
   }
 
-  handleCloseV2PreviewModal() {
-    this.setState({ hideV2PreviewModal: true });
-  }
-
-  handleFallbackToV1() {
-    Logger.append(
-      LOG_ACTIONS_FALLBACK_TO_V1,
-      {
-        force_v2_edit: this.props.dashboardInfo.forceV2Edit,
-      },
-      true,
-    );
-    const url = new URL(window.location); // eslint-disable-line
-    url.searchParams.set('version', 'v1');
-    url.searchParams.delete('edit'); // remove JIC they were editing and v1 editing is not allowed
-    window.location = url;
-  }
-
   refreshExcept(filterKey) {
     const immune = this.props.dashboardInfo.metadata.filter_immune_slices || [];
 
@@ -241,21 +213,9 @@ class Dashboard extends React.PureComponent {
   }
 
   render() {
-    const { hideV2PreviewModal } = this.state;
-    const { dashboardState, dashboardInfo } = this.props;
-    const { isV2Preview } = dashboardState;
     return (
       <div>
         <AlertsWrapper initMessages={this.props.initMessages} />
-        {isV2Preview &&
-          !hideV2PreviewModal && (
-            <V2PreviewModal
-              onClose={this.handleCloseV2PreviewModal}
-              handleFallbackToV1={this.handleFallbackToV1}
-              v2AutoConvertDate={dashboardInfo.v2AutoConvertDate}
-              v2FeedbackUrl={dashboardInfo.v2FeedbackUrl}
-            />
-          )}
         <DashboardBuilder />
       </div>
     );

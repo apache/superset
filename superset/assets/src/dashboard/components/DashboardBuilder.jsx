@@ -96,26 +96,24 @@ class DashboardBuilder extends React.Component {
       <StickyContainer
         className={cx('dashboard', editMode && 'dashboard--editing')}
       >
-        {topLevelTabs || !editMode ? ( // you cannot drop on/displace tabs if they already exist
-          <DashboardHeader />
-        ) : (
-          <DragDroppable
-            component={dashboardRoot}
-            parentComponent={null}
-            depth={DASHBOARD_ROOT_DEPTH}
-            index={0}
-            orientation="column"
-            onDrop={handleComponentDrop}
-            editMode
-          >
-            {({ dropIndicatorProps }) => (
-              <div>
-                <DashboardHeader />
-                {dropIndicatorProps && <div {...dropIndicatorProps} />}
-              </div>
-            )}
-          </DragDroppable>
-        )}
+        <DragDroppable
+          component={dashboardRoot}
+          parentComponent={null}
+          depth={DASHBOARD_ROOT_DEPTH}
+          index={0}
+          orientation="column"
+          onDrop={handleComponentDrop}
+          editMode
+          // you cannot drop on/displace tabs if they already exist
+          disableDragdrop={!editMode || topLevelTabs}
+        >
+          {({ dropIndicatorProps }) => (
+            <div>
+              <DashboardHeader />
+              {dropIndicatorProps && <div {...dropIndicatorProps} />}
+            </div>
+          )}
+        </DragDroppable>
 
         {topLevelTabs && (
           <Sticky topOffset={50}>
