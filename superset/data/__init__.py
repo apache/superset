@@ -626,7 +626,8 @@ def load_birth_names():
                     'op': 'in',
                     'val': ['girl'],
                 }],
-                row_limit=50)),
+                row_limit=50,
+                timeseries_limit_metric='sum__num')),
         Slice(
             slice_name="Boys",
             viz_type='table',
@@ -789,6 +790,24 @@ def load_birth_names():
                     'label': 'SUM(num_california)',
                 },
                 limit='10')),
+        Slice(
+            slice_name="Names Sorted by Num in California",
+            viz_type='table',
+            datasource_type='table',
+            datasource_id=tbl.id,
+            params=get_slice_json(
+                defaults,
+                groupby=['name'],
+                row_limit=50,
+                timeseries_limit_metric={
+                    'expressionType': 'SIMPLE',
+                    'column': {
+                        'column_name': 'num_california',
+                        'expression': "CASE WHEN state = 'CA' THEN num ELSE 0 END",
+                    },
+                    'aggregate': 'SUM',
+                    'label': 'SUM(num_california)',
+                })),
     ]
     for slc in slices:
         merge_slice(slc)
