@@ -69,7 +69,7 @@ const parentMaxDepthLookup = {
     [DIVIDER_TYPE]: depthTwo,
     [HEADER_TYPE]: depthTwo,
     [ROW_TYPE]: depthTwo,
-    [TABS_TYPE]: depthOne, // rootDepth, // you cannot drop a Tabs within a Tab
+    [TABS_TYPE]: depthOne,
   },
 
   [COLUMN_TYPE]: {

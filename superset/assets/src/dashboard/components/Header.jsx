@@ -236,7 +236,8 @@ class Header extends React.PureComponent {
                 >
                   {editMode
                     ? t('Switch to view mode')
-                    : (isV2Preview && t('Edit to persist v2 dashboard')) ||
+                    : (isV2Preview &&
+                        t('Edit & save to persist v2 dashboard')) ||
                       t('Edit dashboard')}
                 </Button>
               )}

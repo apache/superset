@@ -1,7 +1,7 @@
 import throttle from 'lodash.throttle';
 import getDropPosition from '../../util/getDropPosition';
 
-const HOVER_THROTTLE_MS = 200;
+const HOVER_THROTTLE_MS = 150;
 
 function handleHover(props, monitor, Component) {
   // this may happen due to throttling

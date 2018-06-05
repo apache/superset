@@ -42,11 +42,12 @@ const propTypes = {
 
 const defaultProps = {};
 
-const markdownPlaceHolder = `### Markdown
-## Markdown
-# Markdown
+const markdownPlaceHolder = `# ✨Markdown
+## ✨Markdown
+### ✨Markdown
 
-Click here to edit your ✨ [markdown](https://bit.ly/1dQOfRK) `;
+<br />
+Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
 class Markdown extends React.PureComponent {
   constructor(props) {
@@ -232,10 +233,9 @@ class Markdown extends React.PureComponent {
                     ? this.renderEditMode()
                     : this.renderPreviewMode()}
                 </div>
-
-                {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </ResizableContainer>
             </div>
+            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </WithPopoverMenu>
         )}
       </DragDroppable>
