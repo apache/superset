@@ -9,13 +9,13 @@ import moment from 'moment';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
 
-import { getColorFromScheme } from '../modules/colors';
+import { getClassed, getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
   applyNativeColumns,
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
-import { isTruthy } from '../utils/common';
+import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
 import { t } from '../locales';
 
 // CSS
@@ -103,11 +103,8 @@ export function formatLabel(input, verboseMap = {}) {
   const verboseLkp = s => verboseMap[s] || s;
   let label;
   if (Array.isArray(input) && input.length) {
-    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    const verboseLabels = input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLkp(l));
     label = verboseLabels.join(', ');
-    if (input.length > verboseLabels.length) {
-      label += ' ---';
-    }
   } else {
     label = verboseLkp(input);
   }
@@ -115,6 +112,8 @@ export function formatLabel(input, verboseMap = {}) {
 }
 
 export default function nvd3Vis(slice, payload) {
+  const fd = slice.formData;
+
   let chart;
   let colorKey = 'key';
   const isExplore = $('#explore-container').length === 1;
@@ -122,7 +121,9 @@ export default function nvd3Vis(slice, payload) {
   let data;
   if (payload.data) {
     data = payload.data.map(x => ({
-      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
+      ...x,
+      key: formatLabel(x.key, slice.datasource.verbose_map),
+      classed: getClassed(x.key),
     }));
   } else {
     data = [];
@@ -132,7 +133,6 @@ export default function nvd3Vis(slice, payload) {
   slice.clearError();
 
   let width = slice.width();
-  const fd = slice.formData;
 
   const barchartWidth = function () {
     let bars;

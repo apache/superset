@@ -1,4 +1,5 @@
 import d3 from 'd3';
+import { TIME_SHIFT_PATTERN } from '../utils/common';
 
 export const brandColor = '#00A699';
 export const colorPrimary = { r: 0, g: 122, b: 135, a: 1 };
@@ -181,7 +182,7 @@ export const getColorFromScheme = (function () {
     const selectedScheme = scheme ? ALL_COLOR_SCHEMES[scheme] : ALL_COLOR_SCHEMES.bnbColors;
     let stringifyS = String(s).toLowerCase();
     // next line is for superset series that should have the same color
-    stringifyS = stringifyS.replace(' ---', '');
+    stringifyS = stringifyS.split(', ').filter(k => !TIME_SHIFT_PATTERN.test(k)).join(', ');
 
     if (forcedColor && !forcedColors[stringifyS]) {
       forcedColors[stringifyS] = forcedColor;
@@ -198,6 +199,35 @@ export const getColorFromScheme = (function () {
     }
     /* eslint consistent-return: 0 */
     return selectedScheme[seen[selectedScheme][stringifyS] % selectedScheme.length];
+  };
+}());
+
+export const getClassed = (function () {
+  const seen = {};
+  let i = 0;
+  return function (key) {
+    if (!key || !Array.isArray(key)) {
+      return 'solid';
+    }
+
+    const classes = [];
+    for (let j = 0; j < 10; j++) {
+      classes.push('time-shift-' + j);
+    }
+
+    let offset = null;
+    key.forEach((k) => {
+      if (TIME_SHIFT_PATTERN.test(k)) {
+        offset = k;
+      }
+    });
+    if (offset === null) {
+      return 'solid';
+    }
+    if (seen[offset] === undefined) {
+      seen[offset] = classes[i++ % classes.length];
+    }
+    return seen[offset];
   };
 }());
 

@@ -1581,6 +1581,7 @@ export const controls = {
     label: t('Time Shift'),
     default: [],
     choices: formatSelectOptions([
+      '1 hour',
       '1 day',
       '1 week',
       '28 days',
