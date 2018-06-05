@@ -130,8 +130,8 @@ export default function nvd3Vis(slice, payload) {
   slice.container.html('');
   slice.clearError();
 
-  const fd = slice.formData;
   let width = slice.width();
+  const fd = slice.formData;
 
   const barchartWidth = function () {
     let bars;
