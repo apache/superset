@@ -423,6 +423,12 @@ function mergePosition(position, bottomLine, maxColumn) {
   bottomLine.fill(currentBottom + size_y, col, endColumn);
 }
 
+// In original position data, a lot of position's row attribute are not correct, and same positions are
+// assigned to more than 1 chart. The convert function depends on row id, col id to split
+// the whole dashboard into nested rows and columns. Bad row id will lead to many empty spaces, or a few
+// charts are overlapped in the same row.
+// This function read positions by row first. Then based on previous col id, width and height attribute,
+// re-calculate next position's row id.
 function scanDashboardPositionsData(positions) {
   const bottomLine = new Array(49).fill(0);
   bottomLine[0] = Number.MAX_VALUE;
