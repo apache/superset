@@ -1100,6 +1100,18 @@ class DruidDatasource(Model, BaseDatasource):
 
         return values
 
+    @staticmethod
+    def sanitize_metric_object(metric):
+        """
+        Update a metric with the correct type if necessary.
+        :param dict metric: The metric to sanitize
+        """
+        if (
+            utils.is_adhoc_metric(metric) and
+            metric['column']['type'].upper() == 'FLOAT'
+        ):
+            metric['column']['type'] = 'DOUBLE'
+
     def run_query(  # noqa / druid
             self,
             groupby, metrics,
@@ -1143,16 +1155,8 @@ class DruidDatasource(Model, BaseDatasource):
             LooseVersion(self.cluster.get_druid_version()) < LooseVersion('0.11.0')
         ):
             for metric in metrics:
-                if (
-                    utils.is_adhoc_metric(metric) and
-                    metric['column']['type'].upper() == 'FLOAT'
-                ):
-                    metric['column']['type'] = 'DOUBLE'
-            if (
-                utils.is_adhoc_metric(timeseries_limit_metric) and
-                timeseries_limit_metric['column']['type'].upper() == 'FLOAT'
-            ):
-                timeseries_limit_metric['column']['type'] = 'DOUBLE'
+                self.sanitize_metric_object(metric)
+            self.sanitize_metric_object(timeseries_limit_metric)
 
         aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
