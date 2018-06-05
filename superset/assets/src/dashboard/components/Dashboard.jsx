@@ -129,16 +129,24 @@ class Dashboard extends React.PureComponent {
 
     if (currentChartIds.length < nextChartIds.length) {
       // adding new chart
-      const newChartId = nextChartIds.find(
+      const newChartIds = nextChartIds.filter(
         key => currentChartIds.indexOf(key) === -1,
       );
-      this.props.actions.addSliceToDashboard(newChartId);
+      if (newChartIds.length) {
+        newChartIds.forEach(newChartId =>
+          this.props.actions.addSliceToDashboard(newChartId),
+        );
+      }
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
-      const removedChartId = currentChartIds.find(
+      const removedChartIds = currentChartIds.filter(
         key => nextChartIds.indexOf(key) === -1,
       );
-      this.props.actions.removeSliceFromDashboard(removedChartId);
+      if (removedChartIds.length) {
+        removedChartIds.forEach(removedChartId =>
+          this.props.actions.removeSliceFromDashboard(removedChartId),
+        );
+      }
     }
   }
 
