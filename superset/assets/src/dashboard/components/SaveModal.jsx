@@ -82,7 +82,8 @@ class SaveModal extends React.PureComponent {
       positions,
       css,
       expanded_slices: expandedSlices,
-      dashboard_title: dashboardTitle,
+      dashboard_title:
+        saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       default_filters: JSON.stringify(filters),
       duplicate_slices: this.state.duplicateSlices,
     };

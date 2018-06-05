@@ -16,17 +16,12 @@ export default function getDropPosition(monitor, Component) {
     parentComponent,
     component,
     orientation,
-    isDraggingOverShallow,
   } = Component.props;
 
   const draggingItem = monitor.getItem();
 
   // if dropped self on self, do nothing
-  if (
-    !draggingItem ||
-    draggingItem.id === component.id ||
-    !isDraggingOverShallow
-  ) {
+  if (!draggingItem || draggingItem.id === component.id) {
     return null;
   }
 

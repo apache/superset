@@ -1,11 +1,46 @@
 .dashboard-markdown {
   overflow: hidden;
 
+  .dashboard-component-chart-holder {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
   .dashboard--editing & {
     cursor: move;
   }
 
   #brace-editor {
     border: none;
+  }
+
+  h1 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 24px;
+    letter-spacing: -0.2px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 20px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 16px;
+    letter-spacing: 0.2px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+  p {
+    margin: 0 0 4px 0;
   }
 }

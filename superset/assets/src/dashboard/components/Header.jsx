@@ -173,6 +173,7 @@ class Header extends React.PureComponent {
               onClick={this.toggleShowV2PreviewModal}
             >
               {t('v2 Preview')}
+              <span className="fa fa-info-circle m-l-5" />
             </div>
           )}
           {isV2Preview &&
