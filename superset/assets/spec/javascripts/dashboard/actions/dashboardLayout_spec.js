@@ -138,7 +138,6 @@ describe('dashboardLayout actions', () => {
     });
   });
 
-  // describe('createComponent', () => {});
   describe('createTopLevelTabs', () => {
     it('should dispatch a createTopLevelTabs action', () => {
       const { getState, dispatch } = setup({
@@ -324,7 +323,7 @@ describe('dashboardLayout actions', () => {
       );
     });
 
-    it('should delete the parent Tabs if the moved Tab was the only child', () => {
+    it('should delete a parent Row or Tabs if the moved child was the only child', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: {
           present: {

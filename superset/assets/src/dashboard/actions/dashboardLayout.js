@@ -2,7 +2,12 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 
 import { addInfoToast } from './messageToasts';
 import { setUnsavedChanges } from './dashboardState';
-import { CHART_TYPE, MARKDOWN_TYPE, TABS_TYPE } from '../util/componentTypes';
+import {
+  CHART_TYPE,
+  MARKDOWN_TYPE,
+  TABS_TYPE,
+  ROW_TYPE,
+} from '../util/componentTypes';
 import {
   DASHBOARD_ROOT_ID,
   NEW_COMPONENTS_SOURCE_ID,
@@ -180,12 +185,13 @@ export function handleComponentDrop(dropResult) {
 
     const { dashboardLayout: undoableLayout } = getState();
 
-    // if we moved a Tab and the parent Tabs no longer has children, delete it.
+    // if we moved a child from a Tab or Row parent and it was the only child, delete the parent.
     if (!isNewComponent) {
       const { present: layout } = undoableLayout;
       const sourceComponent = layout[source.id];
       if (
-        sourceComponent.type === TABS_TYPE &&
+        (sourceComponent.type === TABS_TYPE ||
+          sourceComponent.type === ROW_TYPE) &&
         sourceComponent.children.length === 0
       ) {
         const parentId = findParentId({

@@ -4,6 +4,7 @@ import {
   GRID_MIN_COLUMN_COUNT,
   NEW_COMPONENTS_SOURCE_ID,
 } from '../util/constants';
+import findParentId from '../util/findParentId';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -46,7 +47,6 @@ const actionHandlers = {
 
     const nextComponents = { ...state };
 
-    // recursively find children to remove
     function recursivelyDeleteChildren(componentId, componentParentId) {
       // delete child and it's children
       const component = nextComponents[componentId];
@@ -73,6 +73,14 @@ const actionHandlers = {
     }
 
     recursivelyDeleteChildren(id, parentId);
+    const nextParent = nextComponents[parentId];
+    if (nextParent.type === ROW_TYPE && nextParent.children.length === 0) {
+      const grandparentId = findParentId({
+        childId: parentId,
+        layout: nextComponents,
+      });
+      recursivelyDeleteChildren(parentId, grandparentId);
+    }
 
     return nextComponents;
   },

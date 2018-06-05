@@ -54,6 +54,7 @@ describe('dashboardLayout reducer', () => {
           },
           parentId: {
             id: 'parentId',
+            type: ROW_TYPE,
             children: ['toDelete', 'anotherId'],
           },
         },
@@ -66,6 +67,42 @@ describe('dashboardLayout reducer', () => {
       parentId: {
         id: 'parentId',
         children: ['anotherId'],
+        type: ROW_TYPE,
+      },
+    });
+  });
+
+  it('should delete a parent if the parent was a row and no longer has children', () => {
+    expect(
+      layoutReducer(
+        {
+          grandparentId: {
+            id: 'grandparentId',
+            children: ['parentId'],
+          },
+          parentId: {
+            id: 'parentId',
+            type: ROW_TYPE,
+            children: ['toDelete'],
+          },
+          toDelete: {
+            id: 'toDelete',
+            children: ['child1'],
+          },
+          child1: {
+            id: 'child1',
+            children: [],
+          },
+        },
+        {
+          type: DELETE_COMPONENT,
+          payload: { id: 'toDelete', parentId: 'parentId' },
+        },
+      ),
+    ).to.deep.equal({
+      grandparentId: {
+        id: 'grandparentId',
+        children: [],
       },
     });
   });
