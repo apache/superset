@@ -744,6 +744,12 @@ class PrestoEngineSpec(BaseEngineSpec):
                 break
 
             if stats:
+                state = stats.get('state')
+
+                # if already finished, then stop polling
+                if state == 'FINISHED':
+                    break
+
                 completed_splits = float(stats.get('completedSplits'))
                 total_splits = float(stats.get('totalSplits'))
                 if total_splits and completed_splits:
