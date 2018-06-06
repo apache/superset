@@ -215,7 +215,7 @@ export default function nvd3Vis(slice, payload) {
       case 'line_bar':
         chart = nv.models.multiChart();
         chart.interpolate('linear');
-        break;  
+        break;
 
       case 'line_multi':
         chart = nv.models.multiChart();
@@ -481,7 +481,7 @@ export default function nvd3Vis(slice, payload) {
       }
     }
 
-    if (['dual_line', 'line_multi','line_bar'].indexOf(vizType) >= 0) {
+    if (['dual_line', 'line_multi', 'line_bar'].indexOf(vizType) >= 0) {
       const yAxisFormatter1 = d3.format(fd.y_axis_format);
       const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
       chart.yAxis1.tickFormat(yAxisFormatter1);
@@ -506,7 +506,7 @@ export default function nvd3Vis(slice, payload) {
     .call(chart);
 
     // align yAxis1 and yAxis2 ticks
-    if (['dual_line', 'line_multi','line_bar'].indexOf(vizType) >= 0) {
+    if (['dual_line', 'line_multi', 'line_bar'].indexOf(vizType) >= 0) {
       const count = chart.yAxis1.ticks();
       const ticks1 = chart.yAxis1.scale().domain(chart.yAxis1.domain()).nice(count).ticks(count);
       const ticks2 = chart.yAxis2.scale().domain(chart.yAxis2.domain()).nice(count).ticks(count);
@@ -567,7 +567,7 @@ export default function nvd3Vis(slice, payload) {
         margins.bottom = 40;
       }
 
-      if (['dual_line', 'line_multi','line_bar'].indexOf(vizType) >= 0) {
+      if (['dual_line', 'line_multi', 'line_bar'].indexOf(vizType) >= 0) {
         const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2');
         margins.right = maxYAxis2LabelWidth + marginPad;
       }
