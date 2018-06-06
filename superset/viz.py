@@ -2584,7 +2584,7 @@ class PartitionViz(NVD3TimeSeriesViz):
 
 class LineBarViz(NVD3Viz):
 
-    """A rich line chart with dual axis"""
+    """A simple line bar chart with dual axis"""
 
     viz_type = 'line_bar'
     verbose_name = _('Time Series - Line Bar Chart')
