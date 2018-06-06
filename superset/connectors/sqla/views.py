@@ -165,14 +165,14 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     order_columns = ['modified']
     add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
-        'table_name', 'sql', 'filter_select_enabled', 'slices',
+        'table_name', 'sql', 'filter_select_enabled',
         'fetch_values_predicate', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout',
         'is_sqllab_view', 'template_params',
     ]
     base_filters = [['id', DatasourceFilter, lambda: []]]
-    show_columns = edit_columns + ['perm']
+    show_columns = edit_columns + ['perm', 'slices']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     search_columns = (
