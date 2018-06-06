@@ -34,7 +34,7 @@ const defaultProps = {
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = [
   { key: 'slice_name', label: 'Name' },
-  { key: 'viz_type', label: 'Visualization' },
+  { key: 'viz_type', label: 'Vis type' },
   { key: 'datasource_name', label: 'Datasource' },
   { key: 'changed_on', label: 'Recent' },
 ];
@@ -187,23 +187,24 @@ class SliceAdder extends React.Component {
     return (
       <div className="slice-adder-container">
         <div className="controls">
+          <SearchInput
+            placeholder="Filter your charts"
+            className="search-input"
+            onChange={this.searchUpdated}
+            onKeyPress={this.handleKeyPress}
+          />
+
           <DropdownButton
-            title={KEYS_TO_SORT[this.state.sortBy].label}
+            title={`Sort by ${KEYS_TO_SORT[this.state.sortBy].label}`}
             onSelect={this.handleSelect}
             id="slice-adder-sortby"
           >
             {KEYS_TO_SORT.map((item, index) => (
               <MenuItem key={item.key} eventKey={index}>
-                {item.label}
+                Sort by {item.label}
               </MenuItem>
             ))}
           </DropdownButton>
-
-          <SearchInput
-            className="search-input"
-            onChange={this.searchUpdated}
-            onKeyPress={this.handleKeyPress}
-          />
         </div>
 
         {this.props.isLoading && (

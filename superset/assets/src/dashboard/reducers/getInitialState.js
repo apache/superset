@@ -11,7 +11,15 @@ import { DASHBOARD_VERSION_KEY, DASHBOARD_HEADER_ID } from '../util/constants';
 import { DASHBOARD_HEADER_TYPE, CHART_TYPE } from '../util/componentTypes';
 
 export default function(bootstrapData) {
-  const { user_id, datasources, common } = bootstrapData;
+  const {
+    user_id,
+    datasources,
+    common,
+    editMode,
+    force_v2_edit: forceV2Edit,
+    v2_auto_convert_date: v2AutoConvertDate,
+    v2_feedback_url: v2FeedbackUrl,
+  } = bootstrapData;
   delete common.locale;
   delete common.language_pack;
 
@@ -37,11 +45,10 @@ export default function(bootstrapData) {
 
   // dashboard layout
   const { position_json: positionJson } = dashboard;
+  const shouldConvertToV2 =
+    !positionJson || positionJson[DASHBOARD_VERSION_KEY] !== 'v2';
 
-  const layout =
-    !positionJson || positionJson[DASHBOARD_VERSION_KEY] !== 'v2'
-      ? layoutConverter(dashboard)
-      : positionJson;
+  const layout = shouldConvertToV2 ? layoutConverter(dashboard) : positionJson;
 
   // store the header as a layout component so we can undo/redo changes
   layout[DASHBOARD_HEADER_ID] = {
@@ -107,8 +114,8 @@ export default function(bootstrapData) {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
     charts: chartQueries,
+    // read-only data
     dashboardInfo: {
-      // read-only data
       id: dashboard.id,
       slug: dashboard.slug,
       metadata: {
@@ -124,6 +131,9 @@ export default function(bootstrapData) {
       superset_can_explore: dashboard.superset_can_explore,
       slice_can_edit: dashboard.slice_can_edit,
       common,
+      v2AutoConvertDate,
+      v2FeedbackUrl,
+      forceV2Edit,
     },
     dashboardState: {
       sliceIds: Array.from(sliceIds),
@@ -131,10 +141,11 @@ export default function(bootstrapData) {
       filters,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       css: dashboard.css || '',
-      editMode: false,
-      showBuilderPane: false,
+      editMode: dashboard.dash_edit_perm && editMode,
+      showBuilderPane: dashboard.dash_edit_perm && editMode,
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
+      isV2Preview: shouldConvertToV2,
     },
     dashboardLayout,
     messageToasts: [],

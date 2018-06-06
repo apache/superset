@@ -22,6 +22,7 @@ const propTypes = {
   onSave: PropTypes.func.isRequired,
   isMenuItem: PropTypes.bool,
   canOverwrite: PropTypes.bool.isRequired,
+  isV2Preview: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -82,7 +83,8 @@ class SaveModal extends React.PureComponent {
       positions,
       css,
       expanded_slices: expandedSlices,
-      dashboard_title: dashboardTitle,
+      dashboard_title:
+        saveType === SAVE_TYPE_NEWDASHBOARD ? newDashName : dashboardTitle,
       default_filters: JSON.stringify(filters),
       duplicate_slices: this.state.duplicateSlices,
     };
@@ -102,12 +104,16 @@ class SaveModal extends React.PureComponent {
   }
 
   render() {
+    const { isV2Preview } = this.props;
     return (
       <ModalTrigger
         ref={this.setModalRef}
         isMenuItem={this.props.isMenuItem}
         triggerNode={this.props.triggerNode}
-        modalTitle={t('Save Dashboard')}
+        modalTitle={t(
+          'Save Dashboard%s',
+          isV2Preview ? ' (⚠️ all saved dashboards will be V2)' : '',
+        )}
         modalBody={
           <FormGroup>
             <Radio

@@ -14,7 +14,6 @@ import {
 
 import {
   CHART_TYPE,
-  COLUMN_TYPE,
   DASHBOARD_GRID_TYPE,
   DASHBOARD_ROOT_TYPE,
   ROW_TYPE,
@@ -25,7 +24,6 @@ import {
 import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
-  GRID_MIN_COLUMN_COUNT,
   NEW_COMPONENTS_SOURCE_ID,
   NEW_TABS_ID,
   NEW_ROW_ID,
@@ -54,6 +52,7 @@ describe('dashboardLayout reducer', () => {
           },
           parentId: {
             id: 'parentId',
+            type: ROW_TYPE,
             children: ['toDelete', 'anotherId'],
           },
         },
@@ -66,6 +65,42 @@ describe('dashboardLayout reducer', () => {
       parentId: {
         id: 'parentId',
         children: ['anotherId'],
+        type: ROW_TYPE,
+      },
+    });
+  });
+
+  it('should delete a parent if the parent was a row and no longer has children', () => {
+    expect(
+      layoutReducer(
+        {
+          grandparentId: {
+            id: 'grandparentId',
+            children: ['parentId'],
+          },
+          parentId: {
+            id: 'parentId',
+            type: ROW_TYPE,
+            children: ['toDelete'],
+          },
+          toDelete: {
+            id: 'toDelete',
+            children: ['child1'],
+          },
+          child1: {
+            id: 'child1',
+            children: [],
+          },
+        },
+        {
+          type: DELETE_COMPONENT,
+          payload: { id: 'toDelete', parentId: 'parentId' },
+        },
+      ),
+    ).to.deep.equal({
+      grandparentId: {
+        id: 'grandparentId',
+        children: [],
       },
     });
   });
@@ -168,41 +203,6 @@ describe('dashboardLayout reducer', () => {
         children: [],
       },
     });
-  });
-
-  it('should set the width of a moved component with column type parent to the minimum width', () => {
-    const layout = {
-      source: {
-        id: 'source',
-        type: ROW_TYPE,
-        children: ['dontMove', 'toMove'],
-      },
-      destination: {
-        id: 'destination',
-        type: COLUMN_TYPE,
-        children: [],
-        meta: { width: 100 },
-      },
-      toMove: {
-        id: 'toMove',
-        type: CHART_TYPE,
-        children: [],
-        meta: { width: 1001 },
-      },
-    };
-
-    const dropResult = {
-      source: { id: 'source', type: ROW_TYPE, index: 1 },
-      destination: { id: 'destination', type: COLUMN_TYPE, index: 0 },
-      dragging: { id: 'toMove', type: CHART_TYPE },
-    };
-
-    const result = layoutReducer(layout, {
-      type: MOVE_COMPONENT,
-      payload: { dropResult },
-    });
-
-    expect(result.toMove.meta.width).to.equal(GRID_MIN_COLUMN_COUNT);
   });
 
   it('should wrap a moved component in a row if need be', () => {

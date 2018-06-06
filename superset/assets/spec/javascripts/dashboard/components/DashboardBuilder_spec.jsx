@@ -13,8 +13,7 @@ import DashboardBuilder from '../../../../src/dashboard/components/DashboardBuil
 import DashboardComponent from '../../../../src/dashboard/containers/DashboardComponent';
 import DashboardHeader from '../../../../src/dashboard/containers/DashboardHeader';
 import DashboardGrid from '../../../../src/dashboard/containers/DashboardGrid';
-import DragDroppable from '../../../../src/dashboard/components/dnd/DragDroppable';
-
+import WithDragDropContext from '../helpers/WithDragDropContext';
 import {
   dashboardLayout as undoableDashboardLayout,
   dashboardLayoutWithTabs as undoableDashboardLayoutWithTabs,
@@ -32,12 +31,17 @@ describe('DashboardBuilder', () => {
     editMode: false,
     showBuilderPane: false,
     handleComponentDrop() {},
+    toggleBuilderPane() {},
   };
 
   function setup(overrideProps, useProvider = false, store = mockStore) {
     const builder = <DashboardBuilder {...props} {...overrideProps} />;
     return useProvider
-      ? mount(<Provider store={store}>{builder}</Provider>)
+      ? mount(
+          <Provider store={store}>
+            <WithDragDropContext>{builder}</WithDragDropContext>
+          </Provider>,
+        )
       : shallow(builder);
   }
 
@@ -56,21 +60,9 @@ describe('DashboardBuilder', () => {
     );
   });
 
-  it('should render a DashboardHeader', () => {
-    const wrapper = setup();
+  it('should render a DragDroppable DashboardHeader', () => {
+    const wrapper = setup(null, true);
     expect(wrapper.find(DashboardHeader)).to.have.length(1);
-  });
-
-  it('should render a DragDroppable DashboardHeader if editMode=true and no top-level Tabs exist', () => {
-    const withoutTabs = setup();
-    const withoutTabsEditMode = setup({ editMode: true });
-    const withTabs = setup({
-      dashboardLayout: layoutWithTabs,
-    });
-
-    expect(withoutTabs.find(DragDroppable)).to.have.length(0);
-    expect(withoutTabsEditMode.find(DragDroppable)).to.have.length(1);
-    expect(withTabs.find(DragDroppable)).to.have.length(0);
   });
 
   it('should render a Sticky top-level Tabs if the dashboard has tabs', () => {

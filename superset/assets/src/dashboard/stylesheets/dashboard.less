@@ -1,3 +1,40 @@
+/* header has mysterious extra margin */
+header.top {
+  margin-bottom: -20px;
+}
+
+body {
+  h1 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 24px;
+    letter-spacing: -0.2px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 20px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+  }
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 600;
+    line-height: normal;
+    font-size: 16px;
+    letter-spacing: 0.2px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+  p {
+    margin: 0 0 8px 0;
+  }
+}
+
 .dashboard .chart-header {
   position: relative;
   font-size: 16px;
@@ -44,6 +81,7 @@
     margin-left: -8px;
     height: 30px;
     width: 30px;
+    z-index: 10;
 
     &.btn.btn-primary {
       border-left-color: white;
@@ -109,13 +147,12 @@
     display: block;
   }
 
-  a[role="menuitem"] & {
+  a[role='menuitem'] & {
     width: 8px;
     height: 8px;
     margin-right: 8px;
   }
 }
-
 
 .modal img.loading {
   width: 50px;
@@ -145,11 +182,34 @@
   margin: 0 20px;
 }
 
-.dashboard .title .favstar {
-  font-size: 20px;
-  line-height: 1em;
-  position: relative;
-  top: -5px;
+.dashboard-header .dashboard-component-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .favstar {
+    font-size: 24px;
+    position: relative;
+    margin-left: 8px;
+  }
+
+  /* @TODO remove upon v1 deprecation */
+  .v2-preview-badge {
+    margin-left: 8px;
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 400;
+    background: linear-gradient(to bottom right, @pink, @purple);
+    color: white;
+    padding: 4px 8px;
+    line-height: 1em;
+    cursor: pointer;
+    opacity: 0.9;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
 }
 
 .ace_gutter {

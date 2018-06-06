@@ -128,12 +128,14 @@ describe('dashboardState reducer', () => {
     });
   });
 
-  it('should set unsaved changes and max undo history to false on save', () => {
+  it('should set unsaved changes, max undo history, and editMode to false on save', () => {
     expect(
       dashboardStateReducer({ hasUnsavedChanges: true }, { type: ON_SAVE }),
     ).to.deep.equal({
       hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
+      editMode: false,
+      isV2Preview: false, // @TODO remove upon v1 deprecation
     });
   });
 

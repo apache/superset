@@ -42,9 +42,14 @@ describe('DashboardGrid', () => {
     expect(wrapper.find(DashboardComponent)).to.have.length(2);
   });
 
-  it('should render two empty DragDroppables targets when editMode=true', () => {
-    const wrapper = setup({ editMode: true });
-    expect(wrapper.find(DragDroppable)).to.have.length(2);
+  it('should render an empty DragDroppables target when the gridComponent has no children', () => {
+    const withChildren = setup({ editMode: true });
+    const withoutChildren = setup({
+      editMode: true,
+      gridComponent: { ...props.gridComponent, children: [] },
+    });
+    expect(withChildren.find(DragDroppable)).to.have.length(0);
+    expect(withoutChildren.find(DragDroppable)).to.have.length(1);
   });
 
   it('should render grid column guides when resizing', () => {

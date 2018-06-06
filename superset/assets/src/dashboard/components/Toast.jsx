@@ -14,14 +14,9 @@ import {
 const propTypes = {
   toast: toastShape.isRequired,
   onCloseToast: PropTypes.func.isRequired,
-  delay: PropTypes.number,
-  duration: PropTypes.number, // if duration is >0, the toast will close on its own
 };
 
-const defaultProps = {
-  delay: 0,
-  duration: 0,
-};
+const defaultProps = {};
 
 class Toast extends React.Component {
   constructor(props) {
@@ -35,12 +30,12 @@ class Toast extends React.Component {
   }
 
   componentDidMount() {
-    const { delay, duration } = this.props;
+    const { toast } = this.props;
 
-    setTimeout(this.showToast, delay);
+    setTimeout(this.showToast);
 
-    if (duration > 0) {
-      this.hideTimer = setTimeout(this.handleClosePress, delay + duration);
+    if (toast.duration > 0) {
+      this.hideTimer = setTimeout(this.handleClosePress, toast.duration);
     }
   }
 
