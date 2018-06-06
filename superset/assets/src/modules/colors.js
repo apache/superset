@@ -202,35 +202,6 @@ export const getColorFromScheme = (function () {
   };
 }());
 
-export const getClassed = (function () {
-  const seen = {};
-  let i = 0;
-  return function (key) {
-    if (!key || !Array.isArray(key)) {
-      return 'solid';
-    }
-
-    const classes = [];
-    for (let j = 0; j < 10; j++) {
-      classes.push('time-shift-' + j);
-    }
-
-    let offset = null;
-    key.forEach((k) => {
-      if (TIME_SHIFT_PATTERN.test(k)) {
-        offset = k;
-      }
-    });
-    if (offset === null) {
-      return 'solid';
-    }
-    if (seen[offset] === undefined) {
-      seen[offset] = classes[i++ % classes.length];
-    }
-    return seen[offset];
-  };
-}());
-
 export const colorScalerFactory = function (colors, data, accessor, extents) {
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {

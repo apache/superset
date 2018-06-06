@@ -1,14 +1,15 @@
 import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import {
-  tryNumify,
-  slugify,
-  formatSelectOptionsForRange,
-  d3format,
   d3FormatPreset,
   d3TimeFormatPreset,
+  d3format,
   defaultNumberFormatter,
+  formatSelectOptionsForRange,
+  getClassed,
   mainMetric,
+  slugify,
+  tryNumify,
 } from '../../../src/modules/utils';
 
 describe('utils', () => {
@@ -103,5 +104,18 @@ describe('utils', () => {
       ];
       expect(mainMetric(metrics)).to.equal('foo');
     });
+  });
+  it('getClassed series with same offset should have the same class', () => {
+    const class1 = getClassed('main');
+    const class2 = getClassed(['main']);
+    const class3 = getClassed(['A', '1 hour offset']);
+    const class4 = getClassed(['A', '2 hours offset']);
+    const class5 = getClassed(['B', '1 hour offset']);
+
+    expect(class1).to.equal('solid');
+    expect(class2).to.equal('solid');
+    expect(class3).to.equal('time-shift-0');
+    expect(class4).to.equal('time-shift-1');
+    expect(class5).to.equal('time-shift-0');
   });
 });

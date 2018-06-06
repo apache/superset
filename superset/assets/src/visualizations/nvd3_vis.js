@@ -9,11 +9,11 @@ import moment from 'moment';
 import d3tip from 'd3-tip';
 import dompurify from 'dompurify';
 
-import { getClassed, getColorFromScheme } from '../modules/colors';
+import { getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
   applyNativeColumns,
 } from '../modules/AnnotationTypes';
-import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
+import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, getClassed, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
 import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
 import { t } from '../locales';
