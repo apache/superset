@@ -306,8 +306,8 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.name)
-        return Markup(
-            '<a href="{self.explore_url}">{name}</a>'.format(**locals()))
+        anchor = '<a target="_blank" href="{self.explore_url}">{name}</a>'
+        return Markup(anchor.format(**locals()))
 
     @property
     def schema_perm(self):

@@ -8,13 +8,17 @@
   cursor: move;
 }
 
+.new-component:not(.static):hover {
+  background: @gray-bg;
+}
+
 .new-component-placeholder {
   position: relative;
   background: @gray-bg;
   width: 40px;
   height: 40px;
   margin-right: 16px;
-  box-shadow: 0 0 1px white;
+  border: 1px solid white;
   display: flex;
   align-items: center;
   justify-content: center;
