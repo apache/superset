@@ -13,9 +13,8 @@ const NON_SHALLOW_DROP_THRESHOLD = 20;
 
 // We cache the last recorded clientOffset per component in order to
 // have access to it beyond the handleHover phase and into the handleDrop phase
-// of drag-and-drop, and accurately determine a drop position. we do not have access
-// to it during drop because react-dnd's monitor.getClientOffset() returns null at this
-// point
+// of drag-and-drop. we do not have access to it during drop because react-dnd's
+// monitor.getClientOffset() returns null at this point
 let CACHED_CLIENT_OFFSET = {};
 export function clearDropCache() {
   CACHED_CLIENT_OFFSET = {};
@@ -34,6 +33,15 @@ export default function getDropPosition(monitor, Component) {
 
   // if dropped self on self, do nothing
   if (!draggingItem || draggingItem.id === component.id) {
+    return null;
+  }
+
+  // TODO need a better solution to prevent nested tabs
+  if (
+    draggingItem.type === TABS_TYPE &&
+    component.type === TAB_TYPE &&
+    componentDepth === 2
+  ) {
     return null;
   }
 

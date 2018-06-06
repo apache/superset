@@ -69,7 +69,7 @@ const parentMaxDepthLookup = {
     [DIVIDER_TYPE]: depthTwo,
     [HEADER_TYPE]: depthTwo,
     [ROW_TYPE]: depthTwo,
-    [TABS_TYPE]: depthOne,
+    [TABS_TYPE]: depthTwo,
   },
 
   [COLUMN_TYPE]: {

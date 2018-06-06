@@ -281,7 +281,7 @@ describe('dashboardLayout actions', () => {
 
     it('should move a component if the component is not new', () => {
       const { getState, dispatch } = setup({
-        dashboardLayout: { present: { id: { type: ROW_TYPE } } },
+        dashboardLayout: { present: { id: { type: ROW_TYPE, children: [] } } },
       });
       const dropResult = {
         source: { id: 'id', index: 0, type: ROW_TYPE },

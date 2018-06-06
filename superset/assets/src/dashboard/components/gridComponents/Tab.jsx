@@ -157,7 +157,7 @@ export default class Tab extends React.PureComponent {
         // disable drag drop of top-level Tab's to prevent invalid nesting of a child in
         // itself, e.g. if a top-level Tab has a Tabs child, dragging the Tab into the Tabs would
         // reusult in circular children
-        disableDragDrop={depth === DASHBOARD_ROOT_DEPTH + 1}
+        disableDragDrop={depth <= DASHBOARD_ROOT_DEPTH + 1}
         editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (

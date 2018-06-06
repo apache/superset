@@ -69,8 +69,6 @@ export const Logger = {
       },
     });
 
-    console.log(eventData);
-
     // flush events for this logger
     log.events = {}; // eslint-disable-line no-param-reassign
   },

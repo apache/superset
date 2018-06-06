@@ -1,7 +1,6 @@
 import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
-  GRID_MIN_COLUMN_COUNT,
   NEW_COMPONENTS_SOURCE_ID,
 } from '../util/constants';
 import findParentId from '../util/findParentId';
@@ -9,14 +8,7 @@ import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
 import shouldWrapChildInRow from '../util/shouldWrapChildInRow';
-import {
-  CHART_TYPE,
-  COLUMN_TYPE,
-  MARKDOWN_TYPE,
-  ROW_TYPE,
-  TAB_TYPE,
-  TABS_TYPE,
-} from '../util/componentTypes';
+import { ROW_TYPE, TAB_TYPE, TABS_TYPE } from '../util/componentTypes';
 
 import {
   UPDATE_COMPONENTS,
