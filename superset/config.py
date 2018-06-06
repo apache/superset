@@ -414,7 +414,7 @@ SQL_QUERY_MUTATOR = None
 ENABLE_FLASK_COMPRESS = True
 
 # Dashboard v1 deprecation configuration
-DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS = False
+DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS = True
 CAN_FALLBACK_TO_DASH_V1_EDIT_MODE = True
 
 # these are incorporated into messages displayed to users

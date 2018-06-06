@@ -14,7 +14,7 @@ h1.outer-container {
   font-weight: 400;
   background: linear-gradient(to bottom right, #E32364, #2C2261);
   color: white;
-  padding: 8px;
+  padding: 4px 8px;
   line-height: 1em;
   cursor: pointer;
   opacity: 0.9;
