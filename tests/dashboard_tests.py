@@ -62,7 +62,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         positions = {
-            'DASHBOARD_VERSION_KEY': 'v2'
+            'DASHBOARD_VERSION_KEY': 'v2',
         }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
@@ -92,7 +92,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
         positions = {
-            'DASHBOARD_VERSION_KEY': 'v2'
+            'DASHBOARD_VERSION_KEY': 'v2',
         }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
@@ -139,7 +139,7 @@ class DashboardTests(SupersetTestCase):
         )
         origin_title = dash.dashboard_title
         positions = {
-            'DASHBOARD_VERSION_KEY': 'v2'
+            'DASHBOARD_VERSION_KEY': 'v2',
         }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
@@ -177,7 +177,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         positions = {
-            'DASHBOARD_VERSION_KEY': 'v2'
+            'DASHBOARD_VERSION_KEY': 'v2',
         }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
@@ -251,7 +251,7 @@ class DashboardTests(SupersetTestCase):
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
         positions = {
-            'DASHBOARD_VERSION_KEY': 'v2'
+            'DASHBOARD_VERSION_KEY': 'v2',
         }
         origin_slices_length = len(dash.slices)
         for i, slc in enumerate(dash.slices):
