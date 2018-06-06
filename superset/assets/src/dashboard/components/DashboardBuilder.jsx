@@ -57,12 +57,18 @@ class DashboardBuilder extends React.Component {
       tabIndex: 0, // top-level tabs
     };
     this.handleChangeTab = this.handleChangeTab.bind(this);
+    this.handleDeleteTopLevelTabs = this.handleDeleteTopLevelTabs.bind(this);
   }
 
   getChildContext() {
     return {
       dragDropManager: this.context.dragDropManager || getDragDropManager(),
     };
+  }
+
+  handleDeleteTopLevelTabs() {
+    this.props.deleteTopLevelTabs();
+    this.setState({ tabIndex: 0 });
   }
 
   handleChangeTab({ tabIndex }) {
@@ -77,13 +83,7 @@ class DashboardBuilder extends React.Component {
   }
 
   render() {
-    const {
-      handleComponentDrop,
-      dashboardLayout,
-      deleteTopLevelTabs,
-      editMode,
-    } = this.props;
-
+    const { handleComponentDrop, dashboardLayout, editMode } = this.props;
     const { tabIndex } = this.state;
     const dashboardRoot = dashboardLayout[DASHBOARD_ROOT_ID];
     const rootChildId = dashboardRoot.children[0];
@@ -124,7 +124,7 @@ class DashboardBuilder extends React.Component {
                   <IconButton
                     className="fa fa-level-down"
                     label="Collapse tab content"
-                    onClick={deleteTopLevelTabs}
+                    onClick={this.handleDeleteTopLevelTabs}
                   />,
                 ]}
                 editMode={editMode}
@@ -155,7 +155,7 @@ class DashboardBuilder extends React.Component {
                 */
                 <TabContainer
                   id={DASHBOARD_GRID_ID}
-                  activeKey={tabIndex}
+                  activeKey={Math.min(tabIndex, childIds.length - 1)}
                   onSelect={this.handleChangeTab}
                   animation
                   mountOnEnter
