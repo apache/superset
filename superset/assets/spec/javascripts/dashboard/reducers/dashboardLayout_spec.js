@@ -207,41 +207,6 @@ describe('dashboardLayout reducer', () => {
     });
   });
 
-  it('should set the width of a moved component with column type parent to the minimum width', () => {
-    const layout = {
-      source: {
-        id: 'source',
-        type: ROW_TYPE,
-        children: ['dontMove', 'toMove'],
-      },
-      destination: {
-        id: 'destination',
-        type: COLUMN_TYPE,
-        children: [],
-        meta: { width: 100 },
-      },
-      toMove: {
-        id: 'toMove',
-        type: CHART_TYPE,
-        children: [],
-        meta: { width: 1001 },
-      },
-    };
-
-    const dropResult = {
-      source: { id: 'source', type: ROW_TYPE, index: 1 },
-      destination: { id: 'destination', type: COLUMN_TYPE, index: 0 },
-      dragging: { id: 'toMove', type: CHART_TYPE },
-    };
-
-    const result = layoutReducer(layout, {
-      type: MOVE_COMPONENT,
-      payload: { dropResult },
-    });
-
-    expect(result.toMove.meta.width).to.equal(GRID_MIN_COLUMN_COUNT);
-  });
-
   it('should wrap a moved component in a row if need be', () => {
     const layout = {
       source: {

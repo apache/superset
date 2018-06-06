@@ -147,6 +147,8 @@ export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
 export const LOG_ACTIONS_PREVIEW_V2 = 'preview_dashboard_v2';
 export const LOG_ACTIONS_FALLBACK_TO_V1 = 'fallback_to_dashboard_v1';
 export const LOG_ACTIONS_READ_ABOUT_V2_CHANGES = 'read_about_v2_changes';
+export const LOG_ACTIONS_DISMISS_V2_PROMPT = 'dismiss_v2_conversion_prompt';
+export const LOG_ACTIONS_SHOW_V2_INFO_PROMPT = 'show_v2_conversion_prompt';
 
 export const DASHBOARD_EVENT_NAMES = [
   LOG_ACTIONS_MOUNT_DASHBOARD,
@@ -163,6 +165,8 @@ export const DASHBOARD_EVENT_NAMES = [
   LOG_ACTIONS_PREVIEW_V2,
   LOG_ACTIONS_FALLBACK_TO_V1,
   LOG_ACTIONS_READ_ABOUT_V2_CHANGES,
+  LOG_ACTIONS_DISMISS_V2_PROMPT,
+  LOG_ACTIONS_SHOW_V2_INFO_PROMPT,
 ];
 
 export const EXPLORE_EVENT_NAMES = [

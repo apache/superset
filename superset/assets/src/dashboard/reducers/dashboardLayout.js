@@ -89,28 +89,8 @@ const actionHandlers = {
     const {
       payload: { dropResult },
     } = action;
-    const { destination, dragging } = dropResult;
+
     const newEntities = newEntitiesFromDrop({ dropResult, layout: state });
-
-    // if column is a parent, set any resizable children to have a minimum width so that
-    // the chances that they are validly movable to future containers is maximized
-    if (
-      destination.type === COLUMN_TYPE &&
-      [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)
-    ) {
-      const newEntitiesArray = Object.values(newEntities);
-      const component = newEntitiesArray.find(
-        entity => entity.type === dragging.type,
-      );
-
-      newEntities[component.id] = {
-        ...component,
-        meta: {
-          ...component.meta,
-          width: GRID_MIN_COLUMN_COUNT,
-        },
-      };
-    }
 
     return {
       ...state,
@@ -145,22 +125,6 @@ const actionHandlers = {
       newRow.children = [destinationChildren[destination.index]];
       destinationChildren[destination.index] = newRow.id;
       nextEntities[newRow.id] = newRow;
-    }
-
-    // if column is a parent, set any resizable children to have a minimum width so that
-    // the chances that they are validly movable to future containers is maximized
-    if (
-      destination.type === COLUMN_TYPE &&
-      [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)
-    ) {
-      const component = nextEntities[dragging.id];
-      nextEntities[dragging.id] = {
-        ...component,
-        meta: {
-          ...component.meta,
-          width: GRID_MIN_COLUMN_COUNT,
-        },
-      };
     }
 
     return {

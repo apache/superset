@@ -160,8 +160,7 @@ export function handleComponentDrop(dropResult) {
     if (overflowsParent) {
       return dispatch(
         addInfoToast(
-          `Parent does not have enough space for this component.
-         Try decreasing its width or add it to a new row.`,
+          `Parent does not have enough space for this component. Try decreasing its width or add it to a new row.`,
         ),
       );
     }

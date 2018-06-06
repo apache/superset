@@ -6,6 +6,13 @@ import EditableTitle from '../../../../components/EditableTitle';
 import Button from '../../../../components/Button';
 import FaveStar from '../../../../components/FaveStar';
 import InfoTooltipWithTrigger from '../../../../components/InfoTooltipWithTrigger';
+import PromptV2ConversionModal from '../../PromptV2ConversionModal';
+import {
+  Logger,
+  LOG_ACTIONS_PREVIEW_V2,
+  LOG_ACTIONS_DISMISS_V2_PROMPT,
+  LOG_ACTIONS_SHOW_V2_INFO_PROMPT,
+} from '../../../../logger';
 import { t } from '../../../../locales';
 
 const propTypes = {
@@ -32,12 +39,52 @@ class Header extends React.PureComponent {
     super(props);
     this.handleSaveTitle = this.handleSaveTitle.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
+    this.state = {
+      showV2PromptModal: props.dashboard.promptV2Conversion,
+    };
+    this.toggleShowV2PromptModal = this.toggleShowV2PromptModal.bind(this);
+    this.handleConvertToV2 = this.handleConvertToV2.bind(this);
   }
   handleSaveTitle(title) {
     this.props.updateDashboardTitle(title);
   }
+  handleConvertToV2(editMode) {
+    Logger.append(
+      LOG_ACTIONS_PREVIEW_V2,
+      {
+        force_v2_edit: this.props.dashboard.forceV2Edit,
+        edit_mode: editMode === true,
+      },
+      true,
+    );
+    const url = new URL(window.location); // eslint-disable-line
+    url.searchParams.set('version', 'v2');
+    if (editMode === true) url.searchParams.set('edit', true);
+    window.location = url; // eslint-disable-line
+  }
   toggleEditMode() {
     this.props.setEditMode(!this.props.editMode);
+  }
+  toggleShowV2PromptModal() {
+    const nextShowModal = !this.state.showV2PromptModal;
+    this.setState({ showV2PromptModal: nextShowModal });
+    if (nextShowModal) {
+      Logger.append(
+        LOG_ACTIONS_SHOW_V2_INFO_PROMPT,
+        {
+          force_v2_edit: this.props.dashboard.forceV2Edit,
+        },
+        true,
+      );
+    } else {
+      Logger.append(
+        LOG_ACTIONS_DISMISS_V2_PROMPT,
+        {
+          force_v2_edit: this.props.dashboard.forceV2Edit,
+        },
+        true,
+      );
+    }
   }
   renderUnsaved() {
     if (!this.props.unsavedChanges) {
@@ -80,7 +127,7 @@ class Header extends React.PureComponent {
               onSaveTitle={this.handleSaveTitle}
               showTooltip={this.props.editMode}
             />
-            <span className="favstar m-r-5">
+            <span className="favstar m-l-5">
               <FaveStar
                 itemId={dashboard.id}
                 fetchFaveStar={this.props.fetchFaveStar}
@@ -88,6 +135,16 @@ class Header extends React.PureComponent {
                 isStarred={this.props.isStarred}
               />
             </span>
+            {dashboard.promptV2Conversion && (
+              <span
+                role="none"
+                className="v2-preview-badge"
+                onClick={this.toggleShowV2PromptModal}
+              >
+                {t('Convert to v2')}
+                <span className="fa fa-info-circle m-l-5" />
+              </span>
+            )}
             {this.renderUnsaved()}
           </h1>
         </div>
@@ -107,6 +164,17 @@ class Header extends React.PureComponent {
           />
         </div>
         <div className="clearfix" />
+        {this.state.showV2PromptModal &&
+          dashboard.promptV2Conversion &&
+          !this.props.editMode && (
+            <PromptV2ConversionModal
+              onClose={this.toggleShowV2PromptModal}
+              handleConvertToV2={this.handleConvertToV2}
+              forceV2Edit={dashboard.forceV2Edit}
+              v2AutoConvertDate={dashboard.v2AutoConvertDate}
+              v2FeedbackUrl={dashboard.v2FeedbackUrl}
+            />
+          )}
       </div>
     );
   }

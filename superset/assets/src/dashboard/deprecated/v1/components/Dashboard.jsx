@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import AlertsWrapper from '../../../../components/AlertsWrapper';
 import GridLayout from './GridLayout';
 import Header from './Header';
-import PromptV2ConversionModal from '../../PromptV2ConversionModal';
 import { exportChart } from '../../../../explore/exploreUtils';
 import { areObjectsEqual } from '../../../../reduxUtils';
 import {
@@ -17,7 +16,6 @@ import {
   LOG_ACTIONS_FIRST_DASHBOARD_LOAD,
   LOG_ACTIONS_REFRESH_CHART,
   LOG_ACTIONS_REFRESH_DASHBOARD,
-  LOG_ACTIONS_PREVIEW_V2,
 } from '../../../../logger';
 
 import { t } from '../../../../locales';
@@ -68,11 +66,8 @@ class Dashboard extends React.PureComponent {
     // alert for unsaved changes
     this.state = {
       unsavedChanges: false,
-      hideV2ConversionPromptModal: false,
     };
-    this.handleCloseV2Prompt = this.handleCloseV2Prompt.bind(this);
     this.handleSetEditMode = this.handleSetEditMode.bind(this);
-    this.handleConvertToV2 = this.handleConvertToV2.bind(this);
 
     this.rerenderCharts = this.rerenderCharts.bind(this);
     this.updateDashboardTitle = this.updateDashboardTitle.bind(this);
@@ -173,10 +168,6 @@ class Dashboard extends React.PureComponent {
 
   getFilters(sliceId) {
     return this.props.filters[sliceId];
-  }
-
-  handleCloseV2Prompt() {
-    this.setState({ hideV2ConversionPromptModal: true });
   }
 
   unload() {
@@ -363,21 +354,6 @@ class Dashboard extends React.PureComponent {
     }
   }
 
-  handleConvertToV2(editMode) {
-    Logger.append(
-      LOG_ACTIONS_PREVIEW_V2,
-      {
-        force_v2_edit: this.props.dashboard.forceV2Edit,
-        edit_mode: editMode === true,
-      },
-      true,
-    );
-    const url = new URL(window.location); // eslint-disable-line
-    url.searchParams.set('version', 'v2');
-    if (editMode === true) url.searchParams.set('edit', true);
-    window.location = url; // eslint-disable-line
-  }
-
   // re-render chart without fetch
   rerenderCharts() {
     this.getAllSlices().forEach((slice) => {
@@ -389,20 +365,8 @@ class Dashboard extends React.PureComponent {
 
   render() {
     const { dashboard, editMode } = this.props;
-    const { hideV2ConversionPromptModal } = this.state;
     return (
       <div id="dashboard-container">
-        {dashboard.promptV2Conversion &&
-          !hideV2ConversionPromptModal &&
-          !editMode && (
-            <PromptV2ConversionModal
-              onClose={this.handleCloseV2Prompt}
-              handleConvertToV2={this.handleConvertToV2}
-              forceV2Edit={dashboard.forceV2Edit}
-              v2AutoConvertDate={dashboard.v2AutoConvertDate}
-              v2FeedbackUrl={dashboard.v2FeedbackUrl}
-            />
-          )}
         <div id="dashboard-header">
           <AlertsWrapper initMessages={this.props.initMessages} />
           <Header

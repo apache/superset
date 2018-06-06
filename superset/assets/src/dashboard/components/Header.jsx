@@ -148,6 +148,7 @@ class Header extends React.PureComponent {
 
     const userCanEdit = dashboardInfo.dash_edit_perm;
     const userCanSaveAs = dashboardInfo.dash_save_perm;
+    const popButton = hasUnsavedChanges || isV2Preview;
 
     return (
       <div className="dashboard-header">
@@ -213,34 +214,56 @@ class Header extends React.PureComponent {
                 </Button>
               )}
 
-              {hasUnsavedChanges && editMode ? (
-                <Button
-                  bsSize="small"
-                  bsStyle={
-                    hasUnsavedChanges || isV2Preview ? 'primary' : undefined
-                  }
-                  onClick={this.overwriteDashboard}
-                >
-                  {isV2Preview
-                    ? t('Persist as v2 Dashboard')
-                    : t('Save changes')}
-                </Button>
-              ) : (
-                <Button
-                  bsSize="small"
-                  onClick={this.toggleEditMode}
-                  bsStyle={
-                    hasUnsavedChanges || isV2Preview ? 'primary' : undefined
-                  }
-                  disabled={!userCanEdit}
-                >
-                  {editMode
-                    ? t('Switch to view mode')
-                    : (isV2Preview &&
-                        t('Edit & save to persist v2 dashboard')) ||
-                      t('Edit dashboard')}
-                </Button>
-              )}
+              {editMode &&
+                (hasUnsavedChanges || isV2Preview) && (
+                  <Button
+                    bsSize="small"
+                    bsStyle={popButton ? 'primary' : undefined}
+                    onClick={this.overwriteDashboard}
+                  >
+                    {isV2Preview
+                      ? t('Persist as Dashboard v2')
+                      : t('Save changes')}
+                  </Button>
+                )}
+
+              {!editMode &&
+                isV2Preview && (
+                  <Button
+                    bsSize="small"
+                    onClick={this.toggleEditMode}
+                    bsStyle={popButton ? 'primary' : undefined}
+                    disabled={!userCanEdit}
+                  >
+                    {t('Edit to persist Dashboard v2')}
+                  </Button>
+                )}
+
+              {!editMode &&
+                !isV2Preview &&
+                !hasUnsavedChanges && (
+                  <Button
+                    bsSize="small"
+                    onClick={this.toggleEditMode}
+                    bsStyle={popButton ? 'primary' : undefined}
+                    disabled={!userCanEdit}
+                  >
+                    {t('Edit dashboard')}
+                  </Button>
+                )}
+
+              {editMode &&
+                !isV2Preview &&
+                !hasUnsavedChanges && (
+                  <Button
+                    bsSize="small"
+                    onClick={this.toggleEditMode}
+                    bsStyle={undefined}
+                    disabled={!userCanEdit}
+                  >
+                    {t('Switch to view mode')}
+                  </Button>
+                )}
 
               <HeaderActionsDropdown
                 addSuccessToast={this.props.addSuccessToast}

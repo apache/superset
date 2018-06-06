@@ -143,7 +143,7 @@ export default function(bootstrapData) {
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,
       showBuilderPane: dashboard.dash_edit_perm && editMode,
-      hasUnsavedChanges: shouldConvertToV2, // enable saving as v2 without further change
+      hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       isV2Preview: shouldConvertToV2,
     },

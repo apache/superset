@@ -111,8 +111,9 @@ class HeaderActionsDropdown extends React.PureComponent {
           isMenuItem
           triggerNode={<span>{t('Save as')}</span>}
           canOverwrite={userCanEdit}
+          isV2Preview={isV2Preview}
         />
-        {hasUnsavedChanges && (
+        {(isV2Preview || hasUnsavedChanges) && (
           <MenuItem
             eventKey="discard"
             onSelect={HeaderActionsDropdown.discardChanges}

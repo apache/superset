@@ -47,6 +47,7 @@ const markdownPlaceHolder = `# ✨Markdown
 ### ✨Markdown
 
 <br />
+
 Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
 class Markdown extends React.PureComponent {

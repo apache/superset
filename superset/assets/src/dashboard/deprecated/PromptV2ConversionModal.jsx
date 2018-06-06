@@ -38,42 +38,51 @@ function PromptV2ConversionModal({
   return (
     <Modal onHide={onClose} onExit={onClose} animation show>
       <Modal.Header closeButton>
-        <Modal.Title>{t('Convert to Dashboard v2 🎉')}</Modal.Title>
+        <div style={{ fontSize: 20, fontWeight: 200, margin: '0px 4px -4px' }}>
+          {t('Convert to Dashboard v2 🎉')}
+        </div>
       </Modal.Header>
       <Modal.Body>
-        {t('The new dashboard v2 experience is here! 🚀')}
+        <h4>{t('Who')}</h4>
+        <p>
+          {t(
+            "As this dashboard's owner or a Superset Admin, we're soliciting your help to ensure a successful transition to the new dashboard experience.",
+          )}
+        </p>
         <br />
-        <br />
-        {t('You have ')}
-        <strong>
-          {timeUntilAutoConversion}
-          {t(' to convert this v1 dashboard to the new v2 format')}
-        </strong>
-        {t(' before it is done automatically. ')}
-        {forceV2Edit && <br />}
-        {forceV2Edit && <br />}
-        {forceV2Edit && (
-          <em>{t('You may only edit dashboards using the v2 experience.')}</em>
-        )}
-        <br />
-        <br />
-        {t('Read more about these changes ')}
-        <a
-          target="_blank"
-          rel="noopener noreferrer"
-          href="https://gist.github.com/williaster/bad4ac9c6a71b234cf9fc8ee629844e5#file-superset-dashboard-v2-md"
-          onClick={logReadAboutV2Changes}
-        >
-          here
-        </a>
-        {v2FeedbackUrl ? ' or ' : ''}
-        {v2FeedbackUrl ? (
-          <a target="_blank" href={v2FeedbackUrl}>
-            {t('provide feedback')}
+        <h4>{t('What and When')}</h4>
+        <p>
+          {t('You have ')}
+          <strong>
+            {timeUntilAutoConversion}
+            {t(' to convert this v1 dashboard to the new v2 format')}
+          </strong>
+          {t(' before it is auto-converted. ')}
+          {forceV2Edit && (
+            <em>
+              {t(
+                'Note that you may only edit dashboards using the v2 experience.',
+              )}
+            </em>
+          )}
+          {t('You may read more about these changes ')}
+          <a
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://gist.github.com/williaster/bad4ac9c6a71b234cf9fc8ee629844e5#file-superset-dashboard-v2-md"
+            onClick={logReadAboutV2Changes}
+          >
+            here
           </a>
-        ) : (
-          ''
-        )}.
+          {v2FeedbackUrl ? t(' or ') : ''}
+          {v2FeedbackUrl ? (
+            <a target="_blank" rel="noopener noreferrer" href={v2FeedbackUrl}>
+              {t('provide feedback')}
+            </a>
+          ) : (
+            ''
+          )}.
+        </p>
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={onClose}>
