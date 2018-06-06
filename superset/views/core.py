@@ -1604,7 +1604,7 @@ class Superset(BaseSupersetView):
     @staticmethod
     def _set_dash_metadata(dashboard, data):
         positions = data['positions']
-        is_v2_dash =  (
+        is_v2_dash = (
             isinstance(positions, dict) and
             positions.get('DASHBOARD_VERSION_KEY') == 'v2'
         )
@@ -2127,14 +2127,17 @@ class Superset(BaseSupersetView):
         #   view = v2
         #   edit = v2
         dashboard_layout = dash.data.get('position_json', {})
-        is_v2_dash =  (
+        is_v2_dash = (
             isinstance(dashboard_layout, dict) and
             dashboard_layout.get('DASHBOARD_VERSION_KEY') == 'v2'
         )
 
         force_v1 = request.args.get('version') == 'v1' and not is_v2_dash
         force_v2 = request.args.get('version') == 'v2'
-        force_v2_edit = is_v2_dash or not app.config.get('CAN_FALLBACK_TO_DASH_V1_EDIT_MODE')
+        force_v2_edit = (
+            is_v2_dash or
+            not app.config.get('CAN_FALLBACK_TO_DASH_V1_EDIT_MODE')
+        )
         v2_is_default_view = app.config.get('DASH_V2_IS_DEFAULT_VIEW_FOR_EDITORS')
         prompt_v2_conversion = False
         if is_v2_dash:

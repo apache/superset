@@ -61,7 +61,9 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = {}
+        positions = {
+            'DASHBOARD_VERSION_KEY': 'v2'
+        }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
             d = {
@@ -89,7 +91,9 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
-        positions = {}
+        positions = {
+            'DASHBOARD_VERSION_KEY': 'v2'
+        }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
             d = {
@@ -134,7 +138,9 @@ class DashboardTests(SupersetTestCase):
             .first()
         )
         origin_title = dash.dashboard_title
-        positions = {}
+        positions = {
+            'DASHBOARD_VERSION_KEY': 'v2'
+        }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
             d = {
@@ -170,7 +176,9 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = {}
+        positions = {
+            'DASHBOARD_VERSION_KEY': 'v2'
+        }
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
             d = {
@@ -242,7 +250,9 @@ class DashboardTests(SupersetTestCase):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
             slug='births').first()
-        positions = {}
+        positions = {
+            'DASHBOARD_VERSION_KEY': 'v2'
+        }
         origin_slices_length = len(dash.slices)
         for i, slc in enumerate(dash.slices):
             id = 'DASHBOARD_CHART_TYPE-{}'.format(i)
