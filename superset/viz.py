@@ -2635,7 +2635,7 @@ class LineBarViz(NVD3Viz):
                     for ds in df.index
                 ],
                 'yAxis': i + 1,
-                'type': 'bar' if i==0 else 'line',
+                'type': 'bar' if i == 0 else 'line',
             }
             chart_data.append(d)
         return chart_data
