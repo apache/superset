@@ -2582,6 +2582,7 @@ class PartitionViz(NVD3TimeSeriesViz):
             levels = self.levels_for('agg_sum', [DTTM_ALIAS] + groups, df)
         return self.nest_values(levels)
 
+
 class LineBarViz(NVD3Viz):
 
     """A simple line bar chart with dual axis"""
