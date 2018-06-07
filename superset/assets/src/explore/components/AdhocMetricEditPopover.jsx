@@ -225,9 +225,9 @@ export default class AdhocMetricEditPopover extends React.Component {
               <OnPasteSelect {...this.selectProps} {...aggregateSelectProps} />
             </FormGroup>
           </Tab>
-          {
-            this.props.datasourceType !== 'druid' &&
-            <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">
+          <Tab className="adhoc-metric-edit-tab" eventKey={EXPRESSION_TYPES.SQL} title="Custom SQL">
+            {
+              this.props.datasourceType !== 'druid' ?
               <FormGroup>
                 <AceEditor
                   ref={this.handleAceEditorRef}
@@ -243,9 +243,12 @@ export default class AdhocMetricEditPopover extends React.Component {
                   className="adhoc-filter-sql-editor"
                   wrapEnabled
                 />
-              </FormGroup>
-            </Tab>
-          }
+              </FormGroup> :
+              <div className="custom-sql-disabled-message">
+                Custom SQL Metrics are not available on druid datasources
+              </div>
+            }
+          </Tab>
         </Tabs>
         <div>
           <Button
