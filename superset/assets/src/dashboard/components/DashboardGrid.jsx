@@ -108,26 +108,25 @@ class DashboardGrid extends React.PureComponent {
             />
           ))}
 
-          {/* make the grid droppable in the case that there are no children */}
-          {editMode &&
-            gridComponent.children.length === 0 && (
-              <DragDroppable
-                component={gridComponent}
-                depth={depth}
-                parentComponent={null}
-                index={gridComponent.children.length}
-                orientation="column"
-                onDrop={handleComponentDrop}
-                className="empty-grid-droptarget--bottom"
-                editMode
-              >
-                {({ dropIndicatorProps }) =>
-                  dropIndicatorProps && (
-                    <div className="drop-indicator drop-indicator--top" />
-                  )
-                }
-              </DragDroppable>
-            )}
+          {/* make the area below components droppable */}
+          {editMode && (
+            <DragDroppable
+              component={gridComponent}
+              depth={depth}
+              parentComponent={null}
+              index={gridComponent.children.length}
+              orientation="column"
+              onDrop={handleComponentDrop}
+              className="empty-grid-droptarget--bottom"
+              editMode
+            >
+              {({ dropIndicatorProps }) =>
+                dropIndicatorProps && (
+                  <div className="drop-indicator drop-indicator--top" />
+                )
+              }
+            </DragDroppable>
+          )}
 
           {isResizing &&
             Array(GRID_COLUMN_COUNT)

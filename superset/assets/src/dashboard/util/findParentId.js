@@ -2,7 +2,7 @@ export default function findParentId({ childId, layout = {} }) {
   let parentId = null;
 
   const ids = Object.keys(layout);
-  for (let i = 0; i < ids.length - 1; i += 1) {
+  for (let i = 0; i <= ids.length - 1; i += 1) {
     const id = ids[i];
     const component = layout[id] || {};
     if (
