@@ -3,7 +3,6 @@ import d3 from 'd3';
 import $ from 'jquery';
 
 import { formatDate, UTC } from './dates';
-import { TIME_SHIFT_PATTERN } from '../utils/common';
 
 const siFormatter = d3.format('.3s');
 
