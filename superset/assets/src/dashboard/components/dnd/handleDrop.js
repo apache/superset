@@ -1,4 +1,5 @@
 import getDropPosition, {
+  clearDropCache,
   DROP_TOP,
   DROP_RIGHT,
   DROP_BOTTOM,
@@ -75,6 +76,7 @@ export default function handleDrop(props, monitor, Component) {
   }
 
   onDrop(dropResult);
+  clearDropCache();
 
   return dropResult;
 }

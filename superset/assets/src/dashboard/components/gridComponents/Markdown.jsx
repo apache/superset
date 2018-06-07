@@ -41,8 +41,14 @@ const propTypes = {
 };
 
 const defaultProps = {};
-const markdownPlaceHolder = `### New Markdown
-Insert *bold* or _italic_ text, and (urls)[www.url.com] here.`;
+
+const markdownPlaceHolder = `# ✨Markdown
+## ✨Markdown
+### ✨Markdown
+
+<br />
+
+Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
 
 class Markdown extends React.PureComponent {
   constructor(props) {
@@ -51,7 +57,7 @@ class Markdown extends React.PureComponent {
       isFocused: false,
       markdownSource: props.component.meta.code,
       editor: null,
-      editorMode: props.component.meta.code ? 'preview' : 'edit', // show edit mode when code is empty
+      editorMode: 'preview',
     };
 
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
@@ -59,6 +65,13 @@ class Markdown extends React.PureComponent {
     this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.setEditor = this.setEditor.bind(this);
+  }
+
+  componentWillReceiveProps(nextProps) {
+    const nextSource = nextProps.component.meta.code;
+    if (this.state.markdownSource !== nextSource) {
+      this.setState({ markdownSource: nextSource });
+    }
   }
 
   componentDidUpdate(prevProps) {
@@ -79,7 +92,10 @@ class Markdown extends React.PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    this.setState(() => ({ isFocused: Boolean(nextFocus) }));
+    const nextFocused = !!nextFocus;
+    const nextEditMode = nextFocused ? 'edit' : 'preview';
+    this.setState(() => ({ isFocused: nextFocused }));
+    this.handleChangeEditorMode(nextEditMode);
   }
 
   handleChangeEditorMode(mode) {
@@ -120,10 +136,15 @@ class Markdown extends React.PureComponent {
         mode="markdown"
         theme="textmate"
         onChange={this.handleMarkdownChange}
-        width={'100%'}
-        height={'100%'}
+        width="100%"
+        height="100%"
         editorProps={{ $blockScrolling: true }}
-        value={this.state.markdownSource || markdownPlaceHolder}
+        value={
+          // thisl allows "select all => delete" to give an empty editor
+          typeof this.state.markdownSource === 'string'
+            ? this.state.markdownSource
+            : markdownPlaceHolder
+        }
         readOnly={false}
         onLoad={this.setEditor}
       />
@@ -132,7 +153,10 @@ class Markdown extends React.PureComponent {
 
   renderPreviewMode() {
     return (
-      <ReactMarkdown source={this.state.markdownSource} escapeHtml={false} />
+      <ReactMarkdown
+        source={this.state.markdownSource || markdownPlaceHolder}
+        escapeHtml={false}
+      />
     );
   }
 
@@ -163,7 +187,7 @@ class Markdown extends React.PureComponent {
       <DragDroppable
         component={component}
         parentComponent={parentComponent}
-        orientation={depth % 2 === 1 ? 'column' : 'row'}
+        orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}
@@ -198,7 +222,9 @@ class Markdown extends React.PureComponent {
                 onResizeStart={onResizeStart}
                 onResize={onResize}
                 onResizeStop={onResizeStop}
-                editMode={editMode}
+                // disable resize when editing because if state is not synced
+                // with props it will reset the editor text to whatever props is
+                editMode={isFocused ? false : editMode}
               >
                 <div
                   ref={dragSourceRef}
@@ -208,10 +234,9 @@ class Markdown extends React.PureComponent {
                     ? this.renderEditMode()
                     : this.renderPreviewMode()}
                 </div>
-
-                {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </ResizableContainer>
             </div>
+            {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </WithPopoverMenu>
         )}
       </DragDroppable>

@@ -6,12 +6,27 @@ import { initSliceEntities } from './sliceEntities';
 import { getParam } from '../../modules/utils';
 import { applyDefaultFormData } from '../../explore/store';
 import { getColorFromScheme } from '../../modules/colors';
+import findFirstParentContainerId from '../util/findFirstParentContainer';
 import layoutConverter from '../util/dashboardLayoutConverter';
+import getEmptyLayout from '../util/getEmptyLayout';
+import newComponentFactory from '../util/newComponentFactory';
 import { DASHBOARD_VERSION_KEY, DASHBOARD_HEADER_ID } from '../util/constants';
-import { DASHBOARD_HEADER_TYPE, CHART_TYPE } from '../util/componentTypes';
+import {
+  DASHBOARD_HEADER_TYPE,
+  CHART_TYPE,
+  ROW_TYPE,
+} from '../util/componentTypes';
 
 export default function(bootstrapData) {
-  const { user_id, datasources, common } = bootstrapData;
+  const {
+    user_id,
+    datasources,
+    common,
+    editMode,
+    force_v2_edit: forceV2Edit,
+    v2_auto_convert_date: v2AutoConvertDate,
+    v2_feedback_url: v2FeedbackUrl,
+  } = bootstrapData;
   delete common.locale;
   delete common.language_pack;
 
@@ -37,26 +52,12 @@ export default function(bootstrapData) {
 
   // dashboard layout
   const { position_json: positionJson } = dashboard;
+  const shouldConvertToV2 =
+    !positionJson || positionJson[DASHBOARD_VERSION_KEY] !== 'v2';
 
-  const layout =
-    !positionJson || positionJson[DASHBOARD_VERSION_KEY] !== 'v2'
-      ? layoutConverter(dashboard)
-      : positionJson;
-
-  // store the header as a layout component so we can undo/redo changes
-  layout[DASHBOARD_HEADER_ID] = {
-    id: DASHBOARD_HEADER_ID,
-    type: DASHBOARD_HEADER_TYPE,
-    meta: {
-      text: dashboard.dashboard_title,
-    },
-  };
-
-  const dashboardLayout = {
-    past: [],
-    present: layout,
-    future: [],
-  };
+  const layout = shouldConvertToV2
+    ? layoutConverter(dashboard)
+    : positionJson || getEmptyLayout();
 
   // create a lookup to sync layout names with slice names
   const chartIdToLayoutId = {};
@@ -66,6 +67,9 @@ export default function(bootstrapData) {
     }
   });
 
+  // find root level chart container node for newly-added slices
+  const parentId = findFirstParentContainerId(layout);
+  let hasUnsavedChanges = false;
   const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
@@ -92,6 +96,23 @@ export default function(bootstrapData) {
       };
 
       sliceIds.add(key);
+
+      // if chart is newly added from explore view, add a row in layout
+      if (!chartIdToLayoutId[key] && layout[parentId]) {
+        const parent = layout[parentId];
+        const rowContainer = newComponentFactory(ROW_TYPE);
+        layout[rowContainer.id] = rowContainer;
+        parent.children.push(rowContainer.id);
+
+        const chartHolder = newComponentFactory(CHART_TYPE, {
+          chartId: slice.slice_id,
+        });
+
+        layout[chartHolder.id] = chartHolder;
+        rowContainer.children.push(chartHolder.id);
+        chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
+        hasUnsavedChanges = true;
+      }
     }
 
     // sync layout names with current slice names in case a slice was edited
@@ -103,12 +124,27 @@ export default function(bootstrapData) {
     }
   });
 
+  // store the header as a layout component so we can undo/redo changes
+  layout[DASHBOARD_HEADER_ID] = {
+    id: DASHBOARD_HEADER_ID,
+    type: DASHBOARD_HEADER_TYPE,
+    meta: {
+      text: dashboard.dashboard_title,
+    },
+  };
+
+  const dashboardLayout = {
+    past: [],
+    present: layout,
+    future: [],
+  };
+
   return {
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
     charts: chartQueries,
+    // read-only data
     dashboardInfo: {
-      // read-only data
       id: dashboard.id,
       slug: dashboard.slug,
       metadata: {
@@ -124,6 +160,9 @@ export default function(bootstrapData) {
       superset_can_explore: dashboard.superset_can_explore,
       slice_can_edit: dashboard.slice_can_edit,
       common,
+      v2AutoConvertDate,
+      v2FeedbackUrl,
+      forceV2Edit,
     },
     dashboardState: {
       sliceIds: Array.from(sliceIds),
@@ -131,10 +170,11 @@ export default function(bootstrapData) {
       filters,
       expandedSlices: dashboard.metadata.expanded_slices || {},
       css: dashboard.css || '',
-      editMode: false,
-      showBuilderPane: false,
-      hasUnsavedChanges: false,
+      editMode: dashboard.dash_edit_perm && editMode,
+      showBuilderPane: dashboard.dash_edit_perm && editMode,
+      hasUnsavedChanges,
       maxUndoHistoryExceeded: false,
+      isV2Preview: shouldConvertToV2,
     },
     dashboardLayout,
     messageToasts: [],

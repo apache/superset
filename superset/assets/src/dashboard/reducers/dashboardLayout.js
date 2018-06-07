@@ -1,21 +1,14 @@
 import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
-  GRID_MIN_COLUMN_COUNT,
   NEW_COMPONENTS_SOURCE_ID,
 } from '../util/constants';
+import findParentId from '../util/findParentId';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
 import shouldWrapChildInRow from '../util/shouldWrapChildInRow';
-import {
-  CHART_TYPE,
-  COLUMN_TYPE,
-  MARKDOWN_TYPE,
-  ROW_TYPE,
-  TAB_TYPE,
-  TABS_TYPE,
-} from '../util/componentTypes';
+import { ROW_TYPE, TAB_TYPE, TABS_TYPE } from '../util/componentTypes';
 
 import {
   UPDATE_COMPONENTS,
@@ -46,7 +39,6 @@ const actionHandlers = {
 
     const nextComponents = { ...state };
 
-    // recursively find children to remove
     function recursivelyDeleteChildren(componentId, componentParentId) {
       // delete child and it's children
       const component = nextComponents[componentId];
@@ -73,6 +65,14 @@ const actionHandlers = {
     }
 
     recursivelyDeleteChildren(id, parentId);
+    const nextParent = nextComponents[parentId];
+    if (nextParent.type === ROW_TYPE && nextParent.children.length === 0) {
+      const grandparentId = findParentId({
+        childId: parentId,
+        layout: nextComponents,
+      });
+      recursivelyDeleteChildren(parentId, grandparentId);
+    }
 
     return nextComponents;
   },
@@ -81,28 +81,8 @@ const actionHandlers = {
     const {
       payload: { dropResult },
     } = action;
-    const { destination, dragging } = dropResult;
+
     const newEntities = newEntitiesFromDrop({ dropResult, layout: state });
-
-    // if column is a parent, set any resizable children to have a minimum width so that
-    // the chances that they are validly movable to future containers is maximized
-    if (
-      destination.type === COLUMN_TYPE &&
-      [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)
-    ) {
-      const newEntitiesArray = Object.values(newEntities);
-      const component = newEntitiesArray.find(
-        entity => entity.type === dragging.type,
-      );
-
-      newEntities[component.id] = {
-        ...component,
-        meta: {
-          ...component.meta,
-          width: GRID_MIN_COLUMN_COUNT,
-        },
-      };
-    }
 
     return {
       ...state,
@@ -137,22 +117,6 @@ const actionHandlers = {
       newRow.children = [destinationChildren[destination.index]];
       destinationChildren[destination.index] = newRow.id;
       nextEntities[newRow.id] = newRow;
-    }
-
-    // if column is a parent, set any resizable children to have a minimum width so that
-    // the chances that they are validly movable to future containers is maximized
-    if (
-      destination.type === COLUMN_TYPE &&
-      [CHART_TYPE, MARKDOWN_TYPE].includes(dragging.type)
-    ) {
-      const component = nextEntities[dragging.id];
-      nextEntities[dragging.id] = {
-        ...component,
-        meta: {
-          ...component.meta,
-          width: GRID_MIN_COLUMN_COUNT,
-        },
-      };
     }
 
     return {

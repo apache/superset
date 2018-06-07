@@ -101,7 +101,7 @@ class ChartHolder extends React.Component {
       <DragDroppable
         component={component}
         parentComponent={parentComponent}
-        orientation={depth % 2 === 1 ? 'column' : 'row'}
+        orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
         index={index}
         depth={depth}
         onDrop={handleComponentDrop}

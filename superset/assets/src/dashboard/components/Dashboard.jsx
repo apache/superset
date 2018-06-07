@@ -86,6 +86,9 @@ class Dashboard extends React.PureComponent {
 
   componentWillReceiveProps(nextProps) {
     if (!nextProps.dashboardState.editMode) {
+      const version = nextProps.dashboardState.isV2Preview
+        ? 'v2-preview'
+        : 'v2';
       // log pane loads
       const loadedPaneIds = [];
       const allPanesDidLoad = Object.entries(nextProps.loadStats).every(
@@ -101,6 +104,7 @@ class Dashboard extends React.PureComponent {
             Logger.append(LOG_ACTIONS_LOAD_DASHBOARD_PANE, {
               ...restStats,
               duration,
+              version,
             });
 
             if (!this.isFirstLoad) {
@@ -118,6 +122,7 @@ class Dashboard extends React.PureComponent {
         Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
           pane_ids: loadedPaneIds,
           duration: new Date().getTime() - this.ts_mount,
+          version,
         });
         Logger.send(this.actionLog);
         this.isFirstLoad = false;
@@ -128,25 +133,20 @@ class Dashboard extends React.PureComponent {
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
     if (currentChartIds.length < nextChartIds.length) {
-      // adding new chart
       const newChartIds = nextChartIds.filter(
         key => currentChartIds.indexOf(key) === -1,
       );
-      if (newChartIds.length) {
-        newChartIds.forEach(newChartId =>
-          this.props.actions.addSliceToDashboard(newChartId),
-        );
-      }
+      newChartIds.forEach(newChartId =>
+        this.props.actions.addSliceToDashboard(newChartId),
+      );
     } else if (currentChartIds.length > nextChartIds.length) {
       // remove chart
       const removedChartIds = currentChartIds.filter(
         key => nextChartIds.indexOf(key) === -1,
       );
-      if (removedChartIds.length) {
-        removedChartIds.forEach(removedChartId =>
-          this.props.actions.removeSliceFromDashboard(removedChartId),
-        );
-      }
+      removedChartIds.forEach(removedChartId =>
+        this.props.actions.removeSliceFromDashboard(removedChartId),
+      );
     }
   }
 

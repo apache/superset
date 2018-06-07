@@ -29,7 +29,7 @@ import { DASHBOARD_HEADER_ID } from '../util/constants';
 
 function mapStateToProps({
   dashboardLayout: undoableLayout,
-  dashboardState: dashboard,
+  dashboardState,
   dashboardInfo,
   charts,
 }) {
@@ -38,19 +38,20 @@ function mapStateToProps({
     undoLength: undoableLayout.past.length,
     redoLength: undoableLayout.future.length,
     layout: undoableLayout.present,
-    filters: dashboard.filters,
+    filters: dashboardState.filters,
     dashboardTitle: (
       (undoableLayout.present[DASHBOARD_HEADER_ID] || {}).meta || {}
     ).text,
-    expandedSlices: dashboard.expandedSlices,
-    css: dashboard.css,
+    expandedSlices: dashboardState.expandedSlices,
+    css: dashboardState.css,
     charts,
     userId: dashboardInfo.userId,
-    isStarred: !!dashboard.isStarred,
-    hasUnsavedChanges: !!dashboard.hasUnsavedChanges,
-    maxUndoHistoryExceeded: !!dashboard.maxUndoHistoryExceeded,
-    editMode: !!dashboard.editMode,
-    showBuilderPane: !!dashboard.showBuilderPane,
+    isStarred: !!dashboardState.isStarred,
+    hasUnsavedChanges: !!dashboardState.hasUnsavedChanges,
+    maxUndoHistoryExceeded: !!dashboardState.maxUndoHistoryExceeded,
+    editMode: !!dashboardState.editMode,
+    showBuilderPane: !!dashboardState.showBuilderPane,
+    isV2Preview: dashboardState.isV2Preview,
   };
 }
 

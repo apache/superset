@@ -35,6 +35,7 @@ export const toastShape = PropTypes.shape({
     DANGER_TOAST,
   ]).isRequired,
   text: PropTypes.string.isRequired,
+  duration: PropTypes.number,
 });
 
 export const chartPropShape = PropTypes.shape({

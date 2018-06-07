@@ -92,6 +92,8 @@ export default class Tab extends React.PureComponent {
   renderTabContent() {
     const {
       component: tabComponent,
+      parentComponent: tabParentComponent,
+      index,
       depth,
       availableColumnCount,
       columnWidth,
@@ -117,6 +119,25 @@ export default class Tab extends React.PureComponent {
             onResizeStop={onResizeStop}
           />
         ))}
+        {/* Make the content of the tab component droppable in the case that there are no children */}
+        {tabComponent.children.length === 0 && (
+          <DragDroppable
+            component={tabComponent}
+            parentComponent={tabParentComponent}
+            orientation="column"
+            index={index}
+            depth={depth}
+            onDrop={this.handleDrop}
+            editMode
+            className="empty-tab-droptarget"
+          >
+            {({ dropIndicatorProps }) =>
+              dropIndicatorProps && (
+                <div className="drop-indicator drop-indicator--top" />
+              )
+            }
+          </DragDroppable>
+        )}
       </div>
     );
   }
@@ -136,7 +157,7 @@ export default class Tab extends React.PureComponent {
         // disable drag drop of top-level Tab's to prevent invalid nesting of a child in
         // itself, e.g. if a top-level Tab has a Tabs child, dragging the Tab into the Tabs would
         // reusult in circular children
-        disableDragDrop={depth === DASHBOARD_ROOT_DEPTH + 1}
+        disableDragDrop={depth <= DASHBOARD_ROOT_DEPTH + 1}
         editMode={editMode}
       >
         {({ dropIndicatorProps, dragSourceRef }) => (
