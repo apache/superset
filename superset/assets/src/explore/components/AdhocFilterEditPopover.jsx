@@ -123,21 +123,24 @@ export default class AdhocFilterEditPopover extends React.Component {
               onHeightChange={this.adjustHeight}
             />
           </Tab>
-          {
-            (!this.props.datasource || this.props.datasource.type !== 'druid') &&
-            <Tab
-              className="adhoc-filter-edit-tab"
-              eventKey={EXPRESSION_TYPES.SQL}
-              title="Custom SQL"
-            >
-              <AdhocFilterEditPopoverSqlTabContent
-                adhocFilter={this.state.adhocFilter}
-                onChange={this.onAdhocFilterChange}
-                options={this.props.options}
-                height={this.state.height}
-              />
-            </Tab>
-          }
+          <Tab
+            className="adhoc-filter-edit-tab"
+            eventKey={EXPRESSION_TYPES.SQL}
+            title="Custom SQL"
+          >
+            {
+              (!this.props.datasource || this.props.datasource.type !== 'druid') ?
+                <AdhocFilterEditPopoverSqlTabContent
+                  adhocFilter={this.state.adhocFilter}
+                  onChange={this.onAdhocFilterChange}
+                  options={this.props.options}
+                  height={this.state.height}
+                /> :
+                <div className="custom-sql-disabled-message">
+                  Custom SQL Filters are not available on druid datasources
+                </div>
+            }
+          </Tab>
         </Tabs>
         <div>
           <Button
