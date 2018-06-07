@@ -69,7 +69,7 @@ function PromptV2ConversionModal({
           <a
             target="_blank"
             rel="noopener noreferrer"
-            href="https://gist.github.com/williaster/bad4ac9c6a71b234cf9fc8ee629844e5#file-superset-dashboard-v2-md"
+            href="http://bit.ly/superset-dash-v2"
             onClick={logReadAboutV2Changes}
           >
             here
