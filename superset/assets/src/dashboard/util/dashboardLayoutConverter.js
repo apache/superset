@@ -1,32 +1,23 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable camelcase */
 /* eslint-disable no-loop-func */
+import shortid from 'shortid';
+
+import getEmptyLayout from './getEmptyLayout';
+
 import {
   ROW_TYPE,
   COLUMN_TYPE,
   CHART_TYPE,
   MARKDOWN_TYPE,
-  DASHBOARD_ROOT_TYPE,
   DASHBOARD_GRID_TYPE,
 } from './componentTypes';
 
-import {
-  DASHBOARD_GRID_ID,
-  DASHBOARD_ROOT_ID,
-  DASHBOARD_VERSION_KEY,
-} from './constants';
+import { DASHBOARD_GRID_ID } from './constants';
 
 const MAX_RECURSIVE_LEVEL = 6;
 const GRID_RATIO = 4;
 const ROW_HEIGHT = 8;
-const generateId = (() => {
-  let componentId = 1;
-  return () => {
-    const id = componentId;
-    componentId += 1;
-    return id;
-  };
-})();
 
 /**
  *
@@ -52,6 +43,10 @@ function getBoundary(positions) {
     left,
     right,
   };
+}
+
+function generateId() {
+  return shortid.generate();
 }
 
 function getRowContainer() {
@@ -275,19 +270,7 @@ function doConvert(positions, level, parent, root) {
 }
 
 export function convertToLayout(positions) {
-  const root = {
-    [DASHBOARD_VERSION_KEY]: 'v2',
-    [DASHBOARD_ROOT_ID]: {
-      type: DASHBOARD_ROOT_TYPE,
-      id: DASHBOARD_ROOT_ID,
-      children: [DASHBOARD_GRID_ID],
-    },
-    [DASHBOARD_GRID_ID]: {
-      type: DASHBOARD_GRID_TYPE,
-      id: DASHBOARD_GRID_ID,
-      children: [],
-    },
-  };
+  const root = getEmptyLayout();
 
   doConvert(positions, 0, root[DASHBOARD_GRID_ID], root);
 
