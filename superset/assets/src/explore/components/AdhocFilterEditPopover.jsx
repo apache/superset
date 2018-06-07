@@ -136,9 +136,9 @@ export default class AdhocFilterEditPopover extends React.Component {
                   options={this.props.options}
                   height={this.state.height}
                 /> :
-              <div className="custom-sql-disabled-message">
-                Custom SQL Filters are not available on druid datasources
-              </div>
+                <div className="custom-sql-disabled-message">
+                  Custom SQL Filters are not available on druid datasources
+                </div>
             }
           </Tab>
         </Tabs>
