@@ -8,7 +8,6 @@ describe('exploreUtils', () => {
   const formData = {
     datasource: '1__table',
   };
-  const sFormData = JSON.stringify(formData);
   function compareURI(uri1, uri2) {
     expect(uri1.toString()).to.equal(uri2.toString());
   }
@@ -132,10 +131,9 @@ describe('exploreUtils', () => {
 
   describe('getExploreLongUrl', () => {
     it('generates proper base url with form_data', () => {
-      compareURI(
-        URI(getExploreLongUrl(formData, 'base')),
-        URI('/superset/explore/').search({ form_data: sFormData }),
-      );
+      const result = getExploreLongUrl(formData, 'base');
+      const expected = '/superset/explore/?form_data=datasource:\'1__table\'';
+      expect(result).to.equals(expected);
     });
   });
 });
