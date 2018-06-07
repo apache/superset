@@ -22,6 +22,7 @@ const propTypes = {
   annotationError: PropTypes.object,
   sliceName: PropTypes.string,
   supersetCanExplore: PropTypes.bool,
+  sliceCanEdit: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -40,6 +41,7 @@ const defaultProps = {
   isExpanded: false,
   sliceName: '',
   supersetCanExplore: false,
+  sliceCanEdit: false,
 };
 
 class SliceHeader extends React.PureComponent {
@@ -56,6 +58,7 @@ class SliceHeader extends React.PureComponent {
       innerRef,
       sliceName,
       supersetCanExplore,
+      sliceCanEdit,
     } = this.props;
 
     const annoationsLoading = t('Annotation layers are still loading.');
@@ -104,6 +107,7 @@ class SliceHeader extends React.PureComponent {
               exploreChart={exploreChart}
               exportCSV={exportCSV}
               supersetCanExplore={supersetCanExplore}
+              sliceCanEdit={sliceCanEdit}
             />
           )}
         </div>
