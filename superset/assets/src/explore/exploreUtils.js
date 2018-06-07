@@ -1,4 +1,5 @@
 /* eslint camelcase: 0 */
+/* eslint no-unused-vars: 0 */
 import URI from 'urijs';
 import rison from 'rison';
 
@@ -38,7 +39,6 @@ export function getExploreLongUrl(formData, endpointType) {
   const directory = getURIDirectory(formData, endpointType);
   const search = uri.search(true);
   // remove undefined values
-  /* eslint-disable no-unused-vars */
   const filteredFormData = Object.entries(formData)
     .filter(([k, v]) => v !== undefined)
     .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {});
