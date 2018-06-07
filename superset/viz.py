@@ -18,6 +18,7 @@ import inspect
 from itertools import product
 import logging
 import math
+from past.builtins import basestring
 import re
 import traceback
 import uuid
@@ -1593,6 +1594,8 @@ class SankeyViz(BaseViz):
 
     def get_data(self, df):
         df.columns = ['source', 'target', 'value']
+        df['source'] = df['source'].astype(basestring)
+        df['target'] = df['target'].astype(basestring)
         recs = df.to_dict(orient='records')
 
         hierarchy = defaultdict(set)
