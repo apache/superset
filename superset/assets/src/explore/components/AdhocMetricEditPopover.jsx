@@ -244,9 +244,9 @@ export default class AdhocMetricEditPopover extends React.Component {
                     wrapEnabled
                   />
                 </FormGroup> :
-              <div className="custom-sql-disabled-message">
-                Custom SQL Metrics are not available on druid datasources
-              </div>
+                <div className="custom-sql-disabled-message">
+                  Custom SQL Metrics are not available on druid datasources
+                </div>
             }
           </Tab>
         </Tabs>
