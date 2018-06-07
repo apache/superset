@@ -13,7 +13,7 @@ import { getColorFromScheme } from '../modules/colors';
 import AnnotationTypes, {
   applyNativeColumns,
 } from '../modules/AnnotationTypes';
-import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, getClassed, tryNumify } from '../modules/utils';
+import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
 import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
 import { t } from '../locales';
@@ -117,11 +117,11 @@ export default function nvd3Vis(slice, payload) {
   const isExplore = $('#explore-container').length === 1;
 
   let data;
+  console.log(payload.data);
   if (payload.data) {
     data = payload.data.map(x => ({
       ...x,
       key: formatLabel(x.key, slice.datasource.verbose_map),
-      classed: getClassed(x.key),
     }));
   } else {
     data = [];
