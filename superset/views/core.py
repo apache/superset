@@ -2143,7 +2143,6 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
         return Response(status=201)
 
-
     @has_access
     @expose('/sqllab_viz/', methods=['POST'])
     @log_this
@@ -2218,7 +2217,6 @@ class Superset(BaseSupersetView):
         return self.json_response({
             'table_id': table.id,
         })
-
 
     @has_access
     @expose('/table/<database_id>/<table_name>/<schema>/')

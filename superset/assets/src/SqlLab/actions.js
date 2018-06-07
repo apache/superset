@@ -410,7 +410,6 @@ export function createDatasourceStarted() {
   return { type: CREATE_DATASOURCE_STARTED };
 }
 export function createDatasourceSuccess(response) {
-  console.log(response);
   const datasource = `${response.table_id}__table`;
   return { type: CREATE_DATASOURCE_SUCCESS, datasource };
 }

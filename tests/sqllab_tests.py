@@ -259,11 +259,7 @@ class SqlLabTests(SupersetTestCase):
         resp = self.get_json_resp('/superset/sqllab_viz/', data=data)
         self.assertIn('table_id', resp)
 
-        tbl = (
-            db.session.query(SqlaTable)
-            .filter_by(id=resp.get('table_id'))
-            .one()
-        )
+        db.session.query(SqlaTable).filter_by(id=resp.get('table_id')).one()
 
 
 if __name__ == '__main__':
