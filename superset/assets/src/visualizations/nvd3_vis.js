@@ -117,11 +117,9 @@ export default function nvd3Vis(slice, payload) {
   const isExplore = $('#explore-container').length === 1;
 
   let data;
-  console.log(payload.data);
   if (payload.data) {
     data = payload.data.map(x => ({
-      ...x,
-      key: formatLabel(x.key, slice.datasource.verbose_map),
+      ...x, key: formatLabel(x.key, slice.datasource.verbose_map),
     }));
   } else {
     data = [];
