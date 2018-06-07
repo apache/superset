@@ -1,5 +1,6 @@
 /* eslint camelcase: 0 */
 import URI from 'urijs';
+import rison from 'rison';
 
 export function getChartKey(explore) {
   const slice = explore.slice;
@@ -36,11 +37,16 @@ export function getExploreLongUrl(formData, endpointType) {
   const uri = new URI('/');
   const directory = getURIDirectory(formData, endpointType);
   const search = uri.search(true);
-  search.form_data = JSON.stringify(formData);
+  // remove undefined values
+  /* eslint-disable no-unused-vars */
+  const filteredFormData = Object.entries(formData)
+    .filter(([k, v]) => v !== undefined)
+    .reduce((obj, [k, v]) => ({ ...obj, [k]: v }), {});
+  search.form_data = rison.encode_object(filteredFormData);
   if (endpointType === 'standalone') {
     search.standalone = 'true';
   }
-  return uri.directory(directory).search(search).toString();
+  return uri.directory(directory).search(search).readable();
 }
 
 export function getExploreUrlAndPayload({

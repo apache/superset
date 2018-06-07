@@ -47,7 +47,7 @@ import superset.models.core as models
 from superset.models.sql_lab import Query
 from superset.sql_parse import SupersetQuery
 from superset.utils import (
-    merge_extra_filters, merge_request_params, QueryStatus,
+    decode_payload, merge_extra_filters, merge_request_params, QueryStatus,
 )
 from .base import (
     api, BaseSupersetView, CsvResponse, DeleteMixin,
@@ -971,10 +971,10 @@ class Superset(BaseSupersetView):
         request_args_data = request.args.get('form_data')
         # Supporting POST
         if post_data:
-            form_data.update(json.loads(post_data))
+            form_data.update(decode_payload(post_data))
         # request params can overwrite post body
         if request_args_data:
-            form_data.update(json.loads(request_args_data))
+            form_data.update(decode_payload(request_args_data))
 
         url_id = request.args.get('r')
         if url_id:

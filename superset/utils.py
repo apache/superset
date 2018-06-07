@@ -35,6 +35,7 @@ import numpy
 import pandas as pd
 import parsedatetime
 from past.builtins import basestring
+import prison
 from pydruid.utils.having import Having
 import pytz
 import sqlalchemy as sa
@@ -882,3 +883,13 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
         del fd['adhoc_filters']
+
+
+def decode_payload(p):
+    """
+    Try to decode Rison, fallback to JSON. For migration and safety.
+    """
+    try:
+        return prison.loads(p, format=dict)
+    except prison.decoder.ParserException:
+        return json.loads(p)

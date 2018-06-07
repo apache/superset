@@ -81,6 +81,7 @@ setup(
         'python-geohash',
         'pyyaml>=3.11',
         'requests',
+        'prison',
         'simplejson',
         'six',
         'sqlalchemy',
