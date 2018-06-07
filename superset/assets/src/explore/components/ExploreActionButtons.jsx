@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import URLShortLinkButton from './URLShortLinkButton';
+import URLShortLinkButton from '../../components/URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
 import { t } from '../../locales';
-import { exportChart } from '../exploreUtils';
+import { exportChart, getExploreLongUrl } from '../exploreUtils';
 
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
@@ -25,7 +25,12 @@ export default function ExploreActionButtons({
   return (
     <div className="btn-group results" role="group">
       {latestQueryFormData &&
-        <URLShortLinkButton latestQueryFormData={latestQueryFormData} />}
+        <URLShortLinkButton
+          url={getExploreLongUrl(latestQueryFormData)}
+          emailSubject="Superset Chart"
+          emailContent="Check out this chart: "
+        />
+      }
 
       {latestQueryFormData &&
         <EmbedCodeButton latestQueryFormData={latestQueryFormData} />}

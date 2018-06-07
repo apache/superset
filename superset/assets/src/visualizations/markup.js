@@ -30,7 +30,7 @@ function markupWidget(slice, payload) {
     <iframe id="${iframeId}"
       frameborder="0"
       height="${iframeHeight}"
-      sandbox="allow-same-origin allow-scripts allow-top-navigation allow-popups">
+      sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-top-navigation">
     </iframe>
   `);
 

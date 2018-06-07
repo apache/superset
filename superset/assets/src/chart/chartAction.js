@@ -2,6 +2,7 @@ import { getExploreUrlAndPayload, getAnnotationJsonUrl } from '../explore/explor
 import { requiresQuery, ANNOTATION_SOURCE_TYPES } from '../modules/AnnotationTypes';
 import { Logger, LOG_ACTIONS_LOAD_EVENT } from '../logger';
 import { COMMON_ERR_MESSAGES } from '../common';
+import { t } from '../locales';
 
 const $ = window.$ = require('jquery');
 
@@ -68,6 +69,10 @@ export function runAnnotationQuery(annotation, timeout = 60, formData = null, ke
     if (!requiresQuery(annotation.sourceType)) {
       return Promise.resolve();
     }
+
+    const granularity = fd.time_grain_sqla || fd.granularity;
+    fd.time_grain_sqla = granularity;
+    fd.granularity = granularity;
 
     const sliceFormData = Object.keys(annotation.overrides)
       .reduce((d, k) => ({

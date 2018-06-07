@@ -74,7 +74,12 @@ class ExploreViewContainer extends React.Component {
       this.props.actions.resetControls();
       this.props.actions.triggerQuery(true, this.props.chart.chartKey);
     }
-    if (np.controls.datasource.value !== this.props.controls.datasource.value) {
+    if (
+      np.controls.datasource && (
+        this.props.controls.datasource == null ||
+        np.controls.datasource.value !== this.props.controls.datasource.value
+      )
+    ) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
     }
 

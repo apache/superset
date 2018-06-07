@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import random
+import re
 import string
 import unittest
 
@@ -56,7 +57,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(
             '/login/',
             data=dict(username='admin', password='general'))
-        self.assertIn('Welcome', resp)
+        self.assertNotIn('User confirmation needed', resp)
 
         resp = self.get_resp('/logout/', follow_redirects=True)
         self.assertIn('User confirmation needed', resp)
@@ -64,13 +65,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(
             '/login/',
             data=dict(username='admin', password='wrongPassword'))
-        self.assertNotIn('Welcome', resp)
         self.assertIn('User confirmation needed', resp)
-
-    def test_welcome(self):
-        self.login()
-        resp = self.client.get('/superset/welcome')
-        assert 'Welcome' in resp.data.decode('utf-8')
 
     def test_slice_endpoint(self):
         self.login(username='admin')
@@ -370,7 +365,7 @@ class CoreTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
-        assert len(data) == 3
+        assert len(data) == 4
 
     def test_shortner(self):
         self.login(username='admin')
@@ -383,7 +378,7 @@ class CoreTests(SupersetTestCase):
             'previous_viz_type=sankey'
         )
         resp = self.client.post('/r/shortner/', data=dict(data=data))
-        assert '?r=' in resp.data.decode('utf-8')
+        assert re.search(r'\/r\/[0-9]+', resp.data.decode('utf-8'))
 
     def test_kv(self):
         self.logout()
