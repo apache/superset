@@ -19,7 +19,7 @@ const OPERATORS_TO_SQL = {
   '<=': '<=',
   in: 'in',
   'not in': 'not in',
-  like: 'like',
+  LIKE: 'like',
 };
 
 function translateToSql(adhocMetric, { useSimple } = {}) {
