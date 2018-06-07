@@ -112,6 +112,26 @@ describe('AdhocFilter', () => {
     });
     // eslint-disable-next-line no-unused-expressions
     expect(adhocFilter3.isValid()).to.be.false;
+
+    const adhocFilter4 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: 'in',
+      comparator: [],
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter4.isValid()).to.be.false;
+
+    const adhocFilter5 = new AdhocFilter({
+      expressionType: EXPRESSION_TYPES.SIMPLE,
+      subject: 'value',
+      operator: 'in',
+      comparator: ['val1'],
+      clause: CLAUSES.WHERE,
+    });
+    // eslint-disable-next-line no-unused-expressions
+    expect(adhocFilter5.isValid()).to.be.true;
   });
 
   it('can translate from simple expressions to sql expressions', () => {
