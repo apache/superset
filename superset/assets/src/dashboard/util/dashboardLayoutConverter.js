@@ -13,7 +13,12 @@ import {
   DASHBOARD_GRID_TYPE,
 } from './componentTypes';
 
-import { DASHBOARD_GRID_ID } from './constants';
+import {
+  DASHBOARD_GRID_ID,
+  GRID_MIN_COLUMN_COUNT,
+  GRID_MIN_ROW_UNITS,
+  GRID_COLUMN_COUNT,
+} from './constants';
 
 const MAX_RECURSIVE_LEVEL = 6;
 const GRID_RATIO = 4;
@@ -72,19 +77,32 @@ function getColContainer() {
 }
 
 function getChartHolder(item) {
-  const { size_x, size_y, slice_id, code } = item;
+  const { size_x, size_y, slice_id, code, slice_name } = item;
 
-  const width = Math.max(1, Math.floor(size_x / GRID_RATIO));
-  const height = Math.max(1, Math.round(size_y / GRID_RATIO));
+  const width = Math.max(
+    GRID_MIN_COLUMN_COUNT,
+    Math.round(size_x / GRID_RATIO),
+  );
+  const height = Math.max(
+    GRID_MIN_ROW_UNITS,
+    Math.round(size_y / GRID_RATIO * 100 / ROW_HEIGHT),
+  );
   if (code !== undefined) {
+    let markdownContent = '';
+    if (slice_name) {
+      markdownContent = `##### **${slice_name}**\n`;
+    }
+    if (code) {
+      markdownContent += code;
+    }
     return {
       type: MARKDOWN_TYPE,
       id: `DASHBOARD_MARKDOWN_TYPE-${generateId()}`,
       children: [],
       meta: {
         width,
-        height: Math.round(height * 100 / ROW_HEIGHT),
-        code,
+        height,
+        code: markdownContent,
       },
     };
   }
@@ -94,7 +112,7 @@ function getChartHolder(item) {
     children: [],
     meta: {
       width,
-      height: Math.round(height * 100 / ROW_HEIGHT),
+      height,
       chartId: parseInt(slice_id, 10),
     },
   };
@@ -133,6 +151,50 @@ function hasOverlap(positions, xAxis = true) {
       }
       return item.row + item.size_y > arr[index + 1].row;
     });
+}
+
+function isWideLeafComponent(component) {
+  return (
+    [CHART_TYPE, MARKDOWN_TYPE].indexOf(component.type) > -1 &&
+    component.meta.width > GRID_MIN_COLUMN_COUNT
+  );
+}
+
+function canReduceColumnWidth(columnComponent, root) {
+  return (
+    columnComponent.type === COLUMN_TYPE &&
+    columnComponent.meta.width > GRID_MIN_COLUMN_COUNT &&
+    columnComponent.children.every(
+      childId =>
+        isWideLeafComponent(root[childId]) ||
+        (root[childId].type === ROW_TYPE &&
+          root[childId].children.every(id => isWideLeafComponent(root[id]))),
+    )
+  );
+}
+
+function reduceRowWidth(rowComponent, root) {
+  // find widest free chart and reduce width
+  const widestChartId = rowComponent.children
+    .filter(childId => isWideLeafComponent(root[childId]))
+    .reduce((prev, current) => {
+      if (root[prev].meta.width >= root[current].meta.width) {
+        return prev;
+      }
+      return current;
+    });
+
+  if (widestChartId) {
+    root[widestChartId].meta.width -= 1;
+  }
+  return getChildrenSum(rowComponent.children, 'width', root);
+}
+
+function reduceComponentWidth(component) {
+  if (isWideLeafComponent(component)) {
+    component.meta.width -= 1;
+  }
+  return component.meta.width;
 }
 
 function doConvert(positions, level, parent, root) {
@@ -235,7 +297,6 @@ function doConvert(positions, level, parent, root) {
             // create a new column
             const colContainer = getColContainer();
             root[colContainer.id] = colContainer;
-            rowContainer.children.push(colContainer.id);
 
             if (!hasOverlap(lower, false)) {
               lower.sort(sortByRowId).forEach(item => {
@@ -248,11 +309,15 @@ function doConvert(positions, level, parent, root) {
             }
 
             // add col meta
-            colContainer.meta.width = getChildrenMax(
-              colContainer.children,
-              'width',
-              root,
-            );
+            if (colContainer.children.length) {
+              rowContainer.children.push(colContainer.id);
+              // add col meta
+              colContainer.meta.width = getChildrenMax(
+                colContainer.children,
+                'width',
+                root,
+              );
+            }
           }
 
           currentItems = upper.slice();
@@ -278,6 +343,50 @@ export function convertToLayout(positions) {
   Object.values(root).forEach(item => {
     if (ROW_TYPE === item.type) {
       const meta = item.meta;
+      if (meta.width > GRID_COLUMN_COUNT) {
+        let currentWidth = meta.width;
+        while (
+          currentWidth > GRID_COLUMN_COUNT &&
+          item.children.filter(id => isWideLeafComponent(root[id])).length
+        ) {
+          currentWidth = reduceRowWidth(item, root);
+        }
+
+        // reduce column width
+        if (currentWidth > GRID_COLUMN_COUNT) {
+          // find column that: width > 2 and each row has at least 1 chart can reduce
+          // 2 loops: same column may reduce multiple times
+          let colIds;
+          do {
+            colIds = item.children.filter(colId =>
+              canReduceColumnWidth(root[colId], root),
+            );
+            let idx = 0;
+            while (idx < colIds.length && currentWidth > GRID_COLUMN_COUNT) {
+              const currentColumn = colIds[idx];
+              root[currentColumn].children.forEach(childId => {
+                if (root[childId].type === ROW_TYPE) {
+                  root[childId].meta.width = reduceRowWidth(
+                    root[childId],
+                    root,
+                  );
+                } else {
+                  root[childId].meta.width = reduceComponentWidth(
+                    root[childId],
+                  );
+                }
+              });
+              root[currentColumn].meta.width = getChildrenMax(
+                root[currentColumn].children,
+                'width',
+                root,
+              );
+              currentWidth = getChildrenSum(item.children, 'width', root);
+              idx += 1;
+            }
+          } while (colIds.length && currentWidth > GRID_COLUMN_COUNT);
+        }
+      }
       delete meta.width;
     }
   });
@@ -286,13 +395,84 @@ export function convertToLayout(positions) {
   return root;
 }
 
+function mergePosition(position, bottomLine, maxColumn) {
+  const { col, size_x, size_y } = position;
+  const endColumn = col + size_x > maxColumn ? bottomLine.length : col + size_x;
+  const nextSectionStart =
+    bottomLine.slice(col).findIndex(value => value > bottomLine[col]) + 1;
+
+  const currentBottom =
+    nextSectionStart > 0 && nextSectionStart < size_x
+      ? Math.max.apply(null, bottomLine.slice(col, col + size_x + 1))
+      : bottomLine[col];
+  bottomLine.fill(currentBottom + size_y, col, endColumn);
+}
+
+// In original position data, a lot of position's row attribute are not correct, and same positions are
+// assigned to more than 1 chart. The convert function depends on row id, col id to split
+// the whole dashboard into nested rows and columns. Bad row id will lead to many empty spaces, or a few
+// charts are overlapped in the same row.
+// This function read positions by row first. Then based on previous col id, width and height attribute,
+// re-calculate next position's row id.
+function scanDashboardPositionsData(positions) {
+  const bottomLine = new Array(49).fill(0);
+  bottomLine[0] = Number.MAX_VALUE;
+  const maxColumn = Math.max.apply(
+    null,
+    positions.slice().map(position => position.col),
+  );
+
+  const positionsByRowId = {};
+  positions
+    .slice()
+    .sort(sortByRowId)
+    .forEach(position => {
+      const { row } = position;
+      if (positionsByRowId[row] === undefined) {
+        positionsByRowId[row] = [];
+      }
+      positionsByRowId[row].push(position);
+    });
+  const rawPositions = Object.values(positionsByRowId);
+  const updatedPositions = [];
+
+  while (rawPositions.length) {
+    const nextRow = rawPositions.shift();
+    let nextCol = 1;
+    while (nextRow.length) {
+      // special treatment for duplicated positions: display wider one first
+      const availableIndexByColumn = nextRow
+        .filter(position => position.col === nextCol)
+        .map((position, index) => index);
+      if (availableIndexByColumn.length) {
+        const idx =
+          availableIndexByColumn.length > 1
+            ? availableIndexByColumn.sort(
+                (idx1, idx2) => nextRow[idx2].size_x - nextRow[idx1].size_x,
+              )[0]
+            : availableIndexByColumn[0];
+
+        const nextPosition = nextRow.splice(idx, 1)[0];
+        mergePosition(nextPosition, bottomLine, maxColumn + 1);
+        nextPosition.row = bottomLine[nextPosition.col] - nextPosition.size_y;
+        updatedPositions.push(nextPosition);
+        nextCol += nextPosition.size_x;
+      } else {
+        nextCol = nextRow[0].col;
+      }
+    }
+  }
+
+  return updatedPositions;
+}
+
 export default function(dashboard) {
   const positions = [];
-
-  // position data clean up. some dashboard didn't have position_json
   let { position_json } = dashboard;
   const positionDict = {};
   if (Array.isArray(position_json)) {
+    // scan and fix positions data: extra spaces, dup rows, .etc
+    position_json = scanDashboardPositionsData(position_json);
     position_json.forEach(position => {
       positionDict[position.slice_id] = position;
     });
@@ -300,12 +480,13 @@ export default function(dashboard) {
     position_json = [];
   }
 
+  // position data clean up. some dashboard didn't have position_json
   const lastRowId = Math.max(
     0,
     Math.max.apply(null, position_json.map(pos => pos.row + pos.size_y)),
   );
   let newSliceCounter = 0;
-  dashboard.slices.forEach(({ slice_id, form_data }) => {
+  dashboard.slices.forEach(({ slice_id, form_data, slice_name }) => {
     let position = positionDict[slice_id];
     if (!position) {
       // append new slices to dashboard bottom, 3 slices per row
@@ -322,6 +503,7 @@ export default function(dashboard) {
       position = {
         ...position,
         code: form_data.code,
+        slice_name,
       };
     }
     positions.push(position);

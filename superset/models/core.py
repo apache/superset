@@ -346,11 +346,15 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             # add default_filters to the preselect_filters of dashboard
             json_metadata = json.loads(self.json_metadata)
             default_filters = json_metadata.get('default_filters')
-            # make sure default_filters is not empty
-            if default_filters and json.loads(default_filters):
-                filters = parse.quote(default_filters.encode('utf8'))
-                return '/superset/dashboard/{}/?preselect_filters={}'.format(
-                    self.slug or self.id, filters)
+            # make sure default_filters is not empty and is valid
+            if default_filters and default_filters != '{}':
+                try:
+                    if json.loads(default_filters):
+                        filters = parse.quote(default_filters.encode('utf8'))
+                        return '/superset/dashboard/{}/?preselect_filters={}'.format(
+                            self.slug or self.id, filters)
+                except Exception:
+                    pass
         return '/superset/dashboard/{}/'.format(self.slug or self.id)
 
     @property
