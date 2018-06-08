@@ -33,9 +33,10 @@ const config = {
   },
   optimization: {
     splitChunks: {
-      chunks: 'async',
+      chunks: 'all',
       automaticNameDelimiter: '-',
     },
+    // runtimeChunk: true,
   },
   resolve: {
     extensions: ['.js', '.jsx'],
@@ -59,7 +60,11 @@ const config = {
       {
         test: /\.less$/,
         include: APP_DIR,
-        use: [isDevMode ? MiniCssExtractPlugin.loader : 'style-loader', 'css-loader', 'less-loader'],
+        use: [
+          isDevMode ? MiniCssExtractPlugin.loader : 'style-loader',
+          'css-loader',
+          'less-loader',
+        ],
       },
       /* for css linking images */
       {
@@ -92,7 +97,10 @@ const config = {
   },
   plugins: [
     // creates a manifest.json mapping of name to hashed output used in template files
-    new WebpackAssetsManifest({ publicPath: true }),
+    new WebpackAssetsManifest({
+      publicPath: true,
+      entrypoints: true, // this enables us to include all relevant files for an entry
+    }),
 
     // create fresh dist/ upon build
     new CleanWebpackPlugin(['dist']),
