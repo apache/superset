@@ -92,7 +92,7 @@ function getChartHolder(item) {
     if (code) {
       markdownContent = code;
     } else if (slice_name.trim()) {
-      markdownContent = `##### **${slice_name}**\n`;
+      markdownContent = `##### ${slice_name}`;
     }
 
     return {
