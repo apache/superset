@@ -88,13 +88,13 @@ function getChartHolder(item) {
     Math.round(size_y / GRID_RATIO * 100 / ROW_HEIGHT),
   );
   if (code !== undefined) {
-    let markdownContent = '';
-    if (slice_name) {
+    let markdownContent = ' '; // white-space markdown
+    if (code) {
+      markdownContent = code;
+    } else if (slice_name.trim()) {
       markdownContent = `##### **${slice_name}**\n`;
     }
-    if (code) {
-      markdownContent += code;
-    }
+
     return {
       type: MARKDOWN_TYPE,
       id: `DASHBOARD_MARKDOWN_TYPE-${generateId()}`,
