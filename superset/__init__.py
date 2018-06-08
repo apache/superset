@@ -54,11 +54,13 @@ def parse_manifest_json():
     except Exception:
         pass
 
+
 def get_js_manifest_files(filename):
     if app.debug:
         parse_manifest_json()
     entry_files = manifest.get(filename, {})
     return entry_files.get('js', [])
+
 
 def get_css_manifest_files(filename):
     if app.debug:
@@ -66,7 +68,9 @@ def get_css_manifest_files(filename):
     entry_files = manifest.get(filename, {})
     return entry_files.get('css', [])
 
+
 parse_manifest_json()
+
 
 @app.context_processor
 def get_manifest():

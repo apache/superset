@@ -163,6 +163,7 @@
     "url-loader": "^1.0.1",
     "webpack": "^4.6.0",
     "webpack-assets-manifest": "^3.0.1",
-    "webpack-cli": "^2.0.10"
+    "webpack-cli": "^2.0.10",
+    "webpack-sources": "^1.1.0"
   }
 }
