@@ -688,6 +688,14 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['status'], None)
         self.assertEqual(data['error'], None)
 
+    def test_metadata_no_short_url(self):
+        self.login(username='admin')
+        dash = self.get_dashboard('world_health', db.session)
+
+        url = slc.get_dashboard_url()
+        data = self.get_json_resp(url)
+        self.assertEqual(data['metadata']['default_filters'], '{}')
+        self.assertEqual(data['error'], 'No data')
 
 if __name__ == '__main__':
     unittest.main()

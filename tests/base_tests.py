@@ -127,6 +127,15 @@ class SupersetTestCase(unittest.TestCase):
             data=dict(username=username, password=password))
         self.assertNotIn('User confirmation needed', resp)
 
+    def get_dashboard(self, dashboard_slug, session):
+        slc = (
+            session.query(models.Dashboard)
+            .filter_by(slug=dashboard_slug)
+            .one()
+        )
+        session.expunge_all()
+        return slc
+
     def get_slice(self, slice_name, session):
         slc = (
             session.query(models.Slice)
