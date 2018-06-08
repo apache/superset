@@ -38,10 +38,10 @@ describe('Chart', () => {
       <Chart {...mockedProps} />,
     );
   });
-  describe('renderViz', () => {
+  describe('renderVis', () => {
     let stub;
     beforeEach(() => {
-      stub = sinon.stub(wrapper.instance(), 'renderViz');
+      stub = sinon.stub(wrapper.instance(), 'renderVis');
     });
     afterEach(() => {
       stub.restore();
