@@ -140,7 +140,6 @@
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-react": "^7.0.1",
     "exports-loader": "^0.7.0",
-    "extract-text-webpack-plugin": "4.0.0-beta.0",
     "file-loader": "^1.1.11",
     "github-changes": "^1.0.4",
     "ignore-styles": "^5.0.1",
@@ -150,6 +149,7 @@
     "json-loader": "^0.5.4",
     "less": "^2.6.1",
     "less-loader": "^4.1.0",
+    "mini-css-extract-plugin": "^0.4.0",
     "mocha": "^3.2.0",
     "npm-check-updates": "^2.14.0",
     "react-addons-test-utils": "^15.6.2",
@@ -162,8 +162,7 @@
     "uglifyjs-webpack-plugin": "^1.1.0",
     "url-loader": "^1.0.1",
     "webpack": "^4.6.0",
-    "webpack-cli": "^2.0.10",
-    "webpack-manifest-plugin": "2.0.3",
-    "webworkify-webpack": "2.1.2"
+    "webpack-assets-manifest": "^3.0.1",
+    "webpack-cli": "^2.0.10"
   }
 }

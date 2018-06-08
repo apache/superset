@@ -1,13 +1,15 @@
 const path = require('path');
-const ManifestPlugin = require('webpack-manifest-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const WebpackAssetsManifest = require('webpack-assets-manifest');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
 
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
+
+const isDevMode = process.env.NODE_ENV !== 'production';
 
 const config = {
   node: {
@@ -29,11 +31,14 @@ const config = {
     filename: '[name].[chunkhash].entry.js',
     chunkFilename: '[name].[chunkhash].chunk.js',
   },
+  optimization: {
+    splitChunks: {
+      chunks: 'async',
+      automaticNameDelimiter: '-',
+    },
+  },
   resolve: {
-    extensions: [
-      '.js',
-      '.jsx',
-    ],
+    extensions: ['.js', '.jsx'],
   },
   module: {
     rules: [
@@ -49,24 +54,12 @@ const config = {
       {
         test: /\.css$/,
         include: APP_DIR,
-        loader: ExtractTextPlugin.extract({
-          use: ['css-loader'],
-          fallback: 'style-loader',
-          // this is needed due to a webpack bug for importing CSS in lazy loaded JS files
-          // see https://github.com/webpack-contrib/extract-text-webpack-plugin/issues/456
-          allChunks: true,
-        }),
+        use: [isDevMode ? MiniCssExtractPlugin.loader : 'style-loader', 'css-loader'],
       },
       {
         test: /\.less$/,
         include: APP_DIR,
-        loader: ExtractTextPlugin.extract({
-          use: ['css-loader', 'less-loader'],
-          fallback: 'style-loader',
-          // this is needed due to a webpack bug for importing CSS in lazy loaded JS files
-          // see https://github.com/webpack-contrib/extract-text-webpack-plugin/issues/456
-          allChunks: true,
-        }),
+        use: [isDevMode ? MiniCssExtractPlugin.loader : 'style-loader', 'css-loader', 'less-loader'],
       },
       /* for css linking images */
       {
@@ -98,9 +91,17 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins: [
-    new ManifestPlugin(), // this is used to look up hashed filenames in html templates
+    // creates a manifest.json mapping of name to hashed output used in template files
+    new WebpackAssetsManifest({ publicPath: true }),
+
+    // create fresh dist/ upon build
     new CleanWebpackPlugin(['dist']),
-    new ExtractTextPlugin('[name].[chunkhash].css'),
+
+    // text loading (webpack 4+)
+    new MiniCssExtractPlugin({
+      filename: '[name].[chunkhash].entry.css',
+      chunkFilename: '[name].[chunkhash].chunk.css',
+    }),
   ],
 };
 

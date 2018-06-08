@@ -52,7 +52,12 @@ export const VIZ_TYPES = {
   rose: 'rose',
 };
 
-const loadVis = promise => promise.then(module => module.default || module);
+const loadVis = promise => promise.then((module) => {
+  const defaultExport = module.default || module;
+
+  // deckgl visualizations don't use esModules, fix it
+  return defaultExport.default || defaultExport;
+});
 const loadNvd3 = () => loadVis(import(/* webpackChunkName: "nvd3_vis" */ './nvd3_vis.js'));
 
 const vizMap = {
