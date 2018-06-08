@@ -55,7 +55,7 @@ def parse_manifest_json():
 def get_manifest_file(filename):
     if app.debug:
         parse_manifest_json()
-    return '/static/assets/dist/' + manifest.get(filename, '')
+    return manifest.get(filename, '')
 
 
 parse_manifest_json()
