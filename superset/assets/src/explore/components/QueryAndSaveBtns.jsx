@@ -54,7 +54,7 @@ export default function QueryAndSaveBtns(
   );
 
   return (
-    <div>
+    <div style={{ paddingTop: 15 }}>
       <ButtonGroup className="query-and-save">
         {qryOrStopButton}
         <Button

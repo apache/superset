@@ -1739,7 +1739,7 @@ class Superset(BaseSupersetView):
                 'time': log.Log.dttm,
             })
         return json_success(
-            json.dumps(payload, default=utils.json_int_dttm_ser))
+            json.dumps(list(set(payload)), default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
