@@ -35,6 +35,27 @@ The Superset web server and the Superset Celery workers (optional)
 are stateless, so you can scale out by running on as many servers
 as needed.
 
+Start with Docker
+-----------------
+
+If you know docker, then you're lucky, we have shortcut road for you to 
+initialize development environment: ::
+
+    git clone https://github.com/apache/incubator-superset/
+    cd incubator-superset
+    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
+    cp contrib/docker/superset_config.py superset/
+    bash -x docker-build.sh
+    docker-compose up -d
+    docker-compose exec superset bash
+    bash docker-init.sh
+
+After several minutes for sueprset initialization to finish, you can open a 
+a browser and view `http://localhost:8088` to start your journey.
+
+Or if you're curious and want to install superset from bottom up, then go 
+ahead.
+
 OS dependencies
 ---------------
 

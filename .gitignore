@@ -41,3 +41,10 @@ superset/assets/version_info.json
 *.iml
 venv
 @eaDir/
+
+# docker
+/Dockerfile
+/docker-build.sh
+/docker-compose.yml
+/docker-entrypoint.sh
+/docker-init.sh
