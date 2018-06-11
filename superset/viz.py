@@ -1074,7 +1074,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     sort_series = False
     is_timeseries = True
 
-    def to_series(self, df, classed='', title_suffix='', color=None):
+    def to_series(self, df, classed='', title_suffix=''):
         cols = []
         for col in df.columns:
             if col == '':
@@ -1126,8 +1126,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
             }
             if classed:
                 d['classed'] = classed
-            if color:
-                d['color'] = color
             chart_data.append(d)
         return chart_data
 
