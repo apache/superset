@@ -340,10 +340,8 @@ describe('VisualizeModal', () => {
         return d.promise();
       });
       wrapper.setProps({ actions: { createDatasource: datasourceSpy } });
-
       wrapper.instance().visualize();
       expect(exploreUtils.exportChart.callCount).to.equal(1);
-      expect(exploreUtils.exportChart.getCall(0).args[0].datasource).to.equal('107__table');
     });
     it('should notify error', () => {
       datasourceSpy.callsFake(() => {
