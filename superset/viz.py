@@ -830,8 +830,6 @@ class GanttViz(BaseViz):
         end = utils.parse_human_datetime(fd.get('until'))
         if not start or not end:
             raise Exception('Please provide both time bounds (Since and Until)')
-        diff_delta = rdelta.relativedelta(end, start)
-        diff_secs = (end - start).total_seconds()
 
         task_column = fd.get('task_column')
         status_column = fd.get('status_column')
