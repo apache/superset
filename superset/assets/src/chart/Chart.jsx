@@ -58,7 +58,7 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    // lazy load visualizations with promises that resolve to a renderVis function
+    // visualizations are lazy-loaded with promises that resolve to a renderVis function
     this.state = {
       renderVis: null,
     };
@@ -76,26 +76,20 @@ class Chart extends React.PureComponent {
     this.headerHeight = this.headerHeight.bind(this);
     this.height = this.height.bind(this);
     this.width = this.width.bind(this);
+    this.visPromise = null;
   }
 
   componentDidMount() {
     if (this.props.triggerQuery) {
-      this.props.actions.runQuery(this.props.formData, false,
+      this.props.actions.runQuery(
+        this.props.formData,
+        false,
         this.props.timeout,
         this.props.chartKey,
       );
     }
 
-    this.visPromise = visPromiseLookup[this.props.vizType];
-
-    this.visPromise().then((renderVis) => {
-      if (this.visPromise) { // ensure Component is still mounted
-        this.setState({ renderVis }, this.renderVis);
-      }
-    }).catch((error) => {
-      console.error(error);  // eslint-disable-line
-      this.props.actions.chartRenderingFailed(error, this.props.chartKey);
-    });
+    this.loadAsyncVis(this.props.vizType);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -104,14 +98,18 @@ class Chart extends React.PureComponent {
     this.selector = `#${this.containerId}`;
     this.formData = nextProps.formData;
     this.datasource = nextProps.datasource;
+    if (nextProps.vizType !== this.props.vizType) {
+      this.setState(() => ({ renderVis: null }));
+      this.loadAsyncVis(nextProps.vizType);
+    }
   }
 
   componentDidUpdate(prevProps) {
     if (
-        this.props.queryResponse &&
-        ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
-        !this.props.queryResponse.error && (
-        prevProps.annotationData !== this.props.annotationData ||
+      this.props.queryResponse &&
+      ['success', 'rendered'].indexOf(this.props.chartStatus) > -1 &&
+      !this.props.queryResponse.error &&
+      (prevProps.annotationData !== this.props.annotationData ||
         prevProps.queryResponse !== this.props.queryResponse ||
         prevProps.height !== this.props.height ||
         prevProps.width !== this.props.width ||
@@ -131,6 +129,22 @@ class Chart extends React.PureComponent {
 
   setTooltip(tooltip) {
     this.setState({ tooltip });
+  }
+
+  loadAsyncVis(visType) {
+    this.visPromise = visPromiseLookup[visType];
+
+    this.visPromise()
+      .then((renderVis) => {
+        // ensure Component is still mounted
+        if (this.visPromise) {
+          this.setState({ renderVis }, this.renderVis);
+        }
+      })
+      .catch((error) => {
+        console.error(error); // eslint-disable-line
+        this.props.actions.chartRenderingFailed(error, this.props.chartKey);
+      });
   }
 
   addFilter(col, vals, merge = true, refresh = true) {
@@ -228,7 +242,7 @@ class Chart extends React.PureComponent {
 
         this.props.actions.chartRenderingSucceeded(this.props.chartKey);
       } catch (e) {
-        console.error(e);  // eslint-disable-line
+        console.error(e); // eslint-disable-line
         this.props.actions.chartRenderingFailed(e, this.props.chartKey);
       }
     }
@@ -242,36 +256,39 @@ class Chart extends React.PureComponent {
 
         {isLoading && <Loading size={25} />}
 
-        {this.props.chartAlert &&
+        {this.props.chartAlert && (
           <StackTraceMessage
             message={this.props.chartAlert}
             queryResponse={this.props.queryResponse}
-          />}
+          />
+        )}
 
         {!isLoading &&
           !this.props.chartAlert &&
           this.props.refreshOverlayVisible &&
           !this.props.errorMessage &&
-          this.container &&
-          <RefreshChartOverlay
-            height={this.height()}
-            width={this.width()}
-            onQuery={this.props.onQuery}
-            onDismiss={this.props.onDismissRefreshOverlay}
-          />}
+          this.container && (
+            <RefreshChartOverlay
+              height={this.height()}
+              width={this.width()}
+              onQuery={this.props.onQuery}
+              onDismiss={this.props.onDismissRefreshOverlay}
+            />
+          )}
 
-        {!isLoading && !this.props.chartAlert &&
-          <ChartBody
-            containerId={this.containerId}
-            vizType={this.props.vizType}
-            height={this.height}
-            width={this.width}
-            faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
-            ref={(inner) => {
-              this.container = inner;
-            }}
-          />
-        }
+        {!isLoading &&
+          !this.props.chartAlert && (
+            <ChartBody
+              containerId={this.containerId}
+              vizType={this.props.vizType}
+              height={this.height}
+              width={this.width}
+              faded={this.props.refreshOverlayVisible && !this.props.errorMessage}
+              ref={(inner) => {
+                this.container = inner;
+              }}
+            />
+          )}
       </div>
     );
   }
