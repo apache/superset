@@ -144,7 +144,7 @@ class CoreTests(SupersetTestCase):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
             assert_func('ResetPasswordView', view_menus)
-            assert_func('RoleModelView', view_menus)
+            assert_func('SupersetRoleModelView', view_menus)
             assert_func('Security', view_menus)
             assert_func('UserDBModelView', view_menus)
             assert_func('SQL Lab',
