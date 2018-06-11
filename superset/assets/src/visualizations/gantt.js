@@ -22,14 +22,12 @@ function ganttVis(slice, payload) {
   const formatStartDate = task => d3fmt(task.startDate);
   const formatEndDate = task => d3fmt(task.endDate);
 
-
-  // TODO: get this into controls ? colorScalerFactory ??
-  let taskStatus = {
-    'SUCCEEDED' : 'bar',
-    'FAILED' : 'bar-failed',
-    'RUNNING' : 'bar-running',
-    'KILLED' : 'bar-killed'
-  };
+  let taskStatus = {};
+  if( slice.formData.style_mappings ) {
+    slice.formData.style_mappings.map(({val, style}) => {
+      taskStatus[val] = style;
+    });
+  }
 
   const data = payload.data.data;
 

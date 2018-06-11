@@ -243,13 +243,27 @@ export const d3gantt = () => {
             .data(tasks, keyFunction)
             .enter()
             .append("rect")
-            .attr("class",
-                function (d) {
-                    var statusClass = taskStatus[d.status] || "bar";
-                    var clickable = onClickBar ? "clickable" : "";
-                    return statusClass + clickable;
-                })
-            .style("fill", function (d) { return d.color; })
+            .attr("stroke",
+              function (d) {
+                let color = taskStatus[d.status] || null;
+                if( !color ) {
+                  return 'black';
+                } else {
+                  return `rgba(${color.r},${color.g},${color.b},${color.a})`;
+                }
+              })
+            .attr("fill",
+              function (d) {
+                let color = taskStatus[d.status] || null;
+                if( !color ) {
+                  return 'white';
+                } else {
+                  return `rgba(${color.r},${color.g},${color.b},${color.a})`;
+                }
+              })
+            .attr("rx", 5)
+            .attr("ry", 5)
+
             // .attr("y", 0)
             .attr("transform", rectTransform)
             .attr("height", function (d) { return y.rangeBand() - barPaddingBottom; })
@@ -311,13 +325,29 @@ export const d3gantt = () => {
         rect
             .enter()
             .insert("rect", ":first-child")
-            .attr("class",
-                function (d) {
-                    var statusClass = taskStatus[d.status] || "bar";
-                    var clickable = onClickBar ? "clickable" : "";
-                    return statusClass + clickable;
-                })
-            .style("fill", function (d) { return d.color; });
+            .attr("stroke",
+              function (d) {
+                let color = taskStatus[d.status] || null;
+                console.log('stroke', d.status, color);
+                if( !color ) {
+                  return 'black';
+                } else {
+                  return `rbga(${color.r},${color.g},${color.b},${color.a})`;
+                }
+              })
+            .attr("fill",
+              function (d) {
+                let color = taskStatus[d.status] || null;
+                console.log('fill', d.status, color);
+                if( !color ) {
+                  return 'white';
+                } else {
+                  return `rbga(${color.r},${color.g},${color.b},${color.a})`;
+                }
+              })
+            .attr("rx", 5)
+            .attr("ry", 5);
+
         rect
             .attr("transform", rectTransform)
             .attr("height", function (d) { return y.rangeBand() - barPaddingBottom; })
