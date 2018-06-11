@@ -38,12 +38,11 @@ export default class StyleMappingControl extends React.Component {
 
   fetchStyleMappingValues(index, value) {
     const datasource = this.props.datasource;
-    console.log('datasource', datasource);
-    console.log('index', index);
-    console.log('value', value);
-    console.log('props', this.props);
-    const val = value || this.props.value[index].val;
-    if (val && this.props.datasource && this.props.datasource.style_select) {
+    const val = value || (this.props.value &&
+                          this.props.value[index] &&
+                          this.props.value[index].val)
+              ? this.props.value[index].val : "";
+      if (val && this.props.datasource && this.props.datasource.style_select) {
       this.setState((prevState) => {
         const newStateStyles = Object.assign([], prevState.styles);
         newStateStyles[index].valuesLoading = true;
@@ -78,7 +77,7 @@ export default class StyleMappingControl extends React.Component {
                 null;
     newStyles.push({
       val,
-      style: this.props.datasource.style_select ? [] : '',
+      style: {}
     });
     this.props.onChange(newStyles);
     const nextIndex = this.state.styles.length;
@@ -99,15 +98,6 @@ export default class StyleMappingControl extends React.Component {
       control.forEach((c, i) => {
         modifiedStyle[c] = value[i];
       });
-    }
-    // Clear selected values and refresh upon val change
-    if (control === 'val') {
-      if (modifiedStyle.val.constructor === Array) {
-        modifiedStyle.val = [];
-      } else if (typeof modifiedStyle.val === 'string') {
-        modifiedStyle.val = '';
-      }
-      this.fetchStyleMappingValues(index, value);
     }
     newStyles.splice(index, 1, modifiedStyle);
     this.props.onChange(newStyles);
@@ -138,7 +128,7 @@ export default class StyleMappingControl extends React.Component {
     return (
       <div>
         <Row className="space-1">
-          <Col md={7}>Column Value</Col>
+          <Col md={7}>Status Column - Value</Col>
           <Col md={3}>Style</Col>
           <Col md={2}></Col>
         </Row>

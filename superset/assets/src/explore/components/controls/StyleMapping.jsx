@@ -28,11 +28,11 @@ const defaultProps = {
 export default class StyleMapping extends React.Component {
 
   changeValue(event) {
-    this.props.changeStyleMapping('val', event.value);
+    this.props.changeStyleMapping('val', event);
   }
 
   changeColor(event) {
-    this.props.changeStyleMapping('style', event.value);
+    this.props.changeStyleMapping('style', event);
   }
 
   removeStyleMapping(style) {
@@ -42,7 +42,7 @@ export default class StyleMapping extends React.Component {
   render() {
     const datasource = this.props.datasource;
     const style = this.props.style;
-    console.log('style for colorpicker', style);
+    if( !style.style ) style.style = {}; // ColorPickerControl likes objects
     return (
       <div>
         <Row className="space-1">
