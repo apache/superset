@@ -246,3 +246,8 @@ labels to colors in the ``JSON Metadata`` attribute using the
             "Boys": "#ADD8E6"
         }
     }
+
+How is the URL formatted?
+-------------------------
+
+In the explore view the URLs have the form state encoded using [Rison](https://github.com/betodealmeida/python-rison#rison---compact-data-in-uris), a serialization format similar to JSON that is optimized for URIs. Using Rison increases readability, and results in URLs that are 66% smaller compared to JSON.
