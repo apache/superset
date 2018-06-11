@@ -59,6 +59,7 @@ class BaseViz(object):
     is_timeseries = False
     default_fillna = 0
     cache_type = 'df'
+    enforce_numerical_metrics = True
 
     def __init__(self, datasource, form_data, force=False):
         if not datasource:
@@ -209,7 +210,8 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
 
-            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+            if self.enforce_numerical_metrics:
+                self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
             self.handle_nulls(df)
@@ -483,6 +485,7 @@ class TableViz(BaseViz):
     verbose_name = _('Table View')
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+    enforce_numerical_metrics = False
 
     def should_be_timeseries(self):
         fd = self.form_data
