@@ -74,7 +74,7 @@ export const sections = {
       'of query results'),
       controlSetRows: [
         ['rolling_type', 'rolling_periods', 'min_periods'],
-        ['time_compare'],
+        ['time_compare', 'comparison_type'],
         ['num_period_compare', 'period_ratio_type'],
         ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],

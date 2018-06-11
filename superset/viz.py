@@ -1074,7 +1074,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     sort_series = False
     is_timeseries = True
 
-    def to_series(self, df, classed='', title_suffix=''):
+    def to_series(self, df, classed='', title_suffix='', color=None):
         cols = []
         for col in df.columns:
             if col == '':
@@ -1126,6 +1126,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
             }
             if classed:
                 d['classed'] = classed
+            if color:
+                d['color'] = color
             chart_data.append(d)
         return chart_data
 
@@ -1208,8 +1210,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if not isinstance(time_compare, list):
             time_compare = [time_compare]
 
-        classes = ['time-shift-{}'.format(i) for i in range(10)]
-        i = 0
         for option in time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(option)
@@ -1225,23 +1225,37 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object).get('df')
             if df2 is not None:
-                classed = classes[i % len(classes)]
-                i += 1
                 label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self._extra_chart_data.extend(self.to_series(
-                    df2, classed=classed, title_suffix=label))
+                self._extra_chart_data.append((label, df2))
 
     def get_data(self, df):
+        fd = self.form_data
+        comparison_type = fd.get('comparison_type') or 'individual'
         df = self.process_data(df)
-        chart_data = self.to_series(df)
 
-        if self._extra_chart_data:
-            chart_data += self._extra_chart_data
-            chart_data = sorted(chart_data, key=lambda x: tuple(x['key']))
+        if comparison_type == 'individual':
+            chart_data = self.to_series(df)
+            for i, (label, df2) in enumerate(self._extra_chart_data):
+                chart_data.extend(
+                    self.to_series(
+                        df2, classed='time-shift-{}'.format(i), title_suffix=label))
+        else:
+            chart_data = []
+            for i, (label, df2) in enumerate(self._extra_chart_data):
+                combined_index = df.index.union(df2.index)
+                df2 = df2.reindex(
+                    combined_index).interpolate(method='time').reindex(df.index)
+                if comparison_type == 'absolute':
+                    diff = df - df2
+                else:
+                    diff = 100 * df / df2
+                chart_data.extend(
+                    self.to_series(
+                        diff, classed='time-shift-{}'.format(i), title_suffix=label))
 
-        return chart_data
+        return sorted(chart_data, key=lambda x: tuple(x['key']))
 
 
 class MultiLineViz(NVD3Viz):

@@ -1593,6 +1593,20 @@ export const controls = {
     '56 weeks, 365 days)'),
   },
 
+  comparison_type: {
+    type: 'SelectControl',
+    label: t('Comparison type'),
+    default: 'individual',
+    choices: [
+      ['individual', 'Individual lines'],
+      ['absolute', 'Absolute difference'],
+      ['percentage', 'Percentual change'],
+    ],
+    description: t('How to display time shifts: as individual lines; as the ' +
+    'absolute difference between the main time series and each time shift; ' +
+    'or as the percentual change.'),
+  },
+
   subheader: {
     type: 'TextControl',
     label: t('Subheader'),
