@@ -8,15 +8,15 @@ const defaultProps = {
   size: 25,
 };
 
-export default function Loading(props) {
+export default function Loading({ size }) {
   return (
     <img
       className="loading"
       alt="Loading..."
       src="/static/assets/images/loading.gif"
       style={{
-        width: props.size,
-        height: props.size,
+        width: size,
+        height: size,
         padding: 0,
         margin: 0,
         position: 'absolute',

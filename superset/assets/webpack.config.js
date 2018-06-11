@@ -36,12 +36,13 @@ const config = {
       chunks: 'all',
       automaticNameDelimiter: '-',
     },
-    // runtimeChunk: true,
   },
   resolve: {
     extensions: ['.js', '.jsx'],
   },
   module: {
+    // uglyfying mapbox-gl results in undefined errors, see
+    // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
     noParse: /(mapbox-gl)\.js$/,
     rules: [
       {

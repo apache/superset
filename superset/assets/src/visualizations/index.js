@@ -86,7 +86,8 @@ const vizMap = {
   [VIZ_TYPES.horizon]: () => loadVis(import(/* webpackChunkName: "horizon" */ './horizon.js')),
   [VIZ_TYPES.iframe]: () => loadVis(import(/* webpackChunkName: "iframe" */ './iframe.js')),
   [VIZ_TYPES.line]: loadNvd3,
-  [VIZ_TYPES.line_multi]: () => loadVis(import(/* webpackChunkName: "line_multi" */ './line_multi.js')),
+  [VIZ_TYPES.line_multi]: () =>
+    loadVis(import(/* webpackChunkName: "line_multi" */ './line_multi.js')),
   [VIZ_TYPES.time_pivot]: loadNvd3,
   [VIZ_TYPES.mapbox]: () => loadVis(import(/* webpackChunkName: "mapbox" */ './mapbox.jsx')),
   [VIZ_TYPES.markup]: () => loadVis(import(/* webpackChunkName: "markup" */ './markup.js')),
