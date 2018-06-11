@@ -42,6 +42,7 @@ export default class StyleMapping extends React.Component {
   render() {
     const datasource = this.props.datasource;
     const style = this.props.style;
+    console.log('style for colorpicker', style);
     return (
       <div>
         <Row className="space-1">

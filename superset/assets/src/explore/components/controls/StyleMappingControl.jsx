@@ -38,6 +38,10 @@ export default class StyleMappingControl extends React.Component {
 
   fetchStyleMappingValues(index, value) {
     const datasource = this.props.datasource;
+    console.log('datasource', datasource);
+    console.log('index', index);
+    console.log('value', value);
+    console.log('props', this.props);
     const val = value || this.props.value[index].val;
     if (val && this.props.datasource && this.props.datasource.style_select) {
       this.setState((prevState) => {
@@ -67,9 +71,11 @@ export default class StyleMappingControl extends React.Component {
 
   addStyleMapping() {
     const newStyles = Object.assign([], this.props.value);
-    const val = this.props.datasource && this.props.datasource.values.length > 0 ?
-      this.props.datasource.values[0][0] :
-      null;
+    const val = this.props.datasource
+             && this.props.datasource.styles
+             && this.props.datasource.styles.length > 0 ?
+                this.props.datasource.styles[0][0] :
+                null;
     newStyles.push({
       val,
       style: this.props.datasource.style_select ? [] : '',
@@ -108,7 +114,7 @@ export default class StyleMappingControl extends React.Component {
   }
 
   removeStyleMapping(index) {
-    this.props.onChange(this.props.value.style((s, i) => i !== index));
+    this.props.onChange(this.props.value.filter((s, i) => i !== index));
     this.setState((prevState) => {
       const newStateStyles = Object.assign([], prevState.styles);
       newStateStyles.splice(index, 1);
