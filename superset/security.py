@@ -39,7 +39,7 @@ ADMIN_ONLY_VIEW_MENUS = {
     'Queries',
     'Refresh Druid Metadata',
     'ResetPasswordView',
-    'RoleModelView',
+    'SupersetRoleModelView',
     'Security',
     'UserDBModelView',
     'UserLDAPModelView',

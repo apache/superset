@@ -60,5 +60,3 @@ class SupersetRoleModelView(RoleModelView):
         for dash in role_dashboards:
             if dash.id not in role_dash_perms:
                 self.remove_dashboard_role(role, dash)
-
-
