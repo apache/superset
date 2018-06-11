@@ -1,6 +1,5 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import ColorPickerControl from './ColorPickerControl';
 import TextControl from './TextControl';
@@ -11,7 +10,6 @@ const propTypes = {
   changeStyleMapping: PropTypes.func,
   removeStyleMapping: PropTypes.func,
   style: PropTypes.object.isRequired,
-  datasource: PropTypes.object,
   valuesLoading: PropTypes.bool,
   valueChoices: PropTypes.array,
 };
@@ -20,7 +18,6 @@ const defaultProps = {
   changeStyleMapping: () => {},
   removeStyleMapping: () => {},
   style: {},
-  datasource: null,
   valuesLoading: false,
   valueChoices: [],
 };
@@ -40,9 +37,10 @@ export default class StyleMapping extends React.Component {
   }
 
   render() {
-    const datasource = this.props.datasource;
     const style = this.props.style;
-    if( !style.style ) style.style = {}; // ColorPickerControl likes objects
+    if (!style.style) {
+      style.style = {}; // ColorPickerControl likes objects
+    }
     return (
       <div>
         <Row className="space-1">

@@ -1,12 +1,10 @@
 import d3 from 'd3';
 import moment from 'moment';
 
-
-//import { d3TimeFormatPreset } from '../../src/modules/utils';
-
 import './gantt.css';
 import '../../vendor/d3-gantt-chart/gantt-chart-d3.css';
 import { d3gantt } from '../../vendor/d3-gantt-chart/gantt-chart-d3';
+
 d3.gantt = d3gantt;
 
 function ganttVis(slice, payload) {
@@ -17,33 +15,35 @@ function ganttVis(slice, payload) {
   container.selectAll('*').remove();
 
   // TODO: use d3TimeFormatPreset ?
-  const format = "%H:%M"
+  const format = '%H:%M';
   const d3fmt = d3.time.format(format);
   const formatStartDate = task => d3fmt(task.startDate);
   const formatEndDate = task => d3fmt(task.endDate);
 
-  let taskStatus = {};
-  if( slice.formData.style_mappings ) {
-    slice.formData.style_mappings.map(({val, style}) => {
+  const taskStatus = {};
+  if (slice.formData.style_mappings) {
+    slice.formData.style_mappings.forEach(({ val, style }) => {
       taskStatus[val] = style;
     });
   }
 
   const data = payload.data.data;
 
-  let tasks = [];
-  let taskNames = [];
+  const taskNames = [];
 
-  Object.values(data).forEach((row) => {
+  const tasks = Object.values(data).map((row) => {
     // build taskNames
-    if( !taskNames.includes(row[fd.task_column]) ) {
+    if (!taskNames.includes(row[fd.task_column])) {
       taskNames.push(row[fd.task_column]);
     }
 
     // make some JS dates
-    row[fd.start_time_column] = moment.utc(row[fd.start_time_column]).toDate();
-    row[fd.end_time_column] = moment.utc(row[fd.end_time_column]).toDate();
-    tasks.push(row);
+    const start = moment.utc(row[fd.start_time_column]).toDate();
+    const end = moment.utc(row[fd.end_time_column]).toDate();
+    const ret = row;
+    ret[fd.start_time_column] = start;
+    ret[fd.end_time_column] = end;
+    return ret;
   });
 
   const gantt = d3.gantt()
@@ -51,7 +51,7 @@ function ganttVis(slice, payload) {
         .taskStatus(taskStatus)
         .selector(slice.selector)
         .tickFormat(format)
-        .margins({top:10,right:10,bottom:10,left:10})
+        .margins({ top: 10, right: 10, bottom: 10, left: 10 })
         .tooltipFormatStartDate(formatStartDate)
         .tooltipFormatEndDate(formatEndDate)
         .width(container[0][0].clientWidth);

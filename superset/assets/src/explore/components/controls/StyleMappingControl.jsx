@@ -41,7 +41,7 @@ export default class StyleMappingControl extends React.Component {
     const val = value || (this.props.value &&
                           this.props.value[index] &&
                           this.props.value[index].val)
-              ? this.props.value[index].val : "";
+              ? this.props.value[index].val : '';
       if (val && this.props.datasource && this.props.datasource.style_select) {
       this.setState((prevState) => {
         const newStateStyles = Object.assign([], prevState.styles);
@@ -77,7 +77,7 @@ export default class StyleMappingControl extends React.Component {
                 null;
     newStyles.push({
       val,
-      style: {}
+      style: {},
     });
     this.props.onChange(newStyles);
     const nextIndex = this.state.styles.length;
@@ -130,7 +130,7 @@ export default class StyleMappingControl extends React.Component {
         <Row className="space-1">
           <Col md={7}>Status Column - Value</Col>
           <Col md={3}>Style</Col>
-          <Col md={2}></Col>
+          <Col md={2} />
         </Row>
         {styles}
         <Row className="space-2">

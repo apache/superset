@@ -787,7 +787,7 @@ export const controls = {
   start_time_column: {
     type: 'SelectControl',
     label: t('Start Time Column'),
-    description: "The start_time column for the visualization.",
+    description: 'The start_time column for the visualization.',
     default: null,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
@@ -799,13 +799,13 @@ export const controls = {
         newState.options = state.datasource.columns.filter(c => c.is_dttm);
       }
       return newState;
-    }
+    },
   },
 
   end_time_column: {
     type: 'SelectControl',
     label: t('End Time Column'),
-    description: "The end_time column for the visualization.",
+    description: 'The end_time column for the visualization.',
     default: null,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
@@ -817,13 +817,13 @@ export const controls = {
         newState.options = state.datasource.columns.filter(c => c.is_dttm);
       }
       return newState;
-    }
+    },
   },
 
   task_column: {
     type: 'SelectControl',
     label: t('Task Column'),
-    description: "The task / taskname column for the visualization.",
+    description: 'The task / taskname column for the visualization.',
     default: null,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
@@ -835,13 +835,13 @@ export const controls = {
         newState.options = state.datasource.columns.filter(c => c.groupby);
       }
       return newState;
-    }
+    },
   },
 
   status_column: {
     type: 'SelectControl',
     label: t('Status Column'),
-    description: "The status column of tasks for the visualization.",
+    description: 'The status column of tasks for the visualization.',
     default: null,
     clearable: false,
     optionRenderer: c => <ColumnOption column={c} showType />,
@@ -853,7 +853,7 @@ export const controls = {
         newState.options = state.datasource.columns.filter(c => c.groupby);
       }
       return newState;
-    }
+    },
   },
 
   style_mappings: {
