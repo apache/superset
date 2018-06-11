@@ -1,11 +1,11 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/dist/light';
-import html from 'react-syntax-highlighter/dist/languages/htmlbars';
-import markdown from 'react-syntax-highlighter/dist/languages/markdown';
-import sql from 'react-syntax-highlighter/dist/languages/sql';
-import json from 'react-syntax-highlighter/dist/languages/json';
-import github from 'react-syntax-highlighter/dist/styles/github';
+import SyntaxHighlighter, { registerLanguage } from 'react-syntax-highlighter/light';
+import html from 'react-syntax-highlighter/languages/hljs/htmlbars';
+import markdown from 'react-syntax-highlighter/languages/hljs/markdown';
+import sql from 'react-syntax-highlighter/languages/hljs/sql';
+import json from 'react-syntax-highlighter/languages/hljs/json';
+import github from 'react-syntax-highlighter/styles/hljs/github';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getExploreUrlAndPayload } from '../exploreUtils';
 
