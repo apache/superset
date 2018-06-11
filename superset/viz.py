@@ -1222,7 +1222,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['to_dttm'] -= delta
 
             df2 = self.get_df_payload(query_object).get('df')
-            if df2 is not None:
+            if df2 is not None and DTTM_ALIAS in df2:
                 label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
@@ -1242,13 +1242,20 @@ class NVD3TimeSeriesViz(NVD3Viz):
         else:
             chart_data = []
             for i, (label, df2) in enumerate(self._extra_chart_data):
+                # reindex df2 into the df2 index
                 combined_index = df.index.union(df2.index)
-                df2 = df2.reindex(
-                    combined_index).interpolate(method='time').reindex(df.index)
+                df2 = df2.reindex(combined_index) \
+                    .interpolate(method='time') \
+                    .reindex(df.index)
+
                 if comparison_type == 'absolute':
                     diff = df - df2
                 else:
-                    diff = 100 * df / df2
+                    diff = 100 * (df - df2) / df2
+
+                # remove leading/trailing NaNs from the time shift difference
+                diff = diff[diff.first_valid_index():diff.last_valid_index()]
+
                 chart_data.extend(
                     self.to_series(
                         diff, classed='time-shift-{}'.format(i), title_suffix=label))

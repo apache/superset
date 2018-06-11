@@ -1600,11 +1600,11 @@ export const controls = {
     choices: [
       ['individual', 'Individual lines'],
       ['absolute', 'Absolute difference'],
-      ['percentage', 'Percentual change'],
+      ['percentage', 'Percentage change'],
     ],
     description: t('How to display time shifts: as individual lines; as the ' +
     'absolute difference between the main time series and each time shift; ' +
-    'or as the percentual change.'),
+    'or as the percentage change.'),
   },
 
   subheader: {
