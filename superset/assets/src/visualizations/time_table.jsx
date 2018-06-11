@@ -64,26 +64,28 @@ function viz(slice, payload) {
     let leftCell;
     const context = { ...fd, metric };
     const url = fd.url ? Mustache.render(fd.url, context) : null;
+    const metricLabel = metric.label || metric;
+    const metricData = typeof metric === 'object' ? metric : metricMap[metric];
     if (!payload.data.is_group_by) {
       leftCell = (
-        <MetricOption metric={metricMap[metric]} url={url} showFormula={false} openInNewWindow />
+        <MetricOption metric={metricData} url={url} showFormula={false} openInNewWindow />
       );
     } else {
-      leftCell = url ? <a href={url} target="_blank">{metric}</a> : metric;
+      leftCell = url ? <a href={url} target="_blank">{metricLabel}</a> : metric;
     }
     const row = { metric: leftCell };
     fd.column_collection.forEach((column) => {
       if (column.colType === 'spark') {
         let sparkData;
         if (!column.timeRatio) {
-          sparkData = data.map(d => d[metric]);
+          sparkData = data.map(d => d[metricLabel]);
         } else {
           // Period ratio sparkline
           sparkData = [];
           for (let i = column.timeRatio; i < data.length; i++) {
-            const prevData = data[i - column.timeRatio][metric];
+            const prevData = data[i - column.timeRatio][metricLabel];
             if (prevData && prevData !== 0) {
-              sparkData.push(data[i][metric] / prevData);
+              sparkData.push(data[i][metricLabel] / prevData);
             } else {
               sparkData.push(null);
             }
@@ -105,7 +107,7 @@ function viz(slice, payload) {
             >
               {({ onMouseLeave, onMouseMove, tooltipData }) => (
                 <Sparkline
-                  ariaLabel={`spark-${metric}`}
+                  ariaLabel={`spark-${metricLabel}`}
                   width={parseInt(column.width, 10) || 300}
                   height={parseInt(column.height, 10) || 50}
                   margin={SPARKLINE_MARGIN}
@@ -135,7 +137,7 @@ function viz(slice, payload) {
           ),
         };
       } else {
-        const recent = reversedData[0][metric];
+        const recent = reversedData[0][metricLabel];
         let v;
         let errorMsg;
         if (column.colType === 'time') {
@@ -145,7 +147,7 @@ function viz(slice, payload) {
           if (timeLag > totalLag) {
             errorMsg = `The time lag set at ${timeLag} exceeds the length of data at ${reversedData.length}. No data available.`;
           } else {
-            v = reversedData[timeLag][metric];
+            v = reversedData[timeLag][metricLabel];
           }
           if (column.comparisonType === 'diff') {
             v = recent - v;
@@ -162,7 +164,7 @@ function viz(slice, payload) {
         } else if (column.colType === 'avg') {
           // Average over the last {timeLag}
           v = reversedData
-          .map((k, i) => i < column.timeLag ? k[metric] : 0)
+          .map((k, i) => i < column.timeLag ? k[metricLabel] : 0)
           .reduce((a, b) => a + b) / column.timeLag;
         }
         let color;

@@ -86,7 +86,7 @@ class BaseViz(object):
         self._some_from_cache = False
         self._any_cache_key = None
         self._any_cached_dttm = None
-        self._extra_chart_data = None
+        self._extra_chart_data = []
 
         self.process_metrics()
 
@@ -144,6 +144,10 @@ class BaseViz(object):
         the underlying query(ies).
         """
         pass
+
+    def handle_nulls(self, df):
+        fillna = self.get_fillna_for_columns(df.columns)
+        df = df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
         """Returns the value for use as filler for a specific Column.type"""
@@ -208,8 +212,7 @@ class BaseViz(object):
             self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
-            fillna = self.get_fillna_for_columns(df.columns)
-            df = df.fillna(fillna)
+            self.handle_nulls(df)
         return df
 
     @staticmethod
@@ -1199,10 +1202,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def run_extra_queries(self):
         fd = self.form_data
-        time_compare = fd.get('time_compare')
-        if time_compare:
+
+        time_compare = fd.get('time_compare') or []
+        # backwards compatibility
+        if not isinstance(time_compare, list):
+            time_compare = [time_compare]
+
+        classes = ['time-shift-{}'.format(i) for i in range(10)]
+        i = 0
+        for option in time_compare:
             query_object = self.query_obj()
-            delta = utils.parse_human_timedelta(time_compare)
+            delta = utils.parse_human_timedelta(option)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
 
@@ -1215,10 +1225,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object).get('df')
             if df2 is not None:
+                classed = classes[i % len(classes)]
+                i += 1
+                label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self._extra_chart_data = self.to_series(
-                    df2, classed='superset', title_suffix='---')
+                self._extra_chart_data.extend(self.to_series(
+                    df2, classed=classed, title_suffix=label))
 
     def get_data(self, df):
         df = self.process_data(df)
@@ -2041,6 +2054,9 @@ class BaseDeckGLViz(BaseViz):
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
     spatial_control_keys = []
 
+    def handle_nulls(self, df):
+        pass
+
     def get_metrics(self):
         self.metric = self.form_data.get('size')
         return [self.metric] if self.metric else []
@@ -2150,7 +2166,8 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def query_obj(self):
         fd = self.form_data
-        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
+        self.is_timeseries = bool(
+            fd.get('time_grain_sqla') or fd.get('granularity'))
         self.point_radius_fixed = (
             fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
         return super(DeckScatterViz, self).query_obj()
@@ -2168,7 +2185,7 @@ class DeckScatterViz(BaseDeckGLViz):
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
-            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
+            DTTM_ALIAS: d.get(DTTM_ALIAS),
         }
 
     def get_data(self, df):

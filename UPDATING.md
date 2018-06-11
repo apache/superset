@@ -3,6 +3,12 @@
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
+## Superset 0.26.0
+* Superset 0.26.0 deprecates the `superset worker` CLI, which is a simple
+wrapper around the `celery worker` command, forcing you into crafting
+your own native `celery worker` command. Your command should look something
+like `celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair`
+
 ## Superset 0.25.0
 Superset 0.25.0 contains a backwards incompatible changes.
 If you run a production system you should schedule downtime for this

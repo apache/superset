@@ -210,3 +210,10 @@
   margin-left: 3px;
   position: static;
 }
+
+.custom-sql-disabled-message {
+  color: gray;
+  font-size: 11px;
+  text-align: center;
+  margin-top: 60px;
+}

@@ -52,12 +52,12 @@ setup(
     install_requires=[
         'bleach',
         'boto3>=1.4.6',
-        'celery',
+        'celery>=4.1.1',
         'colorama',
         'contextlib2',
         'cryptography',
         'flask<1.0.0',
-        'flask-appbuilder',
+        'flask-appbuilder==1.10.0',  # known db migration with 1.11+
         'flask-caching',
         'flask-compress',
         'flask-migrate',
@@ -75,7 +75,7 @@ setup(
         'parsedatetime',
         'pathlib2',
         'polyline',
-        'pydruid',
+        'pydruid>=0.4.3',
         'pyhive>=0.4.0',
         'python-dateutil',
         'python-geohash',

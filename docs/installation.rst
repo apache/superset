@@ -35,6 +35,27 @@ The Superset web server and the Superset Celery workers (optional)
 are stateless, so you can scale out by running on as many servers
 as needed.
 
+Start with Docker
+-----------------
+
+If you know docker, then you're lucky, we have shortcut road for you to 
+initialize development environment: ::
+
+    git clone https://github.com/apache/incubator-superset/
+    cd incubator-superset
+    cp contrib/docker/{docker-build.sh,docker-compose.yml,docker-entrypoint.sh,docker-init.sh,Dockerfile} .
+    cp contrib/docker/superset_config.py superset/
+    bash -x docker-build.sh
+    docker-compose up -d
+    docker-compose exec superset bash
+    bash docker-init.sh
+
+After several minutes for sueprset initialization to finish, you can open a 
+a browser and view `http://localhost:8088` to start your journey.
+
+Or if you're curious and want to install superset from bottom up, then go 
+ahead.
+
 OS dependencies
 ---------------
 
@@ -314,6 +335,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Athena       | ``pip install "PyAthenaJDBC>1.0.9"``| ``awsathena+jdbc://``                           |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Athena       | ``pip install "PyAthena>1.2.0"``    | ``awsathena+rest://``                           |
++---------------+-------------------------------------+-------------------------------------------------+
 |  Vertica      | ``pip install                       |  ``vertica+vertica_python://``                  |
 |               | sqlalchemy-vertica-python``         |                                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
@@ -341,6 +364,11 @@ Where you need to escape/encode at least the s3_staging_dir, i.e., ::
 
     s3://... -> s3%3A//...
 
+You can also use `PyAthena` library
+
+    awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+
+_(See more details at https://github.com/laughingman7743/PyAthena#sqlalchemy.)_
 
 Caching
 -------
@@ -362,7 +390,7 @@ For setting your timeouts, this is done in the Superset metadata and goes
 up the "timeout searchpath", from your slice configuration, to your
 data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
-	
+
 .. code-block:: python
 
     CACHE_CONFIG = {
@@ -657,13 +685,13 @@ Note that it's also possible to implement you own logger by deriving
 Install Superset with helm in Kubernetes
 --------------
 
-You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is 
+You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is
 located in ``install/helm``.
 
 To install Superset into your Kubernetes:
 
 .. code-block:: bash
 
-    helm upgrade --install superset ./install/helm/superset 
+    helm upgrade --install superset ./install/helm/superset
 
 Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.

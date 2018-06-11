@@ -1575,11 +1575,20 @@ export const controls = {
   },
 
   time_compare: {
-    type: 'TextControl',
+    type: 'SelectControl',
+    multi: true,
+    freeForm: true,
     label: t('Time Shift'),
-    default: null,
-    description: t('Overlay a timeseries from a ' +
-    'relative time period. Expects relative time delta ' +
+    default: [],
+    choices: formatSelectOptions([
+      '1 day',
+      '1 week',
+      '28 days',
+      '30 days',
+      '1 year',
+    ]),
+    description: t('Overlay one or more timeseries from a ' +
+    'relative time period. Expects relative time deltas ' +
     'in natural language (example:  24 hours, 7 days, ' +
     '56 weeks, 365 days)'),
   },

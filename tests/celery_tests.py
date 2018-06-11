@@ -196,14 +196,40 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual([{'name': 'Admin'}], df.to_dict(orient='records'))
         self.assertEqual(QueryStatus.SUCCESS, query.status)
         self.assertTrue('FROM tmp_async_1' in query.select_sql)
-        self.assertTrue('LIMIT 666' in query.select_sql)
         self.assertEqual(
             'CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role '
-            "WHERE name='Admin'", query.executed_sql)
+            "WHERE name='Admin' LIMIT 666", query.executed_sql)
         self.assertEqual(sql_where, query.sql)
         self.assertEqual(0, query.rows)
         self.assertEqual(666, query.limit)
         self.assertEqual(False, query.limit_used)
+        self.assertEqual(True, query.select_as_cta)
+        self.assertEqual(True, query.select_as_cta_used)
+
+    def test_run_async_query_with_lower_limit(self):
+        main_db = self.get_main_database(db.session)
+        eng = main_db.get_sqla_engine()
+        sql_where = "SELECT name FROM ab_role WHERE name='Alpha' LIMIT 1"
+        result = self.run_sql(
+            main_db.id, sql_where, '5', async='true', tmp_table='tmp_async_2',
+            cta='true')
+        assert result['query']['state'] in (
+            QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
+
+        time.sleep(1)
+
+        query = self.get_query_by_id(result['query']['serverId'])
+        df = pd.read_sql_query(query.select_sql, con=eng)
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertEqual([{'name': 'Alpha'}], df.to_dict(orient='records'))
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertTrue('FROM tmp_async_2' in query.select_sql)
+        self.assertEqual(
+            'CREATE TABLE tmp_async_2 AS \nSELECT name FROM ab_role '
+            "WHERE name='Alpha' LIMIT 1", query.executed_sql)
+        self.assertEqual(sql_where, query.sql)
+        self.assertEqual(0, query.rows)
+        self.assertEqual(1, query.limit)
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 

@@ -5,6 +5,7 @@ import Controls from './Controls';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import URLShortLinkButton from '../../components/URLShortLinkButton';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 import { t } from '../../locales';
 
@@ -92,6 +93,12 @@ class Header extends React.PureComponent {
           </h1>
         </div>
         <div className="pull-right" style={{ marginTop: '35px' }}>
+          <span className="m-r-5">
+            <URLShortLinkButton
+              emailSubject="Superset Dashboard"
+              emailContent="Check out this dashboard: "
+            />
+          </span>
           {this.renderEditButton()}
           <Controls
             dashboard={dashboard}

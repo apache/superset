@@ -15,7 +15,7 @@ import AnnotationTypes, {
 } from '../modules/AnnotationTypes';
 import { customizeToolTip, d3TimeFormatPreset, d3FormatPreset, tryNumify } from '../modules/utils';
 import { formatDateVerbose } from '../modules/dates';
-import { isTruthy } from '../utils/common';
+import { isTruthy, TIME_SHIFT_PATTERN } from '../utils/common';
 import { t } from '../locales';
 
 // CSS
@@ -103,11 +103,8 @@ export function formatLabel(input, verboseMap = {}) {
   const verboseLkp = s => verboseMap[s] || s;
   let label;
   if (Array.isArray(input) && input.length) {
-    const verboseLabels = input.filter(s => s !== '---').map(verboseLkp);
+    const verboseLabels = input.map(l => TIME_SHIFT_PATTERN.test(l) ? l : verboseLkp(l));
     label = verboseLabels.join(', ');
-    if (input.length > verboseLabels.length) {
-      label += ' ---';
-    }
   } else {
     label = verboseLkp(input);
   }
