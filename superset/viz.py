@@ -18,7 +18,6 @@ import inspect
 from itertools import product
 import logging
 import math
-from past.builtins import basestring
 import re
 import traceback
 import uuid
@@ -32,6 +31,7 @@ from markdown import markdown
 import numpy as np
 import pandas as pd
 from pandas.tseries.frequencies import to_offset
+from past.builtins import basestring
 import polyline
 import simplejson as json
 from six import string_types, text_type
