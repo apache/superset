@@ -200,12 +200,6 @@ def load_examples(load_test_data):
     data.load_deck_dash()
 
 
-# TODO: remove after DEV
-@manager.command
-def load_tasks():
-    data.load_task_data()
-
-
 @manager.option(
     '-d', '--datasource',
     help=(
