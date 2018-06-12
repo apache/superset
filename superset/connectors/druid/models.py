@@ -818,7 +818,7 @@ class DruidDatasource(Model, BaseDatasource):
         """Return a list of metrics that are post aggregations"""
         postagg_metrics = [
             metrics_dict[name] for name in postagg_names
-            if metrics_dict[name].metric_type == POST_AGG_TYPE
+            if (metrics_dict[name].metric_type).strip() == POST_AGG_TYPE
         ]
         # Remove post aggregations that were found
         for postagg in postagg_metrics:
@@ -878,7 +878,7 @@ class DruidDatasource(Model, BaseDatasource):
         for metric in metrics:
             if utils.is_adhoc_metric(metric):
                 adhoc_agg_configs.append(metric)
-            elif metrics_dict[metric].metric_type != POST_AGG_TYPE:
+            elif (metrics_dict[metric].metric_type).strip() != POST_AGG_TYPE:
                 saved_agg_names.add(metric)
             else:
                 postagg_names.append(metric)
@@ -995,7 +995,7 @@ class DruidDatasource(Model, BaseDatasource):
         for metric_name in saved_metrics:
             if metric_name in metrics_dict:
                 metric = metrics_dict[metric_name]
-                if metric.metric_type == POST_AGG_TYPE:
+                if (metric.metric_type).strip() == POST_AGG_TYPE:
                     invalid_metric_names.append(metric_name)
                 else:
                     aggregations[metric_name] = metric.json_obj
