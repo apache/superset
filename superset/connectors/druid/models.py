@@ -126,6 +126,11 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
             self.coordinator_host, self.coordinator_port)
         return '{base_url}/{self.coordinator_endpoint}'.format(**locals())
 
+    def get_base_broker_url(self):
+        base_url = self.get_base_url(
+            self.broker_host, self.broker_port)
+        return '{base_url}/{self.broker_endpoint}'.format(**locals())
+
     def get_pydruid_client(self):
         cli = PyDruid(
             self.get_base_url(self.broker_host, self.broker_port),
@@ -133,7 +138,7 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         return cli
 
     def get_datasources(self):
-        endpoint = self.get_base_coordinator_url() + '/datasources'
+        endpoint = self.get_base_broker_url() + '/datasources'
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
