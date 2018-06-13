@@ -555,7 +555,7 @@ class TableViz(BaseViz):
                 m_name = '%' + m
                 df[m_name] = pd.Series(metric_percents[m], name=m_name)
             # Remove metrics that are not in the main metrics list
-            metrics = fd.get('metrics', [])
+            metrics = fd.get('metrics') or []
             metrics = [self.get_metric_label(m) for m in metrics]
             for m in filter(
                 lambda m: m not in metrics and m in df.columns,
