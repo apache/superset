@@ -586,10 +586,13 @@ def load_birth_names():
     obj.main_dttm_col = 'ds'
     obj.database = utils.get_or_create_main_db()
     obj.filter_select_enabled = True
-    obj.columns.append(TableColumn(
-        column_name='num_california',
-        expression="CASE WHEN state = 'CA' THEN num ELSE 0 END"
-    ))
+
+    if not any(col.column_name == 'num_california' for col in obj.columns):
+        obj.columns.append(TableColumn(
+            column_name='num_california',
+            expression="CASE WHEN state = 'CA' THEN num ELSE 0 END"
+        ))
+
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
