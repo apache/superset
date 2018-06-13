@@ -94,6 +94,7 @@ class DruidTests(SupersetTestCase):
             coordinator_port=7979,
             broker_host='localhost',
             broker_port=7980,
+            broker_endpoint='druid/v2',
             metadata_last_refreshed=datetime.now())
 
     def get_cluster(self, PyDruid):
