@@ -881,4 +881,3 @@ def split_adhoc_filters_into_base_filters(fd):
         fd['having'] = ' AND '.join(['({})'.format(sql) for sql in sql_having_filters])
         fd['having_filters'] = simple_having_filters
         fd['filters'] = simple_where_filters
-        del fd['adhoc_filters']
