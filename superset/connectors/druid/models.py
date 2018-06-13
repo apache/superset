@@ -121,11 +121,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
         url = '{0}:{1}'.format(host, port) if port else host
         return url
 
-    def get_base_coordinator_url(self):
-        base_url = self.get_base_url(
-            self.coordinator_host, self.coordinator_port)
-        return '{base_url}/{self.coordinator_endpoint}'.format(**locals())
-
     def get_base_broker_url(self):
         base_url = self.get_base_url(
             self.broker_host, self.broker_port)

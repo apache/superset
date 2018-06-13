@@ -456,8 +456,8 @@ class DruidTests(SupersetTestCase):
             'https://localhost:9999')
 
         self.assertEquals(
-            cluster.get_base_coordinator_url(),
-            'http://localhost:7979/druid/coordinator/v1/metadata')
+            cluster.get_base_broker_url(),
+            'http://localhost:7980/druid/v2')
 
 
 if __name__ == '__main__':
