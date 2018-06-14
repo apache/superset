@@ -516,7 +516,8 @@ class TableViz(BaseViz):
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
         elif sort_by:
-            if sort_by not in d['metrics']:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in utils.get_metric_names(d['metrics']):
                 d['metrics'] += [sort_by]
             d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
 

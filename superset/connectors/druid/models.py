@@ -1068,6 +1068,18 @@ class DruidDatasource(Model, BaseDatasource):
 
         return values
 
+    @staticmethod
+    def sanitize_metric_object(metric):
+        """
+        Update a metric with the correct type if necessary.
+        :param dict metric: The metric to sanitize
+        """
+        if (
+            utils.is_adhoc_metric(metric) and
+            metric['column']['type'].upper() == 'FLOAT'
+        ):
+            metric['column']['type'] = 'DOUBLE'
+
     def run_query(  # noqa / druid
             self,
             groupby, metrics,
@@ -1111,11 +1123,8 @@ class DruidDatasource(Model, BaseDatasource):
             LooseVersion(self.cluster.get_druid_version()) < LooseVersion('0.11.0')
         ):
             for metric in metrics:
-                if (
-                    utils.is_adhoc_metric(metric) and
-                    metric['column']['type'].upper() == 'FLOAT'
-                ):
-                    metric['column']['type'] = 'DOUBLE'
+                self.sanitize_metric_object(metric)
+            self.sanitize_metric_object(timeseries_limit_metric)
 
         aggregations, post_aggs = DruidDatasource.metrics_and_post_aggs(
             metrics,
@@ -1171,7 +1180,7 @@ class DruidDatasource(Model, BaseDatasource):
             logging.info('Running two-phase topn query for dimension [{}]'.format(dim))
             pre_qry = deepcopy(qry)
             if timeseries_limit_metric:
-                order_by = timeseries_limit_metric
+                order_by = utils.get_metric_name(timeseries_limit_metric)
                 aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                     [timeseries_limit_metric],
                     metrics_dict)
@@ -1240,7 +1249,7 @@ class DruidDatasource(Model, BaseDatasource):
                     order_by = pre_qry_dims[0]
 
                 if timeseries_limit_metric:
-                    order_by = timeseries_limit_metric
+                    order_by = utils.get_metric_name(timeseries_limit_metric)
                     aggs_dict, post_aggs_dict = DruidDatasource.metrics_and_post_aggs(
                         [timeseries_limit_metric],
                         metrics_dict)
