@@ -1230,10 +1230,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def get_data(self, df):
         fd = self.form_data
-        comparison_type = fd.get('comparison_type') or 'individual'
+        comparison_type = fd.get('comparison_type') or 'values'
         df = self.process_data(df)
 
-        if comparison_type == 'individual':
+        if comparison_type == 'values':
             chart_data = self.to_series(df)
             for i, (label, df2) in enumerate(self._extra_chart_data):
                 chart_data.extend(
@@ -1250,8 +1250,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
                 if comparison_type == 'absolute':
                     diff = df - df2
-                else:
+                elif comparison_type == 'percentage':
                     diff = 100 * (df - df2) / df2
+                elif comparison_type == 'ratio':
+                    diff = df / df2
+                else:
+                    raise Exception(
+                        'Invalid `comparison_type`: {0}'.format(comparison_type))
 
                 # remove leading/trailing NaNs from the time shift difference
                 diff = diff[diff.first_valid_index():diff.last_valid_index()]
