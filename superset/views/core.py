@@ -1092,9 +1092,9 @@ class Superset(BaseSupersetView):
                 stacktrace=traceback.format_exc())
 
         if not security_manager.datasource_access(viz_obj.datasource, g.user):
+            perms_instruction_link = config.get('PERMISSION_INSTRUCTIONS_LINK')
             return json_error_response(
-                DATASOURCE_ACCESS_ERR, status=404, link=config.get(
-                    'PERMISSION_INSTRUCTIONS_LINK'))
+                DATASOURCE_ACCESS_ERR, status=404, link=perms_instruction_link)
 
         if csv:
             return CsvResponse(

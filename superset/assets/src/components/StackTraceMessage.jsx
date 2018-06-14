@@ -7,9 +7,11 @@ const propTypes = {
   message: PropTypes.string,
   queryResponse: PropTypes.object,
   showStackTrace: PropTypes.bool,
+  resolutionLink: PropTypes.string,
 };
 const defaultProps = {
   showStackTrace: false,
+  resolutionLink: '',
 };
 
 class StackTraceMessage extends React.PureComponent {
