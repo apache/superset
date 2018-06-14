@@ -651,6 +651,8 @@ class SqlaTable(Model, BaseDatasource):
 
         for col, ascending in orderby:
             direction = asc if ascending else desc
+            if utils.is_adhoc_metric(col):
+                col = self.adhoc_metric_to_sa(col, cols)
             qry = qry.order_by(direction(col))
 
         if row_limit:
@@ -675,8 +677,15 @@ class SqlaTable(Model, BaseDatasource):
 
                 ob = inner_main_metric_expr
                 if timeseries_limit_metric:
-                    timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
-                    ob = timeseries_limit_metric.sqla_col
+                    if utils.is_adhoc_metric(timeseries_limit_metric):
+                        ob = self.adhoc_metric_to_sa(timeseries_limit_metric, cols)
+                    elif timeseries_limit_metric in metrics_dict:
+                        timeseries_limit_metric = metrics_dict.get(
+                            timeseries_limit_metric,
+                        )
+                        ob = timeseries_limit_metric.sqla_col
+                    else:
+                        raise Exception(_("Metric '{}' is not valid".format(m)))
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(timeseries_limit)
