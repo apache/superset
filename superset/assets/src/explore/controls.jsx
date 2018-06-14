@@ -103,6 +103,10 @@ const groupByControl = {
   optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
+  filterOption: (opt, text) => (
+    (opt.column_name && opt.column_name.toLowerCase().indexOf(text) >= 0) ||
+    (opt.verbose_name && opt.verbose_name.toLowerCase().indexOf(text) >= 0)
+  ),
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
