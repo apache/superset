@@ -148,6 +148,8 @@ export function runQuery(query) {
         }
       },
       error(err, textStatus, errorThrown) {
+        console.log(err, textStatus, errorThrown);
+        console.log("^^^");
         let msg;
         try {
           msg = err.responseJSON.error;

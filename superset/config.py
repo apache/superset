@@ -356,7 +356,7 @@ SILENCE_FAB = True
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
-TROUBLESHOOTING_LINK = ''
+TROUBLESHOOTING_LINK = 'www.google.com'
 
 # CSRF token timeout, set to None for a token that never expires
 WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 7

@@ -143,6 +143,7 @@ export default class ResultSet extends React.PureComponent {
     }
   }
   render() {
+    // {query.error && <a href={query.error.link}>(Common errors and their resolutions)</a>}
     const query = this.props.query;
     const height = Math.max(0,
       (this.props.search ? this.props.height - SEARCH_HEIGHT : this.props.height));
@@ -155,7 +156,8 @@ export default class ResultSet extends React.PureComponent {
     if (query.state === 'stopped') {
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
-      return <Alert bsStyle="danger">{query.errorMessage}</Alert>;
+      return true && <Alert bsStyle="danger">{query.errorMessage}
+      </Alert>;
     } else if (query.state === 'success' && query.ctas) {
       return (
         <div>
