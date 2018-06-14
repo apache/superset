@@ -78,7 +78,7 @@ body {
 .dashboard .dashboard-header {
   #save-dash-split-button {
     border-radius: 0;
-    margin-left: -8px;
+    margin-left: -9px;
     height: 30px;
     width: 30px;
     z-index: 10;
@@ -95,6 +95,15 @@ body {
 
     & + .dropdown-menu.dropdown-menu-right {
       min-width: unset;
+    }
+  }
+
+  .button-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    & button:not(:last-child) {
+      margin-right: 8px;
     }
   }
 }
@@ -117,40 +126,6 @@ body {
       background: @menu-hover;
       color: @almost-black;
     }
-  }
-}
-
-.slice-header-controls-trigger {
-  padding: 0 16px;
-  position: absolute;
-  top: 0;
-  right: -16px; //increase the click-able area for the button
-
-  &:hover {
-    cursor: pointer;
-  }
-}
-
-.dot {
-  height: 4px;
-  width: 4px;
-  background-color: @gray;
-  border-radius: 50%;
-  margin: 2px 0;
-  display: inline-block;
-
-  .is-cached & {
-    background-color: @pink;
-  }
-
-  .vertical-dots-container & {
-    display: block;
-  }
-
-  a[role='menuitem'] & {
-    width: 8px;
-    height: 8px;
-    margin-right: 8px;
   }
 }
 
@@ -205,6 +180,10 @@ body {
     line-height: 1em;
     cursor: pointer;
     opacity: 0.9;
+    flex-wrap: nowrap;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
 
     &:hover {
       opacity: 1;

@@ -32,8 +32,13 @@
   > .grid-row:after,
 .dashboard--editing .hover-menu:hover + .grid-row:after,
 .dashboard--editing .dashboard-component-tabs > .hover-menu:hover + div:after {
+  border: 1px solid @indicator-color;
+  z-index: 2;
+}
+
+.dashboard--editing .grid-row:after,
+.dashboard--editing .dashboard-component-tabs > .hover-menu + div:after {
   border: 1px dashed @gray-light;
-  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
 }
 
 .grid-row.grid-row--empty {

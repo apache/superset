@@ -8,6 +8,7 @@ import SearchInput, { createFilter } from 'react-search-input';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import DragDroppable from './dnd/DragDroppable';
+import Loading from '../../components/Loading';
 import { CHART_TYPE, NEW_COMPONENT_SOURCE_TYPE } from '../util/componentTypes';
 import { NEW_CHART_ID, NEW_COMPONENTS_SOURCE_ID } from '../util/constants';
 import { slicePropShape } from '../util/propShapes';
@@ -207,13 +208,7 @@ class SliceAdder extends React.Component {
           </DropdownButton>
         </div>
 
-        {this.props.isLoading && (
-          <img
-            src="/static/assets/images/loading.gif"
-            className="loading"
-            alt="loading"
-          />
-        )}
+        {this.props.isLoading && <Loading />}
 
         {this.props.errorMessage && <div>{this.props.errorMessage}</div>}
 

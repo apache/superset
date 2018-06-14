@@ -24,12 +24,16 @@
   .resizable-container.resizable-container--resizing:hover
   > .grid-column:after,
 .dashboard--editing .hover-menu:hover + .grid-column:after {
+  border: 1px solid @indicator-color;
+  z-index: 2;
+}
+
+.dashboard--editing .grid-column:after {
   border: 1px dashed @gray-light;
-  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.1);
 }
 
 .grid-column--empty {
-  min-height: 72px;
+  min-height: 80px;
 }
 
 .grid-column--empty:before {

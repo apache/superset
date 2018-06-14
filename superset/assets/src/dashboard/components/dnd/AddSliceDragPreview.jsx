@@ -15,7 +15,7 @@ const staticCardStyles = {
   pointerEvents: 'none',
   top: 0,
   left: 0,
-  zIndex: 100,
+  zIndex: 101, // this should be higher than top-level tabs
   width: 376 - 2 * 16,
 };
 
