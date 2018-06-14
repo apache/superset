@@ -135,6 +135,7 @@ export function runQuery(formData, force = false, timeout = 60, key) {
       },
       timeout: timeout * 1000,
     });
+    // HYERR IT IS
     const queryPromise = Promise.resolve(dispatch(chartUpdateStarted(queryRequest, payload, key)))
       .then(() => queryRequest)
       .then((queryResponse) => {

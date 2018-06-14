@@ -68,14 +68,7 @@ DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
-perms_instruction_link = config.get('PERMISSION_INSTRUCTIONS_LINK')
-if perms_instruction_link:
-    DATASOURCE_ACCESS_ERR = __(
-        "You don't have access to this datasource. <a href='{}'>(Gain access)</a>"
-        .format(perms_instruction_link),
-    )
-else:
-    DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
+DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 FORM_DATA_KEY_BLACKLIST = []
 if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
@@ -1089,8 +1082,11 @@ class Superset(BaseSupersetView):
                 utils.error_msg_from_exception(e),
                 stacktrace=traceback.format_exc())
 
-        if not security_manager.datasource_access(viz_obj.datasource, g.user):
-            return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
+        if True: #not security_manager.datasource_access(viz_obj.datasource, g.user):
+            #check where this is called on the frontend and try to see if you can make the container render the bootstrao daata if it is there 
+            # ****
+            perms_instruction_link = config.get('PERMISSION_INSTRUCTIONS_LINK')
+            return json_error_response(DATASOURCE_ACCESS_ERR, status=404, link=perms_instruction_link)
 
         if csv:
             return CsvResponse(
