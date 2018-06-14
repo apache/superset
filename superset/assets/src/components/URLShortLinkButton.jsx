@@ -1,13 +1,14 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
-import CopyToClipboard from './../../components/CopyToClipboard';
-import { getShortUrl } from '../../utils/common';
-import { getExploreLongUrl } from '../exploreUtils';
-import { t } from '../../locales';
+import CopyToClipboard from './CopyToClipboard';
+import { getShortUrl } from '../utils/common';
+import { t } from '../locales';
 
 const propTypes = {
-  latestQueryFormData: PropTypes.object.isRequired,
+  url: PropTypes.string,
+  emailSubject: PropTypes.string,
+  emailContent: PropTypes.string,
 };
 
 export default class URLShortLinkButton extends React.Component {
@@ -25,12 +26,11 @@ export default class URLShortLinkButton extends React.Component {
   }
 
   getCopyUrl() {
-    const longUrl = getExploreLongUrl(this.props.latestQueryFormData);
-    getShortUrl(longUrl, this.onShortUrlSuccess.bind(this));
+    getShortUrl(this.props.url, this.onShortUrlSuccess.bind(this));
   }
 
   renderPopover() {
-    const emailBody = t('Check out this chart: %s', this.state.shortUrl);
+    const emailBody = t('%s%s', this.props.emailContent, this.state.shortUrl);
     return (
       <Popover id="shorturl-popover">
         <CopyToClipboard
@@ -38,7 +38,7 @@ export default class URLShortLinkButton extends React.Component {
           copyNode={<i className="fa fa-clipboard" title={t('Copy to clipboard')} />}
         />
         &nbsp;&nbsp;
-        <a href={`mailto:?Subject=Superset%20Slice%20&Body=${emailBody}`}>
+        <a href={`mailto:?Subject=${this.props.emailSubject}%20&Body=${emailBody}`}>
           <i className="fa fa-envelope" />
         </a>
       </Popover>
@@ -61,5 +61,11 @@ export default class URLShortLinkButton extends React.Component {
     );
   }
 }
+
+URLShortLinkButton.defaultProps = {
+  url: window.location.href.substring(window.location.origin.length),
+  emailSubject: '',
+  emailContent: '',
+};
 
 URLShortLinkButton.propTypes = propTypes;

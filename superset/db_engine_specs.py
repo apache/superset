@@ -104,15 +104,32 @@ class BaseEngineSpec(object):
             )
             return database.compile_sqla_query(qry)
         elif LimitMethod.FORCE_LIMIT:
-            no_limit = re.sub(r"""
+            sql_without_limit = cls.get_query_without_limit(sql)
+            return '{sql_without_limit} LIMIT {limit}'.format(**locals())
+        return sql
+
+    @classmethod
+    def get_limit_from_sql(cls, sql):
+        limit_pattern = re.compile(r"""
+                (?ix)          # case insensitive, verbose
+                \s+            # whitespace
+                LIMIT\s+(\d+)  # LIMIT $ROWS
+                ;?             # optional semi-colon
+                (\s|;)*$       # remove trailing spaces tabs or semicolons
+                """)
+        matches = limit_pattern.findall(sql)
+        if matches:
+            return int(matches[0][0])
+
+    @classmethod
+    def get_query_without_limit(cls, sql):
+        return re.sub(r"""
                 (?ix)        # case insensitive, verbose
                 \s+          # whitespace
                 LIMIT\s+\d+  # LIMIT $ROWS
                 ;?           # optional semi-colon
                 (\s|;)*$     # remove trailing spaces tabs or semicolons
                 """, '', sql)
-            return '{no_limit} LIMIT {limit}'.format(**locals())
-        return sql
 
     @staticmethod
     def csv_to_df(**kwargs):
@@ -490,6 +507,9 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain('month', _('month'),
               "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')",
               'P1M'),
+        Grain('year', _('year'),
+              "DATETIME(STRFTIME('%Y-01-01T00:00:00', {col}))",
+              'P1Y'),
         Grain('week_ending_saturday', _('week_ending_saturday'),
               "DATE({col}, 'weekday 6')",
               'P1W/1970-01-03T00:00:00Z'),
@@ -724,6 +744,12 @@ class PrestoEngineSpec(BaseEngineSpec):
                 break
 
             if stats:
+                state = stats.get('state')
+
+                # if already finished, then stop polling
+                if state == 'FINISHED':
+                    break
+
                 completed_splits = float(stats.get('completedSplits'))
                 total_splits = float(stats.get('totalSplits'))
                 if total_splits and completed_splits:
@@ -930,6 +956,14 @@ class HiveEngineSpec(PrestoEngineSpec):
     def fetch_result_sets(cls, db, datasource_type, force=False):
         return BaseEngineSpec.fetch_result_sets(
             db, datasource_type, force=force)
+
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        from TCLIService import ttypes
+        state = cursor.poll()
+        if state.operationState == ttypes.TOperationState.ERROR_STATE:
+            raise Exception('Query error', state.errorMessage)
+        return super(HiveEngineSpec, cls).fetch_data(cursor, limit)
 
     @staticmethod
     def create_table_from_csv(form, table):
@@ -1356,6 +1390,18 @@ class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
     engine = 'druid'
     inner_joins = False
+
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}', None),
+        Grain('second', _('second'), 'FLOOR({col} TO SECOND)', 'PT1S'),
+        Grain('minute', _('minute'), 'FLOOR({col} TO MINUTE)', 'PT1M'),
+        Grain('hour', _('hour'), 'FLOOR({col} TO HOUR)', 'PT1H'),
+        Grain('day', _('day'), 'FLOOR({col} TO DAY)', 'P1D'),
+        Grain('week', _('week'), 'FLOOR({col} TO WEEK)', 'P1W'),
+        Grain('month', _('month'), 'FLOOR({col} TO MONTH)', 'P1M'),
+        Grain('quarter', _('quarter'), 'FLOOR({col} TO QUARTER)', 'P3M'),
+        Grain('year', _('year'), 'FLOOR({col} TO YEAR)', 'P1Y'),
+    )
 
 
 class KylinEngineSpec(BaseEngineSpec):

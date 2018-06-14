@@ -4,13 +4,13 @@ import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
 import { OverlayTrigger } from 'react-bootstrap';
-import URLShortLinkButton from '../../../../src/explore/components/URLShortLinkButton';
+import URLShortLinkButton from '../../../src/components/URLShortLinkButton';
 
 describe('URLShortLinkButton', () => {
   const defaultProps = {
-    slice: {
-      querystring: () => 'query string',
-    },
+    url: 'mockURL',
+    emailSubject: 'Mock Subject',
+    emailContent: 'mock content',
   };
 
   it('renders', () => {

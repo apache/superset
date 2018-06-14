@@ -59,6 +59,7 @@ class BaseViz(object):
     is_timeseries = False
     default_fillna = 0
     cache_type = 'df'
+    enforce_numerical_metrics = True
 
     def __init__(self, datasource, form_data, force=False):
         if not datasource:
@@ -86,7 +87,7 @@ class BaseViz(object):
         self._some_from_cache = False
         self._any_cache_key = None
         self._any_cached_dttm = None
-        self._extra_chart_data = None
+        self._extra_chart_data = []
 
         self.process_metrics()
 
@@ -144,6 +145,10 @@ class BaseViz(object):
         the underlying query(ies).
         """
         pass
+
+    def handle_nulls(self, df):
+        fillna = self.get_fillna_for_columns(df.columns)
+        df = df.fillna(fillna)
 
     def get_fillna_for_col(self, col):
         """Returns the value for use as filler for a specific Column.type"""
@@ -205,11 +210,11 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
 
-            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+            if self.enforce_numerical_metrics:
+                self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
-            fillna = self.get_fillna_for_columns(df.columns)
-            df = df.fillna(fillna)
+            self.handle_nulls(df)
         return df
 
     @staticmethod
@@ -480,6 +485,7 @@ class TableViz(BaseViz):
     verbose_name = _('Table View')
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+    enforce_numerical_metrics = False
 
     def should_be_timeseries(self):
         fd = self.form_data
@@ -552,7 +558,7 @@ class TableViz(BaseViz):
                 m_name = '%' + m
                 df[m_name] = pd.Series(metric_percents[m], name=m_name)
             # Remove metrics that are not in the main metrics list
-            metrics = fd.get('metrics', [])
+            metrics = fd.get('metrics') or []
             metrics = [self.get_metric_label(m) for m in metrics]
             for m in filter(
                 lambda m: m not in metrics and m in df.columns,
@@ -993,7 +999,7 @@ class BulletViz(NVD3Viz):
 
     def get_data(self, df):
         df = df.fillna(0)
-        df['metric'] = df[[self.metric]]
+        df['metric'] = df[[self.get_metric_label(self.metric)]]
         values = df['metric'].values
         return {
             'measures': values.tolist(),
@@ -1119,11 +1125,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df[name].dtype.kind not in 'biufc':
                 continue
             if isinstance(name, list):
-                series_title = [str(title) for title in name]
+                series_title = [text_type(title) for title in name]
             elif isinstance(name, tuple):
-                series_title = tuple(str(title) for title in name)
+                series_title = tuple(text_type(title) for title in name)
             else:
-                series_title = str(name)
+                series_title = text_type(name)
             if (
                     isinstance(series_title, (list, tuple)) and
                     len(series_title) > 1 and
@@ -1229,10 +1235,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def run_extra_queries(self):
         fd = self.form_data
-        time_compare = fd.get('time_compare')
-        if time_compare:
+
+        time_compare = fd.get('time_compare') or []
+        # backwards compatibility
+        if not isinstance(time_compare, list):
+            time_compare = [time_compare]
+
+        classes = ['time-shift-{}'.format(i) for i in range(10)]
+        i = 0
+        for option in time_compare:
             query_object = self.query_obj()
-            delta = utils.parse_human_timedelta(time_compare)
+            delta = utils.parse_human_timedelta(option)
             query_object['inner_from_dttm'] = query_object['from_dttm']
             query_object['inner_to_dttm'] = query_object['to_dttm']
 
@@ -1245,10 +1258,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
             df2 = self.get_df_payload(query_object).get('df')
             if df2 is not None:
+                classed = classes[i % len(classes)]
+                i += 1
+                label = '{} offset'. format(option)
                 df2[DTTM_ALIAS] += delta
                 df2 = self.process_data(df2)
-                self._extra_chart_data = self.to_series(
-                    df2, classed='superset', title_suffix='---')
+                self._extra_chart_data.extend(self.to_series(
+                    df2, classed=classed, title_suffix=label))
 
     def get_data(self, df):
         df = self.process_data(df)
@@ -1354,8 +1370,8 @@ class NVD3DualLineViz(NVD3Viz):
         if self.form_data.get('granularity') == 'all':
             raise Exception(_('Pick a time granularity for your time series'))
 
-        metric = fd.get('metric')
-        metric_2 = fd.get('metric_2')
+        metric = self.get_metric_label(fd.get('metric'))
+        metric_2 = self.get_metric_label(fd.get('metric_2'))
         df = df.pivot_table(
             index=DTTM_ALIAS,
             values=[metric, metric_2])
@@ -1406,7 +1422,7 @@ class NVD3TimePivotViz(NVD3TimeSeriesViz):
         df = df.pivot_table(
             index=DTTM_ALIAS,
             columns='series',
-            values=fd.get('metric'))
+            values=self.get_metric_label(fd.get('metric')))
         chart_data = self.to_series(df)
         for serie in chart_data:
             serie['rank'] = rank_lookup[serie['key']]
@@ -1574,8 +1590,8 @@ class SunburstViz(BaseViz):
     def get_data(self, df):
         fd = self.form_data
         cols = fd.get('groupby')
-        metric = fd.get('metric')
-        secondary_metric = fd.get('secondary_metric')
+        metric = self.get_metric_label(fd.get('metric'))
+        secondary_metric = self.get_metric_label(fd.get('secondary_metric'))
         if metric == secondary_metric or secondary_metric is None:
             df.columns = cols + ['m1']
             df['m2'] = df['m1']
@@ -1674,7 +1690,7 @@ class ChordViz(BaseViz):
         qry = super(ChordViz, self).query_obj()
         fd = self.form_data
         qry['groupby'] = [fd.get('groupby'), fd.get('columns')]
-        qry['metrics'] = [fd.get('metric')]
+        qry['metrics'] = [self.get_metric_label(fd.get('metric'))]
         return qry
 
     def get_data(self, df):
@@ -1742,8 +1758,8 @@ class WorldMapViz(BaseViz):
         from superset.data import countries
         fd = self.form_data
         cols = [fd.get('entity')]
-        metric = fd.get('metric')
-        secondary_metric = fd.get('secondary_metric')
+        metric = self.get_metric_label(fd.get('metric'))
+        secondary_metric = self.get_metric_label(fd.get('secondary_metric'))
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -2071,6 +2087,9 @@ class BaseDeckGLViz(BaseViz):
     credits = '<a href="https://uber.github.io/deck.gl/">deck.gl</a>'
     spatial_control_keys = []
 
+    def handle_nulls(self, df):
+        pass
+
     def get_metrics(self):
         self.metric = self.form_data.get('size')
         return [self.metric] if self.metric else []
@@ -2180,7 +2199,8 @@ class DeckScatterViz(BaseDeckGLViz):
 
     def query_obj(self):
         fd = self.form_data
-        self.is_timeseries = fd.get('time_grain_sqla') or fd.get('granularity')
+        self.is_timeseries = bool(
+            fd.get('time_grain_sqla') or fd.get('granularity'))
         self.point_radius_fixed = (
             fd.get('point_radius_fixed') or {'type': 'fix', 'value': 500})
         return super(DeckScatterViz, self).query_obj()
@@ -2198,7 +2218,7 @@ class DeckScatterViz(BaseDeckGLViz):
             'radius': self.fixed_value if self.fixed_value else d.get(self.metric),
             'cat_color': d.get(self.dim) if self.dim else None,
             'position': d.get('spatial'),
-            '__timestamp': d.get(DTTM_ALIAS) or d.get('__time'),
+            DTTM_ALIAS: d.get(DTTM_ALIAS),
         }
 
     def get_data(self, df):

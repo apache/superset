@@ -40,7 +40,7 @@ const config = {
 
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /datatables\.net.*/,
         loader: 'imports-loader?define=>false',

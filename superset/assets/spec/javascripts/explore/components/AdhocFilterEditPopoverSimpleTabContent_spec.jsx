@@ -113,13 +113,13 @@ describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   it('will filter operators for table datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'table' } });
     expect(wrapper.instance().isOperatorRelevant('regex')).to.be.false;
-    expect(wrapper.instance().isOperatorRelevant('like')).to.be.true;
+    expect(wrapper.instance().isOperatorRelevant('LIKE')).to.be.true;
   });
 
   it('will filter operators for druid datasources', () => {
     const { wrapper } = setup({ datasource: { type: 'druid' } });
     expect(wrapper.instance().isOperatorRelevant('regex')).to.be.true;
-    expect(wrapper.instance().isOperatorRelevant('like')).to.be.false;
+    expect(wrapper.instance().isOperatorRelevant('LIKE')).to.be.false;
   });
 
   it('expands when its multi comparator input field expands', () => {

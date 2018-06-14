@@ -745,13 +745,12 @@ class R(BaseSupersetView):
     @expose('/shortner/', methods=['POST', 'GET'])
     def shortner(self):
         url = request.form.get('data')
-        directory = url.split('?')[0][2:]
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
         return Response(
-            '{scheme}://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-                scheme=request.scheme, request=request, directory=directory, obj=obj),
+            '{scheme}://{request.headers[Host]}/r/{obj.id}'.format(
+                scheme=request.scheme, request=request, obj=obj),
             mimetype='text/plain')
 
     @expose('/msg/')
@@ -2394,7 +2393,7 @@ class Superset(BaseSupersetView):
 
         query = Query(
             database_id=int(database_id),
-            limit=int(app.config.get('SQL_MAX_ROW', None)),
+            limit=mydb.db_engine_spec.get_limit_from_sql(sql),
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',

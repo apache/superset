@@ -13,6 +13,9 @@ export const DEFAULT_LONGITUDE = -122.405293;
 export const DEFAULT_LATITUDE = 37.772123;
 export const DEFAULT_ZOOM = 11;
 
+// Regexp for the label added to time shifted series (1 hour offset, 2 days offset, etc.)
+export const TIME_SHIFT_PATTERN = /\d+ \w+ offset/;
+
 export function kmToPixels(kilometers, latitude, zoomLevel) {
   // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
   const latitudeRad = latitude * (Math.PI / 180);
