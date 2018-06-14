@@ -833,6 +833,12 @@ export default function nvd3Vis(slice, payload) {
             });
           });
         }
+
+        // rerender chart appended with annotation layer
+        svg.datum(data)
+          .attr('height', height)
+          .attr('width', width)
+          .call(chart);
       }
     }
     return chart;
