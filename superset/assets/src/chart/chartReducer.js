@@ -34,6 +34,7 @@ export const chart = {
 export default function chartReducer(charts = {}, action) {
   const actionHandlers = {
     [actions.CHART_UPDATE_SUCCEEDED](state) {
+      console.log(state);
       return { ...state,
         chartStatus: 'success',
         queryResponse: action.queryResponse,

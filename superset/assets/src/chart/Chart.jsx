@@ -221,6 +221,7 @@ class Chart extends React.PureComponent {
         <StackTraceMessage
           message={this.props.chartAlert}
           queryResponse={this.props.queryResponse}
+          resolutionLink={this.props.resolutionLink}
         />
         }
 
