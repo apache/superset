@@ -59,6 +59,7 @@ class BaseViz(object):
     is_timeseries = False
     default_fillna = 0
     cache_type = 'df'
+    enforce_numerical_metrics = True
 
     def __init__(self, datasource, form_data, force=False):
         if not datasource:
@@ -205,7 +206,8 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
                 df[DTTM_ALIAS] += self.time_shift
 
-            self.df_metrics_to_num(df, query_obj.get('metrics') or [])
+            if self.enforce_numerical_metrics:
+                self.df_metrics_to_num(df, query_obj.get('metrics') or [])
 
             df.replace([np.inf, -np.inf], np.nan)
             fillna = self.get_fillna_for_columns(df.columns)
@@ -480,6 +482,7 @@ class TableViz(BaseViz):
     verbose_name = _('Table View')
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+    enforce_numerical_metrics = False
 
     def should_be_timeseries(self):
         fd = self.form_data
@@ -510,7 +513,8 @@ class TableViz(BaseViz):
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
         elif sort_by:
-            if sort_by not in d['metrics']:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in utils.get_metric_names(d['metrics']):
                 d['metrics'] += [sort_by]
             d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
 
@@ -552,7 +556,7 @@ class TableViz(BaseViz):
                 m_name = '%' + m
                 df[m_name] = pd.Series(metric_percents[m], name=m_name)
             # Remove metrics that are not in the main metrics list
-            metrics = fd.get('metrics', [])
+            metrics = fd.get('metrics') or []
             metrics = [self.get_metric_label(m) for m in metrics]
             for m in filter(
                 lambda m: m not in metrics and m in df.columns,
