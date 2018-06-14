@@ -7,9 +7,11 @@ const propTypes = {
   message: PropTypes.string,
   queryResponse: PropTypes.object,
   showStackTrace: PropTypes.bool,
+  resolutionLink: PropTypes.string,
 };
 const defaultProps = {
   showStackTrace: false,
+  resolutionLink: '',
 };
 
 class StackTraceMessage extends React.PureComponent {
@@ -25,6 +27,10 @@ class StackTraceMessage extends React.PureComponent {
     return this.props.queryResponse && this.props.queryResponse.stacktrace;
   }
 
+  hasLink() {
+    return this.props.queryResponse && this.props.queryResponse.link;
+  }
+
   render() {
     return (
       <div className={`stack-trace-container${this.hasTrace() ? ' has-trace' : ''}`}>
@@ -33,6 +39,9 @@ class StackTraceMessage extends React.PureComponent {
           onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
         >
           {this.props.message}
+          {this.hasLink() &&
+          <a href={this.props.queryResponse.link}> (Request Access) </a>
+       }
         </Alert>
         {this.hasTrace() &&
           <Collapse in={this.state.showStackTrace}>
