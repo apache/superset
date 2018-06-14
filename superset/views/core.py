@@ -68,14 +68,7 @@ DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
 ACCESS_REQUEST_MISSING_ERR = __(
     'The access requests seem to have been deleted')
 USER_MISSING_ERR = __('The user seems to have been deleted')
-perms_instruction_link = config.get('PERMISSION_INSTRUCTIONS_LINK')
-if perms_instruction_link:
-    DATASOURCE_ACCESS_ERR = __(
-        "You don't have access to this datasource. <a href='{}'>(Gain access)</a>"
-        .format(perms_instruction_link),
-    )
-else:
-    DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
+DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 FORM_DATA_KEY_BLACKLIST = []
 if not config.get('ENABLE_JAVASCRIPT_CONTROLS'):
@@ -1090,7 +1083,9 @@ class Superset(BaseSupersetView):
                 stacktrace=traceback.format_exc())
 
         if not security_manager.datasource_access(viz_obj.datasource, g.user):
-            return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
+            return json_error_response(
+                DATASOURCE_ACCESS_ERR, status=404, link=config.get(
+                    'PERMISSION_INSTRUCTIONS_LINK'))
 
         if csv:
             return CsvResponse(
@@ -2708,7 +2703,9 @@ class Superset(BaseSupersetView):
         """
         viz_obj = self.get_viz(slice_id)
         if not security_manager.datasource_access(viz_obj.datasource):
-            return json_error_response(DATASOURCE_ACCESS_ERR, status=401)
+            return json_error_response(
+                DATASOURCE_ACCESS_ERR, status=401, link=config.get(
+                    'PERMISSION_INSTRUCTIONS_LINK'))
         return self.get_query_string_response(viz_obj)
 
 
