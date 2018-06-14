@@ -17,7 +17,7 @@ function tableVis(slice, payload) {
   const data = payload.data;
   const fd = slice.formData;
 
-  let metrics = fd.metrics || [];
+  let metrics = fd.metrics.map(m => m.label || m);
   // Add percent metrics
   metrics = metrics.concat((fd.percent_metrics || []).map(m => '%' + m));
   // Removing metrics (aggregates) that are strings
@@ -187,7 +187,7 @@ function tableVis(slice, payload) {
   let sortBy;
   if (fd.timeseries_limit_metric) {
     // Sort by as specified
-    sortBy = fd.timeseries_limit_metric;
+    sortBy = fd.timeseries_limit_metric.label || fd.timeseries_limit_metric;
   } else if (metrics.length > 0) {
     // If not specified, use the first metric from the list
     sortBy = metrics[0];
@@ -195,7 +195,7 @@ function tableVis(slice, payload) {
   if (sortBy) {
     datatable.column(data.columns.indexOf(sortBy)).order(fd.order_desc ? 'desc' : 'asc');
   }
-  if (fd.timeseries_limit_metric && metrics.indexOf(fd.timeseries_limit_metric) < 0) {
+  if (sortBy && metrics.indexOf(sortBy) < 0) {
     // Hiding the sortBy column if not in the metrics list
     datatable.column(data.columns.indexOf(sortBy)).visible(false);
   }
