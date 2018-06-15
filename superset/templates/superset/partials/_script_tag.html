@@ -1,5 +1,5 @@
 {% block tail_js %}
-  <script
-    src="{{ js_manifest(filename + '.js') }}">
-  </script>
+  {% for entry in js_manifest(filename) %}
+    <script src="{{ entry }}"></script>
+  {% endfor %}
 {% endblock %}
