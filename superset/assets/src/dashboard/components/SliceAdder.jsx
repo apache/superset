@@ -2,7 +2,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { DropdownButton, MenuItem } from 'react-bootstrap';
-import { List } from 'react-virtualized';
+import { CellMeasurer, CellMeasurerCache, List } from 'react-virtualized';
 import SearchInput, { createFilter } from 'react-search-input';
 
 import AddSliceCard from './AddSliceCard';
@@ -42,6 +42,12 @@ const KEYS_TO_SORT = [
 const MARGIN_BOTTOM = 16;
 const SIDEPANE_HEADER_HEIGHT = 55;
 const SLICE_ADDER_CONTROL_HEIGHT = 64;
+const DEFAULT_CELL_HEIGHT = 136;
+
+const cache = new CellMeasurerCache({
+  defaultHeight: DEFAULT_CELL_HEIGHT,
+  fixedWidth: true,
+});
 
 class SliceAdder extends React.Component {
   static sortByComparator(attr) {
@@ -133,7 +139,7 @@ class SliceAdder extends React.Component {
     });
   }
 
-  rowRenderer({ key, index, style }) {
+  rowRenderer({ key, index, style, parent }) {
     const { filteredSlices, selectedSliceIdsSet } = this.state;
     const cellData = filteredSlices[index];
     const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
@@ -160,19 +166,28 @@ class SliceAdder extends React.Component {
         // we must use a custom drag preview within the List because
         // it does not seem to work within a fixed-position container
         useEmptyDragPreview
+        // List library expect style props here
+        // actual style should be applied to nested AddSliceCard component
+        style={{}}
       >
         {({ dragSourceRef }) => (
-          <AddSliceCard
-            innerRef={dragSourceRef}
-            style={style}
-            sliceName={cellData.slice_name}
-            lastModified={
-              cellData.modified ? cellData.modified.replace(/<[^>]*>/g, '') : ''
-            }
-            visType={cellData.viz_type}
-            datasourceLink={cellData.datasource_link}
-            isSelected={isSelected}
-          />
+          <CellMeasurer
+            cache={cache}
+            columnIndex={0}
+            key={key}
+            parent={parent}
+            rowIndex={index}
+          >
+            <AddSliceCard
+              innerRef={dragSourceRef}
+              style={style}
+              sliceName={cellData.slice_name}
+              lastModified={cellData.modified}
+              visType={cellData.viz_type}
+              datasourceLink={cellData.datasource_link}
+              isSelected={isSelected}
+            />
+          </CellMeasurer>
         )}
       </DragDroppable>
     );
@@ -223,7 +238,8 @@ class SliceAdder extends React.Component {
               width={376}
               height={slicesListHeight}
               rowCount={this.state.filteredSlices.length}
-              rowHeight={136}
+              deferredMeasurementCache={cache}
+              rowHeight={cache.rowHeight}
               rowRenderer={this.rowRenderer}
               searchTerm={this.state.searchTerm}
               sortBy={this.state.sortBy}
