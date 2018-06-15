@@ -87,6 +87,7 @@
     }
 
     .card-title {
+      margin-right: 60px;
       margin-bottom: 8px;
       font-weight: 800;
     }
@@ -96,8 +97,12 @@
       flex-direction: column;
 
       .item {
-        span:first-child {
-          font-weight: 400;
+        span {
+          word-break: break-all;
+
+          &:first-child {
+            font-weight: 400;
+          }
         }
       }
     }
