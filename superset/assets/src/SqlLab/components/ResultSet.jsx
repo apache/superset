@@ -157,6 +157,8 @@ export default class ResultSet extends React.PureComponent {
       return <Alert bsStyle="warning">Query was stopped</Alert>;
     } else if (query.state === 'failed') {
       return true && <Alert bsStyle="danger">{query.errorMessage}
+        {query.link &&
+          <a href={query.link}> (Common errors and their resolutions)</a>}
       </Alert>;
     } else if (query.state === 'success' && query.ctas) {
       return (
