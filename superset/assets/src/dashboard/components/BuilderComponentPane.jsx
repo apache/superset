@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import cx from 'classnames';
 import { StickyContainer, Sticky } from 'react-sticky';
+import ParentSize from '@vx/responsive/build/components/ParentSize';
 
 import NewColumn from './gridComponents/new/NewColumn';
 import NewDivider from './gridComponents/new/NewDivider';
@@ -12,6 +13,8 @@ import NewTabs from './gridComponents/new/NewTabs';
 import NewMarkdown from './gridComponents/new/NewMarkdown';
 import SliceAdder from '../containers/SliceAdder';
 import { t } from '../../locales';
+
+const SUPERSET_HEADER_HEIGHT = 59;
 
 const propTypes = {
   topOffset: PropTypes.number,
@@ -42,62 +45,76 @@ class BuilderComponentPane extends React.PureComponent {
   render() {
     const { topOffset } = this.props;
     return (
-      <StickyContainer className="dashboard-builder-sidepane">
-        <Sticky topOffset={-topOffset}>
-          {({ style, calculatedHeight, isSticky }) => (
-            <div
-              className="viewport"
-              style={isSticky ? { ...style, top: topOffset } : null}
-            >
-              <div
-                className={cx('slider-container', this.state.slideDirection)}
-              >
-                <div className="component-layer slide-content">
-                  <div className="dashboard-builder-sidepane-header">
-                    <span>{t('Insert')}</span>
-                    <i
-                      className="fa fa-times trigger"
-                      onClick={this.props.toggleBuilderPane}
-                      role="none"
-                    />
-                  </div>
+      <div
+        className="dashboard-builder-sidepane"
+        style={{
+          height: `calc(100vh - ${topOffset + SUPERSET_HEADER_HEIGHT}px)`,
+        }}
+      >
+        <ParentSize>
+          {({ height }) => (
+            <StickyContainer>
+              <Sticky topOffset={-topOffset}>
+                {({ style, isSticky }) => (
                   <div
-                    className="new-component static"
-                    role="none"
-                    onClick={this.openSlicesPane}
+                    className="viewport"
+                    style={isSticky ? { ...style, top: topOffset } : null}
                   >
-                    <div className="new-component-placeholder fa fa-area-chart" />
-                    <div className="new-component-label">
-                      {t('Charts & filters')}
+                    <div
+                      className={cx(
+                        'slider-container',
+                        this.state.slideDirection,
+                      )}
+                    >
+                      <div className="component-layer slide-content">
+                        <div className="dashboard-builder-sidepane-header">
+                          <span>{t('Insert')}</span>
+                          <i
+                            className="fa fa-times trigger"
+                            onClick={this.props.toggleBuilderPane}
+                            role="none"
+                          />
+                        </div>
+                        <div
+                          className="new-component static"
+                          role="none"
+                          onClick={this.openSlicesPane}
+                        >
+                          <div className="new-component-placeholder fa fa-area-chart" />
+                          <div className="new-component-label">
+                            {t('Your charts & filters')}
+                          </div>
+
+                          <i className="fa fa-arrow-right trigger" />
+                        </div>
+
+                        <NewTabs />
+                        <NewRow />
+                        <NewColumn />
+
+                        <NewHeader />
+                        <NewMarkdown />
+                        <NewDivider />
+                      </div>
+                      <div className="slices-layer slide-content">
+                        <div
+                          className="dashboard-builder-sidepane-header"
+                          onClick={this.closeSlicesPane}
+                          role="none"
+                        >
+                          <i className="fa fa-arrow-left trigger" />
+                          <span>{t('All components')}</span>
+                        </div>
+                        <SliceAdder height={height} />
+                      </div>
                     </div>
-
-                    <i className="fa fa-arrow-right trigger" />
                   </div>
-
-                  <NewTabs />
-                  <NewRow />
-                  <NewColumn />
-
-                  <NewHeader />
-                  <NewMarkdown />
-                  <NewDivider />
-                </div>
-                <div className="slices-layer slide-content">
-                  <div
-                    className="dashboard-builder-sidepane-header"
-                    onClick={this.closeSlicesPane}
-                    role="none"
-                  >
-                    <i className="fa fa-arrow-left trigger" />
-                    <span>{t('All components')}</span>
-                  </div>
-                  <SliceAdder height={calculatedHeight} />
-                </div>
-              </div>
-            </div>
+                )}
+              </Sticky>
+            </StickyContainer>
           )}
-        </Sticky>
-      </StickyContainer>
+        </ParentSize>
+      </div>
     );
   }
 }

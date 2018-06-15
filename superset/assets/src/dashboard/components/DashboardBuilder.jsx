@@ -15,6 +15,7 @@ import IconButton from './IconButton';
 import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
 import ToastPresenter from '../containers/ToastPresenter';
+import UndoRedoKeylisteners from '../containers/UndoRedoKeylisteners';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import getDragDropManager from '../util/getDragDropManager';
@@ -26,6 +27,7 @@ import {
 } from '../util/constants';
 
 const TABS_HEIGHT = 47;
+const HEADER_HEIGHT = 67;
 
 const propTypes = {
   // redux
@@ -96,52 +98,51 @@ class DashboardBuilder extends React.Component {
       <StickyContainer
         className={cx('dashboard', editMode && 'dashboard--editing')}
       >
-        <DragDroppable
-          component={dashboardRoot}
-          parentComponent={null}
-          depth={DASHBOARD_ROOT_DEPTH}
-          index={0}
-          orientation="column"
-          onDrop={handleComponentDrop}
-          editMode
-          // you cannot drop on/displace tabs if they already exist
-          disableDragdrop={!editMode || topLevelTabs}
-        >
-          {({ dropIndicatorProps }) => (
-            <div>
-              <DashboardHeader />
-              {dropIndicatorProps && <div {...dropIndicatorProps} />}
-            </div>
+        <Sticky>
+          {({ style }) => (
+            <DragDroppable
+              component={dashboardRoot}
+              parentComponent={null}
+              depth={DASHBOARD_ROOT_DEPTH}
+              index={0}
+              orientation="column"
+              onDrop={handleComponentDrop}
+              editMode={editMode}
+              // you cannot drop on/displace tabs if they already exist
+              disableDragdrop={!!topLevelTabs}
+              style={{ zIndex: 100, ...style }}
+            >
+              {({ dropIndicatorProps }) => (
+                <div>
+                  <DashboardHeader />
+                  {dropIndicatorProps && <div {...dropIndicatorProps} />}
+                  {topLevelTabs && (
+                    <WithPopoverMenu
+                      shouldFocus={DashboardBuilder.shouldFocusTabs}
+                      menuItems={[
+                        <IconButton
+                          className="fa fa-level-down"
+                          label="Collapse tab content"
+                          onClick={this.handleDeleteTopLevelTabs}
+                        />,
+                      ]}
+                      editMode={editMode}
+                    >
+                      <DashboardComponent
+                        id={topLevelTabs.id}
+                        parentId={DASHBOARD_ROOT_ID}
+                        depth={DASHBOARD_ROOT_DEPTH + 1}
+                        index={0}
+                        renderTabContent={false}
+                        onChangeTab={this.handleChangeTab}
+                      />
+                    </WithPopoverMenu>
+                  )}
+                </div>
+              )}
+            </DragDroppable>
           )}
-        </DragDroppable>
-
-        {topLevelTabs && (
-          <Sticky topOffset={50}>
-            {({ style }) => (
-              <WithPopoverMenu
-                shouldFocus={DashboardBuilder.shouldFocusTabs}
-                menuItems={[
-                  <IconButton
-                    className="fa fa-level-down"
-                    label="Collapse tab content"
-                    onClick={this.handleDeleteTopLevelTabs}
-                  />,
-                ]}
-                editMode={editMode}
-                style={{ zIndex: 100, ...style }}
-              >
-                <DashboardComponent
-                  id={topLevelTabs.id}
-                  parentId={DASHBOARD_ROOT_ID}
-                  depth={DASHBOARD_ROOT_DEPTH + 1}
-                  index={0}
-                  renderTabContent={false}
-                  onChangeTab={this.handleChangeTab}
-                />
-              </WithPopoverMenu>
-            )}
-          </Sticky>
-        )}
+        </Sticky>
 
         <div className="dashboard-content">
           <div className="grid-container">
@@ -187,12 +188,13 @@ class DashboardBuilder extends React.Component {
           {this.props.editMode &&
             this.props.showBuilderPane && (
               <BuilderComponentPane
-                topOffset={topLevelTabs ? TABS_HEIGHT : 0}
+                topOffset={HEADER_HEIGHT + (topLevelTabs ? TABS_HEIGHT : 0)}
                 toggleBuilderPane={this.props.toggleBuilderPane}
               />
             )}
         </div>
         <ToastPresenter />
+        <UndoRedoKeylisteners />
       </StickyContainer>
     );
   }

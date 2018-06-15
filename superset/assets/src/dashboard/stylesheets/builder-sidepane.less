@@ -2,7 +2,6 @@
   flex: 0 0 @builder-pane-width;
   z-index: 10;
   position: relative;
-  box-shadow: -4px 0 4px 0 rgba(0, 0, 0, 0.1);
 
   .dashboard-builder-sidepane-header {
     font-size: 15px;
@@ -34,13 +33,14 @@
     overflow: hidden;
     width: @builder-pane-width;
     height: 100%;
+    box-shadow: -4px 0 4px 0 rgba(0, 0, 0, 0.1);
   }
 
   .slider-container {
     position: absolute;
     background: white;
     width: @builder-pane-width * 2;
-    height: 100%;
+    height: 100vh;
     display: flex;
     transition: all 0.5s ease;
 

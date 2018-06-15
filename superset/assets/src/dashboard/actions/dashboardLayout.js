@@ -140,14 +140,12 @@ export function resizeComponent({ id, width, height }) {
 
 // Drag and drop --------------------------------------------------------------
 export const MOVE_COMPONENT = 'MOVE_COMPONENT';
-function moveComponent(dropResult) {
-  return {
-    type: MOVE_COMPONENT,
-    payload: {
-      dropResult,
-    },
-  };
-}
+const moveComponent = setUnsavedChangesAfterAction(dropResult => ({
+  type: MOVE_COMPONENT,
+  payload: {
+    dropResult,
+  },
+}));
 
 export const HANDLE_COMPONENT_DROP = 'HANDLE_COMPONENT_DROP';
 export function handleComponentDrop(dropResult) {

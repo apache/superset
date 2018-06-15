@@ -5,7 +5,7 @@ const propTypes = {
   size: PropTypes.number,
 };
 const defaultProps = {
-  size: 25,
+  size: 50,
 };
 
 export default function Loading(props) {
@@ -15,8 +15,8 @@ export default function Loading(props) {
       alt="Loading..."
       src="/static/assets/images/loading.gif"
       style={{
-        width: props.size,
-        height: props.size,
+        width: Math.min(props.size, 50),
+        // height is auto
         padding: 0,
         margin: 0,
         position: 'absolute',
