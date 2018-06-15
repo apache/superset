@@ -98,6 +98,14 @@ export function requestQueryResults(query) {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
+function getErrorLink(err) {
+  let link = '';
+  if (err.responseJSON && err.responseJSON.link) {
+    link = err.responseJSON.link;
+  }
+  return link;
+}
+
 export function fetchQueryResults(query) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
@@ -114,11 +122,7 @@ export function fetchQueryResults(query) {
         if (err.responseJSON && err.responseJSON.error) {
           msg = err.responseJSON.error;
         }
-        let link = '';
-        if (err.responseJSON && err.responseJSON.link) {
-          link = err.responseJSON.link;
-        }
-        dispatch(queryFailed(query, msg, link));
+        dispatch(queryFailed(query, msg, getErrorLink(err)));
       },
     });
   };
@@ -170,11 +174,7 @@ export function runQuery(query) {
         if (msg.indexOf('CSRF token') > 0) {
           msg = COMMON_ERR_MESSAGES.SESSION_TIMED_OUT;
         }
-        let link = '';
-        if (err.responseJSON && err.responseJSON.link) {
-          link = err.responseJSON.link;
-        }
-        dispatch(queryFailed(query, msg, link));
+        dispatch(queryFailed(query, msg, getErrorLink(msg)));
       },
     });
   };
