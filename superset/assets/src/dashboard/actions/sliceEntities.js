@@ -56,7 +56,9 @@ export function fetchAllSlices(userId) {
                 description: slice.description,
                 description_markdown: slice.description_markeddown,
                 viz_type: slice.viz_type,
-                modified: slice.modified,
+                modified: slice.modified
+                  ? slice.modified.replace(/<[^>]*>/g, '')
+                  : '',
               };
             }
           });

@@ -93,6 +93,7 @@ export default function(bootstrapData) {
         datasource: slice.form_data.datasource,
         description: slice.description,
         description_markeddown: slice.description_markeddown,
+        modified: slice.modified ? slice.modified.replace(/<[^>]*>/g, '') : '',
       };
 
       sliceIds.add(key);

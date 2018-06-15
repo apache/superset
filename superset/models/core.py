@@ -188,6 +188,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             'slice_id': self.id,
             'slice_name': self.slice_name,
             'slice_url': self.slice_url,
+            'modified': self.modified(),
         }
 
     @property
