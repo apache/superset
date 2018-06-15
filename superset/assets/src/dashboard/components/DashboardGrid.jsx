@@ -29,6 +29,7 @@ class DashboardGrid extends React.PureComponent {
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.handleResize = this.handleResize.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
+    this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
     this.getRowGuidePosition = this.getRowGuidePosition.bind(this);
     this.setGridRef = this.setGridRef.bind(this);
   }
@@ -38,7 +39,7 @@ class DashboardGrid extends React.PureComponent {
       return (
         resizeRef.getBoundingClientRect().bottom -
         this.grid.getBoundingClientRect().top -
-        1
+        2
       );
     }
     return null;
@@ -75,6 +76,19 @@ class DashboardGrid extends React.PureComponent {
     }));
   }
 
+  handleTopDropTargetDrop(dropResult) {
+    if (dropResult) {
+      this.props.handleComponentDrop({
+        ...dropResult,
+        destination: {
+          ...dropResult.destination,
+          // force appending as the first child if top drop target
+          index: 0,
+        },
+      });
+    }
+  }
+
   render() {
     const {
       gridComponent,
@@ -93,6 +107,26 @@ class DashboardGrid extends React.PureComponent {
     return width < 100 ? null : (
       <div className="dashboard-grid" ref={this.setGridRef}>
         <div className="grid-content">
+          {/* make the area above components droppable */}
+          {editMode && (
+            <DragDroppable
+              component={gridComponent}
+              depth={depth}
+              parentComponent={null}
+              index={0}
+              orientation="column"
+              onDrop={this.handleTopDropTargetDrop}
+              className="empty-droptarget"
+              editMode
+            >
+              {({ dropIndicatorProps }) =>
+                dropIndicatorProps && (
+                  <div className="drop-indicator drop-indicator--bottom" />
+                )
+              }
+            </DragDroppable>
+          )}
+
           {gridComponent.children.map((id, index) => (
             <DashboardComponent
               key={id}
@@ -117,7 +151,7 @@ class DashboardGrid extends React.PureComponent {
               index={gridComponent.children.length}
               orientation="column"
               onDrop={handleComponentDrop}
-              className="empty-grid-droptarget--bottom"
+              className="empty-droptarget"
               editMode
             >
               {({ dropIndicatorProps }) =>

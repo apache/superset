@@ -1,7 +1,6 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ButtonGroup, ButtonToolbar } from 'react-bootstrap';
 
 import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';

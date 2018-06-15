@@ -77,10 +77,10 @@ class Dashboard extends React.PureComponent {
       eventNames: DASHBOARD_EVENT_NAMES,
     });
     Logger.start(this.actionLog);
+    this.initTs = new Date().getTime();
   }
 
   componentDidMount() {
-    this.ts_mount = new Date().getTime();
     Logger.append(LOG_ACTIONS_MOUNT_DASHBOARD);
   }
 
@@ -121,7 +121,7 @@ class Dashboard extends React.PureComponent {
       if (allPanesDidLoad && this.isFirstLoad) {
         Logger.append(LOG_ACTIONS_FIRST_DASHBOARD_LOAD, {
           pane_ids: loadedPaneIds,
-          duration: new Date().getTime() - this.ts_mount,
+          duration: new Date().getTime() - this.initTs,
           version,
         });
         Logger.send(this.actionLog);

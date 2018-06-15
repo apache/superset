@@ -57,6 +57,7 @@ export default class Tab extends React.PureComponent {
     this.handleChangeText = this.handleChangeText.bind(this);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleDrop = this.handleDrop.bind(this);
+    this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
   }
 
   handleChangeFocus(nextFocus) {
@@ -89,21 +90,53 @@ export default class Tab extends React.PureComponent {
     this.props.onDropOnTab(dropResult);
   }
 
+  handleTopDropTargetDrop(dropResult) {
+    if (dropResult) {
+      this.props.handleComponentDrop({
+        ...dropResult,
+        destination: {
+          ...dropResult.destination,
+          // force appending as the first child if top drop target
+          index: 0,
+        },
+      });
+    }
+  }
+
   renderTabContent() {
     const {
       component: tabComponent,
       parentComponent: tabParentComponent,
-      index,
       depth,
       availableColumnCount,
       columnWidth,
       onResizeStart,
       onResize,
       onResizeStop,
+      editMode,
     } = this.props;
 
     return (
       <div className="dashboard-component-tabs-content">
+        {/* Make top of tab droppable */}
+        {editMode && (
+          <DragDroppable
+            component={tabComponent}
+            parentComponent={tabParentComponent}
+            orientation="column"
+            index={0}
+            depth={depth}
+            onDrop={this.handleTopDropTargetDrop}
+            editMode
+            className="empty-droptarget"
+          >
+            {({ dropIndicatorProps }) =>
+              dropIndicatorProps && (
+                <div className="drop-indicator drop-indicator--top" />
+              )
+            }
+          </DragDroppable>
+        )}
         {tabComponent.children.map((componentId, componentIndex) => (
           <DashboardComponent
             key={componentId}
@@ -119,21 +152,21 @@ export default class Tab extends React.PureComponent {
             onResizeStop={onResizeStop}
           />
         ))}
-        {/* Make the content of the tab component droppable in the case that there are no children */}
-        {tabComponent.children.length === 0 && (
+        {/* Make bottom of tab droppable */}
+        {editMode && (
           <DragDroppable
             component={tabComponent}
             parentComponent={tabParentComponent}
             orientation="column"
-            index={index}
+            index={tabComponent.children.length}
             depth={depth}
             onDrop={this.handleDrop}
             editMode
-            className="empty-tab-droptarget"
+            className="empty-droptarget"
           >
             {({ dropIndicatorProps }) =>
               dropIndicatorProps && (
-                <div className="drop-indicator drop-indicator--top" />
+                <div className="drop-indicator drop-indicator--bottom" />
               )
             }
           </DragDroppable>

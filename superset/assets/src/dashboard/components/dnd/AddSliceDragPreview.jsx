@@ -11,7 +11,7 @@ import {
 
 const staticCardStyles = {
   position: 'fixed',
-  background: 'white',
+  background: 'rgba(255, 255, 255, 0.2)',
   pointerEvents: 'none',
   top: 0,
   left: 0,

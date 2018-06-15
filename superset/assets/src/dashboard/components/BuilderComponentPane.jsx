@@ -68,7 +68,7 @@ class BuilderComponentPane extends React.PureComponent {
                   >
                     <div className="new-component-placeholder fa fa-area-chart" />
                     <div className="new-component-label">
-                      {t('Your charts & filters')}
+                      {t('Charts & filters')}
                     </div>
 
                     <i className="fa fa-arrow-right trigger" />
