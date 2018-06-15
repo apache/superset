@@ -224,12 +224,21 @@ describe('MetricsControl', () => {
 
       expect(!!wrapper.instance().selectFilterOption(
         { type: 'VARCHAR(255)', column_name: 'source', optionName: '_col_source' },
-        'Sou',
+        'sou',
       )).to.be.true;
 
       expect(!!wrapper.instance().selectFilterOption(
         { aggregate_name: 'AVG', optionName: '_aggregate_AVG' },
         'av',
+      )).to.be.true;
+    });
+
+    it('includes columns based on verbose_name', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        { metric_name: 'sum__num', verbose_name: 'babies', optionName: '_col_sum_num' },
+        'bab',
       )).to.be.true;
     });
 
