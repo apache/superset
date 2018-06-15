@@ -4,6 +4,11 @@ SQL Lab
 SQL Lab is a modern, feature-rich SQL IDE written in
 `React <https://facebook.github.io/react/>`_.
 
+------
+
+.. image:: images/screenshots/sqllab.png
+
+------
 
 Feature Overview
 ----------------

@@ -125,11 +125,8 @@ Follow these few simple steps to install Superset.::
     # Create default roles and permissions
     superset init
 
-    # Start the web server on port 8088, use -p to bind to another port
-    superset runserver
-
-    # To start a development web server, use the -d switch
-    # superset runserver -d
+    # To start a development web server on port 8088, use -p to bind to another port
+    superset runserver -d
 
 
 After installation, you should be able to point your browser to the right
@@ -147,12 +144,8 @@ Gunicorn, preferably in **async mode**, which allows for impressive
 concurrency even and is fairly easy to install and configure. Please
 refer to the
 documentation of your preferred technology to set up this Flask WSGI
-application in a way that works well in your environment.
-
-While the `superset runserver` command act as an quick wrapper
-around `gunicorn`, it doesn't expose all the options you may need,
-so you'll want to craft your own `gunicorn` command in your production
-environment. Here's an **async** setup known to work well: ::
+application in a way that works well in your environment. Here's an **async**
+setup known to work well in production: ::
 
  　gunicorn \
 		-w 10 \
@@ -165,7 +158,7 @@ environment. Here's an **async** setup known to work well: ::
 		superset:app
 
 Refer to the
-[Gunicorn documentation](http://docs.gunicorn.org/en/stable/design.html)
+`Gunicorn documentation <http://docs.gunicorn.org/en/stable/design.html>`_
 for more information.
 
 Note that *gunicorn* does not
@@ -215,7 +208,7 @@ In case that the reverse proxy is used for providing ssl encryption,
 an explicit definition of the `X-Forwarded-Proto` may be required.
 For the Apache webserver this can be set as follows: ::
 
-　RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Proto "https"
 
 Configuration
 -------------
@@ -228,7 +221,6 @@ of the parameters you can copy / paste in that configuration module: ::
     # Superset specific config
     #---------------------------------------------------------
     ROW_LIMIT = 5000
-    SUPERSET_WORKERS = 4
 
     SUPERSET_WEBSERVER_PORT = 8088
     #---------------------------------------------------------
@@ -250,17 +242,29 @@ of the parameters you can copy / paste in that configuration module: ::
     WTF_CSRF_ENABLED = True
     # Add endpoints that need to be exempt from CSRF protection
     WTF_CSRF_EXEMPT_LIST = []
+    # A CSRF token that expires in 1 year
+    WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 
     # Set this API key to enable Mapbox visualizations
     MAPBOX_API_KEY = ''
 
-This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Superset. Please consult
+All the parameters and default values defined in
+https://github.com/apache/incubator-superset/blob/master/superset/config.py
+can be altered in your local ``superset_config.py`` .
+Administrators will want to
+read through the file to understand what can be configured locally
+as well as the default values in place.
+
+Since ``superset_config.py`` acts as a Flask configuration module, it
+can be used to alter the settings Flask itself,
+as well as Flask extensions like ``flask-wtf``, ``flask-cache``,
+``flask-migrate``, and ``flask-appbuilder``. Flask App Builder, the web
+framework used by Superset offers many configuration settings. Please consult
 the `Flask App Builder Documentation
 <http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
-for more information on how to configure Superset.
+for more information on how to configure it.
 
-Please make sure to change:
+Make sure to change:
 
 * *SQLALCHEMY_DATABASE_URI*, by default it is stored at *~/.superset/superset.db*
 * *SECRET_KEY*, to a long random string
@@ -290,11 +294,15 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Presto       | ``pip install pyhive``              | ``presto://``                                   |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Hive         | ``pip install pyhive``              | ``hive://``                                     |
++---------------+-------------------------------------+-------------------------------------------------+
 |  Oracle       | ``pip install cx_Oracle``           | ``oracle://``                                   |
 +---------------+-------------------------------------+-------------------------------------------------+
 |  sqlite       |                                     | ``sqlite://``                                   |
 +---------------+-------------------------------------+-------------------------------------------------+
-|  Redshift     | ``pip install sqlalchemy-redshift`` | ``postgresql+psycopg2://``                      |
+|  Snowflake    | ``pip install snowflake-sqlalchemy``| ``snowflake://``                                |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Redshift     | ``pip install sqlalchemy-redshift`` | ``redshift+psycopg2://``                        |
 +---------------+-------------------------------------+-------------------------------------------------+
 |  MSSQL        | ``pip install pymssql``             | ``mssql://``                                    |
 +---------------+-------------------------------------+-------------------------------------------------+
@@ -306,6 +314,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Athena       | ``pip install "PyAthenaJDBC>1.0.9"``| ``awsathena+jdbc://``                           |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Athena       | ``pip install "PyAthena>1.2.0"``    | ``awsathena+rest://``                           |
++---------------+-------------------------------------+-------------------------------------------------+
 |  Vertica      | ``pip install                       |  ``vertica+vertica_python://``                  |
 |               | sqlalchemy-vertica-python``         |                                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
@@ -313,6 +323,8 @@ Here's a list of some of the recommended packages.
 |               | sqlalchemy-clickhouse``             |                                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Kylin        | ``pip install kylinpy``             | ``kylin://``                                    |
++---------------+-------------------------------------+-------------------------------------------------+
+|  BigQuery     | ``pip install pybigquery``          | ``bigquery://``                                 |
 +---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
@@ -331,6 +343,11 @@ Where you need to escape/encode at least the s3_staging_dir, i.e., ::
 
     s3://... -> s3%3A//...
 
+You can also use `PyAthena` library
+
+    awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+
+_(See more details at https://github.com/laughingman7743/PyAthena#sqlalchemy.)_
 
 Caching
 -------
@@ -352,7 +369,7 @@ For setting your timeouts, this is done in the Superset metadata and goes
 up the "timeout searchpath", from your slice configuration, to your
 data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
-	
+
 .. code-block:: python
 
     CACHE_CONFIG = {
@@ -371,7 +388,7 @@ It is possible to tweak the database connection information using the
 parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
 find an ``extra`` field as a ``JSON`` blob.
 
-.. image:: _static/img/tutorial/add_db.png
+.. image:: images/tutorial/add_db.png
    :scale: 30 %
 
 This JSON string contains extra configuration elements. The ``engine_params``
@@ -406,6 +423,16 @@ in your config file to point to that function. ::
         return 'secret'
 
     SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_lookup_password
+
+A common pattern is to use environment variables to make secrets available.
+``SQLALCHEMY_CUSTOM_PASSWORD_STORE`` can also be used for that purpose. ::
+
+    def example_password_as_env_var(url):
+        # assuming the uri looks like
+        # mysql://localhost?superset_user:{SUPERSET_PASSWORD}
+        return url.password.format(os.environ)
+
+    SQLALCHEMY_CUSTOM_PASSWORD_STORE = example_password_as_env_var
 
 
 SSL Access to databases
@@ -503,8 +530,8 @@ execute beyond the typical web request's timeout (30-60 seconds), it is
 necessary to configure an asynchronous backend for Superset which consist of:
 
 * one or many Superset worker (which is implemented as a Celery worker), and
-  can be started with the ``superset worker`` command, run
-  ``superset worker --help`` to view the related options
+  can be started with the ``celery worker`` command, run
+  ``celery worker --help`` to view the related options.
 * a celery broker (message queue) for which we recommend using Redis
   or RabbitMQ
 * a results backend that defines where the worker will persist the query
@@ -523,6 +550,10 @@ have the same configuration.
         CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 
     CELERY_CONFIG = CeleryConfig
+
+To start a Celery worker to leverage the configuration run: ::
+
+    celery worker --app=superset.sql_lab:celery_app --pool=gevent -Ofair
 
 To setup a result backend, you need to pass an instance of a derivative
 of ``werkzeug.contrib.cache.BaseCache`` to the ``RESULTS_BACKEND``
@@ -563,6 +594,15 @@ in this dictionary are made available for users to use in their SQL.
         'my_crazy_macro': lambda x: x*2,
     }
 
+
+Flower is a web based tool for monitoring the Celery cluster which you can
+install from pip: ::
+
+    pip install flower
+
+and run via: ::
+
+    celery flower --app=superset.sql_lab:celery_app
 
 Making your own build
 ---------------------
@@ -619,3 +659,18 @@ To setup StatsD logging, it's a matter of configuring the logger in your
 
 Note that it's also possible to implement you own logger by deriving
 ``superset.stats_logger.BaseStatsLogger``.
+
+
+Install Superset with helm in Kubernetes
+--------------
+
+You can install Superset into Kubernetes with Helm <https://helm.sh/>. The chart is
+located in ``install/helm``.
+
+To install Superset into your Kubernetes:
+
+.. code-block:: bash
+
+    helm upgrade --install superset ./install/helm/superset
+
+Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.

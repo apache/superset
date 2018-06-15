@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import ColumnTypeLabel from '../../../javascripts/components/ColumnTypeLabel';
+import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
 
 describe('ColumnOption', () => {
   const defaultProps = {

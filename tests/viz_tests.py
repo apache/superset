@@ -12,9 +12,11 @@ import pandas as pd
 
 from superset.utils import DTTM_ALIAS
 import superset.viz as viz
+from .utils import load_fixture
 
 
 class BaseVizTestCase(unittest.TestCase):
+
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
@@ -77,6 +79,8 @@ class BaseVizTestCase(unittest.TestCase):
         results.df.empty = False
         datasource.query = Mock(return_value=results)
         test_viz = viz.BaseViz(datasource, form_data)
+
+        test_viz.df_metrics_to_num = Mock()
         test_viz.get_fillna_for_columns = Mock(return_value=0)
         test_viz.get_df(query_obj)
         mock_call = df.__setitem__.mock_calls[0]
@@ -116,12 +120,22 @@ class BaseVizTestCase(unittest.TestCase):
 class TableVizTestCase(unittest.TestCase):
     def test_get_data_applies_percentage(self):
         form_data = {
-            'percent_metrics': ['sum__A', 'avg__B'],
-            'metrics': ['sum__A', 'count', 'avg__C'],
+            'percent_metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }, 'avg__B'],
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }, 'count', 'avg__C'],
         }
         datasource = Mock()
         raw = {}
-        raw['sum__A'] = [15, 20, 25, 40]
+        raw['SUM(value1)'] = [15, 20, 25, 40]
         raw['avg__B'] = [10, 20, 5, 15]
         raw['avg__C'] = [11, 22, 33, 44]
         raw['count'] = [6, 7, 8, 9]
@@ -133,32 +147,146 @@ class TableVizTestCase(unittest.TestCase):
         # Check method correctly transforms data and computes percents
         self.assertEqual(set([
             'groupA', 'groupB', 'count',
-            'sum__A', 'avg__C',
-            '%sum__A', '%avg__B',
+            'SUM(value1)', 'avg__C',
+            '%SUM(value1)', '%avg__B',
         ]), set(data['columns']))
         expected = [
             {
                 'groupA': 'A', 'groupB': 'x',
-                'count': 6, 'sum__A': 15, 'avg__C': 11,
-                '%sum__A': 0.15, '%avg__B': 0.2,
+                'count': 6, 'SUM(value1)': 15, 'avg__C': 11,
+                '%SUM(value1)': 0.15, '%avg__B': 0.2,
             },
             {
                 'groupA': 'B', 'groupB': 'x',
-                'count': 7, 'sum__A': 20, 'avg__C': 22,
-                '%sum__A': 0.2, '%avg__B': 0.4,
+                'count': 7, 'SUM(value1)': 20, 'avg__C': 22,
+                '%SUM(value1)': 0.2, '%avg__B': 0.4,
             },
             {
                 'groupA': 'C', 'groupB': 'y',
-                'count': 8, 'sum__A': 25, 'avg__C': 33,
-                '%sum__A': 0.25, '%avg__B': 0.1,
+                'count': 8, 'SUM(value1)': 25, 'avg__C': 33,
+                '%SUM(value1)': 0.25, '%avg__B': 0.1,
             },
             {
                 'groupA': 'C', 'groupB': 'z',
-                'count': 9, 'sum__A': 40, 'avg__C': 44,
-                '%sum__A': 0.40, '%avg__B': 0.3,
+                'count': 9, 'SUM(value1)': 40, 'avg__C': 44,
+                '%SUM(value1)': 0.40, '%avg__B': 0.3,
             },
         ]
         self.assertEqual(expected, data['records'])
+
+    def test_parse_adhoc_filters(self):
+        form_data = {
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }],
+            'adhoc_filters': [
+                {
+                    'expressionType': 'SIMPLE',
+                    'clause': 'WHERE',
+                    'subject': 'value2',
+                    'operator': '>',
+                    'comparator': '100',
+                },
+                {
+                    'expressionType': 'SIMPLE',
+                    'clause': 'HAVING',
+                    'subject': 'SUM(value1)',
+                    'operator': '<',
+                    'comparator': '10',
+                },
+                {
+                    'expressionType': 'SQL',
+                    'clause': 'HAVING',
+                    'sqlExpression': 'SUM(value1) > 5',
+                },
+                {
+                    'expressionType': 'SQL',
+                    'clause': 'WHERE',
+                    'sqlExpression': 'value3 in (\'North America\')',
+                },
+            ],
+        }
+        datasource = Mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        query_obj = test_viz.query_obj()
+        self.assertEqual(
+            [{'col': 'value2', 'val': '100', 'op': '>'}],
+            query_obj['filter'],
+        )
+        self.assertEqual(
+            [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
+            query_obj['extras']['having_druid'],
+        )
+        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
+        self.assertEqual('(SUM(value1) > 5)', query_obj['extras']['having'])
+
+    def test_adhoc_filters_overwrite_legacy_filters(self):
+        form_data = {
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }],
+            'adhoc_filters': [
+                {
+                    'expressionType': 'SIMPLE',
+                    'clause': 'WHERE',
+                    'subject': 'value2',
+                    'operator': '>',
+                    'comparator': '100',
+                },
+                {
+                    'expressionType': 'SQL',
+                    'clause': 'WHERE',
+                    'sqlExpression': 'value3 in (\'North America\')',
+                },
+            ],
+            'having': 'SUM(value1) > 5',
+        }
+        datasource = Mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        query_obj = test_viz.query_obj()
+        self.assertEqual(
+            [{'col': 'value2', 'val': '100', 'op': '>'}],
+            query_obj['filter'],
+        )
+        self.assertEqual(
+            [],
+            query_obj['extras']['having_druid'],
+        )
+        self.assertEqual('(value3 in (\'North America\'))', query_obj['extras']['where'])
+        self.assertEqual('', query_obj['extras']['having'])
+
+    def test_legacy_filters_still_appear_without_adhoc_filters(self):
+        form_data = {
+            'metrics': [{
+                'expressionType': 'SIMPLE',
+                'aggregate': 'SUM',
+                'label': 'SUM(value1)',
+                'column': {'column_name': 'value1', 'type': 'DOUBLE'},
+            }],
+            'having': 'SUM(value1) > 5',
+            'where': 'value3 in (\'North America\')',
+            'filters': [{'col': 'value2', 'val': '100', 'op': '>'}],
+            'having_filters': [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
+        }
+        datasource = Mock()
+        test_viz = viz.TableViz(datasource, form_data)
+        query_obj = test_viz.query_obj()
+        self.assertEqual(
+            [{'col': 'value2', 'val': '100', 'op': '>'}],
+            query_obj['filter'],
+        )
+        self.assertEqual(
+            [{'op': '<', 'val': '10', 'col': 'SUM(value1)'}],
+            query_obj['extras']['having_druid'],
+        )
+        self.assertEqual('value3 in (\'North America\')', query_obj['extras']['where'])
+        self.assertEqual('SUM(value1) > 5', query_obj['extras']['having'])
 
     @patch('superset.viz.BaseViz.query_obj')
     def test_query_obj_merges_percent_metrics(self, super_query_obj):
@@ -634,3 +762,188 @@ class RoseVisTestCase(unittest.TestCase):
             ],
         }
         self.assertEqual(expected, res)
+
+
+class TimeSeriesTableVizTestCase(unittest.TestCase):
+
+    def test_get_data_metrics(self):
+        form_data = {
+            'metrics': ['sum__A', 'count'],
+            'groupby': [],
+        }
+        datasource = Mock()
+        raw = {}
+        t1 = pd.Timestamp('2000')
+        t2 = pd.Timestamp('2002')
+        raw[DTTM_ALIAS] = [t1, t2]
+        raw['sum__A'] = [15, 20]
+        raw['count'] = [6, 7]
+        df = pd.DataFrame(raw)
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data
+        self.assertEqual(set(['count', 'sum__A']), set(data['columns']))
+        time_format = '%Y-%m-%d %H:%M:%S'
+        expected = {
+            t1.strftime(time_format): {
+                'sum__A': 15,
+                'count': 6,
+            },
+            t2.strftime(time_format): {
+                'sum__A': 20,
+                'count': 7,
+            },
+        }
+        self.assertEqual(expected, data['records'])
+
+    def test_get_data_group_by(self):
+        form_data = {
+            'metrics': ['sum__A'],
+            'groupby': ['groupby1'],
+        }
+        datasource = Mock()
+        raw = {}
+        t1 = pd.Timestamp('2000')
+        t2 = pd.Timestamp('2002')
+        raw[DTTM_ALIAS] = [t1, t1, t1, t2, t2, t2]
+        raw['sum__A'] = [15, 20, 25, 30, 35, 40]
+        raw['groupby1'] = ['a1', 'a2', 'a3', 'a1', 'a2', 'a3']
+        df = pd.DataFrame(raw)
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        data = test_viz.get_data(df)
+        # Check method correctly transforms data
+        self.assertEqual(set(['a1', 'a2', 'a3']), set(data['columns']))
+        time_format = '%Y-%m-%d %H:%M:%S'
+        expected = {
+            t1.strftime(time_format): {
+                'a1': 15,
+                'a2': 20,
+                'a3': 25,
+            },
+            t2.strftime(time_format): {
+                'a1': 30,
+                'a2': 35,
+                'a3': 40,
+            },
+        }
+        self.assertEqual(expected, data['records'])
+
+    @patch('superset.viz.BaseViz.query_obj')
+    def test_query_obj_throws_metrics_and_groupby(self, super_query_obj):
+        datasource = Mock()
+        form_data = {
+            'groupby': ['a'],
+        }
+        super_query_obj.return_value = {}
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        with self.assertRaises(Exception):
+            test_viz.query_obj()
+        form_data['metrics'] = ['x', 'y']
+        test_viz = viz.TimeTableViz(datasource, form_data)
+        with self.assertRaises(Exception):
+            test_viz.query_obj()
+
+
+class BaseDeckGLVizTestCase(unittest.TestCase):
+
+    def test_get_metrics(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == [form_data.get('size')]
+
+        form_data = {}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_metrics()
+        assert result == []
+
+    def test_scatterviz_get_metrics(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {'type': 'metric', 'value': 'int'}
+        result = test_viz_deckgl.get_metrics()
+        assert result == ['int']
+
+        form_data = {}
+        test_viz_deckgl = viz.DeckScatterViz(datasource, form_data)
+        test_viz_deckgl.point_radius_fixed = {}
+        result = test_viz_deckgl.get_metrics()
+        assert result is None
+
+    def test_get_js_columns(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        mock_d = {
+            'a': 'dummy1',
+            'b': 'dummy2',
+            'c': 'dummy3',
+        }
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+        result = test_viz_deckgl.get_js_columns(mock_d)
+
+        assert result == {'color': None}
+
+    def test_get_properties(self):
+        mock_d = {}
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(NotImplementedError) as context:
+            test_viz_deckgl.get_properties(mock_d)
+
+        self.assertTrue('' in str(context.exception))
+
+    def test_process_spatial_query_obj(self):
+        form_data = load_fixture('deck_path_form_data.json')
+        datasource = {'type': 'table'}
+        mock_key = 'spatial_key'
+        mock_gb = []
+        test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
+
+        with self.assertRaises(ValueError) as context:
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+
+        self.assertTrue('Bad spatial key' in str(context.exception))
+
+        test_form_data = {
+            'latlong_key': {
+                'type': 'latlong',
+                'lonCol': 'lon',
+                'latCol': 'lat',
+            },
+            'delimited_key': {
+                'type': 'delimited',
+                'lonlatCol': 'lonlat',
+            },
+            'geohash_key': {
+                'type': 'geohash',
+                'geohashCol': 'geo',
+            },
+        }
+
+        datasource = {'type': 'table'}
+        expected_results = {
+            'latlong_key': ['lon', 'lat'],
+            'delimited_key': ['lonlat'],
+            'geohash_key': ['geo'],
+        }
+        for mock_key in ['latlong_key', 'delimited_key', 'geohash_key']:
+            mock_gb = []
+            test_viz_deckgl = viz.BaseDeckGLViz(datasource, test_form_data)
+            test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
+            assert expected_results.get(mock_key) == mock_gb
+
+    def test_geojson_query_obj(self):
+        form_data = load_fixture('deck_geojson_form_data.json')
+        datasource = {'type': 'table'}
+        test_viz_deckgl = viz.DeckGeoJson(datasource, form_data)
+        results = test_viz_deckgl.query_obj()
+
+        assert results['metrics'] == []
+        assert results['groupby'] == []
+        assert results['columns'] == ['test_col']

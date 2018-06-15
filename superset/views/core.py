@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
-import json
 import logging
 import os
 import re
@@ -23,9 +23,10 @@ from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 import pandas as pd
+import simplejson as json
 from six import text_type
 import sqlalchemy as sqla
-from sqlalchemy import create_engine
+from sqlalchemy import and_, create_engine, update
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
@@ -347,15 +348,17 @@ class CsvToDatabaseView(SimpleFormView):
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
+        path = os.path.join(config['UPLOAD_FOLDER'], csv_filename)
         try:
-            csv_file.save(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+            utils.ensure_path_exists(config['UPLOAD_FOLDER'])
+            csv_file.save(path)
             table = SqlaTable(table_name=form.name.data)
             table.database = form.data.get('con')
             table.database_id = table.database.id
             table.database.db_engine_spec.create_table_from_csv(form, table)
         except Exception as e:
             try:
-                os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+                os.remove(path)
             except OSError:
                 pass
             message = 'Table name {} already exists. Please pick another'.format(
@@ -365,7 +368,7 @@ class CsvToDatabaseView(SimpleFormView):
                 'danger')
             return redirect('/csvtodatabaseview/form')
 
-        os.remove(os.path.join(config['UPLOAD_FOLDER'], csv_filename))
+        os.remove(path)
         # Go back to welcome page / splash screen
         db_name = table.database.database_name
         message = _('CSV file "{0}" uploaded to table "{1}" in '
@@ -447,7 +450,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             'want to alter specific parameters.',
         ),
         'cache_timeout': _(
-            'Duration (in seconds) of the caching timeout for this slice.'),
+            'Duration (in seconds) of the caching timeout for this chart.'),
     }
     base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
@@ -742,12 +745,13 @@ class R(BaseSupersetView):
     @expose('/shortner/', methods=['POST', 'GET'])
     def shortner(self):
         url = request.form.get('data')
-        directory = url.split('?')[0][2:]
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-        return('http://{request.headers[Host]}/{directory}?r={obj.id}'.format(
-            request=request, directory=directory, obj=obj))
+        return Response(
+            '{scheme}://{request.headers[Host]}/r/{obj.id}'.format(
+                scheme=request.scheme, request=request, obj=obj),
+            mimetype='text/plain')
 
     @expose('/msg/')
     def msg(self):
@@ -1224,6 +1228,12 @@ class Superset(BaseSupersetView):
         datasource = form_data.get('datasource', '')
         if '__' in datasource:
             datasource_id, datasource_type = datasource.split('__')
+            # The case where the datasource has been deleted
+            datasource_id = None if datasource_id == 'None' else datasource_id
+
+        if not datasource_id:
+            raise Exception(
+                'The datasource associated with this chart no longer exists')
         datasource_id = int(datasource_id)
         return datasource_id, datasource_type
 
@@ -1268,6 +1278,7 @@ class Superset(BaseSupersetView):
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
 
         # On explore, merge extra filters into the form data
+        utils.split_adhoc_filters_into_base_filters(form_data)
         merge_extra_filters(form_data)
 
         # merge request url params
@@ -1471,24 +1482,6 @@ class Superset(BaseSupersetView):
                 col.datasource.add_missing_metrics(metrics)
             db.session.commit()
         return json_success('OK')
-
-    @api
-    @has_access_api
-    @expose('/activity_per_day')
-    def activity_per_day(self):
-        """endpoint to power the calendar heatmap on the welcome page"""
-        Log = models.Log  # noqa
-        qry = (
-            db.session
-            .query(
-                Log.dt,
-                sqla.func.count())
-            .group_by(Log.dt)
-            .all()
-        )
-        payload = {str(time.mktime(dt.timetuple())):
-                   ccount for dt, ccount in qry if dt}
-        return json_success(json.dumps(payload))
 
     @api
     @has_access_api
@@ -1966,7 +1959,7 @@ class Superset(BaseSupersetView):
             slices = session.query(models.Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(__(
-                    'Slice %(id)s not found', id=slice_id), status=404)
+                    'Chart %(id)s not found', id=slice_id), status=404)
         elif table_name and db_name:
             SqlaTable = ConnectorRegistry.sources['table']
             table = (
@@ -2056,9 +2049,11 @@ class Superset(BaseSupersetView):
             pass
         dashboard(dashboard_id=dash.id)
 
-        dash_edit_perm = check_ownership(dash, raise_if_false=False)
-        dash_save_perm = \
-            dash_edit_perm and security_manager.can_access('can_save_dash', 'Superset')
+        dash_edit_perm = check_ownership(dash, raise_if_false=False) and \
+            security_manager.can_access('can_save_dash', 'Superset')
+        dash_save_perm = security_manager.can_access('can_save_dash', 'Superset')
+        superset_can_explore = security_manager.can_access('can_explore', 'Superset')
+        slice_can_edit = security_manager.can_access('can_edit', 'SliceModelView')
 
         standalone_mode = request.args.get('standalone') == 'true'
 
@@ -2067,6 +2062,8 @@ class Superset(BaseSupersetView):
             'standalone_mode': standalone_mode,
             'dash_save_perm': dash_save_perm,
             'dash_edit_perm': dash_edit_perm,
+            'superset_can_explore': superset_can_explore,
+            'slice_can_edit': slice_can_edit,
         })
 
         bootstrap_data = {
@@ -2074,6 +2071,7 @@ class Superset(BaseSupersetView):
             'dashboard_data': dashboard_data,
             'datasources': {ds.uid: ds.data for ds in datasources},
             'common': self.common_bootsrap_payload(),
+            'editMode': request.args.get('edit') == 'true',
         }
 
         if request.args.get('json') == 'true':
@@ -2152,6 +2150,7 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
+        template_params = data.get('templateParams')
         table = (
             db.session.query(SqlaTable)
             .filter_by(table_name=table_name)
@@ -2160,6 +2159,9 @@ class Superset(BaseSupersetView):
         if not table:
             table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
+        table.schema = data.get('schema')
+        table.template_params = data.get('templateParams')
+        table.is_sqllab_view = True
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
         db.session.add(table)
@@ -2337,7 +2339,8 @@ class Superset(BaseSupersetView):
             payload_json = json.loads(payload)
             payload_json['data'] = payload_json['data'][:display_limit]
         return json_success(
-            json.dumps(payload_json, default=utils.json_iso_dttm_ser))
+            json.dumps(
+                payload_json, default=utils.json_iso_dttm_ser, ignore_nan=True))
 
     @has_access_api
     @expose('/stop_query/', methods=['POST'])
@@ -2390,7 +2393,7 @@ class Superset(BaseSupersetView):
 
         query = Query(
             database_id=int(database_id),
-            limit=int(app.config.get('SQL_MAX_ROW', None)),
+            limit=mydb.db_engine_spec.get_limit_from_sql(sql),
             sql=sql,
             schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
@@ -2445,7 +2448,7 @@ class Superset(BaseSupersetView):
 
             resp = json_success(json.dumps(
                 {'query': query.to_dict()}, default=utils.json_int_dttm_ser,
-                allow_nan=False), status=202)
+                ignore_nan=True), status=202)
             session.commit()
             return resp
 
@@ -2463,7 +2466,7 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True)
             payload = json.dumps(
-                data, default=utils.pessimistic_json_iso_dttm_ser)
+                data, default=utils.pessimistic_json_iso_dttm_ser, ignore_nan=True)
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))
@@ -2554,6 +2557,35 @@ class Superset(BaseSupersetView):
             .all()
         )
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
+
+        now = int(round(time.time() * 1000))
+
+        unfinished_states = [
+            utils.QueryStatus.PENDING,
+            utils.QueryStatus.RUNNING,
+        ]
+
+        queries_to_timeout = [
+            client_id for client_id, query_dict in dict_queries.items()
+            if (
+                query_dict['state'] in unfinished_states and (
+                    now - query_dict['startDttm'] >
+                    config.get('SQLLAB_ASYNC_TIME_LIMIT_SEC') * 1000
+                )
+            )
+        ]
+
+        if queries_to_timeout:
+            update(Query).where(
+                and_(
+                    Query.user_id == g.user.get_id(),
+                    Query.client_id in queries_to_timeout,
+                ),
+            ).values(state=utils.QueryStatus.TIMED_OUT)
+
+            for client_id in queries_to_timeout:
+                dict_queries[client_id]['status'] = utils.QueryStatus.TIMED_OUT
+
         return json_success(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser))
 

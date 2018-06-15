@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Modal } from 'react-bootstrap';
-import DatasourceControl from '../../../../javascripts/explore/components/controls/DatasourceControl';
+import DatasourceControl from '../../../../src/explore/components/controls/DatasourceControl';
 
 const defaultProps = {
   name: 'datasource',

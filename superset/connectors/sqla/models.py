@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=C,R,W
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -11,7 +12,6 @@ from flask import escape, Markup
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 import pandas as pd
-from past.builtins import basestring
 import six
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -118,20 +118,23 @@ class TableColumn(Model, BaseColumn):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
+        pdf = self.python_date_format
+        is_epoch = pdf in ('epoch_s', 'epoch_ms')
+        if not self.expression and not time_grain and not is_epoch:
+            return column(self.column_name, type_=DateTime).label(DTTM_ALIAS)
+
         expr = self.expression or self.column_name
-        if not self.expression and not time_grain:
-            return column(expr, type_=DateTime).label(DTTM_ALIAS)
+        if is_epoch:
+            # if epoch, translate to DATE using db specific conf
+            db_spec = self.table.database.db_engine_spec
+            if pdf == 'epoch_s':
+                expr = db_spec.epoch_to_dttm().format(col=expr)
+            elif pdf == 'epoch_ms':
+                expr = db_spec.epoch_ms_to_dttm().format(col=expr)
         if time_grain:
-            pdf = self.python_date_format
-            if pdf in ('epoch_s', 'epoch_ms'):
-                # if epoch, translate to DATE using db specific conf
-                db_spec = self.table.database.db_engine_spec
-                if pdf == 'epoch_s':
-                    expr = db_spec.epoch_to_dttm().format(col=expr)
-                elif pdf == 'epoch_ms':
-                    expr = db_spec.epoch_ms_to_dttm().format(col=expr)
-            grain = self.table.database.grains_dict().get(time_grain, '{col}')
-            expr = grain.function.format(col=expr)
+            grain = self.table.database.grains_dict().get(time_grain)
+            if grain:
+                expr = grain.function.format(col=expr)
         return literal_column(expr, type_=DateTime).label(DTTM_ALIAS)
 
     @classmethod
@@ -268,13 +271,15 @@ class SqlaTable(Model, BaseDatasource):
         foreign_keys=[database_id])
     schema = Column(String(255))
     sql = Column(Text)
+    is_sqllab_view = Column(Boolean, default=False)
+    template_params = Column(Text)
 
     baselink = 'tablemodelview'
 
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'offset', 'cache_timeout', 'schema',
-        'sql', 'params')
+        'sql', 'params', 'template_params')
     export_parent = 'database'
     export_children = ['metrics', 'columns']
 
@@ -376,7 +381,7 @@ class SqlaTable(Model, BaseDatasource):
         if self.type == 'table':
             grains = self.database.grains() or []
             if grains:
-                grains = [(g.name, g.name) for g in grains]
+                grains = [(g.duration, g.name) for g in grains]
             d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
         return d
@@ -393,7 +398,7 @@ class SqlaTable(Model, BaseDatasource):
         qry = (
             select([target_col.sqla_col])
             .select_from(self.get_from_clause(tp, db_engine_spec))
-            .distinct(column_name)
+            .distinct()
         )
         if limit:
             qry = qry.limit(limit)
@@ -445,11 +450,33 @@ class SqlaTable(Model, BaseDatasource):
             return TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
         return self.get_sqla_table()
 
-    def adhoc_metric_to_sa(self, metric):
-        column_name = metric.get('column').get('column_name')
-        sa_metric = self.sqla_aggregations[metric.get('aggregate')](column(column_name))
-        sa_metric = sa_metric.label(metric.get('label'))
-        return sa_metric
+    def adhoc_metric_to_sa(self, metric, cols):
+        """
+        Turn an adhoc metric into a sqlalchemy column.
+
+        :param dict metric: Adhoc metric definition
+        :param dict cols: Columns for the current table
+        :returns: The metric defined as a sqlalchemy column
+        :rtype: sqlalchemy.sql.column
+        """
+        expressionType = metric.get('expressionType')
+        if expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SIMPLE']:
+            column_name = metric.get('column').get('column_name')
+            sa_column = column(column_name)
+            table_column = cols.get(column_name)
+
+            if table_column:
+                sa_column = table_column.sqla_col
+
+            sa_metric = self.sqla_aggregations[metric.get('aggregate')](sa_column)
+            sa_metric = sa_metric.label(metric.get('label'))
+            return sa_metric
+        elif expressionType == utils.ADHOC_METRIC_EXPRESSION_TYPES['SQL']:
+            sa_metric = literal_column(metric.get('sqlExpression'))
+            sa_metric = sa_metric.label(metric.get('label'))
+            return sa_metric
+        else:
+            return None
 
     def get_sqla_query(  # sqla
             self,
@@ -477,7 +504,10 @@ class SqlaTable(Model, BaseDatasource):
             'metrics': metrics,
             'row_limit': row_limit,
             'to_dttm': to_dttm,
+            'filter': filter,
+            'columns': {col.column_name: col for col in self.columns},
         }
+        template_kwargs.update(self.template_params_dict)
         template_processor = self.get_template_processor(**template_kwargs)
         db_engine_spec = self.database.db_engine_spec
 
@@ -502,7 +532,7 @@ class SqlaTable(Model, BaseDatasource):
         metrics_exprs = []
         for m in metrics:
             if utils.is_adhoc_metric(m):
-                metrics_exprs.append(self.adhoc_metric_to_sa(m))
+                metrics_exprs.append(self.adhoc_metric_to_sa(m, cols))
             elif m in metrics_dict:
                 metrics_exprs.append(metrics_dict.get(m).sqla_col)
             else:
@@ -562,28 +592,21 @@ class SqlaTable(Model, BaseDatasource):
         where_clause_and = []
         having_clause_and = []
         for flt in filter:
-            if not all([flt.get(s) for s in ['col', 'op', 'val']]):
+            if not all([flt.get(s) for s in ['col', 'op']]):
                 continue
             col = flt['col']
             op = flt['op']
-            eq = flt['val']
             col_obj = cols.get(col)
             if col_obj:
+                is_list_target = op in ('in', 'not in')
+                eq = self.filter_values_handler(
+                    flt.get('val'),
+                    target_column_is_numeric=col_obj.is_num,
+                    is_list_target=is_list_target)
                 if op in ('in', 'not in'):
-                    values = []
-                    for v in eq:
-                        # For backwards compatibility and edge cases
-                        # where a column data type might have changed
-                        if isinstance(v, basestring):
-                            v = v.strip("'").strip('"')
-                            if col_obj.is_num:
-                                v = utils.string_to_num(v)
-
-                        # Removing empty strings and non numeric values
-                        # targeting numeric columns
-                        if v is not None:
-                            values.append(v)
-                    cond = col_obj.sqla_col.in_(values)
+                    cond = col_obj.sqla_col.in_(eq)
+                    if '<NULL>' in eq:
+                        cond = or_(cond, col_obj.sqla_col == None)  # noqa
                     if op == 'not in':
                         cond = ~cond
                     where_clause_and.append(cond)
@@ -604,6 +627,10 @@ class SqlaTable(Model, BaseDatasource):
                         where_clause_and.append(col_obj.sqla_col <= eq)
                     elif op == 'LIKE':
                         where_clause_and.append(col_obj.sqla_col.like(eq))
+                    elif op == 'IS NULL':
+                        where_clause_and.append(col_obj.sqla_col == None)  # noqa
+                    elif op == 'IS NOT NULL':
+                        where_clause_and.append(col_obj.sqla_col != None)  # noqa
         if extras:
             where = extras.get('where')
             if where:
@@ -815,6 +842,10 @@ class SqlaTable(Model, BaseDatasource):
         if schema:
             query = query.filter_by(schema=schema)
         return query.all()
+
+    @staticmethod
+    def default_query(qry):
+        return qry.filter_by(is_sqllab_view=False)
 
 
 sa.event.listen(SqlaTable, 'after_insert', set_perm)

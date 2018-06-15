@@ -17,7 +17,6 @@ from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 
-os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
 BASE_DIR = app.config.get('BASE_DIR')
 
@@ -29,7 +28,6 @@ class SupersetTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         if (
             self.requires_examples and
-            not os.environ.get('SOLO_TEST') and
             not os.environ.get('examples_loaded')
         ):
             logging.info('Loading examples')
@@ -127,7 +125,7 @@ class SupersetTestCase(unittest.TestCase):
         resp = self.get_resp(
             '/login/',
             data=dict(username=username, password=password))
-        self.assertIn('Welcome', resp)
+        self.assertNotIn('User confirmation needed', resp)
 
     def get_slice(self, slice_name, session):
         slc = (
@@ -254,7 +252,6 @@ class SupersetTestCase(unittest.TestCase):
 
         self.assertIn(('can_add_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_copy_dash', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_activity_per_day', 'Superset'), gamma_perm_set)
         self.assertIn(('can_created_dashboards', 'Superset'), gamma_perm_set)
         self.assertIn(('can_created_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_csv', 'Superset'), gamma_perm_set)

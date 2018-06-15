@@ -5,9 +5,9 @@ import { expect } from 'chai';
 
 import { Table, Thead, Td, Th, Tr } from 'reactable';
 
-import AlteredSliceTag from '../../../javascripts/components/AlteredSliceTag';
-import ModalTrigger from '../../../javascripts/components/ModalTrigger';
-import TooltipWrapper from '../../../javascripts/components/TooltipWrapper';
+import AlteredSliceTag from '../../../src/components/AlteredSliceTag';
+import ModalTrigger from '../../../src/components/ModalTrigger';
+import TooltipWrapper from '../../../src/components/TooltipWrapper';
 
 const defaultProps = {
   origFormData: {

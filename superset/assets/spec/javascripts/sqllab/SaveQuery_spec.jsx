@@ -3,8 +3,8 @@ import { FormControl } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import SaveQuery from '../../../javascripts/SqlLab/components/SaveQuery';
-import ModalTrigger from '../../../javascripts/components/ModalTrigger';
+import SaveQuery from '../../../src/SqlLab/components/SaveQuery';
+import ModalTrigger from '../../../src/components/ModalTrigger';
 
 describe('SavedQuery', () => {
   const mockedProps = {

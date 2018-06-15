@@ -6,12 +6,12 @@ import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
 import FixedOrMetricControl from
-  '../../../../javascripts/explore/components/controls/FixedOrMetricControl';
+  '../../../../src/explore/components/controls/FixedOrMetricControl';
 import SelectControl from
-  '../../../../javascripts/explore/components/controls/SelectControl';
+  '../../../../src/explore/components/controls/SelectControl';
 import TextControl from
-  '../../../../javascripts/explore/components/controls/TextControl';
-import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+  '../../../../src/explore/components/controls/TextControl';
+import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
   value: { },

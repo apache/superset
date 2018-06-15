@@ -3,9 +3,9 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import ColumnOption from '../../../javascripts/components/ColumnOption';
-import ColumnTypeLabel from '../../../javascripts/components/ColumnTypeLabel';
-import InfoTooltipWithTrigger from '../../../javascripts/components/InfoTooltipWithTrigger';
+import ColumnOption from '../../../src/components/ColumnOption';
+import ColumnTypeLabel from '../../../src/components/ColumnTypeLabel';
+import InfoTooltipWithTrigger from '../../../src/components/InfoTooltipWithTrigger';
 
 describe('ColumnOption', () => {
   const defaultProps = {

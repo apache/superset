@@ -203,7 +203,7 @@ class SqlLabTests(SupersetTestCase):
             raise_on_error=True)
 
     def test_df_conversion_no_dict(self):
-        cols = [['string_col'], ['int_col'], ['float_col']]
+        cols = ['string_col', 'int_col', 'float_col']
         data = [['a', 4, 4.0]]
         cdf = convert_results_to_df(cols, data)
 
@@ -211,7 +211,7 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(len(cols), len(cdf.columns))
 
     def test_df_conversion_tuple(self):
-        cols = [['string_col'], ['int_col'], ['list_col'], ['float_col']]
+        cols = ['string_col', 'int_col', 'list_col', 'float_col']
         data = [(u'Text', 111, [123], 1.0)]
         cdf = convert_results_to_df(cols, data)
 
@@ -219,12 +219,43 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(len(cols), len(cdf.columns))
 
     def test_df_conversion_dict(self):
-        cols = [['string_col'], ['dict_col'], ['int_col']]
+        cols = ['string_col', 'dict_col', 'int_col']
         data = [['a', {'c1': 1, 'c2': 2, 'c3': 3}, 4]]
         cdf = convert_results_to_df(cols, data)
 
         self.assertEquals(len(data), cdf.size)
         self.assertEquals(len(cols), len(cdf.columns))
+
+    def test_sqllab_viz(self):
+        payload = {
+            'chartType': 'dist_bar',
+            'datasourceName': 'test_viz_flow_table',
+            'schema': 'superset',
+            'columns': {
+                'viz_type': {
+                    'is_date': False,
+                    'type': 'STRING',
+                    'nam:qe': 'viz_type',
+                    'is_dim': True,
+                },
+                'ccount': {
+                    'is_date': False,
+                    'type': 'OBJECT',
+                    'name': 'ccount',
+                    'is_dim': True,
+                    'agg': 'sum',
+                },
+            },
+            'sql': """\
+                SELECT viz_type, count(1) as ccount
+                FROM slices
+                WHERE viz_type LIKE '%%a%%'
+                GROUP BY viz_type""",
+            'dbId': 1,
+        }
+        data = {'data': json.dumps(payload)}
+        resp = self.get_json_resp('/superset/sqllab_viz/', data=data)
+        self.assertIn('table_id', resp)
 
 
 if __name__ == '__main__':

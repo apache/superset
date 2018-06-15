@@ -6,8 +6,8 @@ import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Button } from 'react-bootstrap';
 
-import DateFilterControl from '../../../../javascripts/explore/components/controls/DateFilterControl';
-import ControlHeader from '../../../../javascripts/explore/components/ControlHeader';
+import DateFilterControl from '../../../../src/explore/components/controls/DateFilterControl';
+import ControlHeader from '../../../../src/explore/components/ControlHeader';
 
 const defaultProps = {
   animation: false,

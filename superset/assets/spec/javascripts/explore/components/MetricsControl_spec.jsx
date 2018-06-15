@@ -5,10 +5,10 @@ import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
 
-import MetricsControl from '../../../../javascripts/explore/components/controls/MetricsControl';
-import { AGGREGATES } from '../../../../javascripts/explore/constants';
-import OnPasteSelect from '../../../../javascripts/components/OnPasteSelect';
-import AdhocMetric from '../../../../javascripts/explore/AdhocMetric';
+import MetricsControl from '../../../../src/explore/components/controls/MetricsControl';
+import { AGGREGATES } from '../../../../src/explore/constants';
+import OnPasteSelect from '../../../../src/components/OnPasteSelect';
+import AdhocMetric, { EXPRESSION_TYPES } from '../../../../src/explore/AdhocMetric';
 
 const defaultProps = {
   name: 'metrics',
@@ -24,6 +24,7 @@ const defaultProps = {
     { metric_name: 'sum__value', expression: 'SUM(energy_usage.value)' },
     { metric_name: 'avg__value', expression: 'AVG(energy_usage.value)' },
   ],
+  datasourceType: 'sqla',
 };
 
 function setup(overrides) {
@@ -72,6 +73,7 @@ describe('MetricsControl', () => {
       const { wrapper } = setup({
         value: [
           {
+            expressionType: EXPRESSION_TYPES.SIMPLE,
             column: { type: 'double', column_name: 'value' },
             aggregate: AGGREGATES.SUM,
             label: 'SUM(value)',
@@ -86,12 +88,14 @@ describe('MetricsControl', () => {
       expect(adhocMetric.optionName.length).to.be.above(10);
       expect(wrapper.state('value')).to.deep.equal([
         {
+          expressionType: EXPRESSION_TYPES.SIMPLE,
           column: { type: 'double', column_name: 'value' },
           aggregate: AGGREGATES.SUM,
           fromFormData: true,
           label: 'SUM(value)',
           hasCustomLabel: false,
           optionName: 'blahblahblah',
+          sqlExpression: null,
         },
         'avg__value',
       ]);
@@ -116,12 +120,14 @@ describe('MetricsControl', () => {
       const adhocMetric = onChange.lastCall.args[0][0];
       expect(adhocMetric instanceof AdhocMetric).to.be.true;
       expect(onChange.lastCall.args).to.deep.equal([[{
+        expressionType: EXPRESSION_TYPES.SIMPLE,
         column: valueColumn,
         aggregate: AGGREGATES.SUM,
         label: 'SUM(value)',
         fromFormData: false,
         hasCustomLabel: false,
         optionName: adhocMetric.optionName,
+        sqlExpression: null,
       }]]);
     });
 
@@ -188,13 +194,26 @@ describe('MetricsControl', () => {
 
   describe('option filter', () => {
     it('includes user defined metrics', () => {
-      const { wrapper } = setup();
+      const { wrapper } = setup({ datasourceType: 'druid' });
 
       expect(!!wrapper.instance().selectFilterOption(
         {
           metric_name: 'a_metric',
           optionName: 'a_metric',
           expression: 'SUM(FANCY(metric))',
+        },
+        'a',
+      )).to.be.true;
+    });
+
+    it('includes auto generated avg metrics for druid', () => {
+      const { wrapper } = setup({ datasourceType: 'druid' });
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'avg__metric',
+          optionName: 'avg__metric',
+          expression: 'AVG(metric)',
         },
         'a',
       )).to.be.true;
@@ -214,6 +233,32 @@ describe('MetricsControl', () => {
       )).to.be.true;
     });
 
+    it('excludes auto generated avg metrics for sqla', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'avg__metric',
+          optionName: 'avg__metric',
+          expression: 'AVG(metric)',
+        },
+        'a',
+      )).to.be.false;
+    });
+
+    it('includes custom made simple saved metrics', () => {
+      const { wrapper } = setup();
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'my_fancy_sum_metric',
+          optionName: 'my_fancy_sum_metric',
+          expression: 'SUM(value)',
+        },
+        'sum',
+      )).to.be.true;
+    });
+
     it('excludes auto generated metrics', () => {
       const { wrapper } = setup();
 
@@ -222,6 +267,15 @@ describe('MetricsControl', () => {
           metric_name: 'sum__value',
           optionName: 'sum__value',
           expression: 'SUM(value)',
+        },
+        'sum',
+      )).to.be.false;
+
+      expect(!!wrapper.instance().selectFilterOption(
+        {
+          metric_name: 'sum__value',
+          optionName: 'sum__value',
+          expression: 'SUM("table"."value")',
         },
         'sum',
       )).to.be.false;

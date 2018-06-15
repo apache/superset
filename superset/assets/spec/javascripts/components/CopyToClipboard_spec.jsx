@@ -2,7 +2,7 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import CopyToClipboard from '../../../javascripts/components/CopyToClipboard';
+import CopyToClipboard from '../../../src/components/CopyToClipboard';
 
 describe('CopyToClipboard', () => {
   const defaultProps = {
