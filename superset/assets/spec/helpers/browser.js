@@ -7,7 +7,14 @@ require('babel-register')({
   // NOTE: If `dynamic-import-node` is in .babelrc alongside
   // `syntax-dynamic-import` it breaks webpack's bundle splitting capability.
   // So only load during runtime on the node-side (in tests)
-  plugins: ['dynamic-import-node'],
+  plugins: [
+    'dynamic-import-node',
+  ],
+  presets: [
+    'airbnb',
+    'env',
+    'react',
+  ],
 });
 
 const exposedProperties = ['window', 'navigator', 'document'];
