@@ -83,7 +83,7 @@ class BaseEngineSpec(object):
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.0)')
+        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.000)')
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
