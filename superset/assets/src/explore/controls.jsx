@@ -103,6 +103,10 @@ const groupByControl = {
   optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
+  filterOption: (opt, text) => (
+    (opt.column_name && opt.column_name.toLowerCase().indexOf(text) >= 0) ||
+    (opt.verbose_name && opt.verbose_name.toLowerCase().indexOf(text) >= 0)
+  ),
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -959,12 +963,14 @@ export const controls = {
   },
 
   timeseries_limit_metric: {
-    type: 'SelectControl',
+    type: 'MetricsControl',
     label: t('Sort By'),
     default: null,
     description: t('Metric used to define the top series'),
     mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      columns: state.datasource ? state.datasource.columns : [],
+      savedMetrics: state.datasource ? state.datasource.metrics : [],
+      datasourceType: state.datasource && state.datasource.type,
     }),
   },
 
