@@ -8,8 +8,8 @@
     "test": "spec"
   },
   "scripts": {
-    "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
-    "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --require ignore-styles spec/helpers/browser.js --recursive spec/**/*_spec.*",
+    "test": "mocha --compilers js:babel-core/register --require ignore-styles --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
+    "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --compilers js:babel-core/register --require ignore-styles --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "dev": "webpack --mode=development --colors --progress --debug --watch",
     "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
     "build": "webpack --mode=production --colors --progress",
