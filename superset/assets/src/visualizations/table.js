@@ -17,7 +17,7 @@ function tableVis(slice, payload) {
   const data = payload.data;
   const fd = slice.formData;
 
-  let metrics = fd.metrics.map(m => m.label || m);
+  let metrics = (fd.metrics || []).map(m => m.label || m);
   // Add percent metrics
   metrics = metrics.concat((fd.percent_metrics || []).map(m => '%' + m));
   // Removing metrics (aggregates) that are strings
