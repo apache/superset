@@ -1,6 +1,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
+import cx from 'classnames';
 import AceEditor from 'react-ace';
 import 'brace/mode/markdown';
 import 'brace/theme/textmate';
@@ -183,6 +184,8 @@ class Markdown extends React.PureComponent {
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
+    const isEditing = this.state.editorMode === 'edit';
+
     return (
       <DragDroppable
         component={component}
@@ -207,7 +210,12 @@ class Markdown extends React.PureComponent {
             ]}
             editMode={editMode}
           >
-            <div className="dashboard-markdown">
+            <div
+              className={cx(
+                'dashboard-markdown',
+                isEditing && 'dashboard-markdown--editing',
+              )}
+            >
               <ResizableContainer
                 id={component.id}
                 adjustableWidth={parentComponent.type === ROW_TYPE}
@@ -230,7 +238,7 @@ class Markdown extends React.PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
                 >
-                  {editMode && this.state.editorMode === 'edit'
+                  {editMode && isEditing
                     ? this.renderEditMode()
                     : this.renderPreviewMode()}
                 </div>

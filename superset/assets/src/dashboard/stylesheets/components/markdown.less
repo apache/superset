@@ -4,10 +4,6 @@
   .dashboard-component-chart-holder {
     overflow-y: auto;
     overflow-x: hidden;
-
-    .with-popover-menu--focused & {
-      padding: 0;
-    }
   }
 
   .dashboard--editing & {
@@ -16,5 +12,14 @@
 
   #brace-editor {
     border: none;
+  }
+}
+
+/* maximize editing space */
+.dashboard-markdown--editing {
+  .dashboard-component-chart-holder {
+    .with-popover-menu--focused & {
+      padding: 1px;
+    }
   }
 }
