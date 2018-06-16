@@ -14,25 +14,15 @@
     {% block head_css %}
       <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
+      <link rel="stylesheet" type="text/css" href="{{ js_manifest('theme.css') }}" />
       <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/font-awesome.min.css">
-
-      {% for entry in css_manifest('theme') %}
-        <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-      {% endfor %}
-
       {% if entry %}
-        {% set entry_files = css_manifest(entry) %}
-        {% for entry in entry_files %}
-          <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-        {% endfor %}
+        <link rel="stylesheet" type="text/css" href="{{ js_manifest(entry + '.css') }}" />
       {% endif %}
-
     {% endblock %}
-
-    {% for entry in js_manifest('common') %}
-      <script src="{{ entry }}"></script>
-    {% endfor %}
-
+    {% block head_js %}
+      <script src="{{ js_manifest('common.js') }}"></script>
+    {% endblock %}
     <input
       type="hidden"
       name="csrf_token"
@@ -76,10 +66,7 @@
     </div>
     {% block tail_js %}
       {% if entry %}
-        {% set entry_files = js_manifest(entry) %}
-        {% for entry in entry_files %}
-          <script src="{{ entry }}"></script>
-        {% endfor %}
+        <script src="{{ js_manifest(entry + '.js') }}"></script>
       {% endif %}
     {% endblock %}
   </body>
