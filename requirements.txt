@@ -17,6 +17,7 @@ geopy==1.11.0
 gunicorn==19.8.0
 humanize==0.5.1
 idna==2.6
+kombu==4.1.0
 markdown==2.6.11
 pandas==0.22.0
 parsedatetime==2.0.0
