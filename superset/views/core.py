@@ -530,9 +530,9 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     list_columns = ['dashboard_link', 'creator', 'modified']
     order_columns = ['modified']
     edit_columns = [
-        'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
+        'dashboard_title', 'slug', 'owners', 'position_json', 'css',
         'json_metadata']
-    show_columns = edit_columns + ['table_names']
+    show_columns = edit_columns + ['table_names', 'slices']
     search_columns = ('dashboard_title', 'slug', 'owners')
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
@@ -555,10 +555,6 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
         'owners': _('Owners is a list of users who can alter the dashboard.'),
     }
     base_filters = [['slice', DashboardFilter, lambda: []]]
-    add_form_query_rel_fields = {
-        'slices': [['slices', SliceFilter, None]],
-    }
-    edit_form_query_rel_fields = add_form_query_rel_fields
     label_columns = {
         'dashboard_link': _('Dashboard'),
         'dashboard_title': _('Title'),
