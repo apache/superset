@@ -971,27 +971,28 @@ class TrendlineVizTestCase(unittest.TestCase):
         t2 = pd.Timestamp('2002')
         t3 = pd.Timestamp('2003')
         t4 = pd.Timestamp('2001')
-        raw[DTTM_ALIAS] = [t1,t2,t3,t4]
+        raw[DTTM_ALIAS] = [t1, t2, t3, t4]
         raw['sum__A'] = [15, 20, 25, 5]
         df = pd.DataFrame(raw)
         trendline_viz = viz.TrendlineViz(datasource, form_data)
         data = trendline_viz.get_data(df)
         expected = [
             {
-                '__timestamp':t1,
+                '__timestamp': t1,
                 'sum__A': 15,
             },
             {
-                '__timestamp':t4,
+                '__timestamp': t4,
                 'sum__A': 5,
             },
             {
-                '__timestamp':t2,
+                '__timestamp': t2,
                 'sum__A': 20,
             },
             {
-                '__timestamp':t3,
+                '__timestamp': t3,
                 'sum__A': 25,
             },
         ]
         self.assertEqual(expected, data['data'])
+        

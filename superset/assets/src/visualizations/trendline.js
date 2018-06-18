@@ -186,10 +186,8 @@ function trendline(slice, payload) {
 
     function drawToolTip() {
         const fowidth = 150;
-
         const focus = ground.append('g')
         .style('display', 'none');
-        
         const hoverLine = focus.append('line')
         .attr('stroke', '#ccc')
         .attr('x1', 10)
@@ -222,7 +220,6 @@ function trendline(slice, payload) {
             const foHeight = div[0][0].getBoundingClientRect().height;
             fo.attr({ height: foHeight });
         }
-        
         function mousemove() {
             const mouseX = d3.mouse(this)[0];
             const x0 = xScale.invert(mouseX);
@@ -237,7 +234,6 @@ function trendline(slice, payload) {
                 drawForeignObject(mouseX, d);
             }
         }
-        
         ground.append('rect')
         .attr('width', width)
         .attr('height', height)
