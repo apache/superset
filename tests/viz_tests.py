@@ -995,4 +995,3 @@ class TrendlineVizTestCase(unittest.TestCase):
             },
         ]
         self.assertEqual(expected, data['data'])
-        
