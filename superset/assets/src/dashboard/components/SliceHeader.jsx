@@ -46,6 +46,9 @@ const defaultProps = {
   sliceCanEdit: false,
 };
 
+const annoationsLoading = t('Annotation layers are still loading.');
+const annoationsError = t('One ore more annotation layers failed loading.');
+
 class SliceHeader extends React.PureComponent {
   render() {
     const {
@@ -62,10 +65,11 @@ class SliceHeader extends React.PureComponent {
       sliceName,
       supersetCanExplore,
       sliceCanEdit,
+      editMode,
+      updateSliceName,
+      annotationQuery,
+      annotationError,
     } = this.props;
-
-    const annoationsLoading = t('Annotation layers are still loading.');
-    const annoationsError = t('One ore more annotation layers failed loading.');
 
     return (
       <div className="chart-header" ref={innerRef}>
@@ -73,15 +77,15 @@ class SliceHeader extends React.PureComponent {
           <EditableTitle
             title={
               sliceName ||
-              (this.props.editMode
+              (editMode
                 ? '---' // this makes an empty title clickable
                 : '')
             }
-            canEdit={this.props.editMode}
-            onSaveTitle={this.props.updateSliceName}
+            canEdit={editMode}
+            onSaveTitle={updateSliceName}
             showTooltip={false}
           />
-          {!!Object.values(this.props.annotationQuery).length && (
+          {!!Object.values(annotationQuery).length && (
             <TooltipWrapper
               label="annotations-loading"
               placement="top"
@@ -90,7 +94,7 @@ class SliceHeader extends React.PureComponent {
               <i className="fa fa-refresh warning" />
             </TooltipWrapper>
           )}
-          {!!Object.values(this.props.annotationError).length && (
+          {!!Object.values(annotationError).length && (
             <TooltipWrapper
               label="annoation-errors"
               placement="top"
@@ -99,7 +103,7 @@ class SliceHeader extends React.PureComponent {
               <i className="fa fa-exclamation-circle danger" />
             </TooltipWrapper>
           )}
-          {!this.props.editMode && (
+          {!editMode && (
             <SliceHeaderControls
               slice={slice}
               isCached={isCached}
