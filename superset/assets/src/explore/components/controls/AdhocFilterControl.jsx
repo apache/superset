@@ -16,12 +16,6 @@ import OnPasteSelect from '../../../components/OnPasteSelect';
 import AdhocFilterOption from '../AdhocFilterOption';
 import FilterDefinitionOption from '../FilterDefinitionOption';
 
-const legacyFilterShape = PropTypes.shape({
-  col: PropTypes.string,
-  op: PropTypes.string,
-  val: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
-});
-
 const propTypes = {
   name: PropTypes.string,
   onChange: PropTypes.func,
@@ -30,12 +24,8 @@ const propTypes = {
   columns: PropTypes.arrayOf(columnType),
   savedMetrics: PropTypes.arrayOf(savedMetricType),
   formData: PropTypes.shape({
-    filters: PropTypes.arrayOf(legacyFilterShape),
-    having: PropTypes.string,
-    having_filters: PropTypes.arrayOf(legacyFilterShape),
     metric: PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
     metrics: PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, adhocMetricType])),
-    where: PropTypes.string,
   }),
 };
 
@@ -55,13 +45,15 @@ export default class AdhocFilterControl extends React.Component {
 
   constructor(props) {
     super(props);
-    this.coerceAdhocFilters = this.coerceAdhocFilters.bind(this);
     this.optionsForSelect = this.optionsForSelect.bind(this);
     this.onFilterEdit = this.onFilterEdit.bind(this);
     this.onChange = this.onChange.bind(this);
     this.getMetricExpression = this.getMetricExpression.bind(this);
 
-    const filters = this.coerceAdhocFilters(this.props.value, this.props.formData);
+    const filters = (this.props.value || []).map(filter => (
+      isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter
+    ));
+
     this.optionRenderer = VirtualizedRendererWrap(option => (
       <FilterDefinitionOption option={option} />
     ));
@@ -87,7 +79,11 @@ export default class AdhocFilterControl extends React.Component {
       this.setState({ options: this.optionsForSelect(nextProps) });
     }
     if (this.props.value !== nextProps.value) {
-      this.setState({ values: this.coerceAdhocFilters(nextProps.value, nextProps.formData) });
+      this.setState({
+        values: (nextProps.value || []).map(
+          filter => (isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter
+        )),
+      });
     }
   }
 
@@ -145,62 +141,6 @@ export default class AdhocFilterControl extends React.Component {
     return this.props.savedMetrics.find((
       savedMetric => savedMetric.metric_name === savedMetricName
     )).expression;
-  }
-
-  coerceAdhocFilters(propsValues, formData) {
-    // this converts filters from the four legacy filter controls into adhoc filters in the case
-    // someone loads an old slice in the explore view
-    if (propsValues) {
-      return propsValues.map(filter => (
-        isDictionaryForAdhocFilter(filter) ? new AdhocFilter(filter) : filter
-      ));
-    }
-    return [
-      ...(formData.filters || []).map(filter => (
-        new AdhocFilter({
-          subject: filter.col,
-          operator: filter.op,
-          comparator: filter.val,
-          clause: CLAUSES.WHERE,
-          expressionType: EXPRESSION_TYPES.SIMPLE,
-          filterOptionName: this.generateConvertedFilterOptionName(),
-        })
-      )),
-      ...(formData.having_filters || []).map(filter => (
-        new AdhocFilter({
-          subject: filter.col,
-          operator: filter.op,
-          comparator: filter.val,
-          clause: CLAUSES.HAVING,
-          expressionType: EXPRESSION_TYPES.SIMPLE,
-          filterOptionName: this.generateConvertedFilterOptionName(),
-        })
-      )),
-      ...[
-        formData.where ?
-        new AdhocFilter({
-          sqlExpression: formData.where,
-          clause: CLAUSES.WHERE,
-          expressionType: EXPRESSION_TYPES.SQL,
-          filterOptionName: this.generateConvertedFilterOptionName(),
-        }) :
-        null,
-      ],
-      ...[
-        formData.having ?
-        new AdhocFilter({
-          sqlExpression: formData.having,
-          clause: CLAUSES.HAVING,
-          expressionType: EXPRESSION_TYPES.SQL,
-          filterOptionName: this.generateConvertedFilterOptionName(),
-        }) :
-        null,
-      ],
-    ].filter(option => option);
-  }
-
-  generateConvertedFilterOptionName() {
-      return `form_filter_${Math.random().toString(36).substring(2, 15)}_${Math.random().toString(36).substring(2, 15)}`;
   }
 
   optionsForSelect(props) {
