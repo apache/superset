@@ -41,7 +41,10 @@ const config = {
     extensions: ['.js', '.jsx'],
   },
   module: {
-    loaders: [
+    // uglyfying mapbox-gl results in undefined errors, see
+    // https://github.com/mapbox/mapbox-gl-js/issues/4359#issuecomment-288001933
+    noParse: /(mapbox-gl)\.js$/,
+    rules: [
       {
         test: /datatables\.net.*/,
         loader: 'imports-loader?define=>false',
