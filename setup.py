@@ -52,7 +52,7 @@ setup(
     install_requires=[
         'bleach',
         'boto3>=1.4.6',
-        'celery',
+        'celery>=4.2.0',
         'colorama',
         'contextlib2',
         'cryptography',
