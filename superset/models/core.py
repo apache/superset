@@ -720,8 +720,10 @@ class Database(Model, AuditMixinNullable, ImportMixin):
             self, table_name, schema=None, limit=100, show_cols=False,
             indent=True, latest_partition=True, cols=None):
         """Generates a ``select *`` statement in the proper dialect"""
+        eng = self.get_sqla_engine(schema=schema)
         return self.db_engine_spec.select_star(
-            self, table_name, schema=schema, limit=limit, show_cols=show_cols,
+            self, table_name, schema=schema, engine=eng,
+            limit=limit, show_cols=show_cols,
             indent=indent, latest_partition=latest_partition, cols=cols)
 
     def apply_limit_to_sql(self, sql, limit=1000):
