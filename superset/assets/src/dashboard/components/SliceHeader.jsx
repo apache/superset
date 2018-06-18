@@ -131,7 +131,7 @@ class SliceHeader extends React.PureComponent {
               </a>
               }
               {this.props.sliceCanEdit &&
-                <a href={slice.edit_url} target="_blank">
+                <a href={slice.edit_url} target="_blank" rel="noopener noreferrer">
                   <TooltipWrapper
                     placement="top"
                     label="edit"
