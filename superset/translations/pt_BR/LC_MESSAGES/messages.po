@@ -1256,7 +1256,6 @@ msgstr "Selecione a coluna"
 msgid "Select operator"
 msgstr "Selecione o operador"
 
-#: superset/assets/javascripts/explore/components/controls/FilterControl.jsx:138
 #: superset/templates/appbuilder/general/widgets/search.html:6
 msgid "Add Filter"
 msgstr "Adicionar filtro"

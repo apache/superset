@@ -1683,18 +1683,6 @@
       "renderTrigger": true,
       "default": ""
     },
-    "where": {
-      "type": "TextControl",
-      "label": "Custom WHERE clause",
-      "default": "",
-      "description": "The text in this box gets included in your query's WHERE clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards."
-    },
-    "having": {
-      "type": "TextControl",
-      "label": "Custom HAVING clause",
-      "default": "",
-      "description": "The text in this box gets included in your query's HAVING clause, as an AND to other criteria. You can include complex expression, parenthesis and anything else supported by the backend it is directed towards."
-    },
     "compare_lag": {
       "type": "TextControl",
       "label": "Comparison Period Lag",
@@ -2628,24 +2616,12 @@
       "default": "",
       "description": "Labels for the marker lines"
     },
-    "filters": {
-      "type": "FilterControl",
-      "label": "",
-      "default": [],
-      "description": ""
-    },
     "annotation_layers": {
       "type": "AnnotationLayerControl",
       "label": "",
       "default": [],
       "description": "Annotation Layers",
       "renderTrigger": true
-    },
-    "having_filters": {
-      "type": "FilterControl",
-      "label": "",
-      "default": [],
-      "description": ""
     },
     "slice_id": {
       "type": "HiddenControl",
