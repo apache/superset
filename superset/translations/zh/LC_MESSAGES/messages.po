@@ -3820,7 +3820,6 @@ msgstr "选择列"
 msgid "Select operator"
 msgstr "选择运算符"
 
-#: superset/assets/src/explore/components/controls/FilterControl.jsx:145
 #: superset/templates/appbuilder/general/widgets/search.html:6
 msgid "Add Filter"
 msgstr "增加过滤条件"
