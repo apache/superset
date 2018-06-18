@@ -275,7 +275,7 @@ class BaseEngineSpec(object):
         return False
 
     @classmethod
-    def select_star(cls, my_db, table_name, schema=None, limit=100,
+    def select_star(cls, my_db, table_name, engine, schema=None, limit=100,
                     show_cols=False, indent=True, latest_partition=True,
                     cols=None):
         fields = '*'
@@ -286,9 +286,14 @@ class BaseEngineSpec(object):
         if show_cols:
             fields = [sqla.column(c.get('name')) for c in cols]
         full_table_name = table_name
+        quote = engine.dialect.identifier_preparer.quote
         if schema:
-            full_table_name = schema + '.' + table_name
+            full_table_name = quote(schema) + '.' + quote(table_name)
+        else:
+            full_table_name = quote(table_name)
+
         qry = select(fields).select_from(text(full_table_name))
+
         if limit:
             qry = qry.limit(limit)
         if latest_partition:
