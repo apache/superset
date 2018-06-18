@@ -28,6 +28,7 @@ const propTypes = {
   placeholder: PropTypes.string,
   noResultsText: PropTypes.string,
   refFunc: PropTypes.func,
+  filterOption: PropTypes.func,
 };
 
 const defaultProps = {
@@ -131,6 +132,7 @@ export default class SelectControl extends React.PureComponent {
       selectComponent: this.props.freeForm ? Creatable : Select,
       disabled: this.props.disabled,
       refFunc: this.props.refFunc,
+      filterOption: this.props.filterOption,
     };
     return (
       <div>
