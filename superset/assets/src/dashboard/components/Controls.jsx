@@ -96,6 +96,16 @@ class Controls extends React.PureComponent {
     });
     this.props.onChange();
   }
+
+ // dashbaord link function
+  drillTo() {
+    const _f = this.props.filters;
+    const _linkDashId = 4;
+    // passing filters as query params 
+    var queryparams="?preselect_filters="+encodeURIComponent(JSON.stringify(_f));
+    console.log(queryparams);
+    window.location ='/superset/dashboard/'+_linkDashId+'/'+queryparams;
+  }
   updateDom(css) {
     const className = 'CssEditor-css';
     const head = document.head || document.getElementsByTagName('head')[0];
@@ -127,6 +137,12 @@ class Controls extends React.PureComponent {
     return (
       <span>
         <DropdownButton title="Actions" bsSize="small" id="bg-nested-dropdown" pullRight>
+          <ActionMenuItem
+            text="Drill To"
+            tooltip={t('Drill To dashboard')}
+            faIcon="refresh"
+            onClick={this.drillTo.bind(this)}
+          />
           <ActionMenuItem
             text={t('Force Refresh')}
             tooltip={t('Force refresh the whole dashboard')}
