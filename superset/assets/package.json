@@ -9,12 +9,10 @@
   },
   "scripts": {
     "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
-    "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --require ignore-styles spec/helpers/browser.js --recursive spec/**/*_spec.*",
-    "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool eval-cheap-source-map",
-    "dev-slow": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool inline-source-map",
-    "dev-fast": "echo 'dev-fast in now replaced by dev'",
-    "prod": "NODE_ENV=production node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
-    "build": "NODE_ENV=production webpack --colors --progress",
+    "cover": "babel-node node_modules/.bin/babel-istanbul cover _mocha -- --compilers babel-core/register --require spec/helpers/browser.js --require ignore-styles --recursive spec/**/*_spec.*",
+    "dev": "webpack --mode=development --colors --progress --debug --watch",
+    "prod": "node --max_old_space_size=4096 webpack --mode=production --colors --progress",
+    "build": "webpack --mode=production --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
     "lint-fix": "eslint --fix --ignore-path=.eslintignore --ext .js,.jsx .",
     "sync-backend": "babel-node --presets env src/syncBackend.js"
@@ -38,6 +36,9 @@
   "author": "Apache",
   "bugs": {
     "url": "https://github.com/apache/incubator-superset/issues"
+  },
+  "engines": {
+    "node": ">= 6.11.5 <7.0.0 || >= 8.9.0"
   },
   "homepage": "http://superset.apache.org/",
   "dependencies": {
@@ -116,19 +117,21 @@
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "viewport-mercator-project": "^5.0.0",
-    "webpack-cli": "^2.1.4"
+    "viewport-mercator-project": "^5.0.0"
   },
   "devDependencies": {
     "babel-cli": "^6.14.0",
     "babel-core": "^6.10.4",
+    "babel-eslint": "^8.2.2",
     "babel-istanbul": "^0.12.2",
-    "babel-loader": "^7.0.0",
+    "babel-loader": "^7.1.4",
     "babel-plugin-css-modules-transform": "^1.1.0",
+    "babel-plugin-dynamic-import-node": "^1.2.0",
+    "babel-plugin-syntax-dynamic-import": "^6.18.0",
     "babel-polyfill": "^6.23.0",
     "babel-preset-airbnb": "^2.1.1",
     "chai": "^4.0.2",
-    "clean-webpack-plugin": "^0.1.16",
+    "clean-webpack-plugin": "^0.1.19",
     "css-loader": "^0.28.0",
     "enzyme": "^2.0.0",
     "eslint": "^4.19.0",
@@ -137,8 +140,7 @@
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-react": "^7.0.1",
     "exports-loader": "^0.7.0",
-    "extract-text-webpack-plugin": "3.0.2",
-    "file-loader": "^0.11.1",
+    "file-loader": "^1.1.11",
     "github-changes": "^1.0.4",
     "ignore-styles": "^5.0.1",
     "imports-loader": "^0.7.1",
@@ -146,7 +148,8 @@
     "jsdom": "9.12.0",
     "json-loader": "^0.5.4",
     "less": "^2.6.1",
-    "less-loader": "^4.0.3",
+    "less-loader": "^4.1.0",
+    "mini-css-extract-plugin": "^0.4.0",
     "mocha": "^3.2.0",
     "npm-check-updates": "^2.14.0",
     "react-addons-test-utils": "^15.6.2",
@@ -157,10 +160,10 @@
     "style-loader": "^0.21.0",
     "transform-loader": "^0.2.3",
     "uglifyjs-webpack-plugin": "^1.1.0",
-    "url-loader": "^0.6.2",
-    "//": "Known issues with >=4",
-    "webpack": "^3.10.0",
-    "webpack-manifest-plugin": "2.0.3",
-    "webworkify-webpack": "2.1.2"
+    "url-loader": "^1.0.1",
+    "webpack": "^4.6.0",
+    "webpack-assets-manifest": "^3.0.1",
+    "webpack-cli": "^2.0.10",
+    "webpack-sources": "^1.1.0"
   }
 }
