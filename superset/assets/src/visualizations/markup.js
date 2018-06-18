@@ -17,13 +17,10 @@ function markupWidget(slice, payload) {
   }
 
   const iframeId = `if__${slice.containerId}`;
-  const stylesheets = payload.data.theme_css.map(
-    href => `<link rel="stylesheet" type="text/css" href="${href}" />`,
-  );
   const html = `
     <html>
       <head>
-        ${stylesheets}
+        <link rel="stylesheet" type="text/css" href="${payload.data.theme_css}" />
       </head>
       <body style="background-color: transparent;">
         ${payload.data.html}

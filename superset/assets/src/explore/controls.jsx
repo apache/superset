@@ -1510,7 +1510,7 @@ export const controls = {
     type: 'CheckboxControl',
     label: t('Rich Tooltip'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('The rich tooltip shows a list of all series for that ' +
     'point in time'),
   },
