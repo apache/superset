@@ -1,0 +1,30 @@
+.line {
+    fill:none;
+    stroke-width: 1;
+}
+
+.axis path,.axis line {
+    fill: none;
+}
+
+.axis text {
+    font-size: 10px;
+    font-family: sans-serif;
+}
+
+.text-label {
+    font-size: 10px;
+    font-family: sans-serif;
+}
+
+.svg-tooltip {
+    pointer-events: none;
+}
+
+.tooltip {
+    padding: 10px;
+    background: #fafafa;
+    margin-left:-75px;
+    text-align: center;
+    opacity: 0.8;
+}

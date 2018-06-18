@@ -947,3 +947,51 @@ class BaseDeckGLVizTestCase(unittest.TestCase):
         assert results['metrics'] == []
         assert results['groupby'] == []
         assert results['columns'] == ['test_col']
+
+
+class TrendlineVizTestCase(unittest.TestCase):
+
+    @patch('superset.viz.NVD3Viz.query_obj')
+    def test_query_obj_throws_metric(self, super_query_obj):
+        datasource = Mock()
+        form_data = {}
+        form_data['metrics'] = ['x']
+        super_query_obj.return_value = {}
+        test_viz = viz.TrendlineViz(datasource, form_data)
+        with self.assertRaises(Exception):
+            test_viz.query_obj()
+
+    def test_get_data_by_metric(self):
+        form_data = {
+            'metrics': ['sum__A'],
+        }
+        datasource = Mock()
+        raw = {}
+        t1 = pd.Timestamp('2000')
+        t2 = pd.Timestamp('2002')
+        t3 = pd.Timestamp('2003')
+        t4 = pd.Timestamp('2001')
+        raw[DTTM_ALIAS] = [t1,t2,t3,t4]
+        raw['sum__A'] = [15, 20, 25, 5]
+        df = pd.DataFrame(raw)
+        trendline_viz = viz.TrendlineViz(datasource, form_data)
+        data = trendline_viz.get_data(df)
+        expected = [
+            {
+                '__timestamp':t1,
+                'sum__A': 15,
+            },
+            {
+                '__timestamp':t4,
+                'sum__A': 5,
+            },
+            {
+                '__timestamp':t2,
+                'sum__A': 20,
+            },
+            {
+                '__timestamp':t3,
+                'sum__A': 25,
+            },
+        ]
+        self.assertEqual(expected, data['data'])

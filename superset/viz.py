@@ -2591,6 +2591,31 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+class TrendlineViz(NVD3Viz):
+
+    """Line with linear trend"""
+
+    viz_type = 'trendline'
+    verbose_name = _('Line Chart with Trendline')
+    credits = 'a <a href="http://bl.ocks.org/benvandyke/8459843">Ben Van</a> original'
+    is_timeseries = True
+
+    def query_obj(self):
+        d = super(TrendlineViz, self).query_obj()
+        metric = self.form_data.get('metric')
+        if not metric:
+            raise Exception(_('Pick a metric!'))
+        d['metrics'] = [self.form_data.get('metric')]
+        self.form_data['metric'] = metric
+        return d
+
+    def get_data(self, df):
+        df.sort_values(by=df.columns[0], inplace=True)
+        return {
+            'data': df.to_dict(orient='records'),
+        }
+
+
 viz_types = {
     o.viz_type: o for o in globals().values()
     if (

@@ -1795,6 +1795,57 @@ export const visTypes = {
       sections.NVD3TimeSeries[1],
     ],
   },
+
+  trendline: {
+    label: t('Trendline Chart'),
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['metric'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['color_scheme'],
+          ['color_picker', 'show_markers'],
+          ['line_interpolation'],
+        ],
+      },
+      {
+        label: t('X Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['x_axis_label', 'bottom_margin'],
+          ['x_ticks_layout'],
+          ['x_axis_format'],
+        ],
+      },
+      {
+        label: t('Y Axis'),
+        expanded: true,
+        controlSetRows: [
+          ['y_axis_label', 'left_margin'],
+          ['y_axis_format'],
+        ],
+      },
+    ],
+    controlOverrides: {
+      y_axis_format: {
+        label: t('Number format'),
+      },
+      x_axis_format: {
+        choices: D3_TIME_FORMAT_OPTIONS,
+        default: 'smart_date',
+      },
+      color_picker: {
+        label: t('Trendline color'),
+      },
+    },
+  },
 };
 
 export default visTypes;
