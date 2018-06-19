@@ -54,7 +54,7 @@ class BuilderComponentPane extends React.PureComponent {
         <ParentSize>
           {({ height }) => (
             <StickyContainer>
-              <Sticky topOffset={-topOffset}>
+              <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
                 {({ style, isSticky }) => (
                   <div
                     className="viewport"
@@ -105,7 +105,11 @@ class BuilderComponentPane extends React.PureComponent {
                           <i className="fa fa-arrow-left trigger" />
                           <span>{t('All components')}</span>
                         </div>
-                        <SliceAdder height={height} />
+                        <SliceAdder
+                          height={
+                            height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
+                          }
+                        />
                       </div>
                     </div>
                   </div>
