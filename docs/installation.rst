@@ -695,3 +695,72 @@ To install Superset into your Kubernetes:
     helm upgrade --install superset ./install/helm/superset
 
 Note that the above command will install Superset into ``default`` namespace of your Kubernetes cluster.
+
+Custom OAuth2 configuration
+---------------------------
+
+Beyond FAB supported providers (github, twitter, linkedin, google, azure), its easy to connect Superset with other OAuth2 Authorization Server implementations that supports "code" authorization. 
+
+The first step: Configure authorization in Superset ``superset_config.py``.
+
+.. code-block:: python
+
+    AUTH_TYPE = AUTH_OAUTH
+    
+    OAUTH_PROVIDERS = [
+        {   'name':'egaSSO',
+            'token_key':'access_token', # Name of the token in the response of access_token_url
+            'icon':'fa-address-card',   # Icon for the provider
+            'remote_app': {
+                'consumer_key':'myClientId',  # Client Id (Identify Superset application)
+                'consumer_secret':'MySecret', # Secret for this Client Id (Identify Superset application)
+                'request_token_params':{
+                    'scope': 'read'               # Scope for the Authorization
+                },
+                'access_token_method':'POST',	# HTTP Method to call access_token_url
+                'access_token_params':{		# Additional parameters for calls to access_token_url
+                    'client_id':'myClientId'	 
+                },
+                'access_token_headers':{	# Additional headers for calls to access_token_url 
+                    'Authorization': 'Basic Base64EncodedClientIdAndSecret' 
+                },
+                'base_url':'https://myAuthorizationServer/oauth2AuthorizationServer/',
+                'access_token_url':'https://myAuthorizationServer/oauth2AuthorizationServer/token',
+                'authorize_url':'https://myAuthorizationServer/oauth2AuthorizationServer/authorize'
+            }
+        }
+    ]
+    
+    # Will allow user self registration, allowing to create Flask users from Authorized User
+    AUTH_USER_REGISTRATION = True
+    
+    # The default user self registration role
+    AUTH_USER_REGISTRATION_ROLE = "Public"
+    
+Second step: Create a `CustomSsoSecurityManager` that extends `SupersetSecurityManager` and overrides `oauth_user_info`:
+
+.. code-block:: python
+    
+    from superset.security import SupersetSecurityManager
+    
+    class CustomSsoSecurityManager(SupersetSecurityManager):
+
+        def oauth_user_info(self, provider, response=None):
+            logging.debug("Oauth2 provider: {0}.".format(provider))
+            if provider == 'egaSSO':
+                # As example, this line request a GET to base_url + '/' + userDetails with Bearer  Authentication, 
+		# and expects that authorization server checks the token, and response with user details
+                me = self.appbuilder.sm.oauth_remotes[provider].get('userDetails').data
+                logging.debug("user_data: {0}".format(me))
+                return { 'name' : me['name'], 'email' : me['email'], 'id' : me['user_name'], 'username' : me['user_name'], 'first_name':'', 'last_name':''}
+	    ...
+
+This file must be located at the same directory than ``superset_config.py`` with the name ``custom_sso_security_manager.py``.
+
+Then we can add this two lines to ``superset_config.py``:
+
+.. code-block:: python
+  
+  from custom_sso_security_manager import CustomSsoSecurityManager
+  CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+
