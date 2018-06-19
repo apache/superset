@@ -16,7 +16,7 @@ class UndoRedoKeylisteners extends React.PureComponent {
     document.addEventListener('keydown', this.handleKeydown);
   }
 
-  componentWillReceiveProps() {
+  componentWillUnmount() {
     document.removeEventListener('keydown', this.handleKeydown);
   }
 

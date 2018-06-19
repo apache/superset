@@ -6,6 +6,7 @@ import HeaderActionsDropdown from './HeaderActionsDropdown';
 import EditableTitle from '../../components/EditableTitle';
 import Button from '../../components/Button';
 import FaveStar from '../../components/FaveStar';
+import UndoRedoKeylisteners from './UndoRedoKeylisteners';
 import V2PreviewModal from '../deprecated/V2PreviewModal';
 
 import { chartPropShape } from '../util/propShapes';
@@ -57,10 +58,14 @@ class Header extends React.PureComponent {
     super(props);
     this.state = {
       didNotifyMaxUndoHistoryToast: false,
+      emphasizeUndo: false,
+      hightlightRedo: false,
       showV2PreviewModal: props.isV2Preview,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
+    this.handleCtrlZ = this.handleCtrlZ.bind(this);
+    this.handleCtrlY = this.handleCtrlY.bind(this);
     this.toggleEditMode = this.toggleEditMode.bind(this);
     this.forceRefresh = this.forceRefresh.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
@@ -83,6 +88,11 @@ class Header extends React.PureComponent {
     }
   }
 
+  componentWillUnmount() {
+    clearTimeout(this.ctrlYTimeout);
+    clearTimeout(this.ctrlZTimeout);
+  }
+
   forceRefresh() {
     return this.props.fetchCharts(Object.values(this.props.charts), true);
   }
@@ -93,6 +103,26 @@ class Header extends React.PureComponent {
       updateDashboardTitle(nextText);
       onChange();
     }
+  }
+
+  handleCtrlY() {
+    this.props.onRedo();
+    this.setState({ emphasizeRedo: true }, () => {
+      if (this.ctrlYTimeout) clearTimeout(this.ctrlYTimeout);
+      this.ctrlYTimeout = setTimeout(() => {
+        this.setState({ emphasizeRedo: false });
+      }, 100);
+    });
+  }
+
+  handleCtrlZ() {
+    this.props.onUndo();
+    this.setState({ emphasizeUndo: true }, () => {
+      if (this.ctrlZTimeout) clearTimeout(this.ctrlZTimeout);
+      this.ctrlZTimeout = setTimeout(() => {
+        this.setState({ emphasizeUndo: false });
+      }, 100);
+    });
   }
 
   toggleEditMode() {
@@ -185,13 +215,23 @@ class Header extends React.PureComponent {
         {userCanSaveAs && (
           <div className="button-container">
             {editMode && (
-              <Button bsSize="small" onClick={onUndo} disabled={undoLength < 1}>
+              <Button
+                bsSize="small"
+                onClick={onUndo}
+                disabled={undoLength < 1}
+                bsStyle={this.state.emphasizeUndo ? 'primary' : undefined}
+              >
                 <div title="Undo" className="undo-action fa fa-reply" />
               </Button>
             )}
 
             {editMode && (
-              <Button bsSize="small" onClick={onRedo} disabled={redoLength < 1}>
+              <Button
+                bsSize="small"
+                onClick={onRedo}
+                disabled={redoLength < 1}
+                bsStyle={this.state.emphasizeRedo ? 'primary' : undefined}
+              >
                 <div title="Redo" className="redo-action fa fa-share" />
               </Button>
             )}
@@ -274,6 +314,13 @@ class Header extends React.PureComponent {
               userCanEdit={userCanEdit}
               isV2Preview={isV2Preview}
             />
+
+            {editMode && (
+              <UndoRedoKeylisteners
+                onUndo={this.handleCtrlZ}
+                onRedo={this.handleCtrlY}
+              />
+            )}
           </div>
         )}
       </div>

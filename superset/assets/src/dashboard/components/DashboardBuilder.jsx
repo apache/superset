@@ -15,7 +15,6 @@ import IconButton from './IconButton';
 import DragDroppable from './dnd/DragDroppable';
 import DashboardComponent from '../containers/DashboardComponent';
 import ToastPresenter from '../containers/ToastPresenter';
-import UndoRedoKeylisteners from '../containers/UndoRedoKeylisteners';
 import WithPopoverMenu from './menu/WithPopoverMenu';
 
 import getDragDropManager from '../util/getDragDropManager';
@@ -134,6 +133,7 @@ class DashboardBuilder extends React.Component {
                         depth={DASHBOARD_ROOT_DEPTH + 1}
                         index={0}
                         renderTabContent={false}
+                        renderHoverMenu={false}
                         onChangeTab={this.handleChangeTab}
                       />
                     </WithPopoverMenu>
@@ -194,7 +194,6 @@ class DashboardBuilder extends React.Component {
             )}
         </div>
         <ToastPresenter />
-        <UndoRedoKeylisteners />
       </StickyContainer>
     );
   }
