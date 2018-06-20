@@ -319,7 +319,7 @@ appbuilder.add_view(
 
 class DatabaseAsync(DatabaseView):
     list_columns = [
-        'id', 'database_name',
+        'id', 'database_name', 'verbose_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
         'allow_run_async', 'allow_run_sync', 'allow_dml',
         'allow_multi_schema_metadata_fetch',

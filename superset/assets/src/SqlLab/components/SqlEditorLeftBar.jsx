@@ -59,7 +59,10 @@ class SqlEditorLeftBar extends React.PureComponent {
     return $.get(url).then(data => ({ options: data.options }));
   }
   dbMutator(data) {
-    const options = data.result.map(db => ({ value: db.id, label: db.database_name }));
+    const options = data.result.map(db => ({
+      value: db.id,
+      label: db.verbose_name || db.database_name,
+    }));
     this.props.actions.setDatabases(data.result);
     if (data.result.length === 0) {
       this.props.actions.addAlert({
@@ -155,7 +158,7 @@ class SqlEditorLeftBar extends React.PureComponent {
             dataEndpoint={
               '/databaseasync/api/' +
               'read?_flt_0_expose_in_sqllab=1&' +
-              '_oc_DatabaseAsync=database_name&' +
+              '_oc_DatabaseAsync=verbose_name&' +
               '_od_DatabaseAsync=asc'
             }
             onChange={this.onDatabaseChange.bind(this)}
