@@ -155,17 +155,17 @@ export default class AdhocFilterControl extends React.Component {
       )),
     ].filter(option => option);
 
-    return options.map((option) => {
+    return options.reduce((results, option) => {
       if (option.saved_metric_name) {
-        return { ...option, filterOptionName: option.saved_metric_name };
+        results.push({ ...option, filterOptionName: option.saved_metric_name });
       } else if (option.column_name) {
-        return { ...option, filterOptionName: '_col_' + option.column_name };
+        results.push({ ...option, filterOptionName: '_col_' + option.column_name });
       } else if (option instanceof AdhocMetric) {
-        return { ...option, filterOptionName: '_adhocmetric_' + option.label };
+        results.push({ ...option, filterOptionName: '_adhocmetric_' + option.label });
       }
-      return null;
-    }).sort((a, b) => (
-      (a.saved_metric_name || a.column_name || a.label || '').localeCompare((
+      return results;
+    }, []).sort((a, b) => (
+      (a.saved_metric_name || a.column_name || a.label).localeCompare((
         b.saved_metric_name || b.column_name || b.label
       ))
     ));
