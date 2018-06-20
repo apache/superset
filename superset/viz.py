@@ -36,7 +36,7 @@ import simplejson as json
 from six import string_types, text_type
 from six.moves import cPickle as pkl, reduce
 
-from superset import app, cache, get_manifest_file, utils
+from superset import app, cache, get_css_manifest_files, utils
 from superset.utils import DTTM_ALIAS, JS_MAX_INTEGER, merge_extra_filters
 
 
@@ -693,7 +693,7 @@ class MarkupViz(BaseViz):
         code = self.form_data.get('code', '')
         if markup_type == 'markdown':
             code = markdown(code)
-        return dict(html=code, theme_css=get_manifest_file('theme.css'))
+        return dict(html=code, theme_css=get_css_manifest_files('theme'))
 
 
 class SeparatorViz(MarkupViz):
@@ -1233,6 +1233,35 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data = sorted(chart_data, key=lambda x: tuple(x['key']))
 
         return chart_data
+
+
+class MultiLineViz(NVD3Viz):
+
+    """Pile on multiple line charts"""
+
+    viz_type = 'line_multi'
+    verbose_name = _('Time Series - Multiple Line Charts')
+
+    is_timeseries = True
+
+    def query_obj(self):
+        return None
+
+    def get_data(self, df):
+        fd = self.form_data
+        # Late imports to avoid circular import issues
+        from superset.models.core import Slice
+        from superset import db
+        slice_ids1 = fd.get('line_charts')
+        slices1 = db.session.query(Slice).filter(Slice.id.in_(slice_ids1)).all()
+        slice_ids2 = fd.get('line_charts_2')
+        slices2 = db.session.query(Slice).filter(Slice.id.in_(slice_ids2)).all()
+        return {
+            'slices': {
+                'axis1': [slc.data for slc in slices1],
+                'axis2': [slc.data for slc in slices2],
+            },
+        }
 
 
 class NVD3DualLineViz(NVD3Viz):
