@@ -25,7 +25,7 @@ export default function getDetailedComponentWidth({
   // pass either an id, or a component
   id,
   component: passedComponent,
-  components,
+  components = {},
 }) {
   const result = {
     width: undefined,
@@ -43,17 +43,15 @@ export default function getDetailedComponentWidth({
   if (component.type === ROW_TYPE) {
     // not all rows have width 12, e
     result.width =
-      result.width ||
       getDetailedComponentWidth({
         id: findParentId({
           childId: component.id,
           layout: components,
         }),
         components,
-      }).width ||
-      GRID_COLUMN_COUNT;
+      }).width || GRID_COLUMN_COUNT;
     result.occupiedWidth = getTotalChildWidth({ id: component.id, components });
-    result.minimumWidth = result.occupiedWidth;
+    result.minimumWidth = result.occupiedWidth || GRID_MIN_COLUMN_COUNT;
   } else if (component.type === COLUMN_TYPE) {
     // find the width of the largest child, only rows count
     result.minimumWidth = GRID_MIN_COLUMN_COUNT;
