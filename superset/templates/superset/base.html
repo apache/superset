@@ -3,14 +3,10 @@
   {% block head_css %}
     {{super()}}
     <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
-    {% for entry in css_manifest('theme') %}
-      <link rel="stylesheet" type="text/css" href="{{ entry }}" />
-    {% endfor %}
+    <link rel="stylesheet" type="text/css" href="{{ js_manifest('theme.css') }}" />
   {% endblock %}
 
   {% block tail_js %}
     {{super()}}
-    {% for entry in js_manifest('common') %}
-      <script src="{{ entry }}"></script>
-    {% endfor %}
+    <script src="{{ js_manifest('common.js') }}"></script>
   {% endblock %}
