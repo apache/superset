@@ -310,7 +310,6 @@ def datetime_f(dttm):
 
 
 def base_json_conv(obj):
-
     if isinstance(obj, numpy.int64):
         return int(obj)
     elif isinstance(obj, numpy.bool_):
@@ -323,6 +322,11 @@ def base_json_conv(obj):
         return str(obj)
     elif isinstance(obj, timedelta):
         return str(obj)
+    elif isinstance(obj, bytes):
+        try:
+            return '{}'.format(obj)
+        except Exception:
+            return '[bytes]'
 
 
 def json_iso_dttm_ser(obj, pessimistic=False):

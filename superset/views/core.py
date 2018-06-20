@@ -2464,7 +2464,11 @@ class Superset(BaseSupersetView):
                     rendered_query,
                     return_results=True)
             payload = json.dumps(
-                data, default=utils.pessimistic_json_iso_dttm_ser, ignore_nan=True)
+                data,
+                default=utils.pessimistic_json_iso_dttm_ser,
+                ignore_nan=True,
+                encoding=None,
+            )
         except Exception as e:
             logging.exception(e)
             return json_error_response('{}'.format(e))
