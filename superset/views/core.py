@@ -146,7 +146,16 @@ class SliceFilter(SupersetFilter):
             return query
         perms = self.get_view_menus('datasource_access')
         # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
+        return query.filter(
+            or_(
+                models.Slice.perm.in_(perms),
+                models.Slice.id.in_(
+                    db.session.query(models.Slice.id)
+                    .join(models.Slice.owners)
+                    .filter(security_manager.user_model.id == g.user.get_id()),
+                ),
+            ),
+        )
 
 
 class DashboardFilter(SupersetFilter):
