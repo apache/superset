@@ -970,7 +970,7 @@ class Superset(BaseSupersetView):
         slice_id = form_data.get('slice_id') or slice_id
         slc = None
 
-        if slice_id:
+        if slice_id and not post_data:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
             slice_form_data = slc.form_data.copy()
             # allow form_data in request override slice from_data
