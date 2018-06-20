@@ -3,7 +3,9 @@ import {
   DASHBOARD_GRID_ID,
   NEW_COMPONENTS_SOURCE_ID,
 } from '../util/constants';
+import componentIsResizable from '../util/componentIsResizable';
 import findParentId from '../util/findParentId';
+import getComponentWidthFromDrop from '../util/getComponentWidthFromDrop';
 import newComponentFactory from '../util/newComponentFactory';
 import newEntitiesFromDrop from '../util/newEntitiesFromDrop';
 import reorderItem from '../util/dnd-reorder';
@@ -103,6 +105,24 @@ const actionHandlers = {
       source,
       destination,
     });
+
+    if (componentIsResizable(nextEntities[dragging.id])) {
+      // update component width if it changed
+      const nextWidth =
+        getComponentWidthFromDrop({
+          dropResult,
+          layout: state,
+        }) || undefined; // don't set a 0 width
+      if ((nextEntities[dragging.id].meta || {}).width !== nextWidth) {
+        nextEntities[dragging.id] = {
+          ...nextEntities[dragging.id],
+          meta: {
+            ...nextEntities[dragging.id].meta,
+            width: nextWidth,
+          },
+        };
+      }
+    }
 
     // wrap the dragged component in a row depending on destination type
     const wrapInRow = shouldWrapChildInRow({

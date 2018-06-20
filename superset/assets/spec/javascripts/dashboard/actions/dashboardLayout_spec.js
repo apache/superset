@@ -43,7 +43,9 @@ import {
 
 describe('dashboardLayout actions', () => {
   const mockState = {
-    dashboardState: {},
+    dashboardState: {
+      hasUnsavedChanges: true, // don't dispatch setUnsavedChanges() after every action
+    },
     dashboardInfo: {},
     dashboardLayout: {
       past: [],
@@ -62,9 +64,7 @@ describe('dashboardLayout actions', () => {
 
   describe('updateComponents', () => {
     it('should dispatch an updateLayout action', () => {
-      const { getState, dispatch } = setup({
-        dashboardState: { hasUnsavedChanges: true },
-      });
+      const { getState, dispatch } = setup();
       const nextComponents = { 1: {} };
       const thunk = updateComponents(nextComponents);
       thunk(dispatch, getState);
@@ -91,9 +91,7 @@ describe('dashboardLayout actions', () => {
 
   describe('deleteComponents', () => {
     it('should dispatch an deleteComponent action', () => {
-      const { getState, dispatch } = setup({
-        dashboardState: { hasUnsavedChanges: true },
-      });
+      const { getState, dispatch } = setup();
       const thunk = deleteComponent('id', 'parentId');
       thunk(dispatch, getState);
       expect(dispatch.callCount).to.equal(1);
@@ -135,14 +133,14 @@ describe('dashboardLayout actions', () => {
           },
         },
       });
+
+      expect(dispatch.callCount).to.equal(2);
     });
   });
 
   describe('createTopLevelTabs', () => {
     it('should dispatch a createTopLevelTabs action', () => {
-      const { getState, dispatch } = setup({
-        dashboardState: { hasUnsavedChanges: true },
-      });
+      const { getState, dispatch } = setup();
       const dropResult = {};
       const thunk = createTopLevelTabs(dropResult);
       thunk(dispatch, getState);
@@ -169,9 +167,7 @@ describe('dashboardLayout actions', () => {
 
   describe('deleteTopLevelTabs', () => {
     it('should dispatch a deleteTopLevelTabs action', () => {
-      const { getState, dispatch } = setup({
-        dashboardState: { hasUnsavedChanges: true },
-      });
+      const { getState, dispatch } = setup();
       const dropResult = {};
       const thunk = deleteTopLevelTabs(dropResult);
       thunk(dispatch, getState);
@@ -213,7 +209,6 @@ describe('dashboardLayout actions', () => {
 
     it('should update the size of the component', () => {
       const { getState, dispatch } = setup({
-        dashboardState: { hasUnsavedChanges: true },
         dashboardLayout,
       });
 
@@ -239,6 +234,8 @@ describe('dashboardLayout actions', () => {
           },
         },
       });
+
+      expect(dispatch.callCount).to.equal(2);
     });
 
     it('should dispatch a setUnsavedChanges action if hasUnsavedChanges=false', () => {
@@ -265,11 +262,11 @@ describe('dashboardLayout actions', () => {
         dragging: { id: NEW_ROW_ID, type: ROW_TYPE },
       };
 
-      const thunk1 = handleComponentDrop(dropResult);
-      thunk1(dispatch, getState);
+      const handleComponentDropThunk = handleComponentDrop(dropResult);
+      handleComponentDropThunk(dispatch, getState);
 
-      const thunk2 = dispatch.getCall(0).args[0];
-      thunk2(dispatch, getState);
+      const createComponentThunk = dispatch.getCall(0).args[0];
+      createComponentThunk(dispatch, getState);
 
       expect(dispatch.getCall(1).args[0]).to.deep.equal({
         type: CREATE_COMPONENT,
@@ -277,36 +274,47 @@ describe('dashboardLayout actions', () => {
           dropResult,
         },
       });
+
+      expect(dispatch.callCount).to.equal(2);
     });
 
     it('should move a component if the component is not new', () => {
       const { getState, dispatch } = setup({
-        dashboardLayout: { present: { id: { type: ROW_TYPE, children: [] } } },
+        dashboardLayout: {
+          // if 'dragging' is not only child will dispatch deleteComponent thunk
+          present: { id: { type: ROW_TYPE, children: ['_'] } },
+        },
       });
       const dropResult = {
         source: { id: 'id', index: 0, type: ROW_TYPE },
         destination: { id: DASHBOARD_GRID_ID, type: DASHBOARD_GRID_TYPE },
-        dragging: { id: NEW_ROW_ID, type: ROW_TYPE },
+        dragging: { id: 'dragging', type: ROW_TYPE },
       };
 
-      const thunk = handleComponentDrop(dropResult);
-      thunk(dispatch, getState);
+      const handleComponentDropThunk = handleComponentDrop(dropResult);
+      handleComponentDropThunk(dispatch, getState);
 
-      expect(dispatch.getCall(0).args[0]).to.deep.equal({
+      const moveComponentThunk = dispatch.getCall(0).args[0];
+      moveComponentThunk(dispatch, getState);
+
+      expect(dispatch.getCall(1).args[0]).to.deep.equal({
         type: MOVE_COMPONENT,
         payload: {
           dropResult,
         },
       });
+
+      expect(dispatch.callCount).to.equal(2);
     });
 
     it('should dispatch a toast if the drop overflows the destination', () => {
       const { getState, dispatch } = setup({
         dashboardLayout: {
           present: {
-            source: { type: ROW_TYPE, meta: { width: 0 } },
-            destination: { type: ROW_TYPE, meta: { width: 0 } },
-            dragging: { type: CHART_TYPE, meta: { width: 100 } },
+            source: { type: ROW_TYPE },
+            destination: { type: ROW_TYPE, children: ['rowChild'] },
+            dragging: { type: CHART_TYPE, meta: { width: 1 } },
+            rowChild: { type: CHART_TYPE, meta: { width: 12 } },
           },
         },
       });
@@ -321,6 +329,8 @@ describe('dashboardLayout actions', () => {
       expect(dispatch.getCall(0).args[0].type).to.deep.equal(
         addInfoToast('').type,
       );
+
+      expect(dispatch.callCount).to.equal(1);
     });
 
     it('should delete a parent Row or Tabs if the moved child was the only child', () => {
@@ -358,6 +368,9 @@ describe('dashboardLayout actions', () => {
           parentId: 'parentId',
         },
       });
+
+      // move thunk, delete thunk, delete result actions
+      expect(dispatch.callCount).to.equal(3);
     });
 
     it('should create top-level tabs if dropped on root', () => {
@@ -380,6 +393,8 @@ describe('dashboardLayout actions', () => {
           dropResult,
         },
       });
+
+      expect(dispatch.callCount).to.equal(2);
     });
   });
 
@@ -413,9 +428,7 @@ describe('dashboardLayout actions', () => {
 
   describe('redoLayoutAction', () => {
     it('should dispatch a redux-undo .redo() action ', () => {
-      const { getState, dispatch } = setup({
-        dashboardState: { hasUnsavedChanges: true },
-      });
+      const { getState, dispatch } = setup();
       const thunk = redoLayoutAction();
       thunk(dispatch, getState);
 

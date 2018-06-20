@@ -139,6 +139,7 @@ class Markdown extends React.PureComponent {
         onChange={this.handleMarkdownChange}
         width="100%"
         height="100%"
+        showGutter={false}
         editorProps={{ $blockScrolling: true }}
         value={
           // thisl allows "select all => delete" to give an empty editor
