@@ -3,8 +3,7 @@ instrumentation:
     root: './src'
     extensions: ['.js', '.jsx']
     excludes: [
-        'dist/**',
-        'visualizations/index.js',
+        'dist/**'
     ]
     embed-source: false
     variable: __coverage__

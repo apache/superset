@@ -47,37 +47,23 @@ def parse_manifest_json():
     global manifest
     try:
         with open(MANIFEST_FILE, 'r') as f:
-            # the manifest inclues non-entry files
-            # we only need entries in templates
-            full_manifest = json.load(f)
-            manifest = full_manifest.get('entrypoints', {})
+            manifest = json.load(f)
     except Exception:
         pass
 
 
-def get_js_manifest_files(filename):
+def get_manifest_file(filename):
     if app.debug:
         parse_manifest_json()
-    entry_files = manifest.get(filename, {})
-    return entry_files.get('js', [])
-
-
-def get_css_manifest_files(filename):
-    if app.debug:
-        parse_manifest_json()
-    entry_files = manifest.get(filename, {})
-    return entry_files.get('css', [])
+    return '/static/assets/dist/' + manifest.get(filename, '')
 
 
 parse_manifest_json()
 
 
 @app.context_processor
-def get_manifest():
-    return dict(
-        js_manifest=get_js_manifest_files,
-        css_manifest=get_css_manifest_files,
-    )
+def get_js_manifest():
+    return dict(js_manifest=get_manifest_file)
 
 
 #################################################################
