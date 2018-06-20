@@ -295,6 +295,42 @@ class DashboardTests(SupersetTestCase):
         db.session.commit()
         self.test_save_dash('alpha')
 
+    def test_owners_can_view_empty_dashboard(self):
+        dash = (
+            db.session
+            .query(models.Dashboard)
+            .filter_by(slug='empty_dashboard')
+            .first()
+        )
+        if not dash:
+            dash = models.Dashboard()
+            dash.dashboard_title = 'Empty Dashboard'
+            dash.slug = 'empty_dashboard'
+        else:
+            dash.slices = []
+            dash.owners = []
+        db.session.merge(dash)
+        db.session.commit()
+
+        gamma_user = security_manager.find_user('gamma')
+        self.login(gamma_user.username)
+
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertNotIn('/superset/dashboard/empty_dashboard/', resp)
+
+        dash = (
+            db.session
+            .query(models.Dashboard)
+            .filter_by(slug='empty_dashboard')
+            .first()
+        )
+        dash.owners = [gamma_user]
+        db.session.merge(dash)
+        db.session.commit()
+
+        resp = self.get_resp('/dashboardmodelview/list/')
+        self.assertIn('/superset/dashboard/empty_dashboard/', resp)
+
 
 if __name__ == '__main__':
     unittest.main()
