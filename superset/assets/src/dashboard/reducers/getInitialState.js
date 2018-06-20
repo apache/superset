@@ -53,7 +53,7 @@ export default function(bootstrapData) {
   // dashboard layout
   const { position_json: positionJson } = dashboard;
   const shouldConvertToV2 =
-    !positionJson || positionJson[DASHBOARD_VERSION_KEY] !== 'v2';
+    positionJson && positionJson[DASHBOARD_VERSION_KEY] !== 'v2';
 
   const layout = shouldConvertToV2
     ? layoutConverter(dashboard)
@@ -69,7 +69,6 @@ export default function(bootstrapData) {
 
   // find root level chart container node for newly-added slices
   const parentId = findFirstParentContainerId(layout);
-  let hasUnsavedChanges = false;
   const chartQueries = {};
   const slices = {};
   const sliceIds = new Set();
@@ -112,7 +111,6 @@ export default function(bootstrapData) {
         layout[chartHolder.id] = chartHolder;
         rowContainer.children.push(chartHolder.id);
         chartIdToLayoutId[chartHolder.meta.chartId] = chartHolder.id;
-        hasUnsavedChanges = true;
       }
     }
 
@@ -173,7 +171,7 @@ export default function(bootstrapData) {
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,
       showBuilderPane: dashboard.dash_edit_perm && editMode,
-      hasUnsavedChanges,
+      hasUnsavedChanges: false,
       maxUndoHistoryExceeded: false,
       isV2Preview: shouldConvertToV2,
     },

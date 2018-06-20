@@ -1550,6 +1550,8 @@ class Superset(BaseSupersetView):
 
         dash.owners = [g.user] if g.user else []
         dash.dashboard_title = data['dashboard_title']
+
+        is_v2_dash = Superset._is_v2_dash(data['positions'])
         if data['duplicate_slices']:
             # Duplicating slices as well, mapping old ids to new ones
             old_to_new_sliceids = {}
@@ -1559,17 +1561,24 @@ class Superset(BaseSupersetView):
                 session.add(new_slice)
                 session.flush()
                 new_slice.dashboards.append(dash)
-                old_to_new_sliceids[slc.id] = new_slice.id
+                old_to_new_sliceids['{}'.format(slc.id)] = \
+                    '{}'.format(new_slice.id)
 
             # update chartId of layout entities
-            for value in data['positions'].values():
-                if (
-                    isinstance(value, dict) and value.get('meta') and
-                    value.get('meta').get('chartId')
-                ):
-                    old_id = value.get('meta').get('chartId')
-                    new_id = old_to_new_sliceids[old_id]
-                    value['meta']['chartId'] = new_id
+            # in v2_dash positions json data, chartId should be integer,
+            # while in older version slice_id is string type
+            if is_v2_dash:
+                for value in data['positions'].values():
+                    if (
+                        isinstance(value, dict) and value.get('meta') and
+                        value.get('meta').get('chartId')
+                    ):
+                        old_id = '{}'.format(value.get('meta').get('chartId'))
+                        new_id = int(old_to_new_sliceids[old_id])
+                        value['meta']['chartId'] = new_id
+            else:
+                for d in data['positions']:
+                    d['slice_id'] = old_to_new_sliceids[d['slice_id']]
         else:
             dash.slices = original_dash.slices
         dash.params = original_dash.params
@@ -1599,12 +1608,16 @@ class Superset(BaseSupersetView):
         return 'SUCCESS'
 
     @staticmethod
-    def _set_dash_metadata(dashboard, data):
-        positions = data['positions']
-        is_v2_dash = (
+    def _is_v2_dash(positions):
+        return (
             isinstance(positions, dict) and
             positions.get('DASHBOARD_VERSION_KEY') == 'v2'
         )
+
+    @staticmethod
+    def _set_dash_metadata(dashboard, data):
+        positions = data['positions']
+        is_v2_dash = Superset._is_v2_dash(positions)
 
         # @TODO remove upon v1 deprecation
         if not is_v2_dash:
