@@ -29,7 +29,7 @@ python-dateutil==2.6.1
 python-geohash==0.8.5
 pyyaml==3.12
 requests==2.18.4
-simplejson==3.13.2
+simplejson==3.15.0
 six==1.11.0
 sqlalchemy==1.2.2
 sqlalchemy-utils==0.32.21
