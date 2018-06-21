@@ -136,7 +136,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             [
                 (m.metric_name, m.verbose_name or m.metric_name)
                 for m in self.metrics],
-            key=lambda x: x[1])
+            key=lambda x: x[1] or '')
 
     @property
     def short_data(self):

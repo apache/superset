@@ -16,6 +16,19 @@ export const sections = {
       ['since', 'until'],
     ],
   },
+  sectionVizTypeNoDatasource: {
+    label: t('Visualization Type'),
+    expanded: true,
+    controlSetRows: [
+      ['viz_type'],
+    ],
+  },
+  visTypeNoDatasource: {
+    label: t('Visualization Type'),
+    controlSetRows: [
+      ['viz_type'],
+    ],
+  },
   datasourceAndVizType: {
     label: t('Datasource & Chart Type'),
     expanded: true,
@@ -87,6 +100,7 @@ export const visTypes = {
   dist_bar: {
     label: t('Distribution - Bar Chart'),
     showOnExplore: true,
+    hiddenControls: ['time_grain_sqla', 'granularity'],
     controlPanelSections: [
       {
         label: t('Query'),
@@ -976,6 +990,11 @@ export const visTypes = {
         ],
       },
     ],
+    hiddenControls: ['datasource'],
+    sectionOverrides: {
+      sqlaTimeSeries: null,
+      druidTimeSeries: null,
+    },
   },
 
   pivot_table: {
@@ -1017,6 +1036,11 @@ export const visTypes = {
         ],
       },
     ],
+    hiddenControls: ['datasource'],
+    sectionOverrides: {
+      sqlaTimeSeries: null,
+      druidTimeSeries: null,
+    },
     controlOverrides: {
       code: {
         default: '####Section Title\n' +
@@ -1849,13 +1873,13 @@ export const visTypes = {
 
 export default visTypes;
 
-export function sectionsToRender(vizType, datasourceType) {
+export function sectionsToRender(vizType, datasourceType, includeHiddenControls = true) {
   const viz = visTypes[vizType];
 
   const sectionsCopy = { ...sections };
   if (viz.sectionOverrides) {
     Object.entries(viz.sectionOverrides).forEach(([section, overrides]) => {
-      if (typeof overrides === 'object' && overrides.constructor === Object) {
+      if (overrides && typeof overrides === 'object' && overrides.constructor === Object) {
         sectionsCopy[section] = {
           ...sectionsCopy[section],
           ...overrides,
@@ -1865,10 +1889,21 @@ export function sectionsToRender(vizType, datasourceType) {
       }
     });
   }
-
-  return [].concat(
+  const visSections = [].concat(
     sectionsCopy.datasourceAndVizType,
     datasourceType === 'table' ? sectionsCopy.sqlaTimeSeries : sectionsCopy.druidTimeSeries,
     viz.controlPanelSections,
   ).filter(section => section);
+
+  // Hidding controls as specified in the viz type's `hiddenControls` key
+  if (!includeHiddenControls) {
+    const hidden = viz.hiddenControls || [];
+    Object.values(visSections).forEach((section) => {
+      let rows = section.controlSetRows.map(row => row.filter(item => hidden.indexOf(item) < 0));
+      // Remove empty rows
+      rows = rows.filter(row => !row.every(item => item === null));
+      section.controlSetRows = rows; // eslint-disable-line no-param-reassign
+    });
+  }
+  return visSections;
 }

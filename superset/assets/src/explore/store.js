@@ -16,7 +16,7 @@ export function getControlNames(vizType, datasourceType) {
     section => section.controlSetRows.forEach(
       fsr => fsr.forEach(
         f => controlNames.push(f))));
-  return controlNames;
+  return controlNames.filter(s => s);
 }
 
 function handleDeprecatedControls(formData) {
