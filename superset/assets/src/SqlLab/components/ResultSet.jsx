@@ -4,7 +4,7 @@ import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import shortid from 'shortid';
 
 import Loading from '../../components/Loading';
-import VisualizeModal from './VisualizeModal';
+import ExploreResultsButton from './ExploreResultsButton';
 import HighlightedSql from './HighlightedSql';
 import FilterableTable from '../../components/FilterableTable/FilterableTable';
 import QueryStateLabel from './QueryStateLabel';
@@ -19,6 +19,7 @@ const propTypes = {
   visualize: PropTypes.bool,
   cache: PropTypes.bool,
   height: PropTypes.number.isRequired,
+  database: PropTypes.object,
 };
 const defaultProps = {
   search: true,
@@ -38,9 +39,10 @@ export default class ResultSet extends React.PureComponent {
     super(props);
     this.state = {
       searchText: '',
-      showModal: false,
+      showExploreResultsButton: false,
       data: null,
     };
+    this.toggleExploreResultsButton = this.toggleExploreResultsButton.bind(this);
   }
   componentDidMount() {
     // only do this the first time the component is rendered/mounted
@@ -61,56 +63,6 @@ export default class ResultSet extends React.PureComponent {
       this.fetchResults(nextProps.query);
     }
   }
-  getControls() {
-    if (this.props.search || this.props.visualize || this.props.csv) {
-      let csvButton;
-      if (this.props.csv) {
-        csvButton = (
-          <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
-            <i className="fa fa-file-text-o" /> {t('.CSV')}
-          </Button>
-        );
-      }
-      let visualizeButton;
-      if (this.props.visualize) {
-        visualizeButton = (
-          <Button
-            bsSize="small"
-            onClick={this.showModal.bind(this)}
-          >
-            <i className="fa fa-line-chart m-l-1" /> {t('Visualize')}
-          </Button>
-        );
-      }
-      let searchBox;
-      if (this.props.search) {
-        searchBox = (
-          <input
-            type="text"
-            onChange={this.changeSearch.bind(this)}
-            className="form-control input-sm"
-            placeholder={t('Search Results')}
-          />
-        );
-      }
-      return (
-        <div className="ResultSetControls">
-          <div className="clearfix">
-            <div className="pull-left">
-              <ButtonGroup>
-                {visualizeButton}
-                {csvButton}
-              </ButtonGroup>
-            </div>
-            <div className="pull-right">
-              {searchBox}
-            </div>
-          </div>
-        </div>
-      );
-    }
-    return <div className="noControls" />;
-  }
   clearQueryResults(query) {
     this.props.actions.clearQueryResults(query);
   }
@@ -124,11 +76,8 @@ export default class ResultSet extends React.PureComponent {
     };
     this.props.actions.addQueryEditor(qe);
   }
-  showModal() {
-    this.setState({ showModal: true });
-  }
-  hideModal() {
-    this.setState({ showModal: false });
+  toggleExploreResultsButton() {
+    this.setState({ showExploreResultsButton: !this.state.showExploreResultsButton });
   }
   changeSearch(event) {
     this.setState({ searchText: event.target.value });
@@ -144,6 +93,41 @@ export default class ResultSet extends React.PureComponent {
     if (query.errorMessage && query.errorMessage.indexOf('session timed out') > 0) {
       this.props.actions.runQuery(query, true);
     }
+  }
+  renderControls() {
+    if (this.props.search || this.props.visualize || this.props.csv) {
+      return (
+        <div className="ResultSetControls">
+          <div className="clearfix">
+            <div className="pull-left">
+              <ButtonGroup>
+                {this.props.visualize &&
+                  <ExploreResultsButton
+                    query={this.props.query}
+                    database={this.props.database}
+                    actions={this.props.actions}
+                  />}
+                {this.props.csv &&
+                  <Button bsSize="small" href={'/superset/csv/' + this.props.query.id}>
+                    <i className="fa fa-file-text-o" /> {t('.CSV')}
+                  </Button>}
+              </ButtonGroup>
+            </div>
+            <div className="pull-right">
+              {this.props.search &&
+                <input
+                  type="text"
+                  onChange={this.changeSearch.bind(this)}
+                  className="form-control input-sm"
+                  placeholder={t('Search Results')}
+                />
+              }
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return <div className="noControls" />;
   }
   render() {
     const query = this.props.query;
@@ -189,12 +173,7 @@ export default class ResultSet extends React.PureComponent {
       if (data && data.length > 0) {
         return (
           <div>
-            <VisualizeModal
-              show={this.state.showModal}
-              query={this.props.query}
-              onHide={this.hideModal.bind(this)}
-            />
-            {this.getControls.bind(this)()}
+            {this.renderControls.bind(this)()}
             {sql}
             <FilterableTable
               data={data}

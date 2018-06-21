@@ -5,7 +5,6 @@ import moment from 'moment';
 import { Table } from 'reactable';
 import { Label, ProgressBar, Well } from 'react-bootstrap';
 import Link from './Link';
-import VisualizeModal from './VisualizeModal';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
@@ -172,11 +171,6 @@ class QueryTable extends React.PureComponent {
       q.actions = (
         <div style={{ width: '75px' }}>
           <Link
-            className="fa fa-line-chart m-r-3"
-            tooltip={t('Visualize the data out of this query')}
-            onClick={this.showVisualizeModal.bind(this, query)}
-          />
-          <Link
             className="fa fa-pencil m-r-3"
             onClick={this.restoreSql.bind(this, query)}
             tooltip={t('Overwrite text in editor with a query on this table')}
@@ -199,11 +193,6 @@ class QueryTable extends React.PureComponent {
     }).reverse();
     return (
       <div className="QueryTable">
-        <VisualizeModal
-          show={this.state.showVisualizeModal}
-          query={this.state.activeQuery}
-          onHide={this.hideVisualizeModal.bind(this)}
-        />
         <Table
           columns={this.props.columns}
           className="table table-condensed"

@@ -913,6 +913,7 @@ export const visTypes = {
       {
         label: t('NOT GROUPED BY'),
         description: t('Use this section if you want to query atomic rows'),
+        expanded: true,
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],

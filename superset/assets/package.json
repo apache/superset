@@ -93,6 +93,7 @@
     "react-addons-shallow-compare": "^15.4.2",
     "react-bootstrap": "^0.31.5",
     "react-bootstrap-datetimepicker": "0.0.22",
+    "react-bootstrap-dialog": "^0.10.0",
     "react-bootstrap-slider": "2.1.5",
     "react-bootstrap-table": "^4.3.1",
     "react-color": "^2.13.8",
@@ -128,6 +129,7 @@
     "viewport-mercator-project": "^5.0.0"
   },
   "devDependencies": {
+    "//": "known minor issues in >5.0",
     "babel-cli": "^6.14.0",
     "babel-core": "^6.10.4",
     "babel-eslint": "^8.2.2",
@@ -166,7 +168,6 @@
     "react-addons-test-utils": "^15.6.2",
     "react-test-renderer": "^15.6.2",
     "redux-mock-store": "^1.2.3",
-    "//": "known minor issues in >5.0",
     "sinon": "^4.5.0",
     "style-loader": "^0.21.0",
     "transform-loader": "^0.2.3",
