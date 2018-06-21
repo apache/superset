@@ -2450,13 +2450,13 @@ class Superset(BaseSupersetView):
             timeout_msg = (
                 'The query exceeded the {timeout} seconds '
                 'timeout.').format(**locals())
-            with utils.timeout(seconds=timeout,
-                               error_message=timeout_msg):
-                # pylint: disable=no-value-for-parameter
-                data = sql_lab.get_sql_results(
-                    query_id,
-                    rendered_query,
-                    return_results=True)
+            # with utils.timeout(seconds=timeout,
+            #                    error_message=timeout_msg):
+            # pylint: disable=no-value-for-parameter
+            data = sql_lab.get_sql_results(
+                query_id,
+                rendered_query,
+                return_results=True)
             payload = json.dumps(
                 data, default=utils.pessimistic_json_iso_dttm_ser, ignore_nan=True)
         except Exception as e:
