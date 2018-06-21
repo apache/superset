@@ -13,7 +13,7 @@ import datasources from '../fixtures/mockDatasource';
 import dashboardInfo from '../fixtures/mockDashboardInfo';
 import { dashboardLayout } from '../fixtures/mockDashboardLayout';
 import dashboardState from '../fixtures/mockDashboardState';
-import sliceEntities from '../fixtures/mockSliceEntities';
+import { sliceEntitiesForChart as sliceEntities } from '../fixtures/mockSliceEntities';
 
 import { CHART_TYPE } from '../../../../src/dashboard/util/componentTypes';
 import newComponentFactory from '../../../../src/dashboard/util/newComponentFactory';

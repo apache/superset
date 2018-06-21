@@ -7,7 +7,7 @@ import { expect } from 'chai';
 import { List } from 'react-virtualized';
 
 import SliceAdder from '../../../../src/dashboard/components/SliceAdder';
-import { mockSliceEntities } from '../fixtures';
+import { sliceEntitiesForDashboard as mockSliceEntities } from '../fixtures/mockSliceEntities';
 
 describe('SliceAdder', () => {
   const mockEvent = {
