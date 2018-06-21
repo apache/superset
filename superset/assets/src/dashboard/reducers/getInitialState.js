@@ -93,6 +93,7 @@ export default function(bootstrapData) {
         description: slice.description,
         description_markeddown: slice.description_markeddown,
         modified: slice.modified ? slice.modified.replace(/<[^>]*>/g, '') : '',
+        changed_on: new Date(slice.changed_on).getTime(),
       };
 
       sliceIds.add(key);

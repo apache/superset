@@ -9,7 +9,10 @@ import SliceHeader from '../../../../../src/dashboard/components/SliceHeader';
 import ChartContainer from '../../../../../src/chart/ChartContainer';
 
 import mockDatasource from '../../fixtures/mockDatasource';
-import sliceEntities, { sliceId } from '../../fixtures/mockSliceEntities';
+import {
+  sliceEntitiesForChart as sliceEntities,
+  sliceId,
+} from '../../fixtures/mockSliceEntities';
 import chartQueries, {
   sliceId as queryId,
 } from '../../fixtures/mockChartQueries';

@@ -398,12 +398,12 @@ export function convertToLayout(positions) {
 function mergePosition(position, bottomLine, maxColumn) {
   const { col, size_x, size_y } = position;
   const endColumn = col + size_x > maxColumn ? bottomLine.length : col + size_x;
-  const nextSectionStart =
+  const sectionLength =
     bottomLine.slice(col).findIndex(value => value > bottomLine[col]) + 1;
 
   const currentBottom =
-    nextSectionStart > 0 && nextSectionStart < size_x
-      ? Math.max.apply(null, bottomLine.slice(col, col + size_x + 1))
+    sectionLength > 0 && sectionLength < size_x
+      ? Math.max.apply(null, bottomLine.slice(col, col + size_x))
       : bottomLine[col];
   bottomLine.fill(currentBottom + size_y, col, endColumn);
 }
